@@ -19,6 +19,14 @@
 
 
 #define	DEVICE_PATH				"devices"
+#define	HOST_DEVICE_PATH		"devices"
+
+
+#define	SEARCH_NAME				"cur_search"
+#define	DEV_SEARCH_PATH			"cur_search"
+
+
+
 
 #endif	/* !defined(_DCTL_COMMON_H_) */
 

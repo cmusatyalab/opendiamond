@@ -25,6 +25,7 @@
 #include "filter_exec.h"
 #include "log.h"
 #include "log_impl.h"
+#include "lib_dctl.h"
 #include "lib_hstub.h"
 
 #define	LOG_RING_SIZE	512

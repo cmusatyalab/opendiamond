@@ -58,12 +58,17 @@ bg_main(void *arg)
 	device_handle_t *	cur_dev;
 	struct timespec timeout;
 	uint32_t			loop_count = 0;
+	uint32_t			dummy = 0;
 
 
 	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
 	assert(err == 0);
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count", DCTL_DT_UINT32,
 					dctl_read_uint32, dctl_write_uint32, &loop_count);
+	assert(err == 0);
+
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "dummy", DCTL_DT_UINT32,
+					dctl_read_uint32, dctl_write_uint32, &dummy);
 	assert(err == 0);
 
 	sc = (search_context_t *)arg;

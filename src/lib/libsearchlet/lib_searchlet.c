@@ -19,8 +19,8 @@
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_log.h"
-#include "lib_hstub.h"
 #include "lib_dctl.h"
+#include "lib_hstub.h"
 #include "dctl_common.h"
 
 
@@ -257,7 +257,6 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	}
 
 	/* XXXX */
-	printf("set searchlet !! \n");
 	sc->cur_status = SS_IDLE;
 
 	return(0);
@@ -301,7 +300,6 @@ ls_start_search(ls_search_handle_t handle)
 	 */
 	if (sc->cur_status != SS_IDLE) {
 		/* XXX log */
-		printf("still idle \n");
 		return (EINVAL);
 	}
 
@@ -318,7 +316,6 @@ ls_start_search(ls_search_handle_t handle)
 			 * rest of the device
 			 * XXX figure out what to do here ???
 			 */
-			printf("failed to start device \n");
 			assert(0);
 			/* XXX logging */
 		} else {

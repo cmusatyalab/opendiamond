@@ -18,15 +18,13 @@ static	dctl_node_t *	root_node;
 static  pthread_mutex_t	dctl_mutex;
 
 
-	
-
 
 static dctl_node_t *
 lookup_child_node(dctl_node_t *pnode, char *node_name)
 {
-	dctl_node_t *cur_node;
+    dctl_node_t *cur_node;
 
-	LIST_FOREACH(cur_node, &pnode->node_children, node_link) {
+    LIST_FOREACH(cur_node, &pnode->node_children, node_link) {
 		if (strcmp(cur_node->node_name, node_name) == 0) {
 			return(cur_node);
 		}
@@ -187,12 +185,101 @@ dctl_init( )
 	return(0);
 }
 
+int
+dctl_register_fwd_node(char *path, char *node_name, dctl_fwd_cbs_t *cbs)
+{
+	dctl_node_t *	parent_node;
+	dctl_node_t *	new_node;
+	dctl_leaf_t *	leaf_probe;
+	int		len;
+
+	len = strlen(path);
+
+	/* find the parent node for this entry */
+	parent_node = lookup_node(path);
+	if (parent_node == NULL) {
+		return(ENOENT);
+	}
+
+	/* make there is not already a node with this name */
+	new_node = lookup_child_node(parent_node, node_name);
+	if (new_node != NULL) {
+		return(EEXIST);
+	}
+
+	/* make sure there is not a leaf with this name */
+	leaf_probe = lookup_child_leaf(parent_node, node_name);
+	if (leaf_probe != NULL) {
+		return(EEXIST);
+	}
 
 
+	/* allocate the new node and setup it up */
+	new_node = (dctl_node_t *) malloc(sizeof(*new_node));
+	if (new_node == NULL) {
+		return(ENOMEM);	/* XXX different error ?? */
+	}
+
+	new_node->node_type  = DCTL_NODE_FWD;
+	new_node->node_name  = strdup(node_name);
+	if (new_node->node_name == NULL) {
+		free(new_node);
+		return(ENOMEM);	/* XXX different error ?? */
+	}
+
+    /* store the callback functions */ 
+	new_node->node_rleaf_cb  = cbs->dfwd_rleaf_cb;
+	new_node->node_wleaf_cb  = cbs->dfwd_wleaf_cb;
+	new_node->node_lnodes_cb  = cbs->dfwd_lnodes_cb;
+	new_node->node_lleafs_cb  = cbs->dfwd_lleafs_cb;
+	new_node->node_cookie  = cbs->dfwd_cookie;
+
+	/* initialize the lists for the children of this node */
+	LIST_INIT(&new_node->node_leafs);	
+	LIST_INIT(&new_node->node_children);	
 
 
+	/* insert this node onto the parents list */
+	insert_node(parent_node, new_node);
 
+	return(0);
+}
 
+int
+dctl_unregister_fwd_node(char *path, char *node_name)
+{
+	dctl_node_t *	parent_node;
+	dctl_node_t *	new_node;
+	int		len;
+
+	len = strlen(path);
+
+	parent_node = lookup_node(path);
+	if (parent_node == NULL) {
+		return(ENOENT);
+	}
+	
+	/* find the node we are deleteing */
+	new_node = lookup_child_node(parent_node, node_name);
+	if (new_node == NULL) {
+		return(ENOENT);
+	}
+
+	/* make sure nobody depends on this node */
+	if ((!LIST_EMPTY(&new_node->node_children)) ||
+		       	(!LIST_EMPTY(&new_node->node_children))) {
+		return(EBUSY);
+	}
+
+	/* remove the node from the list */
+	remove_node(parent_node, new_node);
+
+	/* free the associated resources */	
+	free(new_node->node_name);
+	free(new_node);
+
+	return(0);
+}
 
 int
 dctl_register_node(char *path, char *node_name)
@@ -229,6 +316,7 @@ dctl_register_node(char *path, char *node_name)
 		return(ENOMEM);	/* XXX different error ?? */
 	}
 
+	new_node->node_type  = DCTL_NODE_LOCAL;
 	new_node->node_name  = strdup(node_name);
 	if (new_node->node_name == NULL) {
 		free(new_node);
@@ -358,21 +446,63 @@ dctl_unregister_leaf(char *path, char *leaf_name)
 int 
 dctl_list_nodes(char *path, int *num_ents, dctl_entry_t *entry_space)
 {
-	dctl_node_t *	parent_node;
+	dctl_node_t *	pnode;
 	dctl_node_t *	cur_node;
-	int		i;
+	int		        i;
+	int		        err;
+	char *		    head;
+	char *		    delim;
+	int		        len;
+	char *		    next_head;
+	char		    token_data[MAX_TOKEN];
 
-	parent_node = lookup_node(path);
-	if (parent_node == NULL) {
-		return(ENOENT);
+
+	/*
+	 * try to see if this is a lits of items.
+	 */
+
+	pnode = root_node;
+	head = path;
+	while (*head != '\0') {
+		delim = index(head, '.');
+		if (delim == NULL) {
+			len = strlen(head);
+			next_head = head  + len;
+		} else {
+			len = delim - head;
+			next_head = delim + 1;
+		}
+		assert(len < MAX_TOKEN);
+
+		strncpy(token_data, head, len);
+		token_data[len] = 0;
+
+		pnode = lookup_child_node(pnode, token_data);
+		if (pnode == NULL) {
+		    return(ENOENT);
+		}
+
+        /*
+         * See if this is a mount point.  If so,
+         * then we call the appropriate callback function
+         * and return the results.
+         */
+        if (pnode->node_type == DCTL_NODE_FWD) {
+	        err = (*pnode->node_lnodes_cb)(next_head, num_ents, 
+                            entry_space, pnode->node_cookie);
+            return(err);
+        }
+
+		head = next_head;
 	}
+
 
 	/*
 	 * see how many entries we have and if the caller provided
 	 * enough space.
 	 */
 	i = 0;
-	LIST_FOREACH(cur_node, &parent_node->node_children, node_link) {
+	LIST_FOREACH(cur_node, &pnode->node_children, node_link) {
 		i++;
 	}
 	if (i > *num_ents) {
@@ -381,7 +511,7 @@ dctl_list_nodes(char *path, int *num_ents, dctl_entry_t *entry_space)
 	}
 
 	i = 0;	
-	LIST_FOREACH(cur_node, &parent_node->node_children, node_link) {
+	LIST_FOREACH(cur_node, &pnode->node_children, node_link) {
 		strncpy(entry_space[i].entry_name, cur_node->node_name, 
 				MAX_DCTL_COMP_NAME);
 		entry_space[i].entry_type = DCTL_DT_NODE;
@@ -396,21 +526,63 @@ dctl_list_nodes(char *path, int *num_ents, dctl_entry_t *entry_space)
 int 
 dctl_list_leafs(char *path, int *num_ents, dctl_entry_t *entry_space)
 {
-	dctl_node_t *	parent_node;
+	dctl_node_t *	pnode;
 	dctl_leaf_t *	cur_leaf;
-	int		i;
+	int		        i;
+    int             err;
+	char *		    head;
+	char *		    delim;
+	int		        len;
+	char *		    next_head;
+	char		    token_data[MAX_TOKEN];
 
-	parent_node = lookup_node(path);
-	if (parent_node == NULL) {
-		return(ENOENT);
+
+	/*
+	 * try to see if this is a lits of items.
+	 */
+
+	pnode = root_node;
+	head = path;
+	while (*head != '\0') {
+		delim = index(head, '.');
+		if (delim == NULL) {
+			len = strlen(head);
+			next_head = head  + len;
+		} else {
+			len = delim - head;
+			next_head = delim + 1;
+		}
+		assert(len < MAX_TOKEN);
+
+		strncpy(token_data, head, len);
+		token_data[len] = 0;
+
+		pnode = lookup_child_node(pnode, token_data);
+		if (pnode == NULL) {
+		    return(ENOENT);
+		}
+
+        /*
+         * See if this is a mount point.  If so,
+         * then we call the appropriate callback function
+         * and return the results.
+         */
+        if (pnode->node_type == DCTL_NODE_FWD) {
+	        err = (*pnode->node_lleafs_cb)(next_head, num_ents, 
+                            entry_space, pnode->node_cookie);
+            return(err);
+        }
+
+		head = next_head;
 	}
+
 
 	/*
 	 * see how many entries we have and if the caller provided
 	 * enough space.
 	 */
 	i = 0;
-	LIST_FOREACH(cur_leaf, &parent_node->node_leafs, leaf_link) {
+	LIST_FOREACH(cur_leaf, &pnode->node_leafs, leaf_link) {
 		i++;
 	}
 	if (i > *num_ents) {
@@ -419,7 +591,7 @@ dctl_list_leafs(char *path, int *num_ents, dctl_entry_t *entry_space)
 	}
 
 	i = 0;	
-	LIST_FOREACH(cur_leaf, &parent_node->node_leafs, leaf_link) {
+	LIST_FOREACH(cur_leaf, &pnode->node_leafs, leaf_link) {
 		strncpy(entry_space[i].entry_name, cur_leaf->leaf_name, 
 				MAX_DCTL_COMP_NAME);
 		entry_space[i].entry_type = cur_leaf->leaf_type;
@@ -434,17 +606,61 @@ dctl_list_leafs(char *path, int *num_ents, dctl_entry_t *entry_space)
 
 
 int 
-dctl_read_leaf(char *leaf_name, int *len, char *data)
+dctl_read_leaf(char *leaf_name, dctl_data_type_t *dtype, int *len, char *data)
 {
 	dctl_leaf_t *	leaf;
-	int		err;
+	dctl_node_t *	pnode;
+	int		        err;
+	char *		    head;
+	char *		    delim;
+	int		        clen;
+	char *		    next_head;
+	char		    token_data[MAX_TOKEN];
 
-	/* find the node we are reading */
-	leaf = lookup_leaf(leaf_name);
+	/*
+	 * try to see if this is a lits of items.
+	 */
+
+	pnode = root_node;
+	head = leaf_name;
+	while (*head != '\0') {
+		delim = index(head, '.');
+		if (delim == NULL) {
+			leaf_name = head;
+			break;
+		} else {
+			clen = delim - head;
+			next_head = delim + 1;
+		}
+		assert(clen < MAX_TOKEN);
+
+		strncpy(token_data, head, clen);
+		token_data[clen] = 0;
+
+		pnode = lookup_child_node(pnode, token_data);
+		if (pnode == NULL) {
+			return(ENOENT);
+		}
+
+        /*
+         * See if this is a mount point.  If so,
+         * then we call the appropriate callback function
+         * and return the results.
+         */
+        if (pnode->node_type == DCTL_NODE_FWD) {
+	        err = (*pnode->node_rleaf_cb)(next_head, dtype, len, 
+                            data, pnode->node_cookie);
+            return(err);
+        }
+
+		head = next_head;
+	}
+
+	leaf = lookup_child_leaf(pnode, leaf_name);
 	if (leaf == NULL) {
 		return(ENOENT);
 	}
-
+    *dtype = leaf->leaf_type;
 	err = (*leaf->leaf_read_cb)(leaf->leaf_cookie, len, data);
 	return(err);
 }
@@ -455,10 +671,55 @@ int
 dctl_write_leaf(char *leaf_name, int len, char *data)
 {
 	dctl_leaf_t *	leaf;
-	int		err;
+	dctl_node_t *	pnode;
+	int		        err;
+	char *		    head;
+	char *		    delim;
+	int		        clen;
+	char *		    next_head;
+	char		    token_data[MAX_TOKEN];
+
+	/*
+	 * try to see if this is a lits of items.
+	 */
+
+	pnode = root_node;
+	head = leaf_name;
+	while (*head != '\0') {
+		delim = index(head, '.');
+		if (delim == NULL) {
+			leaf_name = head;
+			break;
+		} else {
+			clen = delim - head;
+			next_head = delim + 1;
+		}
+		assert(clen < MAX_TOKEN);
+
+		strncpy(token_data, head, clen);
+		token_data[clen] = 0;
+
+		pnode = lookup_child_node(pnode, token_data);
+		if (pnode == NULL) {
+			return(ENOENT);
+		}
+
+        /*
+         * See if this is a mount point.  If so,
+         * then we call the appropriate callback function
+         * and return the results.
+         */
+        if (pnode->node_type == DCTL_NODE_FWD) {
+	        err = (*pnode->node_wleaf_cb)(next_head, len, 
+                            data, pnode->node_cookie);
+            return(err);
+        }
+
+		head = next_head;
+	}
 
 	/* find the leaf node we are writing */
-	leaf = lookup_leaf(leaf_name);
+	leaf = lookup_child_leaf(pnode, leaf_name);
 	if (leaf == NULL) {
 		return(ENOENT);
 	}

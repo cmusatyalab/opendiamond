@@ -41,42 +41,45 @@ send_err_response(int conn, int err_code)
 	dctl_msg_hdr_t	msg;
 	int		err;
 
+
 	msg.dctl_op = DCTL_OP_REPLY;
 	msg.dctl_err = err_code;
 	msg.dctl_dlen = 0;
 	msg.dctl_plen = 0;
 
-	err = send(conn, &msg, sizeof(msg), 0);
+
+	err = send(conn, &msg, sizeof(msg), MSG_NOSIGNAL);
 	/* XXX ignore response */
 
 }
 
 
 static void
-send_read_response(int conn, int len, char *data_buffer)
+send_read_response(int conn, dctl_data_type_t dtype, int len, char *data_buffer)
 {
 	dctl_msg_hdr_t	msg;
 	int		err;
 
 	msg.dctl_op = DCTL_OP_REPLY;
+	msg.dctl_dtype = dtype;
 	msg.dctl_err = 0;
 	msg.dctl_dlen = len;
 	msg.dctl_plen = 0;
 
-	err = send(conn, &msg, sizeof(msg), 0);
+	err = send(conn, &msg, sizeof(msg), MSG_NOSIGNAL);
 	if (err != sizeof(msg)) {
 		return;
 	}
 	/* XXX ignore response */
 
-	err = send(conn, data_buffer, len, 0);
+	err = send(conn, data_buffer, len, MSG_NOSIGNAL);
 	if (err != len) {
 		return;
 	}
 }
 
 static void
-send_list_reponse(int conn, int num_ents, dctl_entry_t *entry_buffer)
+send_list_response(int conn, int num_ents, dctl_entry_t *entry_buffer)
 {
 	dctl_msg_hdr_t	msg;
 	int		err;
@@ -89,13 +92,13 @@ send_list_reponse(int conn, int num_ents, dctl_entry_t *entry_buffer)
 	msg.dctl_dlen = dlen;
 	msg.dctl_plen = 0;
 
-	err = send(conn, &msg, sizeof(msg), 0);
+	err = send(conn, &msg, sizeof(msg), MSG_NOSIGNAL);
 	if (err!=sizeof(msg)) {
 		return;
 	}
 	/* XXX ignore response */
 
-	err = send(conn, (char *)entry_buffer, dlen, 0);
+	err = send(conn, (char *)entry_buffer, dlen, MSG_NOSIGNAL);
 	if (err != dlen) {
 		return;
 	}
@@ -106,12 +109,13 @@ send_list_reponse(int conn, int num_ents, dctl_entry_t *entry_buffer)
 static void
 process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 {
-	int		err;
-	int		len;
-	dctl_op_t	cmd;
-	char *		path;
-	char *		arg;
-	int		arg_len;
+	int		        err;
+	int		        len;
+	dctl_op_t	    cmd;
+	char *		    path;
+	char *		    arg;
+	int		        arg_len;
+    dctl_data_type_t    dtype; 
 
 	path = data;
 
@@ -120,12 +124,12 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 	switch(cmd) {
 		case DCTL_OP_READ: 
 			len = BIG_SIZE;
-			err = dctl_read_leaf(path, &len, data_buffer);
+			err = dctl_read_leaf(path, &dtype, &len, data_buffer);
 			assert(err != ENOMEM);
 			if (err) {
 				send_err_response(conn, err);
 			}
-			send_read_response(conn, len, data_buffer);
+			send_read_response(conn, dtype, len, data_buffer);
 			break;
 
 		case DCTL_OP_WRITE: 
@@ -143,7 +147,7 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 			if (err) {
 				send_err_response(conn, err);
 			}
-			send_list_reponse(conn, len, entry_buffer);
+			send_list_response(conn, len, entry_buffer);
 			break;
 
 		case DCTL_OP_LIST_LEAFS: 
@@ -153,7 +157,7 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 			if (err) {
 				send_err_response(conn, err);
 			}
-			send_list_reponse(conn, len, entry_buffer);
+			send_list_response(conn, len, entry_buffer);
 			break;
 
 		default:

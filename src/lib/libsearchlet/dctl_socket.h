@@ -21,10 +21,11 @@ typedef	enum {
 
 
 typedef struct {
-	dctl_op_t	dctl_op;
-	uint32_t	dctl_err;
-	uint32_t	dctl_dlen;
-	uint32_t	dctl_plen;
+	dctl_op_t	        dctl_op;
+    dctl_data_type_t    dctl_dtype;
+	uint32_t	        dctl_err;
+	uint32_t	        dctl_dlen;
+	uint32_t	        dctl_plen;
 } dctl_msg_hdr_t;
 
 

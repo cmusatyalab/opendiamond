@@ -273,14 +273,11 @@ filter_eval_fn()
 {
 	char *fname;
 
-	printf("eval function: <%s> \n", yytext);
 	fname = eat_token(yytext); 
 	if (strlen(fname) >= MAX_FILTER_FUNC_NAME) {
 		/* XXX error */
 		return;
 	}
-
-	printf("eval_fn: yytext <%s>  fname <%s> \n", yytext, fname);
 
     if (cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");

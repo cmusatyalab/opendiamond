@@ -553,7 +553,7 @@ resolve_filter_deps(filter_data_t *fdata)
 
 
 	/* export filters */
-	fprintf(stderr, "filterexec: exporting filter graph to %s.*\n", filename);
+	// XXX fprintf(stderr, "filterexec: exporting filter graph to %s.*\n", filename);
 	
 	{
 		node_t *prev = NULL;
@@ -630,7 +630,9 @@ fexec_load_searchlet(char *lib_name, char *filter_spec, filter_data_t **fdata)
 		"init_filters: lib %s spec %s", lib_name, filter_spec);
 
 
+#ifdef	XXX
 	fprintf(stderr, "filterexec: reading filter spec %s...\n", filter_spec);
+#endif
 	err = read_filter_spec(filter_spec, fdata);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR, 

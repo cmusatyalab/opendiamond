@@ -102,6 +102,7 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	
 	*obj_handle = (obj_data_t *)new_obj;
 
+	fclose(os_file);
 	return(0);
 }
 
@@ -127,8 +128,13 @@ odisk_get_obj_cnt(odisk_state_t *odisk)
 	while (1) {
 
 		cur_ent = readdir(dir);
+		/*
+		 * If readdir fails, then we have enumerated all
+		 * the contents.
+		 */
+
 		if (cur_ent == NULL) {
-			/* printf("no ent !! \n"); */
+			closedir(dir);
 			return(count);
 		}
 
@@ -156,6 +162,8 @@ odisk_get_obj_cnt(odisk_state_t *odisk)
 		/* if we get here, this is a good one */
 		count++;
 	}
+
+	closedir(dir);
 
 }
 

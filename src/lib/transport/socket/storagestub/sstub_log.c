@@ -241,6 +241,7 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 void
 sstub_except_log(listener_state_t *lstate, cstate_t *cstate)
 {
+    printf("XXX except_log \n");
 	/* Handle the case where we are shutting down */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;

@@ -232,6 +232,7 @@ sstub_write_control(listener_state_t *lstate, cstate_t *cstate)
 void
 sstub_except_control(listener_state_t *lstate, cstate_t *cstate)
 {
+    printf("XXX except_control \n");
 	/* Handle the case where we are shutting down */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;
@@ -478,8 +479,8 @@ void
 sstub_read_control(listener_state_t *lstate, cstate_t *cstate)
 {
 	int			dsize;
-	char *			data;
-	char *			data_buf = NULL;
+	char *	    data;
+	char *		data_buf = NULL;
 	int			remain_header, remain_data;
 	int			header_offset, data_offset;
 

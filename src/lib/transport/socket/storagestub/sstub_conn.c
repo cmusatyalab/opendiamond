@@ -77,6 +77,11 @@ connection_main(listener_state_t *lstate, int conn)
 		FD_SET(cstate->data_fd,  &cstate->read_fds);
 		FD_SET(cstate->log_fd,  &cstate->read_fds);
 
+		FD_SET(cstate->control_fd,  &cstate->except_fds);
+		FD_SET(cstate->data_fd,  &cstate->except_fds);
+		FD_SET(cstate->log_fd,  &cstate->except_fds);
+
+
 		pthread_mutex_lock(&cstate->cmutex);
 		if (cstate->flags & CSTATE_CONTROL_DATA) {
 			FD_SET(cstate->control_fd,  &cstate->write_fds);
@@ -102,6 +107,7 @@ connection_main(listener_state_t *lstate, int conn)
 
 		if (err == -1) {
 			/* XXX log */
+            printf("XXX select %d \n", errno);
 			perror("XXX select failed ");
 			exit(1);
 		}

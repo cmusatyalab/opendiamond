@@ -592,3 +592,207 @@ odisk_term(odisk_state_t *odisk)
 	return (err);
 }
 
+static void
+update_gid_idx(odisk_state_t *odisk, char *name, groupid_t gid)
+{
+	char	idx_name[256];
+	FILE *	idx_file;
+	int	num;
+	gid_idx_ent_t	gid_idx;
+
+	sprintf(idx_name, "%s/%s%016llX", odisk->odisk_path, GID_IDX, gid);
+
+	idx_file = fopen(idx_name, "a");
+	if (idx_file == NULL) {
+		fprintf(stderr, "update_gid_idx: failed to open <%s> \n", 
+			idx_name);
+		return;
+	}
+
+	memset(&gid_idx, 0, sizeof(gid_idx));
+	sprintf(gid_idx.gid_name, "%s", name);
+
+	num = fwrite(&gid_idx, sizeof(gid_idx), 1, idx_file);
+	assert(num == 1);
+
+	fclose(idx_file);
+}
+
+static void
+update_object_gids(odisk_state_t *odisk, obj_data_t *obj, char *name)
+{
+    gid_list_t* glist;
+    off_t       len; 
+    int         i, err;
+
+    len = 0;
+    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
+    if (err != ENOMEM) {
+	/* XXX log ?? */
+        return;
+    }
+
+    glist = (gid_list_t *)malloc(len);
+    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *)glist);
+    assert(err == 0);
+
+    for (i=0; i < glist->num_gids; i++) {
+	update_gid_idx(odisk, name, glist->gids[i]);
+    }
+
+    free(glist);
+}
+
+
+/*
+ * Clear all of the GID index files.  
+ */
+ 
+int
+odisk_clear_indexes(odisk_state_t *odisk)
+{
+	struct dirent *		cur_ent;
+	int			extlen, flen;
+	char *			poss_ext;
+	DIR *		dir;
+	int		count = 0;
+	int			err;
+
+	dir = opendir(odisk->odisk_path);
+	if (dir == NULL) {
+		/* XXX log */
+		printf("failed to open %s \n", odisk->odisk_path);
+		return(0);
+	}
+
+
+	while (1) {
+
+		cur_ent = readdir(dir);
+		/*
+		 * If readdir fails, then we have enumerated all
+		 * the contents.
+		 */
+
+		if (cur_ent == NULL) {
+			closedir(dir);
+			return(count);
+		}
+
+		/*
+	 	 * If this isn't a file then we skip the entry.
+	 	 */
+		if ((cur_ent->d_type != DT_REG) && 
+				(cur_ent->d_type != DT_LNK)) {
+			continue;
+		}
+
+		/*
+ 		 * If this begins with the prefix GID_IDX, then
+ 		 * it is an index file so it should be deleted.
+ 		 */
+
+		flen = strlen(cur_ent->d_name);
+		extlen = strlen(GID_IDX);
+		if (flen > extlen) {
+			poss_ext = &cur_ent->d_name[flen - extlen];
+			if (strncmp(cur_ent->d_name, GID_IDX, extlen) == 0) {
+				char 	max_path[256];	/* XXX */
+    			     
+			        sprintf(max_path, "%s/%s", odisk->odisk_path,
+					 cur_ent->d_name);
+				err = remove(max_path);
+				if (err == -1) {
+					fprintf(stderr, "Failed to remove %s\n",
+						max_path);
+				}
+			}
+		}
+	}
+
+	closedir(dir);
+}
+
+int
+odisk_build_indexes(odisk_state_t *odisk)
+{
+	struct dirent *		cur_ent;
+	int			extlen, flen;
+	char *			poss_ext;
+	char 	max_path[256];	/* XXX */
+	DIR *		dir;
+	int		count = 0;
+	int			err;
+	obj_data_t	 *	new_object;
+
+	dir = opendir(odisk->odisk_path);
+	if (dir == NULL) {
+		/* XXX log */
+		printf("failed to open %s \n", odisk->odisk_path);
+		return(0);
+	}
+
+
+	while (1) {
+
+		cur_ent = readdir(dir);
+		/*
+		 * If readdir fails, then we have enumerated all
+		 * the contents.
+		 */
+
+		if (cur_ent == NULL) {
+			closedir(dir);
+			return(count);
+		}
+
+		/*
+	 	 * If this isn't a file then we skip the entry.
+	 	 */
+		if ((cur_ent->d_type != DT_REG) && 
+				(cur_ent->d_type != DT_LNK)) {
+			continue;
+		}
+
+		/* make sure this isn't an index file */
+		flen = strlen(cur_ent->d_name);
+		extlen = strlen(GID_IDX);
+		if (flen > extlen) {
+			if (strncmp(cur_ent->d_name, GID_IDX, extlen) == 0) {
+				continue;
+			}
+		}
+
+		/* see if this is an attribute file */	
+		extlen = strlen(ATTR_EXT);
+		flen = strlen(cur_ent->d_name);
+		if (flen > extlen) {
+			poss_ext = &cur_ent->d_name[flen - extlen];
+			if (strcmp(poss_ext, ATTR_EXT) == 0) {
+				continue;
+			}
+		}
+
+		sprintf(max_path, "%s/%s", odisk->odisk_path, cur_ent->d_name);
+
+		err = odisk_load_obj(&new_object, max_path);
+		if (err) {
+			/* XXX log */
+			fprintf(stderr, "create obj failed %d \n", err);
+			return(err);
+		}
+
+		/*
+		 * Go through each of the GID's and update the index file.
+		 */
+      
+		update_object_gids(odisk, new_object, cur_ent->d_name);
+  
+		odisk_release_obj(odisk, new_object);
+
+
+
+	}
+
+	closedir(dir);
+}

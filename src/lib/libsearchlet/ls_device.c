@@ -582,7 +582,7 @@ create_new_device(search_context_t *sc, uint32_t devid)
 
 	err = dctl_register_leaf(HOST_DEVICE_PATH, "credit_incr", DCTL_DT_UINT32,
 			dctl_read_uint32, dctl_write_uint32, &new_dev->credit_incr);
-    assert(err == 0);
+    //assert(err == 0);
 
 
 	return(new_dev);

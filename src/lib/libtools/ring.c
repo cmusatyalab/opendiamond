@@ -62,7 +62,7 @@ ring_count(ring_data_t *ring)
 
 	assert(ring->type == RING_TYPE_SINGLE);
 
-	if (ring->head > ring->tail) {
+	if (ring->head >= ring->tail) {
 		diff = ring->head - ring->tail;
 	} else {
 		diff = (ring->head + ring->size) - ring->tail;

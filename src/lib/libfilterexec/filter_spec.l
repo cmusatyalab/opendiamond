@@ -314,7 +314,6 @@ read_filter_spec(char *spec_name, filter_info_t **froot, char **troot)
 	first_filter = NULL;
 	cur_filter = NULL;
 
-	printf("reading filter spec (%s)...\n", spec_name);
 	yyin = fopen(spec_name, "r");
 	err = fspeclex();
 

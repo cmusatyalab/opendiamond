@@ -71,8 +71,9 @@ load_filter_lib(char *lib_name, filter_info_t *froot)
 			return(ENOENT);
 		}
 		cur_filt->fi_fp = fp;
+#ifdef VERBOSE
 		fprintf(stderr, "%s: resolved.\n", cur_filt->fi_name);
-
+#endif
 		cur_filt = cur_filt->fi_next;
 	}
 
@@ -284,7 +285,7 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	froot = dummy.fi_next;
 
 	/* export filters */
-	fprintf(stderr, "exporting filter graph to %s\n", filename);
+	fprintf(stderr, "filterexec: exporting filter graph to %s\n", filename);
 	
 	{
 		node_t *prev = NULL;
@@ -334,7 +335,7 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	}
 
 	/* XXX print out the order */
-	print_filter_list("filter topol. ordering", froot);
+	print_filter_list("filterexec: filter seq ordering", froot);
 	return froot;
 }
 
@@ -366,7 +367,7 @@ init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
 		"init_filters: lib %s spec %s", lib_name, filter_spec);
 
 
-
+	fprintf(stderr, "filterexec: reading filter spec %s...\n", filter_spec);
 	err = read_filter_spec(filter_spec, froot, &troot);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR, 
@@ -374,7 +375,7 @@ init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
 				filter_spec);
 		return (err);
 	}
-	print_filter_list("read filters", *froot);
+	print_filter_list("filterexec", *froot);
 
 	*froot = resolve_filter_deps(*froot, troot);
 	if (!*froot) {

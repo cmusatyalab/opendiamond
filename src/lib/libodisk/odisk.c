@@ -356,10 +356,8 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
         fd = open(buf, O_CREAT|O_EXCL, 0777); 
 
         if (fd == -1) {
-            printf("%s already exists \n", buf);
             local_id++;
         } else {
-            printf("%s is new obj  \n", buf);
             break;
         }
     }

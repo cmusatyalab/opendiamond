@@ -1666,7 +1666,7 @@ oattr_main(void *arg)
 					 * write out existing data 
 					 */
 					if (wcount > 0) {
-						err = write(fd, wvec, wcount);
+						err = writev(fd, wvec, wcount);
 						assert(err >= 0);
 						for (i = 0; i < wcount; i++) {
 							odisk_release_obj(ovec[i]);
@@ -1705,7 +1705,7 @@ oattr_main(void *arg)
 					/*
 					 * XXX err ?
 					 */
-					err = write(fd, wvec, wcount);
+					err = writev(fd, wvec, wcount);
 					assert(err >= 0);
 					for (i = 0; i < wcount; i++) {
 						odisk_release_obj(ovec[i]);

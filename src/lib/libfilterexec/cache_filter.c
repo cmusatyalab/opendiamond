@@ -77,6 +77,7 @@ static int      perm_done = 0;
 static filter_info_t *active_filter = NULL;
 
 static int      search_active = 0;
+static int      ceval_blocked = 0;
 static pthread_mutex_t ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t active_cv = PTHREAD_COND_INITIALIZER;	/* active */
 
@@ -123,8 +124,10 @@ ceval_main(void *arg)
 	while (1) {
 		pthread_mutex_lock(&ceval_mutex);
 		while (search_active == 0) {
+			ceval_blocked = 1;
 			err = pthread_cond_wait(&active_cv, &ceval_mutex);
 		}
+		ceval_blocked = 0;
 		pthread_mutex_unlock(&ceval_mutex);
 
 		err = odisk_read_next_oid(&oid, cstate->odisk);
@@ -253,10 +256,19 @@ ceval_stop(filter_data_t * fdata)
 	filter_id_t     fid;
 	filter_info_t  *cur_filt;
 	int             i;
+	struct 	timespec	ts;
+
+	/* set search inactive and wait background
+	 * thread to block.
+	 */
+	search_active = 0;
+	while (ceval_blocked == 0) {
+		ts.tv_sec = 0; 
+		ts.tv_nsec = 10000000; 	/* 10 ms */
+		nanosleep(&ts, NULL);
+	}
 
 	pthread_mutex_lock(&ceval_mutex);
-	search_active = 0;
-
 	for (i = 0; i < cached_perm_num; i++) {
 		pmDelete(cached_perm[i]);
 		cached_perm[i] = NULL;

@@ -378,7 +378,8 @@ accept_data_conn(listener_state_t *list_state)
 
 	if (data >= MAX_CONNS) {
 		/* XXX */
-		printf("data conn cookie out of range \n");
+		fprintf(stderr, "data conn cookie out of range <%d> \n",
+				data);
 		close(new_sock);
 		return;
 	}
@@ -386,7 +387,8 @@ accept_data_conn(listener_state_t *list_state)
 
 	if (!(list_state->conns[data].flags & CSTATE_ALLOCATED)) {
 		/* XXX */
-		printf("connection not on valid cookie \n");
+		fprintf(stderr, "connection not on valid cookie <%d>\n",
+			data);
 		close(new_sock);
 		return;
 	}

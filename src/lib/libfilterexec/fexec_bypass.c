@@ -256,7 +256,6 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
   hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
   assert(hstate != NULL);
 
-  printf("hybrid\n");
   /*
    * Reconstruct the cost function of the greedy distribution.
    */
@@ -283,7 +282,6 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
       this_cost = SMALL_FRACTION;
     }
     dcost += this_cost;
-  printf("\t this_cost=%f dcost=%f ", this_cost, dcost);
 
     /* obtain conditional pass rate */
     fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
@@ -304,7 +302,6 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
     if (pass < SMALL_FRACTION) {
       pass = SMALL_FRACTION;
     }
-    printf(" pass=%f \n", pass);
   }
   hstate[i].dcost = dcost;
   hstate[i].greedy_ncost = pass * maxbytes;
@@ -360,7 +357,6 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 
   for(j=0; j<hstate[i].i; j++){
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
-     printf("\t j=%d thresh=RAND_MAX\n",j);
   }
 
   ratio =  (target_ms - hstate[i].c_i) / (hstate[i].c_j - hstate[i].c_i);
@@ -371,15 +367,12 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 
   (fdata->fd_filters[pmElt(perm, hstate[i].i)]).fi_bpthresh =
     (int)((double)RAND_MAX * ratio);
-     printf("\t j=%d thresh=%f\n",hstate[i].i, ratio);
 
   for(j=hstate[i].i+1; j<hstate[i].j; j++){
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
-     printf("\t j=%d thresh=RANDMAX\n",j);
   }
   for(j=hstate[i].j; j<pmLength(perm); j++){
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = -1;
-     printf("\t j=%d thresh=-1\n",j);
   }
 
   free(hstate);

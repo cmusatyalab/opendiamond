@@ -16,7 +16,8 @@ enum split_types_t {
 #define	SPLIT_DEFAULT_TYPE		(SPLIT_TYPE_DYNAMIC)
 #define	SPLIT_DEFAULT_RATIO		(0)
 #define	SPLIT_DEFAULT_AUTO_STEP		5
-#define	SPLIT_DEFAULT_PEND_LOW		2
+#define	SPLIT_DEFAULT_PEND_LOW		200
+#define	SPLIT_DEFAULT_MULT			200
 #define	SPLIT_DEFAULT_PEND_HIGH		10
 
 #define DEV_FLAG_RUNNING                0x01
@@ -44,6 +45,7 @@ typedef struct search_state {
     uint            pend_thresh;
     uint            split_type;		/* policy for the splitting */
     uint            split_ratio;	/* amount of computation to do local */
+    uint            split_mult;	/* multiplier for queue size */
     uint            split_auto_step;	/* step to increment ration by */
     uint            split_pend_low;	/* below, not enough work for host */
     uint            split_pend_high;	/* above, too much work for host */

@@ -398,7 +398,6 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
      */
     assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
-    printf("estimate \n");
     for (i = 0; i < pmLength(perm); i++) {
         float           c;      /* cost of this filter */
         float           p;      /* pass rate for this filter in this pos */
@@ -408,14 +407,12 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
         info = &fdata->fd_filters[pmElt(perm, i)];
         c = info->fi_time_ns;
         n = info->fi_called;
-	printf("\t i=%d c=%f n %d ", i,c,n);
         if (n < FSTATS_VALID_NUM) {
             c = FSTATS_UNKNOWN_COST;
             n = FSTATS_UNKNOWN_NUM;
         }
 
         totalcost += pass * c / n;  /* prev cumul pass * curr cost */
-	printf(" cost=%f", totalcost);
         /*
          * lookup this permutation 
          */
@@ -442,17 +439,12 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 
         assert(p >= 0 && p <= 1.0);
         pass *= p;
-	printf(" prob=%f\n", pass);
         /*
          * don't let it go to zero XXX 
          */
         if (pass < SMALL_FRACTION) {
             pass = SMALL_FRACTION;
         }
-#ifdef	XXX
-        printf("estimate: after (%d) total %f prob %f \n", i,
-               totalcost, pass);
-#endif
     }
 
     *cost = totalcost;

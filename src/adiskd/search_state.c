@@ -400,7 +400,6 @@ dynamic_update_bypass(search_state_t *sstate)
 			sstate->split_ratio += sstate->split_auto_step;
 		}
 	}
-	printf("new_ratio %2d \n", sstate->split_ratio);
 
 }
 #endif
@@ -408,13 +407,10 @@ static void
 dynamic_update_bypass(search_state_t *sstate) 
 {
 
-	sstate->split_ratio = (sstate->pend_objs * sstate->split_pend_low)/100;
+	sstate->split_ratio = (sstate->pend_objs * sstate->split_mult)/100;
 
 	if (sstate->split_ratio < 5) sstate->split_ratio = 5;
 	if (sstate->split_ratio > 100) sstate->split_ratio = 100;
-
-	printf("new_ratio %2d \n", sstate->split_ratio);
-
 }
 
 static void
@@ -775,6 +771,9 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     dctl_register_leaf(DEV_SEARCH_PATH, "split_pend_low", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &sstate->split_pend_low);
+    dctl_register_leaf(DEV_SEARCH_PATH, "split_multiplier", DCTL_DT_UINT32,
+                       dctl_read_uint32, dctl_write_uint32,
+                       &sstate->split_mult);
 
 
     dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
@@ -810,6 +809,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     sstate->split_ratio = SPLIT_DEFAULT_RATIO;;
     sstate->split_auto_step = SPLIT_DEFAULT_AUTO_STEP;
     sstate->split_pend_low = SPLIT_DEFAULT_PEND_LOW;
+    sstate->split_mult = SPLIT_DEFAULT_MULT;
     sstate->split_pend_high = SPLIT_DEFAULT_PEND_HIGH;
 
 

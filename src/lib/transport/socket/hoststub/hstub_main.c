@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -26,7 +27,9 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
-
+/* XXX constant config */
+#define		POLL_SECS	0
+#define		POLL_USECS	200000
 
 static void
 request_chars(sdevice_state_t *dev)
@@ -105,7 +108,9 @@ hstub_main(void *arg)
 	struct timeval 		to;
 	int			err;
 	int			max_fd;
-	int			loop_cnt = 2000000;
+	struct timeval		this_time;
+	struct timeval		next_time = {0,0};
+	struct timezone		tz;
 
 
 
@@ -134,13 +139,22 @@ hstub_main(void *arg)
 	 * is available for processing.
 	 */
 	while (1) {
-		loop_cnt++; 
-		if (loop_cnt > 500000) {
+		gettimeofday(&this_time, &tz);
+
+		if ((this_time.tv_sec >= next_time.tv_sec) &&
+		    (this_time.tv_usec >= next_time.tv_usec)) {
 			request_chars(dev);
 			request_stats(dev);
-			loop_cnt = 0;
-		}
 
+			next_time.tv_sec = this_time.tv_sec + POLL_SECS;
+			assert(POLL_USECS <= 1000000);
+			next_time.tv_usec = this_time.tv_usec + POLL_USECS;
+			if (next_time.tv_usec > 1000000) {
+				next_time.tv_usec -= 1000000;
+				next_time.tv_sec += 1;
+			}	
+
+		}
 
 
 		FD_ZERO(&cinfo->read_fds);

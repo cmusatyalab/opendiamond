@@ -136,7 +136,6 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 	cstate->flags |= CSTATE_CONTROL_DATA;
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	printf("send_stats:  done \n");
 	return(0);
 }
 
@@ -165,7 +164,6 @@ sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no)
 	cstate->flags |= CSTATE_OBJ_DATA;
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	printf("queuing obj %p \n", obj);
 	err = ring_2enq(cstate->obj_ring, (void *)obj, (void *)ver_no);
 	if (err) {
 		/* XXX log */
@@ -229,7 +227,6 @@ sstub_send_dev_char(void *cookie, device_char_t *dev_char)
 	cstate->flags |= CSTATE_CONTROL_DATA;
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	printf("send_dev_char:  done \n");
 
 	return(0);
 }

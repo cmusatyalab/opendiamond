@@ -65,7 +65,6 @@ connection_main(listener_state_t *lstate, int conn)
 			cstate->flags &=~CSTATE_SHUTTING_DOWN;
 			cstate->flags &=~CSTATE_ALLOCATED;
 			pthread_mutex_unlock(&cstate->cmutex);
-			printf("connection thread exiting!!!\n");
 			exit(0);
 		}
 

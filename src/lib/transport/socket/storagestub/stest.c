@@ -59,8 +59,6 @@ send_obj(void *ccookie, int vno)
 	foo->attr_info.attr_len = ATTR_LEN;
 	foo->attr_info.attr_data = attr;
 
-	printf("obj datalen %d alen %d \n", (int)foo->data_len, 
-			(int)foo->attr_info.attr_len);
 	sstub_send_obj(ccookie, foo, vno);
 
 
@@ -76,13 +74,10 @@ void *
 main_thread(void *cookie)
 {
 
-	printf("main thread \n");
 	send_obj(cookie, 5);
 	while (1) {
 		sleep (5);
 	}
-	printf("exit \n");
-	printf("exiting main thread \n");
 	exit(0);
 }
 

@@ -48,7 +48,6 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		 */
 		if (err) {
 			/* XXX lock */
-			printf("didn't get any data on deq!!! \n");
 			pthread_mutex_lock(&cstate->cmutex);
 			cstate->flags &= ~CSTATE_OBJ_DATA;
 			pthread_mutex_unlock(&cstate->cmutex);
@@ -129,7 +128,6 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 				return;
 			} else {
 				/* XXX what errors should we handles ?? */
-				printf("errno %d \n", errno);
 				perror("send oheader ");
 			       	printf("XXX error while sending oheader\n");
 				exit(1);
@@ -227,7 +225,6 @@ sstub_except_data(listener_state_t *lstate, cstate_t *cstate)
 		return;
 	}
 
-	printf("except data \n");
 	return;
 }
 
@@ -237,10 +234,8 @@ void
 sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 {
 
-	printf("read control!! \n");
 	/* Handle the case where we are shutting down */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
-		printf("read control:  shutting down \n");
 		return;
 	}
 

@@ -116,8 +116,6 @@ hstub_main(void *arg)
 	cinfo = &dev->con_data;
 
 
-	printf("dev main %d \n", cinfo->data_fd);
-
 	max_fd = cinfo->control_fd;
 	if (cinfo->data_fd > max_fd) {
 		max_fd = cinfo->data_fd;

@@ -227,7 +227,6 @@ sstub_except_control(listener_state_t *lstate, cstate_t *cstate)
 		return;
 	}
 
-	printf("except control \n");
 	return;
 }
 
@@ -337,12 +336,10 @@ process_control(listener_state_t *lstate, cstate_t *cstate, char *data)
 
 	switch (cmd) {
 		case CNTL_CMD_START:
-			printf("XXX start  \n");
 			(*lstate->start_cb)(cstate->app_cookie, gen);
 			break;
 				
 		case CNTL_CMD_STOP:
-			printf("XXX stop  \n");
 			(*lstate->stop_cb)(cstate->app_cookie, gen);
 			break;
 
@@ -400,7 +397,6 @@ sstub_read_control(listener_state_t *lstate, cstate_t *cstate)
 	int			remain_header, remain_data;
 	int			header_offset, data_offset;
 
-	printf("read control!! \n");
 	/* Handle the case where we are shutting down */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		printf("read control:  shutting down \n");

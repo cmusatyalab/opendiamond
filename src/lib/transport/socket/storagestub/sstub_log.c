@@ -28,7 +28,6 @@
 void
 sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 {
-	printf("write log \n");
 	/* clear the flags for now, there is no more data */
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags &= ~CSTATE_LOG_DATA;
@@ -48,7 +47,6 @@ sstub_except_log(listener_state_t *lstate, cstate_t *cstate)
 		return;
 	}
 
-	printf("except log \n");
 	return;
 }
 
@@ -61,7 +59,6 @@ sstub_read_log(listener_state_t *lstate, cstate_t *cstate)
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;
 	}
-	printf("sstub_read_log \n");
 	return;
 
 }

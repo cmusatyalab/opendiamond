@@ -77,7 +77,6 @@ device_stop(void *handle, int id)
 		free(cheader);
 		return (EAGAIN);
 	}
-	printf("stop cheader: %p \n", cheader);
 
 	pthread_mutex_lock(&dev->con_data.mutex);
 	dev->con_data.flags |= CINFO_PENDING_CONTROL;
@@ -141,7 +140,6 @@ device_start(void *handle, int id)
 	sdevice_state_t *dev;
 
 	dev = (sdevice_state_t *)handle;
-	printf("dev start:  new_dev %p \n", dev);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));	
 	if (cheader == NULL) {
@@ -364,7 +362,6 @@ device_init(int id, char * devid, void *hcookie, hstub_new_obj_fn new_obj_cb)
 	}
 
 
-	printf("dev init:  new_dev %p \n", new_dev);
 	return((void *)new_dev);
 }
 

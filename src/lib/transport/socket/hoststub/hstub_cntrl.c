@@ -54,13 +54,11 @@ process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
 	switch(cmd) {
 
 		case CNTL_CMD_RET_STATS:
-			printf("have stats \n");
 			free(data_buf);
 			break;
 
 
 		case CNTL_CMD_RET_CHAR:
-			printf("have chars \n");
 			store_dev_char(dev, data_buf);
 			free(data_buf);
 			break;
@@ -87,8 +85,6 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 	int		dsize;
 	char *		data;
 	char *		data_buf = NULL;
-
-	printf("get control data \n");	
 
 	cinfo = &dev->con_data;
 
@@ -184,7 +180,6 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 			}
 		}
 	}
-	printf("data: remain %d off %d \n", data_remain, data_offset);
 
 
 	/*
@@ -285,9 +280,6 @@ hstub_write_cntrl(sdevice_state_t *dev)
 			return;
 		}
 	
-		printf("send_control:  %p \n", cheader);
-		printf("fd:  %d \n", cinfo->control_fd);
-
 		remain_header = sizeof(*cheader);
 		header_offset = 0;
 		data_offset = 0;

@@ -111,7 +111,6 @@ search_start(void *app_cookie, int id)
 
 	/* XXX start */
 
-	printf("search start \n");
 	sstate = (search_state_t *)app_cookie;
 	cmd = (dev_cmd_data_t *) malloc(sizeof(*cmd));	
 	if (cmd == NULL) {
@@ -264,7 +263,6 @@ device_main(void *arg)
 		 */
 		if (sstate->flags & DEV_FLAG_RUNNING) {
 			err = odisk_next_obj(&new_obj, sstate->ostate);
-			printf("main: obbj \n");
 			if (err == ENOENT) {
 				/*
 				 * We have processed all the objects,
@@ -275,7 +273,7 @@ device_main(void *arg)
 				sstate->flags |= DEV_FLAG_COMPLETE;
 				/* XXX send complete message */
 			} else if (err) {
-				printf("dmain: failed to get obj !! \n");
+				/* printf("dmain: failed to get obj !! \n"); */
 				/* sleep(1); */
 				continue;
 			} else {
@@ -380,7 +378,6 @@ search_get_stats(void *app_cookie, int gen_num)
 	int		err;
 
 	sstate = (search_state_t *)app_cookie;
-	printf("get state \n");
 
 	len = sizeof(*stats);
 	stats = (dev_stats_t *)malloc(len);
@@ -405,8 +402,6 @@ search_get_char(void *app_cookie, int gen_num)
 	int			err;
 
 
-	printf("get char \n");
-
 	sstate = (search_state_t *)app_cookie;
 
 	dev_char.dc_isa = DEV_ISA_IA32;
@@ -422,7 +417,8 @@ search_get_char(void *app_cookie, int gen_num)
 int
 search_close_conn(void *app_cookie)
 {
-	printf("close_conn states \n");
+	/* printf("close_conn states \n"); */
+	return(0);
 }
 
 
@@ -449,7 +445,8 @@ search_release_obj(void *app_cookie, obj_data_t *obj)
 int
 search_set_list(void *app_cookie, int gen_num)
 {
-	printf("XXX set list \n");
+	/* printf("XXX set list \n"); */
+	return(0);
 }
 
 

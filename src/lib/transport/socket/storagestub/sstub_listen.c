@@ -216,8 +216,6 @@ have_full_conn(listener_state_t *list_state, int conn)
 	new_proc = fork();
 
 	if (new_proc == 0) {
-		printf("XXX child process \n");
-
 		err = (*list_state->new_conn_cb)((void *)cstate, &new_cookie);
 		if (err) {
 			printf("new conn callback failed \n");
@@ -238,7 +236,6 @@ have_full_conn(listener_state_t *list_state, int conn)
 		connection_main(list_state, conn);		
 		return;
 	} else {
-		printf("parent !!! \n");
 		shutdown_connection(list_state, cstate);
 	}
 }
@@ -259,7 +256,6 @@ accept_control_conn(listener_state_t *list_state)
 	int			i;
 	uint32_t		data;
 	size_t			wsize;
-	printf("accepting control !!! \n");
 
 	csize = sizeof(ca);
 	new_sock = accept(list_state->control_fd, (struct sockaddr *)
@@ -269,8 +265,6 @@ accept_control_conn(listener_state_t *list_state)
 		/* XXX log */
 		printf("XXX accept failed \n");	
 	}
-
-	printf("new cntrl conn from %s \n", inet_ntoa(ca.sin_addr));
 
 	/*
 	 * Now we allocate a per connection state information and
@@ -325,8 +319,6 @@ accept_data_conn(listener_state_t *list_state)
 	size_t			dsize;
 
 
-	printf("accepting data !!! \n");
-
 	csize = sizeof(ca);
 	new_sock = accept(list_state->data_fd, (struct sockaddr *)
 			&ca, &csize);
@@ -343,7 +335,6 @@ accept_data_conn(listener_state_t *list_state)
 		close(new_sock);
 		return;
 	}
-	printf("after data read !! \n");
 
 	if (data >= MAX_CONNS) {
 		/* XXX */
@@ -360,8 +351,6 @@ accept_data_conn(listener_state_t *list_state)
 		return;
 	}
 
-
-	printf("new data conn from %s \n", inet_ntoa(ca.sin_addr));
 
 	list_state->conns[data].flags |= CSTATE_DATA_FD;
 	list_state->conns[data].data_fd = new_sock;
@@ -386,8 +375,6 @@ accept_log_conn(listener_state_t *list_state)
 	uint32_t		data;
 	size_t			dsize;
 
-
-	printf("accepting log !!! \n");
 
 	csize = sizeof(ca);
 	new_sock = accept(list_state->log_fd, (struct sockaddr *)
@@ -420,7 +407,6 @@ accept_log_conn(listener_state_t *list_state)
 		return;
 	}
 
-	printf("new log conn from %s \n", inet_ntoa(ca.sin_addr));
 
 	list_state->conns[data].flags |= CSTATE_LOG_FD;
 	list_state->conns[data].log_fd = new_sock;

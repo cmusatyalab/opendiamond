@@ -340,6 +340,7 @@ more_attrs:
 			if (err == ENOENT) {
 				attr_remain = 0;
 			} else {
+				attr_offset = 0;
 				goto more_attrs;	
 			}
 		}

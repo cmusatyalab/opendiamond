@@ -1,6 +1,5 @@
 #
 #
-#
 #                          Diamond 1.0
 # 
 #            Copyright (c) 2002-2004, Intel Corporation
@@ -11,10 +10,7 @@
 # met:
 # 
 #    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
+#      notice, this list of conditions and the following disclaimer.  # #    * Redistributions in binary form must reproduce the above #      copyright notice, this list of conditions and the following
 #      disclaimer in the documentation and/or other materials provided
 #      with the distribution.
 #
@@ -39,7 +35,15 @@ BUILD_LIB_PATH = $(DIAMOND_ROOT)/target/lib
 BUILD_INC_PATH = $(DIAMOND_ROOT)/target/include
 BUILD_BIN_PATH = $(DIAMOND_ROOT)/target/bin
 
+#  Install the directories
+INSTALLBASE=/usr/local/diamond
+INSTALLDIR_BIN=${INSTALLBASE}/bin
+INSTALLDIR_LIB=${INSTALLBASE}/lib
+INSTALLDIR_INCLUDE=${INSTALLBASE}/include
+
+
 INCDIR += -I${BUILD_INC_PATH}
+
 
 LIBDIR += -L${BUILD_LIB_PATH}
 
@@ -59,6 +63,7 @@ FLEX = flex
 AWK = gawk
 CC = gcc
 CPLUSPLUS = g++
+INSTALL = install
 
 
 #Just to go overboard and be sure
@@ -166,30 +171,16 @@ endif
 
 copyheader:
 	@for entry in ${SHARED_HEADERS} ; do \
-		echo copying $${entry}; \
-		cp -f $${entry} ${BUILD_INC_PATH}; \
+		cp -fuv $${entry} ${BUILD_INC_PATH}; \
 	done
 
 
 
-#  Install the program, and its children
-
-ifndef INSTALLDIR
-INSTALLDIR=${DIAMOND_ROOT}/build
-endif
-ifndef INSTALLDIR_BIN
-INSTALLDIR_BIN=${INSTALLDIR}/bin
-endif
-ifndef INSTALLDIR_LIB
-INSTALLDIR_LIB=${INSTALLDIR}/lib
-endif
-ifndef INSTALLDIR_INCLUDE
-INSTALLDIR_INCLUDE=${INSTALLDIR}/include
-endif
 
 # Installs must get done as root, but we don't need to test here since 
 # installdirs will do it.  Note that local Makefiles should also perform
 # this check iff they define their own installdirs target.
+
 install: installdirs
 ifneq ($(strip ${PROG}),)
 	${INSTALL_BIN} ${PROG} ${INSTALLDIR_BIN}
@@ -197,6 +188,17 @@ endif
 ifneq ($(strip ${INSTALL_OTHERS}),)	
 	${INSTALL} ${INSTALL_OTHERS} ${INSTALLDIR}
 endif
+ifneq ($(strip ${INSTALL_HEADERS}),)	
+	@for entry in ${INSTALL_HEADERS} ; do \
+		${INSTALL} $${entry} ${INSTALLDIR_INCLUDE} ; \
+	done
+endif
+ifneq ($(strip ${INSTALL_LIBS}),)	
+	@for entry in ${INSTALL_LIBS} ; do \
+		${INSTALL} $${entry} ${INSTALLDIR_LIB} ; \
+	done
+endif
+
 
 
 
@@ -215,7 +217,7 @@ endif
 
 #  Create the directories to install into
 
-ALL_INSTALLDIRS= ${INSTALLDIR} ${INSTALLDIR_BIN} ${INSTALLDIR_LIB} ${INSTALLDIR_INCLUDE}
+ALL_INSTALLDIRS= ${INSTALLBASE} ${INSTALLDIR_BIN} ${INSTALLDIR_LIB} ${INSTALLDIR_INCLUDE}
 installdirs:
 	${TESTROOT}
 	@for entry in ${ALL_INSTALLDIRS} ; do \

@@ -621,6 +621,7 @@ device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid)
 {
 
 	device_handle_t * 	cur_dev;
+	int					i;
 
 	cur_dev = lookup_dev_by_id(sc, devid);
 	if (cur_dev == NULL) {
@@ -630,6 +631,17 @@ device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid)
 			return(ENOENT);
 		}
 	}
+
+	/*
+	 * If so, then we don't need to do anything.
+	 */
+	for (i=0; i < cur_dev->num_groups; i++) {
+		if (cur_dev->dev_groups[i] == gid) {
+			return(0);
+		}
+	}
+
+	
 	/*
 	 * check to see if we can add more groups, if so add it to the list
 	 */

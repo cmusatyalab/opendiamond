@@ -167,7 +167,7 @@ ls_terminate_search(ls_search_handle_t handle)
 }
 
 
-#define	MAX_HOST_IDS	16
+#define	MAX_HOST_IDS	64
 
 int
 ls_set_searchlist(ls_search_handle_t handle, int num_groups,
@@ -180,7 +180,6 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	int			hosts;
 	int			i,j;
 	int			err;
-
 
 	sc = (search_context_t *)handle;
 
@@ -230,7 +229,7 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 				 */
                 in.s_addr = host_ids[j];
                 name = inet_ntoa(in);
-				printf("Failed to connect to device %s for gid %llx\n", 
+				fprintf(stderr, "Failed to connect to device %s for gid %llx\n", 
 				 	name, cur_gid);
                 assert(0);
 				return (EINVAL);

@@ -377,7 +377,7 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
         return (0);
     }
 
-    target_cost = avg_cost * (ratio / 100.0);
+    target_cost = avg_cost * ratio;
 
 
     switch (fexec_bypass_type) {

@@ -312,8 +312,8 @@ fexec_compute_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 {
     int             i;
     filter_prob_t  *fprob;
-    float          pass = 1;   /* cumul pass rate */
-    float          totalcost = 0;  /* = utility */
+    float           pass = 1;   /* cumul pass rate */
+    float           totalcost = 0;  /* = utility */
     filter_info_t  *info;
     int             n;
 
@@ -323,8 +323,8 @@ fexec_compute_cost(filter_data_t * fdata, permutation_t * perm, int gen,
     assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
     for (i = 0; i < pmLength(perm); i++) {
-        float          c;      /* cost of this filter */
-        float          p;      /* pass rate for this filter in this pos */
+        float           c;      /* cost of this filter */
+        float           p;      /* pass rate for this filter in this pos */
         /*
          * pass = pass rate of all filters before this one 
          */
@@ -384,12 +384,12 @@ fexec_compute_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 #define SMALL_FRACTION (0.00001)
 int
 fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
-                   int indep, float *cost)
+                    int indep, float *cost)
 {
     int             i;
     filter_prob_t  *fprob;
-    float          pass = 1;   /* cumul pass rate */
-    float          totalcost = 0;  /* = utility */
+    float           pass = 1;   /* cumul pass rate */
+    float           totalcost = 0;  /* = utility */
     filter_info_t  *info;
     int             n;
 
@@ -398,21 +398,24 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
      */
     assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
+    printf("estimate \n");
     for (i = 0; i < pmLength(perm); i++) {
-        float          c;      /* cost of this filter */
-        float          p;      /* pass rate for this filter in this pos */
+        float           c;      /* cost of this filter */
+        float           p;      /* pass rate for this filter in this pos */
         /*
          * pass = pass rate of all filters before this one 
          */
         info = &fdata->fd_filters[pmElt(perm, i)];
         c = info->fi_time_ns;
         n = info->fi_called;
+	printf("\t i=%d c=%f n %d ", i,c,n);
         if (n < FSTATS_VALID_NUM) {
-			c = FSTATS_UNKNOWN_COST;
-			n = FSTATS_UNKNOWN_NUM;
-		}
+            c = FSTATS_UNKNOWN_COST;
+            n = FSTATS_UNKNOWN_NUM;
+        }
 
         totalcost += pass * c / n;  /* prev cumul pass * curr cost */
+	printf(" cost=%f", totalcost);
         /*
          * lookup this permutation 
          */
@@ -429,16 +432,17 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
         }
         if (fprob) {
             if (fprob->num_exec < FSTATS_VALID_NUM) {
-            	p = FSTATS_UNKNOWN_PROB;
+                p = FSTATS_UNKNOWN_PROB;
             } else {
-				p = (float) fprob->num_pass / fprob->num_exec;
-			}
+                p = (float) fprob->num_pass / fprob->num_exec;
+            }
         } else {
-			p = FSTATS_UNKNOWN_PROB;
+            p = FSTATS_UNKNOWN_PROB;
         }
 
         assert(p >= 0 && p <= 1.0);
         pass *= p;
+	printf(" prob=%f\n", pass);
         /*
          * don't let it go to zero XXX 
          */
@@ -446,8 +450,8 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
             pass = SMALL_FRACTION;
         }
 #ifdef	XXX
-		printf("estimate: after (%d) total %f prob %f \n", i,
-						totalcost, pass);
+        printf("estimate: after (%d) total %f prob %f \n", i,
+               totalcost, pass);
 #endif
     }
 
@@ -466,7 +470,7 @@ fexec_evaluate(filter_data_t * fdata, permutation_t * perm, int gen,
                int *utility)
 {
     int             err;
-    float          totalcost = 0;  /* = utility */
+    float           totalcost = 0;  /* = utility */
 
     err = fexec_compute_cost(fdata, perm, gen, 0, &totalcost);
     if (err == 0) {
@@ -494,7 +498,7 @@ fexec_evaluate_indep(filter_data_t * fdata, permutation_t * perm, int gen,
                      int *utility)
 {
     int             err;
-    float          totalcost = 0;  /* = utility */
+    float           totalcost = 0;  /* = utility */
 
     err = fexec_compute_cost(fdata, perm, gen, 1, &totalcost);
     if (err == 0) {
@@ -579,7 +583,7 @@ fexec_print_cost(const filter_data_t * fdata, const permutation_t * perm)
 {
     int             i;
     const filter_info_t *info;
-    float          c,
+    float           c,
                     p;
     int             n;
     char            buf[BUFSIZ];
@@ -608,7 +612,7 @@ fexec_print_cost(const filter_data_t * fdata, const permutation_t * perm)
 void
 fstat_add_obj_info(filter_data_t * fdata, int pass, rtime_t time_ns)
 {
-    float          sanity;
+    float           sanity;
 
     sanity = time_ns;
     assert(sanity >= 0);
@@ -630,7 +634,7 @@ fstat_sprint(char *buf, const filter_data_t * fdata)
     int             pos =
         ((STAT_WINDOW_USED + fdata->obj_ns_pos - fdata->obj_ns_valid)
          % STAT_WINDOW_USED);
-    float          total = 0;
+    float           total = 0;
     char            buf2[BUFSIZ];
 
     for (i = 0; i < fdata->obj_ns_valid; i++) {

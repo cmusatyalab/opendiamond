@@ -88,7 +88,7 @@ static opt_policy_t policy_arr[] = {
 /*
  * Global state for the filter init code.
  */
-int             fexec_bypass_type = BP_NONE;
+int             fexec_bypass_type = BP_HYBRID;
 int             fexec_cpu_slowdown = 0; /* percentage slowdown for CPU */
 
 char            ratio[40];

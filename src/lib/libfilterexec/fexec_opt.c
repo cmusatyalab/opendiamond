@@ -102,7 +102,7 @@ hill_climb_optimize(void *context, filter_data_t * fdata)
          */
         optimizer_done = RESTART_INTERVAL;
         if (pmEqual(fdata->fd_perm, hill_climb_result(hc))) {
-            IFVERBOSE      
+            IFVERBOSE
                 printf("hill climbing didn't find further improvement\n");
             // hill_climb_cleanup(hc);
         } else {
@@ -173,7 +173,7 @@ best_first_optimize(void *context, filter_data_t * fdata)
          * restart (in case we have better data now 
          */
         if (!optimizer_done) {
-            IFVERBOSE      
+            IFVERBOSE
                 printf
                 ("--- restarting optimizer ------------------------------\n");
             best_first_cleanup(bf);
@@ -199,8 +199,7 @@ best_first_optimize(void *context, filter_data_t * fdata)
          * update and restart 
          */
         if (pmEqual(fdata->fd_perm, best_first_result(bf))) {
-            IFVERBOSE      
-                printf("optimizer didn't find further improvement\n");
+            IFVERBOSE printf("optimizer didn't find further improvement\n");
             optimizer_done = RESTART_INTERVAL;
             // best_first_cleanup(bf);
         } else {
@@ -302,7 +301,7 @@ indep_optimize(void *context, filter_data_t * fdata)
          * restart (in case we have better data now 
          */
         if (!optimizer_done) {
-            IFVERBOSE      
+            IFVERBOSE
                 printf
                 ("--- restarting optimizer ------------------------------\n");
             indep_cleanup(iSt);
@@ -328,8 +327,7 @@ indep_optimize(void *context, filter_data_t * fdata)
          * update and restart 
          */
         if (pmEqual(fdata->fd_perm, indep_result(iSt))) {
-            IFVERBOSE      
-                printf("optimizer didn't find further improvement\n");
+            IFVERBOSE printf("optimizer didn't find further improvement\n");
             optimizer_done = RESTART_INTERVAL;
             // indep_cleanup(iSt);
         } else {
@@ -405,7 +403,7 @@ random_optimize(void *context, filter_data_t * fdata)
     if (!optimizer_done) {
         permutation_t  *perm;
 
-        IFVERBOSE      
+        IFVERBOSE
             printf
             ("--- restarting optimizer ------------------------------\n");
 

@@ -141,6 +141,10 @@ struct filter_data {
     int             fd_num_filters;
     filter_id_t     fd_max_filters;
     filter_id_t     fd_app_id;
+
+
+
+
          
          
          
@@ -184,8 +188,8 @@ int             fexec_compute_cost(filter_data_t * fdata,
                                    float *cost);
 
 int             fexec_estimate_cost(filter_data_t * fdata,
-                                   permutation_t * perm, int gen, int indep,
-                                   float *cost);
+                                    permutation_t * perm, int gen, int indep,
+                                    float *cost);
 
 
 #endif                          /* ifndef _FILTER_PRIV_H_ */

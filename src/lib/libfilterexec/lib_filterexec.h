@@ -28,7 +28,7 @@ extern          "C" {
         BP_HYBRID
     };
 
-    extern int             fexec_bypass_type;
+    extern int      fexec_bypass_type;
 
     struct filter_exec_t {
         enum policy_type_t current_policy;
@@ -67,7 +67,7 @@ extern          "C" {
 
 
 
-int             fexec_update_bypass(filter_data_t * fdata, double ratio);
+    int             fexec_update_bypass(filter_data_t * fdata, double ratio);
 
 #ifdef __cplusplus
 }

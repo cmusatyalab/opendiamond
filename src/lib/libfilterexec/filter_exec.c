@@ -406,8 +406,11 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 	u_int64_t               stack_ns; /* time for whole filter stack */
 
 
+	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
 
 	if (froot == NULL) {
+		log_message(LOGT_FILT, LOGL_ERR, 
+			"eval_filters: no filter root");
 		return 1;
 	}
 
@@ -453,14 +456,15 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		 * has been run.
 		 */
 		if (err == 0) {
-			printf("Skipping filter %s \n", cur_filter->fi_name);
+			log_message(LOGT_FILT, LOGL_TRACE, 
+				"eval_filters: Filter %s has already been run",
+				cur_filter->fi_name);
 			cur_filter = cur_filter->fi_next;
 			continue;
 		}
 
 
 		cur_filter->fi_called++;
-		/* printf("eval_filt: fp %p \n", cur_filter->fi_fp); */
 
 		/* XXX build the out list appropriately */
 		out_list[0] = obj_handle;
@@ -497,6 +501,12 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		       rt_time2secs(cur_filter->fi_time_ns)/cur_filter->fi_called);
 #endif
 
+
+		log_message(LOGT_FILT, LOGL_TRACE, 
+		    	"eval_filters:  filter %s has val (%d) - threshold %d",
+			cur_filter->fi_name, conf, cur_filter->fi_threshold);
+
+
 		if (conf < cur_filter->fi_threshold) {
 			/* XXX cache results if appropriate */
 			cur_filter->fi_drop++;
@@ -509,7 +519,8 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 
 		cur_filter = cur_filter->fi_next;
 	}
-	printf("total time %lld \n", stack_ns);
+	log_message(LOGT_FILT, LOGL_TRACE, 
+	    	"eval_filters:  done - total time is %lld", stack_ns);
 
 	/* save the total time info attribute */
 	obj_write_attr(&obj_handle->attr_info,

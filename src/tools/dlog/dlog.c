@@ -100,6 +100,7 @@ display_results(log_msg_t *lheader, char *data)
 	log_ent_t *	log_ent;
 	uint32_t	level;
 	uint32_t	type;
+	uint32_t	dlen;
 	char		level_string[MAX_LEVEL];
 	char		type_string[MAX_TYPE];
 	int		cur_offset, total_len;
@@ -110,7 +111,7 @@ display_results(log_msg_t *lheader, char *data)
 	 * Setup the source of the data.
 	 */
 	if (lheader->log_type == LOG_SOURCE_BACKGROUND) {
-		source = 'B';
+		source = 'H';
 	} else {
 		source = 'D';
 	}
@@ -129,6 +130,8 @@ display_results(log_msg_t *lheader, char *data)
 
 		level = ntohl(log_ent->le_level);	
 		type = ntohl(log_ent->le_type);	
+		dlen = ntohl(log_ent->le_dlen);
+		log_ent->le_data[dlen - 1] = '\0';
 
 		get_level_string(level, level_string, MAX_LEVEL);
 		get_type_string(type, type_string, MAX_LEVEL);

@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include "lib_log.h"
 
 
@@ -23,7 +24,7 @@ typedef struct log_state {
  */
 
 static log_state_t *	ls = NULL;
-
+static pthread_mutex_t	log_mutex;
 
 /*
  * Set the mask that corresponds to the level of events we are
@@ -70,6 +71,7 @@ log_settype(unsigned int type_mask)
 void 
 log_init( )
 {
+	int err;
 	
 	if (ls != NULL) {
 
@@ -86,6 +88,8 @@ log_init( )
 	ls->level = LOGL_ALL;
 	ls->type = LOGT_ALL;
 
+	err = pthread_mutex_init(&log_mutex, NULL);
+	assert(err == 0);
 }
 
 /*
@@ -127,14 +131,14 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	 * begining when we did the alignment thing.
 	 */
 
-	/* XXX grab mutux */
+	pthread_mutex_lock(&log_mutex);
 	assert((MAX_LOG_BUFFER - ls->head) >= MAX_LOG_ENTRY);
 
 	if (ls->head == -1) {
 		if (ls->tail != 0) {
 			ls->head = 0;
 		} else {
-			/* XXX release mutex */
+			pthread_mutex_unlock(&log_mutex);
 			return;
 		}
 	}
@@ -142,6 +146,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	remain = ls->tail - ls->head;
 	if ((remain < MAX_LOG_ENTRY) && (remain > 0)) {
 		ls->drops++;
+		pthread_mutex_unlock(&log_mutex);
 		return;
 	}
 
@@ -152,6 +157,21 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	num = vsnprintf(&ent->le_data[0], MAX_LOG_STRING, fmt, new_ap);
 	va_end(ap);
 
+	/* include the trailing '\0' */
+	num++;
+
+	/*
+	 * deal with the case that num is the number that may have
+	 * been written not the number written in the case of
+	 * truncation.
+	 */
+	if ((num > MAX_LOG_STRING) || (num == -1)) {
+		num = MAX_LOG_STRING;	
+	}
+
+
+
+	/* store the data associated with this record */
 	ent->le_dlen = htonl(num);
 	ent->le_level = htonl(level);
 	ent->le_type = ntohl(type);
@@ -189,7 +209,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 
 	ent->le_nextoff = htonl(total_len);
 
-	/* XXX rel mutux */
+	pthread_mutex_unlock(&log_mutex);
 }
 
 
@@ -228,7 +248,7 @@ void
 log_advbuf(int len)
 {
 
-	/* XXX locking */
+	pthread_mutex_lock(&log_mutex);
 
 	ls->tail += len;
 	if (ls->tail >= MAX_LOG_BUFFER) {
@@ -238,6 +258,6 @@ log_advbuf(int len)
 		}
 	}
 
-	/* XXX release lock */
+	pthread_mutex_unlock(&log_mutex);
 }
 

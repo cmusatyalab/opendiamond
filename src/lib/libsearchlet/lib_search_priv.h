@@ -69,9 +69,11 @@ extern int device_set_searchlet(device_state_t *dev, int id, char *filter,
 	                        char *spec);
 extern device_state_t * device_init(search_context_t *sc, int id);
 
-extern int device_characteristics(device_state_t *dev, device_char_t *);
+struct device_char;
+struct dev_stats;
+extern int device_characteristics(device_state_t *dev, struct device_char *);
 extern int device_statistics(device_state_t *dev,
-			     dev_stats_t *dev_stats, int *stat_len);
+			     struct dev_stats *dev_stats, int *stat_len);
 
 /*
  * These are background processing functions.

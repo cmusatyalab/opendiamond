@@ -1,11 +1,13 @@
 #ifndef _LIB_FILTER_H_
 #define	_LIB_FILTER_H_
 
-
 /*
  * These are the set of functions available to to filters running
  * on the system.
  */
+
+
+#include <sys/types.h>		/* for off_t */
 
 
 
@@ -237,7 +239,7 @@ extern int lf_free_buffer(lf_fhandle_t fhandle, char *buf);
  * 	data 	   - The location where the results should be stored.
  *
  * Return:
- *	0	   - Attributes were written sucessfully.
+ *	0	   - Attributes were read sucessfully.
  *
  * 	ENOSPC	   - data was not large enough to complete the write.  
  * 		     length should be set to the size need to complete

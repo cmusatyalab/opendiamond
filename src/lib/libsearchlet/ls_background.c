@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <assert.h>
+
 #include "ring.h"
 #include "lib_searchlet.h"
 #include "obj_attr.h"
@@ -162,9 +164,10 @@ bg_main(void *arg)
 			switch(cmd->cmd) {
 				case BG_SEARCHLET:
 					sc->bg_status |= BG_STARTED;
-					init_filters(cmd->filter_name,
+					err = init_filters(cmd->filter_name,
 						     cmd->spec_name, 
 						     &sc->bg_froot);
+					assert(!err);
 					break;
 
 				default:

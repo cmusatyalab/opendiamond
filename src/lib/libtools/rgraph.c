@@ -187,8 +187,8 @@ gTopoSort(graph_t *g) {
     return 1;
   }
 
-  printf("topo list:\n");
-  print_list(&g->olist, olink);
+  //printf("topo list:\n");
+  //print_list(&g->olist, olink);
   return 0;
 }
 

@@ -1,5 +1,8 @@
 
 /* 
+ * graph abstraction and some algorithms on graphs. currently uses an
+ * edge-list representation.
+ *
  * Rajiv Wickremesinghe 2/2003
  */
 
@@ -10,27 +13,31 @@
 
 struct node_t;
 typedef struct edge_t {
-  struct node_t *node;
-  TAILQ_ENTRY(edge_t) link;
+  struct node_t        *eg_v;
+  TAILQ_ENTRY(edge_t)  eg_link;
 
   /* user's data */
-  int val;
+  int                  eg_val;
 } edge_t;
 
 
 struct node_t;
 typedef struct node_t {
-  int id;			/* unique id */
-  char *label;
-  TAILQ_ENTRY(node_t) link;	/* link for node list */
-  TAILQ_HEAD(edges, edge_t) edges; /* list of edges */
-
   /* temp data used/output by algorithms */
   int color;
   int td;			/* discovery time / depth etc. */
-  int tf;			/* finish time */
+  int te;			/* end time */
   TAILQ_ENTRY(node_t) olink;	/* ordered link */
   struct node_t *visit;		/*  */
+  void *pqe;			/* pq entry */
+
+
+  /* internal state */
+  int id;			/* unique id */
+  char *label;			/* printable label */
+  TAILQ_ENTRY(node_t) link;	/* link for node list */
+  TAILQ_HEAD(edges, edge_t) edges; /* list of edges */
+
 
   /* user's data */
   int val;
@@ -38,7 +45,7 @@ typedef struct node_t {
 } node_t;
 
 
-typedef TAILQ_HEAD(nodes, node_t) nodelist_t;
+typedef TAILQ_HEAD(nodelist_t, node_t) nodelist_t;
 
 typedef struct graph_t {
   nodelist_t nodes;
@@ -49,6 +56,8 @@ typedef struct graph_t {
 
 /* initialize structs */
 void gInit(graph_t *g);
+
+/* initialize a graph from the olist of the src graph. */
 void gInitFromList(graph_t *g, graph_t *src);
 
 /* deallocate (does not free g) */
@@ -80,7 +89,8 @@ void gExport(graph_t *g, char *filename);
  * algorithms
  */
 
-/* do topological sort. output will be in olist */
+/* do topological sort. output will be in olist. should probably make
+ * a new graph for orthogonality, but... */
 int gTopoSort(graph_t *g);
 
 /* run Dijkstra. node weights read from node->val.

@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <dirent.h>
+#include <assert.h>
 #include <sys/time.h>
 #include "ring.h"
 #include "lib_searchlet.h"
@@ -300,6 +301,8 @@ ls_start_search(ls_search_handle_t handle)
 			 * rest of the device
 			 * XXX figure out what to do here ???
 			 */
+			printf("failed to start device \n");
+			assert(0);
 			/* XXX logging */
 		} else {
 			started++;

@@ -79,7 +79,7 @@ bg_main(void *arg)
 			obj_info = (obj_info_t *)ring_deq(sc->unproc_ring);
 			if (obj_info != NULL) {
 				new_obj = obj_info->obj;
-				printf("bacground:  new obj %p \n", new_obj);
+				/* printf("bacground:  new obj %p \n", new_obj); */
 				/* 
 			 	 * Make sure the version number is the
 				 * latest.  If it is not equal, then this
@@ -88,9 +88,10 @@ bg_main(void *arg)
 				 * the system.
 				 */
 				if (sc->cur_search_id != obj_info->ver_num) {
-					printf(" object bad ver %d %d\n",
+					/* printf(" object bad ver %d %d\n",
 							sc->cur_search_id,
 							obj_info->ver_num);
+							*/
 					ls_release_object(sc, new_obj); 
 					free(obj_info);
 					continue;

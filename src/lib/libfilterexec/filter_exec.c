@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <dirent.h>
 
+#include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "lib_log.h"
@@ -270,9 +271,12 @@ resolve_filter_deps(filter_data_t *fdata)
 
 	gTopoSort(&graph);
 
+#define FILTER_ID_MASK  0x000000FF
+#define FILTER_ID(x)    ((filter_id_t)(((uint32_t)(x))&FILTER_ID_MASK))
     lastid = INVALID_FILTER_ID;
 	GLIST(&graph, np) {
         filter_id_t fid;
+
         fid = FILTER_ID(np->data);
 		if ((np == src_node) || (fid == fdata->fd_app_id)) {
                 continue; /* skip */
@@ -405,7 +409,7 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata)
 {
     filter_info_t *     cur_filter;
 	int			        conf;
-	obj_data_t *	    out_list[16];
+	lf_obj_handle_t	    out_list[16];
 	char 			    timebuf[BUFSIZ];
 	int			        err;
 	off_t			    asize;

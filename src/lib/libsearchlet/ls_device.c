@@ -19,9 +19,9 @@
 #include "ring.h"
 #include "rstat.h"
 #include "lib_searchlet.h"
+#include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
-#include "filter_priv.h"	/* to read stats -RW */
 #include "consts.h"
 #include "log.h"
 #include "log_impl.h"

@@ -33,15 +33,16 @@ typedef struct filter_dep_t {
 } filter_dep_t;
 
 
+/*
+ * These are some definitions related to the filter id
+ * data type.
+ */
+#define FILTER_ID_MASK  0x000000FF
+#define FILTER_ID(x)    ((filter_id_t)(((uint32_t)(x))&FILTER_ID_MASK))
+
 typedef  uint8_t filter_id_t;
 #define INVALID_FILTER_ID   0xFF
 
-typedef union {
-    void *      ptr;
-    filter_id_t fid;
-} fid_union_t;
-
-#define FILTER_ID(x)    ((fid_union_t)(x))
 
 typedef struct filter_info {
 	/*

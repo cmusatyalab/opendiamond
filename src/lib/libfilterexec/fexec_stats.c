@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "lib_searchlet.h"

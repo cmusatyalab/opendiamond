@@ -16,6 +16,7 @@
 #include "ring.h"
 #include "lib_searchlet.h"
 #include "attr.h"
+#include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_log.h"

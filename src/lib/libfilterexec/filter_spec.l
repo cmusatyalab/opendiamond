@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include "ring.h"
 #include "attr.h"
+#include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_filter.h"
 #include "lib_searchlet.h"

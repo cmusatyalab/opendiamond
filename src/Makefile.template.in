@@ -1,13 +1,13 @@
 # these should be set to point to the appropriate directories
 
-PAPI_HOME = $(DIAMOND_ROOT)/../support/papi
-PERFCTR_HOME = $(DIAMOND_ROOT)/../support/perfctr
+#PAPI_HOME = $(DIAMOND_ROOT)/../support/papi
+#PERFCTR_HOME = $(DIAMOND_ROOT)/../support/perfctr
 
 # flags for performance counter support
 
 # normally, we would setup LDFLAGS
 #LDFLAGS += -L$(PAPI_HOME)/src -lpapi -L$(PERFCTR_HOME)/usr.lib -lperfctr
-LIBS += $(PAPI_HOME)/src/libpapi.a $(PERFCTR_HOME)/usr.lib/libperfctr.a -lm
+#LIBS += $(PAPI_HOME)/src/libpapi.a $(PERFCTR_HOME)/usr.lib/libperfctr.a -lm
 #LIBDIR += -L$(PAPI_HOME)/src -L$(PERFCTR_HOME)/usr.lib
 #CFLAGS += -DRTIMER_PAPI
 

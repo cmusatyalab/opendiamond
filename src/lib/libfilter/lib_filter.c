@@ -12,6 +12,7 @@
 #include <errno.h>
 #include "ring.h"
 #include "obj_attr.h"
+#include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_filter.h"
 #include "lib_filter_priv.h"

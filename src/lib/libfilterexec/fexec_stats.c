@@ -275,8 +275,12 @@ fexec_dump_prob(filter_data_t *fdata)
 
 }
 
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
 
-#define SIGNIFICANT_NUMBER(g) ((g)*8)
+#define SIGNIFICANT_NUMBER(g)  MAX(2,(g)*4)
+
 /*
  * evalute the cost of given permutation using the data that is available.
  */
@@ -291,7 +295,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     double pass = 1;		/* cumul pass rate */
     double totalcost = 0;		/* = utility */
     filter_info_t *info;
-    //char buf[BUFSIZ];
+    char buf[BUFSIZ];
     int n;
 
     /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
@@ -323,8 +327,15 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
 	  fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
 	}
         if(fprob) {
+	  /* not enough data */
+	  if(fprob->num_exec < SIGNIFICANT_NUMBER(gen)) {
+	    return 1;
+	  }
             p = (double)fprob->num_pass / fprob->num_exec;
-            /* XXX printf("\t(cond p=%f)", p); */
+#if 1
+	    printf("\t(np=%d, ne=%d)", fprob->num_pass, fprob->num_exec);
+            printf("\t(cond p=%f)\n", p);
+#endif
         } else {
             /* really no data, return an error */
             printf("no perm data for %s \n", info->fi_name);
@@ -344,7 +355,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     }
 
     *cost = totalcost;
-#ifdef	XXX
+#if 1
     printf("fexec_evaluate: ");
     fexec_print_cost(fdata, perm);
     printf(" cost=%s\n", format_number(buf, totalcost));
@@ -352,6 +363,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     return 0;
 }
 
+#if 0
 int
 fexec_estimate_cost(filter_data_t *fdata, permutation_t *perm, int gen, 
                 double *cost)
@@ -418,6 +430,7 @@ fexec_estimate_cost(filter_data_t *fdata, permutation_t *perm, int gen,
 #endif
     return 0;
 }
+#endif
 
 
 /* evaluate a permutation in the context of the currently available

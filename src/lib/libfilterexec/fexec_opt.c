@@ -12,7 +12,7 @@
 extern void update_filter_order(filter_data_t *fdata, const permutation_t *perm);
 
 
-// #define VERBOSE 1
+#define VERBOSE 1
 
 #ifdef VERBOSE
 #define   IFVERBOSE
@@ -146,15 +146,16 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 	IFVERBOSE printf("bf-opt\n");
 
 	if(optimizer_done > 0) {
-		optimizer_done--;
-		/* restart (in case we have better data now */
-		if(!optimizer_done) {
-		  IFVERBOSE printf("--- restarting optimizer ------------------------------\n");
-		  best_first_cleanup(bf);
-		  best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
-				  bf->evfunc, fdata);
-		}
-		return 1;
+	  optimizer_done--;
+
+	  /* restart (in case we have better data now */
+	  if(!optimizer_done) {
+	    IFVERBOSE printf("--- restarting optimizer ------------------------------\n");
+	    best_first_cleanup(bf);
+	    best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+			    bf->evfunc, fdata);
+	  }
+	  return 1;
 	}
 
 	while(!err) {

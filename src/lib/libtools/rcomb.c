@@ -7,7 +7,7 @@
 
 #include "rcomb.h"
 
-//#define VERBOSE 1
+#define VERBOSE 1
 
 /* ---------------------------------------------------------------------- */
 /* heap implementation (CLR) */
@@ -31,6 +31,7 @@ void heap_delete(heap_t *heap);
 void *heap_extract_max(heap_t *heap);
 void heap_insert(heap_t *heap, int key, void *val);
 int heap_size(const heap_t *heap);
+void heap_print(const heap_t *heap);
 
 
 #define PARENT(n) ((n)>>1)
@@ -52,6 +53,18 @@ void
 heap_delete(heap_t *heap) {
   if(heap) {
     free(heap);
+  }
+}
+
+void 
+heap_print(const heap_t *heap) {
+  int i;
+  char buf[BUFSIZ];
+
+  for(i=1; i<=heap->size; i++) {
+    const heap_elt_t *data = heap->data + i;
+    printf("heap data: %s", pmPrint(data->val, buf, BUFSIZ));
+    printf(" (score=%s)\n", format_number(buf, data->key));
   }
 }
 
@@ -273,6 +286,11 @@ char *
 pmPrint(const permutation_t *pm, char *buf, int bufsiz) {
   int i;
   char buf2[BUFSIZ];
+
+  if(!pm) {
+    sprintf(buf, "[<null>]");
+    return buf;
+  }
 
   sprintf(buf, "[");  
   for(i=0; i<pm->size; i++) {
@@ -714,6 +732,11 @@ best_first_step(bf_state_t *bf) {
   char buf[BUFSIZ];
 #endif
   int pos;
+
+#ifdef VERBOSE
+  printf("stepping\n");
+  heap_print(bf->pq);
+#endif
 
   switch(bf->state) {
   case RC_BFS_INIT:

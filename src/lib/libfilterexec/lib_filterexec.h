@@ -4,6 +4,29 @@
 struct filter_data;
 typedef struct filter_data filter_data_t;
 
+
+/* 
+ * optimizer policy setup
+ */
+enum policy_type_t {
+  NULL_POLICY=0,
+  HILL_CLIMB_POLICY,
+  BEST_FIRST_POLICY
+};
+
+struct filter_exec_t {
+  enum policy_type_t current_policy;
+};
+/* update at your own risk! */
+extern struct filter_exec_t filter_exec;
+
+
+/* 
+ * functions
+ */
+
+void    fexec_system_init();
+
 int     init_filters(char* filterfile, char *fspec, filter_data_t **fdata);
 int     eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
             int force_eval, void *cookie,

@@ -22,9 +22,7 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 
-
-
-//#define VERBOSE 1
+#define VERBOSE 1
 
 /*
  * Some state to keep track of the active filter. XXX
@@ -47,15 +45,14 @@ typedef struct policy_t {
   int  exploit;			/* if we are in exploit mode */
 } policy_t;
 
-/* index into table below */
-enum policy_type_t {
-  NULL_POLICY=0,
-  HILL_CLIMB_POLICY,
-  BEST_FIRST_POLICY
+struct filter_exec_t filter_exec = {
+  NULL_POLICY
 };
 
-//static enum policy_type_t CURRENT_POLICY = BEST_FIRST_POLICY;
-static int CURRENT_POLICY = BEST_FIRST_POLICY;
+// int CURRENT_POLICY = NULL_POLICY;
+//int CURRENT_POLICY = HILL_CLIMB_POLICY;
+// int CURRENT_POLICY = BEST_FIRST_POLICY;
+
 
 static policy_t policy_arr[] = {
   { NULL, NULL, NULL, NULL },
@@ -67,6 +64,14 @@ static policy_t policy_arr[] = {
 
 
 /* ********************************************************************** */
+
+void
+fexec_system_init() {
+  rtimer_system_init(RTIMER_PAPI); /* it will default to STD if this doesnt work */
+#ifdef VERBOSE
+  fprintf(stderr, "policy = %d\n", filter_exec.current_policy);
+#endif
+}
 
 
 char *
@@ -435,7 +440,7 @@ initialize_policy(filter_data_t *fdata) {
 	/* XXX this is not free'd anywhere */
 
 	/* initialize policy */
-	policy = &policy_arr[CURRENT_POLICY];
+	policy = &policy_arr[filter_exec.current_policy];
 	if(policy->p_new) {
 	  policy->p_context = policy->p_new(fdata);
 	}
@@ -586,7 +591,7 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	}
 
 	/* change the permutation if it's time for a change */
-	optimize_filter_order(fdata, &policy_arr[CURRENT_POLICY]);
+	optimize_filter_order(fdata, &policy_arr[filter_exec.current_policy]);
 
 
 	/*
@@ -726,15 +731,17 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		       sizeof(stack_ns), (void*)&stack_ns);
 	/* track per-object info */
 	fstat_add_obj_info(fdata, pass, stack_ns);
-	
+
+#ifdef VERBOSE	
 	{
 	  char buf[BUFSIZ];
 	  printf("%d average time/obj = %s (%s)\n",
 		 fdata->obj_counter,
 		 fstat_sprint(buf, fdata),
-		 policy_arr[CURRENT_POLICY].exploit ? "EXPLOIT" : "EXPLORE");
+		 policy_arr[filter_exec.current_policy].exploit ? "EXPLOIT" : "EXPLORE");
 
 	}
+#endif
 
 	return pass;
 }

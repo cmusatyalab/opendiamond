@@ -56,6 +56,9 @@ typedef enum {
 
 void rtimer_system_init(rtimer_mode_t mode);
 
+extern pthread_attr_t *pattr_default;
+#define PATTR_DEFAULT pattr_default
+
 extern void        rt_init(rtimer_t *rt);
 extern void        rt_start(rtimer_t *rt);
 extern void        rt_stop(rtimer_t *rt);

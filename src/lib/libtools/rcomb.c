@@ -509,7 +509,7 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
   err = evf(context, hc->best_seq, hc->generation, &best_score);
 
   if(err) {
-    printf("could not evaluate current best!\n");
+    //printf("could not evaluate current best!\n");
     err = RC_ERR_NODATA;
     pmCopy(hc->next_seq, hc->best_seq);
     hc->best_err_count++;

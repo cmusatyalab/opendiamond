@@ -1,9 +1,10 @@
 
+#include <stdio.h>
 #include "rtimer.h"
 #include "rtimer_std.h"
 #include "rtimer_papi.h"
 
-
+pthread_attr_t *pattr_default = NULL;
 static rtimer_mode_t rtimer_mode = 0;
 
 /* should be called at startup */
@@ -11,8 +12,11 @@ void
 rtimer_system_init(rtimer_mode_t mode) {
   switch(mode) {
   case RTIMER_PAPI:
-    rt_papi_global_init();
-    rtimer_mode = RTIMER_PAPI;
+    if(rt_papi_global_init() == 0) {
+      rtimer_mode = RTIMER_PAPI;
+    } else {
+      fprintf(stderr, "rtimer: PAPI error, reverting to STD\n");
+    }
     break;
   case RTIMER_STD:    /* no global init for std */
   default:

@@ -47,7 +47,7 @@ log_utility_message(char *fmt, ...) {
   va_copy(new_ap, ap);
   fprintf(stderr, "UTILITY ERROR:");
   fprintf(stderr, fmt, new_ap);
-/*   log_message(type, level, fmt, new_ap); */
+/*   log_message(LOGT_UTLITY, level, fmt, new_ap); */
   va_end(ap);
 }
 
@@ -57,7 +57,9 @@ int
 rt_papi_global_init() {
   static int inited = 0;
   int err;
-  pthread_attr_t *attr = NULL;		/* not free'd */
+  extern pthread_attr_t *pattr_default;
+
+  pattr_default = NULL;
 
   if(inited) {
     return 0;
@@ -67,11 +69,13 @@ rt_papi_global_init() {
     log_utility_message("PAPI_library_init: %d", err);
     return 1;
   }
+  fprintf(stderr, "papi initialized OK\n");
 
   if((hwinfo = PAPI_get_hardware_info()) == NULL) {
     report_error(__FILE__,__LINE__,"PAPI_get_hardware_info",0);
     return 1;
   }
+  fprintf(stderr, "papi mhz=%.2fMHz\n", hwinfo->mhz);
 
 
   /* thread init */
@@ -81,21 +85,22 @@ rt_papi_global_init() {
     report_error(__FILE__, __LINE__, "PAPI_thread_init", err);
     return 1;
   }
+  fprintf(stderr, "papi thread init OK\n");
 
   /* pthread attr init */
 
-  attr = (pthread_attr_t *)malloc(sizeof(pthread_attr_t));
-  if(!attr) {
+  pattr_default = (pthread_attr_t *)malloc(sizeof(pthread_attr_t)); /* not free'd XXX */
+  if(!pattr_default) {
     report_error(__FILE__,__LINE__, "malloc", 0);
     return 1;
   }
   
-  pthread_attr_init(attr);
+  pthread_attr_init(pattr_default);
 #ifdef PTHREAD_CREATE_UNDETACHED
-  pthread_attr_setdetachstate(attr, PTHREAD_CREATE_UNDETACHED);
+  pthread_attr_setdetachstate(pattr_default, PTHREAD_CREATE_UNDETACHED);
 #endif
 #ifdef PTHREAD_SCOPE_SYSTEM
-  err = pthread_attr_setscope(attr, PTHREAD_SCOPE_SYSTEM);
+  err = pthread_attr_setscope(pattr_default, PTHREAD_SCOPE_SYSTEM);
   if (err != 0) {
     report_error(__FILE__, __LINE__, "pthread_attr_setscope", err);    
     return 1;

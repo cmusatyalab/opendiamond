@@ -479,6 +479,7 @@ register_remote_dctl(uint32_t devid, device_handle_t *dev_handle)
     int             len, err;
     char *          delim;
     char            node_name[128];
+    char            cr_name[128];
 
     hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
     if (hent == NULL) {
@@ -515,6 +516,14 @@ register_remote_dctl(uint32_t devid, device_handle_t *dev_handle)
         printf("XXX failed to register on %d \n", err);
         assert(0);
     }
+
+	err = snprintf(cr_name, 128, "%s_%s", "credit_incr", node_name); 
+	cr_name[127] = '\0';
+	
+	/* also register a dctl for the credit count */
+	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
+			dctl_read_uint32, dctl_write_uint32, &dev_handle->credit_incr);
+    assert(err == 0);
 }
 
 
@@ -580,9 +589,6 @@ create_new_device(search_context_t *sc, uint32_t devid)
 
     register_remote_dctl(devid, new_dev);
 
-	err = dctl_register_leaf(HOST_DEVICE_PATH, "credit_incr", DCTL_DT_UINT32,
-			dctl_read_uint32, dctl_write_uint32, &new_dev->credit_incr);
-    //assert(err == 0);
 
 
 	return(new_dev);

@@ -53,16 +53,16 @@ typedef struct filter_info {
 	 */
 	char			        fi_name[MAX_FILTER_NAME];
 	char			        fi_fname[MAX_FILTER_FUNC_NAME];
-	filter_proto            fi_fp;
-	int			            fi_threshold;
-	int			            fi_merit;
-	int			            fi_numargs;
+	filter_proto            	fi_fp;
+	int			        fi_threshold;
+	int			        fi_merit;
+	int			        fi_numargs;
 	char *			        fi_args[MAX_NUM_ARGS];
-    filter_id_t             fi_filterid;    /* id of this filter */
+    	filter_id_t             	fi_filterid;    /* id of this filter */
 
 
-    int						fi_blob_len;	/* assiated blob len */
-	void *					fi_blob_data;	/* associated blob of data */
+	int				fi_blob_len;	/* assiated blob len */
+	void *				fi_blob_data;	/* associated blob of data */
 
 	/* dependency info */
 	int                     fi_color; /* used by dfs */
@@ -75,7 +75,7 @@ typedef struct filter_info {
      * of these objects.  
      */
 
-    int                     fi_bpthresh;
+    	int                     fi_bpthresh;
 
 	/* input characteristics */
 	int                     fi_blocksize_in;
@@ -92,6 +92,7 @@ typedef struct filter_info {
 	int			            fi_drop;     /* # times below threshold */
 	int			            fi_pass;     /* # times above threshold */
 	rtime_t                 fi_time_ns;  /* total time used */
+
 } filter_info_t;
 
 
@@ -126,6 +127,10 @@ struct filter_data {
 
     permutation_t       *fd_perm;	/* current permutation */
     partial_order_t     *fd_po;	    /* the partial ordering of filters */
+
+	/* stats to keep track of the loading weighted moving averages */
+	double				fd_avg_wall;
+	double				fd_avg_exec;
 
 	time_t obj_ns[STAT_WINDOW];	/* data */
 	int    obj_ns_valid;		/* number of valid entries */

@@ -580,7 +580,6 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 		log_message(LOGT_FILT, LOGL_ERR, 
 				"Failed to read filter spec <%s>", 
 				filter_spec);
-        printf("XXX read fspec  \n");
 		return (err);
 	}
 	print_filter_list("filterexec: init", *fdata);
@@ -590,16 +589,14 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 		log_message(LOGT_FILT, LOGL_ERR, 
 				"Failed resolving filter dependancies <%s>", 
 				filter_spec);
-        printf("XXX faile resolve \n");
 		return (1);
 	}
 
 	err = verify_filters(*fdata);
 	if (err) {
-        log_message(LOGT_FILT, LOGL_ERR, "Filter verify failed <%s>", 
+		log_message(LOGT_FILT, LOGL_ERR, "Filter verify failed <%s>", 
                 filter_spec);
-        printf("XXX faile verify \n");
-        return (err);
+		return (err);
 	}
 
 	/* this need to be cleaned up somewhere XXX */
@@ -649,7 +646,34 @@ optimize_filter_order(filter_data_t *fdata, opt_policy_t *policy) {
   }
 }
 
+static double
+tv_diff(struct timeval *end, struct timeval *start)
+{
+	double	temp;
+	long	val;
 
+	if (end->tv_usec > start->tv_usec) {
+		val = end->tv_usec - start->tv_usec;
+		temp = (double) (end->tv_sec - start->tv_sec);
+		temp += val/(double)1000000.0;
+	} else {
+		val = 1000000 - end->tv_usec - start->tv_usec;
+		temp = (double) (end->tv_sec - start->tv_sec - 1);
+		temp += val/(double)1000000.0;
+	}
+	return(temp);
+}
+
+double
+fexec_get_load(filter_data_t *fdata)
+{
+	if (fdata == NULL) {
+		return(1.0);
+	}
+	double	temp;
+	temp = fdata->fd_avg_exec/fdata->fd_avg_wall;
+	return(temp);
+}
 /*
  * This take an object pointer and a list of filters and evaluates
  * the different filters as appropriate.
@@ -667,7 +691,7 @@ int
 eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
          void *cookie,
 	     int (*cb_func)(void *cookie, char *name, int *pass, uint64_t* et)) {
-    filter_info_t *     cur_filter;
+	filter_info_t *     cur_filter;
 	int			        conf;
 	lf_obj_handle_t	    out_list[16];
 	char 			    timebuf[BUFSIZ];
@@ -677,6 +701,11 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	int					rv;
 	int cur_fid, cur_fidx;
 	static int		loop_cnt = 0;
+	struct timeval		wstart;
+	struct timeval		wstop;
+	struct timezone		tz;
+	double			temp;
+
 
 	/* timer info */
 	rtimer_t                rt;	
@@ -715,6 +744,9 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		stack_ns = 0;
 	}
 
+
+	err = gettimeofday(&wstart, &tz);
+	assert(err == 0);
 
 	for(cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm); cur_fidx++) {
 	  cur_fid = pmElt(fdata->fd_perm, cur_fidx);
@@ -828,6 +860,15 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		       sizeof(stack_ns), (void*)&stack_ns);
 	/* track per-object info */
 	fstat_add_obj_info(fdata, pass, stack_ns);
+
+	/* update the average time */
+	err = gettimeofday(&wstop, &tz);
+	assert(err == 0);
+	temp = tv_diff(&wstop, &wstart);
+	fdata->fd_avg_wall = (0.95 * fdata->fd_avg_wall) + (0.05 * temp);
+
+	temp = rt_time2secs(stack_ns);
+	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
 #if(defined VERBOSE || defined SIM_REPORT)
 	{

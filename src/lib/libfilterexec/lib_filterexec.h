@@ -40,6 +40,7 @@ int     eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
 		     int (*cb_func)(void *cookie, char *name, int *pass, uint64_t* et));
 int     fexec_num_filters(filter_data_t *fdata);
 void    fexec_clear_stats( filter_data_t *fdata);
+double  fexec_get_load(filter_data_t *fdata);
 int     fexec_set_blob( filter_data_t *fdata, char *filter_name, 
 				int blob_len, void *blob_data);
 int     fexec_get_stats(filter_data_t *fdata , int max, filter_stats_t *fstats);

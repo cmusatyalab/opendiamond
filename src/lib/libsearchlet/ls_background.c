@@ -64,6 +64,19 @@ bg_decrement_pend_count(search_context_t *sc)
 		}
 	}
 }
+
+void
+update_rates(sc) 
+{
+
+
+}
+
+/* XXX constant config */
+#define         POLL_SECS       0
+#define         POLL_USECS      200000
+
+
 /*
  * The main loop that the background thread runs to process
  * the data coming from the individual devices.
@@ -79,6 +92,9 @@ bg_main(void *arg)
 	bg_cmd_data_t *		cmd;
 	int			any;
 	device_handle_t *	cur_dev;
+	struct timeval		this_time;
+	struct timeval		next_time = {0,0};
+	struct timezone		tz;
 	struct timespec timeout;
 	uint32_t			loop_count = 0;
 	uint32_t			dummy = 0;
@@ -185,7 +201,28 @@ bg_main(void *arg)
 			
 
 		}
+
+
 	
+		/* timeout look that runs once a second */
+		gettimeofday(&this_time, &tz);
+
+		if (((this_time.tv_sec == next_time.tv_sec) &&
+		    	(this_time.tv_usec >= next_time.tv_usec)) ||
+				(this_time.tv_sec > next_time.tv_sec)) {
+		
+			update_rates(sc);
+
+			assert(POLL_USECS < 1000000);
+			next_time.tv_sec = this_time.tv_sec + POLL_SECS;
+			next_time.tv_usec = this_time.tv_usec + POLL_USECS;
+
+			if (next_time.tv_usec >= 1000000) {
+				next_time.tv_usec -= 1000000;
+				next_time.tv_sec += 1;
+			}
+		}
+
 
 		/*
 		 * This section looks for any commands on the bg ops 

@@ -386,6 +386,26 @@ create_null_obj()
     return (new_obj);
 }
 
+
+static void
+update_bypass(search_state_t *sstate) 
+{
+	double ratio;
+
+	switch(sstate->split_type) {
+		case SPLIT_TYPE_FIXED:
+			ratio = ((double)sstate->split_ratio)/100.0;
+			fexec_update_bypass(sstate->fdata, ratio);
+			break;
+			
+		case SPLIT_TYPE_DYNAMIC:
+			/* XXX do something here */
+			ratio = ((double)sstate->split_ratio)/100.0;
+			fexec_update_bypass(sstate->fdata, ratio);
+			break;
+	}
+}
+
 /*
  * This is the main thread that executes a "search" on a device.
  * This interates it handles incoming messages as well as processing
@@ -453,12 +473,8 @@ device_main(void *arg)
                                      new_obj, sstate->ver_no);
                 if (err) {
                     /*
-                     * XXX overflow gracefully 
+                     * XXX overflow gracefully  and log
                      */
-                    /*
-                     * XXX log 
-                     */
-
                 } else {
                     /*
                      * XXX log 
@@ -476,72 +492,37 @@ device_main(void *arg)
             } else {
                 any = 1;
 
-                if ((sstate->bp_feedback) &&
-                    (sstate->pend_objs < sstate->bp_thresh)) {
-                    sstate->obj_skipped++;
-                    err = sstub_send_obj(sstate->comm_cookie, new_obj,
-                                         sstate->ver_no);
-                    if (err) {
-                        /*
-                         * XXX overflow gracefully 
-                         */
-                        /*
-                         * XXX log 
-                         */
+                /*
+                 * set the bypass values periodically 
+                 */
 
-                    } else {
-                        /*
-                         * XXX log 
-                         */
-                        sstate->pend_objs++;
-                    }
-                } else if ((cpu_split) && (random() > cpu_split_thresh)) {
-                    sstate->obj_skipped++;
-                    err = sstub_send_obj(sstate->comm_cookie, new_obj,
-                                         sstate->ver_no);
-                    if (err) {
-                        /*
-                         * XXX overflow gracefully 
-                         */
-                        /*
-                         * XXX log 
-                         */
+                if ((sstate->obj_processed & 0xf) == 0xf) {
+                    update_bypass(sstate);
+                }
 
-                    } else {
-                        /*
-                         * XXX log 
-                         */
-                        sstate->pend_objs++;
-                    }
+                /*
+                 * XXX process the object 
+                 */
+                sstate->obj_processed++;
+
+                err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
+                if (err == 0) {
+                    sstate->obj_dropped++;
+                    search_free_obj(new_obj);
+
                 } else {
-                    /*
-                     * XXX process the object 
-                     */
-                    sstate->obj_processed++;
-
-                    err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
-                    if (err == 0) {
-                        sstate->obj_dropped++;
-                        search_free_obj(new_obj);
-
+                    sstate->obj_passed++;
+                    err = sstub_send_obj(sstate->comm_cookie, new_obj,
+                                         sstate->ver_no);
+                    if (err) {
+                        /*
+                         * XXX overflow gracefully 
+                         */
                     } else {
-                        sstate->obj_passed++;
-                        err = sstub_send_obj(sstate->comm_cookie, new_obj,
-                                             sstate->ver_no);
-                        if (err) {
-                            /*
-                             * XXX overflow gracefully 
-                             */
-                            /*
-                             * XXX log 
-                             */
-
-                        } else {
-                            /*
-                             * XXX log 
-                             */
-                            sstate->pend_objs++;
-                        }
+                        /*
+                         * XXX log 
+                         */
+                        sstate->pend_objs++;
                     }
                 }
             }
@@ -706,12 +687,12 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     dctl_register_leaf(DEV_SEARCH_PATH, "pend_thresh", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &sstate->pend_thresh);
-    dctl_register_leaf(DEV_SEARCH_PATH, "bp_feedback", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_SEARCH_PATH, "split_type", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
-                       &sstate->bp_feedback);
-    dctl_register_leaf(DEV_SEARCH_PATH, "bp_thresh", DCTL_DT_UINT32,
+                       &sstate->split_type);
+    dctl_register_leaf(DEV_SEARCH_PATH, "split_ratio", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
-                       &sstate->bp_feedback);
+                       &sstate->split_ratio);
 
 
     dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
@@ -740,8 +721,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     sstate->pend_thresh = SSTATE_DEFAULT_OBJ_THRESH;
     sstate->pend_objs = 0;
 
-    sstate->bp_feedback = 0;
-    sstate->bp_thresh = SSTATE_DEFAULT_BP_THRESH;
+    sstate->split_type = SPLIT_TYPE_FIXED;
+    sstate->split_ratio = 0;
     /*
      * Create a new thread that handles the searches for this current
      * search.  (We probably want to make this a seperate process ??).
@@ -1150,6 +1131,9 @@ search_set_blob(void *app_cookie, int gen_num, char *name,
 
 extern int      fexec_cpu_slowdown;
 
+/*
+ * XXXX remove this 
+ */
 int
 search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 {
@@ -1158,6 +1142,7 @@ search_set_offload(void *app_cookie, int gen_num, uint64_t load)
     double          my_clock_float;
     double          eff_ratio;
 
+#ifdef	XXX
     eff_ratio = (double) (double) (100 - fexec_cpu_slowdown) / 100.0;
     /*
      * XXX clean this up 
@@ -1170,7 +1155,6 @@ search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 
     cpu_split_thresh = (double) (RAND_MAX) * ratio;
 
-#ifdef	XXX
     printf("set_offload: ratio %f thresh %d cpu %d adj %f \n",
            ratio, cpu_split_thresh, my_clock, my_clock_float);
 #endif

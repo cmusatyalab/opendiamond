@@ -26,7 +26,6 @@
 #include "rgraph.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
-#include "fexec_bypass.h"
 
 /*
  * #define VERBOSE 1 
@@ -89,10 +88,7 @@ static opt_policy_t policy_arr[] = {
 /*
  * Global state for the filter init code.
  */
-int             fexec_fixed_split = 1;  /* we use a fixed partioning if this
-                                         * is 1 */
-int             fexec_fixed_ratio = 50;  /* percentage for a fixed
-                                         * partitioning */
+int             fexec_bypass_type = BP_NONE;
 int             fexec_cpu_slowdown = 0; /* percentage slowdown for CPU */
 
 char            ratio[40];
@@ -165,13 +161,9 @@ fexec_system_init()
      */
     rtimer_system_init(RTIMER_PAPI);
 
-    dctl_register_leaf(DEV_FEXEC_PATH, "fixed_split", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_FEXEC_PATH, "split_policy", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
-                       &fexec_fixed_split);
-
-    dctl_register_leaf(DEV_FEXEC_PATH, "fixed_ratio", DCTL_DT_UINT32,
-                       dctl_read_uint32, dctl_write_uint32,
-                       &fexec_fixed_ratio);
+                       &fexec_bypass_type);
 
     dctl_register_leaf(DEV_FEXEC_PATH, "cpu_slowdown", DCTL_DT_UINT32,
                        dctl_read_uint32, fexec_set_slowdown,
@@ -826,7 +818,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
     int             rv;
     int             cur_fid,
                     cur_fidx;
-    static int      loop_cnt = 0;
     struct timeval  wstart;
     struct timeval  wstop;
     struct timezone tz;
@@ -854,11 +845,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
      * change the permutation if it's time for a change 
      */
     optimize_filter_order(fdata, &policy_arr[filter_exec.current_policy]);
-
-    if (++loop_cnt > 20) {
-        fexec_update_bypass(fdata);
-        loop_cnt = 0;
-    }
 
     /*
      * Get the total time we have execute so far (if we have

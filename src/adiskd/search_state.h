@@ -7,6 +7,11 @@
 #define DEV_FLAG_RUNNING                0x01
 #define DEV_FLAG_COMPLETE               0x02
 
+enum split_types_t {
+	SPLIT_TYPE_FIXED = 0,
+	SPLIT_TYPE_DYNAMIC
+};
+
 
 typedef struct search_state {
     void           *comm_cookie;
@@ -26,8 +31,8 @@ typedef struct search_state {
     uint            obj_skipped;
     uint            pend_objs;
     uint            pend_thresh;
-    uint            bp_feedback;
-    uint            bp_thresh;
+    uint            split_type;
+    uint            split_ratio;
     void           *dctl_cookie;
     void           *log_cookie;
 } search_state_t;

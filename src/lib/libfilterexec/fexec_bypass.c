@@ -25,15 +25,8 @@
 #include "rgraph.h"
 #include "rcomb.h"
 #include "fexec_stats.h"
-#include "fexec_bypass.h"
 
 static int      host_cycles = 0;
-
-/*
- * XXX 
- */
-extern int      fexec_fixed_split;
-extern int      fexec_fixed_ratio;
 
 
 float
@@ -186,7 +179,7 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
  */
 void
 fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
-                          float target)
+                          float ratio)
 {
     int             i;
     filter_info_t  *info;
@@ -195,10 +188,10 @@ fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
      * for the first filtre run int locally
      */
     info = &fdata->fd_filters[pmElt(perm, 0)];
-    if (target >= 1.0) {
+    if (ratio >= 1.0) {
         info->fi_bpthresh = RAND_MAX;
     } else {
-        info->fi_bpthresh = (int) ((float) RAND_MAX * target);
+        info->fi_bpthresh = (int) ((float) RAND_MAX * ratio);
     }
 
 
@@ -364,22 +357,11 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 
 
 int
-fexec_update_bypass(filter_data_t * fdata)
+fexec_update_bypass(filter_data_t * fdata, double ratio)
 {
     double          avg_cost;
-    float           target_cost;
-    float           num_searches;
-    int             disk_cycles;
+    double          target_cost;
     int             err;
-
-#ifdef	XXX
-
-    if (fexec_fixed_split) {
-        target_cost = ((float) fexec_fixed_ratio / 100.0);
-        fexec_set_bypass_trivial(fdata, fdata->fd_perm, target_cost);
-        return (0);
-    }
-#endif
 
     err = fexec_compute_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 
@@ -395,27 +377,28 @@ fexec_update_bypass(filter_data_t * fdata)
         return (0);
     }
 
-    num_searches = get_active_searches();
+    target_cost = avg_cost * (ratio / 100.0);
 
-    disk_cycles = get_disk_cycles();
 
-    disk_cycles /= num_searches;
+    switch (fexec_bypass_type) {
+	case  BP_NONE:
+        	fexec_set_bypass_none(fdata);
+		break;
 
-    /*
-     * Compute the target goal for here.
-     */
-    if (fexec_fixed_split) {
-        target_cost = avg_cost * ((float) fexec_fixed_ratio / 100.0);
-    } else {
-        target_cost =
-            ((float) (disk_cycles) / (disk_cycles + host_cycles)) * avg_cost;
-        /*
-         * XXX debug 
-         */
-        target_cost = ((float) avg_cost * 0.70);
+	case BP_SIMPLE:
+    		fexec_set_bypass_trivial(fdata, fdata->fd_perm, ratio);
+		break;
+		
+	case BP_GREEDY:
+    		fexec_set_bypass_greedy(fdata, fdata->fd_perm, target_cost);
+		break;
+
+	case BP_HYBRID:
+    		fexec_set_bypass_hybrid(fdata, fdata->fd_perm, target_cost);
+		break;
+	
+
     }
-
-    fexec_set_bypass_hybrid(fdata, fdata->fd_perm, target_cost);
 
     return (0);
 }

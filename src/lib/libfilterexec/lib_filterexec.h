@@ -21,6 +21,15 @@ extern          "C" {
         STATIC_POLICY
     };
 
+    enum bypass_type_t {
+        BP_NONE = 0,
+        BP_SIMPLE,
+        BP_GREEDY,
+        BP_HYBRID
+    };
+
+    extern int             fexec_bypass_type;
+
     struct filter_exec_t {
         enum policy_type_t current_policy;
     };
@@ -55,6 +64,10 @@ extern          "C" {
     int             fexec_get_stats(filter_data_t * fdata, int max,
                                     filter_stats_t * fstats);
     char           *fexec_cur_filtname();
+
+
+
+int             fexec_update_bypass(filter_data_t * fdata, double ratio);
 
 #ifdef __cplusplus
 }

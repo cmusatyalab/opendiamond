@@ -1709,6 +1709,7 @@ ocache_start()
 	return (0);
 }
 
+/* called by search_close_conn in adiskd/ */
 int
 ocache_stop(char *dir_path)
 {
@@ -1732,6 +1733,7 @@ ocache_stop(char *dir_path)
 	return (0);
 }
 
+/* called by ceval_stop, ceval_stop is called when Stop */
 int
 ocache_stop_search(unsigned char *fsig)
 {

@@ -48,6 +48,7 @@
 #include <lib_log.h>
 #include <assert.h>
 #include "log.h"
+#include "lib_tools.h"
 
 #define	MAX_BUFFER	4096
 
@@ -230,6 +231,7 @@ read_log(int fd, unsigned int level_flags, unsigned int src_flags)
 	char 	*data;
 
 	while (1) {
+		printf("calling read \n");
 		len = recv(fd, &lheader, sizeof(lheader), MSG_WAITALL);
 		if (len != sizeof(lheader)) {
 			return;
@@ -267,7 +269,6 @@ table_lookup(char *key, uint32_t * val, flag_ent_t *map)
 		cur_flag++;
 
 	}
-
 	return(ENOENT);
 }
 
@@ -399,6 +400,7 @@ main(int argc, char **argv)
 	int	c;
 	uint32_t	level_flags = (LOGL_ERR|LOGL_CRIT);
 	uint32_t	src_flags = LOGT_ALL;
+	char		user_name[MAX_USER_NAME];
 	extern char *	optarg;
 
 	/*
@@ -454,7 +456,10 @@ main(int argc, char **argv)
 		fd = socket(PF_UNIX, SOCK_STREAM, 0);
 
 
-		strcpy(sa.sun_path, SOCKET_LOG_NAME);
+		/* bind the socket to a path name */
+    	get_user_name(user_name);
+    	sprintf(sa.sun_path, "%s.%s", SOCKET_LOG_NAME, user_name);
+
 		sa.sun_family = AF_UNIX;
 
 		err = connect(fd, (struct sockaddr *)&sa, sizeof (sa));
@@ -464,6 +469,7 @@ main(int argc, char **argv)
 			 * running, so we sleep for a while
 			 * and retry later.
 			 */
+			printf("failed to open socket \n");
 			sleep(1);
 		} else {
 			/*

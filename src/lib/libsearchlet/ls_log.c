@@ -11,6 +11,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <assert.h>
@@ -24,7 +25,7 @@
 #include "filter_exec.h"
 #include "log.h"
 #include "log_impl.h"
-#include "assert.h"
+#include "lib_hstub.h"
 
 #define	LOG_RING_SIZE	512
 
@@ -247,6 +248,11 @@ log_main(void *arg)
 	struct sockaddr_un sa;
 	struct sockaddr_un newaddr;
 	int	slen;
+
+	/* change the umask so someone else can delete
+	 * the socket later.
+	 */
+	umask(0);
 
 
 	sc = (search_context_t *)arg;

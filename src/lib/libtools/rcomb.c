@@ -7,7 +7,7 @@
 
 #include "rcomb.h"
 
-#define VERBOSE 1
+//#define VERBOSE 1
 
 /* ---------------------------------------------------------------------- */
 /* heap implementation (CLR) */

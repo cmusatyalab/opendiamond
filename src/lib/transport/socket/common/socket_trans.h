@@ -30,6 +30,7 @@
 #define	CNTL_CMD_ADD_GID        20
 #define	CNTL_CMD_CLEAR_GIDS     21
 #define	CNTL_CMD_SET_BLOB 		22
+#define	CNTL_CMD_SET_OFFLOAD	23
 
 
 /*
@@ -125,6 +126,9 @@ typedef struct {
 	char	    blob_sdata[0];	/* the data with the name followed by blob */
 } blob_subheader_t;
 
+typedef struct {
+    uint64_t    offl_data;      /* host cycles to apply to this problem */
+} offload_subheader_t;
 
 
 
@@ -137,8 +141,6 @@ typedef struct log_header {
 	uint32_t	log_magic;	/* for debugging */
 	uint32_t	log_len;	/* length log data */
 }  log_header_t;
-
-
 
 
 

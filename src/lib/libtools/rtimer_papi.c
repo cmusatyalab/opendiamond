@@ -34,6 +34,25 @@ report_error(char *file, int line, char *msg, int err) {
   fprintf(stderr, "ERROR %d: %s\n", err, msg);
 }
 
+/* begin XXX move elsewhere  */
+
+#include <stdarg.h>
+
+static void
+log_utility_message(char *fmt, ...) {
+  va_list		ap;
+  va_list		new_ap;
+
+  va_start(ap, fmt);
+  va_copy(new_ap, ap);
+  fprintf(stderr, "UTILITY ERROR:");
+  fprintf(stderr, fmt, new_ap);
+/*   log_message(type, level, fmt, new_ap); */
+  va_end(ap);
+}
+
+/* end XXX move elsewhere */
+
 int
 rt_papi_global_init() {
   static int inited = 0;

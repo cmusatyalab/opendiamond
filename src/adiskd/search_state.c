@@ -295,7 +295,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				return;
 			}
 
-#ifdef	XXX
 			/*
 			 * Remove the files that held the data.
 			 */
@@ -312,7 +311,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				exit(1);
 			}
 			free(spec_name);
-#endif
 
 			break;
 

@@ -22,6 +22,7 @@
 #include "lib_log.h"
 #include "lib_hstub.h"
 #include "dctl_common.h"
+#include "rstat.h"
 #include "lib_search_priv.h"
 #include "filter_exec.h"
 
@@ -82,8 +83,20 @@ update_rates(search_context_t *sc)
 		assert(err == 0);
 	}
 }
+		
 
+static void
+refill_credits(search_context_t *sc)
+{
+	device_handle_t *	cur_dev;
 
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		cur_dev->cur_credits += cur_dev->credit_incr;
+		if (cur_dev->credit_incr > MAX_CUR_CREDIT) {
+				cur_dev->credit_incr = MAX_CUR_CREDIT;
+		}
+	}
+}
 
 /* XXX constant config */
 #define         POLL_SECS       1
@@ -94,7 +107,7 @@ get_next_object(search_context_t *sc)
 {
 	device_handle_t *	cur_dev;
 	obj_info_t	*		obj_inf;
-	int	 		first = 1;
+	int	 				loop = 0;
 
 
 	if (sc->last_dev == NULL) {
@@ -105,18 +118,28 @@ get_next_object(search_context_t *sc)
 
 redo:
 	while (cur_dev != NULL) {
-		obj_inf = device_next_obj(cur_dev->dev_handle);
-		if (obj_inf != NULL) {
-			sc->last_dev = cur_dev;
-			return(obj_inf);
+		if (cur_dev->cur_credits > 0) {
+			obj_inf = device_next_obj(cur_dev->dev_handle);
+			if (obj_inf != NULL) {
+				cur_dev->cur_credits--;
+				sc->last_dev = cur_dev;
+				return(obj_inf);
+			}
+			cur_dev = cur_dev->next;
 		}
-		cur_dev = cur_dev->next;
 	}
 
-	/* if we fall through and it is our first iteration, then retry from the begginning */
-	if (first) {
-		first = 0;
+	/* if we fall through and it is our first iteration
+	 * then retry from the beggining.
+	 */ 
+	if (loop == 0) {
+		loop = 1;
 		cur_dev = sc->dev_list;
+		goto redo;
+	} else if (loop == 1) {
+		loop = 2;
+		cur_dev = sc->dev_list;
+		refill_credits(sc);
 		goto redo;
 	}
 
@@ -173,6 +196,11 @@ bg_main(void *arg)
 					dctl_read_uint32, dctl_write_uint32, &dummy);
 	assert(err == 0);
 
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "credit_policy", 
+					DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32, 
+					&sc->bg_credit_policy);
+	assert(err == 0);
+
 
 	/*
 	 * There are two main tasks that this thread does. The first
@@ -223,11 +251,9 @@ bg_main(void *arg)
 				 */
 				err = eval_filters(new_obj, sc->bg_fdata, 1, sc, bg_val, NULL);
 				if (err == 0) {
-					/* XXX printf("releasing object \n");*/
 					ls_release_object(sc, new_obj);
 					free(obj_info);
 				} else {
-					/* XXXprintf("putting object on ring \n"); */
 					err = ring_enq(sc->proc_ring, (void *)obj_info);
 					if (err) {
 						/* XXX handle overflow gracefully !!! */

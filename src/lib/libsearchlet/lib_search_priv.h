@@ -21,16 +21,23 @@
 #define	DEV_FLAG_BLOCKED		0x04
 struct search_context;
 
+#define	DEFAULT_CREDIT_INCR		4
+#define	MAX_CREDIT_INCR			10
+#define	MAX_CUR_CREDIT			20
+
+
 #define	MAX_DEV_GROUPS		64
 
 typedef struct device_handle {
 	struct device_handle * 	next;
-	uint32_t		dev_id;	
-	groupid_t		dev_groups[MAX_DEV_GROUPS];
-	int			num_groups;
-	unsigned int		flags;
-	void *			dev_handle;
-	int			ver_no;
+	uint32_t				dev_id;	
+	groupid_t				dev_groups[MAX_DEV_GROUPS];
+	int						num_groups;
+	unsigned int			flags;
+	void *					dev_handle;
+	int						ver_no;
+	int						cur_credits;	/* credits for current iteration */
+	int						credit_incr;	/* incremental credits to add */
 	struct search_context *	sc;
 } device_handle_t;
 
@@ -53,6 +60,12 @@ typedef enum {
 } search_status_t;
 
 
+typedef enum {
+		CREDIT_POLICY_STATIC = 0,
+		CREDIT_POLICY_DYAMIC
+} credit_policies_t;
+
+#define	BG_DEFAULT_CREDIT_POLICY	(CREDIT_POLICY_STATIC)
 /*
  * This defines the structures that keeps track of the current search
  * context.  This is the internal state that is kept for consistency,
@@ -70,6 +83,7 @@ typedef struct search_context {
 	ring_data_t *		bg_ops;	/* unprocessed objects */
 	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
+	int					bg_credit_policy;
 	struct filter_data  *	bg_fdata; /* filter_data_t  */
 	int			pend_hw;	/* pending hw mark */
 	int			pend_lw;	/* pending lw mark */

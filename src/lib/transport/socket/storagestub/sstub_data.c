@@ -108,7 +108,11 @@ update_attr_policy(cstate_t *cstate)
 		}
 
 	} else if (cstate->attr_policy == NW_ATTR_POLICY_FIXED) {
-		cstate->attr_threshold = (RAND_MAX/100) * cstate->attr_ratio;
+		if (cstate->attr_ratio == 100) {
+			cstate->attr_threshold = RAND_MAX;
+		} else {
+			cstate->attr_threshold = (RAND_MAX/100) * cstate->attr_ratio;
+		}
 	}
 	return;
 }
@@ -153,6 +157,14 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		err = ring_2deq(cstate->obj_ring, (void **)&obj  , 
 				(void **)&vnum);
 
+		/*
+	 	 * periodically we want to update our send policy if
+	 	 * we are dynamic.
+	 	 */
+		if ((cstate->stats_objs_tx & 0xF) == 0) {
+			update_attr_policy(cstate);
+		}
+				
 		/*
 		 * if there is no other data, then clear the obj data flag
 		 */
@@ -357,14 +369,6 @@ more_attrs:
     cstate->stats_objs_total_bytes_tx += sizeof(cstate->data_tx_oheader) +
             obj->attr_info.attr_len + obj->data_len;
 
-	/*
-	 * periodically we want to update our send policy if
-	 * we are dynamic.
-	 */
-	if ((cstate->stats_objs_tx & 0xF) == 0) {
-		update_attr_policy(cstate);
-	}
-				
 	/*
 	 * If we make it here, then we have sucessfully sent
 	 * the object so we need to make sure our state is set

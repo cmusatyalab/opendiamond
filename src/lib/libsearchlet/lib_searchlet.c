@@ -93,6 +93,7 @@ ls_init_search()
 	sc->pend_hw = LS_OBJ_PEND_HW;
 	sc->pend_lw = LS_OBJ_PEND_LW;
 	sc->last_dev = NULL;
+	sc->bg_credit_policy = BG_DEFAULT_CREDIT_POLICY ;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
 	if (err) {
 		/* XXX log */

@@ -530,6 +530,7 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	device_handle_t *   new_dev;
 	hstub_cb_args_t	    cb_data;
     static int          done_init = 0;
+	int					err;
 
     if (!done_init) {
         init_pending();
@@ -546,6 +547,9 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	new_dev->sc = sc;
 	new_dev->dev_id = devid;
 	new_dev->num_groups = 0;
+
+	new_dev->cur_credits = DEFAULT_CREDIT_INCR;
+	new_dev->credit_incr = DEFAULT_CREDIT_INCR;
 
 	cb_data.log_data_cb  = dev_log_data_cb;
 	cb_data.search_done_cb  = dev_search_done_cb;
@@ -576,7 +580,10 @@ create_new_device(search_context_t *sc, uint32_t devid)
 
     register_remote_dctl(devid, new_dev);
 
-	/* XXX log */
+	err = dctl_register_leaf(HOST_DEVICE_PATH, "credit_incr", DCTL_DT_UINT32,
+			dctl_read_uint32, dctl_write_uint32, &new_dev->credit_incr);
+    assert(err == 0);
+
 
 	return(new_dev);
 }

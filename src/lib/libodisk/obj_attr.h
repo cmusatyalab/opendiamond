@@ -26,7 +26,6 @@ typedef struct attr_record {
 /* constant for the extend increment size */
 #define	ATTR_INCREMENT	4096
 #define	ATTR_MIN_FRAG	64
-#define	MAX_ATTR_NAME	64
 
 
 /*

@@ -256,8 +256,6 @@ find_record(obj_attr_t *attr, const char *name)
 
 
 
-
-
 /*
  * This writes an attribute related with with an object.
  */

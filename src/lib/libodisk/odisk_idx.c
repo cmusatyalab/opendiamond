@@ -60,9 +60,9 @@ main(int argc, char **argv)
 	int		err;
 
 	if (argc > 1) {
-			path = argv[1];
+		path = argv[1];
 	} else {
-			path = "/opt/dir1";
+		path = "/opt/dir1";
 	}
 
 	err = odisk_init(&odisk, path, NULL, NULL);

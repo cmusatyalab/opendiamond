@@ -52,7 +52,7 @@
 
 int
 set_defattr(char *attr_name, char *data_name)
-{	
+{
 	struct stat	stats;
 	int		err;
 	obj_attr_t	attr;
@@ -70,51 +70,51 @@ set_defattr(char *attr_name, char *data_name)
 		exit(1);
 	}
 
-	err = obj_write_attr(&attr, SIZE, sizeof(stats.st_size), 
-			(char *)&stats.st_size);
+	err = obj_write_attr(&attr, SIZE, sizeof(stats.st_size),
+	                     (char *)&stats.st_size);
 	if (err) {
 		printf("failed to write size \n");
 		exit(1);
 	}
 
-	err = obj_write_attr(&attr, UID, sizeof(stats.st_uid), 
-			(char *)&stats.st_uid);
+	err = obj_write_attr(&attr, UID, sizeof(stats.st_uid),
+	                     (char *)&stats.st_uid);
 	if (err) {
 		printf("failed to write uid \n");
 		exit(1);
 	}
 
-	err = obj_write_attr(&attr, GID, sizeof(stats.st_gid), 
-			(char *)&stats.st_gid);
+	err = obj_write_attr(&attr, GID, sizeof(stats.st_gid),
+	                     (char *)&stats.st_gid);
 	if (err) {
 		printf("failed to write gid \n");
 		exit(1);
 	}
 
-	err = obj_write_attr(&attr, BLK_SIZE, sizeof(stats.st_blksize), 
-			(char *)&stats.st_blksize);
+	err = obj_write_attr(&attr, BLK_SIZE, sizeof(stats.st_blksize),
+	                     (char *)&stats.st_blksize);
 	if (err) {
 		printf("failed to write blk_size \n");
 		exit(1);
 	}
 
-	err = obj_write_attr(&attr, ATIME, sizeof(stats.st_atime), 
-			(char *)&stats.st_atime);
+	err = obj_write_attr(&attr, ATIME, sizeof(stats.st_atime),
+	                     (char *)&stats.st_atime);
 	if (err) {
 		printf("failed to write atime \n");
 		exit(1);
 	}
 
 
-	err = obj_write_attr(&attr, MTIME, sizeof(stats.st_mtime), 
-			(char *)&stats.st_mtime);
+	err = obj_write_attr(&attr, MTIME, sizeof(stats.st_mtime),
+	                     (char *)&stats.st_mtime);
 	if (err) {
 		printf("failed to write mtime \n");
 		exit(1);
 	}
 
-	err = obj_write_attr(&attr, CTIME, sizeof(stats.st_ctime), 
-			(char *)&stats.st_ctime);
+	err = obj_write_attr(&attr, CTIME, sizeof(stats.st_ctime),
+	                     (char *)&stats.st_ctime);
 	if (err) {
 		printf("failed to write ctime \n");
 		exit(1);
@@ -137,7 +137,7 @@ set_defattr(char *attr_name, char *data_name)
 
 
 int
-main(int argc , char **argv) 
+main(int argc , char **argv)
 {
 	int			i = 1;
 	char			attr_name[NAME_MAX];
@@ -169,13 +169,13 @@ main(int argc , char **argv)
 		}
 
 		if (is_attr) {
-			strncpy(base_name, cur_file, (flen - extlen));	
+			strncpy(base_name, cur_file, (flen - extlen));
 			base_name[flen - extlen] = '\0';
 			strcpy(attr_name, cur_file);
 
 		} else {
 			sprintf(attr_name, "%s%s", cur_file, ATTR_EXT);
-			strcpy(base_name, cur_file);	
+			strcpy(base_name, cur_file);
 		}
 
 		printf("file name <%s> \n", base_name);

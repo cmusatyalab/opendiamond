@@ -53,7 +53,7 @@ dump_node(char *cur_path)
 {
 
 	dctl_entry_t	    data[MAX_ENTS];
-    dctl_data_type_t    dtype;
+	dctl_data_type_t    dtype;
 	char                leaf[128];
 	int		ents;
 	int		err, i;
@@ -80,10 +80,10 @@ dump_node(char *cur_path)
 			printf("failed to read <%s> on %d \n", leaf, err);
 			exit(1);
 		}
-		printf("= %d \n", tmp); 
+		printf("= %d \n", tmp);
 
 	}
-		
+
 	ents = MAX_ENTS;
 	err = dctl_list_nodes(cur_path, &ents, data);
 	assert(err == 0);
@@ -121,41 +121,41 @@ dump_tree()
 int
 remote_write_leaf(char *path, int len, char *data, void *cookie)
 {
-    printf("write_leaf:  <%s> \n", path);
-    return(0);
+	printf("write_leaf:  <%s> \n", path);
+	return(0);
 }
 
 int
 remote_read_leaf(char *path, dctl_data_type_t *dtype, int *len, char *data, void *cookie)
 {
-    printf("read_leaf:  <%s> \n", path);
-    *dtype = DCTL_DT_UINT32;
-    *(uint32_t *)data = 57;
-    *len = sizeof(uint32_t);
-    return(0);
+	printf("read_leaf:  <%s> \n", path);
+	*dtype = DCTL_DT_UINT32;
+	*(uint32_t *)data = 57;
+	*len = sizeof(uint32_t);
+	return(0);
 }
 
 
 int
 remote_list_nodes(char *path, int *num_ents, dctl_entry_t *space,
-                void *cookie)
+                  void *cookie)
 {
-    printf("list_nodes:  <%s> \n", path);
-    *num_ents = 0;
-    return(0);
+	printf("list_nodes:  <%s> \n", path);
+	*num_ents = 0;
+	return(0);
 }
 
 
 int
 remote_list_leafs(char *path, int *num_ents, dctl_entry_t *space,
-                void *cookie)
+                  void *cookie)
 {
-    printf("list_leafs:  <%s> %p\n", path, path);
+	printf("list_leafs:  <%s> %p\n", path, path);
 
-    strcpy(space[0].entry_name, "test");
-    space[0].entry_type = DCTL_DT_UINT32;
-    *num_ents = 1;
-    return(0);
+	strcpy(space[0].entry_name, "test");
+	space[0].entry_type = DCTL_DT_UINT32;
+	*num_ents = 1;
+	return(0);
 }
 
 
@@ -166,8 +166,8 @@ simple_test()
 	int                 err;
 	uint32_t	        tmp;
 	int	                len;
-    dctl_fwd_cbs_t      cbs;
-    dctl_data_type_t    dtype;
+	dctl_fwd_cbs_t      cbs;
+	dctl_data_type_t    dtype;
 	dump_tree();
 
 	err = dctl_register_node("", "foo");
@@ -180,40 +180,40 @@ simple_test()
 	err = dctl_register_node("foo.dir1", "before");
 	assert(err == 0);
 
-	err = dctl_register_leaf("foo.dir1", "var1", DCTL_DT_UINT32, 
-			dctl_read_uint32, dctl_write_uint32, &var);
+	err = dctl_register_leaf("foo.dir1", "var1", DCTL_DT_UINT32,
+	                         dctl_read_uint32, dctl_write_uint32, &var);
 	assert(err == 0);
 
-	err = dctl_register_leaf("foo.dir1", "var2", DCTL_DT_UINT32, 
-			dctl_read_uint32, dctl_write_uint32, &var);
+	err = dctl_register_leaf("foo.dir1", "var2", DCTL_DT_UINT32,
+	                         dctl_read_uint32, dctl_write_uint32, &var);
 
-    cbs.dfwd_rleaf_cb = remote_read_leaf;
-    cbs.dfwd_wleaf_cb = remote_write_leaf;
-    cbs.dfwd_lnodes_cb = remote_list_nodes;
-    cbs.dfwd_lleafs_cb = remote_list_leafs;
-    cbs.dfwd_cookie = 0;
+	cbs.dfwd_rleaf_cb = remote_read_leaf;
+	cbs.dfwd_wleaf_cb = remote_write_leaf;
+	cbs.dfwd_lnodes_cb = remote_list_nodes;
+	cbs.dfwd_lleafs_cb = remote_list_leafs;
+	cbs.dfwd_cookie = 0;
 
 	err = dctl_register_fwd_node("foo.dir1", "fwd", &cbs);
-    if (err) {
-        printf("register fwd failed \n");
-        exit(1);
-    }
+	if (err) {
+		printf("register fwd failed \n");
+		exit(1);
+	}
 
 	err = dctl_register_node("foo.dir1", "after");
 	assert(err == 0);
 
 
 	assert(err == 0);
-	err = dctl_register_leaf("foo.dir1", "var3", DCTL_DT_UINT32, 
-			dctl_read_uint32, dctl_write_uint32, &var);
+	err = dctl_register_leaf("foo.dir1", "var3", DCTL_DT_UINT32,
+	                         dctl_read_uint32, dctl_write_uint32, &var);
 	assert(err == 0);
-	dctl_register_leaf("foo.dir1", "var4", DCTL_DT_UINT32, 
-			dctl_read_uint32, dctl_write_uint32, &var);
+	dctl_register_leaf("foo.dir1", "var4", DCTL_DT_UINT32,
+	                   dctl_read_uint32, dctl_write_uint32, &var);
 	assert(err == 0);
 
 
-	dctl_register_leaf("foo", "var", DCTL_DT_UINT32, 
-			dctl_read_uint32, dctl_write_uint32, &var);
+	dctl_register_leaf("foo", "var", DCTL_DT_UINT32,
+	                   dctl_read_uint32, dctl_write_uint32, &var);
 
 	len = sizeof(tmp);
 	dctl_read_leaf("foo.var",  &dtype, &len, (char *)&tmp);

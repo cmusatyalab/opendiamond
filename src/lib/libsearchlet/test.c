@@ -55,13 +55,14 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 	/* try to map data into memory */
 	/* XXXX 4096 */
 #ifdef	XXX
+
 	size = 4096;
 	err = lf_read_object(fhandle, ohandle, 0, &size, &data);
 	if (err) {
 		printf("failed to map data \n");
 		exit (1);
 	}
-	
+
 	err = lf_free_buffer(data);
 	if (err) {
 		printf("failed to unmap data \n");
@@ -69,7 +70,7 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 	}
 #endif
 	printf("num args %d \n", numarg);
-	{	
+	{
 		int i;
 		for (i=0; i<numarg; i++) {
 			printf("arg %d <%s> \n", i, args[i]);

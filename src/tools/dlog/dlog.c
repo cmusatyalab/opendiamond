@@ -56,30 +56,32 @@
 #define	MAX_TYPE	8
 #define	MAX_TOKEN	32
 
-typedef struct {
+typedef struct
+{
 	char	*	key;
 	char 	*	descr;
 	uint32_t	val;
-} flag_ent_t;
+}
+flag_ent_t;
 
 
 flag_ent_t 	level_map[] = {
-	{"crit", "critial errors", LOGL_CRIT},
-	{"err", "general errors", LOGL_ERR},
-	{"info", "General information", LOGL_INFO},
-	{"trace", "Trace Information", LOGL_TRACE},
-	{"all", "All of the above ", LOGL_ALL},
-	{NULL, NULL, 0}
-};
+                              {"crit", "critial errors", LOGL_CRIT},
+                              {"err", "general errors", LOGL_ERR},
+                              {"info", "General information", LOGL_INFO},
+                              {"trace", "Trace Information", LOGL_TRACE},
+                              {"all", "All of the above ", LOGL_ALL},
+                              {NULL, NULL, 0}
+                          };
 
 flag_ent_t 	src_map[] = {
-	{"app", "Application Information ", LOGT_APP},
-	{"disk", "object disk system", LOGT_DISK},
-	{"filt", "Filter information", LOGT_FILT},
-	{"bg", "Host background processing", LOGT_BG},
-	{"all", "All of the above", LOGT_ALL},
-	{NULL, NULL, 0}
-};
+                            {"app", "Application Information ", LOGT_APP},
+                            {"disk", "object disk system", LOGT_DISK},
+                            {"filt", "Filter information", LOGT_FILT},
+                            {"bg", "Host background processing", LOGT_BG},
+                            {"all", "All of the above", LOGT_ALL},
+                            {NULL, NULL, 0}
+                        };
 
 
 
@@ -194,16 +196,16 @@ display_results(log_msg_t *lheader, char *data, unsigned int level_flags,
 		log_ent = (log_ent_t *)&data[cur_offset];
 
 
-		level = ntohl(log_ent->le_level);	
-		type = ntohl(log_ent->le_type);	
+		level = ntohl(log_ent->le_level);
+		type = ntohl(log_ent->le_type);
 
 		/* update the offset now in case we decide to skip this */
 		cur_offset += ntohl(log_ent->le_nextoff);
 
 		/* make sure we want to display this entry */
-        if (((level & level_flags) == 0) || ((type & src_flags) == 0)) {
-            continue;
-        }
+		if (((level & level_flags) == 0) || ((type & src_flags) == 0)) {
+			continue;
+		}
 		dlen = ntohl(log_ent->le_dlen);
 		log_ent->le_data[dlen - 1] = '\0';
 
@@ -211,15 +213,15 @@ display_results(log_msg_t *lheader, char *data, unsigned int level_flags,
 		get_type_string(type, type_string, MAX_LEVEL);
 
 		fprintf(stdout, "<%c %s %s %s> %s \n",
-			       	source, host_id, level_string, type_string, 
-				log_ent->le_data);
+		        source, host_id, level_string, type_string,
+		        log_ent->le_data);
 
 	}
 
 
 
 
-} 
+}
 void
 read_log(int fd, unsigned int level_flags, unsigned int src_flags)
 {
@@ -233,7 +235,7 @@ read_log(int fd, unsigned int level_flags, unsigned int src_flags)
 			return;
 		}
 
-		data = (char *)malloc(lheader.log_len);	
+		data = (char *)malloc(lheader.log_len);
 		if (data == NULL) {
 			perror("Failed malloc \n");
 			exit(1);
@@ -342,8 +344,8 @@ usage()
 
 	cur_flag = level_map;
 	while (cur_flag->key != NULL) {
-		fprintf(stdout, "\t\t\t %s - %s \n", cur_flag->key, 
-				cur_flag->descr);
+		fprintf(stdout, "\t\t\t %s - %s \n", cur_flag->key,
+		        cur_flag->descr);
 		cur_flag++;
 	}
 
@@ -351,14 +353,14 @@ usage()
 	fprintf(stdout, "\t -s source_flags \n");
 	fprintf(stdout, "\t\t sets flags to indicate which data sources \n");
 	fprintf(stdout, "\t\t should be included in the logging.  This can\n");
-      	fprintf(stdout, "\t\t be a hex value (with leading 0x) or it \n");
+	fprintf(stdout, "\t\t be a hex value (with leading 0x) or it \n");
 	fprintf(stdout, "\t\t be a comma (',') seperated list of symbolic \n");
 	fprintf(stdout, "\t\t names,  The supported values are: \n\n");
 
 	cur_flag = src_map;
 	while (cur_flag->key != NULL) {
-		fprintf(stdout, "\t\t\t %s - %s \n", cur_flag->key, 
-				cur_flag->descr);
+		fprintf(stdout, "\t\t\t %s - %s \n", cur_flag->key,
+		        cur_flag->descr);
 		cur_flag++;
 	}
 
@@ -417,16 +419,16 @@ main(int argc, char **argv)
 
 			case 'l':
 				err = process_arg_string(optarg, &level_flags,
-						level_map);
+				                         level_map);
 				if (err) {
 					usage();
 					exit(1);
 				}
 				break;
-	
+
 			case 's':
 				err = process_arg_string(optarg, &src_flags,
-						src_map);
+				                         src_map);
 				if (err) {
 					usage();
 					exit(1);
@@ -438,8 +440,8 @@ main(int argc, char **argv)
 				break;
 		}
 	}
-	
-	
+
+
 	/*
 	 * This is the main loop.  We just keep trying to open the socket
 	 * and the log contents while the socket is valid.
@@ -469,7 +471,7 @@ main(int argc, char **argv)
 			 * the parameters we want to log and
 			 * read the log.
 			 */
-			set_log_flags(fd, level_flags, src_flags); 
+			set_log_flags(fd, level_flags, src_flags);
 			read_log(fd, level_flags, src_flags);
 		}
 		close(fd);

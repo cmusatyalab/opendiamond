@@ -96,36 +96,36 @@ static void
 register_stats(cstate_t *cstate)
 {
 
-       
-    dctl_register_leaf(DEV_NETWORK_PATH, "obj_sent", DCTL_DT_UINT32, 
-                    dctl_read_uint32, NULL, &cstate->stats_objs_tx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "obj_tot_bytes_sent", DCTL_DT_UINT64, 
-                    dctl_read_uint64, NULL, &cstate->stats_objs_total_bytes_tx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "obj_data_bytes_sent", DCTL_DT_UINT64, 
-                    dctl_read_uint64, NULL, &cstate->stats_objs_data_bytes_tx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "obj_attr_bytes_sent", DCTL_DT_UINT64, 
-                    dctl_read_uint64, NULL, &cstate->stats_objs_attr_bytes_tx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "obj_hdr_bytes_sent", DCTL_DT_UINT64, 
-                    dctl_read_uint64, NULL, &cstate->stats_objs_hdr_bytes_tx);
+
+	dctl_register_leaf(DEV_NETWORK_PATH, "obj_sent", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &cstate->stats_objs_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "obj_tot_bytes_sent", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &cstate->stats_objs_total_bytes_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "obj_data_bytes_sent", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &cstate->stats_objs_data_bytes_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "obj_attr_bytes_sent", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &cstate->stats_objs_attr_bytes_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "obj_hdr_bytes_sent", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &cstate->stats_objs_hdr_bytes_tx);
 
 
-    dctl_register_leaf(DEV_NETWORK_PATH, "control_sent", DCTL_DT_UINT32, 
-                    dctl_read_uint32, NULL, &cstate->stats_control_tx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "control_bytes_sent", DCTL_DT_UINT64, 
-                    dctl_read_uint64, NULL, &cstate->stats_control_bytes_tx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "control_recv", DCTL_DT_UINT32, 
-                    dctl_read_uint32, NULL, &cstate->stats_control_rx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "control_bytes_recv", DCTL_DT_UINT64, 
-                    dctl_read_uint64, NULL, &cstate->stats_control_bytes_rx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "log_sent", DCTL_DT_UINT32, 
-                    dctl_read_uint32, NULL, &cstate->stats_log_tx);
-    dctl_register_leaf(DEV_NETWORK_PATH, "log_bytes_sent", DCTL_DT_UINT64, 
-                    dctl_read_uint64, NULL, &cstate->stats_log_bytes_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "control_sent", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &cstate->stats_control_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "control_bytes_sent", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &cstate->stats_control_bytes_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "control_recv", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &cstate->stats_control_rx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "control_bytes_recv", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &cstate->stats_control_bytes_rx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "log_sent", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &cstate->stats_log_tx);
+	dctl_register_leaf(DEV_NETWORK_PATH, "log_bytes_sent", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &cstate->stats_log_bytes_tx);
 
 	dctl_register_leaf(DEV_NETWORK_PATH, "attr_policy", DCTL_DT_UINT32,
-					dctl_read_uint32, dctl_write_uint32, &cstate->attr_policy);
+	                   dctl_read_uint32, dctl_write_uint32, &cstate->attr_policy);
 	dctl_register_leaf(DEV_NETWORK_PATH, "attr_ratio", DCTL_DT_UINT32,
-				dctl_read_uint32, dctl_write_uint32, &cstate->attr_ratio);
+	                   dctl_read_uint32, dctl_write_uint32, &cstate->attr_ratio);
 
 }
 
@@ -181,7 +181,7 @@ shutdown_connection(listener_state_t *lstate, cstate_t *cstate)
 	 */
 }
 
-	
+
 /*
  * Create and establish a socket with the other
  * side.
@@ -215,7 +215,7 @@ sstub_new_sock(int *fd, int port)
 		/* XXX log */
 		perror("setsockopt");
 		return(ENOENT);
-       }
+	}
 
 
 	sa.sin_family = AF_INET;
@@ -262,21 +262,21 @@ have_full_conn(listener_state_t *list_state, int conn)
 	if (err) {
 		/* XXX */
 		printf("failed to init obj ring \n");
-		return;	
+		return;
 	}
 
 	err = ring_2init(&cstate->partial_obj_ring, OBJ_RING_SIZE);
 	if (err) {
 		/* XXX */
 		printf("failed to init obj ring \n");
-		return;	
+		return;
 	}
 
 	err = ring_init(&cstate->control_tx_ring, CONTROL_RING_SIZE);
 	if (err) {
 		/* XXX */
 		printf("failed to init control ring \n");
-		return;	
+		return;
 	}
 
 	/*
@@ -299,18 +299,18 @@ have_full_conn(listener_state_t *list_state, int conn)
 		}
 
 		/*
-	 	 * we registered correctly, save the cookie;
-	  	 */
+			 * we registered correctly, save the cookie;
+		 	 */
 		list_state->conns[conn].app_cookie = new_cookie;
 
 
-        /*
-         * Register the statistics with dctl.  This needs to be
-         * done after the new_conn_cb()  !!!.
-         */
-        register_stats(cstate);
+		/*
+		 * Register the statistics with dctl.  This needs to be
+		 * done after the new_conn_cb()  !!!.
+		 */
+		register_stats(cstate);
 
-        
+
 
 		cstate->attr_policy  =  DEFAULT_NW_ATTR_POLICY;
 		cstate->attr_threshold  = RAND_MAX;
@@ -320,7 +320,7 @@ have_full_conn(listener_state_t *list_state, int conn)
 		 * the main thread for this process is used
 		 * for servicing the connections.
 		 */
-		connection_main(list_state, conn);		
+		connection_main(list_state, conn);
 		return;
 	} else {
 		shutdown_connection(list_state, cstate);
@@ -346,11 +346,11 @@ accept_control_conn(listener_state_t *list_state)
 
 	csize = sizeof(ca);
 	new_sock = accept(list_state->control_fd, (struct sockaddr *)
-			&ca, &csize);
+	                  &ca, &csize);
 
 	if (new_sock < 0) {
 		/* XXX log */
-		printf("XXX accept failed \n");	
+		printf("XXX accept failed \n");
 	}
 
 	/*
@@ -414,11 +414,11 @@ accept_data_conn(listener_state_t *list_state)
 
 	csize = sizeof(ca);
 	new_sock = accept(list_state->data_fd, (struct sockaddr *)
-			&ca, &csize);
+	                  &ca, &csize);
 
 	if (new_sock < 0) {
 		/* XXX log */
-		printf("XXX accept failed \n");	
+		printf("XXX accept failed \n");
 	}
 
 	dsize = recv(new_sock, (char *)&data, sizeof(data), 0);
@@ -432,7 +432,7 @@ accept_data_conn(listener_state_t *list_state)
 	if (data >= MAX_CONNS) {
 		/* XXX */
 		fprintf(stderr, "data conn cookie out of range <%d> \n",
-				data);
+		        data);
 		close(new_sock);
 		return;
 	}
@@ -441,7 +441,7 @@ accept_data_conn(listener_state_t *list_state)
 	if (!(list_state->conns[data].flags & CSTATE_ALLOCATED)) {
 		/* XXX */
 		fprintf(stderr, "connection not on valid cookie <%d>\n",
-			data);
+		        data);
 		close(new_sock);
 		return;
 	}
@@ -451,13 +451,13 @@ accept_data_conn(listener_state_t *list_state)
 	list_state->conns[data].data_fd = new_sock;
 
 	if ((list_state->conns[data].flags & CSTATE_ALL_FD) ==
-		       CSTATE_ALL_FD)	{
+	    CSTATE_ALL_FD)	{
 		have_full_conn(list_state, (int) data);
-			
+
 	}
 
 	socket_non_block(new_sock);
-	
+
 }
 
 
@@ -473,11 +473,11 @@ accept_log_conn(listener_state_t *list_state)
 
 	csize = sizeof(ca);
 	new_sock = accept(list_state->log_fd, (struct sockaddr *)
-			&ca, &csize);
+	                  &ca, &csize);
 
 	if (new_sock < 0) {
 		/* XXX log */
-		printf("XXX accept failed \n");	
+		printf("XXX accept failed \n");
 	}
 
 	dsize = recv(new_sock, (char *)&data, sizeof(data), 0);
@@ -488,12 +488,12 @@ accept_log_conn(listener_state_t *list_state)
 		return;
 	}
 
-	if (data >= MAX_CONNS) { 
+	if (data >= MAX_CONNS) {
 		/* XXX */
 		printf("data conn cookie out of range \n");
 		close(new_sock);
 		return;
-	}	
+	}
 
 	if (!(list_state->conns[data].flags & CSTATE_ALLOCATED)) {
 		/* XXX */
@@ -507,7 +507,7 @@ accept_log_conn(listener_state_t *list_state)
 	list_state->conns[data].log_fd = new_sock;
 
 	if ((list_state->conns[data].flags & CSTATE_ALL_FD) ==
-		       CSTATE_ALL_FD)	{
+	    CSTATE_ALL_FD)	{
 		have_full_conn(list_state, (int) data);
 	}
 	socket_non_block(new_sock);
@@ -520,13 +520,13 @@ accept_log_conn(listener_state_t *list_state)
  * information associated with them.
  */
 
-void 
+void
 sstub_listen(void *cookie, int fork)
 {
 	listener_state_t *list_state;
 	struct timeval now;
 	int	err;
-	int	max_fd = 0; 
+	int	max_fd = 0;
 	int	wait_status;
 	pid_t	wait_pid;
 
@@ -547,7 +547,7 @@ sstub_listen(void *cookie, int fork)
 	max_fd += 1;
 
 
-	
+
 	while (1) {
 		FD_ZERO(&list_state->read_fds);
 		FD_ZERO(&list_state->write_fds);
@@ -565,32 +565,32 @@ sstub_listen(void *cookie, int fork)
 		 * Sleep on the set of sockets to see if anything
 		 * interesting has happened.
 		 */
-		err = select(max_fd, &list_state->read_fds, 
-				&list_state->write_fds, 
-				&list_state->except_fds,  &now);
+		err = select(max_fd, &list_state->read_fds,
+		             &list_state->write_fds,
+		             &list_state->except_fds,  &now);
 		if (err == -1) {
 			/* XXX log */
 			printf("XXX select failed \n");
 			exit(1);
 		}
 
-		/* 
+		/*
 		 * If err > 0 then there are some objects
 		 * that have data.
 		 */
 		if (err > 0) {
-			if (FD_ISSET(list_state->control_fd, 
-				    &list_state->read_fds)) {
+			if (FD_ISSET(list_state->control_fd,
+			             &list_state->read_fds)) {
 				accept_control_conn(list_state);
 			}
 
-			if (FD_ISSET(list_state->data_fd, 
-				    &list_state->read_fds)) {
-				accept_data_conn(list_state);			
+			if (FD_ISSET(list_state->data_fd,
+			             &list_state->read_fds)) {
+				accept_data_conn(list_state);
 			}
-			if (FD_ISSET(list_state->log_fd, 
-				    &list_state->read_fds)) {
-				accept_log_conn(list_state);			
+			if (FD_ISSET(list_state->log_fd,
+			             &list_state->read_fds)) {
+				accept_log_conn(list_state);
 			}
 		}
 
@@ -606,7 +606,7 @@ sstub_listen(void *cookie, int fork)
 		if (wait_pid  > 0) {
 			/* XXX nothing to do ?? */
 		}
-		
+
 	}
 }
 

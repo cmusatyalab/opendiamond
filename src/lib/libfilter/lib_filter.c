@@ -84,7 +84,7 @@ static write_attr_cb 	write_attr_fn = NULL;
  *
  */
 
-lf_fhandle_t 
+lf_fhandle_t
 lf_init_lib(int major_version, int minor_version)
 {
 
@@ -93,9 +93,9 @@ lf_init_lib(int major_version, int minor_version)
 	 * We currently only support the latest version.  If the
 	 * callers isn't requesting this version, then we fail.
 	 */
-	if ((major_version != LF_LATEST_MAJOR_VERSION) && 
+	if ((major_version != LF_LATEST_MAJOR_VERSION) &&
 	    (minor_version != LF_LATEST_MINOR_VERSION)) {
-		return(NULL);	
+		return(NULL);
 	}
 
 
@@ -144,8 +144,8 @@ lf_set_read_cb(read_attr_cb cb_fn)
  */
 /* need to pass in fhandle as the filter name */
 int
-lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name, 
-	     off_t *len, char *data)
+lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
+             off_t *len, char *data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -192,7 +192,7 @@ lf_set_write_cb(write_attr_cb cb_fn)
  */
 int
 lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
-		char *data)
+              char *data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -240,9 +240,9 @@ lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
  *
  */
 
-int 
-lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, 
-		int num_blocks,  off_t *len, char **bufp)
+int
+lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
+              int num_blocks,  off_t *len, char **bufp)
 {
 	obj_data_t *	odata;
 	char	*	buf;
@@ -255,9 +255,9 @@ lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
 	/*
 	 * See if there is any data to read.
 	 */
-	if (odata->data_len <= odata->cur_offset) { 
+	if (odata->data_len <= odata->cur_offset) {
 		printf("too much dat %016llX  off %lx len %lx \n",
-			odata->local_id, odata->cur_offset, odata->data_len);
+		       odata->local_id, odata->cur_offset, odata->data_len);
 		*len = 0;
 		assert(0);
 		return(ENOENT);
@@ -311,7 +311,7 @@ lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  *
  */
 
-int 
+int
 lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, int num_blocks)
 {
 	obj_data_t *	odata;
@@ -324,7 +324,7 @@ lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, int num_blocks)
 	 * See if there is any data to read.  XXX for write, see
 	 * if we should do something different !!!
 	 */
-	if (odata->data_len <= odata->cur_offset) { 
+	if (odata->data_len <= odata->cur_offset) {
 		return(ENOENT);
 	}
 
@@ -368,9 +368,9 @@ lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, int num_blocks)
  */
 
 #define	LF_WRITE_BLOCK_PAD	0x01
-int 
+int
 lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
-			int flags, off_t len, char *buf)
+               int flags, off_t len, char *buf)
 {
 
 	return(EINVAL);
@@ -397,7 +397,7 @@ lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  * 	EINVAL     - one of the handles was invalid. 
  *
  */
-int 
+int
 lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf)
 {
 
@@ -407,7 +407,7 @@ lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf)
 	 */
 	new_buf = (char *)malloc(len);
 	if (new_buf == NULL) {
-		return(ENOSPC);		
+		return(ENOSPC);
 	}
 
 	*buf = new_buf;
@@ -433,12 +433,12 @@ lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf)
  *
  * 	EINVAL     - one of the handles was invalid. 
  */
-int 
+int
 lf_free_buffer(lf_fhandle_t fhandle, char *buf)
 {
 
 	/* XXX keep some states and error checking */
-	free(buf);	
+	free(buf);
 	return 0;
 }
 
@@ -466,7 +466,7 @@ lf_free_buffer(lf_fhandle_t fhandle, char *buf)
 /* XXX this should match the one in log, but doesn't need to */
 #define	MAX_LOG_BUF	80
 
-int 
+int
 lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...)
 {
 	va_list	ap;
@@ -478,9 +478,9 @@ lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...)
 
 	cur_filter = fexec_cur_filtname();
 	len = snprintf(log_buffer, MAX_LOG_BUF, "%s : ", cur_filter);
-	assert((len > 0) || (len < MAX_LOG_BUF)); 
-	
-	remain_len = MAX_LOG_BUF - len;  
+	assert((len > 0) || (len < MAX_LOG_BUF));
+
+	remain_len = MAX_LOG_BUF - len;
 
 	va_start(ap, fmt);
 	va_copy(new_ap, ap);

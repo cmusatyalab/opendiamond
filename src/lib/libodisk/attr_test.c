@@ -65,7 +65,7 @@ remove_some_attr(obj_attr_t *attr, int size, int num)
 			exit(1);
 		}
 
-	} 
+	}
 
 }
 
@@ -106,7 +106,7 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 
 		if (attr_size != size) {
 			printf("wrong size on <%s> got %ld want %d \n",
-					name_string, attr_size, size);
+			       name_string, attr_size, size);
 			exit(1);
 		}
 
@@ -117,7 +117,7 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 		}
 
 
-	} 
+	}
 
 	free(base_data);
 	free(ret_data);
@@ -149,7 +149,7 @@ write_some_attr(obj_data_t *obj, int size, int num)
 			printf("failed to write attr <%s>\n", name_string);
 			exit(1);
 		}
-	} 
+	}
 
 	free(data);
 }
@@ -269,7 +269,7 @@ main(int argc, char **argv)
 
 	/*
 	 * reload the object, not the size, and delete the
-     * attributes and resave them.
+	    * attributes and resave them.
 	 */
 	err = odisk_get_obj(odisk, &new_obj, &oid);
 	assert(err == 0);

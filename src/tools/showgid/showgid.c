@@ -59,7 +59,7 @@ isstring(char *str, int len)
 	int i;
 	for (i = 0; i<(len -1); i++) {
 		if (!(isalnum((int)str[i])||isspace((int)str[i]))) {
-		/*	printf("isstring : %c \n", str[i]); */
+			/*	printf("isstring : %c \n", str[i]); */
 			return(0);
 		}
 	}
@@ -69,21 +69,21 @@ isstring(char *str, int len)
 		return(0);
 	}
 	return(1);
-	
+
 }
 
 int
 show_gid(gid_list_t *glist)
 {
 
-    int     i;
+	int     i;
 
-    for (i=0; i < glist->num_gids; i++) {
-        if (glist->gids[i] != 0) {
-            fprintf(stdout, "%016llx\n", glist->gids[i]);
-        }
-    }
-    return(0);
+	for (i=0; i < glist->num_gids; i++) {
+		if (glist->gids[i] != 0) {
+			fprintf(stdout, "%016llx\n", glist->gids[i]);
+		}
+	}
+	return(0);
 }
 
 
@@ -93,20 +93,20 @@ int odisk_load_obj(obj_data_t **ohandle, char *name);
 
 
 int
-main(int argc , char **argv) 
+main(int argc , char **argv)
 {
 	char *			cur_file;
 	char *			poss_ext;
-    int             i = 1;
+	int             i = 1;
 	int			flen;
 	int			extlen;
-    int             err;
-    gid_list_t  *       glist;
-    off_t           len;
-    obj_data_t  *ohandle;
+	int             err;
+	gid_list_t  *       glist;
+	off_t           len;
+	obj_data_t  *ohandle;
 
-    while (argc != i) {
-        cur_file = argv[i];
+	while (argc != i) {
+		cur_file = argv[i];
 		i++;
 
 		/*
@@ -121,26 +121,26 @@ main(int argc , char **argv)
 		if (flen > extlen) {
 			poss_ext = &cur_file[flen - extlen];
 			if (strcmp(poss_ext, ATTR_EXT) == 0) {
-                printf("please use base file !! \n");
-                exit(1);
+				printf("please use base file !! \n");
+				exit(1);
 			}
 		}
 
-        err = odisk_load_obj(&ohandle, cur_file);
-        assert(err == 0);
+		err = odisk_load_obj(&ohandle, cur_file);
+		assert(err == 0);
 
-        len = 0;
-        err = obj_read_attr(&ohandle->attr_info, GIDLIST_NAME, &len, NULL);
-        if (err != ENOMEM) {
-            fprintf(stderr, "can't get list %d \n", err);
-            exit(1);
-        }
+		len = 0;
+		err = obj_read_attr(&ohandle->attr_info, GIDLIST_NAME, &len, NULL);
+		if (err != ENOMEM) {
+			fprintf(stderr, "can't get list %d \n", err);
+			exit(1);
+		}
 
-        glist = malloc(len);
-        err = obj_read_attr(&ohandle->attr_info, GIDLIST_NAME, &len, (char *)glist);
-        assert(err == 0);
+		glist = malloc(len);
+		err = obj_read_attr(&ohandle->attr_info, GIDLIST_NAME, &len, (char *)glist);
+		assert(err == 0);
 
-        show_gid(glist);
+		show_gid(glist);
 
 	}
 

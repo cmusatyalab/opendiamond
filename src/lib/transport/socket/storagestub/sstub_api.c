@@ -128,7 +128,7 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 	 * Build the main statistics 
 	 */
 	dhead = (dstats_subheader_t *)buffer;
-	
+
 	dhead->dss_total_objs = htonl(stats->ds_objs_total);
 	dhead->dss_objs_proc = htonl(stats->ds_objs_processed);
 	dhead->dss_objs_drop = htonl(stats->ds_objs_dropped);
@@ -239,7 +239,7 @@ sstub_get_partial(void *cookie, obj_data_t **obj)
 	/* XXX log */
 	pthread_mutex_lock(&cstate->cmutex);
 	err = ring_2deq(cstate->partial_obj_ring, (void **)obj,
-                (void **)&vnum);
+	                (void **)&vnum);
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	return(err);
@@ -266,8 +266,8 @@ sstub_flush_objs(void *cookie, int ver_no)
 	/* XXX log */
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->complete_obj_ring, 
-			(void **)&junk, (void **)&vnum);
+		err = ring_2deq(cstate->complete_obj_ring,
+		                (void **)&junk, (void **)&vnum);
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* we got through them all */
@@ -281,7 +281,7 @@ sstub_flush_objs(void *cookie, int ver_no)
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
 		err = ring_2deq(cstate->partial_obj_ring,
-			(void **)&junk, (void **)&vnum);
+		                (void **)&junk, (void **)&vnum);
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* we got through them all */
@@ -361,7 +361,7 @@ sstub_send_dev_char(void *cookie, device_char_t *dev_char)
 	cheader->command = htonl(CNTL_CMD_RET_CHAR);
 	cheader->data_len = htonl(sizeof(*shead));
 	cheader->spare = (uint32_t)shead;
-	
+
 	shead->dcs_isa = htonl(dev_char->dc_isa);
 	/* XXX bswap these */
 	shead->dcs_speed = dev_char->dc_speed;
@@ -402,7 +402,7 @@ sstub_init(sstub_cb_args_t *cb_args)
 	listener_state_t *	list_state;
 	int			err;
 
-	list_state = (listener_state_t *) malloc(sizeof(*list_state));	
+	list_state = (listener_state_t *) malloc(sizeof(*list_state));
 	if (list_state == NULL) {
 		return (NULL);
 	}
@@ -468,17 +468,17 @@ sstub_init(sstub_cb_args_t *cb_args)
 }
 
 
-int 
+int
 sstub_wleaf_response(void *cookie, int err, int32_t opid)
 {
 	cstate_t *		    cstate;
 	control_header_t *	cheader;
 	dctl_subheader_t *	shead;
 	int			        eno;
-    int                 tot_len;
+	int                 tot_len;
 
 	cstate = (cstate_t *)cookie;
-    tot_len = sizeof(*shead);
+	tot_len = sizeof(*shead);
 
 	cheader = (control_header_t *)malloc(sizeof(*cheader));
 	if(cheader == NULL) {
@@ -490,7 +490,7 @@ sstub_wleaf_response(void *cookie, int err, int32_t opid)
 	shead = (dctl_subheader_t *)malloc(tot_len);
 	if(shead == NULL) {
 		/* XXX */
-        free(cheader);
+		free(cheader);
 		printf("no memory for subheader \n");
 		exit(1);
 	}
@@ -501,10 +501,10 @@ sstub_wleaf_response(void *cookie, int err, int32_t opid)
 	cheader->data_len = htonl(tot_len);
 	cheader->spare = (uint32_t)shead;
 
-    shead->dctl_err = htonl(err);
-    shead->dctl_opid = htonl(opid);
-    shead->dctl_plen = htonl(0);
-    shead->dctl_dlen = htonl(0);
+	shead->dctl_err = htonl(err);
+	shead->dctl_opid = htonl(opid);
+	shead->dctl_plen = htonl(0);
+	shead->dctl_dlen = htonl(0);
 
 	/*
 	 * mark the control state that there is a pending
@@ -518,33 +518,33 @@ sstub_wleaf_response(void *cookie, int err, int32_t opid)
 	pthread_mutex_unlock(&cstate->cmutex);
 	if (eno) {
 		/* XXX */
-        free(shead);
-        free(cheader);
+		free(shead);
+		free(cheader);
 		printf("can't enq message \n");
 		exit(1);
 	}
 
-    return(0);
+	return(0);
 }
 
 
-int 
+int
 sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
-                int len, char *data, int32_t opid)
+                     int len, char *data, int32_t opid)
 {
 	cstate_t *		    cstate;
 	control_header_t *	cheader;
 	dctl_subheader_t *	shead;
 	int			        eno;
-    int                 tot_len;
+	int                 tot_len;
 
 	cstate = (cstate_t *)cookie;
 
-    if (err == 0) {
-        tot_len = sizeof(*shead) + len;
-    } else {
-        tot_len = sizeof(*shead);
-    }
+	if (err == 0) {
+		tot_len = sizeof(*shead) + len;
+	} else {
+		tot_len = sizeof(*shead);
+	}
 
 	cheader = (control_header_t *)malloc(sizeof(*cheader));
 	if(cheader == NULL) {
@@ -556,7 +556,7 @@ sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
 	shead = (dctl_subheader_t *)malloc(tot_len);
 	if(shead == NULL) {
 		/* XXX */
-        free(cheader);
+		free(cheader);
 		printf("no memory for subheader \n");
 		exit(1);
 	}
@@ -567,15 +567,15 @@ sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
 	cheader->data_len = htonl(tot_len);
 	cheader->spare = (uint32_t)shead;
 
-    shead->dctl_err = htonl(err);
-    shead->dctl_opid = htonl(opid);
-    shead->dctl_plen = htonl(0);
-    shead->dctl_dtype = htonl(dtype);
-    shead->dctl_dlen = htonl(len);
+	shead->dctl_err = htonl(err);
+	shead->dctl_opid = htonl(opid);
+	shead->dctl_plen = htonl(0);
+	shead->dctl_dtype = htonl(dtype);
+	shead->dctl_dlen = htonl(len);
 
-    if (err == 0) {
-        memcpy(shead->dctl_data, data, len);
-    }
+	if (err == 0) {
+		memcpy(shead->dctl_data, data, len);
+	}
 
 	/*
 	 * mark the control state that there is a pending
@@ -589,38 +589,38 @@ sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
 	pthread_mutex_unlock(&cstate->cmutex);
 	if (eno) {
 		/* XXX */
-        free(shead);
-        free(cheader);
+		free(shead);
+		free(cheader);
 		printf("can't enq message \n");
 		exit(1);
 	}
 
-    return(0);
+	return(0);
 }
 
-int 
+int
 sstub_lleaf_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
-               int32_t opid)
+                     int32_t opid)
 {
 	cstate_t *		    cstate;
 	control_header_t *	cheader;
 	dctl_subheader_t *	shead;
 	int			        eno;
-    int                 tot_len;
-    int                 dlen;
+	int                 tot_len;
+	int                 dlen;
 
 	cstate = (cstate_t *)cookie;
 
-    dlen = num_ents * sizeof(dctl_entry_t);
+	dlen = num_ents * sizeof(dctl_entry_t);
 
-    if (err == 0) {
-        tot_len = sizeof(*shead) + dlen;
-    } else {
-        if (err != ENOSPC) {
-                dlen = 0;
-        }
-        tot_len = sizeof(*shead);
-    }
+	if (err == 0) {
+		tot_len = sizeof(*shead) + dlen;
+	} else {
+		if (err != ENOSPC) {
+			dlen = 0;
+		}
+		tot_len = sizeof(*shead);
+	}
 
 	cheader = (control_header_t *)malloc(sizeof(*cheader));
 	if(cheader == NULL) {
@@ -632,7 +632,7 @@ sstub_lleaf_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
 	shead = (dctl_subheader_t *)malloc(tot_len);
 	if(shead == NULL) {
 		/* XXX */
-        free(cheader);
+		free(cheader);
 		printf("no memory for subheader \n");
 		exit(1);
 	}
@@ -643,14 +643,14 @@ sstub_lleaf_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
 	cheader->data_len = htonl(tot_len);
 	cheader->spare = (uint32_t)shead;
 
-    shead->dctl_err = htonl(err);
-    shead->dctl_opid = htonl(opid);
-    shead->dctl_plen = htonl(0);
-    shead->dctl_dlen = htonl(dlen);
+	shead->dctl_err = htonl(err);
+	shead->dctl_opid = htonl(opid);
+	shead->dctl_plen = htonl(0);
+	shead->dctl_dlen = htonl(dlen);
 
-    if (err == 0) {
-        memcpy(shead->dctl_data, (char *)data, dlen);
-    }
+	if (err == 0) {
+		memcpy(shead->dctl_data, (char *)data, dlen);
+	}
 
 	/*
 	 * mark the control state that there is a pending
@@ -664,38 +664,38 @@ sstub_lleaf_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
 	pthread_mutex_unlock(&cstate->cmutex);
 	if (eno) {
 		/* XXX */
-        free(shead);
-        free(cheader);
+		free(shead);
+		free(cheader);
 		printf("can't enq message \n");
 		exit(1);
 	}
-    return(0);
+	return(0);
 
 }
 
-int 
+int
 sstub_lnode_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
-               int32_t opid)
+                     int32_t opid)
 {
 	cstate_t *		    cstate;
 	control_header_t *	cheader;
 	dctl_subheader_t *	shead;
 	int			        eno;
-    int                 tot_len;
-    int                 dlen;
+	int                 tot_len;
+	int                 dlen;
 
 	cstate = (cstate_t *)cookie;
 
-    dlen = num_ents * sizeof(dctl_entry_t);
+	dlen = num_ents * sizeof(dctl_entry_t);
 
-    if (err == 0) {
-        tot_len = sizeof(*shead) + dlen;
-    } else {
-        if (err != ENOSPC) {
-                dlen = 0;
-        }
-        tot_len = sizeof(*shead);
-    }
+	if (err == 0) {
+		tot_len = sizeof(*shead) + dlen;
+	} else {
+		if (err != ENOSPC) {
+			dlen = 0;
+		}
+		tot_len = sizeof(*shead);
+	}
 
 	cheader = (control_header_t *)malloc(sizeof(*cheader));
 	if(cheader == NULL) {
@@ -707,7 +707,7 @@ sstub_lnode_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
 	shead = (dctl_subheader_t *)malloc(tot_len);
 	if(shead == NULL) {
 		/* XXX */
-        free(cheader);
+		free(cheader);
 		printf("no memory for subheader \n");
 		exit(1);
 	}
@@ -718,14 +718,14 @@ sstub_lnode_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
 	cheader->data_len = htonl(tot_len);
 	cheader->spare = (uint32_t)shead;
 
-    shead->dctl_err = htonl(err);
-    shead->dctl_opid = htonl(opid);
-    shead->dctl_plen = htonl(0);
-    shead->dctl_dlen = htonl(dlen);
+	shead->dctl_err = htonl(err);
+	shead->dctl_opid = htonl(opid);
+	shead->dctl_plen = htonl(0);
+	shead->dctl_dlen = htonl(dlen);
 
-    if (err == 0) {
-        memcpy(shead->dctl_data, (char *)data, dlen);
-    }
+	if (err == 0) {
+		memcpy(shead->dctl_data, (char *)data, dlen);
+	}
 
 	/*
 	 * mark the control state that there is a pending
@@ -739,12 +739,12 @@ sstub_lnode_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
 	pthread_mutex_unlock(&cstate->cmutex);
 	if (eno) {
 		/* XXX */
-        free(shead);
-        free(cheader);
+		free(shead);
+		free(cheader);
 		printf("can't enq message \n");
 		exit(1);
 	}
-    return(0);
+	return(0);
 }
 
 

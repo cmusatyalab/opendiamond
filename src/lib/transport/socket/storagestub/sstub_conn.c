@@ -98,7 +98,7 @@ connection_main(listener_state_t *lstate, int conn)
 	cstate->lstate = lstate;
 
 
-	
+
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 			pthread_mutex_lock(&cstate->cmutex);
@@ -126,8 +126,8 @@ connection_main(listener_state_t *lstate, int conn)
 		if (cstate->flags & CSTATE_CONTROL_DATA) {
 			FD_SET(cstate->control_fd,  &cstate->write_fds);
 		}
-		if ((cstate->flags & CSTATE_OBJ_DATA) && 
-			(cstate->cc_credits > 0)) {
+		if ((cstate->flags & CSTATE_OBJ_DATA) &&
+		    (cstate->cc_credits > 0)) {
 			FD_SET(cstate->data_fd,  &cstate->write_fds);
 		}
 		if (cstate->flags & CSTATE_LOG_DATA) {
@@ -142,23 +142,23 @@ connection_main(listener_state_t *lstate, int conn)
 		 * Sleep on the set of sockets to see if anything
 		 * interesting has happened.
 		 */
-		err = select(max_fd, &cstate->read_fds, 
-				&cstate->write_fds, 
-				&cstate->except_fds,  &to);
+		err = select(max_fd, &cstate->read_fds,
+		             &cstate->write_fds,
+		             &cstate->except_fds,  &to);
 
 		if (err == -1) {
 			/* XXX log */
-            printf("XXX select %d \n", errno);
+			printf("XXX select %d \n", errno);
 			perror("XXX select failed ");
 			exit(1);
 		}
 
-		/* 
+		/*
 		 * If err > 0 then there are some objects
 		 * that have data.
 		 */
 		if (err > 0) {
-            /* handle reads on the sockets */
+			/* handle reads on the sockets */
 			if (FD_ISSET(cstate->control_fd, &cstate->read_fds)) {
 				sstub_read_control(lstate, cstate);
 			}
@@ -169,7 +169,7 @@ connection_main(listener_state_t *lstate, int conn)
 				sstub_read_log(lstate, cstate);
 			}
 
-            /* handle the exception conditions on the socket */
+			/* handle the exception conditions on the socket */
 			if (FD_ISSET(cstate->control_fd, &cstate->except_fds)) {
 				sstub_except_control(lstate, cstate);
 			}
@@ -180,7 +180,7 @@ connection_main(listener_state_t *lstate, int conn)
 				sstub_except_log(lstate, cstate);
 			}
 
-            /* handle writes on the sockets */
+			/* handle writes on the sockets */
 			if (FD_ISSET(cstate->control_fd, &cstate->write_fds)) {
 				sstub_write_control(lstate, cstate);
 			}

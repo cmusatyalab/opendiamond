@@ -140,27 +140,27 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 		fhead = (fstats_subheader_t *)&data_buf[offset];
 
 		strncpy(dstats->ds_filter_stats[i].fs_name,
-				fhead->fss_name, MAX_FILTER_NAME);
+		        fhead->fss_name, MAX_FILTER_NAME);
 		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME-1] =
-				'\0';
-	
-		dstats->ds_filter_stats[i].fs_objs_processed = 
-				ntohl(fhead->fss_objs_processed);
-			
-		dstats->ds_filter_stats[i].fs_objs_dropped = 
-				ntohl(fhead->fss_objs_dropped);
+		    '\0';
+
+		dstats->ds_filter_stats[i].fs_objs_processed =
+		    ntohl(fhead->fss_objs_processed);
+
+		dstats->ds_filter_stats[i].fs_objs_dropped =
+		    ntohl(fhead->fss_objs_dropped);
 
 		/* JIAYING */
-		dstats->ds_filter_stats[i].fs_objs_cache_dropped = 
-				ntohl(fhead->fss_objs_cache_dropped);
-		dstats->ds_filter_stats[i].fs_objs_cache_passed = 
-				ntohl(fhead->fss_objs_cache_passed);
-		dstats->ds_filter_stats[i].fs_objs_compute = 
-				ntohl(fhead->fss_objs_compute);
+		dstats->ds_filter_stats[i].fs_objs_cache_dropped =
+		    ntohl(fhead->fss_objs_cache_dropped);
+		dstats->ds_filter_stats[i].fs_objs_cache_passed =
+		    ntohl(fhead->fss_objs_cache_passed);
+		dstats->ds_filter_stats[i].fs_objs_compute =
+		    ntohl(fhead->fss_objs_compute);
 
 		/* XXX byte order !!! */
-		dstats->ds_filter_stats[i].fs_avg_exec_time = 
-				fhead->fss_avg_exec_time;
+		dstats->ds_filter_stats[i].fs_avg_exec_time =
+		    fhead->fss_avg_exec_time;
 
 	}
 }
@@ -168,17 +168,17 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 static void
 write_leaf_done(sdevice_state_t *dev, char *data)
 {
-    dctl_subheader_t    *dsub;
-    int                  err;
-    int32_t             opid;
+	dctl_subheader_t    *dsub;
+	int                  err;
+	int32_t             opid;
 
 
-    dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *)data;
 
-    err = htonl(dsub->dctl_err);
-    opid = htonl(dsub->dctl_opid);
+	err = htonl(dsub->dctl_err);
+	opid = htonl(dsub->dctl_opid);
 
-    (*dev->hstub_wleaf_done_cb)(dev->hcookie, err, opid);
+	(*dev->hstub_wleaf_done_cb)(dev->hcookie, err, opid);
 
 
 }
@@ -187,63 +187,63 @@ write_leaf_done(sdevice_state_t *dev, char *data)
 static void
 read_leaf_done(sdevice_state_t *dev, char *data)
 {
-    dctl_subheader_t *  dsub;
-    int                 err;
-    int32_t             opid;
-    int                 dlen;
-    dctl_data_type_t    dtype;
+	dctl_subheader_t *  dsub;
+	int                 err;
+	int32_t             opid;
+	int                 dlen;
+	dctl_data_type_t    dtype;
 
-    dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *)data;
 
-    err = htonl(dsub->dctl_err);
-    opid = htonl(dsub->dctl_opid);
-    dlen = htonl(dsub->dctl_dlen);
-    dtype = htonl(dsub->dctl_dtype);
+	err = htonl(dsub->dctl_err);
+	opid = htonl(dsub->dctl_opid);
+	dlen = htonl(dsub->dctl_dlen);
+	dtype = htonl(dsub->dctl_dtype);
 
-    (*dev->hstub_rleaf_done_cb)(dev->hcookie, err, dtype, dlen, 
-                                dsub->dctl_data, opid);
+	(*dev->hstub_rleaf_done_cb)(dev->hcookie, err, dtype, dlen,
+	                            dsub->dctl_data, opid);
 }
 
 static void
 list_nodes_done(sdevice_state_t *dev, char *data)
 {
-    dctl_subheader_t *  dsub;
-    int                 err;
-    int32_t             opid;
-    int                 dlen;
-    int                 ents;
+	dctl_subheader_t *  dsub;
+	int                 err;
+	int32_t             opid;
+	int                 dlen;
+	int                 ents;
 
-    dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *)data;
 
-    err = htonl(dsub->dctl_err);
-    opid = htonl(dsub->dctl_opid);
-    dlen = htonl(dsub->dctl_dlen);
+	err = htonl(dsub->dctl_err);
+	opid = htonl(dsub->dctl_opid);
+	dlen = htonl(dsub->dctl_dlen);
 
-    ents = dlen /(sizeof(dctl_entry_t));
+	ents = dlen /(sizeof(dctl_entry_t));
 
-    (*dev->hstub_lnode_done_cb)(dev->hcookie, err, ents, 
-                                 (dctl_entry_t *)dsub->dctl_data, opid);
+	(*dev->hstub_lnode_done_cb)(dev->hcookie, err, ents,
+	                            (dctl_entry_t *)dsub->dctl_data, opid);
 }
 
 static void
 list_leafs_done(sdevice_state_t *dev, char *data)
 {
-    dctl_subheader_t *  dsub;
-    int                 err;
-    int32_t             opid;
-    int                 dlen;
-    int                 ents;
+	dctl_subheader_t *  dsub;
+	int                 err;
+	int32_t             opid;
+	int                 dlen;
+	int                 ents;
 
-    dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *)data;
 
-    err = htonl(dsub->dctl_err);
-    opid = htonl(dsub->dctl_opid);
-    dlen = htonl(dsub->dctl_dlen);
+	err = htonl(dsub->dctl_err);
+	opid = htonl(dsub->dctl_opid);
+	dlen = htonl(dsub->dctl_dlen);
 
-    ents = dlen /(sizeof(dctl_entry_t));
+	ents = dlen /(sizeof(dctl_entry_t));
 
-    (*dev->hstub_lleaf_done_cb)(dev->hcookie, err, ents, 
-                                 (dctl_entry_t *)dsub->dctl_data, opid);
+	(*dev->hstub_lleaf_done_cb)(dev->hcookie, err, ents,
+	                            (dctl_entry_t *)dsub->dctl_data, opid);
 }
 
 
@@ -289,7 +289,7 @@ process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
 
 		default:
 			printf("XXX process control: unknown command %d \n",
-					cmd);
+			       cmd);
 			exit(1);
 
 	}
@@ -328,7 +328,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 
 		header_offset = cinfo->control_rx_offset;
 		header_remain = sizeof(cinfo->control_rx_header) -
-		       	header_offset;
+		                header_offset;
 		data_remain = 0;
 		data_offset = 0;
 	} else {
@@ -337,7 +337,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 		header_offset = 0;
 		data_offset = cinfo->control_rx_offset;
 		data_remain = ntohl(cinfo->control_rx_header.data_len) -
-			data_offset;
+		              data_offset;
 		data_buf = cinfo->control_rx_data;
 	}
 
@@ -346,11 +346,11 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 	if (header_remain > 0) {
 		data = (char *)&cinfo->control_rx_header;
 		dsize = recv(cinfo->control_fd, (char *)&data[header_offset],
-				header_remain, 0);
+		             header_remain, 0);
 
 		/*
-	 	 * Handle some of the different error cases.
-	 	 */
+			 * Handle some of the different error cases.
+			 */
 		if (dsize < 0) {
 			/*
 			 * The call failed, the only possibility is that
@@ -368,7 +368,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 				 * some un-handled error happened, 
 				 */
 				/* XXX what now */
-			    printf("lost conn with %08x \n", cinfo->dev_id);
+				printf("lost conn with %08x \n", cinfo->dev_id);
 				perror("uknown socket problem:");
 				exit(1);
 				return;
@@ -382,7 +382,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 		 * the partial state and return, the next try will
 		 * get rest of the header.
 		 */
- 		if (dsize != header_remain) {
+		if (dsize != header_remain) {
 			cinfo->control_rx_offset = header_offset + dsize;
 			cinfo->control_rx_state = CONTROL_RX_HEADER;
 			return;
@@ -414,11 +414,11 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 	if (data_remain > 0) {
 		assert(data_buf != NULL);
 
-		dsize = recv(cinfo->control_fd, &data_buf[data_offset], 
-				data_remain, 0);
+		dsize = recv(cinfo->control_fd, &data_buf[data_offset],
+		             data_remain, 0);
 
 		if (dsize < 0) {
-		
+
 			/*
 			 * The call failed, the only possibility is that
 			 * we didn't have enough data for it.  In that
@@ -433,7 +433,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 				/*
 				 * some un-handled error happened, we
 				 * just shutdown the connection.
-				 */	
+				 */
 				/* XXX log */
 				perror("process_control");
 				exit(1);
@@ -447,7 +447,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 		 * the partial state and return, the next try will
 		 * get rest of the header.
 		 */
- 		if (dsize != data_remain) {
+		if (dsize != data_remain) {
 			cinfo->control_rx_offset = data_offset + dsize;
 			cinfo->control_rx_data = data_buf;
 			cinfo->control_rx_state = CONTROL_RX_DATA;
@@ -456,9 +456,9 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 
 	}
 
-    cinfo->stat_control_rx++;
-    cinfo->stat_control_byte_rx += sizeof(cinfo->control_rx_header) +
-            ntohl(cinfo->control_rx_header.data_len);
+	cinfo->stat_control_rx++;
+	cinfo->stat_control_byte_rx += sizeof(cinfo->control_rx_header) +
+	                               ntohl(cinfo->control_rx_header.data_len);
 
 
 	/*
@@ -468,7 +468,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 	 */
 
 	process_control(dev, cinfo, data_buf);
-	
+
 	cinfo->control_rx_state = CONTROL_RX_NO_PENDING;
 	return;
 }
@@ -476,7 +476,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 void
 hstub_except_cntrl(sdevice_state_t *dev)
 {
-	printf("hstub_except_control \n");	
+	printf("hstub_except_control \n");
 }
 
 
@@ -511,7 +511,7 @@ hstub_write_cntrl(sdevice_state_t *dev)
 			pthread_mutex_unlock(&cinfo->mutex);
 			return;
 		}
-	
+
 		remain_header = sizeof(*cheader);
 		header_offset = 0;
 		data_offset = 0;
@@ -520,7 +520,8 @@ hstub_write_cntrl(sdevice_state_t *dev)
 	} else if (cinfo->control_state == CONTROL_TX_HEADER) {
 		cheader = cinfo->control_header;
 
-		header_offset = cinfo->control_offset;;
+		header_offset = cinfo->control_offset;
+		;
 		remain_header = sizeof(*cheader) - header_offset;
 		data_offset = 0;
 		remain_data = ntohl(cheader->data_len);
@@ -533,12 +534,12 @@ hstub_write_cntrl(sdevice_state_t *dev)
 		data_offset = cinfo->control_offset;
 		remain_data = ntohl(cheader->data_len) - data_offset;
 	}
-	
+
 	if (remain_header != 0) {
 		data = (char *)cheader;
 
-		send_len = send(cinfo->control_fd, &data[header_offset], 
-				remain_header, 0);
+		send_len = send(cinfo->control_fd, &data[header_offset],
+		                remain_header, 0);
 		if (send_len < 0) {
 			if (errno == EAGAIN) {
 				cinfo->control_header = cheader;
@@ -550,8 +551,8 @@ hstub_write_cntrl(sdevice_state_t *dev)
 				assert(0);
 				return;
 			}
-		} 
-	
+		}
+
 		if (send_len != remain_header) {
 			cinfo->control_header = cheader;
 			cinfo->control_offset = header_offset + send_len;
@@ -562,8 +563,8 @@ hstub_write_cntrl(sdevice_state_t *dev)
 
 	if (remain_data != 0) {
 		data = (char *)cheader->spare;
-		send_len = send(dev->con_data.control_fd, &data[data_offset], 
-				remain_data, 0);
+		send_len = send(dev->con_data.control_fd, &data[data_offset],
+		                remain_data, 0);
 
 		if (send_len < 0) {
 			if (errno == EAGAIN) {
@@ -587,8 +588,8 @@ hstub_write_cntrl(sdevice_state_t *dev)
 		free(data);
 	}
 
-    cinfo->stat_control_tx++;
-    cinfo->stat_control_byte_tx += sizeof(*cheader) + ntohl(cheader->data_len);
+	cinfo->stat_control_tx++;
+	cinfo->stat_control_byte_tx += sizeof(*cheader) + ntohl(cheader->data_len);
 
 	cinfo->control_state = CONTROL_TX_NO_PENDING;
 	free(cheader);

@@ -35,7 +35,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Program that slows the effective CPU speed by slowing down using
  * the fifo scheduling an sucking up cycles.
  */
@@ -58,7 +58,7 @@
 #define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
 
 
-unsigned long long 
+unsigned long long
 read_cycle()
 {
 	unsigned long long	foo;
@@ -81,8 +81,8 @@ usage()
 
 #define	MAX_NAME		128
 
-int 
-main(int argc, char* argv[]) 
+int
+main(int argc, char* argv[])
 {
 	struct sched_param 	params;
 	double			target = 0.0;
@@ -122,11 +122,11 @@ main(int argc, char* argv[])
 				target = atof(optarg)/100.0;
 				target_set = 1;
 				break;
-	
+
 			case 'p':
 				err = snprintf(proc_dir, MAX_NAME, "%s/%s", "/proc", optarg);
 				if (err >= MAX_NAME) {
-					fprintf(stderr, "path name too long: increase MAX_NAME\n");	
+					fprintf(stderr, "path name too long: increase MAX_NAME\n");
 					exit(1);
 				}
 				have_pid = 1;
@@ -141,7 +141,7 @@ main(int argc, char* argv[])
 				break;
 		}
 	}
-	
+
 	if (target_set == 0) {
 		usage();
 		exit(1);
@@ -156,7 +156,7 @@ main(int argc, char* argv[])
 
 	/*
 	 * Setup the scheduler so we do real-time scheduling.
-	 */ 
+	 */
 	sched_getparam(0, &params);
 	params.sched_priority = 50;
 	if (sched_setscheduler(0, SCHED_FIFO, &params)) {
@@ -183,11 +183,11 @@ main(int argc, char* argv[])
 
 		wall_elapsed = wait_start - wall_start;
 		delta = (unsigned long long) (((double)wall_elapsed) *
-			target) - wait_cum;
+		                              target) - wait_cum;
 
 		if (verbose) {
-			fprintf(stdout, "new delta: %lld (wall %lld wait %lld)\n", 
-				delta, wall_elapsed, wait_cum);
+			fprintf(stdout, "new delta: %lld (wall %lld wait %lld)\n",
+			        delta, wall_elapsed, wait_cum);
 			ratio = ((double) wait_cum) / ((double)wall_elapsed);
 			fprintf(stdout, "ratio %16.12f \n", ratio);
 			ratio = (((double) wait_cum) + ((double)delta))/ ((double)wall_elapsed);

@@ -78,6 +78,6 @@ int
 main(int argc, char **argv)
 {
 
-    read_gid_map("gid_map");
+	read_gid_map("gid_map");
 
 }

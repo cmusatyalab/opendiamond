@@ -109,13 +109,13 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 		 * the message header when we ran out of
 		 * buffer space in the socket.  Setup the offset and
 		 * remaining counts for the header and the data portion.\
-		 */ 
+		 */
 
 		header_offset = cstate->log_tx_offset;
 		header_remain = sizeof(cstate->log_tx_header) - header_offset;
 		log_remain = cstate->log_tx_len;
 		log_offset = 0;
-		
+
 
 	} else  {
 		/*
@@ -137,8 +137,8 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 	 */
 	if (header_remain != 0) {
 		data = (char *)&cstate->log_tx_header;
-		send_len = send(cstate->log_fd, &data[header_offset], 
-				header_remain, 0);
+		send_len = send(cstate->log_fd, &data[header_offset],
+		                header_remain, 0);
 
 		if (send_len < 1) {
 
@@ -180,8 +180,8 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 		 * the socket buffer was full.  We save our state
 		 * to keep track of where we need to continue when
 		 * more space is available.
-		 */ 
-	
+		 */
+
 		if (send_len != header_remain) {
 			cstate->log_tx_offset = header_offset + send_len;
 			cstate->log_tx_state = LOG_TX_HEADER;
@@ -194,8 +194,8 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 
 	if (log_remain != 0) {
 		data = (char *)cstate->log_tx_buf;
-		send_len = send(cstate->log_fd, &data[log_offset], 
-				log_remain, 0);
+		send_len = send(cstate->log_fd, &data[log_offset],
+		                log_remain, 0);
 
 		if (send_len < 1) {
 			/*
@@ -232,7 +232,7 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 		 * the socket buffer was full.  We save our state
 		 * to keep track of where we need to continue when
 		 * more space is available.
-		 */ 
+		 */
 		if (send_len != log_remain) {
 			cstate->log_tx_offset = log_offset + send_len;
 			cstate->log_tx_state = LOG_TX_DATA;
@@ -243,8 +243,8 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 
 
 	cstate->stats_log_tx++;
-	cstate->stats_log_bytes_tx += cstate->log_tx_len + 
-            sizeof(cstate->log_tx_header);
+	cstate->stats_log_bytes_tx += cstate->log_tx_len +
+	                              sizeof(cstate->log_tx_header);
 
 	/*
 	 * All the data has been sent, so we update of state machine and
@@ -278,7 +278,7 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 void
 sstub_except_log(listener_state_t *lstate, cstate_t *cstate)
 {
-    printf("XXX except_log \n");
+	printf("XXX except_log \n");
 	/* Handle the case where we are shutting down */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;

@@ -93,7 +93,7 @@ hstub_read_log(sdevice_state_t  *dev)
 
 		header_offset = cinfo->log_rx_offset;
 		header_remain = sizeof(cinfo->log_rx_header) -
-		       	header_offset;
+		                header_offset;
 		data_remain = 0;
 		data_offset = 0;
 	} else {
@@ -102,7 +102,7 @@ hstub_read_log(sdevice_state_t  *dev)
 		header_offset = 0;
 		data_offset = cinfo->log_rx_offset;
 		data_remain = ntohl(cinfo->log_rx_header.log_len) -
-			data_offset;
+		              data_offset;
 		data_buf = cinfo->log_rx_data;
 	}
 
@@ -111,11 +111,11 @@ hstub_read_log(sdevice_state_t  *dev)
 	if (header_remain > 0) {
 		data = (char *)&cinfo->log_rx_header;
 		dsize = recv(cinfo->log_fd, (char *)&data[header_offset],
-				header_remain, 0);
+		             header_remain, 0);
 
 		/*
-	 	 * Handle some of the different error cases.
-	 	 */
+			 * Handle some of the different error cases.
+			 */
 		if (dsize < 0) {
 			/*
 			 * The call failed, the only possibility is that
@@ -133,7 +133,7 @@ hstub_read_log(sdevice_state_t  *dev)
 				 * some un-handled error happened, 
 				 */
 				/* XXX what now */
-			    printf("dev %08x \n", cinfo->dev_id);
+				printf("dev %08x \n", cinfo->dev_id);
 				perror("uknown socket problem:");
 				exit(1);
 				return;
@@ -147,7 +147,7 @@ hstub_read_log(sdevice_state_t  *dev)
 		 * the partial state and return, the next try will
 		 * get rest of the header.
 		 */
- 		if (dsize != header_remain) {
+		if (dsize != header_remain) {
 			cinfo->log_rx_offset = header_offset + dsize;
 			cinfo->log_rx_state = LOG_RX_HEADER;
 			return;
@@ -160,8 +160,8 @@ hstub_read_log(sdevice_state_t  *dev)
 		 */
 		data_offset = 0;
 		data_remain = ntohl(cinfo->log_rx_header.log_len);
-		assert( ntohl(cinfo->log_rx_header.log_magic) == 
-					LOG_MAGIC_HEADER);
+		assert( ntohl(cinfo->log_rx_header.log_magic) ==
+		        LOG_MAGIC_HEADER);
 
 		/* get a buffer to store the data if appropriate */
 		if (data_remain > 0) {
@@ -180,11 +180,11 @@ hstub_read_log(sdevice_state_t  *dev)
 	 * command.
 	 */
 	if (data_remain > 0) {
-		dsize = recv(cinfo->log_fd, &data_buf[data_offset], 
-				data_remain, 0);
+		dsize = recv(cinfo->log_fd, &data_buf[data_offset],
+		             data_remain, 0);
 
 		if (dsize < 0) {
-		
+
 			/*
 			 * The call failed, the only possibility is that
 			 * we didn't have enough data for it.  In that
@@ -199,7 +199,7 @@ hstub_read_log(sdevice_state_t  *dev)
 				/*
 				 * some un-handled error happened, we
 				 * just shutdown the connection.
-				 */	
+				 */
 				/* XXX log */
 				perror("process_log");
 				exit(1);
@@ -213,7 +213,7 @@ hstub_read_log(sdevice_state_t  *dev)
 		 * the partial state and return, the next try will
 		 * get rest of the header.
 		 */
- 		if (dsize != data_remain) {
+		if (dsize != data_remain) {
 			cinfo->log_rx_offset = data_offset + dsize;
 			cinfo->log_rx_data = data_buf;
 			cinfo->log_rx_state = LOG_RX_DATA;
@@ -222,9 +222,9 @@ hstub_read_log(sdevice_state_t  *dev)
 
 	}
 
-    cinfo->stat_log_rx ++;
-    cinfo->stat_log_byte_rx += sizeof(cinfo->log_rx_header) +
-		    ntohl(cinfo->log_rx_header.log_len);
+	cinfo->stat_log_rx ++;
+	cinfo->stat_log_byte_rx += sizeof(cinfo->log_rx_header) +
+	                           ntohl(cinfo->log_rx_header.log_len);
 
 	/*
 	 * If we get here we have the full log message, now
@@ -244,14 +244,14 @@ hstub_read_log(sdevice_state_t  *dev)
 void
 hstub_except_log(sdevice_state_t * dev)
 {
-	printf("except_log \n");	
+	printf("except_log \n");
 }
 
 
 void
 hstub_write_log(sdevice_state_t * dev)
 {
-	printf("write_log \n");	
+	printf("write_log \n");
 }
 
 

@@ -57,7 +57,7 @@ isstring(char *str, int len)
 	int i;
 	for (i = 0; i<(len -1); i++) {
 		if (!(isalnum((int)str[i])||isspace((int)str[i]))) {
-		/*	printf("isstring : %c \n", str[i]); */
+			/*	printf("isstring : %c \n", str[i]); */
 			return(0);
 		}
 	}
@@ -67,7 +67,7 @@ isstring(char *str, int len)
 		return(0);
 	}
 	return(1);
-	
+
 }
 
 int
@@ -106,15 +106,15 @@ print_attr(attr_record_t *arec)
 				printf("%02x", (unsigned char)data[i]);
 			}
 			printf("\n");
-		} 
-	} 
+		}
+	}
 	return(0);
 }
 
 
 int
 show_attr(char *attr_name)
-{	
+{
 	int		err;
 	obj_attr_t 	attr;
 	attr_record_t	*cur_rec = NULL;
@@ -143,7 +143,7 @@ show_attr(char *attr_name)
 
 
 int
-main(int argc , char **argv) 
+main(int argc , char **argv)
 {
 	int			i = 1;
 	char			attr_name[NAME_MAX];

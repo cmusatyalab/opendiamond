@@ -53,30 +53,31 @@
 #include "odisk_priv.h"
 
 
-uint64_t 
-parse_uint64_string(const char* s) {
-  int i, o;
-  unsigned int x;	// Will actually hold an unsigned char
-  uint64_t u = 0u;
+uint64_t
+parse_uint64_string(const char* s)
+{
+	int i, o;
+	unsigned int x;	// Will actually hold an unsigned char
+	uint64_t u = 0u;
 
-  /*
-  sscanf(s, "%llx", &u);
-  printf("parsed gid is 0x%llx\n", u);
-  return u;
-  */
+	/*
+	sscanf(s, "%llx", &u);
+	printf("parsed gid is 0x%llx\n", u);
+	return u;
+	*/
 
-  assert(s);
-  //fprintf(stderr, "parse_uint64_string s = %s\n", s);
-  for (i=0; i<8; i++) {
-    o = 3*i;
-    assert(isxdigit(s[o]) && isxdigit(s[o+1]));
-    assert( (s[o+2] == ':') || (s[o+2] == '\0') );
-    sscanf(s+o, "%2x", &x);
-    u <<= 8;
-    u += x;
-  }
-  // printf("parsed uint64_t is 0x%llx\n", u);
-  return u;
+	assert(s);
+	//fprintf(stderr, "parse_uint64_string s = %s\n", s);
+	for (i=0; i<8; i++) {
+		o = 3*i;
+		assert(isxdigit(s[o]) && isxdigit(s[o+1]));
+		assert( (s[o+2] == ':') || (s[o+2] == '\0') );
+		sscanf(s+o, "%2x", &x);
+		u <<= 8;
+		u += x;
+	}
+	// printf("parsed uint64_t is 0x%llx\n", u);
+	return u;
 }
 
 int
@@ -144,13 +145,13 @@ main(int argc, char **argv)
 				gid = parse_uint64_string(optarg);
 				have_gid = 1;
 				break;
-	
+
 			default:
 				printf("unknown option %c\n", c);
 				break;
 		}
 	}
-	
+
 	if (have_gid == 0) {
 		usage();
 		exit(1);
@@ -178,9 +179,9 @@ main(int argc, char **argv)
 
 	num = fread(stat_buffer, ssize, 1, cur_file);
 	if (num != 1) {
-		
+
 		printf("failed to read state file: %d -> %d \n", num, ssize);
-		exit(1);		
+		exit(1);
 	}
 	fclose(cur_file);
 
@@ -188,7 +189,8 @@ main(int argc, char **argv)
 	for (i=0; i < (nstat * 100); i++) {
 		j = get_rand(nstat);
 		k = get_rand(nstat);
-		if (j==k) continue;
+		if (j==k)
+			continue;
 
 		gid_ent = stat_buffer[j];
 		stat_buffer[j] = stat_buffer[k];
@@ -204,8 +206,8 @@ main(int argc, char **argv)
 	num = fwrite(stat_buffer, ssize, 1, cur_file);
 	if (num != 1) {
 		printf("failed to write state file \n");
-		exit(1);		
-	} 
+		exit(1);
+	}
 
 	fclose(cur_file);
 

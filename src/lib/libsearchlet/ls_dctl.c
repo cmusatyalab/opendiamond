@@ -73,10 +73,10 @@
 
 /* create a buffer much larger than we need */
 #define	BIG_SIZE	512
-static	char 		data_buffer[BIG_SIZE]; 
+static	char 		data_buffer[BIG_SIZE];
 
 #define	MAX_ENTS	128
-static	dctl_entry_t	entry_buffer[MAX_ENTS]; 
+static	dctl_entry_t	entry_buffer[MAX_ENTS];
 
 
 static void
@@ -159,14 +159,14 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 	char *		    path;
 	char *		    arg;
 	int		        arg_len;
-    dctl_data_type_t    dtype; 
+	dctl_data_type_t    dtype;
 
 	path = data;
 
 	cmd = msg->dctl_op;
 
 	switch(cmd) {
-		case DCTL_OP_READ: 
+		case DCTL_OP_READ:
 			len = BIG_SIZE;
 			err = dctl_read_leaf(path, &dtype, &len, data_buffer);
 			assert(err != ENOMEM);
@@ -176,7 +176,7 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 			send_read_response(conn, dtype, len, data_buffer);
 			break;
 
-		case DCTL_OP_WRITE: 
+		case DCTL_OP_WRITE:
 			arg = &data[msg->dctl_plen];
 			arg_len = msg->dctl_dlen - msg->dctl_plen;
 			err = dctl_write_leaf(path, arg_len, arg);
@@ -184,7 +184,7 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 			send_err_response(conn, err);
 			break;
 
-		case DCTL_OP_LIST_NODES: 
+		case DCTL_OP_LIST_NODES:
 			len = MAX_ENTS;
 			err = dctl_list_nodes(path, &len, entry_buffer);
 			assert(err != ENOMEM);
@@ -194,7 +194,7 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 			send_list_response(conn, len, entry_buffer);
 			break;
 
-		case DCTL_OP_LIST_LEAFS: 
+		case DCTL_OP_LIST_LEAFS:
 			len = MAX_ENTS;
 			err = dctl_list_leafs(path, &len, entry_buffer);
 			assert(err != ENOMEM);
@@ -238,7 +238,7 @@ process_dctl_requests(search_context_t *sc, int conn)
 		if (len != dlen) {
 			return;
 		}
-		process_request(&msg, buf, conn);		
+		process_request(&msg, buf, conn);
 	}
 }
 
@@ -265,7 +265,7 @@ dctl_main(void *arg)
 	umask(0);
 
 	sc = (search_context_t *)arg;
-	
+
 	dctl_thread_register(sc->dctl_cookie);
 	log_thread_register(sc->log_cookie);
 
@@ -283,7 +283,7 @@ dctl_main(void *arg)
 
 	err = bind(fd, (struct sockaddr *)&sa, sizeof (sa));
 	if (err < 0) {
-	  fprintf(stderr, "binding %s\n", SOCKET_DCTL_NAME);
+		fprintf(stderr, "binding %s\n", SOCKET_DCTL_NAME);
 		perror("bind failed ");
 		exit(1);
 	}
@@ -297,9 +297,9 @@ dctl_main(void *arg)
 
 	while (1) {
 		slen = sizeof(newaddr);
-		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen)) 
-				== -1) {
-			
+		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen))
+		    == -1) {
+
 			perror("accept failed \n");
 			continue;
 		}
@@ -311,11 +311,11 @@ dctl_main(void *arg)
 
 
 int
-dctl_start(search_context_t *sc) 
+dctl_start(search_context_t *sc)
 {
 
 	int		err;
-	pthread_t	thread_id;		
+	pthread_t	thread_id;
 #ifdef	XXX
 	/*
 	 * Initialize the ring of commands for the thread.
@@ -335,7 +335,7 @@ dctl_start(search_context_t *sc)
 		/* XXX log */
 		printf("failed to create background thread \n");
 		return(ENOENT);
-	} 
+	}
 	return(0);
 }
 

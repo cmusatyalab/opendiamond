@@ -141,7 +141,7 @@ ls_init_search()
 
 	log_start(sc);
 	dctl_start(sc);
-	
+
 	bg_init(sc, 1);
 
 	return((ls_search_handle_t)sc);
@@ -171,13 +171,13 @@ ls_terminate_search(ls_search_handle_t handle)
 		cur_dev = sc->dev_list;
 
 		while (cur_dev != NULL) {
-			err = device_stop(cur_dev->dev_handle , 
-					sc->cur_search_id);
+			err = device_stop(cur_dev->dev_handle ,
+			                  sc->cur_search_id);
 			if (err != 0) {
 				/* if we get an error we note it for
-			 	 * the return value but try to process the rest
-			 	 * of the devices
-			 	 */
+					 * the return value but try to process the rest
+					 * of the devices
+					 */
 				/* XXX logging */
 			}
 			cur_dev = cur_dev->next;
@@ -203,17 +203,17 @@ ls_terminate_search(ls_search_handle_t handle)
 	while (cur_dev != NULL) {
 		err = device_terminate(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
-			/* 
+			/*
 			 * if we get an error we note it for
-		 	 * the return value but try to process the rest
-		 	 * of the devices
-		 	 */
+				 * the return value but try to process the rest
+				 * of the devices
+				 */
 			/* XXX logging */
 		}
 		cur_dev = cur_dev->next;
 	}
 
-	return (0);	
+	return (0);
 }
 
 
@@ -221,7 +221,7 @@ ls_terminate_search(ls_search_handle_t handle)
 
 int
 ls_set_searchlist(ls_search_handle_t handle, int num_groups,
-		  groupid_t *glist)
+                  groupid_t *glist)
 {
 	search_context_t *	sc;
 	groupid_t		cur_gid;
@@ -237,24 +237,24 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 
 	/*
 	 * we have two steps.  One is to clear the current
-   	 * searchlist on all the devices that
+	  	 * searchlist on all the devices that
 	 * we are currently connected to.  The to add the gid
-     	 * to each of the devices.
-     	 */
+	    	 * to each of the devices.
+	    	 */
 	/* XXX todo, clean up connection not involved in search
-     * after this call.
-     */
+	    * after this call.
+	    */
 
 	/* clear the state */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->num_groups = 0;
 		err = device_clear_gids(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
-			/* 
+			/*
 			 * if we get an error we note it for
-		 	 * the return value but try to process the rest
-		 	 * of the devices
-		 	 */
+				 * the return value but try to process the rest
+				 * of the devices
+				 */
 			/* XXX logging */
 		}
 	}
@@ -271,22 +271,22 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 		for (j=0; j<hosts; j++) {
 			err = device_add_gid(sc, cur_gid, host_ids[j]);
 			if (err) {
-                struct in_addr in;    
-                char *  name;
+				struct in_addr in;
+				char *  name;
 				/*
 				 * we failed to add of init with the host,
 				 * just fail this call for now, this
 				 * is basically a bad state
 				 * we can't recover from.
 				 */
-                in.s_addr = host_ids[j];
-                name = inet_ntoa(in);
-		fprintf(stderr, "Failed to connect to device %s for gid %llx\n", 
-		 	name, cur_gid);
-                assert(0);
+				in.s_addr = host_ids[j];
+				name = inet_ntoa(in);
+				fprintf(stderr, "Failed to connect to device %s for gid %llx\n",
+				        name, cur_gid);
+				assert(0);
 				return (EINVAL);
 			}
-		}	
+		}
 	}
 
 	/* XXX push the list of groups to disk */
@@ -301,12 +301,13 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 
 int
 ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
-		 char *filter_file_name, char *filter_spec_name)
+                 char *filter_file_name, char *filter_spec_name)
 {
 	search_context_t	*sc;
 	device_handle_t		*cur_dev;
 	int			err;
-	int			started = 0;;
+	int			started = 0;
+	;
 
 	sc = (search_context_t *)handle;
 	thread_setup(sc);
@@ -327,8 +328,8 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	/* we need to verify the searchlet somehow */
 	cur_dev = sc->dev_list;
 	while (cur_dev != NULL) {
-		err = device_set_searchlet(cur_dev->dev_handle, 
-			sc->cur_search_id, filter_file_name, filter_spec_name);
+		err = device_set_searchlet(cur_dev->dev_handle,
+		                           sc->cur_search_id, filter_file_name, filter_spec_name);
 		if (err != 0) {
 			/*
 			 * It isn't obvious what we need to do if we
@@ -344,8 +345,8 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		cur_dev = cur_dev->next;
 	}
 
-	err = bg_set_searchlet(sc, sc->cur_search_id, 
-			filter_file_name, filter_spec_name);
+	err = bg_set_searchlet(sc, sc->cur_search_id,
+	                       filter_file_name, filter_spec_name);
 	if (err) {
 		/* XXX log */
 	}
@@ -359,8 +360,8 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 
 int
 ls_set_device_searchlet(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
-			device_isa_t isa_type,
-			 char *filter_file_name, char *filter_spec_name)
+                        device_isa_t isa_type,
+                        char *filter_file_name, char *filter_spec_name)
 {
 
 	/* XXXX do this */
@@ -399,9 +400,9 @@ ls_set_device_searchlet(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
  *	EBUSY		 	 - A search was already active.
  */
 
-int 
+int
 ls_set_blob(ls_search_handle_t handle, char *filter_name,
-                   int  blob_len, void *blob_data)
+            int  blob_len, void *blob_data)
 {
 
 	search_context_t	*sc;
@@ -419,8 +420,8 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 
 	/* we need to verify the searchlet somehow */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev= cur_dev->next) {
-		err = device_set_blob(cur_dev->dev_handle, 
-			sc->cur_search_id, filter_name, blob_len, blob_data);
+		err = device_set_blob(cur_dev->dev_handle,
+		                      sc->cur_search_id, filter_name, blob_len, blob_data);
 		if (err != 0) {
 			/*
 			 * It isn't obvious what we need to do if we
@@ -434,8 +435,8 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 		}
 	}
 
-	err = bg_set_blob(sc, sc->cur_search_id, filter_name, blob_len, 
-					blob_data);
+	err = bg_set_blob(sc, sc->cur_search_id, filter_name, blob_len,
+	                  blob_data);
 	if (err) {
 		/* XXX log */
 	}
@@ -477,7 +478,7 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
  */
 
 int ls_set_device_blob(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
-				char *filter_name, int  blob_len, void *blob_data)
+                       char *filter_name, int  blob_len, void *blob_data)
 {
 
 	/* XXXX implement */
@@ -498,7 +499,8 @@ ls_start_search(ls_search_handle_t handle)
 	search_context_t	*sc;
 	device_handle_t		*cur_dev;
 	int			err;
-	int			started = 0;;
+	int			started = 0;
+	;
 
 	sc = (search_context_t *)handle;
 	thread_setup(sc);
@@ -606,7 +608,7 @@ ls_abort_search(ls_search_handle_t handle)
 
 	/* change the current state to idle */
 	sc->cur_status = SS_IDLE;
-	return (ret_err);	
+	return (ret_err);
 
 }
 
@@ -640,7 +642,7 @@ ls_abort_search(ls_search_handle_t handle)
 
 int
 ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
-		int flags)
+               int flags)
 {
 	search_context_t	*sc;
 	obj_data_t	*	obj_data;
@@ -649,7 +651,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 	struct timespec 	timeout;
 
 
-	/* XXX  make sure search is running */ 
+	/* XXX  make sure search is running */
 	sc = (search_context_t *)handle;
 	thread_setup(sc);
 
@@ -669,16 +671,16 @@ again:
 		if (sc->cur_status == SS_DONE) {
 			return (ENOENT);
 		}
-	
+
 
 		/*
 		 * See if we are blocking or non-blocking.
 		 */
 		if ((flags & LSEARCH_NO_BLOCK) == LSEARCH_NO_BLOCK) {
-			return(EWOULDBLOCK); 
+			return(EWOULDBLOCK);
 		}
 
-		/* 
+		/*
 		 * We need to sleep until data is available, we do a
 		 * timed sleep for now. 
 		 */
@@ -710,7 +712,7 @@ ls_num_objects(ls_search_handle_t handle, int *obj_cnt)
 
 	search_context_t	*sc;
 
-	/* XXX  make sure search is running */ 
+	/* XXX  make sure search is running */
 
 	sc = (search_context_t *)handle;
 	thread_setup(sc);
@@ -721,7 +723,7 @@ ls_num_objects(ls_search_handle_t handle, int *obj_cnt)
 }
 
 
- 
+
 /*
  * This call is performed by the application to release object it obtained 
  * through ls_next_object.  This will causes all object storage and 
@@ -792,23 +794,26 @@ ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
 
 int
 ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t *handle_list,
-		int *num_handles)
+                int *num_handles)
 {
 	search_context_t	*sc;
 	device_handle_t		*cur_dev;
 	int                      dev_count;
 
-	if(!handle_list) return EINVAL;
-	if(!num_handles) return EINVAL;
+	if(!handle_list)
+		return EINVAL;
+	if(!num_handles)
+		return EINVAL;
 
 	sc = (search_context_t *)handle;
 	thread_setup(sc);
 	/* XXX check for active? */
 	cur_dev = sc->dev_list;
-	
+
 	dev_count = 0;
 	while(cur_dev != NULL) {
-		if(*num_handles <= dev_count) return ENOSPC;
+		if(*num_handles <= dev_count)
+			return ENOSPC;
 		dev_count++;
 		*handle_list = cur_dev;
 		handle_list++;
@@ -841,7 +846,7 @@ ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t *handle_list,
 
 int
 ls_dev_characteristics(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
-		       device_char_t *dev_chars)
+                       device_char_t *dev_chars)
 {
 	device_handle_t *dev;
 	search_context_t *	sc;
@@ -891,7 +896,7 @@ ls_dev_characteristics(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 
 int
 ls_get_dev_stats(ls_search_handle_t handle, ls_dev_handle_t  dev_handle,
-		 dev_stats_t *dev_stats, int *stat_len)
+                 dev_stats_t *dev_stats, int *stat_len)
 {
 	device_handle_t *	dev;
 	search_context_t *	sc;

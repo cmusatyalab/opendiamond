@@ -73,30 +73,31 @@ rebuild_idx(odisk_state_t *odisk)
 	return(0);
 }
 
-uint64_t 
-parse_uint64_string(const char* s) {
-  int i, o;
-  unsigned int x;	// Will actually hold an unsigned char
-  uint64_t u = 0u;
+uint64_t
+parse_uint64_string(const char* s)
+{
+	int i, o;
+	unsigned int x;	// Will actually hold an unsigned char
+	uint64_t u = 0u;
 
-  /*
-  sscanf(s, "%llx", &u);
-  printf("parsed gid is 0x%llx\n", u);
-  return u;
-  */
+	/*
+	sscanf(s, "%llx", &u);
+	printf("parsed gid is 0x%llx\n", u);
+	return u;
+	*/
 
-  assert(s);
-  //fprintf(stderr, "parse_uint64_string s = %s\n", s);
-  for (i=0; i<8; i++) {
-    o = 3*i;
-    assert(isxdigit(s[o]) && isxdigit(s[o+1]));
-    assert( (s[o+2] == ':') || (s[o+2] == '\0') );
-    sscanf(s+o, "%2x", &x);
-    u <<= 8;
-    u += x;
-  }
-  // printf("parsed uint64_t is 0x%llx\n", u);
-  return u;
+	assert(s);
+	//fprintf(stderr, "parse_uint64_string s = %s\n", s);
+	for (i=0; i<8; i++) {
+		o = 3*i;
+		assert(isxdigit(s[o]) && isxdigit(s[o+1]));
+		assert( (s[o+2] == ':') || (s[o+2] == '\0') );
+		sscanf(s+o, "%2x", &x);
+		u <<= 8;
+		u += x;
+	}
+	// printf("parsed uint64_t is 0x%llx\n", u);
+	return u;
 }
 
 
@@ -157,7 +158,7 @@ main(int argc, char **argv)
 				gid = parse_uint64_string(optarg);
 				have_gid = 1;
 				break;
-	
+
 			case 'm':
 				max = atoi(optarg);
 				break;
@@ -168,7 +169,7 @@ main(int argc, char **argv)
 				break;
 		}
 	}
-	
+
 	if (have_gid == 0) {
 		usage();
 		exit(1);
@@ -212,13 +213,15 @@ main(int argc, char **argv)
 		num = fread(&gid_ent, sizeof(gid_ent), 1, cur_file);
 		if (num == 1) {
 			sprintf(path_name, "%s/%s", path, gid_ent.gid_name);
-			err = remove(path_name);
+			err = remove
+				      (path_name);
 			if (err != 0) {
 				perror("remove failed \n");
 				exit(1);
 			}
 			sprintf(attr_name, "%s%s", path_name, ATTR_EXT);
-			err = remove(attr_name);
+			err = remove
+				      (attr_name);
 			if (err != 0) {
 				perror("attr remove failed \n");
 				exit(1);

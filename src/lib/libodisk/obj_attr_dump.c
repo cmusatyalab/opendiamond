@@ -80,7 +80,7 @@ obj_dump_attr(obj_attr_t *attr)
 			if(handle && name[0] == '_') {
 				val = name + cur_rec->name_len;
 				for(typ = name + 1;
-				    (*typ != '.') && (typ < val); typ++) {}
+			    (*typ != '.') && (typ < val); typ++) {}
 				if(typ >= val) {
 					printf("<%s>\n", name);
 				} else {
@@ -95,10 +95,10 @@ obj_dump_attr(obj_attr_t *attr)
 					printf("<%s> = %s\n", name, buf);
 				}
 			} else if(( !strcmp(name, "Display-Name") ) ||
-				  ( !strcmp(name, "Keywords") ) ||
-				  ( !strcmp(name, "Content-Type") )) {
-			  printf("<%.*s> = %.*s\n", cur_rec->name_len, name,
-				 cur_rec->data_len, name + cur_rec->name_len);
+			          ( !strcmp(name, "Keywords") ) ||
+			          ( !strcmp(name, "Content-Type") )) {
+				printf("<%.*s> = %.*s\n", cur_rec->name_len, name,
+				       cur_rec->data_len, name + cur_rec->name_len);
 			} else {
 				printf("<%s>\n", name);
 			}

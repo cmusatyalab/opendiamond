@@ -64,7 +64,7 @@ isstring(char *str, int len)
 		return(0);
 	}
 	return(1);
-	
+
 }
 
 int
@@ -103,15 +103,15 @@ print_attr(attr_record_t *arec)
 				printf("%02x", (unsigned char)data[i]);
 			}
 			printf("\n");
-		} 
-	} 
+		}
+	}
 	return(0);
 }
 
 
 int
 del_attr(char *attr_fname, char *aname)
-{	
+{
 	int		err;
 	obj_attr_t 	attr;
 
@@ -144,7 +144,7 @@ usage()
 }
 
 int
-main(int argc , char **argv) 
+main(int argc , char **argv)
 {
 	int			i;
 	char			attr_name[NAME_MAX];

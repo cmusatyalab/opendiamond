@@ -123,7 +123,7 @@ odisk_free_obj(obj_handle_t *obj_handle)
 	while (cur_map != NULL) {
 		next_map = cur_map->om_next;
 		free(cur_map);
-		cur_map = next_map;		
+		cur_map = next_map;
 	}
 
 
@@ -137,7 +137,7 @@ odisk_free_obj(obj_handle_t *obj_handle)
 		next_state = cur_state->anc_next;
 		free(cur_state->anc_data);
 		free(cur_state);
-		cur_state = next_state;		
+		cur_state = next_state;
 	}
 
 

@@ -54,30 +54,31 @@
 #include "odisk_priv.h"
 
 
-uint64_t 
-parse_uint64_string(const char* s) {
-  int i, o;
-  unsigned int x;	// Will actually hold an unsigned char
-  uint64_t u = 0u;
+uint64_t
+parse_uint64_string(const char* s)
+{
+	int i, o;
+	unsigned int x;	// Will actually hold an unsigned char
+	uint64_t u = 0u;
 
-  /*
-  sscanf(s, "%llx", &u);
-  printf("parsed gid is 0x%llx\n", u);
-  return u;
-  */
+	/*
+	sscanf(s, "%llx", &u);
+	printf("parsed gid is 0x%llx\n", u);
+	return u;
+	*/
 
-  assert(s);
-  //fprintf(stderr, "parse_uint64_string s = %s\n", s);
-  for (i=0; i<8; i++) {
-    o = 3*i;
-    assert(isxdigit(s[o]) && isxdigit(s[o+1]));
-    assert( (s[o+2] == ':') || (s[o+2] == '\0') );
-    sscanf(s+o, "%2x", &x);
-    u <<= 8;
-    u += x;
-  }
-  // printf("parsed uint64_t is 0x%llx\n", u);
-  return u;
+	assert(s);
+	//fprintf(stderr, "parse_uint64_string s = %s\n", s);
+	for (i=0; i<8; i++) {
+		o = 3*i;
+		assert(isxdigit(s[o]) && isxdigit(s[o+1]));
+		assert( (s[o+2] == ':') || (s[o+2] == '\0') );
+		sscanf(s+o, "%2x", &x);
+		u <<= 8;
+		u += x;
+	}
+	// printf("parsed uint64_t is 0x%llx\n", u);
+	return u;
 }
 
 
@@ -135,13 +136,13 @@ main(int argc, char **argv)
 				gid = parse_uint64_string(optarg);
 				have_gid = 1;
 				break;
-	
+
 			default:
 				printf("unknown option %c\n", c);
 				break;
 		}
 	}
-	
+
 	if (have_gid == 0) {
 		usage();
 		exit(1);
@@ -162,14 +163,14 @@ main(int argc, char **argv)
 			sprintf(path_name, "%s/%s", path, gid_ent.gid_name);
 			err = stat(path_name, &sbuf);
 			assert(err == 0);
-			data_size += sbuf.st_size;		
-			total_size += sbuf.st_size;		
+			data_size += sbuf.st_size;
+			total_size += sbuf.st_size;
 
 			sprintf(attr_name, "%s%s", path_name, ATTR_EXT);
 			err = stat(attr_name, &sbuf);
 			assert(err == 0);
-			attr_size += sbuf.st_size;		
-			total_size += sbuf.st_size;		
+			attr_size += sbuf.st_size;
+			total_size += sbuf.st_size;
 
 		} else {
 			goto done;
@@ -179,7 +180,7 @@ main(int argc, char **argv)
 
 done:
 	fprintf(stdout,"total %lld attr %lld data %lld \n",
-		total_size, attr_size, data_size);
+	        total_size, attr_size, data_size);
 	fclose(cur_file);
 	exit(0);
 }

@@ -54,6 +54,7 @@ messageprog_1(char *host)
 	struct add_args  add_gid_1_arg;
 
 #ifndef	DEBUG
+
 	clnt = clnt_create (host, MESSAGEPROG, MESSAGEVERS, "udp");
 	if (clnt == NULL) {
 		clnt_pcreateerror (host);
@@ -86,5 +87,5 @@ main (int argc, char *argv[])
 	}
 	host = argv[1];
 	messageprog_1 (host);
-exit (0);
+	exit (0);
 }

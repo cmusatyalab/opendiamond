@@ -138,7 +138,7 @@ handle_new_connection(void *cookie, void **newcookie)
 int
 close_connection(void *cookie)
 {
-	printf("stest: closeing conn \n");	
+	printf("stest: closeing conn \n");
 	return(0);
 }
 
@@ -149,21 +149,21 @@ start(void *cookie, int gen)
 	return(0);
 }
 
-	
+
 int
 stop(void *cookie, int gen)
 {
 	printf("stest: stop \n");
 	return(0);
 }
-	
+
 int
 set_searchlet(void *cookie, int gen, char *spec, char *filter)
 {
 	printf("stest: set searchlet %s %s  \n", spec, filter);
 	return(0);
 }
-	
+
 
 int
 set_list(void *cookie, int gen)
@@ -220,7 +220,7 @@ dev_chars(void *cookie, int gen)
 {
 
 	device_char_t dchar;
-	
+
 	printf("device_chars \n");
 	sstub_send_dev_char(conn_cookie, &dchar);
 	return(0);

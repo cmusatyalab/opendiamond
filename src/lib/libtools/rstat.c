@@ -47,41 +47,42 @@
 static char    *
 find_token(const char *fname, const char *token, char *buf)
 {
-    FILE           *fp;
-    int             len = strlen(token);
-    char           *value = NULL;
+	FILE           *fp;
+	int             len = strlen(token);
+	char           *value = NULL;
 #ifdef linux
-    fp = fopen(fname, "r");
-    if (!fp) {
-        perror(fname);
-        return NULL;
-    }
-    while (!feof(fp) && !value) {
-        /*
-         * process line-by-line 
-         */
-        if (fgets(buf, BUFSIZ, fp) == NULL) {
-            fprintf(stderr, "error reading %s\n", fname);
-            buf = NULL;
-            break;
-        }
-        if (strncmp(buf, token, len) == 0) {
-            /*
-             * look for ':' 
-             */
-            buf += len;
-            while (*buf && *buf != ':') {
-                buf++;
-            }
-            if (*buf) {
-                value = buf + 1;    /* skip ':' */
-            }
-        }
-    }
-    fclose(fp);
+
+	fp = fopen(fname, "r");
+	if (!fp) {
+		perror(fname);
+		return NULL;
+	}
+	while (!feof(fp) && !value) {
+		/*
+		 * process line-by-line 
+		 */
+		if (fgets(buf, BUFSIZ, fp) == NULL) {
+			fprintf(stderr, "error reading %s\n", fname);
+			buf = NULL;
+			break;
+		}
+		if (strncmp(buf, token, len) == 0) {
+			/*
+			 * look for ':' 
+			 */
+			buf += len;
+			while (*buf && *buf != ':') {
+				buf++;
+			}
+			if (*buf) {
+				value = buf + 1;    /* skip ':' */
+			}
+		}
+	}
+	fclose(fp);
 #endif
 
-    return value;
+	return value;
 }
 
 
@@ -93,22 +94,22 @@ find_token(const char *fname, const char *token, char *buf)
 int
 r_cpu_freq(u_int64_t * freq)
 {
-    char            buf[BUFSIZ];
-    double          f_mhz;
-    char           *bufp;
-    int             err = 1;
+	char            buf[BUFSIZ];
+	double          f_mhz;
+	char           *bufp;
+	int             err = 1;
 
 #ifdef linux
-    /*
-     * XXX 
-     */
-    if ((bufp = find_token("/proc/cpuinfo", "cpu MHz", buf)) != NULL) {
-        f_mhz = strtod(bufp, NULL);
-        *freq = f_mhz * 1000000;
-        err = 0;
-    }
+	/*
+	 * XXX 
+	 */
+	if ((bufp = find_token("/proc/cpuinfo", "cpu MHz", buf)) != NULL) {
+		f_mhz = strtod(bufp, NULL);
+		*freq = f_mhz * 1000000;
+		err = 0;
+	}
 #endif
-    return err;
+	return err;
 }
 
 /*
@@ -118,23 +119,23 @@ r_cpu_freq(u_int64_t * freq)
 int
 r_freemem(u_int64_t * mem)
 {
-    int             err = 1;
-    char           *bufp,
-                   *p,
-                    buf[BUFSIZ];
+	int             err = 1;
+	char           *bufp,
+	*p,
+	buf[BUFSIZ];
 
 #ifdef linux
-    /*
-     * XXX 
-     */
-    if ((bufp = find_token("/proc/meminfo", "MemFree", buf)) != NULL) {
-        *mem = strtoll(bufp, &p, 0);
-        if (*p && *(p + 1) == 'k') {
-            *mem *= 1000;
-        }
-        err = 0;
-    }
+	/*
+	 * XXX 
+	 */
+	if ((bufp = find_token("/proc/meminfo", "MemFree", buf)) != NULL) {
+		*mem = strtoll(bufp, &p, 0);
+		if (*p && *(p + 1) == 'k') {
+			*mem *= 1000;
+		}
+		err = 0;
+	}
 #endif
 
-    return err;
+	return err;
 }

@@ -94,7 +94,7 @@ hstub_read_data(sdevice_state_t *dev)
 
 	if (cinfo->data_rx_state == DATA_RX_NO_PENDING) {
 		header_offset = 0;
-		header_remain = sizeof(obj_header_t); 
+		header_remain = sizeof(obj_header_t);
 		attr_offset = 0;
 		attr_remain = 0;
 		data_offset = 0;
@@ -102,7 +102,7 @@ hstub_read_data(sdevice_state_t *dev)
 
 	} else if (cinfo->data_rx_state == DATA_RX_HEADER) {
 		header_offset = cinfo->data_rx_offset;
-		header_remain = sizeof(obj_header_t) - header_offset; 
+		header_remain = sizeof(obj_header_t) - header_offset;
 		attr_offset = 0;
 		attr_remain = 0;
 		data_offset = 0;
@@ -113,8 +113,8 @@ hstub_read_data(sdevice_state_t *dev)
 		header_offset = 0;
 		header_remain = 0;
 		attr_offset = cinfo->data_rx_offset;
-		attr_remain = cinfo->data_rx_obj->attr_info.attr_len - 
-			attr_offset;
+		attr_remain = cinfo->data_rx_obj->attr_info.attr_len -
+		              attr_offset;
 		data_offset = 0;
 		data_remain = cinfo->data_rx_obj->data_len;
 
@@ -127,7 +127,7 @@ hstub_read_data(sdevice_state_t *dev)
 		attr_remain = 0;
 		data_offset = cinfo->data_rx_offset;
 		data_remain = cinfo->data_rx_obj->data_len - data_offset;
- 	}
+	}
 
 
 
@@ -138,18 +138,18 @@ hstub_read_data(sdevice_state_t *dev)
 	if (header_remain > 0) {
 		data = (char *)&cinfo->data_rx_header;
 
-		rsize = recv(cinfo->data_fd, &data[header_offset], 
-				header_remain, 0);
+		rsize = recv(cinfo->data_fd, &data[header_offset],
+		             header_remain, 0);
 		if (rsize < 0) {
 			if (errno == EAGAIN) {
 				/*
-			 	 * We don't have any data to read just now, 
+					 * We don't have any data to read just now, 
 				 * This probably should not happen.
-			 	 */
+					 */
 				cinfo->data_rx_state = DATA_RX_HEADER;
 				cinfo->data_rx_offset = header_offset;
 				return;
-			} else { 
+			} else {
 				/* XXX what to do?? */
 				/* XXX log */
 				perror("get_obj_data: unknown err: \n");
@@ -172,8 +172,8 @@ hstub_read_data(sdevice_state_t *dev)
 		 * data structures that we are going to need to use
 		 * the pull in the rest of the data.
 		 */
-		if (ntohl(cinfo->data_rx_header.obj_magic) 
-				!= OBJ_MAGIC_HEADER) {
+		if (ntohl(cinfo->data_rx_header.obj_magic)
+		    != OBJ_MAGIC_HEADER) {
 			/* XXX log */
 			printf("get_obj_data:  bad magic number \n");
 			exit(1);
@@ -193,7 +193,7 @@ hstub_read_data(sdevice_state_t *dev)
 				/* XXX treate as partial and recover later ??*/
 				printf("failed to allocation attribute data \n");
 				exit(1);
-		
+
 			}
 		} else {
 			adata = NULL;
@@ -215,16 +215,16 @@ hstub_read_data(sdevice_state_t *dev)
 
 
 		/*
-	 	 * allocate an obj_data_t structure to hold the object
+			 * allocate an obj_data_t structure to hold the object
 		 * and populate it.
 		 */
-	
+
 		obj = (obj_data_t *)malloc(sizeof(*obj));
 		if (obj == NULL) {
 			printf("XXX crap, no space for object data \n");
 			exit(1);
 		}
-	
+
 		obj->data_len = dlen;
 		obj->data = odata;
 		obj->attr_info.attr_len = alen;
@@ -239,25 +239,25 @@ hstub_read_data(sdevice_state_t *dev)
 	}
 
 
-	/* 
+	/*
 	 * If there is attribute data, then get it .
 	 */
 	if (attr_remain > 0) {
 		data = cinfo->data_rx_obj->attr_info.attr_data;
 
-		rsize = recv(cinfo->data_fd, &data[attr_offset], 
-				attr_remain, 0);
+		rsize = recv(cinfo->data_fd, &data[attr_offset],
+		             attr_remain, 0);
 		if (rsize < 0) {
 			if (errno == EAGAIN) {
 				/*
-			 	 * We don't have enough data, so we 
+					 * We don't have enough data, so we 
 				 * need to recover
-			 	 * by saving the partial state and returning.
-			 	 */
+					 * by saving the partial state and returning.
+					 */
 				cinfo->data_rx_state = DATA_RX_ATTR;
 				cinfo->data_rx_offset = attr_offset;
 				return;
-			} else { 
+			} else {
 				/* XXX what to do?? */
 				/* XXX log */
 				perror("get_obj_data: err reading attrs\n");
@@ -282,19 +282,19 @@ hstub_read_data(sdevice_state_t *dev)
 	if (data_remain > 0) {
 		data = cinfo->data_rx_obj->data;
 
-		rsize = recv(cinfo->data_fd, &data[data_offset], 
-				data_remain, 0);
+		rsize = recv(cinfo->data_fd, &data[data_offset],
+		             data_remain, 0);
 		if (rsize < 0) {
 			if (errno == EAGAIN) {
 				/*
-			 	 * We don't have enough data, so we need to 
+					 * We don't have enough data, so we need to 
 				 * recover  by saving the partial state 
 				 * and returning.
-			 	 */
+					 */
 				cinfo->data_rx_state = DATA_RX_DATA;
 				cinfo->data_rx_offset = data_offset;
 				return;
-			} else { 
+			} else {
 				/* XXX what to do?? */
 				/* XXX log */
 				perror("get_obj_data: err reading data\n");
@@ -314,15 +314,15 @@ hstub_read_data(sdevice_state_t *dev)
 		}
 	}
 
-    cinfo->stat_obj_rx++;
-    cinfo->stat_obj_attr_byte_rx += cinfo->data_rx_obj->attr_info.attr_len;
-    cinfo->stat_obj_hdr_byte_rx += sizeof(obj_header_t); 
-    cinfo->stat_obj_data_byte_rx += cinfo->data_rx_obj->data_len;
-    cinfo->stat_obj_total_byte_rx += cinfo->data_rx_obj->attr_info.attr_len +
-            sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
+	cinfo->stat_obj_rx++;
+	cinfo->stat_obj_attr_byte_rx += cinfo->data_rx_obj->attr_info.attr_len;
+	cinfo->stat_obj_hdr_byte_rx += sizeof(obj_header_t);
+	cinfo->stat_obj_data_byte_rx += cinfo->data_rx_obj->data_len;
+	cinfo->stat_obj_total_byte_rx += cinfo->data_rx_obj->attr_info.attr_len +
+	                                 sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
 
-            
-	
+
+
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 	ver_no = ntohl(cinfo->data_rx_header.version_num);
 
@@ -330,7 +330,7 @@ hstub_read_data(sdevice_state_t *dev)
 	    (cinfo->data_rx_obj->attr_info.attr_len == 0)) {
 		(*dev->hstub_search_done_cb)(dev->hcookie, ver_no);
 		free(cinfo->data_rx_obj);
-	
+
 	} else {
 
 		/* XXX put it into the object ring */
@@ -341,7 +341,7 @@ hstub_read_data(sdevice_state_t *dev)
 
 		oinfo->ver_num = ver_no;
 		oinfo->obj = cinfo->data_rx_obj;
-	
+
 		err = ring_enq(dev->obj_ring, oinfo);
 		assert(err == 0);
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
@@ -351,7 +351,7 @@ hstub_read_data(sdevice_state_t *dev)
 void
 hstub_except_data(sdevice_state_t *dev)
 {
-	printf("except_data \n");	
+	printf("except_data \n");
 }
 
 
@@ -359,7 +359,7 @@ hstub_except_data(sdevice_state_t *dev)
  * This is called when we want to write the credit
  * count onto the data channel.
  */
-	
+
 void
 hstub_write_data(sdevice_state_t * dev)
 {
@@ -373,10 +373,10 @@ hstub_write_data(sdevice_state_t * dev)
 
 	/*
 	 * the only data we should every need to write is 
-     	 * credit count messages.
-	 */  
+	    	 * credit count messages.
+	 */
 
-    	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0) {
+	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0) {
 		return;
 	}
 
@@ -390,16 +390,16 @@ hstub_write_data(sdevice_state_t * dev)
 	cinfo->cc_msg.cc_count =  htonl(count);
 
 	/* send the messages */
-   	data = (char *)&cinfo->cc_msg;
+	data = (char *)&cinfo->cc_msg;
 	mcount = sizeof(credit_count_msg_t);
 	send_size = send(cinfo->data_fd, data, mcount, 0);
 
 	/* XXX we don't handle partials today XXX */
 	assert(send_size == mcount);
 
-	/* if successful, clear the flag */ 
-    	cinfo->flags &= ~CINFO_PENDING_CREDIT;
-	
+	/* if successful, clear the flag */
+	cinfo->flags &= ~CINFO_PENDING_CREDIT;
+
 }
 
 

@@ -80,11 +80,11 @@ main(int argc, char **argv)
 
 
 	host_addr = argv[1];
-	
+
 	if (argc > 2) {
-			path = argv[2];
+		path = argv[2];
 	} else {
-			path = "/opt/dir1";
+		path = "/opt/dir1";
 	}
 
 	log_init(&log_cookie);

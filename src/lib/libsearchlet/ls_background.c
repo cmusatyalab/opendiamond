@@ -74,26 +74,28 @@
 uint32_t	do_cpu_update	=  0;
 
 typedef enum {
-	BG_STOP,
-	BG_START,
-	BG_SEARCHLET,
-	BG_SET_BLOB,
+    BG_STOP,
+    BG_START,
+    BG_SEARCHLET,
+    BG_SET_BLOB,
 } bg_op_type_t;
 
 /* XXX huge hack */
-typedef struct {
+typedef struct
+{
 	bg_op_type_t	cmd;
 	bg_op_type_t	ver_id;
 	char *			filter_name;
 	char *			spec_name;
 	void *			blob;
 	int				blob_len;
-} bg_cmd_data_t;
+}
+bg_cmd_data_t;
 
 
 
 void
-update_rates(search_context_t *sc) 
+update_rates(search_context_t *sc)
 {
 	double	load;
 	device_handle_t	*	cur_dev;
@@ -109,18 +111,20 @@ update_rates(search_context_t *sc)
 
 	r_cpu_freq(&val);
 
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {		dev_cnt++;
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		dev_cnt++;
 	}
 
 	target = (uint64_t)((double)val * load/(double)dev_cnt);
 
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {		dev_cnt++;
-		err = device_set_offload(cur_dev->dev_handle, 
-			sc->cur_search_id, target);
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		dev_cnt++;
+		err = device_set_offload(cur_dev->dev_handle,
+		                         sc->cur_search_id, target);
 		assert(err == 0);
 	}
 }
-		
+
 
 static void
 refill_credits(search_context_t *sc)
@@ -130,7 +134,7 @@ refill_credits(search_context_t *sc)
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->cur_credits += cur_dev->credit_incr;
 		if (cur_dev->credit_incr > MAX_CUR_CREDIT) {
-				cur_dev->credit_incr = MAX_CUR_CREDIT;
+			cur_dev->credit_incr = MAX_CUR_CREDIT;
 		}
 	}
 }
@@ -167,7 +171,7 @@ redo:
 
 	/* if we fall through and it is our first iteration
 	 * then retry from the beggining.
-	 */ 
+	 */
 	if (loop == 0) {
 		loop = 1;
 		cur_dev = sc->dev_list;
@@ -205,7 +209,9 @@ bg_main(void *arg)
 	int					any;
 	device_handle_t *	cur_dev;
 	struct timeval		this_time;
-	struct timeval		next_time = {0,0};
+	struct timeval		next_time = {
+		                            0,0
+	                            };
 	struct timezone		tz;
 	struct timespec 	timeout;
 	uint32_t			loop_count = 0;
@@ -219,22 +225,22 @@ bg_main(void *arg)
 	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
 	assert(err == 0);
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count", DCTL_DT_UINT32,
-					dctl_read_uint32, dctl_write_uint32, &loop_count);
+	                         dctl_read_uint32, dctl_write_uint32, &loop_count);
 	assert(err == 0);
 
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "cpu_split", 
-			DCTL_DT_UINT32, dctl_read_uint32, 
-			dctl_write_uint32, &do_cpu_update);
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "cpu_split",
+	                         DCTL_DT_UINT32, dctl_read_uint32,
+	                         dctl_write_uint32, &do_cpu_update);
 	assert(err == 0);
 
 
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "dummy", DCTL_DT_UINT32,
-					dctl_read_uint32, dctl_write_uint32, &dummy);
+	                         dctl_read_uint32, dctl_write_uint32, &dummy);
 	assert(err == 0);
 
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "credit_policy", 
-					DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32, 
-					&sc->bg_credit_policy);
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "credit_policy",
+	                         DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32,
+	                         &sc->bg_credit_policy);
 	assert(err == 0);
 
 
@@ -250,7 +256,7 @@ bg_main(void *arg)
 	 * processing they are released or placed into the "proc_ring"
 	 * ring bsed on the results of the evaluation.
 	 */
-	
+
 	while (1) {
 		loop_count++;
 
@@ -259,12 +265,12 @@ bg_main(void *arg)
 		 * been fully processed.
 		 */
 		if ((sc->bg_status & BG_STARTED)  &&
-			(ring_count(sc->proc_ring) < sc->pend_lw)) {
+		    (ring_count(sc->proc_ring) < sc->pend_lw)) {
 			obj_info = get_next_object(sc);
 			if (obj_info != NULL) {
 				new_obj = obj_info->obj;
-				/* 
-			 	 * Make sure the version number is the
+				/*
+					 * Make sure the version number is the
 				 * latest.  If it is not equal, then this
 				 * is probably data left over from a previous
 				 * search that is working its way through
@@ -275,7 +281,7 @@ bg_main(void *arg)
 							sc->cur_search_id,
 							obj_info->ver_num);
 							*/
-					ls_release_object(sc, new_obj); 
+					ls_release_object(sc, new_obj);
 					free(obj_info);
 					continue;
 				}
@@ -306,7 +312,7 @@ bg_main(void *arg)
 				any = 0;
 				cur_dev = sc->dev_list;
 				while (cur_dev != NULL) {
-					if ((cur_dev->flags & DEV_FLAG_COMPLETE) == 0){
+					if ((cur_dev->flags & DEV_FLAG_COMPLETE) == 0) {
 						any = 1;
 						break;
 					}
@@ -315,27 +321,27 @@ bg_main(void *arg)
 
 				if ((any == 0) && (sc->cur_status == SS_ACTIVE)) {
 					sc->cur_status = SS_DONE;
-				} 
+				}
 			}
-	
+
 		} else {
 			/*
 			 * There are no objects.  See if all devices
 			 * are done.
 			 */
-			
+
 
 		}
 
 
-	
+
 		/* timeout look that runs once a second */
 		gettimeofday(&this_time, &tz);
 
 		if (((this_time.tv_sec == next_time.tv_sec) &&
-		    	(this_time.tv_usec >= next_time.tv_usec)) ||
-				(this_time.tv_sec > next_time.tv_sec)) {
-		
+		     (this_time.tv_usec >= next_time.tv_usec)) ||
+		    (this_time.tv_sec > next_time.tv_sec)) {
+
 			update_rates(sc);
 
 			assert(POLL_USECS < 1000000);
@@ -352,21 +358,21 @@ bg_main(void *arg)
 		/*
 		 * This section looks for any commands on the bg ops 
 		 * rings and processes them.
-		 */ 
+		 */
 		cmd = (bg_cmd_data_t *) ring_deq(sc->bg_ops);
 		if (cmd != NULL) {
 			switch(cmd->cmd) {
 				case BG_SEARCHLET:
 					sc->bg_status |= BG_SET_SEARCHLET;
 					err = fexec_load_searchlet(cmd->filter_name,
-						     cmd->spec_name, 
-						     &sc->bg_fdata);
+					                           cmd->spec_name,
+					                           &sc->bg_fdata);
 					assert(!err);
 					break;
 
 				case BG_SET_BLOB:
 					fexec_set_blob(sc->bg_fdata, cmd->filter_name,
-							cmd->blob_len, cmd->blob);	
+					               cmd->blob_len, cmd->blob);
 					assert(!err);
 					break;
 
@@ -381,21 +387,22 @@ bg_main(void *arg)
 						obj_data_t *		new_obj;
 						obj_info_t *		obj_info;
 
-						while(!ring_empty(sc->proc_ring)) {
+						while(!ring_empty(sc->proc_ring))
+						{
 							/* XXX lock */
 							obj_info = (obj_info_t *)ring_deq(sc->proc_ring);
 							new_obj = obj_info->obj;
-							ls_release_object(sc, new_obj); 
+							ls_release_object(sc, new_obj);
 							free(obj_info);
 						}
 					}
-			
+
 					/* XXX clean up any stats ?? */
 
-					fexec_init_search(sc->bg_fdata);	
+					fexec_init_search(sc->bg_fdata);
 					sc->bg_status |= BG_STARTED;
 					break;
-					
+
 				case BG_STOP:
 					sc->bg_status &= ~BG_STARTED;
 					/* XXX toher state ?? */
@@ -432,7 +439,7 @@ bg_main(void *arg)
 
 int
 bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
-	         char *spec_name)
+                 char *spec_name)
 {
 	bg_cmd_data_t *		cmd;
 
@@ -499,7 +506,7 @@ bg_stop_search(search_context_t *sc, int id)
 
 int
 bg_set_blob(search_context_t *sc, int id, char *filter_name,
-				int blob_len, void *blob_data)
+            int blob_len, void *blob_data)
 {
 	bg_cmd_data_t *		cmd;
 	void *				new_blob;
@@ -527,7 +534,7 @@ bg_set_blob(search_context_t *sc, int id, char *filter_name,
 	cmd->blob_len = blob_len;
 	cmd->blob = new_blob;
 
-	
+
 	ring_enq(sc->bg_ops, (void *)cmd);
 	return(0);
 }
@@ -545,7 +552,7 @@ int
 bg_init(search_context_t *sc, int id)
 {
 	int		err;
-	pthread_t	thread_id;		
+	pthread_t	thread_id;
 
 	/*
 	 * Initialize the ring of commands for the thread.

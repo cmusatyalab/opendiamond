@@ -41,7 +41,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h> 
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/un.h>
 #include <string.h>
@@ -50,21 +50,21 @@
 #include "dctl.h"
 
 
-    
+
 int
 sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 {
-    int 	rlen;
-    int	    dlen;
-    char *	buf;
+	int 	rlen;
+	int	    dlen;
+	char *	buf;
 
 
-    rlen = recv(fd, msg, sizeof(*msg), MSG_WAITALL);
-    if (rlen != sizeof(*msg)) {
-        printf("XXX failed to rx reply \n");
-        return(EINVAL); /* XXX */
-    }
-	
+	rlen = recv(fd, msg, sizeof(*msg), MSG_WAITALL);
+	if (rlen != sizeof(*msg)) {
+		printf("XXX failed to rx reply \n");
+		return(EINVAL); /* XXX */
+	}
+
 
 	dlen = msg->dctl_dlen;
 	if (dlen == 0) {
@@ -92,7 +92,7 @@ sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 		 * out of synce and be in trouble for the next
 		 * call.
 		 */
-        assert(0);
+		assert(0);
 		buf = (char *)malloc(dlen);
 		assert(buf!=NULL);
 
@@ -108,8 +108,8 @@ sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 
 
 int
-sock_read_leaf(int fd, dctl_data_type_t *dtype, char *path, 
-                int *len, char *data)
+sock_read_leaf(int fd, dctl_data_type_t *dtype, char *path,
+               int *len, char *data)
 {
 	dctl_msg_hdr_t	msg;
 	int				path_len;
@@ -139,9 +139,9 @@ sock_read_leaf(int fd, dctl_data_type_t *dtype, char *path,
 	 *
 	 */
 	err = sock_read_reply(fd, &msg, len, data);
-    if (err == 0) {
-        *dtype = msg.dctl_dtype;
-    }
+	if (err == 0) {
+		*dtype = msg.dctl_dtype;
+	}
 	return(err);
 }
 
@@ -268,9 +268,9 @@ sock_write_leaf(int fd, char *path, int len, char *data)
 	 */
 	data_len = 0;
 	err = sock_read_reply(fd, &msg, &data_len, NULL);
-    if (err == 0) {
-        err = msg.dctl_err;
-    }
+	if (err == 0) {
+		err = msg.dctl_err;
+	}
 	return(err);
 }
 
@@ -279,47 +279,47 @@ sock_write_leaf(int fd, char *path, int len, char *data)
 void
 show_leaf(int fd, char *leaf_path, int name)
 {
-    char                databuf[64];
+	char                databuf[64];
 	int		            len;
-    dctl_data_type_t    dtype;
-    int                 err, i;
+	dctl_data_type_t    dtype;
+	int                 err, i;
 
-    len = 64;
+	len = 64;
 	err = sock_read_leaf(fd, &dtype, leaf_path, &len, (char *)databuf);
 	if (err) {
-        assert(0);
-	    exit(1);
+		assert(0);
+		exit(1);
 	}
-    if (name) {
-	    fprintf(stdout, "%s = ", leaf_path);
-    }
-           
-    switch (dtype) {
-        case DCTL_DT_UINT32:
-	        fprintf(stdout, "%d\n", *(uint32_t *)databuf);
-            break;
-            
-        case DCTL_DT_UINT64:
-	        fprintf(stdout, "%lld\n", *(uint64_t *)databuf);
-            break;
+	if (name) {
+		fprintf(stdout, "%s = ", leaf_path);
+	}
 
-        case DCTL_DT_STRING:
-	        fprintf(stdout, "%s\n", databuf);
-            break;
+	switch (dtype) {
+		case DCTL_DT_UINT32:
+			fprintf(stdout, "%d\n", *(uint32_t *)databuf);
+			break;
 
-        case DCTL_DT_CHAR:
-	        fprintf(stdout, "%c\n", databuf[0]);
-            break;
+		case DCTL_DT_UINT64:
+			fprintf(stdout, "%lld\n", *(uint64_t *)databuf);
+			break;
 
-        default:
-            /* we don't know what it is, so dump it in hex */
-            for(i=0; i < len; i++) {
-	            fprintf(stdout, "%02x", databuf[i]);
-                
-            }
-	        fprintf(stdout, "\n");
-            break;
-    }
+		case DCTL_DT_STRING:
+			fprintf(stdout, "%s\n", databuf);
+			break;
+
+		case DCTL_DT_CHAR:
+			fprintf(stdout, "%c\n", databuf[0]);
+			break;
+
+		default:
+			/* we don't know what it is, so dump it in hex */
+			for(i=0; i < len; i++) {
+				fprintf(stdout, "%02x", databuf[i]);
+
+			}
+			fprintf(stdout, "\n");
+			break;
+	}
 }
 
 
@@ -345,22 +345,22 @@ dump_node(int fd, char *cur_path, int name, int nodes)
 
 	for (i = 0; i < ents; i++) {
 		sprintf(new_path, "%s.%s", cur_path, data[i].entry_name);
-        show_leaf(fd, new_path, name);
+		show_leaf(fd, new_path, name);
 	}
-		
+
 	ents = MAX_ENTS;
 	err = sock_list_nodes(fd, cur_path, &ents, data);
 	assert(err == 0);
 
 	for (i = 0; i < ents; i++) {
-        if (strlen(cur_path) == 0) {
-		    sprintf(new_path, "%s", data[i].entry_name);
-        } else {
-            sprintf(new_path, "%s.%s", cur_path, data[i].entry_name);
-        }
-        if ((nodes) && (name)) {
-		    fprintf(stdout, "%s.\n", new_path);
-        }
+		if (strlen(cur_path) == 0) {
+			sprintf(new_path, "%s", data[i].entry_name);
+		} else {
+			sprintf(new_path, "%s.%s", cur_path, data[i].entry_name);
+		}
+		if ((nodes) && (name)) {
+			fprintf(stdout, "%s.\n", new_path);
+		}
 		dump_node(fd, new_path, name, nodes);
 	}
 }
@@ -370,65 +370,65 @@ dump_node(int fd, char *cur_path, int name, int nodes)
 int
 write_values(int fd, char *pathval)
 {
-    char                path[MAX_PATH];
-    char                val[MAX_VALSTR];
-    dctl_data_type_t    dtype;
-    char *              idx;
-    int                 len;
-    int                 err;
+	char                path[MAX_PATH];
+	char                val[MAX_VALSTR];
+	dctl_data_type_t    dtype;
+	char *              idx;
+	int                 len;
+	int                 err;
 
 
-    idx = index(pathval, '=');
-    if (idx == NULL) {
-        return(EINVAL);
-    }
+	idx = index(pathval, '=');
+	if (idx == NULL) {
+		return(EINVAL);
+	}
 
-    len = idx - pathval;
+	len = idx - pathval;
 
-    assert(len < (MAX_PATH -1));
-    memcpy(path, pathval, len);
-    path[len] = '\0';
+	assert(len < (MAX_PATH -1));
+	memcpy(path, pathval, len);
+	path[len] = '\0';
 
-    /* look up this value and determine its type */
-    len = MAX_VALSTR;
+	/* look up this value and determine its type */
+	len = MAX_VALSTR;
 	err = sock_read_leaf(fd, &dtype, path, &len, val);
 	if (err) {
-        fprintf(stderr, "node %s doesn't exist \n", path);
-        return(EINVAL);
-    }
+		fprintf(stderr, "node %s doesn't exist \n", path);
+		return(EINVAL);
+	}
 
-    idx++;
-    switch (dtype) {
-        case DCTL_DT_UINT32:
-            *(uint32_t *)val = atoi(idx);
-            len = sizeof(uint32_t);
-            break;
-            
-        case DCTL_DT_UINT64:
-            *(uint64_t *)val = atoll(idx);
-            len = sizeof(uint64_t);
-            break;
+	idx++;
+	switch (dtype) {
+		case DCTL_DT_UINT32:
+			*(uint32_t *)val = atoi(idx);
+			len = sizeof(uint32_t);
+			break;
 
-        case DCTL_DT_STRING:
-            len = strlen(idx) + 1;
-            memcpy(val, idx, len);
-            break;
+		case DCTL_DT_UINT64:
+			*(uint64_t *)val = atoll(idx);
+			len = sizeof(uint64_t);
+			break;
 
-        case DCTL_DT_CHAR:
-            *val = *idx;
-            len = sizeof(char);
-            break;
+		case DCTL_DT_STRING:
+			len = strlen(idx) + 1;
+			memcpy(val, idx, len);
+			break;
 
-        default:
-            /* we don't know what it is, so dump it in hex */
-            fprintf(stderr, "unknown data type on %s  \n", path);
-            return(EINVAL);
-            break;
+		case DCTL_DT_CHAR:
+			*val = *idx;
+			len = sizeof(char);
+			break;
 
-    }
+		default:
+			/* we don't know what it is, so dump it in hex */
+			fprintf(stderr, "unknown data type on %s  \n", path);
+			return(EINVAL);
+			break;
 
-    err = sock_write_leaf(fd, path, len, val);
-    return(err);
+	}
+
+	err = sock_write_leaf(fd, path, len, val);
+	return(err);
 }
 
 
@@ -436,20 +436,20 @@ write_values(int fd, char *pathval)
 void
 dump_values(int fd, char *path, int recurse, int name, int nodes)
 {
-    /*
-     * If recurse is not set, then this should be a leaf,
-     * otherwise this should be a node.
-     */
+	/*
+	 * If recurse is not set, then this should be a leaf,
+	 * otherwise this should be a node.
+	 */
 
-    if (recurse == 0) {
-        show_leaf(fd, path, name);
-    } else {
-        dump_node(fd, path, name, nodes);
-    }
+	if (recurse == 0) {
+		show_leaf(fd, path, name);
+	} else {
+		dump_node(fd, path, name, nodes);
+	}
 }
-    
-    
-    
+
+
+
 void
 usage()
 {
@@ -467,14 +467,14 @@ usage()
 
 int
 main(int argc, char **argv)
-{ 
-    int	    fd;
+{
+	int	    fd;
 	struct  sockaddr_un sa;
-    int     write = 0;
-    int     interval = 0;
-    int     recurse = 0;
-    int     name = 1;
-    int     nodes = 0;
+	int     write = 0;
+	int     interval = 0;
+	int     recurse = 0;
+	int     name = 1;
+	int     nodes = 0;
 	int	    err;
 	int	    c, i;
 
@@ -494,36 +494,36 @@ main(int argc, char **argv)
 				exit(0);
 				break;
 
-            case 'i':
-                interval = atoi(optarg);
-                break;
+			case 'i':
+				interval = atoi(optarg);
+				break;
 
-            case 'n':
-                name = 0;
-                break;
+			case 'n':
+				name = 0;
+				break;
 
-            case 'p':
-                nodes = 1;
-                break;
+			case 'p':
+				nodes = 1;
+				break;
 
 
-            case 'r':
-                recurse = 1;
-                break;
+			case 'r':
+				recurse = 1;
+				break;
 
-            case 'w':
-                write = 1;
-                break;
+			case 'w':
+				write = 1;
+				break;
 
 			default:
 				fprintf(stderr, "unknown option %c\n", c);
-                usage();
-                exit(1);
+				usage();
+				exit(1);
 				break;
 		}
 	}
-	
-	
+
+
 	/*
 	 * This is the main loop.  We just keep trying to open the socket
 	 * and the log contents while the socket is valid.
@@ -539,7 +539,7 @@ main(int argc, char **argv)
 		strcpy(sa.sun_path, SOCKET_DCTL_NAME);
 		sa.sun_family = AF_UNIX;
 
-	
+
 		err = connect(fd, (struct sockaddr *)&sa, sizeof (sa));
 		if (err < 0) {
 			/*
@@ -550,32 +550,32 @@ main(int argc, char **argv)
 			sleep(1);
 		} else {
 
-            if (write) {
-                for (i=optind; i < argc; i++) {
-                    err = write_values(fd, argv[i]);
-                    if (err) {
-                        /* XXX */
-                        exit(1);
-                    }
-                }
-            } else {
-                if (optind == argc) {
-			            dump_values(fd, "", recurse, name, nodes);
-                } else {
-                    for (i=optind; i < argc; i++) {
-			            dump_values(fd, argv[i], recurse, name, nodes);
-                    }
-                }
-            }
+			if (write) {
+				for (i=optind; i < argc; i++) {
+					err = write_values(fd, argv[i]);
+					if (err) {
+						/* XXX */
+						exit(1);
+					}
+				}
+			} else {
+				if (optind == argc) {
+					dump_values(fd, "", recurse, name, nodes);
+				} else {
+					for (i=optind; i < argc; i++) {
+						dump_values(fd, argv[i], recurse, name, nodes);
+					}
+				}
+			}
 
-            /* if the interval is 0, then we are done,
-             * otherwise we sleep and continue.
-             */
-            if (interval == 0) {
-                break;
-            } else {
-			    sleep(interval);
-            }
+			/* if the interval is 0, then we are done,
+			 * otherwise we sleep and continue.
+			 */
+			if (interval == 0) {
+				break;
+			} else {
+				sleep(interval);
+			}
 		}
 		close(fd);
 	}

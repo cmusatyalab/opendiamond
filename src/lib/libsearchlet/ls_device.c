@@ -106,7 +106,7 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 		 */
 		free(data);
 		free(linfo);
-		return;	
+		return;
 	}
 
 	return;
@@ -122,7 +122,7 @@ dev_search_done_cb(void *hcookie, int ver_no)
 	dev = (device_handle_t *)hcookie;
 
 	/*
- 	 * If this version number doesn't match this was
+		 * If this version number doesn't match this was
 	 * an old message stuck in the queue.
 	 */
 	if (dev->sc->cur_search_id != ver_no) {
@@ -156,21 +156,23 @@ lookup_dev_by_id(search_context_t *sc, uint32_t devid)
 		cur_dev = cur_dev->next;
 	}
 
-	return(cur_dev);	
+	return(cur_dev);
 }
 
 
 #define     MAX_PENDING     64
 
-typedef struct dctl_pending {
-        int                 pend_allocated;
-        pthread_mutex_t     pend_mutex;
-        pthread_cond_t      pend_cond;
-        int *               pend_len;
-        char *              pend_data;
-        dctl_data_type_t *  pend_dtype;
-        int                 pend_err;
-} dctl_pending_t;
+typedef struct dctl_pending
+{
+	int                 pend_allocated;
+	pthread_mutex_t     pend_mutex;
+	pthread_cond_t      pend_cond;
+	int *               pend_len;
+	char *              pend_data;
+	dctl_data_type_t *  pend_dtype;
+	int                 pend_err;
+}
+dctl_pending_t;
 
 
 dctl_pending_t      pend_data[MAX_PENDING];
@@ -179,28 +181,28 @@ dctl_pending_t      pend_data[MAX_PENDING];
 static int
 allocate_pending()
 {
-    int     i;
-    
-    for (i=0; i < MAX_PENDING; i++) {
-            pthread_mutex_lock(&pend_data[i].pend_mutex);
+	int     i;
 
-            if (pend_data[i].pend_allocated == 0) {
-                pend_data[i].pend_allocated = 1;
-                pthread_mutex_unlock(&pend_data[i].pend_mutex);
-                return(i);
-            } else {
-                pthread_mutex_unlock(&pend_data[i].pend_mutex);
-            }
-    }
-    return(-1);
+	for (i=0; i < MAX_PENDING; i++) {
+		pthread_mutex_lock(&pend_data[i].pend_mutex);
+
+		if (pend_data[i].pend_allocated == 0) {
+			pend_data[i].pend_allocated = 1;
+			pthread_mutex_unlock(&pend_data[i].pend_mutex);
+			return(i);
+		} else {
+			pthread_mutex_unlock(&pend_data[i].pend_mutex);
+		}
+	}
+	return(-1);
 }
 
 static void
 free_pending(int idx)
 {
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
-    pend_data[idx].pend_allocated = 0;
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pend_data[idx].pend_allocated = 0;
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 
@@ -208,13 +210,13 @@ free_pending(int idx)
 static void
 init_pending()
 {
-    int     i;
-    
-    for (i=0; i < MAX_PENDING; i++) {
-            pthread_cond_init(&pend_data[i].pend_cond, NULL);
-            pthread_mutex_init(&pend_data[i].pend_mutex, NULL);
-            pend_data[i].pend_allocated = 0;
-    }
+	int     i;
+
+	for (i=0; i < MAX_PENDING; i++) {
+		pthread_cond_init(&pend_data[i].pend_cond, NULL);
+		pthread_mutex_init(&pend_data[i].pend_mutex, NULL);
+		pend_data[i].pend_allocated = 0;
+	}
 
 }
 
@@ -223,21 +225,21 @@ init_pending()
 static void
 write_leaf_done_cb(void *cookie, int err, int32_t opid)
 {
-    int idx;
-    
-
-    idx = (int)opid;
-
-    assert(idx >= 0);
-    assert(idx < MAX_PENDING);
+	int idx;
 
 
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	idx = (int)opid;
 
-    pend_data[idx].pend_err = err;
+	assert(idx >= 0);
+	assert(idx < MAX_PENDING);
 
-    pthread_cond_signal(&pend_data[idx].pend_cond);
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+
+	pend_data[idx].pend_err = err;
+
+	pthread_cond_signal(&pend_data[idx].pend_cond);
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 
 }
 
@@ -246,263 +248,263 @@ static int
 remote_write_leaf(char *path, int len, char *data, void *cookie)
 {
 	device_handle_t *cur_dev;
-    int             idx;
-    int             err;
+	int             idx;
+	int             err;
 
-    cur_dev = (device_handle_t *)cookie;
+	cur_dev = (device_handle_t *)cookie;
 
-    idx = allocate_pending();
-    if (idx < 0) {
-            return(ENOSPC);
-    }
-            
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	idx = allocate_pending();
+	if (idx < 0) {
+		return(ENOSPC);
+	}
 
-    /* we don't care about keeping the data of len here */
-    err = device_write_leaf(cur_dev->dev_handle, path, len, data, idx);
-    if (err) {
-        pthread_mutex_unlock(&pend_data[idx].pend_mutex);
-        free_pending(idx);
-        return(err);
-    }
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+
+	/* we don't care about keeping the data of len here */
+	err = device_write_leaf(cur_dev->dev_handle, path, len, data, idx);
+	if (err) {
+		pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+		free_pending(idx);
+		return(err);
+	}
 
 
-    pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
+	pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
 
-    /* get error from the request and save it */
-    err = pend_data[idx].pend_err;
+	/* get error from the request and save it */
+	err = pend_data[idx].pend_err;
 
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
-    free_pending(idx);
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	free_pending(idx);
 
-    return(err);
+	return(err);
 }
 
 
 
 static void
-read_leaf_done_cb(void *cookie, int err, dctl_data_type_t dtype, 
-                int len, char *data, int32_t opid)
+read_leaf_done_cb(void *cookie, int err, dctl_data_type_t dtype,
+                  int len, char *data, int32_t opid)
 {
-    int     idx;
+	int     idx;
 
-    idx = (int)opid;
+	idx = (int)opid;
 
-    assert(idx >= 0);
-    assert(idx < MAX_PENDING);
+	assert(idx >= 0);
+	assert(idx < MAX_PENDING);
 
 
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
 
-    if (err) {
-        pend_data[idx].pend_err = err;
+	if (err) {
+		pend_data[idx].pend_err = err;
 
-    } else {
-        if (*pend_data[idx].pend_len < len) {
-            pend_data[idx].pend_err = ENOMEM;
-            *pend_data[idx].pend_len = len;
+	} else {
+		if (*pend_data[idx].pend_len < len) {
+			pend_data[idx].pend_err = ENOMEM;
+			*pend_data[idx].pend_len = len;
 
-        } else {
-            pend_data[idx].pend_err = 0;
-            *pend_data[idx].pend_len = len;
-            *pend_data[idx].pend_dtype = dtype;
-            memcpy(pend_data[idx].pend_data, data, len);
-        }
-    }
+		} else {
+			pend_data[idx].pend_err = 0;
+			*pend_data[idx].pend_len = len;
+			*pend_data[idx].pend_dtype = dtype;
+			memcpy(pend_data[idx].pend_data, data, len);
+		}
+	}
 
-    pthread_cond_signal(&pend_data[idx].pend_cond);
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	pthread_cond_signal(&pend_data[idx].pend_cond);
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 
 static int
-remote_read_leaf(char *path, dctl_data_type_t *dtype, int *len, 
-                char *data, void *cookie)
+remote_read_leaf(char *path, dctl_data_type_t *dtype, int *len,
+                 char *data, void *cookie)
 {
 	device_handle_t *cur_dev;
-    int             idx;
-    int             err;
+	int             idx;
+	int             err;
 
-    cur_dev = (device_handle_t *)cookie;
+	cur_dev = (device_handle_t *)cookie;
 
-    idx = allocate_pending();
-    if (idx < 0) {
-            return(ENOSPC);
-    }
-            
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	idx = allocate_pending();
+	if (idx < 0) {
+		return(ENOSPC);
+	}
 
-    pend_data[idx].pend_len = len;
-    pend_data[idx].pend_data = data; 
-    pend_data[idx].pend_dtype = dtype; 
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
 
-    /* we don't care about keeping the data of len here */
-    err = device_read_leaf(cur_dev->dev_handle, path, idx);
-    if (err) {
-        free_pending(idx);
-        return(err);
-    }
+	pend_data[idx].pend_len = len;
+	pend_data[idx].pend_data = data;
+	pend_data[idx].pend_dtype = dtype;
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
-    pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
+	/* we don't care about keeping the data of len here */
+	err = device_read_leaf(cur_dev->dev_handle, path, idx);
+	if (err) {
+		free_pending(idx);
+		return(err);
+	}
 
-    /* get error from the request and save it */
-    err = pend_data[idx].pend_err;
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
 
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
-    free_pending(idx);
+	/* get error from the request and save it */
+	err = pend_data[idx].pend_err;
 
-    return(err);
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	free_pending(idx);
+
+	return(err);
 }
 
 
 static void
-lnodes_done_cb(void *cookie, int err, int num_ents, dctl_entry_t *data, 
-                int32_t opid)
+lnodes_done_cb(void *cookie, int err, int num_ents, dctl_entry_t *data,
+               int32_t opid)
 {
-    int             idx;
+	int             idx;
 
-    idx = (int)opid;
+	idx = (int)opid;
 
-    assert(idx >= 0);
-    assert(idx < MAX_PENDING);
+	assert(idx >= 0);
+	assert(idx < MAX_PENDING);
 
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
 
-    if (err) {
-        pend_data[idx].pend_err = err;
+	if (err) {
+		pend_data[idx].pend_err = err;
 
-    } else {
-        if (*pend_data[idx].pend_len < num_ents) {
-            pend_data[idx].pend_err = ENOMEM;
-            *pend_data[idx].pend_len = num_ents;
+	} else {
+		if (*pend_data[idx].pend_len < num_ents) {
+			pend_data[idx].pend_err = ENOMEM;
+			*pend_data[idx].pend_len = num_ents;
 
-        } else {
-            pend_data[idx].pend_err = 0;
-            *pend_data[idx].pend_len = num_ents;
-            memcpy((char *)pend_data[idx].pend_data, (char *)data, 
-                            (num_ents * sizeof(dctl_entry_t)));
-        }
-    }
+		} else {
+			pend_data[idx].pend_err = 0;
+			*pend_data[idx].pend_len = num_ents;
+			memcpy((char *)pend_data[idx].pend_data, (char *)data,
+			       (num_ents * sizeof(dctl_entry_t)));
+		}
+	}
 
-    pthread_cond_signal(&pend_data[idx].pend_cond);
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	pthread_cond_signal(&pend_data[idx].pend_cond);
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 static int
 remote_list_nodes(char *path, int *num_ents, dctl_entry_t *space,
-                                void *cookie)
+                  void *cookie)
 {
 	device_handle_t *cur_dev;
-    int             idx;
-    int             err;
+	int             idx;
+	int             err;
 
-    cur_dev = (device_handle_t *)cookie;
+	cur_dev = (device_handle_t *)cookie;
 
-    idx = allocate_pending();
-    if (idx < 0) {
-            return(ENOSPC);
-    }
-    
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
-    pend_data[idx].pend_len = num_ents;
-    pend_data[idx].pend_data = (char *)space; 
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	idx = allocate_pending();
+	if (idx < 0) {
+		return(ENOSPC);
+	}
 
-
-    err = device_list_nodes(cur_dev->dev_handle, path, idx);
-    if (err) {
-        free_pending(idx);
-        return(err);
-    }
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pend_data[idx].pend_len = num_ents;
+	pend_data[idx].pend_data = (char *)space;
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 
 
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
-    pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
+	err = device_list_nodes(cur_dev->dev_handle, path, idx);
+	if (err) {
+		free_pending(idx);
+		return(err);
+	}
 
-    /* get error from the request and save it */
-    err = pend_data[idx].pend_err;
 
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
-    free_pending(idx);
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
 
-    return(err);
+	/* get error from the request and save it */
+	err = pend_data[idx].pend_err;
+
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	free_pending(idx);
+
+	return(err);
 }
 
 
 static void
-lleafs_done_cb(void *cookie, int err, int num_ents, dctl_entry_t *data, 
-                int32_t opid)
+lleafs_done_cb(void *cookie, int err, int num_ents, dctl_entry_t *data,
+               int32_t opid)
 {
-    int             idx;
+	int             idx;
 
-    idx = (int)opid;
+	idx = (int)opid;
 
-    assert(idx >= 0);
-    assert(idx < MAX_PENDING);
+	assert(idx >= 0);
+	assert(idx < MAX_PENDING);
 
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
 
-    if (err) {
-        pend_data[idx].pend_err = err;
+	if (err) {
+		pend_data[idx].pend_err = err;
 
-    } else {
-        if (*pend_data[idx].pend_len < num_ents) {
-            pend_data[idx].pend_err = ENOMEM;
-            *pend_data[idx].pend_len = num_ents;
+	} else {
+		if (*pend_data[idx].pend_len < num_ents) {
+			pend_data[idx].pend_err = ENOMEM;
+			*pend_data[idx].pend_len = num_ents;
 
-        } else {
-            pend_data[idx].pend_err = 0;
-            *pend_data[idx].pend_len = num_ents;
-            memcpy((char *)pend_data[idx].pend_data, (char *)data, 
-                            (num_ents * sizeof(dctl_entry_t)));
-        }
-    }
+		} else {
+			pend_data[idx].pend_err = 0;
+			*pend_data[idx].pend_len = num_ents;
+			memcpy((char *)pend_data[idx].pend_data, (char *)data,
+			       (num_ents * sizeof(dctl_entry_t)));
+		}
+	}
 
-    pthread_cond_signal(&pend_data[idx].pend_cond);
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	pthread_cond_signal(&pend_data[idx].pend_cond);
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 
 
 static int
 remote_list_leafs(char *path, int *num_ents, dctl_entry_t *space,
-                                void *cookie)
+                  void *cookie)
 {
 	device_handle_t *cur_dev;
-    int             idx;
-    int             err;
+	int             idx;
+	int             err;
 
-    cur_dev = (device_handle_t *)cookie;
+	cur_dev = (device_handle_t *)cookie;
 
-    idx = allocate_pending();
-    if (idx < 0) {
-            return(ENOSPC);
-    }
-    
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
-    pend_data[idx].pend_len = num_ents;
-    pend_data[idx].pend_data = (char *)space; 
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	idx = allocate_pending();
+	if (idx < 0) {
+		return(ENOSPC);
+	}
 
-    err = device_list_leafs(cur_dev->dev_handle, path, idx);
-    if (err) {
-        free_pending(idx);
-        return(err);
-    }
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pend_data[idx].pend_len = num_ents;
+	pend_data[idx].pend_data = (char *)space;
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+
+	err = device_list_leafs(cur_dev->dev_handle, path, idx);
+	if (err) {
+		free_pending(idx);
+		return(err);
+	}
 
 
-    pthread_mutex_lock(&pend_data[idx].pend_mutex);
-    pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
+	pthread_mutex_lock(&pend_data[idx].pend_mutex);
+	pthread_cond_wait(&pend_data[idx].pend_cond, &pend_data[idx].pend_mutex);
 
-    /* get error from the request and save it */
-    err = pend_data[idx].pend_err;
+	/* get error from the request and save it */
+	err = pend_data[idx].pend_err;
 
-    pthread_mutex_unlock(&pend_data[idx].pend_mutex);
-    free_pending(idx);
+	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
+	free_pending(idx);
 
-    return(err);
+	return(err);
 }
 
 
@@ -513,56 +515,56 @@ static void
 register_remote_dctl(uint32_t devid, device_handle_t *dev_handle)
 {
 
-    struct hostent *hent;
-    dctl_fwd_cbs_t  cbs;
-    int             len, err;
-    char *          delim;
-    char            node_name[128];
-    char            cr_name[128];
+	struct hostent *hent;
+	dctl_fwd_cbs_t  cbs;
+	int             len, err;
+	char *          delim;
+	char            node_name[128];
+	char            cr_name[128];
 
-    hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
-    if (hent == NULL) {
-        struct in_addr in;
+	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
+	if (hent == NULL) {
+		struct in_addr in;
 
-        printf("failed to get hostname\n");
-        in.s_addr = devid;
-        delim = inet_ntoa(in);
-        strcpy(node_name, delim);
+		printf("failed to get hostname\n");
+		in.s_addr = devid;
+		delim = inet_ntoa(in);
+		strcpy(node_name, delim);
 
-        /* replace all the '.' with '_' */
-        while ((delim = index(node_name, '.')) != NULL) {
-            *delim = '_';
-        }
-    } else {
-        delim = index(hent->h_name ,'.');
-        if (delim == NULL) {
-            len = strlen(hent->h_name);
-        } else {
-            len = delim - hent->h_name;
-        }
-        strncpy(node_name, hent->h_name , len);
-        node_name[len] = 0;
-    }
+		/* replace all the '.' with '_' */
+		while ((delim = index(node_name, '.')) != NULL) {
+			*delim = '_';
+		}
+	} else {
+		delim = index(hent->h_name ,'.');
+		if (delim == NULL) {
+			len = strlen(hent->h_name);
+		} else {
+			len = delim - hent->h_name;
+		}
+		strncpy(node_name, hent->h_name , len);
+		node_name[len] = 0;
+	}
 
-    cbs.dfwd_rleaf_cb = remote_read_leaf;
-    cbs.dfwd_wleaf_cb = remote_write_leaf;
-    cbs.dfwd_lnodes_cb = remote_list_nodes;
-    cbs.dfwd_lleafs_cb = remote_list_leafs;
-    cbs.dfwd_cookie = (void *)dev_handle;
+	cbs.dfwd_rleaf_cb = remote_read_leaf;
+	cbs.dfwd_wleaf_cb = remote_write_leaf;
+	cbs.dfwd_lnodes_cb = remote_list_nodes;
+	cbs.dfwd_lleafs_cb = remote_list_leafs;
+	cbs.dfwd_cookie = (void *)dev_handle;
 
-    err = dctl_register_fwd_node(HOST_DEVICE_PATH, node_name, &cbs);
-    if (err) {
-        printf("XXX failed to register on %d \n", err);
-        assert(0);
-    }
+	err = dctl_register_fwd_node(HOST_DEVICE_PATH, node_name, &cbs);
+	if (err) {
+		printf("XXX failed to register on %d \n", err);
+		assert(0);
+	}
 
-	err = snprintf(cr_name, 128, "%s_%s", "credit_incr", node_name); 
+	err = snprintf(cr_name, 128, "%s_%s", "credit_incr", node_name);
 	cr_name[127] = '\0';
-	
+
 	/* also register a dctl for the credit count */
 	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-			dctl_read_uint32, dctl_write_uint32, &dev_handle->credit_incr);
-    assert(err == 0);
+	                         dctl_read_uint32, dctl_write_uint32, &dev_handle->credit_incr);
+	assert(err == 0);
 }
 
 
@@ -577,16 +579,16 @@ create_new_device(search_context_t *sc, uint32_t devid)
 {
 	device_handle_t *   new_dev;
 	hstub_cb_args_t	    cb_data;
-    static int          done_init = 0;
+	static int          done_init = 0;
 
-    if (!done_init) {
-        init_pending();
-    }
+	if (!done_init) {
+		init_pending();
+	}
 
 	new_dev = (device_handle_t *)malloc(sizeof(*new_dev));
 	if (new_dev == NULL) {
 		/* XXX log */
-		printf("XXX to create new device \n"); 
+		printf("XXX to create new device \n");
 		return(NULL);
 	}
 
@@ -606,9 +608,9 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	cb_data.lleaf_done_cb  = lleafs_done_cb;
 
 
-	new_dev->dev_handle = device_init(sc->cur_search_id, devid, 
-			(void *)new_dev, &cb_data, sc->dctl_cookie,
-			sc->log_cookie);
+	new_dev->dev_handle = device_init(sc->cur_search_id, devid,
+	                                  (void *)new_dev, &cb_data, sc->dctl_cookie,
+	                                  sc->log_cookie);
 
 	if (new_dev->dev_handle == NULL) {
 		/* XXX log */
@@ -625,7 +627,7 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	new_dev->next = sc->dev_list;
 	sc->dev_list = new_dev;
 
-    register_remote_dctl(devid, new_dev);
+	register_remote_dctl(devid, new_dev);
 
 
 
@@ -660,7 +662,7 @@ device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid)
 		}
 	}
 
-	
+
 	/*
 	 * check to see if we can add more groups, if so add it to the list
 	 */
@@ -670,7 +672,7 @@ device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid)
 		return(ENOENT);
 	}
 
-    	device_new_gid(cur_dev->dev_handle, sc->cur_search_id, gid);
+	device_new_gid(cur_dev->dev_handle, sc->cur_search_id, gid);
 
 	cur_dev->dev_groups[cur_dev->num_groups] = gid;
 	cur_dev->num_groups++;

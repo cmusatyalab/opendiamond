@@ -118,8 +118,8 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 		return(ENOENT);
 	}
 
-	size = read(cinfo->control_fd, (char *)&cinfo->con_cookie, 
-			sizeof(cinfo->con_cookie));
+	size = read(cinfo->control_fd, (char *)&cinfo->con_cookie,
+	            sizeof(cinfo->con_cookie));
 	if (size == -1) {
 		/* XXX */
 		printf("XXX failed to read from cntrl info \n");
@@ -146,8 +146,8 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	}
 
 	/* write the cookie into the fd */
-	size = send(cinfo->data_fd, (char *)&cinfo->con_cookie, 
-			sizeof(cinfo->con_cookie), 0);
+	size = send(cinfo->data_fd, (char *)&cinfo->con_cookie,
+	            sizeof(cinfo->con_cookie), 0);
 	if (size == -1) {
 		/* XXX */
 		printf("XXX failed to write data cookie \n");
@@ -174,8 +174,8 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	}
 
 	/* write the cookie into the fd */
-	size = write(cinfo->log_fd, (char *)&cinfo->con_cookie, 
-			sizeof(cinfo->con_cookie));
+	size = write(cinfo->log_fd, (char *)&cinfo->con_cookie,
+	             sizeof(cinfo->con_cookie));
 	if (size == -1) {
 		/* XXX */
 		printf("XXX failed to write data cookie \n");

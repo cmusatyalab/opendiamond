@@ -65,7 +65,7 @@ dctl_read_uint32(void *cookie, int *len, char *data)
 	*len = sizeof(uint32_t);
 	*(uint32_t *)data = *(uint32_t *)cookie;
 
-	return(0);	
+	return(0);
 }
 
 
@@ -85,7 +85,7 @@ dctl_write_uint32(void *cookie, int len, char *data)
 
 	*(uint32_t *)cookie = *(uint32_t *)data;
 
-	return(0);	
+	return(0);
 }
 
 
@@ -131,7 +131,7 @@ dctl_write_uint64(void *cookie, int len, char *data)
 
 	*(uint64_t *)cookie = *(uint64_t *)data;
 
-	return(0);	
+	return(0);
 }
 
 /*
@@ -152,7 +152,7 @@ dctl_read_char(void *cookie, int *len, char *data)
 		return(ENOMEM);
 	}
 
-		
+
 	/* store the data and the data size */
 	*len = sizeof(char);
 	*(char *)data = *(char *)cookie;
@@ -177,7 +177,7 @@ dctl_write_char(void *cookie, int len, char *data)
 	}
 
 	*(char *)cookie = *(char *)data;
-	return(0);	
+	return(0);
 }
 
 

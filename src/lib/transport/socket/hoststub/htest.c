@@ -91,8 +91,8 @@ main(int argc, char **argv)
 	dctl_init(&dctl_cookie);
 
 	/* XXX */
-	cookie = device_init(100, addr.s_addr, 0, &cb_args, dctl_cookie, 
-		log_cookie);
+	cookie = device_init(100, addr.s_addr, 0, &cb_args, dctl_cookie,
+	                     log_cookie);
 
 
 	err = device_start(cookie, 101);
@@ -109,7 +109,7 @@ main(int argc, char **argv)
 	}
 
 	printf("sleeping \n");
-		sleep(10);
+	sleep(10);
 	printf("done sleep \n");
 
 	exit(0);

@@ -50,34 +50,35 @@
 #include "odisk_priv.h"
 
 
-                                                                               
+
 uint64_t
-parse_uint64_string(const char* s) {
-  int i, o;
-  unsigned int x;   // Will actually hold an unsigned char
-  uint64_t u = 0u;
-                                                                               
-  /*
-  sscanf(s, "%llx", &u);
-  printf("parsed gid is 0x%llx\n", u);
-  return u;
-  */
-                                                                               
-  assert(s);
-  //fprintf(stderr, "parse_uint64_string s = %s\n", s);
-  for (i=0; i<8; i++) {
-    o = 3*i;
-    assert(isxdigit(s[o]) && isxdigit(s[o+1]));
-    assert( (s[o+2] == ':') || (s[o+2] == '\0') );
-    sscanf(s+o, "%2x", &x);
-    u <<= 8;
-    u += x;
-  }
-  // printf("parsed uint64_t is 0x%llx\n", u);
-  return u;
+parse_uint64_string(const char* s)
+{
+	int i, o;
+	unsigned int x;   // Will actually hold an unsigned char
+	uint64_t u = 0u;
+
+	/*
+	sscanf(s, "%llx", &u);
+	printf("parsed gid is 0x%llx\n", u);
+	return u;
+	*/
+
+	assert(s);
+	//fprintf(stderr, "parse_uint64_string s = %s\n", s);
+	for (i=0; i<8; i++) {
+		o = 3*i;
+		assert(isxdigit(s[o]) && isxdigit(s[o+1]));
+		assert( (s[o+2] == ':') || (s[o+2] == '\0') );
+		sscanf(s+o, "%2x", &x);
+		u <<= 8;
+		u += x;
+	}
+	// printf("parsed uint64_t is 0x%llx\n", u);
+	return u;
 }
-                                                                               
-                                                                               
+
+
 
 
 

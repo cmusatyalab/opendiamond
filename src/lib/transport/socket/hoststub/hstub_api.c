@@ -78,7 +78,7 @@ device_characteristics(void *handle, device_char_t *dev_chars)
 {
 	sdevice_state_t *dev = (sdevice_state_t *)handle;
 
-	*dev_chars = dev->dev_char; 
+	*dev_chars = dev->dev_char;
 
 	/* XXX debug */
 	assert(dev_chars->dc_isa == dev->dev_char.dc_isa);
@@ -95,7 +95,7 @@ device_statistics(void *handle, dev_stats_t *dev_stats, int *stat_len)
 {
 	sdevice_state_t *dev = (sdevice_state_t *)handle;
 
-	if (dev->stat_size == 0) { 
+	if (dev->stat_size == 0) {
 		memset(dev_stats, 0, *stat_len);
 	} else {
 		/* XXX locking ?? */
@@ -114,7 +114,7 @@ device_statistics(void *handle, dev_stats_t *dev_stats, int *stat_len)
 /*
  * This is the entry point to stop a current search.  This build the control
  * header and places it on a queue to be transmitted to the devce.
- */ 
+ */
 
 int
 device_stop(void *handle, int id)
@@ -126,7 +126,7 @@ device_stop(void *handle, int id)
 	dev = (sdevice_state_t *)handle;
 
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
@@ -170,7 +170,7 @@ device_terminate(void *handle, int id)
 
 
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
@@ -210,7 +210,7 @@ device_start(void *handle, int id)
 
 	dev = (sdevice_state_t *)handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
@@ -245,7 +245,7 @@ device_clear_gids(void *handle, int id)
 
 	dev = (sdevice_state_t *)handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
@@ -293,25 +293,25 @@ device_new_gid(void *handle, int id, groupid_t gid)
 {
 	int			err;
 	control_header_t *	cheader;
-    	sgid_subheader_t *  sgid;
+	sgid_subheader_t *  sgid;
 	sdevice_state_t *dev;
 
 	dev = (sdevice_state_t *)handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
 	}
 
-	sgid = (sgid_subheader_t *) malloc(sizeof(*sgid));	
-    	assert(sgid != NULL);
-    	sgid->sgid_gid = gid;
+	sgid = (sgid_subheader_t *) malloc(sizeof(*sgid));
+	assert(sgid != NULL);
+	sgid->sgid_gid = gid;
 
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_ADD_GID);
 	cheader->data_len = htonl(sizeof(*sgid));
-	cheader->spare = (uint32_t) sgid;	
+	cheader->spare = (uint32_t) sgid;
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
 	if (err) {
@@ -333,20 +333,20 @@ device_set_offload(void *handle, int id, uint64_t offload)
 {
 	int			err;
 	control_header_t *	cheader;
-    	offload_subheader_t *   offl;
+	offload_subheader_t *   offl;
 	sdevice_state_t *dev;
 
 	dev = (sdevice_state_t *)handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
 	}
 
-	offl = (offload_subheader_t *) malloc(sizeof(*offl));	
-    	assert(offl != NULL);
-    	offl->offl_data = offload;	/* XXX bswap */
+	offl = (offload_subheader_t *) malloc(sizeof(*offl));
+	assert(offl != NULL);
+	offl->offl_data = offload;	/* XXX bswap */
 
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_SET_OFFLOAD);
@@ -367,14 +367,14 @@ device_set_offload(void *handle, int id, uint64_t offload)
 	dev->con_data.flags |= CINFO_PENDING_CONTROL;
 	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
-} 
+}
 
 /*
  * This builds the command to set the searchlet on the remote device.
  * This builds the buffers and copies the contents of the files into
  * the buffers.
  */
- 
+
 
 int
 device_set_searchlet(void *handle, int id, char *filter, char *spec)
@@ -393,7 +393,7 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 
 	dev = (sdevice_state_t *)handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
@@ -432,9 +432,9 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 
 	shead->spec_len = htonl(spec_len);
 	shead->filter_len = htonl(filter_len);
-	
 
-	/* 
+
+	/*
 	 * set data to the beginning of the data portion  and
 	 * copy in the filter spec from the file.  NOTE: This is
 	 * currently blocks, we may want to do something else later.
@@ -486,7 +486,7 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 * XXX HACK.  For now we store the pointer to the data
 	 * using the spare field in the header to point to the data.
 	 */
-	cheader->spare = (uint32_t) shead;	
+	cheader->spare = (uint32_t) shead;
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
 	if (err) {
@@ -512,13 +512,13 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 
 	dev = (sdevice_state_t *)handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
 	}
 
-	slheader = (setlog_subheader_t *) malloc(sizeof(*slheader));	
+	slheader = (setlog_subheader_t *) malloc(sizeof(*slheader));
 	if (slheader == NULL) {
 		/* XXX log */
 		free(cheader);
@@ -530,7 +530,7 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 	cheader->generation_number = htonl(0);	/* XXX */
 	cheader->command = htonl(CNTL_CMD_SETLOG);
 	cheader->data_len = htonl(sizeof(*slheader));
-	cheader->spare = (uint32_t) slheader;	
+	cheader->spare = (uint32_t) slheader;
 
 	slheader->log_level = level;
 	slheader->log_src = src;
@@ -555,36 +555,36 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 
 
 
-int 
+int
 device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 {
 	int		        	    err;
 	control_header_t *  	cheader;
 	sdevice_state_t *       dev;
 	dctl_subheader_t *      dsub;
-    int                     plen;
-    int                     tot_len;
+	int                     plen;
+	int                     tot_len;
 
 	dev = (sdevice_state_t *)handle;
 
-    plen = strlen(path) + 1;
-    tot_len = plen + len + sizeof(*dsub);
+	plen = strlen(path) + 1;
+	tot_len = plen + len + sizeof(*dsub);
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
 	}
 
-    dsub = (dctl_subheader_t *) malloc(tot_len);
+	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
 		/* XXX log */
-        free(cheader);
+		free(cheader);
 		return (EAGAIN);
 	}
 
 
-    /* fill in the data */
+	/* fill in the data */
 
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_WRITE_LEAF);
@@ -593,17 +593,17 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	 * XXX HACK.  For now we store the pointer to the data
 	 * using the spare field in the header to point to the data.
 	 */
-	cheader->spare = (uint32_t) dsub;	
+	cheader->spare = (uint32_t) dsub;
 
-    /*
-     * Fill in the subheader.
-     */
-    dsub->dctl_err = htonl(0);
-    dsub->dctl_opid = htonl(opid);
-    dsub->dctl_plen = htonl(plen);
-    dsub->dctl_dlen = htonl(len);
-    memcpy(&dsub->dctl_data[0], path, plen);
-    memcpy(&dsub->dctl_data[plen], data, len);
+	/*
+	 * Fill in the subheader.
+	 */
+	dsub->dctl_err = htonl(0);
+	dsub->dctl_opid = htonl(opid);
+	dsub->dctl_plen = htonl(plen);
+	dsub->dctl_dlen = htonl(len);
+	memcpy(&dsub->dctl_data[0], path, plen);
+	memcpy(&dsub->dctl_data[plen], data, len);
 
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
@@ -612,7 +612,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 		/* XXX should we wait ?? */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
-        free(dsub);
+		free(dsub);
 		return (EAGAIN);
 	}
 
@@ -622,36 +622,36 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	return (0);
 }
 
-int 
+int
 device_read_leaf(void *handle, char *path, int32_t opid)
 {
 	int		        	    err;
 	control_header_t *  	cheader;
 	sdevice_state_t *       dev;
 	dctl_subheader_t *      dsub;
-    int                     plen;
-    int                     tot_len;
+	int                     plen;
+	int                     tot_len;
 
 	dev = (sdevice_state_t *)handle;
 
-    plen = strlen(path) + 1;
-    tot_len = plen + sizeof(*dsub);
+	plen = strlen(path) + 1;
+	tot_len = plen + sizeof(*dsub);
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
 	}
 
-    dsub = (dctl_subheader_t *) malloc(tot_len);
+	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
 		/* XXX log */
-        free(cheader);
+		free(cheader);
 		return (EAGAIN);
 	}
 
 
-    /* fill in the data */
+	/* fill in the data */
 
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_READ_LEAF);
@@ -660,141 +660,7 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	 * XXX HACK.  For now we store the pointer to the data
 	 * using the spare field in the header to point to the data.
 	 */
-	cheader->spare = (uint32_t) dsub;	
-
-    /*
-     * Fill in the subheader.
-     */
-    dsub->dctl_err = htonl(0);
-    dsub->dctl_opid = htonl(opid);
-    dsub->dctl_plen = htonl(plen);
-    dsub->dctl_dlen = htonl(0);
-    memcpy(&dsub->dctl_data[0], path, plen);
-
-
-	err = ring_enq(dev->device_ops, (void *)cheader);
-	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
-		printf("XXX failed to write leaf \n");
-		free(cheader);
-        free(dsub);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
-	return (0);
-
-}
-
-
-int 
-device_list_nodes(void *handle, char *path, int32_t opid)
-{
-	int		        	    err;
-	control_header_t *  	cheader;
-	sdevice_state_t *       dev;
-	dctl_subheader_t *      dsub;
-    int                     plen;
-    int                     tot_len;
-
-	dev = (sdevice_state_t *)handle;
-
-    plen = strlen(path) + 1;
-    tot_len = plen + sizeof(*dsub);
-
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
-	if (cheader == NULL) {
-		/* XXX log */
-		return (EAGAIN);
-	}
-
-    dsub = (dctl_subheader_t *) malloc(tot_len);
-	if (dsub == NULL) {
-		/* XXX log */
-        free(cheader);
-		return (EAGAIN);
-	}
-
-
-    /* fill in the data */
-
-	cheader->generation_number = htonl(0);
-	cheader->command = htonl(CNTL_CMD_LIST_NODES);
-	cheader->data_len = htonl(tot_len);
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
-	cheader->spare = (uint32_t) dsub;	
-
-    /*
-     * Fill in the subheader.
-     */
-    dsub->dctl_err = htonl(0);
-    dsub->dctl_opid = htonl(opid);
-    dsub->dctl_plen = htonl(plen);
-    dsub->dctl_dlen = htonl(0);
-    memcpy(&dsub->dctl_data[0], path, plen);
-
-
-	err = ring_enq(dev->device_ops, (void *)cheader);
-	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
-		printf("XXX failed to write leaf \n");
-		free(cheader);
-        free(dsub);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
-	return (0);
-}
-
-int 
-device_list_leafs(void *handle, char *path, int32_t opid)
-{
-	int		        	    err;
-	control_header_t *  	cheader;
-	sdevice_state_t *       dev;
-	dctl_subheader_t *      dsub;
-    	int                     plen;
-    	int                     tot_len;
-
-	dev = (sdevice_state_t *)handle;
-
-    	plen = strlen(path) + 1;
-    	tot_len = plen + sizeof(*dsub);
-
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
-	if (cheader == NULL) {
-		/* XXX log */
-		return (EAGAIN);
-	}
-
-    	dsub = (dctl_subheader_t *) malloc(tot_len);
-	if (dsub == NULL) {
-		/* XXX log */
-        free(cheader);
-		return (EAGAIN);
-	}
-
-
-    /* fill in the data */
-
-	cheader->generation_number = htonl(0);
-	cheader->command = htonl(CNTL_CMD_LIST_LEAFS);
-	cheader->data_len = htonl(tot_len);
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
-	cheader->spare = (uint32_t) dsub;	
+	cheader->spare = (uint32_t) dsub;
 
 	/*
 	 * Fill in the subheader.
@@ -812,7 +678,75 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 		/* XXX should we wait ?? */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
-        free(dsub);
+		free(dsub);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+
+}
+
+
+int
+device_list_nodes(void *handle, char *path, int32_t opid)
+{
+	int		        	    err;
+	control_header_t *  	cheader;
+	sdevice_state_t *       dev;
+	dctl_subheader_t *      dsub;
+	int                     plen;
+	int                     tot_len;
+
+	dev = (sdevice_state_t *)handle;
+
+	plen = strlen(path) + 1;
+	tot_len = plen + sizeof(*dsub);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+	dsub = (dctl_subheader_t *) malloc(tot_len);
+	if (dsub == NULL) {
+		/* XXX log */
+		free(cheader);
+		return (EAGAIN);
+	}
+
+
+	/* fill in the data */
+
+	cheader->generation_number = htonl(0);
+	cheader->command = htonl(CNTL_CMD_LIST_NODES);
+	cheader->data_len = htonl(tot_len);
+	/*
+	 * XXX HACK.  For now we store the pointer to the data
+	 * using the spare field in the header to point to the data.
+	 */
+	cheader->spare = (uint32_t) dsub;
+
+	/*
+	 * Fill in the subheader.
+	 */
+	dsub->dctl_err = htonl(0);
+	dsub->dctl_opid = htonl(opid);
+	dsub->dctl_plen = htonl(plen);
+	dsub->dctl_dlen = htonl(0);
+	memcpy(&dsub->dctl_data[0], path, plen);
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to write leaf \n");
+		free(cheader);
+		free(dsub);
 		return (EAGAIN);
 	}
 
@@ -822,45 +756,111 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	return (0);
 }
 
-int 
-device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
+int
+device_list_leafs(void *handle, char *path, int32_t opid)
 {
 	int		        	    err;
 	control_header_t *  	cheader;
 	sdevice_state_t *       dev;
-	blob_subheader_t *      bsub;
-    	int                     nlen;
-    	int                     tot_len;
+	dctl_subheader_t *      dsub;
+	int                     plen;
+	int                     tot_len;
 
 	dev = (sdevice_state_t *)handle;
 
-    	nlen = strlen(name) + 1;
-    	tot_len = nlen + blob_len + sizeof(*bsub);
+	plen = strlen(path) + 1;
+	tot_len = plen + sizeof(*dsub);
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return (EAGAIN);
 	}
 
-    	bsub = (blob_subheader_t *) malloc(tot_len);
-	if (bsub == NULL) {
+	dsub = (dctl_subheader_t *) malloc(tot_len);
+	if (dsub == NULL) {
 		/* XXX log */
-        free(cheader);
+		free(cheader);
 		return (EAGAIN);
 	}
 
 
 	/* fill in the data */
 
-	cheader->generation_number = htonl(id);	
+	cheader->generation_number = htonl(0);
+	cheader->command = htonl(CNTL_CMD_LIST_LEAFS);
+	cheader->data_len = htonl(tot_len);
+	/*
+	 * XXX HACK.  For now we store the pointer to the data
+	 * using the spare field in the header to point to the data.
+	 */
+	cheader->spare = (uint32_t) dsub;
+
+	/*
+	 * Fill in the subheader.
+	 */
+	dsub->dctl_err = htonl(0);
+	dsub->dctl_opid = htonl(opid);
+	dsub->dctl_plen = htonl(plen);
+	dsub->dctl_dlen = htonl(0);
+	memcpy(&dsub->dctl_data[0], path, plen);
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to write leaf \n");
+		free(cheader);
+		free(dsub);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+int
+device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
+{
+	int		        	    err;
+	control_header_t *  	cheader;
+	sdevice_state_t *       dev;
+	blob_subheader_t *      bsub;
+	int                     nlen;
+	int                     tot_len;
+
+	dev = (sdevice_state_t *)handle;
+
+	nlen = strlen(name) + 1;
+	tot_len = nlen + blob_len + sizeof(*bsub);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+	bsub = (blob_subheader_t *) malloc(tot_len);
+	if (bsub == NULL) {
+		/* XXX log */
+		free(cheader);
+		return (EAGAIN);
+	}
+
+
+	/* fill in the data */
+
+	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_SET_BLOB);
 	cheader->data_len = htonl(tot_len);
 	/*
 	 * XXX HACK.  For now we store the pointer to the data
 	 * using the spare field in the header to point to the data.
 	 */
-	cheader->spare = (uint32_t) bsub;	
+	cheader->spare = (uint32_t) bsub;
 
 	/*
 	 * Fill in the subheader.
@@ -877,7 +877,7 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 		/* XXX should we wait ?? */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
-        free(bsub);
+		free(bsub);
 		return (EAGAIN);
 	}
 
@@ -887,7 +887,7 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	return (0);
 }
 
-int 
+int
 device_set_limit(void *handle, int limit)
 {
 	sdevice_state_t *       dev;
@@ -903,7 +903,7 @@ device_set_limit(void *handle, int limit)
 
 
 
-void 
+void
 device_stop_obj(void *handle)
 {
 	sdevice_state_t *       dev = (sdevice_state_t *)handle;
@@ -911,10 +911,10 @@ device_stop_obj(void *handle)
 	pthread_mutex_lock(&dev->con_data.mutex);
 	dev->con_data.flags |= CINFO_BLOCK_OBJ;
 	pthread_mutex_unlock(&dev->con_data.mutex);
-	
+
 }
 
-void 
+void
 device_enable_obj(void *handle)
 {
 	sdevice_state_t *       dev = (sdevice_state_t *)handle;
@@ -927,35 +927,35 @@ device_enable_obj(void *handle)
 static void
 setup_stats(sdevice_state_t *dev, uint32_t devid)
 {
-    struct hostent *hent;
-    int             len, err;
-    char *          delim;
-    char            node_name[128]; /* XXX */
-    char            path_name[128]; /* XXX */
+	struct hostent *hent;
+	int             len, err;
+	char *          delim;
+	char            node_name[128]; /* XXX */
+	char            path_name[128]; /* XXX */
 
-    hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
-    if (hent == NULL) {
-        struct in_addr in;
+	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
+	if (hent == NULL) {
+		struct in_addr in;
 
-        printf("failed to get hostname\n");
-        in.s_addr = devid;
-        delim = inet_ntoa(in);
-        strcpy(node_name, delim);
+		printf("failed to get hostname\n");
+		in.s_addr = devid;
+		delim = inet_ntoa(in);
+		strcpy(node_name, delim);
 
-        /* replace all the '.' with '_' */
-        while ((delim = index(node_name, '.')) != NULL) {
-            *delim = '_';
-        }
-    } else {
-        delim = index(hent->h_name ,'.');
-        if (delim == NULL) {
-            len = strlen(hent->h_name);
-        } else {
-            len = delim - hent->h_name;
-        }
-        strncpy(node_name, hent->h_name , len);
-        node_name[len] = 0;
-    }
+		/* replace all the '.' with '_' */
+		while ((delim = index(node_name, '.')) != NULL) {
+			*delim = '_';
+		}
+	} else {
+		delim = index(hent->h_name ,'.');
+		if (delim == NULL) {
+			len = strlen(hent->h_name);
+		} else {
+			len = delim - hent->h_name;
+		}
+		strncpy(node_name, hent->h_name , len);
+		node_name[len] = 0;
+	}
 
 	sprintf(path_name, "%s.%s", HOST_NETWORK_PATH, node_name);
 
@@ -963,30 +963,30 @@ setup_stats(sdevice_state_t *dev, uint32_t devid)
 	assert(err==0);
 
 
-       
-    dctl_register_leaf(path_name, "obj_rx", DCTL_DT_UINT32, 
-            dctl_read_uint32, NULL, &dev->con_data.stat_obj_rx);
-    dctl_register_leaf(path_name, "obj_total_bytes_rx", DCTL_DT_UINT64, 
-            dctl_read_uint64, NULL, &dev->con_data.stat_obj_total_byte_rx);
-    dctl_register_leaf(path_name, "obj_hdr_bytes_rx", DCTL_DT_UINT64, 
-            dctl_read_uint64, NULL, &dev->con_data.stat_obj_hdr_byte_rx);
-    dctl_register_leaf(path_name, "obj_attr_bytes_rx", DCTL_DT_UINT64, 
-            dctl_read_uint64, NULL, &dev->con_data.stat_obj_attr_byte_rx);
-    dctl_register_leaf(path_name, "obj_data_bytes_rx", DCTL_DT_UINT64, 
-            dctl_read_uint64, NULL, &dev->con_data.stat_obj_data_byte_rx);
 
-    dctl_register_leaf(path_name, "control_rx", DCTL_DT_UINT32, 
-            dctl_read_uint32, NULL, &dev->con_data.stat_control_rx);
-    dctl_register_leaf(path_name, "control_byte_rx", DCTL_DT_UINT64, 
-            dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_rx);
-    dctl_register_leaf(path_name, "control_tx", DCTL_DT_UINT32, 
-            dctl_read_uint32, NULL, &dev->con_data.stat_control_tx);
-    dctl_register_leaf(path_name, "control_byte_tx", DCTL_DT_UINT64, 
-            dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_tx);
-    dctl_register_leaf(path_name, "log_rx", DCTL_DT_UINT32, 
-            dctl_read_uint32, NULL, &dev->con_data.stat_log_rx);
-    dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64, 
-            dctl_read_uint64, NULL, &dev->con_data.stat_log_byte_rx);
+	dctl_register_leaf(path_name, "obj_rx", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &dev->con_data.stat_obj_rx);
+	dctl_register_leaf(path_name, "obj_total_bytes_rx", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_total_byte_rx);
+	dctl_register_leaf(path_name, "obj_hdr_bytes_rx", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_hdr_byte_rx);
+	dctl_register_leaf(path_name, "obj_attr_bytes_rx", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_attr_byte_rx);
+	dctl_register_leaf(path_name, "obj_data_bytes_rx", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_data_byte_rx);
+
+	dctl_register_leaf(path_name, "control_rx", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &dev->con_data.stat_control_rx);
+	dctl_register_leaf(path_name, "control_byte_rx", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_rx);
+	dctl_register_leaf(path_name, "control_tx", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &dev->con_data.stat_control_tx);
+	dctl_register_leaf(path_name, "control_byte_tx", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_tx);
+	dctl_register_leaf(path_name, "log_rx", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &dev->con_data.stat_log_rx);
+	dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64,
+	                   dctl_read_uint64, NULL, &dev->con_data.stat_log_byte_rx);
 
 }
 
@@ -998,12 +998,12 @@ setup_stats(sdevice_state_t *dev, uint32_t devid)
 /* XXX callback for new packets  */
 void *
 device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
-	void *dctl_cookie, void *log_cookie)
+            void *dctl_cookie, void *log_cookie)
 {
 	sdevice_state_t *new_dev;
 	int		err;
 
-	new_dev = (sdevice_state_t *) malloc(sizeof(*new_dev));	
+	new_dev = (sdevice_state_t *) malloc(sizeof(*new_dev));
 	if (new_dev == NULL) {
 		return (NULL);
 	}
@@ -1061,17 +1061,17 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 	new_dev->dstats = NULL;
 	new_dev->stat_size = 0;
 
-	
 
-	setup_stats(new_dev, devid); 
+
+	setup_stats(new_dev, devid);
 
 	/*
 	 * Spawn a thread for this device that process data to and
 	 * from the device.
 	 */
 
-	err = pthread_create(&new_dev->thread_id, PATTR_DEFAULT, hstub_main, 
-			    (void *)new_dev);
+	err = pthread_create(&new_dev->thread_id, PATTR_DEFAULT, hstub_main,
+	                     (void *)new_dev);
 	if (err) {
 		/* XXX log */
 		free(new_dev);
@@ -1091,6 +1091,6 @@ void
 device_fini(sdevice_state_t *dev_state)
 {
 
-	free(dev_state); 
+	free(dev_state);
 }
 

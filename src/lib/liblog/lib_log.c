@@ -47,15 +47,17 @@
 
 
 
-typedef struct log_state {
+typedef struct log_state
+{
 	int		head;
-	int		tail;	
-	int		drops;	
+	int		tail;
+	int		drops;
 	unsigned int	level;
 	unsigned int	type;
 	pthread_mutex_t	log_mutex;
 	char 		buffer[MAX_LOG_BUFFER];
-} log_state_t;
+}
+log_state_t;
 
 /* some state for handling our multiple instantiations */
 static  pthread_key_t   log_state_key;
@@ -65,14 +67,14 @@ static  pthread_once_t  log_state_once = PTHREAD_ONCE_INIT;
 /*
  * get the log state.
  */
-static log_state_t * 
+static log_state_t *
 log_get_state()
 {
 	log_state_t *   ls;
-                                                                                
-        ls = (log_state_t *)pthread_getspecific(log_state_key);
-        //XXX ??? assert(ls != NULL);
-        return(ls);
+
+	ls = (log_state_t *)pthread_getspecific(log_state_key);
+	//XXX ??? assert(ls != NULL);
+	return(ls);
 }
 
 
@@ -123,7 +125,7 @@ log_settype(unsigned int type_mask)
 static void
 log_state_alloc()
 {
-        pthread_key_create(&log_state_key, NULL);
+	pthread_key_create(&log_state_key, NULL);
 }
 
 void
@@ -132,7 +134,7 @@ log_thread_register(void *cookie)
 	pthread_setspecific(log_state_key, (char *)cookie);
 }
 
-void 
+void
 log_init(void **cookie)
 {
 	int err;
@@ -144,11 +146,11 @@ log_init(void **cookie)
 	if (pthread_getspecific(log_state_key) != NULL) {
 		assert(0);
 	}
-	
+
 	ls = (log_state_t *) malloc(sizeof(*ls));
 	if (ls == NULL) {
 		/* XXX  don't know what to do and who to report it to*/
-		return;	
+		return;
 	}
 	memset(ls, 0, sizeof(*ls));
 	ls->head = 0;
@@ -192,11 +194,11 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	 * If we aren't loggin this level or type, then just return.
 	 */
 	if (((ls->type & type) == 0) || ((ls->level & level) == 0)) {
-		return;	
+		return;
 	}
 
 
-	/* 
+	/*
 	 * see if there is enough room for this entry.  We do a little
 	 * tricky math here.  The only cases where it is a problem is
 	 * where head < tail and tail-head < MAX_LOG_ENTRY.  If head > tail,
@@ -240,7 +242,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	 * truncation.
 	 */
 	if ((num > MAX_LOG_STRING) || (num == -1)) {
-		num = MAX_LOG_STRING;	
+		num = MAX_LOG_STRING;
 	}
 
 
@@ -269,7 +271,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 
 	/* If there is not enough room at the end for another entry,
 	 * then move back around.
-	 */ 
+	 */
 	remain = MAX_LOG_BUFFER - ls->head;
 
 	/*
@@ -330,7 +332,7 @@ log_advbuf(int len)
 
 	ls->tail += len;
 	if (ls->tail >= MAX_LOG_BUFFER) {
-		ls->tail = 0;	
+		ls->tail = 0;
 		if (ls->head == -1) {
 			ls->head = 0;
 		}

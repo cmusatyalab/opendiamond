@@ -51,8 +51,8 @@
 #include "queue.h"
 /* #include "lib_od.h" */
 #include "od.h"
-#include "od_priv.h"    
-#include "lib_dconfig.h"    
+#include "od_priv.h"
+#include "lib_dconfig.h"
 
 /* number of buckets, must be power of 2 !! */
 #define     DEV_HASH_BUCKETS    64
@@ -61,24 +61,24 @@ LIST_HEAD(devid_hash, od_srv)   ods_devid_hash[DEV_HASH_BUCKETS];
 
 static int  done_init = 0;
 
-/* 
+/*
  * This is probably a very bad hash function.
  * XXX fix this later.
  */
 static int
 ods_id_hash(uint64_t devid)
 {
-    char *  cp;
-    int     i;
-    int     val = 0;
+	char *  cp;
+	int     i;
+	int     val = 0;
 
-    cp = (char *)&devid;
-    for (i=0; i < sizeof(devid); i++) {
-        val ^= cp[i];
-    }
+	cp = (char *)&devid;
+	for (i=0; i < sizeof(devid); i++) {
+		val ^= cp[i];
+	}
 
-    val = val & (DEV_HASH_BUCKETS - 1);
-    return(val);
+	val = val & (DEV_HASH_BUCKETS - 1);
+	return(val);
 }
 
 
@@ -88,51 +88,51 @@ ods_id_hash(uint64_t devid)
 void
 ods_init()
 {
-    int i;
-    int     seed;
-    int     fd;
-    size_t  rbytes;
-    assert(done_init == 0);
-    done_init = 1;
+	int i;
+	int     seed;
+	int     fd;
+	size_t  rbytes;
+	assert(done_init == 0);
+	done_init = 1;
 
-    /* init the head of the hash buckets */
-    for (i=0; i < DEV_HASH_BUCKETS; i++) {
-        LIST_INIT(&ods_devid_hash[i]);
-    }
+	/* init the head of the hash buckets */
+	for (i=0; i < DEV_HASH_BUCKETS; i++) {
+		LIST_INIT(&ods_devid_hash[i]);
+	}
 
-    fd = open("/dev/random", O_RDONLY);
-    assert(fd != -1);
-    rbytes = read(fd, (void *)&seed, sizeof(seed));
-    assert(rbytes == sizeof(seed));
+	fd = open("/dev/random", O_RDONLY);
+	assert(fd != -1);
+	rbytes = read(fd, (void *)&seed, sizeof(seed));
+	assert(rbytes == sizeof(seed));
 
-    srand(seed);
+	srand(seed);
 }
 
 
 static od_srv_t *
 ods_dev_lookup(uint64_t devid)
 {
-    int         hash;
-    od_srv_t *  osrv;
+	int         hash;
+	od_srv_t *  osrv;
 
-    hash = ods_id_hash(devid);
+	hash = ods_id_hash(devid);
 
-    LIST_FOREACH(osrv, &ods_devid_hash[hash], ods_id_link) {
-        if (osrv->ods_id == devid) {
-            return(osrv);
-        }
-    }
-    return(NULL);
+	LIST_FOREACH(osrv, &ods_devid_hash[hash], ods_id_link) {
+		if (osrv->ods_id == devid) {
+			return(osrv);
+		}
+	}
+	return(NULL);
 }
 
 static void
 ods_dev_insert(od_srv_t *osrv)
 {
-    int     hash;
+	int     hash;
 
-    hash = ods_id_hash(osrv->ods_id);
+	hash = ods_id_hash(osrv->ods_id);
 
-    LIST_INSERT_HEAD(&ods_devid_hash[hash], osrv, ods_id_link);
+	LIST_INSERT_HEAD(&ods_devid_hash[hash], osrv, ods_id_link);
 
 
 }
@@ -141,70 +141,70 @@ ods_dev_insert(od_srv_t *osrv)
 od_srv_t *
 ods_lookup_by_devid(uint64_t devid)
 {
-    od_srv_t *          osrv;
-    uint32_t            haddr;
-    struct hostent *    hent;
-    struct in_addr      in;
-    char *              tname;
+	od_srv_t *          osrv;
+	uint32_t            haddr;
+	struct hostent *    hent;
+	struct in_addr      in;
+	char *              tname;
 
-    assert(done_init);
+	assert(done_init);
 
-    osrv = ods_dev_lookup(devid);
-    if (osrv != NULL) {
-        return(osrv);
-    }
+	osrv = ods_dev_lookup(devid);
+	if (osrv != NULL) {
+		return(osrv);
+	}
 
-    /*
-     * We don't have the connection, so set one up.
-     */
-  
-    osrv = (od_srv_t *)malloc(sizeof(*osrv));
-    assert(osrv != NULL);
+	/*
+	 * We don't have the connection, so set one up.
+	 */
 
-    osrv->ods_id = devid;
+	osrv = (od_srv_t *)malloc(sizeof(*osrv));
+	assert(osrv != NULL);
 
-    haddr = (uint32_t)devid;
+	osrv->ods_id = devid;
 
-    hent = gethostbyaddr((char *)&haddr, sizeof(haddr), AF_INET);
+	haddr = (uint32_t)devid;
 
-    if (hent == NULL) {
-        in.s_addr = haddr;
-        tname = inet_ntoa(in);
-        osrv->ods_name = strdup(tname);
-        assert(osrv->ods_name != NULL);
-    } else {
-        osrv->ods_name = strdup(hent->h_name);
-        assert(osrv->ods_name != NULL);
-    }
+	hent = gethostbyaddr((char *)&haddr, sizeof(haddr), AF_INET);
 
-    /* Open the client connection */
-    osrv->ods_client = clnt_create(osrv->ods_name, MESSAGEPROG, 
-                    MESSAGEVERS, "tcp");
-    if (osrv->ods_client == NULL) {
-        fprintf(stderr, "contacting %s", osrv->ods_name);
-        clnt_pcreateerror("");
-        free(osrv);
-        return(NULL);
-    }
+	if (hent == NULL) {
+		in.s_addr = haddr;
+		tname = inet_ntoa(in);
+		osrv->ods_name = strdup(tname);
+		assert(osrv->ods_name != NULL);
+	} else {
+		osrv->ods_name = strdup(hent->h_name);
+		assert(osrv->ods_name != NULL);
+	}
 
-    ods_dev_insert(osrv);
+	/* Open the client connection */
+	osrv->ods_client = clnt_create(osrv->ods_name, MESSAGEPROG,
+	                               MESSAGEVERS, "tcp");
+	if (osrv->ods_client == NULL) {
+		fprintf(stderr, "contacting %s", osrv->ods_name);
+		clnt_pcreateerror("");
+		free(osrv);
+		return(NULL);
+	}
 
-    return(osrv);
+	ods_dev_insert(osrv);
+
+	return(osrv);
 }
 
 
 od_srv_t *
 ods_lookup_by_oid(obj_id_t *oid)
 {
-    od_srv_t *          osrv;
-    uint64_t            devid;
+	od_srv_t *          osrv;
+	uint64_t            devid;
 
-    assert(done_init);
+	assert(done_init);
 
-    devid = oid->dev_id;
+	devid = oid->dev_id;
 
-    osrv = ods_lookup_by_devid(devid);
-    return(osrv);
+	osrv = ods_lookup_by_devid(devid);
+	return(osrv);
 }
 
 
@@ -214,42 +214,42 @@ ods_lookup_by_oid(obj_id_t *oid)
 od_srv_t *
 ods_allocate_by_gid(groupid_t *gid)
 {
-    uint32_t    host_list[MAX_HOSTS];
-    int         num_hosts;
-    uint64_t    devid;
-    od_srv_t *  osrv;
-    int         err;
-    int         idx;
-    double      temp;
+	uint32_t    host_list[MAX_HOSTS];
+	int         num_hosts;
+	uint64_t    devid;
+	od_srv_t *  osrv;
+	int         err;
+	int         idx;
+	double      temp;
 
-    assert(done_init);
+	assert(done_init);
 
-    num_hosts = MAX_HOSTS;
-    err = glkup_gid_hosts(*gid, &num_hosts, host_list);
-    if (err == ENOENT) {
-        fprintf(stderr, "group 0x%llx is not in gid map \n", *gid);
-        assert(0);
-        return(NULL);
-    } else if (err == ENOMEM) {
-        fprintf(stderr, "Too many hosts increase MAX_HOSTS and recompile \n");
-        assert(0);
-        return(NULL);
-    } else if (err != 0) {
-        fprintf(stderr, "Unknown error \n");
-        assert(0);
-        return(NULL);
-    }
+	num_hosts = MAX_HOSTS;
+	err = glkup_gid_hosts(*gid, &num_hosts, host_list);
+	if (err == ENOENT) {
+		fprintf(stderr, "group 0x%llx is not in gid map \n", *gid);
+		assert(0);
+		return(NULL);
+	} else if (err == ENOMEM) {
+		fprintf(stderr, "Too many hosts increase MAX_HOSTS and recompile \n");
+		assert(0);
+		return(NULL);
+	} else if (err != 0) {
+		fprintf(stderr, "Unknown error \n");
+		assert(0);
+		return(NULL);
+	}
 
 
-    temp = (double) rand();
-    temp = ((double)num_hosts * temp);
-    temp  = temp / (RAND_MAX + 1.0);
-    
-    idx = (int) temp;
+	temp = (double) rand();
+	temp = ((double)num_hosts * temp);
+	temp  = temp / (RAND_MAX + 1.0);
 
-    devid = host_list[idx];
+	idx = (int) temp;
 
-    osrv = ods_lookup_by_devid(devid);
-    return(osrv);
+	devid = host_list[idx];
+
+	osrv = ods_lookup_by_devid(devid);
+	return(osrv);
 }
 

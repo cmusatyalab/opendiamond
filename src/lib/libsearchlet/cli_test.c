@@ -49,7 +49,8 @@
 #define	TEST_FILTER_NAME	"/home/larry/coda/src/proj/libsearchlet/test.so"
 #define	TEST_FILTER_SPEC	"/home/larry/coda/src/proj/libsearchlet/test_spec"
 int
-main(int argc , char **argv) {
+main(int argc , char **argv)
+{
 	int			err;
 	ls_obj_handle_t		cur_obj;
 	ls_search_handle_t	shandle;
@@ -70,16 +71,18 @@ main(int argc , char **argv) {
 	err = ls_set_searchlist(shandle, 1, &gid);
 	if (err) {
 		printf("Failed to set searchlet on err %d \n", err);
-		exit(1);\
+		exit(1);
+		\
 	}
 
 
 
 	err = ls_set_searchlet(shandle, DEV_ISA_IA32, TEST_FILTER_NAME,
-		       TEST_FILTER_SPEC);
+	                       TEST_FILTER_SPEC);
 	if (err) {
 		printf("Failed to set searchlet on err %d \n", err);
-		exit(1);\
+		exit(1);
+		\
 	}
 
 	/*
@@ -98,7 +101,7 @@ main(int argc , char **argv) {
 		err = ls_next_object(shandle, &cur_obj, 0);
 		if (err == ENOENT) {
 			printf("No more objects \n");
-		      	break;
+			break;
 
 		} else if (err != 0) {
 			printf("get_next_obj: failed on %d \n", err);
@@ -108,14 +111,14 @@ main(int argc , char **argv) {
 		err = ls_release_object(shandle, cur_obj);
 		if (err) {
 			printf("failed to release object \n");
-			
+
 		}
 
 	}
 
-		
 
-	
+
+
 	return (0);
 }
 

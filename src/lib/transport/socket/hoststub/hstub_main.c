@@ -74,7 +74,7 @@ request_chars(sdevice_state_t *dev)
 	int			err;
 	control_header_t *	cheader;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return;
@@ -105,7 +105,7 @@ request_stats(sdevice_state_t *dev)
 	int			err;
 	control_header_t *	cheader;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		/* XXX log */
 		return;
@@ -146,7 +146,9 @@ hstub_main(void *arg)
 	int			err;
 	int			max_fd;
 	struct timeval		this_time;
-	struct timeval		next_time = {0,0};
+	struct timeval		next_time = {
+		                            0,0
+	                            };
 	struct timezone		tz;
 
 	dev = (sdevice_state_t *)arg;
@@ -179,8 +181,8 @@ hstub_main(void *arg)
 		gettimeofday(&this_time, &tz);
 
 		if (((this_time.tv_sec == next_time.tv_sec) &&
-		    	(this_time.tv_usec >= next_time.tv_usec)) ||
-				(this_time.tv_sec > next_time.tv_sec)) {
+		     (this_time.tv_usec >= next_time.tv_usec)) ||
+		    (this_time.tv_sec > next_time.tv_sec)) {
 
 			request_chars(dev);
 			request_stats(dev);
@@ -202,7 +204,7 @@ hstub_main(void *arg)
 
 		FD_SET(cinfo->control_fd,  &cinfo->read_fds);
 		FD_SET(cinfo->log_fd,  &cinfo->read_fds);
-		
+
 		if (!(cinfo->flags & CINFO_BLOCK_OBJ)) {
 			FD_SET(cinfo->data_fd,  &cinfo->read_fds);
 		}
@@ -218,8 +220,8 @@ hstub_main(void *arg)
 		to.tv_usec = 1000;
 
 
-		err = select(max_fd, &cinfo->read_fds, &cinfo->write_fds, 
-				&cinfo->except_fds,  &to);
+		err = select(max_fd, &cinfo->read_fds, &cinfo->write_fds,
+		             &cinfo->except_fds,  &to);
 
 		if (err == -1) {
 			/* XXX log */

@@ -100,7 +100,7 @@ log_send_local_data(search_context_t *sc, int conn)
 	 * Fill in the header.
 	 */
 
-	log_msg.log_len = data_len; 
+	log_msg.log_len = data_len;
 	log_msg.log_type = LOG_SOURCE_BACKGROUND;
 	/* XXX should we get our IP?? */
 	log_msg.dev_id = 0;
@@ -142,10 +142,10 @@ log_send_queued_data(search_context_t *sc, log_info_t *log_info, int conn)
 	data_len = log_info->len;
 
 
-	log_msg.log_len = data_len; 
+	log_msg.log_len = data_len;
 	/* XXX set type */
 	log_msg.log_type = LOG_SOURCE_DEVICE;
-	log_msg.dev_id = log_info->dev; 
+	log_msg.dev_id = log_info->dev;
 
 
 	slen = send(conn, (void *)&log_msg, sizeof(log_msg), MSG_NOSIGNAL);
@@ -195,15 +195,15 @@ set_device_log(log_set_level_t *llevel, search_context_t *sc)
 	hsrc = ntohl(llevel->log_src);
 
 	switch(llevel->log_op) {
-		case LOG_SETLEVEL_ALL: 
+		case LOG_SETLEVEL_ALL:
 			last_level = llevel->log_level;
 			last_src = llevel->log_src;
 
-			for (cur_dev = sc->dev_list; cur_dev != NULL; 
-							cur_dev = cur_dev->next) {
+			for (cur_dev = sc->dev_list; cur_dev != NULL;
+			     cur_dev = cur_dev->next) {
 
-				err = device_set_log(cur_dev->dev_handle, 
-					llevel->log_level, llevel->log_src);
+				err = device_set_log(cur_dev->dev_handle,
+				                     llevel->log_level, llevel->log_src);
 			}
 
 			log_setlevel(hlevel);
@@ -211,21 +211,21 @@ set_device_log(log_set_level_t *llevel, search_context_t *sc)
 
 			break;
 
-		case LOG_SETLEVEL_DEVICE: 
+		case LOG_SETLEVEL_DEVICE:
 			cur_dev = sc->dev_list;
 			while(cur_dev != NULL) {
 				if (cur_dev->dev_id == llevel->dev_id) {
 					err = device_set_log(
-							cur_dev->dev_handle, 
-							llevel->log_level, 
-							llevel->log_src);
+					          cur_dev->dev_handle,
+					          llevel->log_level,
+					          llevel->log_src);
 				}
 				cur_dev = cur_dev->next;
 			}
 			break;
 
 
-		case LOG_SETLEVEL_HOST: 
+		case LOG_SETLEVEL_HOST:
 			log_setlevel(hlevel);
 			log_settype(hsrc);
 			break;
@@ -335,7 +335,7 @@ log_main(void *arg)
 	umask(0);
 
 	sc = (search_context_t *)arg;
-	
+
 	dctl_thread_register(sc->dctl_cookie);
 	log_thread_register(sc->log_cookie);
 
@@ -353,7 +353,7 @@ log_main(void *arg)
 
 	err = bind(fd, (struct sockaddr *)&sa, sizeof (sa));
 	if (err < 0) {
-	  fprintf(stderr, "binding %s\n", SOCKET_LOG_NAME);
+		fprintf(stderr, "binding %s\n", SOCKET_LOG_NAME);
 		perror("bind failed ");
 		exit(1);
 	}
@@ -367,9 +367,9 @@ log_main(void *arg)
 
 	while (1) {
 		slen = sizeof(newaddr);
-		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen)) 
-				== -1) {
-			
+		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen))
+		    == -1) {
+
 			perror("accept failed \n");
 			continue;
 		}
@@ -385,7 +385,7 @@ log_start(search_context_t *sc)
 {
 
 	int		err;
-	pthread_t	thread_id;		
+	pthread_t	thread_id;
 
 	/*
 	 * Initialize the ring of commands for the thread.

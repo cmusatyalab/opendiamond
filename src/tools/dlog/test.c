@@ -47,7 +47,7 @@
 #define	MAX_BUFFER	4096
 #define	SOCK_NAME	"/tmp/sock"
 
-	
+
 int
 main(int argc, char **argv)
 {
@@ -85,9 +85,9 @@ main(int argc, char **argv)
 
 	while (1) {
 		slen = sizeof(newaddr);
-		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen)) 
-				== -1) {
-			
+		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen))
+		    == -1) {
+
 			perror("accept failed \n");
 			exit(1);
 		}

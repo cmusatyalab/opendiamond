@@ -75,7 +75,7 @@ static void     delete_object_gids(odisk_state_t * odisk, obj_data_t * obj);
 #define MAX_GID_FILTER  64
 
 int
-odisk_load_obj(odisk_state_t *odisk, obj_data_t ** obj_handle, char *name)
+odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 {
     obj_data_t     *new_obj;
     struct stat     stats;
@@ -164,7 +164,7 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t ** obj_handle, char *name)
 
     close(os_file);
 
-	odisk->obj_load++;	
+    odisk->obj_load++;
 
     return (0);
 }
@@ -246,7 +246,7 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 {
     char            buf[NAME_MAX];
     int             len;
-	int				err;
+    int             err;
 
     delete_object_gids(odisk, obj);
 
@@ -254,20 +254,20 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
                    obj->local_id);
     assert(len < NAME_MAX);
     err = unlink(buf);
-	if (err == -1) {
-		fprintf(stderr, "failed unlink %s:" , buf);
-		perror("");
-	}
+    if (err == -1) {
+        fprintf(stderr, "failed unlink %s:", buf);
+        perror("");
+    }
 
     len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX%s", odisk->odisk_path,
                    obj->local_id, ATTR_EXT);
     assert(len < NAME_MAX);
 
     err = unlink(buf);
-	if (err == -1) {
-		fprintf(stderr, "failed unlink %s:" , buf);
-		perror("");
-	}
+    if (err == -1) {
+        fprintf(stderr, "failed unlink %s:", buf);
+        perror("");
+    }
 
     return (0);
 }
@@ -547,13 +547,13 @@ odisk_read_next(obj_data_t ** new_object, odisk_state_t * odisk)
     int             len;
 
 
-again:
+  again:
     for (i = odisk->cur_file; i < odisk->max_files; i++) {
         if (odisk->index_files[i] != NULL) {
             num = fread(&gid_ent, sizeof(gid_ent), 1, odisk->index_files[i]);
             if (num == 1) {
                 len = snprintf(path_name, NAME_MAX, "%s/%s",
-						odisk->odisk_path, gid_ent.gid_name);
+                               odisk->odisk_path, gid_ent.gid_name);
                 assert(len < NAME_MAX);
 
                 err = odisk_load_obj(odisk, new_object, path_name);
@@ -638,13 +638,13 @@ odisk_main(void *arg)
             }
             if (!ring_full(obj_ring)) {
                 err = ring_enq(obj_ring, nobj);
-				assert(err == 0);
+                assert(err == 0);
             } else {
-				ostate->readahead_full++;
+                ostate->readahead_full++;
                 bg_wait_q = 1;
                 pthread_cond_wait(&bg_queue_cv, &shared_mutex);
                 err = ring_enq(obj_ring, nobj);
-				assert(err == 0);
+                assert(err == 0);
                 if (fg_wait) {
                     fg_wait = 0;
                     pthread_cond_signal(&fg_data_cv);
@@ -670,11 +670,11 @@ odisk_next_obj(obj_data_t ** new_object, odisk_state_t * odisk)
             pthread_mutex_unlock(&shared_mutex);
             return (0);
         } else {
-        	if (search_done) {
-            	pthread_mutex_unlock(&shared_mutex);
-            	return (ENOENT);
-        	}
-			odisk->next_blocked++;
+            if (search_done) {
+                pthread_mutex_unlock(&shared_mutex);
+                return (ENOENT);
+            }
+            odisk->next_blocked++;
             fg_wait = 1;
             pthread_cond_wait(&fg_data_cv, &shared_mutex);
         }
@@ -718,11 +718,11 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
     new_state->log_cookie = log_cookie;
 
 
-	dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &new_state->obj_load);
-	dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &new_state->next_blocked);
-	dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &new_state->readahead_full);
 
 

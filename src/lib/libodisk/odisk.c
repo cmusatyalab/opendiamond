@@ -608,7 +608,7 @@ static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
 
-#define	OBJ_RING_SIZE	8
+#define	OBJ_RING_SIZE	32
 
 static ring_data_t *    obj_pr_ring;
 static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
@@ -901,17 +901,12 @@ odisk_main(void *arg)
 	log_thread_register(ostate->log_cookie);
 
 	while (1) {
-		pthread_mutex_lock(&shared_mutex);
-		while (search_active == 0) {
-			pthread_cond_wait(&bg_active_cv, &shared_mutex);
-		}
-		pthread_mutex_unlock(&shared_mutex);
 		/*
 		 * XXX??? If there is no search don't do anything 
+		 */
 		while (search_active == 0) {
 			sleep(1);
 		}
-		 */
 
 		/*
 		 * get the next object 
@@ -919,13 +914,9 @@ odisk_main(void *arg)
 		err = odisk_pr_next(&pobj);
 		if (err == ENOENT) {
 			odisk_release_pr_obj(pobj);
-			pthread_mutex_lock(&shared_mutex);
 			search_active = 0;
 			search_done = 1;
-<<<<<<< odisk.c
-=======
 			pthread_mutex_lock(&odisk_mutex);
->>>>>>> 1.61
 			pthread_cond_signal(&fg_data_cv);
 			pthread_mutex_unlock(&odisk_mutex);
 			continue;

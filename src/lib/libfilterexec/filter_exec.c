@@ -166,7 +166,7 @@ fexec_system_init()
                        dctl_read_uint32, dctl_write_uint32,
                        &fexec_bypass_type);
 
-    dctl_register_leaf(DEV_FEXEC_PATH, "split_type", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_FEXEC_PATH, "dynamic_method", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &fexec_bypass_type);
 

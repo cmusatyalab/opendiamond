@@ -188,7 +188,7 @@ find_free_record(obj_attr_t *attr, int size)
 	}
 
 
-	/* we have chunck, now decide if we want to split it */
+	/* we have chunk, now decide if we want to split it */
 	if ((cur_rec->rec_len - size) >= ATTR_MIN_FRAG) {
 		new_frag = (attr_record_t *)&attr->attr_data[cur_offset+size];
 		new_frag->rec_len = cur_rec->rec_len - size;
@@ -277,10 +277,6 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	/* XXX make sure we don't have the same name on the list ?? */
 
 	namelen = strlen(name) + 1;
-	if (namelen >= MAX_ATTR_NAME) {
-		/* XXX log error */
-		return (EINVAL);
-	}
 
 	/* XXX this overcounts data space !! \n */
 	total_size  = sizeof(*data_rec) + namelen + len;

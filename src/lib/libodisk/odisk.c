@@ -55,11 +55,9 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	int		err;
 	size_t		size;
     	char        	attr_name[MAX_ATTR_NAME];
-	unsigned long long	tstart, lstart, end;
 	
 
 
-	tstart = read_cycle();
 
 	/* XXX printf("load_obj: <%s> \n", name); */
 
@@ -74,7 +72,6 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 		return (ENOMEM);
 	}
 
-	lstart = read_cycle();
 
 	err = stat(name, &stats);
 	if (err != 0) {
@@ -82,18 +79,13 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 		return(ENOENT);
 	}
 
-	end = read_cycle();
-	printf("stat time %lld \n", (end -lstart));		
 
 	/* open the file */
-	lstart = read_cycle();
 	os_file  = fopen(name, "rb");
 	if (os_file == NULL) {
 		free(new_obj);
 		return (ENOENT);
 	}
-	end = read_cycle();
-	printf("open time %lld \n", (end -lstart));		
 
 	data = (char *)malloc(stats.st_size);
 	if (data == NULL) {
@@ -103,7 +95,6 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 
 	}
 
-	lstart = read_cycle();
     	if (stats.st_size > 0) {
 	    size = fread(data, stats.st_size, 1, os_file);
 	    if (size != 1) {
@@ -118,26 +109,19 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	new_obj->data = data;
 	new_obj->data_len = stats.st_size;
 
-	end = read_cycle();
-	printf("data read %lld \n", (end - lstart));		
     	/*
      	 * Load the attributes, if any.
      	 */
     	/* XXX overflow */
     	sprintf(attr_name, "%s%s", name, ATTR_EXT);
 
-	lstart = read_cycle();
     	obj_read_attr_file(attr_name , &new_obj->attr_info);
 
-	end = read_cycle();
-	printf("attr read %lld\n", (end  - lstart));		
 	
 	*obj_handle = (obj_data_t *)new_obj;
 
 	fclose(os_file);
 
-	end = read_cycle();
-	printf("total time %lld\n", (end - tstart));		
 	return(0);
 }
 

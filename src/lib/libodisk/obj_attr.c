@@ -220,7 +220,7 @@ free_record(obj_attr_t *attr, attr_record_t *rec)
 
 
 static attr_record_t *
-find_record(obj_attr_t *attr, char *name)
+find_record(obj_attr_t *attr, const char *name)
 {
 	int			namelen;
 	int			cur_offset;
@@ -254,7 +254,7 @@ find_record(obj_attr_t *attr, char *name)
  */
 
 int 
-obj_write_attr(obj_attr_t *attr, char * name, off_t len, char *data)
+obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 {
 	attr_record_t *	data_rec; 
 	int		total_size;
@@ -310,7 +310,7 @@ obj_write_attr(obj_attr_t *attr, char * name, off_t len, char *data)
  */
 
 int 
-obj_read_attr(obj_attr_t *attr, char * name, off_t *len, char *data)
+obj_read_attr(obj_attr_t *attr, const char * name, off_t *len, char *data)
 {
 	attr_record_t *		record;
 	char *			dptr;
@@ -352,7 +352,7 @@ obj_read_attr(obj_attr_t *attr, char * name, off_t *len, char *data)
  */
 	
 int 
-obj_del_attr(obj_attr_t *attr, char * name)
+obj_del_attr(obj_attr_t *attr, const char * name)
 {
 	attr_record_t *		record;
 

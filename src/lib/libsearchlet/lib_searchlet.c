@@ -481,3 +481,139 @@ ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
 	return(0);
 }
 
+/*
+ * This gets a list of all the storage devices that will be involved in
+ * the search.  The results are returned as an array of device handles.   
+ *
+ * Args:
+ * 	handle	    - the search handle returned by init_libsearchlet().
+ *
+ * 	handle_list - A pointer to a caller allocated array of device handles.
+ *
+ * 	num_handles - A pointer to an integer.  The caller sets this value to
+ * 		      indicate the space allocated in handle list.  On return,
+ * 		      this value will hold the number of handles filled in.  
+ * 		      If thecaller did not allocate sufficient space, then 
+ * 		      ENOSPC will be returned and the num_handles will 
+ * 		      indicate the space necessary for the call to succeed.
+ *
+ * Returns:
+ * 	0  	    - the call was successful.
+ *
+ *	EINVAL      -  One of the handles is not valid.
+ *
+ * 	EBUSY       - a search is currently active.
+ *
+ * 	ENOSPC      - The caller did not provide enough storage (the value 
+ * 		      stored at num_handles was too small).  In this case the 
+ * 		      value stored at num_handles will be updated to 
+ * 		      indicate the amount of space needed.
+ *
+ */
+
+int
+ls_get_dev_list(ls_search_handle_t handle, 
+		ls_dev_handle_t *handle_list,
+		int *num_handles)
+{
+	search_context_t	*sc;
+	device_state_t		*cur_dev;
+	int                      dev_count;
+
+	if(!handle_list) return EINVAL;
+	if(!num_handles) return EINVAL;
+
+	sc = (search_context_t *)handle;
+	/* XXX check for active? */
+	cur_dev = sc->dev_list;
+	
+	dev_count = 0;
+	while(cur_dev != NULL) {
+		if(*num_handles <= dev_count) return ENOSPC;
+		dev_count++;
+		*handle_list = cur_dev;
+		handle_list++;
+		cur_dev = cur_dev->next;
+	}
+	*num_handles = dev_count;
+	return 0;
+}
+
+
+/*
+ * This call takes a specific device handle and returns the characteristics of
+ * this device.  
+ *
+ * Args:
+ * 	handle	    - the search handle returned by init_libsearchlet().
+ *
+ * 	dev_handle  - The handle for the device being queried.
+ *
+ * 	dev_char    - A pointer to the location where the device 
+ * 		      charactersitics should be stored.
+ *
+ * Returns:
+ *	0	    - Call succeeded.
+ *
+ *	EINVAL      -  One of the handles is not valid.
+ * 	
+ *
+ */
+
+int
+ls_dev_characteristics(ls_search_handle_t handle, 
+		       ls_dev_handle_t dev_handle,
+		       device_char_t *dev_chars)
+{
+	device_state_t *dev;
+
+	dev = (device_state_t *)dev_handle;
+	/* validate dev? */
+
+	return device_characteristics(dev, dev_chars);
+}
+
+
+
+
+/*
+ * This call gets the current statistics from device specified by the device
+ * handle.  This includes statistics on the device as well as any currently 
+ * running search.
+ * 
+ * Args:
+ * 	handle         - The handle for the search instance.
+ *
+ * 	dev_handle     - The handle for the device being queried.
+ *
+ * 	dev_stats      - This is the location where the device statistics should
+ * 			 be stored.  This is allocated by the caller.
+ * 
+ * 	stat_len       - A pointer to an integer.  The caller sets this value to
+ * 			 the amount of space allocated for the statistics.  Upon
+ * 			 return, the call will set this to the amount of 
+ * 			 space used.  If the call failed because of 
+ * 			 insufficient space, ENOSPC, the call the will set 
+ * 			 this value to the amount of space needed.
+ *
+ * Returns:
+ * 	0              - The call completed successfully.
+ *
+ * 	ENOSPC	       - The caller did not allocated sufficient space for 
+ * 			 the results.
+ *
+ * 	EINVAL	       - Either the search handle or the device handle are 
+ * 			 invalid.
+ *
+ */
+
+int
+ls_get_dev_stats(ls_search_handle_t handle, 
+		 ls_dev_handle_t  dev_handle,
+		 dev_stats_t *dev_stats, int *stat_len)
+{
+	device_state_t *dev;
+	dev = (device_state_t *)dev_handle;
+
+	return device_statistics(dev, dev_stats, stat_len);
+}

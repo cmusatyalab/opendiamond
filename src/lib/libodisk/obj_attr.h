@@ -50,13 +50,17 @@ typedef struct attr_record {
 #define	MTIME		"SYS_MTIME"
 #define	CTIME		"SYS_CTIME"
 
+#define FLTRTIME        "FIL_TIME"
+
 
 /*
  * These are the object attribute managment calls.
  */
-extern int obj_write_attr(obj_attr_t *attr, char *name, off_t len, char *data);
-extern int obj_read_attr(obj_attr_t *attr, char *name, off_t *len, char *data);
-extern int obj_del_attr(obj_attr_t *attr, char *name);
+extern int obj_write_attr(obj_attr_t *attr, const char *name,
+			  off_t len, const char *data);
+extern int obj_read_attr(obj_attr_t *attr, const char *name,
+			 off_t *len, char *data);
+extern int obj_del_attr(obj_attr_t *attr, const char *name);
 extern int obj_read_attr_file(char *attr_fname, obj_attr_t *attr);
 extern int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
 

@@ -3,6 +3,8 @@
 /* XXX move */
 #include <unistd.h>
 
+#include "rtimer.h"
+
 /*
  * Some of the common data structures used by the library calls
  */
@@ -21,7 +23,7 @@ typedef	void *	ls_search_handle_t;
 typedef	void *	ls_obj_handle_t;
 
 /*
- * The handle to a current object.
+ * The handle to a current object. (XXX)
  */
 typedef	void *	ls_dev_handle_t;
 
@@ -42,7 +44,7 @@ typedef struct filter_stats {
 	char		fs_name[MAX_FILTER_NAME];  /* the filter name */
 	int		fs_objs_processed;	   /* objs processed by filter*/
 	int		fs_objs_dropped;	   /* obj dropped by filter */
-	int		fs_avg_exec_time;	   /* avg time spent in filter*/
+	rtime_t		fs_avg_exec_time;	   /* avg time spent in filter*/
 } filter_stats_t;
 
 
@@ -58,11 +60,19 @@ typedef struct dev_stats {
 	int		ds_objs_processed;	/* total objects by device */
 	int		ds_objs_dropped;	/* total objects dropped */
 	int		ds_system_load;		/* average load on  device??? */
-	int		ds_avg_obj_time;	/* average time per objects */
+	rtime_t		ds_avg_obj_time;	/* average time per objects */
 	int		ds_num_filters; 	/* number of filters */
-	filter_stats_t	ds_filter_stats[1];	/* list of filter */
+	filter_stats_t	ds_filter_stats[0];	/* list of filter */
 } dev_stats_t;
 
+/* copy from lib_log.h */
+#ifndef offsetof
+#define offsetof(type, member) ( (int) & ((type*)0) -> member )
+#endif
+
+#define DEV_STATS_BASE_SIZE  (offsetof(struct dev_stats, ds_filter_stats))
+#define DEV_STATS_SIZE(nfilt) \
+  (DEV_STATS_BASE_SIZE + (sizeof(filter_stats_t) * (nfilt)))
 
 /*
  * This is an enumeration for the instruction set of the processor on
@@ -72,6 +82,7 @@ typedef struct dev_stats {
  */
 
 typedef enum {
+	DEV_ISA_UNKNOWN = 0,
 	DEV_ISA_IA32,
 	DEV_ISA_IA64,
 	DEV_ISA_XSCALE,
@@ -84,8 +95,8 @@ typedef enum {
 
 typedef struct device_char {
 	device_isa_t	dc_isa;		/* instruction set of the device    */
-	int		dc_speed;	/* CPU speed, (some bogomips, etc.) */
-	int		dc_mem;		/* Available memory for the system  */
+	u_int64_t	dc_speed;	/* CPU speed, (some bogomips, etc.) */
+	u_int64_t	dc_mem;		/* Available memory for the system  */
 } device_char_t;
 
 /*
@@ -515,7 +526,7 @@ extern int ls_get_dev_list(ls_search_handle_t handle,
  *
  */
 
-extern int ls_dev_characteristics(ls_search_handle_t *handle, 
+extern int ls_dev_characteristics(ls_search_handle_t handle, 
 			          ls_dev_handle_t dev_handle,
 			          device_char_t *dev_chars);
 

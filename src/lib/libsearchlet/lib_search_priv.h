@@ -55,7 +55,7 @@ typedef struct search_context {
 	ring_data_t *		unproc_ring;	/* unprocessed objects */
 	ring_data_t *		bg_ops;	/* unprocessed objects */
 	unsigned long		bg_status;
-	void *		bg_froot;
+	void *		bg_froot; /* filter_info_t -RW */
 } search_context_t;
 
 /*
@@ -68,6 +68,10 @@ extern int device_start(device_state_t *dev, int id);
 extern int device_set_searchlet(device_state_t *dev, int id, char *filter,
 	                        char *spec);
 extern device_state_t * device_init(search_context_t *sc, int id);
+
+extern int device_characteristics(device_state_t *dev, device_char_t *);
+extern int device_statistics(device_state_t *dev,
+			     dev_stats_t *dev_stats, int *stat_len);
 
 /*
  * These are background processing functions.

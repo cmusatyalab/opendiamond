@@ -9,11 +9,14 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <string.h>
 #include "ring.h"
+#include "rstat.h"
 #include "lib_searchlet.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
+#include "filter_priv.h"	/* to read stats -RW */
 
 
 typedef enum {
@@ -296,3 +299,66 @@ device_init(search_context_t *sc, int id)
 	return(new_dev);
 }
 
+
+
+int
+device_characteristics(device_state_t *dev, device_char_t *dev_char)
+{
+	u_int64_t val;
+
+	dev_char->dc_isa = DEV_ISA_IA32;
+	dev_char->dc_speed = (r_cpu_freq(&val) ? 0 : val);
+	dev_char->dc_mem  =  (r_freemem(&val) ? 0 : val);
+
+	return 0;
+}
+
+int
+device_statistics(device_state_t *dev,
+		  dev_stats_t *dev_stats, int *stat_len)
+{
+	filter_info_t *cur_filter;
+	filter_stats_t *cur_filter_stats;
+	rtime_t total_obj_time = 0;
+
+	/* check args */
+	if(!dev) return EINVAL;
+	if(!dev_stats) return EINVAL;
+	if(!stat_len) return EINVAL;
+	if(*stat_len < sizeof(dev_stats_t)) return ENOSPC;
+
+	memset(dev_stats, 0, *stat_len);
+	
+	cur_filter = dev->sc->bg_froot;
+	cur_filter_stats = dev_stats->ds_filter_stats;
+	while(cur_filter != NULL) {
+		/* aggregate device stats */
+		dev_stats->ds_num_filters++;
+		/* make sure we have room for this filter */
+		if(*stat_len < DEV_STATS_SIZE(dev_stats->ds_num_filters)) {
+			return ENOSPC;
+		}
+		dev_stats->ds_objs_processed += cur_filter->fi_called;
+		dev_stats->ds_objs_dropped += cur_filter->fi_drop;
+		dev_stats->ds_system_load = 1; /* XXX FIX-RW */
+		total_obj_time += cur_filter->fi_time_ns;
+		
+		/* fill in this filter stats */
+		strncpy(cur_filter_stats->fs_name, cur_filter->fi_name, MAX_FILTER_NAME);
+		cur_filter_stats->fs_name[MAX_FILTER_NAME-1] = '\0';
+		cur_filter_stats->fs_objs_processed = cur_filter->fi_called;
+		cur_filter_stats->fs_objs_dropped = cur_filter->fi_drop;
+		cur_filter_stats->fs_avg_exec_time =  
+			cur_filter->fi_time_ns / cur_filter->fi_called;
+
+		cur_filter_stats++;		
+		cur_filter = cur_filter->fi_next;
+	}
+
+	dev_stats->ds_avg_obj_time = total_obj_time / dev_stats->ds_objs_processed;
+	/* set number of bytes used */
+	*stat_len = DEV_STATS_SIZE(dev_stats->ds_num_filters);
+
+
+	return 0;
+}

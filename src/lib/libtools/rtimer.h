@@ -1,6 +1,14 @@
 #ifndef _RTIMER_H_
 #define _RTIMER_H_
 
+/*
+ * provides resource usage measurement, in particular timer, functionality.
+ * 2003 Rajiv Wickremesinghe
+ * based on a similar version
+ * 2001 Rajiv Wickremesinghe, Duke University
+ */
+
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -40,6 +48,13 @@ struct rtimer_t;
 typedef struct rtimer_t rtimer_t;
 
 typedef u_int64_t  rtime_t;
+
+typedef enum {
+  RTIMER_STD=1,
+  RTIMER_PAPI
+} rtimer_mode_t;
+
+void rtimer_system_init(rtimer_mode_t mode);
 
 extern void        rt_init(rtimer_t *rt);
 extern void        rt_start(rtimer_t *rt);

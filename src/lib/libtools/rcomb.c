@@ -7,6 +7,8 @@
 
 #include "rcomb.h"
 
+// #define VERBOSE 1
+
 /* ---------------------------------------------------------------------- */
 /* heap implementation (CLR) */
 
@@ -447,14 +449,17 @@ poComparable(const partial_order_t *po, int u, int v) {
  */
 
 void
-hill_climb_init(hc_state_t *ptr, const permutation_t *start) {
+hill_climb_init(hc_state_t *ptr, const permutation_t *start, 
+		const partial_order_t *po) {
   ptr->best_seq = pmDup(start);
+  randomize_permutation(ptr->best_seq, po);
   ptr->next_seq = pmNew(pmLength(start));
   ptr->n = pmLength(start);
   ptr->i = 0;
   ptr->j = 1;
   ptr->improved = 1;
   ptr->generation = 0;
+  ptr->best_err_count = 0;
 }
 
 
@@ -484,6 +489,7 @@ check_valid_swap(const partial_order_t *po, const permutation_t *perm, int u, in
   return 1;
 }
 
+#define ERROR_THRESHOLD 100
 
 /* we have the option of exhaustively looking at all the neighboring
  * permutations and picking the best, or we could just greedily pick
@@ -496,7 +502,7 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
   int err=0;
   int n = hc->n;
   int best_score;
-	int next_score;
+  int next_score;
   char buf[BUFSIZ];
 
   /* evaluate (re-evaluate?) current state */
@@ -506,6 +512,12 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
     printf("could not evaluate current best!\n");
     err = RC_ERR_NODATA;
     pmCopy(hc->next_seq, hc->best_seq);
+    hc->best_err_count++;
+    if(hc->best_err_count > ERROR_THRESHOLD) {
+      /* fake that we are done */
+      hc->generation++;
+      err = RC_ERR_COMPLETE;
+    }
   }
 
   while(!err && hc->improved) {
@@ -529,21 +541,23 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
 	
 	/* evaluate option */
 	err = evf(context, hc->next_seq, hc->generation, &next_score);
-	if(err) {
+
+/* 	printf("permutation %d/%d: %s, score=%d... ", i, j,  */
+/* 	       pmPrint(hc->next_seq, buf, BUFSIZ), */
+/* 	       next_score); */
+
+	/* even if we get an error (=nodata), the returned value will be a 
+	 * upper bound that we can use to reject some states */
+	if(next_score <= best_score) {
+	  printf("rejected!\n");
+	} else if(err) {
 	  goto done;
-	}
-
-	printf("permutation %d/%d: %s, score=%d... ", i, j, pmPrint(hc->next_seq, buf, BUFSIZ),
-	       next_score);
-
-	/* keep track of best */
-	if(next_score > best_score) {
-	  printf("improved!\n");
+	} else { /* (next_score > best_score) */
+	  printf("improved!\n");	
+	  /* keep track of best */
 	  hc->improved = 1;
 	  best_score = next_score;
 	  pmCopy(hc->best_seq, hc->next_seq);
-	} else {
-	  printf("rejected!\n");
 	}
 	/* swap back to generate original (cheaper than copy) */
 	pmSwap(hc->next_seq, i, j);
@@ -572,6 +586,23 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
     hc->generation++;
     err = RC_ERR_COMPLETE;
   }
+
+  /* check if it's better than the global best */
+  if(err == RC_ERR_COMPLETE) {
+    if(hc->global_best) {
+      int err1;
+      err1 = evf(context, hc->best_seq, hc->generation, &best_score);
+      err1 = evf(context, hc->global_best, hc->generation, &next_score);
+      if(next_score > best_score) {
+	pmCopy(hc->best_seq, hc->global_best);
+      } else {
+	pmCopy(hc->global_best, hc->best_seq);
+      }
+    } else {
+      hc->global_best = pmDup(hc->best_seq);
+    }
+  }
+
 
   return err;
 }
@@ -675,7 +706,9 @@ best_first_step(bf_state_t *bf) {
   const int n = bf->n;
   //int best_score;
   int next_score;
+#ifdef VERBOSE
   char buf[BUFSIZ];
+#endif
   int pos;
 
   switch(bf->state) {
@@ -698,8 +731,10 @@ best_first_step(bf_state_t *bf) {
 	  pmSetSize(bf->next_seq, n);
 	  return RC_ERR_NODATA;
 	}
+#ifdef VERBOSE
 	printf("heap insert: %s", pmPrint(perm, buf, BUFSIZ));
 	printf(" (score=%s)\n", format_number(buf, next_score));
+#endif
 	heap_insert(bf->pq, next_score, perm);
       }
       bf->i++;
@@ -718,11 +753,15 @@ best_first_step(bf_state_t *bf) {
     }
 
     pmCopyAll(bf->best_seq, heap_extract_max(bf->pq));
+#ifdef VERBOSE
     printf("bfs visiting: %s\n", pmPrint(bf->best_seq, buf, BUFSIZ));
+#endif
 
     /* found full permutation */
     if(pmLength(bf->best_seq) == bf->n) {
+#ifdef VERBOSE
       printf("bfs found terminal: %s\n", pmPrint(bf->best_seq, buf, BUFSIZ));
+#endif
       bf->state = RC_BFS_DONE;
       return RC_ERR_COMPLETE;
     }
@@ -745,13 +784,17 @@ best_first_step(bf_state_t *bf) {
 	int score;
 	err = bf->evfunc(bf->evcontext, bf->next_seq, bf->generation, &score);
 	if(err) {
+#ifdef VERBOSE
 	  printf("bfs needs info for %s\n", pmPrint(bf->next_seq, buf, BUFSIZ));
+#endif
 	  make_valid_perm(bf->po, bf->next_seq, n);
 	  pmSetSize(bf->next_seq, n);
 	  return RC_ERR_NODATA;
 	}
+#ifdef VERBOSE
 	printf("heap inserting: %s", pmPrint(bf->next_seq, buf, BUFSIZ));
 	printf(" (score=%s)\n", format_number(buf, score));
+#endif
 	//score /= pmLength(bf->next_seq); /* XXX average cost */
 	heap_insert(bf->pq, score, pmDup(bf->next_seq));
       }
@@ -807,7 +850,7 @@ format_number(char *buf, double val) {
   }
   if(mult > 0) {
     assert(mult < strlen(mult_suffix));
-    sprintf(buf, "%d%c", (int)val, mult_suffix[mult]);
+    sprintf(buf, "%.2f%c", val, mult_suffix[mult]);
   } else if(mult < 0) {
     sprintf(buf, "%f", val);
   } else {
@@ -817,3 +860,90 @@ format_number(char *buf, double val) {
 }
 
 /* ********************************************************************** */
+/* this is a transcription of rahuls perl code */
+
+double *build_cdf(int N);
+int draw_from_cdf(int num, double *cdf);
+
+
+/* Added by rahuls on 2003.05.05 */
+/* Implements the random DAG ordering algorithm given in */
+/* R. Bubley, M. Dyer */
+/* Faster random generation of linear extensions */
+/* Discrete Mathematics 201 (1999) */
+
+void
+randomize_permutation(permutation_t *perm, const partial_order_t *po) {
+  int N = pmLength(perm);
+  double *cdf;
+  int steps;
+  int j;
+
+  steps = (10 * N * N * N * log(N)); /* this is almost certainly incorrect -RW */
+
+#ifdef VERBOSE
+  printf("Running graph of size %d for %d MCMC steps\n", N, steps);
+#endif
+  /* perm should be a valid order */
+  cdf = build_cdf(N);
+  //print STDERR "CDF ", join(':', @$cdf), "\n";
+
+  for(j=0; j<steps; j++) {
+    int i;
+    if(random() & 1) { continue; } //  Half chance to do nothing
+    /* We subtract one because we use 0-based indexing, but paper
+     * assumes 1-based indexing. */
+    i = draw_from_cdf(N, cdf) - 1;
+
+    if(poIncomparable(po, pmElt(perm,i), pmElt(perm,i+1) )) {
+      pmSwap(perm, i, i+1);
+      //#    print "Step $_: ", join(':', @order), "\n";
+    }
+  }
+  free(cdf);
+}
+
+
+
+/* Build a cumulative probability distribution for the quadratic */
+/* function F. */
+double *
+build_cdf(int N) {
+/*    PDF is F(i) = i (n-i) / K */
+/*   where K is a normalizing factor: K = (n^3 - n)/6 */
+  double K = (N * N * N - N)/6;
+  double *cdf;
+  double sum = 0;
+  int i;
+
+  cdf = (double *)malloc(sizeof(double) * (N+1));
+  assert(cdf);
+
+  for(i=0; i<=N; i++) {
+    double f = (double)i * (N - i) / K;
+    sum += f;
+    cdf[i] = sum;
+  }
+  return cdf;
+}
+
+/* This returns numbers from x = 1..N, which are places in the */
+/* sequence not numbers of nodes.  Actually, the CDF in the paper */
+/* never generates N, because we'll swap x and x+1 */
+
+int
+draw_from_cdf(int num, double *cdf) {
+  int i;
+  double r;
+
+  r = 1.0 * ( random() & ((1<<30)-1) ) / (1<<30); /* 0<=r<1 */
+  for(i=0; i<num; i++) {
+    //    print "-> cdf[$i]=", $$cdf[$i], " r=$r\n";
+    //printf("r=%f\n", r);
+    if(cdf[i] >= r) {
+      return i;
+    }
+  }
+  return i;
+}
+

@@ -84,14 +84,17 @@ enum {
 /* ---------------------------------------------------------------------- */
 
 typedef struct hc_state_t {
+  permutation_t *global_best;
   permutation_t *best_seq, *next_seq;
   int		n, i, j;
   int 		improved;
   int           generation;
+  int           best_err_count;
 } hc_state_t;
 
 
-void hill_climb_init(hc_state_t *ptr, const permutation_t *start);
+void hill_climb_init(hc_state_t *ptr, const permutation_t *start,
+		     const partial_order_t *po);
 void hill_climb_cleanup(hc_state_t *ptr);
 
 int hill_climb_step(hc_state_t *hc, const partial_order_t *po,
@@ -99,6 +102,8 @@ int hill_climb_step(hc_state_t *hc, const partial_order_t *po,
 
 const permutation_t *hill_climb_result(hc_state_t *hc);
 const permutation_t *hill_climb_next(hc_state_t *hc);
+
+void randomize_permutation(permutation_t *perm, const partial_order_t *po);
 
 /* ---------------------------------------------------------------------- */
 
@@ -142,6 +147,8 @@ const permutation_t *best_first_next(bf_state_t *hc);
 /* ---------------------------------------------------------------------- */
 
 char *format_number(char *buf, double val);
+
+
 
 
 

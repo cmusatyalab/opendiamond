@@ -3,17 +3,34 @@
 #include "rtimer_std.h"
 #include "rtimer_papi.h"
 
-typedef enum {
-  RTIMER_STD=0,
-  RTIMER_PAPI
-} rtimer_mode_t;
 
-static rtimer_mode_t rtimer_mode = RTIMER_STD;
+static rtimer_mode_t rtimer_mode = 0;
 
+/* should be called at startup */
+void
+rtimer_system_init(rtimer_mode_t mode) {
+  switch(mode) {
+  case RTIMER_PAPI:
+    rt_papi_global_init();
+    rtimer_mode = RTIMER_PAPI;
+    break;
+  case RTIMER_STD:    /* no global init for std */
+  default:
+    rtimer_mode = RTIMER_STD;
+    break;
+  }
+}
 
 
 void
 rt_init(rtimer_t *rt) {
+
+  /* in case the system was not initialized, revert to std behaviour 
+   * (which doesn't need a global init) */
+  if(!rtimer_mode) {
+    rtimer_mode = RTIMER_STD;
+  }
+
   switch(rtimer_mode) {
   case RTIMER_STD:
     rt_std_init((void*)rt);

@@ -10,13 +10,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-//#include "rtimer_std.h"
-//#include "rtimer_common.h"
-#include "rtimer.h"
+#include "rtimer_std.h"
 
 /* warning: assumes appropriate locks are already held when calling these functions */
 
-#ifdef RTIMER_STD
 
 void
 rt_std_init(rtimer_std_t *rt)
@@ -62,4 +59,3 @@ rt_std_nanos(rtimer_std_t *rt)
   return nanos;
 }
 
-#endif

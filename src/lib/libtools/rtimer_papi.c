@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-/* #include "rtimer_papi.h" */
+#include "rtimer_papi.h"
 /* #include "rtimer_common.h" */
 #include "rtimer.h"
 
@@ -17,7 +17,6 @@
 
 /* warning: assumes appropriate locks are already held when calling these functions */
 
-#ifdef RTIMER_PAPI
 
 
 #define RT_MAGIC 0xe251a
@@ -29,28 +28,30 @@ static int Events[NUM_EVENTS] = { PAPI_TOT_INS, PAPI_TOT_CYC };
 static const PAPI_hw_info_t *hwinfo = NULL;
 
 
+
 static void
-test_fail(char *file, int line, char *msg, int err) {
+report_error(char *file, int line, char *msg, int err) {
   fprintf(stderr, "ERROR %d: %s\n", err, msg);
 }
 
-static void
+int
 rt_papi_global_init() {
   static int inited = 0;
   int err;
-  pthread_attr_t attr;
+  pthread_attr_t *attr = NULL;		/* not free'd */
 
   if(inited) {
-    return;
+    return 0;
   }
-  inited = 1;
 
   if( (err = PAPI_library_init(PAPI_VER_CURRENT)) !=PAPI_VER_CURRENT) {
-    test_fail(__FILE__,__LINE__,"PAPI_library_init",err);
+    log_utility_message("PAPI_library_init: %d", err);
+    return 1;
   }
 
   if((hwinfo = PAPI_get_hardware_info()) == NULL) {
-    test_fail(__FILE__,__LINE__,"PAPI_get_hardware_info",0);
+    report_error(__FILE__,__LINE__,"PAPI_get_hardware_info",0);
+    return 1;
   }
 
 
@@ -58,36 +59,54 @@ rt_papi_global_init() {
 
   err = PAPI_thread_init((unsigned long (*)(void))(pthread_self), 0);
   if ( err != PAPI_OK ) {
-    test_fail(__FILE__, __LINE__, "PAPI_thread_init", err);
+    report_error(__FILE__, __LINE__, "PAPI_thread_init", err);
+    return 1;
   }
 
-  /* pthread init */
+  /* pthread attr init */
 
-  pthread_attr_init(&attr);
+  attr = (pthread_attr_t *)malloc(sizeof(pthread_attr_t));
+  if(!attr) {
+    report_error(__FILE__,__LINE__, "malloc", 0);
+    return 1;
+  }
+  
+  pthread_attr_init(attr);
 #ifdef PTHREAD_CREATE_UNDETACHED
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
+  pthread_attr_setdetachstate(attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 #ifdef PTHREAD_SCOPE_SYSTEM
-  err = pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-  if (err != 0)
-    test_fail(__FILE__, __LINE__, "pthread_attr_setscope", err);    
+  err = pthread_attr_setscope(attr, PTHREAD_SCOPE_SYSTEM);
+  if (err != 0) {
+    report_error(__FILE__, __LINE__, "pthread_attr_setscope", err);    
+    return 1;
+  }
 #endif
+
+  inited = 1;
+  return 0;
 }
 
+int
+rt_papi_initialized() {
+  return PAPI_initialized();
+}
 
 void
 rt_papi_init(rtimer_papi_t *rt)
 {
   int err;
 
-  rt_papi_global_init();
+  if(!rt_papi_initialized()) {
+    report_error(__FILE__,__LINE__,"PAPI not inited",1);
+  }
 
   if( (err = PAPI_create_eventset(&rt->EventSet)) != PAPI_OK ) {
-    test_fail(__FILE__,__LINE__,"PAPI_create_eventset",err);
+    report_error(__FILE__,__LINE__,"PAPI_create_eventset",err);
   }
 
   if( (err = PAPI_add_events(&rt->EventSet, Events,NUM_EVENTS))!=PAPI_OK) {
-    test_fail(__FILE__,__LINE__,"PAPI_add_events",err);
+    report_error(__FILE__,__LINE__,"PAPI_add_events",err);
   }
 
   rt->valid = RT_MAGIC;
@@ -102,7 +121,7 @@ rt_papi_start(rtimer_papi_t *rt)
   CHECK_VALID(rt);
 
   if( (err = PAPI_start(rt->EventSet)) != PAPI_OK ) {
-    test_fail(__FILE__,__LINE__,"PAPI_start",err);
+    report_error(__FILE__,__LINE__,"PAPI_start",err);
   }
 }
 
@@ -115,7 +134,7 @@ rt_papi_stop(rtimer_papi_t *rt)
   CHECK_VALID(rt);
 
   if ( (err = PAPI_read(rt->EventSet, values)) != PAPI_OK ) {
-    test_fail(__FILE__,__LINE__,"PAPI_read",err);
+    report_error(__FILE__,__LINE__,"PAPI_read",err);
   }
   rt->cycles = values[1];
 }
@@ -135,4 +154,4 @@ rt_papi_nanos(rtimer_papi_t *rt)
   return nanos;
 }
 
-#endif
+

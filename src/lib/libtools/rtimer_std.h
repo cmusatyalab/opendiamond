@@ -5,11 +5,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
-
-
-/* struct rtimer_t { */
-/*   struct rusage ru1, ru2; */
-/* }; */
+#include "rtimer.h"
 
 
 #ifdef __cplusplus

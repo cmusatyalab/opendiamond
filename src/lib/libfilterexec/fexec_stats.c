@@ -306,7 +306,7 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
   for(i=0; i < pmLength(perm); i++) {
     double c, p;
     info = &fdata->fd_filters[pmElt(perm, i)];
-    c = info->fi_time_ns / 1000000; /* ms */
+    c = info->fi_time_ns / 1000; /* us */
     n = info->fi_called;
 
     /* lookup this permutation */
@@ -326,16 +326,23 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
 
     totalcost += pass * c / n;		/* prev cumul pass * curr cost */
     pass *= p;
+#define SMALL_FRACTION (0.00001)
+    /* don't let it go to zero XXX */
+    if(pass < SMALL_FRACTION) {
+      pass = SMALL_FRACTION;
+    }
   }
 
   *utility = INT_MAX - totalcost;
   assert(*utility >= 0);
 
-  printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
-
+  //printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
+  printf("fexec_evaluate: ");
+  fexec_print_cost(fdata, perm);
   return err;
 }
 
+/* not used? */
 int
 fexec_single(filter_data_t *fdata, int fid, int *utility) {
   filter_info_t *info;
@@ -346,7 +353,7 @@ fexec_single(filter_data_t *fdata, int fid, int *utility) {
   info = &fdata->fd_filters[fid];
   n = info->fi_called;
   if(!n) n = 1;		/* avoid div 0 */
-  c = info->fi_time_ns / 1000000 / n; /* ms */
+  c = info->fi_time_ns / 1000 / n; /* us */
   p = 1.0 - (double)info->fi_drop / n;
 
   wc = p * c;
@@ -361,16 +368,17 @@ void
 fexec_print_cost(const filter_data_t *fdata, const permutation_t *perm) {
   int i;
   const filter_info_t *info;
-  double c, n, p;
+  double c, p;
+  int n;
 
   printf("[");
   for(i=0; i < pmLength(perm); i++) {
     info = &fdata->fd_filters[pmElt(perm, i)];
-    c = info->fi_time_ns / 1000000; /* ms */
+    c = info->fi_time_ns / 1000; /* us */
     n = info->fi_called;
     if(!n) n = 1;		/* avoid div 0 */
-    p = 1.0 - (double)info->fi_drop / n;
-   printf(" %.1f/%.0f%%", c/n, p*100.0);
+    p = info->fi_called - info->fi_drop;
+   printf(" c%.1f,p%.0f/%d", c/n, p, n);
   }
   printf(" ]\n");
 }

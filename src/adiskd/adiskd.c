@@ -17,6 +17,7 @@
 char *	data_dir = "/opt/dir1/";
 
 int	do_daemon = 1;
+int	do_fork = 1;
 
 int
 main(int argc , char **argv) 
@@ -29,19 +30,24 @@ main(int argc , char **argv)
 	/* XXX parse arguments for logging, root directory, ... */
 
 	while (1) {
-		c = getopt(argc, argv, "dp:");
+		c = getopt(argc, argv, "dnp:");
 		if (c == -1) {
 			break;
 		}
 		switch (c) {
-		case 'p':
-			data_dir = optarg;
-			break;
 
 		case 'd':
 			do_daemon = 0;
 			break;
 
+		case 'n':
+			do_fork = 0;
+			do_daemon = 0;
+			break;
+
+		case 'p':
+			data_dir = optarg;
+			break;
 		default:
 			printf("unknown option %c \n", c);
 			exit(1);
@@ -87,7 +93,7 @@ main(int argc , char **argv)
 	 * We provide the main thread for the listener.  This
 	 * should never return.
 	 */
-	sstub_listen(cookie);
+	sstub_listen(cookie, do_fork);
 	
 	exit(0);
 }

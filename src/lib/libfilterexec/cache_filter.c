@@ -99,6 +99,7 @@ ceval_main(void *arg)
    }
 }
 
+/* called when DEV_SEARCHLET */
 int
 ceval_init_search(filter_data_t * fdata, ceval_state_t *cstate)
 {
@@ -138,6 +139,7 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t *cstate)
     return (0);
 }
 
+/* called when there is a new connection */
 int
 ceval_init(ceval_state_t **cstate, odisk_state_t *odisk, void *cookie,
 			stats_drop stats_drop_fn, stats_process stats_process_fn)

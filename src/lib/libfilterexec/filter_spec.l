@@ -368,6 +368,7 @@ read_filter_spec(char *spec_name, filter_data_t **fdp)
     }
 
 	yyin = fopen(spec_name, "r");
+    assert(yyin != NULL);
 	err = fspeclex();
 
     *fdp = fdata;

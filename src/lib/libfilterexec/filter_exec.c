@@ -517,17 +517,19 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 	 * and resolve the dependancies against it.
 	 */
 
-	err = load_filter_lib(lib_name, *fdata);
-	if (err) {
-		log_message(LOGT_FILT, LOGL_ERR, 
-				"Failed loading filter library <%s>", 
-				lib_name);
-		return (err);
-	}
-
-	/* everything was loaded correctly, log it */
-	log_message(LOGT_FILT, LOGL_TRACE, 
-			"init_filters: loaded %s", filter_spec);
+    if (lib_name != NULL) {
+	    err = load_filter_lib(lib_name, *fdata);
+	    if (err) {
+		    log_message(LOGT_FILT, LOGL_ERR, 
+				    "Failed loading filter library <%s>", 
+				    lib_name);
+		    return (err);
+	    }
+    
+	    /* everything was loaded correctly, log it */
+	    log_message(LOGT_FILT, LOGL_TRACE, 
+			    "init_filters: loaded %s", filter_spec);
+    }
 
 	return(0);
 }
@@ -710,3 +712,123 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata)
 	return pass;
 }
 
+
+int
+eval_filters_sim(obj_data_t *obj_handle, filter_data_t *fdata, void *cookie,
+        int (*cb_func)(void *cookie, char *name, int *pass, uint64_t* et))
+{
+    filter_info_t *     cur_filter;
+	char 			    timebuf[BUFSIZ];
+	int			        err;
+	off_t			    asize;
+	int                 pass = 1; /* return value */
+	int cur_fid, cur_fidx;
+
+	/* timer info */
+	rtimer_t                rt;	
+	u_int64_t               time_ns; /* time for one filter */
+	u_int64_t               stack_ns; /* time for whole filter stack */
+
+
+	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
+
+	if (fdata->fd_num_filters == 0) {
+		log_message(LOGT_FILT, LOGL_ERR, 
+			"eval_filters: no filter root");
+		return 1;
+	}
+
+
+
+	/*
+	 * We need to put more smarts about what filters to evaluate
+	 * here as well as the time spent in each of the filters.
+	 */ 
+
+
+
+	/* change the permutation if it's time for a change */
+	optimize_filter_order(fdata, &policy_arr[HILL_CLIMB_POLICY]);
+
+
+	/*
+	 * Get the total time we have execute so far (if we have
+	 * any) so we can add to the total.
+	 */
+	/* save the total time info attribute */
+	asize = sizeof(stack_ns);
+	err = obj_read_attr(&obj_handle->attr_info, FLTRTIME,
+		       &asize, (void*)&stack_ns);
+	if (err != 0) {
+		/* If we didn't find it, then set our count to 0. */
+		stack_ns = 0;
+	}
+
+
+	for(cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm); cur_fidx++) {
+		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
+		cur_filter = &fdata->fd_filters[cur_fid];	
+
+		active_filter = cur_filter;
+
+		/*
+		 * the name used to store execution time,
+		 * we use this to see if this function has already
+		 * been executed.
+		 */
+		sprintf(timebuf, FLTRTIME_FN, cur_filter->fi_name);
+
+		asize = sizeof(time_ns);
+		err = obj_read_attr(&obj_handle->attr_info, timebuf, 
+				&asize, (void*)&time_ns);
+
+		/*
+		 * if the read is sucessful, then this stage
+		 * has been run.
+		 */
+		if (err == 0) {
+			log_message(LOGT_FILT, LOGL_TRACE, 
+				"eval_filters: Filter %s has already been run",
+				cur_filter->fi_name);
+			continue;
+		}
+
+		cur_filter->fi_called++;
+
+		rt_start(&rt);	/* assume only one thread here */
+
+        err =  (*cb_func)(cookie, cur_filter->fi_name, &pass, &time_ns);
+
+		cur_filter->fi_time_ns += time_ns; /* update filter stats */
+		stack_ns += time_ns;
+
+		obj_write_attr(&obj_handle->attr_info, timebuf, 
+				sizeof(time_ns), (void*)&time_ns);
+
+
+
+		if (!pass) {
+			/* XXX cache results if appropriate */
+			cur_filter->fi_drop++;
+		} else {
+		    cur_filter->fi_pass++;
+        }
+
+        fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm), cur_fidx, pass);
+
+	/* XXX update the time spent on filter */
+                
+	}
+	active_filter = NULL;
+
+	log_message(LOGT_FILT, LOGL_TRACE, 
+	    	"eval_filters:  done - total time is %lld", stack_ns);
+
+	/* save the total time info attribute */
+	obj_write_attr(&obj_handle->attr_info,
+		       FLTRTIME,
+		       sizeof(stack_ns), (void*)&stack_ns);
+
+	
+	return pass;
+}

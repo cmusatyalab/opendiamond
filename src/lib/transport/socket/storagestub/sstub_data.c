@@ -223,6 +223,12 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 	cstate->data_tx_state = DATA_TX_NO_PENDING;
 	(*lstate->release_obj_cb)(cstate->app_cookie, cstate->data_tx_obj);
 
+	/* decrement credit count */
+	/* XXX do I need to lock */
+	if (cstate->cc_credits > 0) {
+		cstate->cc_credits--;
+	}
+
 	return;
 }
 
@@ -244,10 +250,28 @@ void
 sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 {
 
+	char *	data;
+	size_t	data_size;
+	size_t	rsize;
+
 	/* Handle the case where we are shutting down */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;
 	}
+
+	/* XXX handle case where we did read all the data last time.
+	 * XXXX this should probably never occur ...
+     */
+	data = (char *)&cstate->cc_msg;
+	data_size = sizeof(credit_count_msg_t);
+	rsize = recv(cstate->control_fd, data, data_size, 0);
+
+	/* make sure we read the whole message and that it has the right header */
+	assert(rsize == data_size);
+	assert(ntohl(cstate->cc_msg.cc_magic) == CC_MAGIC_HEADER);
+
+	/* update the count */
+	cstate->cc_credits = ntohl(cstate->cc_msg.cc_count);
 
 	return;
 }

@@ -295,11 +295,16 @@ hstub_read_data(sdevice_state_t *dev)
 	
 	} else {
 
-		/*
-	 	 * Now sent the callback.  Should there be a return ??
-	 	 */
-		(*dev->hstub_new_obj_cb)(dev->hcookie,
-					 cinfo->data_rx_obj, ver_no);
+		/* XXX put it into the object ring */
+		obj_info_t *oinfo;
+
+		oinfo = (obj_info_t *)malloc(sizeof(*oinfo));
+		assert(oinfo != NULL);
+
+		oinfo->ver_num = ver_no;
+		oinfo->obj = cinfo->data_rx_obj;
+
+		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}
 }
 
@@ -313,8 +318,44 @@ hstub_except_data(sdevice_state_t *dev)
 void
 hstub_write_data(sdevice_state_t * dev)
 {
-	printf("write_data \n");	
-}
+	conn_info_t *	cinfo;
+	char *			data;
+	size_t			send_size, mcount;
+	int				count;
 
+
+	cinfo = &dev->con_data;
+
+	/*
+	 * the only data we should every need to write is 
+     * credit count messages.
+	 */  
+
+    if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0) {
+		return;
+	}
+
+	/* build the credit count messages using the current state */
+	cinfo->cc_msg.cc_magic = htonl(CC_MAGIC_HEADER);
+
+	count = cinfo->obj_limit - ring_count(dev->obj_ring);
+	if (count < 0) {
+		count = 0;
+	}
+	printf("write ccount: count %d \n", count);
+	cinfo->cc_msg.cc_count =  htonl(count);
+
+	/* send the messages */
+   	data = (char *)&cinfo->cc_msg;
+	mcount = sizeof(credit_count_msg_t);
+	send_size = send(cinfo->control_fd, data, mcount, 0);
+
+	/* XXX we don't handle partials today XXX */
+	assert(send_size == mcount);
+
+	/* if successful, clear the flag */ 
+    cinfo->flags &= ~CINFO_PENDING_CREDIT;
+	
+}
 
 

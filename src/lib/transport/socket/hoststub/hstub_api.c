@@ -30,6 +30,7 @@
 
 /* XXX move to common header */
 #define	HSTUB_RING_SIZE	512
+#define OBJ_RING_SIZE	512
 
 
 /*
@@ -233,6 +234,20 @@ device_clear_gids(void *handle, int id)
 	return (0);
 }
 
+
+obj_info_t *
+device_next_obj(void *handle)
+{
+	sdevice_state_t *dev;
+	obj_info_t *	oinfo;
+
+	dev = (sdevice_state_t *)handle;
+
+	oinfo = ring_deq(dev->obj_ring);
+
+	dev->con_data.flags |= CINFO_PENDING_CREDIT;
+	return(oinfo);
+}
 
 
 int
@@ -835,6 +850,23 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 }
 
 int 
+device_set_limit(void *handle, int limit)
+{
+	sdevice_state_t *       dev;
+
+	printf("setting limit %d \n", limit);
+	dev = (sdevice_state_t *)handle;
+	if (dev->con_data.obj_limit != limit) {
+		dev->con_data.obj_limit = limit;
+		dev->con_data.flags |= CINFO_PENDING_CREDIT;
+	}
+
+	return (0);
+}
+
+
+
+int 
 device_stop_obj(void *handle)
 {
 	sdevice_state_t *       dev = (sdevice_state_t *)handle;
@@ -917,8 +949,6 @@ setup_stats(sdevice_state_t *dev, uint32_t devid)
             dctl_read_uint32, NULL, &dev->con_data.stat_log_rx);
     dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64, 
             dctl_read_uint64, NULL, &dev->con_data.stat_log_byte_rx);
-
-
 }
 
 /*
@@ -953,6 +983,13 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 		return (NULL);
 	}
 
+	err = ring_init(&new_dev->obj_ring, OBJ_RING_SIZE);
+	if (err) {
+		free(new_dev);
+		return (NULL);
+	}
+
+
 	new_dev->flags = 0;
 
 	pthread_mutex_init(&new_dev->con_data.mutex, NULL);
@@ -986,6 +1023,8 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 	new_dev->dstats = NULL;
 	new_dev->stat_size = 0;
 
+	
+
 	setup_stats(new_dev, devid); 
 
 	/*
@@ -1000,8 +1039,6 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 		free(new_dev);
 		return (NULL);
 	}
-
-
 	return((void *)new_dev);
 }
 

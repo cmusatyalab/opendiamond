@@ -87,6 +87,8 @@ typedef struct cstate {
 	data_tx_state_t		data_tx_state;
 	int			        data_tx_offset;
 	obj_header_t		data_tx_oheader;
+	credit_count_msg_t	cc_msg;						/* store incoming credit message */
+	uint32_t			cc_credits;					/* number of remaining credits */
     uint32_t            stats_objs_tx;
     uint64_t            stats_objs_attr_bytes_tx;
     uint64_t            stats_objs_data_bytes_tx;

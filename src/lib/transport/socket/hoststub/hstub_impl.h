@@ -37,7 +37,8 @@ typedef enum {
 
 /* flag definitons */
 #define	CINFO_PENDING_CONTROL	0x01
-#define	CINFO_BLOCK_OBJ		0x02
+#define	CINFO_BLOCK_OBJ			0x02
+#define	CINFO_PENDING_CREDIT	0x04
 
 typedef struct conn_info {
 	int			        flags;
@@ -61,6 +62,8 @@ typedef struct conn_info {
 	int			        log_rx_offset;
 	char *			    log_rx_data;
 	log_header_t		log_rx_header;
+	credit_count_msg_t 	cc_msg;
+	int			        obj_limit;
 	int			        log_fd;
 	fd_set			    read_fds;
 	fd_set			    write_fds;
@@ -89,6 +92,7 @@ typedef struct sdevice_state {
 	struct sdevice_state * 	next;
 	pthread_t		        thread_id;
 	ring_data_t *		    device_ops;	
+	ring_data_t *		    obj_ring;	
 	conn_info_t 		    con_data;
 	unsigned int		    flags;
 	int			      ver_no;

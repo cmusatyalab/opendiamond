@@ -55,7 +55,7 @@ typedef enum {
 
 typedef struct {
 	obj_data_t *		obj;
-	int			ver_num;
+	int					ver_num;
 } obj_info_t;
 /*
  * This defines the structures that keeps track of the current search

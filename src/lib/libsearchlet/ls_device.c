@@ -80,7 +80,6 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 int
 dev_new_obj_cb(void *hcookie, obj_data_t *odata, int ver_no)
 {
-
 	device_handle_t *	dev;
 	int			err;
 	obj_info_t *		oinfo;
@@ -604,6 +603,7 @@ create_new_device(search_context_t *sc, uint32_t devid)
 		return (NULL);
 	}
 
+	device_set_limit(new_dev->dev_handle, 10);	/* XXX */
 	/*
 	 * Put this device on the list of devices involved
 	 * in the search.

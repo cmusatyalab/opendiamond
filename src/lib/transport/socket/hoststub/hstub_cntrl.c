@@ -480,7 +480,6 @@ hstub_write_cntrl(sdevice_state_t *dev)
 
 	} else {
 		assert(cinfo->control_state == CONTROL_TX_DATA);
-
 		header_offset = 0;
 		cheader = cinfo->control_header;
 		remain_header = 0;
@@ -488,7 +487,6 @@ hstub_write_cntrl(sdevice_state_t *dev)
 		remain_data = ntohl(cheader->data_len) - data_offset;
 	}
 	
-
 	if (remain_header != 0) {
 		data = (char *)cheader;
 

@@ -30,6 +30,11 @@ typedef struct {
 	obj_attr_t		attr_info;
 } obj_data_t;
 
+typedef struct {
+    obj_data_t *        obj;
+    int                 ver_num;
+} obj_info_t;
+
 
 /*
  * These are the function prototypes for the device emulation

@@ -88,7 +88,8 @@ connection_main(listener_state_t *lstate, int conn)
 		if (cstate->flags & CSTATE_CONTROL_DATA) {
 			FD_SET(cstate->control_fd,  &cstate->write_fds);
 		}
-		if (cstate->flags & CSTATE_OBJ_DATA) {
+		if ((cstate->flags & CSTATE_OBJ_DATA) && 
+			(cstate->cc_credits > 0)) {
 			FD_SET(cstate->data_fd,  &cstate->write_fds);
 		}
 		if (cstate->flags & CSTATE_LOG_DATA) {

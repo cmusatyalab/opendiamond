@@ -34,6 +34,7 @@ typedef struct {
 void *	device_init(int id, uint32_t devid, void *hcookie, 
 			hstub_cb_args_t *cbs, void *dctl_cookie, 
 			void *log_cookie);
+
 int device_stop(void *dev, int id);
 int device_terminate(void *dev, int id);
 int device_start(void *dev, int id);
@@ -54,6 +55,9 @@ int device_set_blob(void *handle, int id, char *name, int blob_len, void *blob);
 int device_stop_obj(void *handle);
 int device_enable_obj(void *handle);
 int device_set_offload(void *handle, int id, uint64_t offload);
+int device_set_limit(void *handle, int limit);
+
+
 #endif	/* _LIB_HSTUB_H_ */
 
 

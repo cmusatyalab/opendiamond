@@ -68,6 +68,7 @@ bg_decrement_pend_count(search_context_t *sc)
 	}
 }
 
+
 void
 update_rates(search_context_t *sc) 
 {
@@ -115,14 +116,14 @@ bg_main(void *arg)
 	obj_data_t *		new_obj;
 	obj_info_t *		obj_info;
 	search_context_t *	sc;
-	int			err;
+	int					err;
 	bg_cmd_data_t *		cmd;
-	int			any;
+	int					any;
 	device_handle_t *	cur_dev;
 	struct timeval		this_time;
 	struct timeval		next_time = {0,0};
 	struct timezone		tz;
-	struct timespec timeout;
+	struct timespec 	timeout;
 	uint32_t			loop_count = 0;
 	uint32_t			dummy = 0;
 
@@ -323,12 +324,9 @@ bg_main(void *arg)
 			free(cmd);
 		}
 
-
-
 		timeout.tv_sec = 0;
 		timeout.tv_nsec = 10000000; /* 10 ms */
 		nanosleep(&timeout, NULL);
-
 	}
 }
 

@@ -89,9 +89,9 @@ static opt_policy_t policy_arr[] = {
 /*
  * Global state for the filter init code.
  */
-int             fexec_fixed_split = 0;  /* we use a fixed partioning if this
+int             fexec_fixed_split = 1;  /* we use a fixed partioning if this
                                          * is 1 */
-int             fexec_fixed_ratio = 0;  /* percentage for a fixed
+int             fexec_fixed_ratio = 50;  /* percentage for a fixed
                                          * partitioning */
 int             fexec_cpu_slowdown = 0; /* percentage slowdown for CPU */
 
@@ -150,7 +150,7 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 static void
 fexec_wattr_cb(char *name, off_t len)
 {
-    active_filter->fi_added_bytes = len;
+    active_filter->fi_added_bytes += len;
 }
 
 void

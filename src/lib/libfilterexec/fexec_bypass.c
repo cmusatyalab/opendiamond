@@ -88,7 +88,7 @@ fexec_set_bypass_none(filter_data_t * fdata)
 
 
 void
-fexec_set_bypass_target(filter_data_t * fdata, permutation_t * perm,
+fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
                         float target)
 {
     int             i;
@@ -179,11 +179,13 @@ fexec_set_bypass_target(filter_data_t * fdata, permutation_t * perm,
     return;
 }
 
+
+
 /*
  * This computes the byapss by just splitting the first percentage.
  */
 void
-fexec_set_bypass_target_a(filter_data_t * fdata, permutation_t * perm,
+fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
                           float target)
 {
     int             i;
@@ -237,21 +239,21 @@ typedef struct {
 } bp_hybrid_state_t;
 
 void
-fexec_set_bypass_target_hybrid(filter_data_t *fdata, permutation_t *perm, float target_ms)
+fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_ms)
 {
   int i, j;
   filter_info_t * info;
   filter_prob_t * fprob;
   bp_hybrid_state_t* hstate;
   double dcost = 0;
+  double this_cost;
   double p, pass = 1;
-  double maxbytes;
+  double maxbytes = 100.0;
 
-  /* XXX obtain bp_hybrid_state_t array for this permutation */
-  /* hstate = XXX; */
+	
+	hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
+	assert(hstate != NULL);
 
-  /* XXX initialize maxbytes with average object size */
-  
   /*
    * Reconstruct the cost function of the greedy distribution.
    */
@@ -264,7 +266,12 @@ fexec_set_bypass_target_hybrid(filter_data_t *fdata, permutation_t *perm, float 
     info = &fdata->fd_filters[pmElt(perm, i)];
     n = info->fi_called;
     maxbytes += (double) info->fi_added_bytes / (double) n;
-    dcost += pass * (info->fi_time_ns / (double) n); /* update cumulative cost */
+	this_cost = pass * ((double)info->fi_time_ns / (double) n); /* update cumulative cost */
+	/* we don't want the incremental cost to be zero */
+	if (this_cost == 0.0) {
+		this_cost = SMALL_FRACTION;
+	}
+    dcost += this_cost;
 
     /* obtain conditional pass rate */
     fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
@@ -291,17 +298,15 @@ fexec_set_bypass_target_hybrid(filter_data_t *fdata, permutation_t *perm, float 
   /*
    * Identify optimal breakdown into unit subsequences.
    */
-  for(i=0; i < pmLength(perm); i++) {
+  for (i=0; i < pmLength(perm); i++) {
     double delta, lowest_delta;
     int best_j=0, k;
 
     lowest_delta = 9999999999.0;  /* XXX */
     for(j=i+1; j <= pmLength(perm); j++) {
       /* compute reduction factor for candidate filter unit */
-      if((hstate[j].dcost - hstate[i].dcost)<=0.0){
-	/* XXX assertion here? */
-	return;
-      }
+      assert((hstate[j].dcost - hstate[i].dcost)>0.0);
+
       delta = (hstate[j].greedy_ncost - hstate[i].greedy_ncost) /
 	(hstate[j].dcost - hstate[i].dcost);
       if(delta < lowest_delta){
@@ -332,6 +337,10 @@ fexec_set_bypass_target_hybrid(filter_data_t *fdata, permutation_t *perm, float 
     if(hstate[i].dcost>target_ms)
       break;
   }
+
+  if(i>=pmLength(perm)){
+    i = pmLength(perm) - 1;
+  }
   
   for(j=0; j<i; j++)
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
@@ -347,6 +356,7 @@ fexec_set_bypass_target_hybrid(filter_data_t *fdata, permutation_t *perm, float 
   for(j=hstate[i].j; j<pmLength(perm); j++)
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = -1;
 
+  free(hstate);
   return;
 }
 
@@ -362,13 +372,14 @@ fexec_update_bypass(filter_data_t * fdata)
     int             disk_cycles;
     int             err;
 
+#ifdef	XXX
 
     if (fexec_fixed_split) {
         target_cost = ((float) fexec_fixed_ratio / 100.0);
-        fexec_set_bypass_target_a(fdata, fdata->fd_perm, target_cost);
+        fexec_set_bypass_trivial(fdata, fdata->fd_perm, target_cost);
         return (0);
     }
-
+#endif
 
     err = fexec_compute_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 
@@ -404,7 +415,7 @@ fexec_update_bypass(filter_data_t * fdata)
         target_cost = ((float) avg_cost * 0.70);
     }
 
-    fexec_set_bypass_target_a(fdata, fdata->fd_perm, target_cost);
+    fexec_set_bypass_hybrid(fdata, fdata->fd_perm, target_cost);
 
     return (0);
 }

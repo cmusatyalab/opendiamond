@@ -150,6 +150,7 @@ new_filter()
      * device.
      */
     fdata->fd_filters[cur_filt_id].fi_bpthresh = RAND_MAX;
+    fdata->fd_filters[cur_filt_id].fi_added_bytes = 0;
    
     if (strcmp(name, "APPLICATION") == 0) {
         fdata->fd_app_id = cur_filt_id;

@@ -135,7 +135,8 @@ odisk_get_obj_cnt(odisk_state_t *odisk)
 		/*
 	 	 * If this isn't a file then we skip the entry.
 	 	 */
-		if (cur_ent->d_type != DT_REG) {
+		if ((cur_ent->d_type != DT_REG) && 
+				(cur_ent->d_type != DT_LNK)) {
 			continue;
 		}
 
@@ -180,7 +181,7 @@ next:
 	/*
 	 * If this isn't a file then we skip the entry.
 	 */
-	if (cur_ent->d_type != DT_REG) {
+	if ((cur_ent->d_type != DT_REG) && (cur_ent->d_type != DT_LNK)) {
 		/* printf("not regular file %s \n", cur_ent->d_name); */
 		goto next;
 	}

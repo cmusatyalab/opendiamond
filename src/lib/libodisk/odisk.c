@@ -611,7 +611,7 @@ static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
 static ring_data_t *    obj_pr_ring;
 static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t   pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
-#define OBJ_PR_RING_SIZE        64
+#define OBJ_PR_RING_SIZE        32
 
 
 int

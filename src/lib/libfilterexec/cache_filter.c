@@ -97,6 +97,7 @@ static opt_policy_t policy_arr[] = {
 unsigned int    use_cache_table = 1;
 unsigned int    use_cache_oattr = 1;
 unsigned int    cache_oattr_thresh = 10000;
+unsigned int	 mdynamic_load = 1;
 
 static void
 mark_end()
@@ -209,11 +210,12 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	assert(new_state != NULL);
 	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_table", DCTL_DT_UINT32,
 					   dctl_read_uint32, dctl_write_uint32, &use_cache_table);
-
 	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_oattr", DCTL_DT_UINT32,
 					   dctl_read_uint32, dctl_write_uint32, &use_cache_oattr);
    dctl_register_leaf(DEV_CACHE_PATH, "cache_oattr_thresh", DCTL_DT_UINT32,
                   dctl_read_uint32, dctl_write_uint32, &cache_oattr_thresh);
+   dctl_register_leaf(DEV_CACHE_PATH, "mdynamic_load", DCTL_DT_UINT32,
+                  dctl_read_uint32, dctl_write_uint32, &mdynamic_load);
                                                                                 
 	memset(new_state, 0, sizeof(*new_state));
 	new_state->odisk = odisk;
@@ -245,6 +247,7 @@ ceval_start(filter_data_t * fdata)
 	pmPrint(fdata->fd_perm, buf, BUFSIZ);
 	// printf("generate_new_perm %s\n", buf);
 	search_active = 1;
+	sample_init();
 	pthread_cond_signal(&active_cv);
 	pthread_mutex_unlock(&ceval_mutex);
 
@@ -596,7 +599,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 	 * if pass, add the obj & oattr_fname list into the odisk queue 
 	 */
 	if (pass) {
-		if (use_cache_oattr) {
+		if ( use_cache_oattr && dynamic_use_oattr() ) {
 			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 			assert( pr_obj != NULL);
 			pr_obj->obj_id = oid;
@@ -789,11 +792,21 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				/*
 				 * write the evaluation start message into the cache ring 
 				 */
-            if( (fpath != NULL) && ((cur_filter->fi_time_ns/1000) <= (cur_filter->fi_compute * cache_oattr_thresh)) ) {
+            //if( (fpath != NULL) && ((cur_filter->fi_time_ns/1000) <= (cur_filter->fi_compute * cache_oattr_thresh)) ) {
+				if( (fpath != NULL) && (cur_filter->fi_time_ns <= (cur_filter->fi_added_bytes*cache_oattr_thresh)) ) {
                free(fpath);
                fpath = NULL;
             }
- 
+/*
+				 else {
+					int com_rate;
+					if(cur_filter->fi_added_bytes != 0 )
+						com_rate = cur_filter->fi_time_ns/cur_filter->fi_added_bytes;
+					else
+						com_rate = 0;
+					printf("filter %s com_rate %d\n", cur_filter->fi_name, com_rate);
+				}
+*/
 				ocache_add_start(cur_filter->fi_name, obj_handle->local_id,
 								 cur_filter->cache_table, lookup, fpath);
 
@@ -884,6 +897,8 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		obj_handle->remain_compute /= avg;
 	}
 
+	oattr_sample();
+
 	active_filter = NULL;
 	log_message(LOGT_FILT, LOGL_TRACE,
 				"eval_filters:  done - total time is %lld", stack_ns);
@@ -934,4 +949,78 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	free(change_attr.entry_data);
 
 	return pass;
+}
+
+#define SAMPLE_NUM		50
+//#define AJUST_RATE		5
+
+unsigned int sample_counter = 0;
+int oattr_percent = 100; //start with using rate 50%
+double opt_time=1000000.0; //initialize to an extrme large value
+struct timeval  sample_start_time, sample_end_time;
+int direction=-1;
+int	adjust=5*4;
+
+static void sample_init()
+{
+	oattr_percent = 100;
+	opt_time = 1000000.0; //initialize to an extrme large value
+	sample_counter = 0;
+	direction=-1;
+	adjust = 5*4;
+}
+
+static void oattr_sample()
+{
+	int err;
+	struct timezone st_tz;
+	double temp;
+
+	if( sample_counter == 0 ) {
+		err = gettimeofday(&sample_start_time, &st_tz);
+		assert(err == 0);
+	}
+	sample_counter++;
+	if( sample_counter >= SAMPLE_NUM ) {
+		err = gettimeofday(&sample_end_time, &st_tz);
+		assert(err == 0);
+		temp = tv_diff(&sample_end_time, &sample_start_time);
+		//printf("oattr_percent is %u, adjust is %u, temp %f, opt_time %f\n", oattr_percent, adjust, temp, opt_time);
+		if( temp > opt_time ) {
+			oattr_percent -= (adjust*direction); //first getting back
+			direction = direction * (-1);
+			if( adjust > 5 ) {
+				adjust /= 2;
+			}
+		}
+		if( oattr_percent >= 100 ) {
+			oattr_percent = 100;
+			direction = -1;
+		}
+		if( oattr_percent <= 0 ) {
+			oattr_percent = 0;
+			direction = 1;
+		}
+		opt_time = temp;
+		oattr_percent += adjust*direction;
+		sample_counter=0;
+	}
+	return;
+}
+
+static int dynamic_use_oattr()
+{
+	unsigned int random;
+
+	if( mdynamic_load == 0 ) {
+		return(1);
+	}
+
+	random = 1 + (int) (100.0 * rand()/(RAND_MAX+1.0) );
+	if(random <= oattr_percent) {
+	//if(random <= 50) {
+		return(1);
+	} else {
+		return(0);
+	}
 }

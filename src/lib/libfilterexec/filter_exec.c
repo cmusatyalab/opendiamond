@@ -830,7 +830,8 @@ tv_diff(struct timeval *end, struct timeval *start)
 		temp += val / (double) 1000000.0;
 	} else
 	{
-		val = 1000000 - end->tv_usec - start->tv_usec;
+		//val = 1000000 - end->tv_usec - start->tv_usec;
+		val = 1000000 + end->tv_usec - start->tv_usec;
 		temp = (double) (end->tv_sec - start->tv_sec - 1);
 		temp += val / (double) 1000000.0;
 	}

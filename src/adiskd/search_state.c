@@ -245,7 +245,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			clear_ss_stats(sstate);
 			fexec_clear_stats(sstate->fdata);
 
-			err = odisk_init(&sstate->ostate, data_dir);
+			err = odisk_reset(sstate->ostate);
 			if (err) {
 				/* XXX log */
 				/* XXX crap !! */
@@ -531,7 +531,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		return (ENOMEM);
 	}
 
-    memset((void *)sstate, 0, sizeof(*sstate));
+    	memset((void *)sstate, 0, sizeof(*sstate));
 	/*
 	 * Set the return values to this "handle".
 	 */
@@ -545,17 +545,17 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	log_init();
 	dctl_init();
 
-    dctl_register_node(ROOT_PATH, SEARCH_NAME);
-
-    dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
+    	dctl_register_node(ROOT_PATH, SEARCH_NAME);
+	
+    	dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
                    DCTL_DT_UINT32, dctl_read_uint32, NULL, &sstate->ver_no);
-    dctl_register_leaf(DEV_SEARCH_PATH, "obj_total",
+    	dctl_register_leaf(DEV_SEARCH_PATH, "obj_total",
                    DCTL_DT_UINT32, dctl_read_uint32, NULL, &sstate->obj_total);
-    dctl_register_leaf(DEV_SEARCH_PATH, "obj_processed", DCTL_DT_UINT32, 
+    	dctl_register_leaf(DEV_SEARCH_PATH, "obj_processed", DCTL_DT_UINT32, 
                     dctl_read_uint32, NULL, &sstate->obj_processed);
-    dctl_register_leaf(DEV_SEARCH_PATH, "obj_dropped", DCTL_DT_UINT32, 
+    	dctl_register_leaf(DEV_SEARCH_PATH, "obj_dropped", DCTL_DT_UINT32, 
                     dctl_read_uint32, NULL, &sstate->obj_dropped);
-    dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32, 
+    	dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32, 
                     dctl_read_uint32, NULL, &sstate->obj_passed);
 
 
@@ -609,6 +609,16 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		return (ENOENT);
 	}
 
+	/*
+	 * Initialize our communications with the object
+	 * disk sub-system.
+	 */
+	err = odisk_init(&sstate->ostate, data_dir);
+	if (err) {
+	  	fprintf(stderr, "Failed to init the object disk \n");
+		assert(0);
+		return(err);
+	}
 
 	return(0);
 }

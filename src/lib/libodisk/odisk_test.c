@@ -44,6 +44,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <stdint.h>
+#include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"

@@ -48,7 +48,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "lib_od.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 

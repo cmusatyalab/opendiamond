@@ -35,12 +35,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# these should be set to point to the appropriate directories
-
-#PAPI_HOME = $(DIAMOND_ROOT)/../support/papi
-#PERFCTR_HOME = $(DIAMOND_ROOT)/../support/perfctr
-
-
 BUILD_LIB_PATH = $(DIAMOND_ROOT)/target/lib
 BUILD_INC_PATH = $(DIAMOND_ROOT)/target/include
 BUILD_BIN_PATH = $(DIAMOND_ROOT)/target/bin
@@ -56,7 +50,7 @@ CFLAGS += -ggdb
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
 
-# un comment if you want profiling
+# un-comment if you want profiling
 #CFLAGS += -pg 
 
 
@@ -95,7 +89,6 @@ DIST_OBJS += .depend
 	@${LD} -x -r $@
 	@${MV} a.out $@
 
-
 %.o: %.c
 	${CC} ${INCDIR} ${CFLAGS} -c $< -o $@
 
@@ -127,6 +120,8 @@ define do-subdirs
 endef
 endif
 
+
+
 TARGETS += copyheader 
 
 #  Rebuild everything, which is the program "PROG" and its 
@@ -136,8 +131,8 @@ TARGETS += copyheader
 #   Note: the "+" in front of a commmand makes the command happen
 #  	even when the user has specified "make -n" 
 
-all: ${SRCS} ${HSRCS} ${SSRCS} ${OSRCS} ${CYSRCS} ${HYSRCS} ${CLSRCS} ${PROG} ${TARGETS}
-	+${do-subdirs}
+all: ${SRCS} ${HSRCS} ${SSRCS} ${OSRCS} ${CYSRCS} ${HYSRCS} ${CLSRCS} ${PROG} ${TARGETS} ${SUBDIRS}
+	${do-subdirs}
 
 
 #
@@ -147,7 +142,7 @@ depend:
 ifneq ($(strip ${SRCS}),)
 	${CC} -E -M ${INCDIR} ${CFLAGS} ${SRCS} > .depend
 endif
-	+${do-subdirs}	
+	${do-subdirs}	
 
 
 #
@@ -157,7 +152,7 @@ clean:
 ifneq ($(strip ${OBJS} ${PROG} ${CLEAN_OTHERS} $(TARGETS)),)
 	${RM} ${OBJS} $(TARGETS) $(PROG) $(CLEAN_OTHERS)
 endif
-	+${do-subdirs}
+	${do-subdirs}
 
 
 #
@@ -167,7 +162,7 @@ distclean:
 ifneq ($(strip ${OBJS} ${PROG} $(CLEAN_OTHERS) $(TARGETS) $(DIST_OBJS)),)
 	${RM} ${OBJS} $(TARGETS) ${PROG} $(CLEAN_OTHERS) $(DIST_OBJS)
 endif
-	+${do-subdirs}
+	${do-subdirs}
 
 copyheader:
 	@for entry in ${SHARED_HEADERS} ; do \
@@ -214,7 +209,7 @@ ifdef COPIES
 	done
 endif
 
-	+${do-subdirs}
+	${do-subdirs}
 
 
 
@@ -229,7 +224,7 @@ installdirs:
 			${MKDIR} $${entry} ; \
 		fi); \
 	done
-	+${do-subdirs}
+	${do-subdirs}
 
 
 

@@ -48,6 +48,7 @@
 #include "ring.h"
 #include <assert.h>
 
+
 /* XXX move to common library */
 static double
 tv_to_float(struct timeval *tv)

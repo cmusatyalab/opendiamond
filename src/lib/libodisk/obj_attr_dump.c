@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "diamond_consts.h"
 #include "diamond_types.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"

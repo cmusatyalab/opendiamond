@@ -46,6 +46,7 @@
 #include <dirent.h>
 #include <stdint.h>
 #include <unistd.h>
+#include "diamond_consts.h"
 #include "diamond_types.h"
 #include "rtimer.h"
 #include "lib_odisk.h"

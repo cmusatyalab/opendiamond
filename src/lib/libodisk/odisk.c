@@ -49,13 +49,14 @@
 #include <dirent.h>
 #include <assert.h>
 #include "obj_attr.h"
+#include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "odisk_priv.h"
-#include "attr.h"
+#include "sys_attr.h"
 #include "rtimer.h"
 #include "ring.h"
 #include "sig_calc.h"

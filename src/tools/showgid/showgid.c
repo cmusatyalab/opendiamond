@@ -48,7 +48,8 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include "lib_od.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_odisk.h"
 #include "obj_attr.h"
 

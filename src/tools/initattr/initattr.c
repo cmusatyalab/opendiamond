@@ -46,7 +46,7 @@
 #include <errno.h>
 #include <string.h>
 #include <dirent.h>
-#include "attr.h"
+#include "sys_attr.h"
 #include "obj_attr.h"
 
 

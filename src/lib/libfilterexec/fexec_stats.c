@@ -19,6 +19,7 @@
 #include "filter_priv.h"
 #include "rtimer.h"
 #include "rgraph.h"
+#include "rcomb.h"
 
 /*
  * This function walks through the list of filters and resets
@@ -80,7 +81,7 @@ fexec_get_stats(filter_data_t *fdata, int max, filter_stats_t *fstats)
 
 
 int
-fexec_hash_prob(filter_id_t cur_filt, int num_prev, filter_id_t *sorted_list)
+fexec_hash_prob(filter_id_t cur_filt, int num_prev, const filter_id_t *sorted_list)
 {
 
         /* XXX LH XXX */
@@ -91,7 +92,7 @@ fexec_hash_prob(filter_id_t cur_filt, int num_prev, filter_id_t *sorted_list)
 
 static filter_prob_t *
 fexec_lookup_prob(filter_data_t *fdata, filter_id_t cur_filt, int num_prev, 
-                filter_id_t *sorted_list)
+                const filter_id_t *sorted_list)
 {
     int              hash;
     filter_prob_t*   cur_node;
@@ -167,7 +168,7 @@ id_comp(const void *data1, const void *data2)
 
 void
 fexec_update_prob(filter_data_t * fdata,  filter_id_t cur_filt, 
-                filter_id_t *prev_list, int num_prev, int pass)
+		  const filter_id_t *prev_list, int num_prev, int pass)
 {
     filter_id_t *   sorted_list;
     filter_prob_t * prob;
@@ -279,3 +280,45 @@ fexec_update_cost(finfo_filter, int pass)
 
 #endif /* XXX_LH */
 
+
+/* evaluate a permutation in the context of the currently available
+ * data, and return a utility value (higher is better).
+ * the function value is non-zero on error
+ */
+int
+fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
+  int err=0;
+  int i;
+  filter_prob_t *fprob;
+  double pass = 1;		/* cumul pass rate */
+  double totalcost = 0;		/* = utility */
+  filter_info_t *info;
+
+  /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
+  assert(sizeof(pelt_t) == sizeof(filter_id_t));
+
+  for(i=0; i < pmLength(perm); i++) {
+    double c, p;
+    info = &fdata->fd_filters[pmElt(perm, i)];
+    c = info->fi_time_ns;
+
+    /* lookup this permutation */
+    fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); /* XXX */
+    if(fprob) {
+      p = (double)fprob->num_pass / fprob->num_exec;
+    } else if(info->fi_called > 1) {
+      /* permutation not found, try assuming independence */
+      p = (double)info->fi_drop / info->fi_called;
+    } else {
+      /* really no data, return an error */
+      return 1;
+    }
+
+    totalcost += pass * c;		/* prev cumul pass * curr cost */
+    pass *= p;
+  }
+
+  *utility = totalcost;
+
+  return err;
+}

@@ -6,6 +6,7 @@
 #include "lib_filter.h"		/* for filter_proto */
 #include "queue.h"
 #include "consts.h"
+#include "rcomb.h"
 
 /*
  * This the the header file used to keep track of the 
@@ -55,9 +56,9 @@ typedef struct filter_info {
 	int			            fi_merit;
 	int			            fi_numargs;
 	char *			        fi_args[MAX_NUM_ARGS];
-	struct filter_info *	fi_next;
+  //struct filter_info *	fi_next;
     filter_id_t             fi_filterid;    /* id of this filter */
-    filter_id_t             fi_nextfilter;  /* next filter to run */
+  //filter_id_t             fi_nextfilter;  /* next filter to run */
 
 
 	/* dependency info */
@@ -104,17 +105,21 @@ typedef struct filter_prob {
  */
 struct filter_data {
     int                 fd_num_filters;
-    filter_id_t         fd_first_filter;
+  //filter_id_t         fd_first_filter;
     filter_id_t         fd_max_filters;
     filter_id_t         fd_app_id;
     LIST_HEAD(prob_hash, filter_prob)   fd_prob_hash[PROB_HASH_BUCKETS];
+
+    permutation_t       *fd_perm;	/* current permutation */
+    partial_order_t     *fd_po;	/* the partial ordering of filters */
+
     filter_info_t       fd_filters[0];
 };
 
 
 int     read_filter_spec(char *spec_name, filter_data_t **fdp);
 void    fexec_update_prob(filter_data_t *fdata, filter_id_t cur_filt,
-                filter_id_t *prev_list, int num_prev, int pass);
+			  const filter_id_t *prev_list, int num_prev, int pass);
 
 
 #endif	/* ifndef _FILTER_PRIV_H_ */

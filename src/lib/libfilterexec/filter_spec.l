@@ -114,18 +114,19 @@ new_filter()
     }
   
     printf("fdata %p num_filt %d max %d \n", fdata, fdata->fd_num_filters,
-        fdata->fd_max_filters);
+	   fdata->fd_max_filters);
     cur_filt_id = fdata->fd_num_filters;
     fdata->fd_num_filters++;
 
-	memset(&fdata->fd_filters[cur_filt_id], 0, sizeof(filter_info_t));
+    memset(&fdata->fd_filters[cur_filt_id], 0, sizeof(filter_info_t));
 
-	strcpy(fdata->fd_filters[cur_filt_id].fi_name, name);
+    strcpy(fdata->fd_filters[cur_filt_id].fi_name, name);
     printf(" id %d name %s \n", cur_filt_id, fdata->fd_filters[cur_filt_id].fi_name);
-	fdata->fd_filters[cur_filt_id].fi_threshold = -1;
-	fdata->fd_filters[cur_filt_id].fi_merit = 0;
-	fdata->fd_filters[cur_filt_id].fi_numargs = 0;
-
+    fdata->fd_filters[cur_filt_id].fi_threshold = -1;
+    fdata->fd_filters[cur_filt_id].fi_merit = 0;
+    fdata->fd_filters[cur_filt_id].fi_numargs = 0;
+    fdata->fd_filters[cur_filt_id].fi_filterid = cur_filt_id;
+    
     if (strcmp(name, "APPLICATION") == 0) {
         fdata->fd_app_id = cur_filt_id;
     }

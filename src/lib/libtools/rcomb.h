@@ -11,9 +11,11 @@
 
 /* ---------------------------------------------------------------------- */
 
+typedef u_int8_t pelt_t;
+
 typedef struct {
   int length;
-  int elements[0];
+  pelt_t elements[0];
 } permutation_t;
 
 
@@ -25,8 +27,9 @@ permutation_t *pmDup(const permutation_t *ptr);
 
 int  pmLength(const permutation_t *ptr);
 void pmSwap(permutation_t *ptr, int i, int j);
-int  pmElt(const permutation_t *pm, int i);
-void pmSetElt(permutation_t *pm, int i, int val);
+pelt_t  pmElt(const permutation_t *pm, int i);
+void pmSetElt(permutation_t *pm, int i, pelt_t val);
+const pelt_t *pmArr(const permutation_t *pm);
 
 char *pmPrint(const permutation_t *pm, char *buf, int bufsiz);
 
@@ -49,10 +52,15 @@ typedef struct partial_order_t {
 partial_order_t *poNew(int n);
 void poDelete(partial_order_t *po);
 
-/* NB this only sets the pairwise comparison; no transitivity */
+/* NB this only sets the pairwise--(u,v) and (v,u)--comparison; no transitivity */
 void poSetOrder(partial_order_t *po, int u, int v, po_relation_t rel);
 
+/* add the closure */
+void poClosure(partial_order_t *po);
+
 int poIncomparable(const partial_order_t *po, int u, int v);
+
+void poPrint(partial_order_t *po);
 
 
 /* ---------------------------------------------------------------------- */

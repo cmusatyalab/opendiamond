@@ -30,7 +30,7 @@ obj_dump_attr(obj_attr_t *attr)
 	handle = dlopen("./fdebug.so", RTLD_NOW);
 	if (!handle) {
 		/* XXX error log */
-		fputs(dlerror(), stderr);
+		//fputs(dlerror(), stderr);
 		//exit (1);
 	}
 

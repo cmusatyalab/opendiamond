@@ -12,8 +12,9 @@ permutation_t *
 pmNew(int len) {
   permutation_t *ptr;
 
+  assert(len >= 0);
   ptr = (permutation_t *)malloc(sizeof(permutation_t) +
-				sizeof(int) * len);
+				sizeof(pelt_t) * len);
   assert(ptr);
   ptr->length = len;
 
@@ -47,16 +48,22 @@ pmDup(const permutation_t *ptr) {
   return copy;
 }
 
-int
+pelt_t
 pmElt(const permutation_t *pm, int i) {
+  assert(i < pm->length);
   return pm->elements[i];
 }
 
 void
-pmSetElt(permutation_t *pm, int i, int val) {
+pmSetElt(permutation_t *pm, int i, pelt_t val) {
+  assert(i < pm->length);
   pm->elements[i] = val;
 }
 
+const pelt_t *
+pmArr(const permutation_t *pm) {
+  return pm->elements;
+}
 
 int
 pmLength(const permutation_t *ptr) {
@@ -65,7 +72,7 @@ pmLength(const permutation_t *ptr) {
 
 void
 pmSwap(permutation_t *ptr, int i, int j) {
-  int tmp;
+  pelt_t tmp;
   tmp = ptr->elements[i];
   ptr->elements[i] = ptr->elements[j];
   ptr->elements[j] = tmp;
@@ -106,6 +113,8 @@ pmPrint(const permutation_t *pm, char *buf, int bufsiz) {
 /* ---------------------------------------------------------------------- */
 /* poset functions */
 
+static int poGet(partial_order_t *po, int u, int v);
+
 
 partial_order_t *
 poNew(int n) {
@@ -127,6 +136,31 @@ poDelete(partial_order_t *po) {
   }
 }
 
+void
+poPrint(partial_order_t *po) {
+  int i,j;
+  for(i=0; i<po->dim; i++) {
+    for(j=0; j<po->dim; j++) {
+      char c = ' ';
+      switch(poGet(po, i, j)) {
+      case PO_EQ:
+	c = '=';
+	break;
+      case PO_LT:
+	c = '<';
+	break;
+      case PO_GT:
+	c = '>';
+	break;
+      default:
+	c = '?';
+      }
+      printf(" %c", c);
+    }
+    printf("\n");
+  }
+}
+
 static po_relation_t
 poInverse(po_relation_t rel) {
   return (rel == PO_INCOMPARABLE ? rel : -rel);
@@ -139,6 +173,29 @@ poSetOrder(partial_order_t *po, int u, int v, po_relation_t rel) {
   po->data[v * po->dim + u] = poInverse(rel);
 }
 
+static int
+poGet(partial_order_t *po, int u, int v) {
+  return po->data[u * po->dim + v];
+}
+
+void
+poClosure(partial_order_t *po) {
+  int i, j, k;
+  int n = po->dim;
+
+  /* Warshall's alg */
+  for (k = 0; k < n; k++) {
+    for (i = 0; i < n; i++) {
+      for (j = 0; j < n; j++) {
+	if (poIncomparable(po, i, j)) {
+	  if( poGet(po, i, k) == poGet(po, k, j) ) {
+	    poSetOrder(po, i, j, poGet(po, i, k));
+	  }
+	}
+      }
+    }
+  }
+}
 
 int
 poIncomparable(const partial_order_t *po, int u, int v) {
@@ -185,6 +242,8 @@ hill_climb_init(hc_state_t *ptr, const permutation_t *start) {
   ptr->j = 1;
   ptr->improved = 1;
 }
+
+
 
 void
 hill_climb_cleanup(hc_state_t *ptr) {

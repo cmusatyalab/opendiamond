@@ -1,6 +1,10 @@
 #ifndef _FILTER_EXEC_H_
 #define _FILTER_EXEC_H_ 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct filter_data;
 typedef struct filter_data filter_data_t;
 
@@ -38,6 +42,8 @@ int     fexec_set_blob( filter_data_t *fdata, char *filter_name,
 int     fexec_get_stats(filter_data_t *fdata , int max, filter_stats_t *fstats);
 char *  fexec_cur_filtname();
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _FILTER_EXEC_H_ */

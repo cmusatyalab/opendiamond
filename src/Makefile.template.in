@@ -15,8 +15,8 @@ LIBS += $(PAPI_HOME)/src/libpapi.a $(PERFCTR_HOME)/usr.lib/libperfctr.a -lm
 #CFLAGS += -DRTIMER_PAPI
 
 # general flags
-
-CFLAGS += -pg -O2 -ggdb
+CFLAGS += -O2
+CFLAGS += -pg -ggdb
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
 FLEX = flex

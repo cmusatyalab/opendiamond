@@ -4,6 +4,7 @@
 #include <dlfcn.h>
 #include <dirent.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "lib_od.h"
 #include "obj_attr.h"
@@ -56,6 +57,11 @@ obj_dump_attr(obj_attr_t *attr)
 					}
 					printf("<%s> = %s\n", name, buf);
 				}
+			} else if(( !strcmp(name, "Display-Name") ) ||
+				  ( !strcmp(name, "Keywords") ) ||
+				  ( !strcmp(name, "Content-Type") )) {
+			  printf("<%.*s> = %.*s\n", cur_rec->name_len, name,
+				 cur_rec->data_len, name + cur_rec->name_len);
 			} else {
 				printf("<%s>\n", name);
 			}

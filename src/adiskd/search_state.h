@@ -78,6 +78,7 @@ typedef struct search_state {
     uint            obj_dropped;
     uint            obj_passed;
     uint            obj_skipped;
+    uint            network_stalls;
     uint            pend_objs;
     uint            pend_max;
     uint            split_type;		/* policy for the splitting */

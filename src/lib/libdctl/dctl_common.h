@@ -69,6 +69,9 @@
 #define	DEV_FEXEC_NODE			"fexec"
 #define	DEV_FEXEC_PATH			"fexec"
 
+#define	DEV_OBJ_NODE			"obj_disk"
+#define	DEV_OBJ_PATH			"obj_disk"
+
 #endif	/* !defined(_DCTL_COMMON_H_) */
 
 

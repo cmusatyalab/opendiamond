@@ -258,6 +258,7 @@ clear_ss_stats(search_state_t * sstate)
     sstate->obj_dropped = 0;
     sstate->obj_passed = 0;
     sstate->obj_skipped = 0;
+    sstate->network_stalls = 0;
 }
 
 
@@ -510,6 +511,10 @@ device_main(void *arg)
             free(cmd);
         }
 
+		if (sstate->pend_objs >= sstate->pend_max) {
+
+		}
+
         /*
          * XXX look for data from device to process.
          */
@@ -560,6 +565,7 @@ device_main(void *arg)
                     sstate->pend_objs++;
                 }
             } else if (err) {
+				printf("read error \n");
                 /*
                  * printf("dmain: failed to get obj !! \n"); 
                  */
@@ -778,6 +784,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
                        dctl_read_uint32, NULL, &sstate->obj_passed);
     dctl_register_leaf(DEV_SEARCH_PATH, "obj_skipped", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &sstate->obj_skipped);
+
+    dctl_register_leaf(DEV_SEARCH_PATH, "nw_stalls", DCTL_DT_UINT32,
+                       dctl_read_uint32, NULL, &sstate->network_stalls);
+
     dctl_register_leaf(DEV_SEARCH_PATH, "pend_objs", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &sstate->pend_objs);
     dctl_register_leaf(DEV_SEARCH_PATH, "pend_maximum", DCTL_DT_UINT32,
@@ -802,6 +812,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
     dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
     dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
+
+    dctl_register_node(ROOT_PATH, DEV_OBJ_NODE);
 
 
     /*

@@ -338,7 +338,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
 #endif
         } else {
             /* really no data, return an error */
-            printf("no perm data for %s \n", info->fi_name);
+            //printf("no perm data for %s \n", info->fi_name);
             return 1;
             //p = 1;			/* cost will be 0 anyway */
             //n = 1;

@@ -59,7 +59,7 @@ struct filter_exec_t filter_exec = {
 
 // int CURRENT_POLICY = NULL_POLICY;
 //int CURRENT_POLICY = HILL_CLIMB_POLICY;
-// int CURRENT_POLICY = BEST_FIRST_POLICY;
+//int CURRENT_POLICY = BEST_FIRST_POLICY;
 
 /* order here should match enum policy_type_t */
 static opt_policy_t policy_arr[] = {
@@ -111,6 +111,7 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 		return(EINVAL);
 	}
 
+	fexec_cpu_slowdown = data;
 
 	my_pid = getpid();
 
@@ -626,14 +627,8 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 
 void
 update_filter_order(filter_data_t *fdata, const permutation_t *perm) {
-#if 1 || defined VERBOSE
-  char buf[BUFSIZ];
-#endif
 
 	pmCopy(fdata->fd_perm, perm);
-#if 1|| defined VERBOSE
-	printf("changed filter order to: %s\n", pmPrint(perm, buf, BUFSIZ));
-#endif
     /* XXX lh fexec_update_bypass(fdata); */
 }
 

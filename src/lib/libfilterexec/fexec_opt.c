@@ -12,7 +12,7 @@
 extern void update_filter_order(filter_data_t *fdata, const permutation_t *perm);
 
 
-#define VERBOSE 1
+//#define VERBOSE 1
 
 #ifdef VERBOSE
 #define   IFVERBOSE

@@ -16,6 +16,8 @@
 #include "ring.h"
 #include "lib_searchlet.h"
 #include "lib_odisk.h"
+#include "lib_dctl.h"
+#include "dctl_common.h"
 #include "lib_search_priv.h"
 #include "filter_exec.h"
 
@@ -55,7 +57,14 @@ bg_main(void *arg)
 	int			any;
 	device_handle_t *	cur_dev;
 	struct timespec timeout;
+	uint32_t			loop_count = 0;
 
+
+	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
+	assert(err == 0);
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count", DCTL_DT_UINT32,
+					dctl_read_uint32, dctl_write_uint32, &loop_count);
+	assert(err == 0);
 
 	sc = (search_context_t *)arg;
 
@@ -73,6 +82,7 @@ bg_main(void *arg)
 	 */
 	
 	while (1) {
+		loop_count++;
 
 		/*
 		 * This code processes the objects that have not yet
@@ -118,6 +128,7 @@ bg_main(void *arg)
 						/* XXX log */
 					}
 				}
+					
 
 			} else {
 				/*

@@ -91,6 +91,9 @@ extern int bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 
 extern int log_start(search_context_t *sc);
 
+
+extern int dctl_start(search_context_t *sc);
+
 gid_map_t *read_gid_map(char *mapfile);
 
 #endif

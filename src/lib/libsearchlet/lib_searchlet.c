@@ -20,6 +20,8 @@
 #include "lib_search_priv.h"
 #include "lib_log.h"
 #include "lib_hstub.h"
+#include "lib_dctl.h"
+#include "dctl_common.h"
 
 
 #define	PROC_RING_SIZE		1024
@@ -47,6 +49,15 @@ ls_init_search()
 	/*
 	 * Initialize the logging on the local host.
 	 */
+	dctl_init();
+
+	err = dctl_register_node(ROOT_PATH, HOST_PATH);
+	assert(err == 0);
+
+	err = dctl_register_node(ROOT_PATH, DEVICE_PATH);
+	assert(err == 0);
+
+
 	log_init();
 	
 
@@ -69,6 +80,7 @@ ls_init_search()
 
 
 	log_start(sc);
+	dctl_start(sc);
 	
 	bg_init(sc, 1);
 

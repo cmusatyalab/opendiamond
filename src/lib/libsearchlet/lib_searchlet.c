@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include "ring.h"
 #include "lib_searchlet.h"

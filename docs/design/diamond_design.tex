@@ -1,0 +1,63 @@
+%%\input{texcam}
+\documentclass{article}
+\usepackage{times}
+\usepackage{mathptm}
+\usepackage{url,epsfig,graphicx,color}
+\usepackage{cite,xspace}
+
+\newcommand{\rw}[1]{{\em #1}}
+
+\title{Diamond Design}
+\author{
+  Larry Huston
+}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Introduction}
+\label{Introduction}
+
+The document provides an overview of the different components 
+in the Diamond implementation and how they integrate together.
+
+The Diamond implementation is currently implemented as user
+space Linux software.   There are two logical pieces of
+software the host code and the active disk code.  Each of these
+are built using a set of libraries, many of these libraries are
+in common between both implementations.
+
+Many of the different library implementations create their
+own thread of control to perform work.  In almost all
+cases any communcation between the various components
+is asynchronous (message passing).  This allows us
+to get maximum concurrency.  This also applies to all
+of the communications between the host and the storage devices.
+
+
+\subsection{Host Implementation}
+
+The host implemenation is a library that is linked against the domain
+application.  This library is composed of several other libraries
+that do most of the work.  Figure~\ref{fig:hostoverview} shows
+the major components of this library.
+
+\begin{figure}[tbp]
+\begin{center}
+\includegraphics[width=\linewidth]{pics/host_structure}%
+\end{center}
+\caption{\textbf\{Host Implementation.}
+The different components of the host implementation.
+XXX fill in.
+\label{fig:hostoeverview}
+\end{figure}
+                                                                                
+
+
+\subsection{Disk Implementation}
+
+
+
+\end{document}

@@ -136,7 +136,6 @@ bg_main(void *arg)
 					free(obj_info);
 					continue;
 				}
-				free(obj_info);
 
 				/*
 				 * Now that we have an object, go ahead
@@ -148,9 +147,10 @@ bg_main(void *arg)
 					/* XXX printf("releasing object \n");*/
 					ls_release_object(sc, new_obj);
 					bg_decrement_pend_count(sc);
+					free(obj_info);
 				} else {
 					/* XXXprintf("putting object on ring \n"); */
-					err = ring_enq(sc->proc_ring, (void *)new_obj);
+					err = ring_enq(sc->proc_ring, (void *)obj_info);
 					if (err) {
 						/* XXX handle overflow gracefully !!! */
 						/* XXX log */
@@ -217,12 +217,15 @@ bg_main(void *arg)
 					/* XXX clear out the proc ring */
 					{
 						obj_data_t *		new_obj;
+						obj_info_t *		obj_info;
 
 						while(!ring_empty(sc->proc_ring)) {
 							/* XXX lock */
-							new_obj = (obj_data_t *)ring_deq(sc->proc_ring);
+							obj_info = (obj_info_t *)ring_deq(sc->proc_ring);
+							new_obj = obj_info->obj;
 							ls_release_object(sc, new_obj); 
 							bg_decrement_pend_count(sc);
+							free(obj_info);
 						}
 					}
 				

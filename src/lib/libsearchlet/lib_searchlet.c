@@ -604,6 +604,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 
 	search_context_t	*sc;
 	obj_data_t	*	obj_data;
+	obj_info_t	*	obj_info;
 	void *			data;
 	struct timespec 	timeout;
 
@@ -617,6 +618,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 	 * then we either spin or return EWOULDBLOCK based on the
 	 * flags.
 	 */
+again:
 	while ((data = ring_deq(sc->proc_ring)) == NULL) {
 
 		/*
@@ -644,15 +646,23 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 		nanosleep(&timeout, NULL);
 
 	}
-	obj_data = (obj_data_t *)data;
+	obj_info = (obj_info_t *)data;
+	obj_data = obj_info->obj;
+	if (sc->cur_search_id != obj_info->ver_num) {
+		ls_release_object(sc, obj_data);
+		decrement_pend_count(sc);
+		free(obj_info);
+		goto again;
+	}
 
+	free(obj_info);
 	decrement_pend_count(sc);
 
 	/* XXX how should we get this state really ?? */
 	obj_data->cur_offset = 0;
 	obj_data->cur_blocksize = 1024;
 
-	*obj_handle = (ls_obj_handle_t *)data;
+	*obj_handle = (ls_obj_handle_t *)obj_data;
 
 	return (0);
 }

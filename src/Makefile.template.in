@@ -8,6 +8,19 @@ FLEX = flex
 MKDIR = mkdir
 
 
+#
+# Other misc objects to remove during a make clean operation.
+# For now we remove profiling object (gmon.out) and any core
+# files that have been generated.
+#
+
+CLEAN_OTHERS += gmon.out core.*
+
+#
+# Objects to remove during "diskclean".  For now just the .depend
+#
+DIST_OBJS += .depend
+
 
 %.o: %.S
 	${CPP} $(filter -I% -D%, ${INCDIR} ${CFLAGS}) $< | \
@@ -70,7 +83,17 @@ endif
 #
 clean: 
 ifneq ($(strip ${OBJS} ${PROG} ${CLEAN_OTHERS} $(TARGETS)),)
-	${RM} ${OBJS} $(TARGETS) ${PROG} ${CLEAN_OTHERS}
+	${RM} ${OBJS} $(TARGETS) $(PROG) $(CLEAN_OTHERS)
+endif
+	+${do-subdirs}
+
+
+#
+# Clean up the objects and binary in this directory and its children
+#
+distclean: 
+ifneq ($(strip ${OBJS} ${PROG} $(CLEAN_OTHERS) $(TARGETS) $(DIST_OBJS)),)
+	${RM} ${OBJS} $(TARGETS) ${PROG} $(CLEAN_OTHERS) $(DIST_OBJS)
 endif
 	+${do-subdirs}
 

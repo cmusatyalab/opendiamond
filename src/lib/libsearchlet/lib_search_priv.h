@@ -59,6 +59,7 @@ typedef struct {
  */
 
 #define	OBJ_QUEUE_SIZE		1024
+struct filter_info;
 typedef struct search_context {
 	int			cur_search_id;	/* ID of current search */
 	device_handle_t *	dev_list;
@@ -68,7 +69,7 @@ typedef struct search_context {
 	ring_data_t *		bg_ops;	/* unprocessed objects */
 	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
-	void *		bg_froot; /* filter_info_t -RW */
+	struct filter_info     *bg_froot; /* filter_info_t -RW */
 } search_context_t;
 
 /*

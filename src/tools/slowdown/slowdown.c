@@ -10,6 +10,9 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 
 #include <time.h>
 #include <sched.h>
@@ -56,8 +59,6 @@ tv_to_float(struct timeval *tv)
 int
 over_adj_amt(double ratio, double target, int loop_val)
 {
-	int	new_target;
-	int	delta;
 
 	if ((ratio - target) > .10) {
 		return(10000);
@@ -71,8 +72,6 @@ over_adj_amt(double ratio, double target, int loop_val)
 int
 under_adj_amt(double ratio, double target, int loop_val)
 {
-	int	new_target;
-	int	delta;
 
 	if ((target - ratio) > .1) {
 		return(10000);
@@ -85,11 +84,10 @@ under_adj_amt(double ratio, double target, int loop_val)
 
 
 int 
-main(int argn, char* argv[]) 
+main(int argc, char* argv[]) 
 {
 	struct sched_param params;
 	float	target;
-	float	sum;
 	unsigned int		loop_val = INIT_LOOP_VAL;;
 	struct	rusage		user_time_start;
 	struct	rusage		user_time_end;
@@ -100,6 +98,9 @@ main(int argn, char* argv[])
 	double	wtime;
 	double	app_time;
 	double	ratio;
+	pid_t	parent_pid;
+	int		have_pid = 0;
+	pid_t	new_pid;
 
 
 
@@ -109,13 +110,24 @@ main(int argn, char* argv[])
 	sched_getparam(0, &params);
 	params.sched_priority = 50;
 	if (sched_setscheduler(0, SCHED_FIFO, &params)) {
-		printf( "Error: %d\n", errno );
+		perror("Failed to set scheduler");
 		exit(0);
 	}
 	
-
+	if (argc >= 2) {
+		parent_pid = atoi(argv[2]);
+		have_pid = 1;
+	}
 
 	for (loop = 0; loop < 1000000; loop++) {
+		if (have_pid) {
+			new_pid = waitpid(parent_pid, NULL,  WNOHANG);
+			if (new_pid != 0) {
+				printf("parent exited \n");
+				exit(0);
+			}
+		}
+			
 		err = getrusage(RUSAGE_SELF, &user_time_start);
 		assert(err == 0);
 		err = gettimeofday(&wall_start, &tz);
@@ -143,16 +155,18 @@ main(int argn, char* argv[])
 
 		ratio = app_time/wtime;
 
+#ifdef	XXX
 		printf("ratio %f  target %f \n", ratio, target);
+#endif
 
 		if (ratio < target) {
 			loop_val += under_adj_amt(ratio, target, loop_val);
 		} else {
 			loop_val -= over_adj_amt(ratio, target, loop_val);
 		}
-
+#ifdef	XXX
 		printf("loop_val %d \n", loop_val);
-
+#endif
 	}
 	return 0;
 }

@@ -70,8 +70,52 @@ static opt_policy_t policy_arr[] = {
  */
 int	fexec_fixed_split = 0;	/* we use a fixed partioning if this is 1 */
 int	fexec_fixed_ratio = 0;	/* percentage for a fixed partitioning */
+int	fexec_cpu_slowdown = 0;	/* percentage slowdown for CPU  */
+
+char 		name_str[40];
+char 		pid_str[40];
+
+int
+fexec_set_slowdown(void *cookie, int data_len, char *val)
+{
+	uint32_t	data;
+	pid_t		new_pid;
+	int			err;
+	pid_t		my_pid;
+	
+
+	data = *(uint32_t *)val;
+
+	if (fexec_cpu_slowdown != 0) {
+		return(EAGAIN);
+	}
+	
+	if (data == 0) {
+		return(0);
+	}
+
+	if (data > 90) {
+		return(EINVAL);
+	}
 
 
+	my_pid = getpid();
+	
+	new_pid = fork();
+	if (new_pid == 0) {
+		sprintf(name_str, "%d", data);
+		printf("forking with arg %s \n", name_str);
+		err = execlp("/home/diamond/bin/slowdown", "slowdown", name_str, 
+			pid_str, NULL);
+		if (err) {
+			
+			perror("exec failed:");
+		}
+	}
+
+	return(0);	
+
+}
 
 /* ********************************************************************** */
 
@@ -86,6 +130,9 @@ fexec_system_init()
 
 	dctl_register_leaf(DEV_FEXEC_PATH, "fixed_ratio", DCTL_DT_UINT32,
 		dctl_read_uint32, dctl_write_uint32, &fexec_fixed_ratio);
+
+	dctl_register_leaf(DEV_FEXEC_PATH, "cpu_slowdown", DCTL_DT_UINT32,
+		dctl_read_uint32, fexec_set_slowdown, &fexec_cpu_slowdown);
 
 #ifdef VERBOSE
   	fprintf(stderr, "fexec_system_init: policy = %d\n", 

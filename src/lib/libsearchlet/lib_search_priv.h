@@ -21,7 +21,7 @@
 #define	DEV_FLAG_BLOCKED		0x04
 struct search_context;
 
-#define	MAX_DEV_GROUPS		8
+#define	MAX_DEV_GROUPS		32
 
 typedef struct device_handle {
 	struct device_handle * 	next;

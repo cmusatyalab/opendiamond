@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <assert.h>
 #include <stdint.h>
+#include <values.h>
 
 #include "lib_od.h"
 #include "lib_odisk.h"
@@ -20,6 +21,7 @@
 #include "rtimer.h"
 #include "rgraph.h"
 #include "rcomb.h"
+#include "fexec_stats.h"
 
 /*
  * This function walks through the list of filters and resets
@@ -293,32 +295,82 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
   double pass = 1;		/* cumul pass rate */
   double totalcost = 0;		/* = utility */
   filter_info_t *info;
+  char buf[BUFSIZ];
+  int n;
 
   /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
   assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
+  //printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ));
+
   for(i=0; i < pmLength(perm); i++) {
     double c, p;
     info = &fdata->fd_filters[pmElt(perm, i)];
-    c = info->fi_time_ns;
+    c = info->fi_time_ns / 1000000; /* ms */
+    n = info->fi_called;
 
     /* lookup this permutation */
     fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); /* XXX */
     if(fprob) {
       p = (double)fprob->num_pass / fprob->num_exec;
-    } else if(info->fi_called > 1) {
+    } else if(n > 1) {
       /* permutation not found, try assuming independence */
-      p = (double)info->fi_drop / info->fi_called;
+      p = 1.0 - (double)info->fi_drop / n;
     } else {
       /* really no data, return an error */
+      //printf("fexec_evaluate: could not evaluate permutation, giving up\n");
       return 1;
+      //p = 1;			/* cost will be 0 anyway */
+      //n = 1;
     }
 
-    totalcost += pass * c;		/* prev cumul pass * curr cost */
+    totalcost += pass * c / n;		/* prev cumul pass * curr cost */
     pass *= p;
   }
 
-  *utility = totalcost;
+  *utility = INT_MAX - totalcost;
+  assert(*utility >= 0);
+
+  printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
 
   return err;
+}
+
+int
+fexec_single(filter_data_t *fdata, int fid, int *utility) {
+  filter_info_t *info;
+  double c, n, p;
+  double wc;
+  int err = 0;
+
+  info = &fdata->fd_filters[fid];
+  n = info->fi_called;
+  if(!n) n = 1;		/* avoid div 0 */
+  c = info->fi_time_ns / 1000000 / n; /* ms */
+  p = 1.0 - (double)info->fi_drop / n;
+
+  wc = p * c;
+
+  *utility = INT_MAX - wc;
+  return err;
+}
+
+
+/* debug function */
+void
+fexec_print_cost(const filter_data_t *fdata, const permutation_t *perm) {
+  int i;
+  const filter_info_t *info;
+  double c, n, p;
+
+  printf("[");
+  for(i=0; i < pmLength(perm); i++) {
+    info = &fdata->fd_filters[pmElt(perm, i)];
+    c = info->fi_time_ns / 1000000; /* ms */
+    n = info->fi_called;
+    if(!n) n = 1;		/* avoid div 0 */
+    p = 1.0 - (double)info->fi_drop / n;
+   printf(" %.1f/%.0f%%", c/n, p*100.0);
+  }
+  printf(" ]\n");
 }

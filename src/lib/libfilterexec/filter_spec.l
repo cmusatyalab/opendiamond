@@ -31,7 +31,7 @@ static int  filter_error();
 
 /* #define VERBOSE */
 
-#define         DATA_INCR           8    
+#define         DATA_INCR           16    
 static int cur_filt_id = -1;
 
 filter_data_t   *fdata;
@@ -362,6 +362,8 @@ read_filter_spec(char *spec_name, filter_data_t **fdp)
 
     fdata->fd_max_filters = DATA_INCR;
     fdata->fd_num_filters = 0;
+    fdata->fd_perm = NULL;
+    fdata->fd_po = NULL;
 
     for (i=0; i < PROB_HASH_BUCKETS; i++) {
         LIST_INIT(&fdata->fd_prob_hash[i]);    

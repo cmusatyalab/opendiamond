@@ -20,18 +20,9 @@
 #include "rtimer.h"
 #include "rgraph.h"
 #include "fexec_stats.h"
+#include "fexec_opt.h"
 
 
-static void update_filter_order(filter_data_t *fdata, const permutation_t *perm);
-
-
-static void *hill_climb_new(const filter_data_t *fdata);
-static void hill_climb_delete(void *);
-static void hill_climb_optimize(void *context, filter_data_t *fdata);
-
-static void *best_first_new(const filter_data_t *fdata);
-static void best_first_delete(void *);
-static void best_first_optimize(void *context, filter_data_t *fdata);
 
 #define VERBOSE 1
 
@@ -41,26 +32,21 @@ static void best_first_optimize(void *context, filter_data_t *fdata);
 static filter_info_t  		*active_filter = NULL;
 static char			*no_filter = "None";
 
+
+
+
+/* ********************************************************************** */
+/* filter optimization policy defs */
+/* ********************************************************************** */
+
 typedef struct policy_t {
-	void *(*p_new)(const filter_data_t *);
+	void *(*p_new)(const struct filter_data *);
 	void  (*p_delete)(void *context);
-	void  (*p_optimize)(void *context, filter_data_t *);
+	void  (*p_optimize)(void *context, struct filter_data *);
 	void *p_context;
 } policy_t;
 
-policy_t policy_arr[] = {
-  { NULL, NULL, NULL, NULL },
-  { hill_climb_new,
-    hill_climb_delete,
-    hill_climb_optimize, 
-    NULL },
-  { best_first_new,
-    best_first_delete,
-    best_first_optimize, 
-    NULL },
-  { NULL, NULL, NULL, NULL }
-};
-
+/* index into table below */
 #define NULL_POLICY 0
 #define HILL_CLIMB_POLICY 1
 #define BEST_FIRST_POLICY 2
@@ -69,155 +55,14 @@ policy_t policy_arr[] = {
 //#define CURRENT_POLICY BEST_FIRST_POLICY
 //#define CURRENT_POLICY HILL_CLIMB_POLICY
 
-/* ********************************************************************** */
+static policy_t policy_arr[] = {
+  { NULL, NULL, NULL, NULL },
+  { hill_climb_new, hill_climb_delete, hill_climb_optimize, NULL },
+  { best_first_new, best_first_delete, best_first_optimize, NULL },
+  { NULL, NULL, NULL, NULL }
+};
 
-static void *
-hill_climb_new(const filter_data_t *fdata) {
-  hc_state_t *hc = (hc_state_t *)malloc(sizeof(hc_state_t));
-  char buf[BUFSIZ];
 
-  if(hc) {
-    hill_climb_init(hc, fdata->fd_perm);
-  }
-
-  printf("hill climb starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
-  return (void *)hc;
-}
-
-static void
-hill_climb_delete(void *context) {
-	hc_state_t *hc = (hc_state_t *)context;
-	hill_climb_cleanup(hc);
-	free(hc);
-}
-
-static void
-hill_climb_optimize(void *context, filter_data_t *fdata) {
-	int err = 0;
-	hc_state_t *hc = (hc_state_t *)context;
-	char buf[BUFSIZ];
-	static int optimizer_done = 0; /* time before restart */
-
-	printf("hc-opt\n");
-
-	if(optimizer_done > 0) {
-		optimizer_done--;
-		/* restart hill climbing (in case we have better data now */
-		if(!optimizer_done) {
-			printf("restarting hill climb\n");
-			hill_climb_cleanup(hc);
-			hill_climb_init(hc, fdata->fd_perm);
-		}
-		return;
-	}
-
-	while(!err) {
-		//printf("hc\n");
-		err = hill_climb_step(hc, fdata->fd_po, 
-				      (evaluation_func_t)fexec_evaluate, fdata);
-	}
-	switch(err) {
-	case RC_ERR_COMPLETE:
-		printf("hill climb optimizer suggests: %s\n", 
-		       pmPrint(hill_climb_result(hc), buf, BUFSIZ));
-		fexec_print_cost(fdata, hill_climb_result(hc));
-		/* update and restart */
-		if(pmEqual(fdata->fd_perm, hill_climb_result(hc))) {
-			printf("hill climbing didn't find further improvement\n");
-			optimizer_done = 5;
-			//hill_climb_cleanup(hc);
-		} else {
-			update_filter_order(fdata, hill_climb_result(hc));
-			hill_climb_cleanup(hc);
-			hill_climb_init(hc, fdata->fd_perm);
-		}
-		break;
-	case RC_ERR_NODATA:
-		printf("hill climb optimizer needs more data for: %s\n", 
-		       pmPrint(hill_climb_next(hc), buf, BUFSIZ));
-		update_filter_order(fdata, hill_climb_next(hc));
-		break;
-	default:
-		break;		
-	}
-		
-}
-
-/* ********************************************************************** */
-
-static void *
-best_first_new(const filter_data_t *fdata) {
-  bf_state_t *bf = (bf_state_t *)malloc(sizeof(bf_state_t));
-  char buf[BUFSIZ];
-
-  if(bf) {
-    best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
-		    (evaluation_func_t)fexec_evaluate, fdata);
-  }
-
-  printf("best_first starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
-  return (void *)bf;
-}
-
-static void
-best_first_delete(void *context) {
-	bf_state_t *bf = (bf_state_t *)context;
-	best_first_cleanup(bf);
-	free(bf);
-}
-
-static void
-best_first_optimize(void *context, filter_data_t *fdata) {
-	int err = 0;
-	bf_state_t *bf = (bf_state_t *)context;
-	char buf[BUFSIZ];
-	static int optimizer_done = 0; /* time before restart */
-
-	printf("bf-opt\n");
-
-	if(optimizer_done > 0) {
-		optimizer_done--;
-		/* restart hill climbing (in case we have better data now */
-		if(!optimizer_done) {
-			printf("restarting hill climb\n");
-			best_first_cleanup(bf);
-			best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
-					(evaluation_func_t)fexec_evaluate, fdata);
-		}
-		return;
-	}
-
-	while(!err) {
-		//printf("bf\n");
-	  err = best_first_step(bf);
-	}
-	switch(err) {
-	case RC_ERR_COMPLETE:
-		printf("optimizer suggests: %s\n", 
-		       pmPrint(best_first_result(bf), buf, BUFSIZ));
-		fexec_print_cost(fdata, best_first_result(bf));
-		/* update and restart */
-		if(pmEqual(fdata->fd_perm, best_first_result(bf))) {
-			printf("hill climbing didn't find further improvement\n");
-			optimizer_done = 5;
-			//best_first_cleanup(bf);
-		} else {
-			update_filter_order(fdata, best_first_result(bf));
-			best_first_cleanup(bf);
-			best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
-					(evaluation_func_t)fexec_evaluate, fdata);
-		}
-		break;
-	case RC_ERR_NODATA:
-		printf("optimizer needs more data for: %s\n", 
-		       pmPrint(best_first_next(bf), buf, BUFSIZ));
-		update_filter_order(fdata, best_first_next(bf));
-		break;
-	default:
-		break;		
-	}
-		
-}
 
 /* ********************************************************************** */
 
@@ -443,7 +288,7 @@ resolve_filter_deps(filter_data_t *fdata)
 #ifdef VERBOSE
 		printf("adding to graph: %s\n", cur_filter->fi_name);
 #endif
-		cur_filter->fi_gnode->val = 100000-cur_filter->fi_merit; /* XXX */
+		cur_filter->fi_gnode->val = cur_filter->fi_merit;
 	}
 
 
@@ -566,7 +411,12 @@ resolve_filter_deps(filter_data_t *fdata)
 
 
 	/* XXX print out the order */
-	//print_filter_list("filterexec: filter seq ordering", fdata);
+	printf("filterexec: filter seq ordering");
+	for(i=0; i<pmLength(fdata->fd_perm); i++) {
+	  printf(" %s", fdata->fd_filters[pmElt(fdata->fd_perm, i)].fi_name);
+	}
+	printf("\n");
+
 	return(0);
 }
 
@@ -669,7 +519,7 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 	return(0);
 }
 
-static void
+void
 update_filter_order(filter_data_t *fdata, const permutation_t *perm) {
 	char buf[BUFSIZ];
 

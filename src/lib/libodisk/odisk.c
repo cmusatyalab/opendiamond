@@ -608,7 +608,7 @@ static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
 
-#define	OBJ_RING_SIZE	16
+#define	OBJ_RING_SIZE	8
 
 static ring_data_t *    obj_pr_ring;
 static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
@@ -716,13 +716,9 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 	rtimer_t        rt;
 	u_int64_t       time_ns;
 	u_int64_t       stack_ns;
-	struct timeval  wstart;
-	struct timezone tz;
 
 	assert( pr_obj != NULL );
 	stack_ns = pr_obj->stack_ns;
-	err = gettimeofday(&wstart, &tz);
-	assert(err == 0);
 
 	/*
 	 * Load base object 
@@ -737,15 +733,10 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 
 	/* see if we have partials to load */
 	if ((pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || 
-	    (pr_obj->iattrsig==NULL) || (pr_obj->oattr_fnum==0)) {
-		/* load the partial state */
+	    (pr_obj->iattrsig==NULL) || (pr_obj->oattr_fnum==0) ||
+			(dynamic_load_oattr( ring_count(obj_ring) ) == 0) ) {
 		return(0);
 	}
-
-	if( dynamic_load_oattr( ring_count(obj_ring) ) == 0 ) {
-		return(0);
-	}
-
 
 	/* load the partial state */
 	for( i=0; i<pr_obj->oattr_fnum; i++) {
@@ -910,12 +901,17 @@ odisk_main(void *arg)
 	log_thread_register(ostate->log_cookie);
 
 	while (1) {
+		pthread_mutex_lock(&shared_mutex);
+		while (search_active == 0) {
+			pthread_cond_wait(&bg_active_cv, &shared_mutex);
+		}
+		pthread_mutex_unlock(&shared_mutex);
 		/*
 		 * XXX??? If there is no search don't do anything 
-		 */
 		while (search_active == 0) {
 			sleep(1);
 		}
+		 */
 
 		/*
 		 * get the next object 
@@ -923,9 +919,13 @@ odisk_main(void *arg)
 		err = odisk_pr_next(&pobj);
 		if (err == ENOENT) {
 			odisk_release_pr_obj(pobj);
+			pthread_mutex_lock(&shared_mutex);
 			search_active = 0;
 			search_done = 1;
+<<<<<<< odisk.c
+=======
 			pthread_mutex_lock(&odisk_mutex);
+>>>>>>> 1.61
 			pthread_cond_signal(&fg_data_cv);
 			pthread_mutex_unlock(&odisk_mutex);
 			continue;
@@ -1631,22 +1631,14 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 static int
 dynamic_load_oattr(int ring_depth)
 {
-	unsigned int random;
-
 	if( dynamic_load == 0 ) {
 		return(1);
 	}
 
 	if( ring_depth < 3 ) {
 		return(0);
+	} else {
+		return(1);
 	}
 
-/*
-	random = 1 + (int) (100.0 * rand()/(RAND_MAX+1.0) );
-	if( random <= (ring_depth*100/OBJ_RING_SIZE) ) {
-		return(1);
-	} else {
-		return(0);
-	}
-*/
 }

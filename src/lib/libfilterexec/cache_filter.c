@@ -927,7 +927,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	return pass;
 }
 
-#define SAMPLE_NUM		16
+#define SAMPLE_NUM		100
 //#define AJUST_RATE		5
 
 unsigned int sample_counter = 0;

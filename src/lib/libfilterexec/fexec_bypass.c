@@ -189,6 +189,7 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
 			/*
 			 * lookup this permutation 
 			 */
+#ifdef	XXX
 			/*
 			 * XXX 
 			 */
@@ -203,7 +204,14 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
 				/* unknown value, use default */
 				p = FSTATS_UNKNOWN_PROB;
 			}
-
+#else
+			if (info->fi_called < FSTATS_VALID_NUM) {
+				p = FSTATS_UNKNOWN_PROB;
+			} else {
+				p = (double) info->fi_pass / 
+				    (double)info->fi_called;
+			}
+#endif
 			assert(p >= 0 && p <= 1.0);
 			/*
 			 * for now we don't need to consider the bypass
@@ -299,8 +307,7 @@ fexec_set_grouping_trivial(filter_data_t * fdata, permutation_t * perm)
  * when it is created, of size pmLength(perm)+1
  *
  */
-typedef struct
-{
+typedef struct {
 	/*
 	 * The cumulative CPU cost of the sub-permutation up to (but not including)
 	 * this filter. (e.g., 0 for the first element, the full cost of the
@@ -316,8 +323,7 @@ typedef struct
 	int j;  /* filter unit end */
 	double c_i;  /* cumulative CPU cost up to filter i */
 	double c_j;  /* cumulative CPU cost up to filter j */
-}
-bp_hybrid_state_t;
+} bp_hybrid_state_t;
 
 void
 fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_ms)
@@ -328,22 +334,27 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 	bp_hybrid_state_t* hstate;
 	double dcost = 0;
 	double this_cost;
-	double p, pass = 1;
-	double maxbytes = 100000000.0;
+	double p, pass = 1.0;
+	double maxbytes = 300000.0;
 	double ratio;
 
-	hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
+	hstate = (bp_hybrid_state_t *) 
+		malloc(sizeof(*hstate) * (pmLength(perm)+1));
 	assert(hstate != NULL);
 
 	/*
 	 * Reconstruct the cost function of the greedy distribution.
 	 */
-	for(i=0; i < pmLength(perm); i++) {
+	for (i=0; i < pmLength(perm); i++) {
 		int n;
 		double c;
 
 		hstate[i].dcost = dcost;
 		hstate[i].greedy_ncost = pass * maxbytes;
+
+		// XXX printf("hstate[%d] dc = %f greed %f\n",
+		// XXX	i, hstate[i].dcost, hstate[i].greedy_ncost);
+		// XXX printf("%f \n", pass);
 
 		info = &fdata->fd_filters[pmElt(perm, i)];
 		n = info->fi_called;
@@ -353,8 +364,9 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 			n = FSTATS_UNKNOWN_NUM;
 		}
 
+		/* update cumulative cost */
 		maxbytes += (double) info->fi_added_bytes / (double) n;
-		this_cost = pass * ((double) c / (double) n); /* update cumulative cost */
+		this_cost = pass * ((double) c / (double) n); 
 
 		/* we don't want the incremental cost to be zero */
 		if (this_cost == 0.0) {
@@ -362,18 +374,31 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 		}
 		dcost += this_cost;
 
+#ifdef	XXX
 		/* obtain conditional pass rate */
 		fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm));
 		if(fprob) {
+			printf("num exec %d pass %d\n", fprob->num_exec, 
+				fprob->num_pass);
 			if (fprob->num_exec < FSTATS_VALID_NUM) {
 				p = FSTATS_UNKNOWN_PROB;
 			} else {
-				p = (double) fprob->num_pass / fprob->num_exec;
+				p = (double) fprob->num_pass / (double)fprob->num_exec;
 			}
 		} else {
 			/* unknown value, use default */
+			printf("!!! no lookup \n");
 			p = FSTATS_UNKNOWN_PROB;
 		}
+		printf("p %f \n", p);
+#else 
+		if (info->fi_called < FSTATS_VALID_NUM) {
+			p = FSTATS_UNKNOWN_PROB;
+		} else {
+			p = (double) info->fi_pass / (double)info->fi_called;
+		}
+
+#endif
 
 		assert(p >= 0 && p <= 1.0);
 
@@ -384,6 +409,8 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 	}
 	hstate[i].dcost = dcost;
 	hstate[i].greedy_ncost = pass * maxbytes;
+		// XXX printf("hstate[%d] dc = %f greed %f\n",
+			// XXX i, hstate[i].dcost, hstate[i].greedy_ncost);
 
 	/*
 	 * Identify optimal breakdown into unit subsequences.
@@ -397,13 +424,15 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 			/* compute reduction factor for candidate filter unit */
 			assert((hstate[j].dcost - hstate[i].dcost)>0.0);
 
-			delta = (hstate[j].greedy_ncost - hstate[i].greedy_ncost) /
+			delta = (hstate[j].greedy_ncost-hstate[i].greedy_ncost)/
 			        (hstate[j].dcost - hstate[i].dcost);
 			if(delta < lowest_delta) {
 				/* record candidate unit parameters */
 				lowest_delta = delta;
 				best_j = j;
 			}
+		//XXX	printf("i=%d j=%d delta=%f low=%f\n", i,j, delta,
+		//XXX		lowest_delta);
 		}
 
 		/*
@@ -416,9 +445,12 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 			hstate[k].c_j = hstate[best_j].dcost;
 		}
 
-		i = best_j-1; /* next unit */
+		// XXX printf("i=%d bestj %d\n", i, best_j);
+
+		i = best_j-1 ; /* next unit */
 	}
 
+	// XXX printf("\n\nsetting hybrid dist\n");
 
 	/*
 	 * Compute the greedy distribution on unit subsequences.
@@ -435,23 +467,36 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 	}
 
 	for(j=0; j<hstate[i].i; j++) {
+		// XXX printf(" %d is RANDMAX (%s)\n", j,
+			// XXX (fdata->fd_filters[pmElt(perm, j)]).fi_name);
 		(fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
 	}
 
 	ratio =  (target_ms - hstate[i].c_i) / (hstate[i].c_j - hstate[i].c_i);
 
 	/* cap ratio at 1 */
-	if(ratio>1.0)
+	if (ratio>1.0) {
 		ratio = 1.0;
+	}
+
+	// XXX printf("target ration %f \n", ratio);
 
 	(fdata->fd_filters[pmElt(perm, hstate[i].i)]).fi_bpthresh =
 	    (int)((double)RAND_MAX * ratio);
 
-	for(j=hstate[i].i+1; j<hstate[i].j; j++) {
+	// XXX printf(" %d is %d (%s)\n", hstate[i].i, 
+		// XXX (int)((double)RAND_MAX * ratio),
+		// XXX (fdata->fd_filters[pmElt(perm, hstate[i].i)]).fi_name);
+
+	for (j=hstate[i].i+1; j<hstate[i].j; j++) {
 		(fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
+		// XXX printf(" %d is %d (%s)\n", j, RAND_MAX,
+		// XXX (fdata->fd_filters[pmElt(perm, j)]).fi_name);
 	}
-	for(j=hstate[i].j; j<pmLength(perm); j++) {
+	for (j=hstate[i].j; j<pmLength(perm); j++) {
 		(fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = -1;
+		// XXX printf(" %d is %d (%s)\n", j, -1,
+		  // XXX (fdata->fd_filters[pmElt(perm, j)]).fi_name);
 	}
 
 	free(hstate);
@@ -489,7 +534,9 @@ fexec_set_grouping_hybrid(filter_data_t *fdata, permutation_t *perm,
 			n = 1;
 		}
 		maxbytes += (double) info->fi_added_bytes / (double) n;
-		this_cost = pass * ((double)info->fi_time_ns / (double) n); /* update cumulative cost */
+
+		/* update cumulative cost */
+		this_cost = pass * ((double)info->fi_time_ns / (double) n); 
 		/* we don't want the incremental cost to be zero */
 		if (this_cost == 0.0) {
 			this_cost = SMALL_FRACTION;
@@ -549,8 +596,6 @@ fexec_set_grouping_hybrid(filter_data_t *fdata, permutation_t *perm,
 
 		i = best_j-1; /* next unit */
 	}
-
-
 
 	free(hstate);
 	return;

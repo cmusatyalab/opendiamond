@@ -1293,6 +1293,10 @@ ocache_add_oattr(char *fhandle, uint64_t obj_id, const char *name, off_t len,
 	unsigned char *sig;
 	unsigned int name_len;
 
+
+	/* call function to update stats */
+	ceval_wattr_stats(len);
+
 	if (if_cache_table) {
 		if( ocache_oid == obj_id ) {
 			new_entry = (cache_ring_entry *) malloc( sizeof( *new_entry) );

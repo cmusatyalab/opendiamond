@@ -74,6 +74,8 @@ static permutation_t *cached_perm[MAX_PERM_NUM];
 static int cached_perm_num = 0;
 static int perm_done = 0;
 
+static filter_info_t *active_filter = NULL;
+
 static int search_active = 0;
 static pthread_mutex_t  ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t   active_cv = PTHREAD_COND_INITIALIZER; /*active*/
@@ -469,10 +471,10 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 				cur_filter->fi_pass++;
 			}
 
-			fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm), cur_fidx,
-			                  pass);
+			fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm),
+				 cur_fidx, pass);
 
-			if( !hit ) {
+			if (!hit) {
 				break;
 			}
 		}
@@ -573,6 +575,16 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 	return pass;
 }
 
+
+void
+ceval_wattr_stats(off_t len)
+{
+	if (active_filter != NULL) {
+		active_filter->fi_added_bytes += len;		
+	}
+}
+
+
 int
 ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
                void *cookie, int (*continue_cb)(void *cookie),
@@ -600,7 +612,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	cache_attr_set  *oattr_set;
 	int lookup;
 	int miss=0;
-	char *fpath;
+	char *fpath = NULL;
 
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
 	//printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
@@ -633,6 +645,8 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	     cur_fidx++) {
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
+		active_filter = cur_filter;
+
 		oattr_set = NULL;
 
 		sprintf(timebuf, FLTRTIME_FN, cur_filter->fi_name);
@@ -640,17 +654,20 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		err = obj_read_attr(&obj_handle->attr_info, timebuf,
 		                    &asize, (void *) &time_ns);
 
-		/* we still want to use cached results for filters after cache missing
-		 * point at which we stopped in ceval_filters1, if we can */
-		if( miss == 0 ) {
-			lookup = cache_lookup2(obj_handle->local_id, cur_filter->fi_sig,
-			                       cur_filter->cache_table, &change_attr,
-			                       &conf, &oattr_set, &fpath, err);
+	    /*
+		 * we still want to use cached results for filters after cache 
+         * missing point at which we stopped in ceval_filters1, if we can 
+         */
+		if ((miss == 0) && (use_cache_table)) {
+			lookup = cache_lookup2(obj_handle->local_id, 
+				cur_filter->fi_sig, cur_filter->cache_table, 
+				&change_attr, &conf, &oattr_set, &fpath, err);
 		} else {
 			lookup = ENOENT;
+	    		fpath = NULL;
 		}
 
-		if( (lookup == 0) && (conf < cur_filter->fi_threshold) ) {
+		if ((lookup == 0) && (conf < cur_filter->fi_threshold)) {
 			pass = 0;
 			cur_filter->fi_drop++;
 			cur_filter->fi_called++;
@@ -667,7 +684,8 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 * partitioning, we still use the bypass values
 	         * to determine how much of * the allocation to run.
 		 */
-		if( err == 0 ) {
+		if (err == 0) {
+		    printf("XXX lame cache update \n");
 			cur_filter->fi_called++;
 			cur_filter->fi_cache_pass++;
 		} else {
@@ -705,7 +723,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			 * run the filter and update pass
 			 */
 			if (cb_func) {
-				err = (*cb_func) (cookie, cur_filter->fi_name, &pass, &time_ns);
+				err = (*cb_func)(cookie, cur_filter->fi_name, &pass, &time_ns);
 #define SANITY_NS_PER_FILTER (2 * 1000000000)
 
 				assert(time_ns < SANITY_NS_PER_FILTER);
@@ -756,37 +774,41 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		       rt_time2secs(cur_filter->fi_time_ns) / cur_filter->fi_called);
 #endif
 
-		if( fpath != NULL ) {
+		if (fpath != NULL) {
 			free(fpath);
 			fpath = NULL;
 		}
 
+		// XXX printf("ceval2: update prob, pass %d \n", pass);
+		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm), 
+				cur_fidx, pass);
+
 		if (!pass) {
+			// XXX printf("ceval2: incr drop\n");
 			cur_filter->fi_drop++;
 			break;
 		} else {
 			cur_filter->fi_pass++;
 		}
 
-		if( (lookup == ENOENT) && (miss == 0) ) {
-			//lookup = ocache_wait_lookup(obj_handle, cur_filter->fi_sig, &change_attr, &oattr_set);
-			lookup = cache_wait_lookup(obj_handle, cur_filter->fi_sig, cur_filter->cache_table, &change_attr, &oattr_set);
-			if( lookup == 0 ) {
+		if ((lookup == ENOENT) && (miss == 0)) {
+			lookup = cache_wait_lookup(obj_handle, 
+				cur_filter->fi_sig, cur_filter->cache_table, 
+				&change_attr, &oattr_set);
+			if (lookup == 0) {
 				if( oattr_set != NULL )
 					combine_attr_set(&change_attr, oattr_set);
 			} else {
 				miss = 1;
 			}
 		}
-		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm), cur_fidx,
-		                  pass);
-
 	}
 
 	if ((cur_fidx >= pmLength(fdata->fd_perm)) && pass) {
 		pass = 2;
 	}
 
+	active_filter = NULL;
 	log_message(LOGT_FILT, LOGL_TRACE,
 	            "eval_filters:  done - total time is %lld", stack_ns);
 

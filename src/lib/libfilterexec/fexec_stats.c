@@ -109,6 +109,7 @@ fexec_clear_stats(filter_data_t * fdata)
 		fdata->fd_filters[i].fi_cache_drop = 0;
 		fdata->fd_filters[i].fi_cache_pass = 0;
 		fdata->fd_filters[i].fi_compute = 0;
+		fdata->fd_filters[i].fi_added_bytes = 0;
 	}
 
 }
@@ -280,7 +281,6 @@ fexec_update_prob(filter_data_t * fdata, filter_id_t cur_filt,
 	assert(sorted_list != NULL);
 
 	memcpy(sorted_list, prev_list, (num_prev * sizeof(filter_id_t)));
-
 	qsort(sorted_list, num_prev, sizeof(filter_id_t), id_comp);
 
 	/*
@@ -295,7 +295,6 @@ fexec_update_prob(filter_data_t * fdata, filter_id_t cur_filt,
 	if (pass) {
 		prob->num_pass++;
 	}
-
 
 	/*
 	 * keep the total stats for this union of items 
@@ -314,7 +313,6 @@ fexec_update_prob(filter_data_t * fdata, filter_id_t cur_filt,
 	if (pass) {
 		prob->num_pass++;
 	}
-
 	free(sorted_list);
 	return;
 }

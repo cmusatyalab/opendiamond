@@ -120,9 +120,7 @@ main(int argc , char **argv)
 
 	cookie = sstub_init(&cb_args);
 	if (cookie == NULL) {
-		/* XXX */
-		fprintf(stderr, 
-			"Unable to initialize the communications library\n");
+		fprintf(stderr, "Unable to initialize the communications\n");
 		exit(1);
 	}
 

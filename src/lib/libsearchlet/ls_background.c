@@ -81,16 +81,14 @@ typedef enum {
 } bg_op_type_t;
 
 /* XXX huge hack */
-typedef struct
-{
+typedef struct {
 	bg_op_type_t	cmd;
 	bg_op_type_t	ver_id;
 	char *			filter_name;
 	char *			spec_name;
 	void *			blob;
 	int				blob_len;
-}
-bg_cmd_data_t;
+} bg_cmd_data_t;
 
 
 

@@ -282,40 +282,53 @@ fexec_update_cost(finfo_filter, int pass)
 
 #endif /* XXX_LH */
 
+#define SIGNIFICANT_NUMBER(g) ((g)*8)
 
 /* evaluate a permutation in the context of the currently available
  * data, and return a utility value (higher is better).
  * the function value is non-zero on error
  */
 int
-fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
+fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility) {
   int err=0;
   int i;
   filter_prob_t *fprob;
   double pass = 1;		/* cumul pass rate */
   double totalcost = 0;		/* = utility */
   filter_info_t *info;
-  //char buf[BUFSIZ];
+  char buf[BUFSIZ];
   int n;
 
   /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
   assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
-  //printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ));
+  printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ));
 
   for(i=0; i < pmLength(perm); i++) {
-    double c, p;
+    double c;			/* cost of this filter */
+    double p;			/* pass rate for this filter in this pos */
+    /* pass = pass rate of all filters before this one */
     info = &fdata->fd_filters[pmElt(perm, i)];
-    c = info->fi_time_ns / 1000; /* us */
+    c = info->fi_time_ns;
     n = info->fi_called;
+    if(n < SIGNIFICANT_NUMBER(gen)) {
+      return 1;
+    }
+
+    totalcost += pass * c / n;		/* prev cumul pass * curr cost */
+    printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost);
 
     /* lookup this permutation */
     fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); /* XXX */
     if(fprob) {
       p = (double)fprob->num_pass / fprob->num_exec;
-    } else if(n > 1) {
+      printf("\t(cond p=%f)", p);
+#if 0
+    } else if(n > SIGNIFICANT_NUMBER(gen)) {
       /* permutation not found, try assuming independence */
       p = 1.0 - (double)info->fi_drop / n;
+      printf("\t(indp p=%f)", p);
+#endif
     } else {
       /* really no data, return an error */
       //printf("fexec_evaluate: could not evaluate permutation, giving up\n");
@@ -323,8 +336,9 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
       //p = 1;			/* cost will be 0 anyway */
       //n = 1;
     }
+    printf("\n");
 
-    totalcost += pass * c / n;		/* prev cumul pass * curr cost */
+    assert(p >= 0 && p <= 1.0);
     pass *= p;
 #define SMALL_FRACTION (0.00001)
     /* don't let it go to zero XXX */
@@ -333,34 +347,38 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
     }
   }
 
-  *utility = INT_MAX - totalcost;
-  assert(*utility >= 0);
+  *utility = -totalcost;
+  //assert(*utility >= 0);
 
   //printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
   printf("fexec_evaluate: ");
   fexec_print_cost(fdata, perm);
+  printf(" cost=%s\n", format_number(buf, totalcost));
   return err;
 }
 
 /* not used? */
-int
-fexec_single(filter_data_t *fdata, int fid, int *utility) {
-  filter_info_t *info;
-  double c, n, p;
-  double wc;
-  int err = 0;
+/* int */
+/* fexec_single(filter_data_t *fdata, int fid, int *utility) { */
+/*   filter_info_t *info; */
+/*   double c, n, p; */
+/*   double wc; */
+/*   int err = 0; */
 
-  info = &fdata->fd_filters[fid];
-  n = info->fi_called;
-  if(!n) n = 1;		/* avoid div 0 */
-  c = info->fi_time_ns / 1000 / n; /* us */
-  p = 1.0 - (double)info->fi_drop / n;
+/*   info = &fdata->fd_filters[fid]; */
+/*   n = info->fi_called; */
+/*   if(!n) n = 1;		/\* avoid div 0 *\/ */
+/*   c = info->fi_time_ns / n; */
+/*   p = 1.0 - (double)info->fi_drop / n; */
 
-  wc = p * c;
+/*   wc = p * c; */
 
-  *utility = INT_MAX - wc;
-  return err;
-}
+/*   *utility = (INT_MAX>>4) - wc; */
+/*   assert(*utility >= 0); */
+/*   return err; */
+/* } */
+
+
 
 
 /* debug function */
@@ -370,15 +388,16 @@ fexec_print_cost(const filter_data_t *fdata, const permutation_t *perm) {
   const filter_info_t *info;
   double c, p;
   int n;
+  char buf[BUFSIZ];
 
   printf("[");
   for(i=0; i < pmLength(perm); i++) {
     info = &fdata->fd_filters[pmElt(perm, i)];
-    c = info->fi_time_ns / 1000; /* us */
+    c = info->fi_time_ns;
     n = info->fi_called;
     if(!n) n = 1;		/* avoid div 0 */
     p = info->fi_called - info->fi_drop;
-   printf(" c%.1f,p%.0f/%d", c/n, p, n);
+    printf(" %d=c%s,p%.0f/%d", pmElt(perm, i), format_number(buf, c/n), p, n);
   }
-  printf(" ]\n");
+  printf(" ]");
 }

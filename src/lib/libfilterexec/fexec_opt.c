@@ -64,7 +64,7 @@ hill_climb_optimize(void *context, filter_data_t *fdata) {
 	case RC_ERR_COMPLETE:
 		printf("hill climb optimizer suggests: %s\n", 
 		       pmPrint(hill_climb_result(hc), buf, BUFSIZ));
-		fexec_print_cost(fdata, hill_climb_result(hc));
+		fexec_print_cost(fdata, hill_climb_result(hc)); printf("\n");
 		/* update and restart */
 		if(pmEqual(fdata->fd_perm, hill_climb_result(hc))) {
 			printf("hill climbing didn't find further improvement\n");
@@ -123,7 +123,7 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 		optimizer_done--;
 		/* restart hill climbing (in case we have better data now */
 		if(!optimizer_done) {
-			printf("restarting hill climb\n");
+			printf("--- restarting optimizer ------------------------------\n");
 			best_first_cleanup(bf);
 			best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
 					(evaluation_func_t)fexec_evaluate, fdata);
@@ -137,13 +137,13 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 	}
 	switch(err) {
 	case RC_ERR_COMPLETE:
-		printf("optimizer suggests: %s\n", 
+		printf("optimizer done: %s\n", 
 		       pmPrint(best_first_result(bf), buf, BUFSIZ));
-		fexec_print_cost(fdata, best_first_result(bf));
+		fexec_print_cost(fdata, best_first_result(bf)); printf("\n");
 		/* update and restart */
 		if(pmEqual(fdata->fd_perm, best_first_result(bf))) {
 			printf("optimizer didn't find further improvement\n");
-			optimizer_done = 5;
+			optimizer_done = 10;
 			//best_first_cleanup(bf);
 		} else {
 			update_filter_order(fdata, best_first_result(bf));
@@ -155,7 +155,7 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 	case RC_ERR_NODATA:
 		printf("optimizer needs more data for: %s\n", 
 		       pmPrint(best_first_next(bf), buf, BUFSIZ));
-		printf("\t"); fexec_print_cost(fdata, best_first_next(bf));
+		printf("\t"); fexec_print_cost(fdata, best_first_next(bf)); printf("\n");
 		update_filter_order(fdata, best_first_next(bf));
 		break;
 	default:

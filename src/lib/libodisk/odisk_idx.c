@@ -18,9 +18,16 @@ main(int argc, char **argv)
 {
 	odisk_state_t*	odisk;
 	obj_data_t *	new_obj;
+	char *			path;
 	int		err;
 
-	err = odisk_init(&odisk, "/opt/dir1");
+	if (argc > 1) {
+			path = argv[1];
+	} else {
+			path = "/opt/dir1";
+	}
+
+	err = odisk_init(&odisk, path);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

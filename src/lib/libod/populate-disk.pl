@@ -52,7 +52,7 @@ while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     if(/^-p/) {
 	die $insert_parent = 1;
     }
-    if(/^/-nc$/) {
+    if(/^-nc$/) {
 	$no_convert = 1;
     }
     if(/^-n$/) {

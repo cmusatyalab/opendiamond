@@ -24,7 +24,9 @@ static void filter_threshold();
 static void filter_merit();
 static void filter_threshhold();
 static void filter_args();
-static void filter_functionname();
+static void filter_eval_fn();
+static void filter_init_fn();
+static void filter_fini_fn();
 static void filter_dependency();
 static void filter_in_obj();
 static void filter_out_obj();
@@ -47,7 +49,9 @@ ARG[ \t]+[[:graph:]]+			        {filter_args(); }
 FILTER[ \t]+{ID}			            {new_filter(); }
 THRESHOLD[ \t]+[0-9]+ 			        {filter_threshold(); }
 THRESHHOLD[ \t]+[0-9]+ 			        {filter_threshhold(); }
-FUNCTION[ \t]+[[:alnum:]_]+		        {filter_functionname(); }
+EVAL_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_eval_fn(); }
+INIT_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_init_fn(); }
+FINI_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_fini_fn(); }
 REQUIRES[ \t]+{ID}			            {filter_dependency(); }
 IN_OBJECT[ \t]+[0-9]+			        {filter_in_obj(); }
 OUT_OBJECT[ \t]+UNMODIFIED[ \t]+[0-9]+	{filter_out_obj(FO_UNMODIFIED); }
@@ -71,7 +75,7 @@ eat_token(char *str)
 {
 	char * cur = str;
 
-	while (isalpha(*cur)) {
+	while ((isalpha(*cur))||(*cur == '_')) {
 		cur++;
 	}
 	while (isspace(*cur)) {
@@ -119,6 +123,7 @@ new_filter()
     printf("fdata %p num_filt %d max %d \n", fdata, fdata->fd_num_filters,
 	   fdata->fd_max_filters);
 #endif
+
     cur_filt_id = fdata->fd_num_filters;
     fdata->fd_num_filters++;
 
@@ -247,7 +252,31 @@ filter_args()
 
 
 static void
-filter_functionname()
+filter_eval_fn()
+{
+	char *fname;
+
+	printf("eval function: <%s> \n", yytext);
+	fname = eat_token(yytext); 
+	if (strlen(fname) >= MAX_FILTER_FUNC_NAME) {
+		/* XXX error */
+		return;
+	}
+
+	printf("eval_fn: yytext <%s>  fname <%s> \n", yytext, fname);
+
+    if (cur_filt_id == -1) {
+		fprintf(stderr, "parse error: no filter active\n");
+		assert(0);
+		return;
+    }
+
+	strcpy(fdata->fd_filters[cur_filt_id].fi_eval_name, fname);
+
+}
+
+static void
+filter_init_fn()
 {
 	char *fname;
 
@@ -263,13 +292,30 @@ filter_functionname()
 		return;
     }
 
-	strcpy(fdata->fd_filters[cur_filt_id].fi_fname, fname);
-
-#ifdef VERBOSE
-	printf("function name %s \n", fname);
-#endif
+	strcpy(fdata->fd_filters[cur_filt_id].fi_init_name, fname);
 
 }
+
+static void
+filter_fini_fn()
+{
+	char *fname;
+
+	fname = eat_token(yytext); 
+	if (strlen(fname) >= MAX_FILTER_FUNC_NAME) {
+		/* XXX error */
+		return;
+	}
+
+    if (cur_filt_id == -1) {
+		fprintf(stderr, "parse error: no filter active\n");
+		assert(0);
+		return;
+    }
+
+	strcpy(fdata->fd_filters[cur_filt_id].fi_fini_name, fname);
+}
+
 
 static void
 filter_dependency()

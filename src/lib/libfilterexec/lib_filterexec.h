@@ -34,7 +34,10 @@ extern struct filter_exec_t filter_exec;
 
 void    fexec_system_init();
 
-int     init_filters(char* filterfile, char *fspec, filter_data_t **fdata);
+int     fexec_load_searchlet(char* filterfile, char *fspec, 
+				filter_data_t **fdata);
+int     fexec_init_search(filter_data_t *fdata);
+int     fexec_term_search(filter_data_t *fdata);
 int     eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
             int force_eval, void *cookie,
 		     int (*cb_func)(void *cookie, char *name, int *pass, uint64_t* et));

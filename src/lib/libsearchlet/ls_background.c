@@ -32,7 +32,7 @@
 #define	BG_SET_SEARCHLET	0x02
 
 /* XXX debug for now, enables cpu based load splitting */
-uint32_t	do_cpu_update	=  1;
+uint32_t	do_cpu_update	=  0;
 
 typedef enum {
 	BG_STOP,
@@ -265,7 +265,7 @@ bg_main(void *arg)
 			switch(cmd->cmd) {
 				case BG_SEARCHLET:
 					sc->bg_status |= BG_SET_SEARCHLET;
-					err = init_filters(cmd->filter_name,
+					err = fexec_load_searchlet(cmd->filter_name,
 						     cmd->spec_name, 
 						     &sc->bg_fdata);
 					assert(!err);
@@ -297,7 +297,10 @@ bg_main(void *arg)
 							free(obj_info);
 						}
 					}
-				
+			
+					/* XXX clean up any stats ?? */
+
+					fexec_init_search(sc->bg_fdata);	
 					sc->bg_status |= BG_STARTED;
 						
 
@@ -305,6 +308,8 @@ bg_main(void *arg)
 					
 				case BG_STOP:
 					sc->bg_status &= ~BG_STARTED;
+					/* XXX toher state ?? */
+					fexec_term_search(sc->bg_fdata);
 					break;
 
 				default:

@@ -52,17 +52,21 @@ typedef struct filter_info {
 	 * general filter info (not device-specific)
 	 */
 	char			        fi_name[MAX_FILTER_NAME];
-	char			        fi_fname[MAX_FILTER_FUNC_NAME];
-	filter_proto            	fi_fp;
-	int			        fi_threshold;
-	int			        fi_merit;
-	int			        fi_numargs;
+	char			        fi_eval_name[MAX_FILTER_FUNC_NAME];
+	char			        fi_init_name[MAX_FILTER_FUNC_NAME];
+	char			        fi_fini_name[MAX_FILTER_FUNC_NAME];
+	filter_init_proto      	fi_init_fp;
+	filter_eval_proto      	fi_eval_fp;
+	filter_fini_proto      	fi_fini_fp;
+	int			        	fi_threshold;
+	int			        	fi_merit;
+	int			        	fi_numargs;
 	char *			        fi_args[MAX_NUM_ARGS];
-    	filter_id_t             	fi_filterid;    /* id of this filter */
+	filter_id_t            	fi_filterid;    /* id of this filter */
+	void *					fi_filt_arg;	/* associated argument data */
 
-
-	int				fi_blob_len;	/* assiated blob len */
-	void *				fi_blob_data;	/* associated blob of data */
+	int						fi_blob_len;	/* associated blob len */
+	void *					fi_blob_data;	/* associated blob of data */
 
 	/* dependency info */
 	int                     fi_color; /* used by dfs */

@@ -66,6 +66,7 @@ od_create(obj_id_t *new_obj, groupid_t* gid)
 int 
 od_delete(obj_id_t *oid)
 {
+	/* XXX fix */
     return(0);
 }
 

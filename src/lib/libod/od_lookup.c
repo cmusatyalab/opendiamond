@@ -22,8 +22,6 @@
 
 LIST_HEAD(devid_hash, od_srv)   ods_devid_hash[DEV_HASH_BUCKETS];
 
-
-
 static int  done_init = 0;
 
 /* 
@@ -43,7 +41,6 @@ ods_id_hash(uint64_t devid)
     }
 
     val = val & (DEV_HASH_BUCKETS - 1);
-
     return(val);
 }
 
@@ -66,15 +63,12 @@ ods_init()
         LIST_INIT(&ods_devid_hash[i]);
     }
 
-
     fd = open("/dev/random", O_RDONLY);
     assert(fd != -1);
     rbytes = read(fd, (void *)&seed, sizeof(seed));
     assert(rbytes == sizeof(seed));
 
-
     srand(seed);
-
 }
 
 
@@ -211,22 +205,14 @@ ods_allocate_by_gid(groupid_t *gid)
 
 
     temp = (double) rand();
-    printf("tmp %f \n", temp);
-
     temp = ((double)num_hosts * temp);
-    printf("tmp %f \n", temp);
-
     temp  = temp / (RAND_MAX + 1.0);
     
-    printf("tmp %f \n", temp);
-
     idx = (int) temp;
-    printf("num hosts %d idx %d \n", num_hosts, idx);
 
     devid = host_list[idx];
 
     osrv = ods_lookup_by_devid(devid);
     return(osrv);
-    return(NULL);
 }
 

@@ -38,6 +38,8 @@ read_cycle()
                                                                                 
 }
 
+/* forward declarations */
+static void update_gid_idx(odisk_state_t *odisk, char *name, groupid_t *gid);
 
 /*
  * These are the set of group ID's we are using to 
@@ -273,6 +275,7 @@ odisk_add_gid(odisk_state_t *odisk, obj_data_t *obj, groupid_t *gid)
     err = obj_write_attr(&obj->attr_info, GIDLIST_NAME,     
                     GIDLIST_SIZE(glist->num_gids), (char *)glist);
     assert(err == 0);
+
     return(0);
 }
 
@@ -319,6 +322,7 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
 
     while (1) {
 
+		/* XXX fix */
         sprintf(buf, "%s/OBJ%016llX", odisk->odisk_path, local_id);
 
         fd = open(buf, O_CREAT|O_EXCL, 0777); 
@@ -336,6 +340,11 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
 
     odisk_get_obj(odisk, &obj, oid);
     odisk_add_gid(odisk, obj, gid);
+
+	sprintf(buf, "OBJ%016llX", local_id);
+
+	update_gid_idx(odisk, buf, gid);
+
     odisk_save_obj(odisk, obj);
     odisk_release_obj(odisk, obj);
 
@@ -653,14 +662,14 @@ odisk_term(odisk_state_t *odisk)
 }
 
 static void
-update_gid_idx(odisk_state_t *odisk, char *name, groupid_t gid)
+update_gid_idx(odisk_state_t *odisk, char *name, groupid_t *gid)
 {
 	char	idx_name[256];
 	FILE *	idx_file;
 	int	num;
 	gid_idx_ent_t	gid_idx;
 
-	sprintf(idx_name, "%s/%s%016llX", odisk->odisk_path, GID_IDX, gid);
+	sprintf(idx_name, "%s/%s%016llX", odisk->odisk_path, GID_IDX, *gid);
 
 	idx_file = fopen(idx_name, "a");
 	if (idx_file == NULL) {
@@ -697,10 +706,10 @@ update_object_gids(odisk_state_t *odisk, obj_data_t *obj, char *name)
     assert(err == 0);
 
     for (i=0; i < glist->num_gids; i++) {
-	if (glist->gids[i] == 0) {
-		continue;
-	}
-	update_gid_idx(odisk, name, glist->gids[i]);
+		if (glist->gids[i] == 0) {
+			continue;
+		}
+		update_gid_idx(odisk, name, &glist->gids[i]);
     }
 
     free(glist);

@@ -29,8 +29,23 @@ typedef void * 	lf_fhandle_t;
 /*
  * Some constants to define the latest/greatest API version.
  */
-#define	LF_LATEST_MAJOR_VERSION		0
-#define	LF_LATEST_MINOR_VERSION		5
+#define	LF_LATEST_MAJOR_VERSION		1
+#define	LF_LATEST_MINOR_VERSION		0
+
+
+/*
+ * This is the prototype for a filter init function.
+ *
+ * This function takes a list of filter arguments as well as
+ * a blob of data.  The init function then allocates any data structures
+ * and sets filter_args to point to the allocated data.
+ *
+ * The init function should return 0 if it initialized correction.  Any
+ * other value is treated as a fatal condition.
+ */
+
+typedef int (*filter_init_proto)(int num_arg, char **args, int app_bloblen,
+	void *blob_data, void **filter_args);
 
 
 /*
@@ -46,9 +61,23 @@ typedef void * 	lf_fhandle_t;
  * be passed, values below the threshold will be dropped.
  */
 
-typedef int (*filter_proto)(lf_obj_handle_t in_handle, int num_outhandle,
-	     lf_obj_handle_t *out_handlev, int num_arg, char **args,
-		 int blob_len, void *blob_data);
+typedef int (*filter_eval_proto)(lf_obj_handle_t in_handle, int num_outhandle,
+	     lf_obj_handle_t *out_handlev, void *filter_args);
+
+
+/*
+ * This is the prototype for a filter init function.
+ *
+ * This function should the filter arguments allocated in the
+ * filter_init_proto() and free them.  
+ *
+ * The fini function should return 0 if it initialized correction.  Any
+ * other value is treated as a fatal condition.
+ */
+
+typedef int (*filter_fini_proto)(void *filter_args);
+
+
 
 
 /*
@@ -71,12 +100,12 @@ typedef int (*filter_proto)(lf_obj_handle_t in_handle, int num_outhandle,
  *
  */
 
-extern lf_fhandle_t lf_init_lib(int major_version, int minor_version);
+lf_fhandle_t lf_init_lib(int major_version, int minor_version);
 
 
 /*
  * This is called to initialize closes a version of the library
- * that was being mananged.  
+ * that was being managed.  
  *
  * Args:
  * 	fhandle       - a open handle to the library.
@@ -87,7 +116,7 @@ extern lf_fhandle_t lf_init_lib(int major_version, int minor_version);
  *
  */
 
-extern int lf_close_lib(lf_fhandle_t *fhandle);
+int lf_close_lib(lf_fhandle_t *fhandle);
 
 /*
  * This gets the next blocks of data in an object.  The block size is
@@ -101,7 +130,7 @@ extern int lf_close_lib(lf_fhandle_t *fhandle);
  *
  * 	num_blocks - the number of blocks to read.
  *
- * 	len	   - This is a pointer to the number of bytes to read.  On
+ * 	lenp	   - This is a pointer to the number of bytes to read.  On
  *  	     	     return this location will hold the number of bytes that
  *		     were actually read.
  *
@@ -119,8 +148,8 @@ extern int lf_close_lib(lf_fhandle_t *fhandle);
  *
  */
 
-extern int lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, 
-			int num_blocks,  off_t *len, char **bufp);
+int lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, 
+			int num_blocks,  off_t *lenp, char **bufp);
 
 /*
  * This skips the next N blocks of the specified object.  For an input
@@ -145,13 +174,13 @@ extern int lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  *
  */
 
-extern int lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, 
+int lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, 
 			int num_blocks);
 
 /*
  * This writes a range of data to an object.  After this call, the
- * library takes possesion of the buffer, the caller should not attempt
- * any further acceses to the buffer or free the buffer.
+ * library takes possession of the buffer, the caller should not attempt
+ * any further accesses to the buffer or free the buffer.
  *
  * Args:
  * 	fhandle    - a handle to the instance of the library.
@@ -177,12 +206,12 @@ extern int lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  */
 
 #define	LF_WRITE_BLOCK_PAD	0x01
-extern int lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
+int lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
 			int flags, off_t len, char *buf);
 
 
 /*
- * This allocated a range of memory for the application to use.  This should be
+ * This allocates memory for the application to use.  This should be
  * used for allocating buffers to hold object data as well as other 
  * user data that is typically called through malloc.
  *
@@ -201,7 +230,7 @@ extern int lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  * 	EINVAL     - one of the handles was invalid. 
  *
  */
-extern int lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf);
+int lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf);
 
 
 /*
@@ -220,7 +249,7 @@ extern int lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf);
  *
  * 	EINVAL     - one of the handles was invalid. 
  */
-extern int lf_free_buffer(lf_fhandle_t fhandle, char *buf);
+int lf_free_buffer(lf_fhandle_t fhandle, char *buf);
 
 /*
  * This function reads the some of the object's attributes.
@@ -236,15 +265,15 @@ extern int lf_free_buffer(lf_fhandle_t fhandle, char *buf);
  * 		     of the data storage is stored.  The caller
  * 		     sets this to the amount of space allocated.
  * 		     Upon return this is set to the size of
- * 		     data actually read.  If there is not enought
+ * 		     data actually read.  If there is not enough
  * 		     space then ENOSPC is returned and the value is
- * 		     updated to the size needed to sucessfully complete
+ * 		     updated to the size needed to successfully complete
  * 		     the call.
  *
  * 	data 	   - The location where the results should be stored.
  *
  * Return:
- *	0	   - Attributes were read sucessfully.
+ *	0	   - Attributes were read successfully.
  *
  * 	ENOSPC	   - data was not large enough to complete the write.  
  * 		     length should be set to the size need to complete
@@ -256,7 +285,7 @@ extern int lf_free_buffer(lf_fhandle_t fhandle, char *buf);
  *	EINVAL     - One or more of the arguments was invalid.
  */
 
-extern int lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,  
+int lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,  
 		    	const char *name, off_t *len, char *data);
 
 /*
@@ -274,7 +303,7 @@ extern int lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,
  * 	data 	   - A pointer of the data associated with the data.
  *
  * Return:
- *	0	   - Attributes were written sucessfully.
+ *	0	   - Attributes were written successfully.
  *
  *	EPERM	   - Filter does not have permission to write these
  *		     attributes.
@@ -282,7 +311,7 @@ extern int lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,
  *	EINVAL     - One or more of the arguments was invalid.
  */
 
-extern int lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,  
+int lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,  
 			char *name, off_t len, char *data);
 
 
@@ -305,14 +334,9 @@ extern int lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,
  *
  */
 
-extern int lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...);
+int lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...);
 
 
-/*
- * a hack to dump the attribute names to stdout. Tries to print out
- * the values as well, if it can locate a print method */
-/* XXX */
-extern int lf_dump_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj);
 
 #ifdef __cplusplus
 }

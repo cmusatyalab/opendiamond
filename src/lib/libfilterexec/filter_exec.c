@@ -138,6 +138,10 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 void
 fexec_system_init() 
 {
+	unsigned int seed;
+	int fd;
+	int rbytes;
+
 	/* it will default to STD if this doesnt work */
 	rtimer_system_init(RTIMER_PAPI); 
 
@@ -155,18 +159,18 @@ fexec_system_init()
 		filter_exec.current_policy);
 #endif
 
-	{
-	  unsigned int seed;
-	  int fd;
-	  int rbytes;
 
-	  fd = open("/dev/urandom", O_RDONLY);
-	  assert(fd != -1);
-	  rbytes = read(fd, (void *)&seed, sizeof(seed));
-	  assert(rbytes == sizeof(seed));
+	/*
+	 * Initialize the random number generator using a
+     * seed from urandom.  We need to see some randomness
+	 * across runs. 
+     */
+	fd = open("/dev/urandom", O_RDONLY);
+	assert(fd != -1);
+	rbytes = read(fd, (void *)&seed, sizeof(seed));
+	assert(rbytes == sizeof(seed));
 
-	  srandom(seed);
-	}
+	srandom(seed);
 }
 
 
@@ -181,16 +185,70 @@ fexec_cur_filtname()
 }
 		
 
+int
+fexec_init_search(filter_data_t *fdata)
+{
+	void *          	data;
+	filter_info_t *		cur_filt;
+	filter_id_t     	fid;
+	int					err;
 
+	/* clean up the stats */
+	fexec_clear_stats(fdata);
 
+	/* Go through all the filters and call the init function */
+	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
+		cur_filt = &fdata->fd_filters[fid];
+		if (fid == fdata->fd_app_id) {
+			continue;
+		}
+
+	    err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
+			cur_filt->fi_args, cur_filt->fi_blob_len, 
+			cur_filt->fi_blob_data, &data);
+
+		if (err != 0) {
+			/* XXXX what now */
+			assert(0);
+		}
+
+		cur_filt->fi_filt_arg  = data;
+    } 
+    return(0);
+}
+
+int
+fexec_term_search(filter_data_t *fdata)
+{
+	filter_info_t *		cur_filt;
+	filter_id_t     	fid;
+	int					err;
+
+	/* Go through all the filters and call the init function */
+	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
+		cur_filt = &fdata->fd_filters[fid];
+		if (fid == fdata->fd_app_id) {
+			continue;
+		}
+
+	    err = cur_filt->fi_fini_fp(cur_filt->fi_filt_arg);
+		if (err != 0) {
+			/* XXXX what now */
+			assert(0);
+		}
+    } 
+    return(0);
+} 
 static int
 load_filter_lib(char *lib_name, filter_data_t *fdata)
 {
-	void *          handle;
-	filter_info_t *	cur_filt;
-	filter_proto	fp;
-	filter_id_t     fid;
-	char *		    error;
+	void *          	handle;
+	filter_info_t *		cur_filt;
+	filter_eval_proto	fe;
+	filter_init_proto	fi;
+	filter_fini_proto	ff;
+	filter_id_t     	fid;
+	char *		    	error;
 
 	handle = dlopen(lib_name, RTLD_NOW);
 	if (!handle) {
@@ -209,17 +267,38 @@ load_filter_lib(char *lib_name, filter_data_t *fdata)
 		if (fid == fdata->fd_app_id) {
 			continue;
 		}
-		fp = dlsym(handle, cur_filt->fi_fname);
+
+		fe = dlsym(handle, cur_filt->fi_eval_name);
 		if ((error = dlerror()) != NULL) {
 			/* XXX error handling */
-			fprintf(stderr, "%s on <%s> \n", error, cur_filt->fi_fname);
+			fprintf(stderr, "%s on <%s> \n", error, cur_filt->fi_eval_name);
 			return(ENOENT);
 		}
-		cur_filt->fi_fp = fp;
+		cur_filt->fi_eval_fp = fe;
+
+
+
+		fi = dlsym(handle, cur_filt->fi_init_name);
+		if ((error = dlerror()) != NULL) {
+			/* XXX error handling */
+			fprintf(stderr, "%s on <%s> \n", error, cur_filt->fi_init_name);
+			return(ENOENT);
+		}
+		cur_filt->fi_init_fp = fi;
+
+		ff = dlsym(handle, cur_filt->fi_fini_name);
+		if ((error = dlerror()) != NULL) {
+			/* XXX error handling */
+			fprintf(stderr, "%s on <%s> \n", error, cur_filt->fi_fini_name);
+			return(ENOENT);
+		}
+		cur_filt->fi_fini_fp = ff;
+
+
+
 #ifdef VERBOSE
 		fprintf(stderr, "filter %d (%s): resolved.\n", fid, cur_filt->fi_name);
 #endif
-		//cur_filt = cur_filt->fi_next;
     }
     
     return(0);
@@ -465,37 +544,13 @@ resolve_filter_deps(filter_data_t *fdata)
 			}
 			info = (filter_info_t*)np->data;
 			fid = info->fi_filterid;
-			//printf("fid %d = %s\n", fid, info->fi_name);
 			if(fid == fdata->fd_app_id) {
 				continue; /* skip */
 			}
-			//printf("fid %d = %s\n", fid, info->fi_name);
 			pmSetElt(fdata->fd_perm, pos++, fid);
 		}
-		//printf("pm: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
 	}
 
-
-/* #define FILTER_ID_MASK  0x000000FF */
-/* #define FILTER_ID(x)    ((filter_id_t)(((uint32_t)(x))&FILTER_ID_MASK)) */
-/* 	lastid = INVALID_FILTER_ID; */
-
-/* 	GLIST(&graph, np) { */
-/* 		filter_id_t fid; */
-		
-/* 		fid = FILTER_ID(np->data); */
-/* 		if ((np == src_node) || (fid == fdata->fd_app_id)) { */
-/* 			continue; /\* skip *\/ */
-/* 		} */
-/* 		if (lastid == INVALID_FILTER_ID) { */
-/* 			fdata->fd_first_filter = fid; */
-/* 		} else { */
-/* 			fdata->fd_filters[lastid].fi_nextfilter = fid; */
-/* 		} */
-/* 		lastid = fid; */
-/* 	} */
-/* 	fdata->fd_filters[lastid].fi_nextfilter = INVALID_FILTER_ID; */
-	
 
 	/* export filters */
 	fprintf(stderr, "filterexec: exporting filter graph to %s.*\n", filename);
@@ -567,7 +622,7 @@ initialize_policy(filter_data_t *fdata) {
  * 	!0	something failed.	
  */
 int
-init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
+fexec_load_searchlet(char *lib_name, char *filter_spec, filter_data_t **fdata)
 {
 	int			     err;
 
@@ -626,19 +681,27 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 }
 
 void
-update_filter_order(filter_data_t *fdata, const permutation_t *perm) {
+update_filter_order(filter_data_t *fdata, const permutation_t *perm) 
+{
+#if 1 || defined VERBOSE
+  char buf[BUFSIZ];
+#endif
 
 	pmCopy(fdata->fd_perm, perm);
-    /* XXX lh fexec_update_bypass(fdata); */
+#if 1|| defined VERBOSE
+	printf("changed filter order to: %s\n", pmPrint(perm, buf, BUFSIZ));
+#endif
+
 }
 
 
 /* jump to function (see fexec_opt.c) */
 static void
-optimize_filter_order(filter_data_t *fdata, opt_policy_t *policy) {
-  if(policy->p_optimize) {
-    policy->exploit = policy->p_optimize(policy->p_context, fdata);
-  }
+optimize_filter_order(filter_data_t *fdata, opt_policy_t *policy) 
+{
+	if	(policy->p_optimize) {
+    	policy->exploit = policy->p_optimize(policy->p_context, fdata);
+  	}
 }
 
 static double
@@ -806,11 +869,10 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	    rt_init(&rt);
 	    rt_start(&rt);	/* assume only one thread here */
 		  
-	    assert(cur_filter->fi_fp);
+	    assert(cur_filter->fi_eval_fp);
 	    /* arg 3 here looks strange -rw */
-	    conf = cur_filter->fi_fp(obj_handle, 1, out_list, 
-				     cur_filter->fi_numargs, cur_filter->fi_args,
-				     cur_filter->fi_blob_len, cur_filter->fi_blob_data);
+	    conf = cur_filter->fi_eval_fp(obj_handle, 1, out_list,
+				cur_filter->fi_filt_arg);	
 
 	    /* get timing info and update stats */
 	    rt_stop(&rt);

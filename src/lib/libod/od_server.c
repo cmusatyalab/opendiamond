@@ -58,7 +58,6 @@ rpc_create_obj_1_svc(create_obj_arg_t *arg, struct svc_req *rq)
 int *
 rpc_write_data_1_svc(write_data_arg_t *arg, struct svc_req *rq)
 {
-  
     static int          result;
     obj_data_t *        obj;
     int                 err;
@@ -66,7 +65,6 @@ rpc_write_data_1_svc(write_data_arg_t *arg, struct svc_req *rq)
     if (odata == NULL) {
         init_disk();
     }
-
 
     err = odisk_get_obj(odata, &obj, arg->oid);
     if (err != 0) {

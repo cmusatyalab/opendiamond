@@ -214,6 +214,7 @@ clear_ss_stats(search_state_t *sstate)
 	sstate->obj_processed = 0;
 	sstate->obj_dropped = 0;
 	sstate->obj_passed = 0;
+	sstate->obj_skipped = 0;
 }
 
 
@@ -241,8 +242,13 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			 */
 			sstate->flags &= ~DEV_FLAG_RUNNING;
 
+			/* clean up the filter exec state */
+			fexec_term_search(sstate->fdata);
+
+			/* flush objects in the transmit queue */
 			err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
 			assert(err == 0);
+
 			break;
 	
 		case DEV_TERM:
@@ -258,7 +264,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			 * Clear the stats.
 			 */
 			clear_ss_stats(sstate);
-			fexec_clear_stats(sstate->fdata);
 
 			err = odisk_reset(sstate->ostate);
 			if (err) {
@@ -266,6 +271,10 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				/* XXX crap !! */
 				return;
 			}
+
+			/* init the filter exec code */
+			fexec_init_search(sstate->fdata);
+
 			sstate->obj_total  = odisk_get_obj_cnt(sstate->ostate);
 			sstate->ver_no = cmd->id;
 			sstate->flags |= DEV_FLAG_RUNNING;
@@ -277,7 +286,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			obj_name = cmd->extra_data.sdata.filter;
 			spec_name = cmd->extra_data.sdata.spec;
 
-			err = init_filters(obj_name, spec_name,
+			err = fexec_load_searchlet(obj_name, spec_name,
 				       	&sstate->fdata);
 
 			if (err) {
@@ -286,7 +295,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				return;
 			}
 
-
+#ifdef	XXX
 			/*
 			 * Remove the files that held the data.
 			 */
@@ -303,7 +312,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				exit(1);
 			}
 			free(spec_name);
-
+#endif
 
 			break;
 
@@ -659,7 +668,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->pend_thresh = SSTATE_DEFAULT_OBJ_THRESH;
 	sstate->pend_objs = 0;
 	
-	sstate->bp_feedback = 0;
+	sstate->bp_feedback = 1;
 	sstate->bp_thresh = SSTATE_DEFAULT_BP_THRESH;
 	/*
 	 * Create a new thread that handles the searches for this current
@@ -826,7 +835,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_total = sstate->obj_total; 
 	stats->ds_objs_processed = sstate->obj_processed; 
 	stats->ds_objs_dropped = sstate->obj_dropped;
-	stats->ds_objs_nproc = sstate->obj_passed;
+	stats->ds_objs_nproc = sstate->obj_skipped;
 	stats->ds_system_load = 
 		(int) (fexec_get_load(sstate->fdata) * 100.0); /* XXX */
 	stats->ds_avg_obj_time = 0;
@@ -1055,8 +1064,10 @@ search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 
 	cpu_split_thresh = (double)(RAND_MAX) * ratio;
 
+#ifdef	XXX
 	printf("set_offload: ratio %f thresh %d cpu %d adj %f \n",
 		ratio, cpu_split_thresh, my_clock, my_clock_float);
+#endif
 	
 	return (0);
 }

@@ -204,6 +204,7 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
   int err=0;
   int n = hc->n;
   int best_score;
+	int next_score;
   char buf[BUFSIZ];
 
   /* evaluate (re-evaluate?) current state */
@@ -228,7 +229,6 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
 	/* generate swapped perm, evaluate */
 	pmSwap(hc->next_seq, i, j);
 	
-	int next_score;
 	/* evaluate option */
 	err = evf(context, hc->next_seq, &next_score);
 	if(err) {

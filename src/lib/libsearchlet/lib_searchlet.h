@@ -37,7 +37,7 @@ typedef	void *	ls_dev_handle_t;
  * progress meters.  The application may not need to use them.
  */
 
-#define	MAX_FILTER_NAME		64
+#define	MAX_FILTER_NAME		64 
 typedef struct filter_stats {
 	char		fs_name[MAX_FILTER_NAME];  /* the filter name */
 	int		fs_objs_processed;	   /* objs processed by filter*/

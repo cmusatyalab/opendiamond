@@ -301,7 +301,7 @@ device_main(void *arg)
 	
 	while (1) {
 		any = 0;
-		log_message(LOGT_DISK, LOGL_TRACE, "loop top");
+		/* log_message(LOGT_DISK, LOGL_TRACE, "loop top"); */
 		cmd = (dev_cmd_data_t *)ring_deq(sstate->control_ops);
 		if (cmd != NULL) {
 			any = 1;

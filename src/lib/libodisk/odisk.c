@@ -60,7 +60,7 @@
 #include "ring.h"
 #include "sig_calc.h"
 
-#define	MAX_READ_THREADS	4
+#define	MAX_READ_THREADS	1
 
 #define	CACHE_EXT	".CACHEFL"
 unsigned int cache_oattr_ratio = 5;
@@ -75,6 +75,23 @@ static void     update_gid_idx(odisk_state_t * odisk, char *name,
                                groupid_t * gid);
 static void     delete_object_gids(odisk_state_t * odisk, obj_data_t * obj);
 
+/*
+ * XXX shared state , move into state descriptor ???
+ */
+static int      search_active = 0;
+static int      search_done = 0;
+static ring_data_t *obj_ring;
+static pthread_mutex_t odisk_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
+
+#define	OBJ_RING_SIZE	32
+
+static ring_data_t *    obj_pr_ring;
+static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t   pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
+#define OBJ_PR_RING_SIZE        32
 /*
  * These are the set of group ID's we are using to 
  * filter the data.
@@ -194,6 +211,13 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	odisk->obj_load++;
 
 	return (0);
+}
+
+
+float
+odisk_get_erate(odisk_state_t * odisk)
+{
+	return(ring_erate(obj_ring));
 }
 
 int
@@ -613,23 +637,6 @@ odisk_read_obj(odisk_state_t * odisk, obj_data_t * obj, int *len,
 	return (0);
 }
 
-/*
- * XXX shared state , move into state descriptor ???
- */
-static int      search_active = 0;
-static int      search_done = 0;
-static ring_data_t *obj_ring;
-static pthread_mutex_t odisk_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
-static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
-static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
-
-#define	OBJ_RING_SIZE	32
-
-static ring_data_t *    obj_pr_ring;
-static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
-static pthread_cond_t   pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
-#define OBJ_PR_RING_SIZE        32
 
 
 int

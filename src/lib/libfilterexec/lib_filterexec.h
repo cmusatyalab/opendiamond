@@ -105,7 +105,9 @@ extern          "C" {
     double	    tv_diff(struct timeval *end, struct timeval *start);
     int             eval_filters(obj_data_t * obj_handle,
                                  filter_data_t * fdata, int force_eval,
-                                 void *cookie, int (*continue_cb)(void* vookie),
+								double *elapsed,
+                                 void *cookie,
+								int (*continue_cb)(void* vookie),
 								int (*cb_func) (void *cookie, char *name,
                                                                int *pass,
                                                                uint64_t *
@@ -123,6 +125,7 @@ extern          "C" {
 
     int             fexec_update_bypass(filter_data_t * fdata, double ratio);
     int             fexec_update_grouping(filter_data_t * fdata, double ratio);
+    float           fexec_get_prate(filter_data_t *fdata);
 
 #ifdef __cplusplus
 }

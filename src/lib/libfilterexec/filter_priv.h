@@ -122,7 +122,7 @@ typedef struct filter_info {
      * loop.  We logically process fi_bprun/fi_bpmax of these objects. 
      */
 
-    int             fi_bpthresh;
+    unsigned int             fi_bpthresh;
   int             fi_firstgroup;
 
     /*

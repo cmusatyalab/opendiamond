@@ -871,6 +871,7 @@ fexec_get_load(filter_data_t * fdata)
 
 int
 eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
+			double	*elapsed,
              void *cookie, int (*continue_cb)(void *cookie),
              int (*cb_func) (void *cookie, char *name,
                              int *pass, uint64_t * et))
@@ -1097,6 +1098,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	 */
 	fdata->fd_avg_wall = (0.95 * fdata->fd_avg_wall) + (0.05 * temp);
 	temp = rt_time2secs(stack_ns);
+	*elapsed = temp;
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
 #if(defined VERBOSE || defined SIM_REPORT)

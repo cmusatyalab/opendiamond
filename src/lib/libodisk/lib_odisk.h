@@ -146,6 +146,7 @@ int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
 
 int odisk_get_attr_sig(obj_data_t *obj, const char *name, char *data, int len);
 
+float odisk_get_erate(struct odisk_state *odisk);
                                                                                 
 obj_data_t     * odisk_null_obj();
 

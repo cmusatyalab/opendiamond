@@ -38,6 +38,7 @@
 #ifndef	_RING_H_
 #define	_RING_H_
 
+#include <pthread.h>
 
 #ifdef __cplusplus
 extern          "C" {
@@ -53,11 +54,25 @@ extern          "C" {
         RING_TYPE_DOUBLE
     } ring_type_t;
 
+#define	RATE_AVG_WINDOW		64
+
+#define	MAX_ENQ_THREAD		8
+
+/* thread specific enqueue state */
+typedef struct enq_state {
+	pthread_t		thread_id;	
+	double			last_enq;	/* last enqueue time */
+} enq_state_t;
+
     typedef struct ring_data {
         pthread_mutex_t mutex;  /* make sure updates are atomic */
         ring_type_t     type;   /* is it 1 or 2 element ring ? */
         int             head;   /* location for next enq */
         int             tail;   /* location for next deq */
+		enq_state_t		en_state[MAX_ENQ_THREAD];
+		double			enq_rate;	/* enqueue rate in objs/sec */		
+		double			deq_rate;	/* dequeue rate in objs/sec */ 
+		double			last_deq;	/* last dequeue time */
         int             size;   /* total number of elements */
         void           *data[0];
     } ring_data_t;
@@ -76,6 +91,8 @@ extern          "C" {
     int             ring_full(ring_data_t * ring);
     int             ring_enq(ring_data_t * ring, void *data);
     int             ring_count(ring_data_t * ring);
+    float           ring_erate(ring_data_t * ring);
+    float           ring_drate(ring_data_t * ring);
     void           *ring_deq(ring_data_t * ring);
 
     /*
@@ -86,6 +103,8 @@ extern          "C" {
     int             ring_2full(ring_data_t * ring);
     int             ring_2enq(ring_data_t * ring, void *data1, void *data2);
     int             ring_2count(ring_data_t * ring);
+    float           ring_2erate(ring_data_t * ring);
+    float           ring_2drate(ring_data_t * ring);
     int             ring_2deq(ring_data_t * ring, void **data1, void **data2);
 
 #ifdef __cplusplus

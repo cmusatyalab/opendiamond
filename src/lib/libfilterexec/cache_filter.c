@@ -642,7 +642,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	int             err;
 	off_t           asize;
 	int             pass = 1;	/* return value */
-	int             rv;
+	long int        rv;
 	int             cur_fid, cur_fidx;
 	struct timeval  wstart;
 	struct timeval  wstop;

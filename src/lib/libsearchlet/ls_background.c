@@ -140,7 +140,6 @@ update_dev_stats(search_context_t *sc)
 	dev_stats_t *		dstats;
 	int			size;
 	int			remain;
-	int			delta;
 
 	thread_setup(sc);
 
@@ -161,16 +160,14 @@ update_dev_stats(search_context_t *sc)
 		cur_dev->remain_old = cur_dev->remain_mid;
 		cur_dev->remain_mid = cur_dev->remain_new;
 		cur_dev->remain_new = remain;
-		delta = cur_dev->remain_old - cur_dev->remain_new;
-		if (delta == 0) {
-			delta = 1;
-		}
-		cur_dev->done = (cur_dev->remain_new)/ delta;
+		cur_dev->prate = ((float)dstats->ds_avg_obj_time)/1000.0;
+		cur_dev->done = ((float)cur_dev->remain_new)/cur_dev->prate;
 
 	}
 	free(dstats);
 }
 
+#ifdef	XXX
 void
 update_total_rate(search_context_t *sc)
 {
@@ -216,12 +213,52 @@ update_total_rate(search_context_t *sc)
 		}
 	}
 }
+#else
+void
+update_total_rate(search_context_t *sc)
+{
+	device_handle_t	*	cur_dev;
+	float			min_done = 1000000.0;
+	float			max_delta = 0;
+
+	update_dev_stats(sc);
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->done < min_done) {
+			min_done = cur_dev->done;
+		}
+	}
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		cur_dev->delta = cur_dev->done - min_done;
+		if (cur_dev->delta < 0.0) {
+			cur_dev->delta = 0.0;
+		}
+		if (cur_dev->delta > max_delta) {
+			max_delta = cur_dev->delta;
+		} 
+	}
+
+	/* now adjust all the values */
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		cur_dev->credit_incr = 
+			(int)((cur_dev->delta/max_delta)*MAX_CREDIT_INCR);
+		if (cur_dev->credit_incr > MAX_CREDIT_INCR) {
+			cur_dev->credit_incr = MAX_CREDIT_INCR;
+		} else if (cur_dev->credit_incr < 1) {
+			cur_dev->credit_incr = 1;
+		}
+	}
+}
+
+
+#endif
 
 void
 update_delta_rate(search_context_t *sc)
 {
 	device_handle_t	*	cur_dev;
-	int			min_done = 1000000;
+	float			min_done = 1000000.0;
 	float			max_delta = 0;
 	int			target;
 	float			scale;
@@ -274,29 +311,30 @@ void
 update_rail(search_context_t *sc)
 {
 	device_handle_t	*	cur_dev;
-	int			max_done = 0;
-	int			target;
-	
+	float		max_done = 0.0;
+	float		target;
+
 	//printf("update rates: rail \n");
 	update_dev_stats(sc);
 
+	/* find the one that will finish the latest */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		if (cur_dev->done > max_done) {
 			max_done = cur_dev->done;
 		}
 	}
+	// XXX printf("max done %f \n", max_done);
 
 	/* now adjust all the values */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		if (cur_dev->done == max_done) {
 			target = MAX_CREDIT_INCR;
 		} else {
-			target = 1;
+			target = 1.0;
 		}
-
-		if (target > cur_dev->credit_incr) {
+		if (target > (float)cur_dev->credit_incr) {
 			cur_dev->credit_incr++;
-		} else if (target < cur_dev->credit_incr) {
+		} else if (target < (float)cur_dev->credit_incr) {
 			cur_dev->credit_incr--;
 		}
 	}
@@ -337,6 +375,8 @@ refill_credits(search_context_t *sc)
 		if (cur_dev->cur_credits > (float)MAX_CUR_CREDIT) {
 			cur_dev->cur_credits = (float)MAX_CUR_CREDIT;
 		}
+		//printf("refil: id=%08x new %f incr %d \n", cur_dev->dev_id,
+				//cur_dev->cur_credits, cur_dev->credit_incr);
 	}
 }
 
@@ -363,7 +403,8 @@ redo:
 		if (cur_dev->cur_credits > 0.0) {
 			obj_inf = device_next_obj(cur_dev->dev_handle);
 			if (obj_inf != NULL) {
-				cur_dev->cur_credits -= obj_inf->obj->remain_compute;
+				// XXX cur_dev->cur_credits -= obj_inf->obj->remain_compute;
+				// XXX cur_dev->cur_credits --;
 				cur_dev->serviced++;
 				sc->last_dev = cur_dev;
 				return(obj_inf);
@@ -389,6 +430,17 @@ redo:
 	return(NULL);
 }
 
+void
+dec_object_credit(search_context_t *sc, double etime)
+{
+	double	credit = etime/sc->avg_proc_time;
+	if (sc->last_dev != NULL) {
+		sc->last_dev->cur_credits -= credit;
+		//printf("dec_credits: id=%08x new %f delta %f \n", sc->last_dev->dev_id,
+		//	sc->last_dev->cur_credits, credit);
+	}
+}
+
 
 
 int
@@ -412,6 +464,7 @@ bg_main(void *arg)
 	bg_cmd_data_t *		cmd;
 	int					any;
 	device_handle_t *	cur_dev;
+	double				etime;
 	struct timeval		this_time;
 	struct timeval		next_time = {
 		                            0,0
@@ -447,6 +500,8 @@ bg_main(void *arg)
 	                         &sc->bg_credit_policy);
 	assert(err == 0);
 
+						
+	sc->avg_proc_time = 0.01;	
 
 	/*
 	 * There are two main tasks that this thread does. The first
@@ -463,7 +518,7 @@ bg_main(void *arg)
 
 	while (1) {
 		loop_count++;
-
+		any = 0;
 		/*
 		 * This code processes the objects that have not yet
 		 * been fully processed.
@@ -472,19 +527,16 @@ bg_main(void *arg)
 		    (ring_count(sc->proc_ring) < sc->pend_lw)) {
 			obj_info = get_next_object(sc);
 			if (obj_info != NULL) {
+				any = 1;
 				new_obj = obj_info->obj;
 				/*
-					 * Make sure the version number is the
+				 * Make sure the version number is the
 				 * latest.  If it is not equal, then this
 				 * is probably data left over from a previous
 				 * search that is working its way through
 				 * the system.
 				 */
 				if (sc->cur_search_id != obj_info->ver_num) {
-					/* printf(" object bad ver %d %d\n",
-							sc->cur_search_id,
-							obj_info->ver_num);
-							*/
 					ls_release_object(sc, new_obj);
 					free(obj_info);
 					continue;
@@ -495,7 +547,10 @@ bg_main(void *arg)
 				 * an evaluate all the filters on the
 				 * object.
 				 */
-				err = eval_filters(new_obj, sc->bg_fdata, 1, sc, bg_val, NULL);
+				err = eval_filters(new_obj, sc->bg_fdata, 1, 
+					&etime, &sc, bg_val, NULL);
+				sc->avg_proc_time = (0.90 * sc->avg_proc_time) + (0.10 * etime);
+				dec_object_credit(sc, etime);
 				if (err == 0) {
 					ls_release_object(sc, new_obj);
 					free(obj_info);
@@ -562,6 +617,7 @@ bg_main(void *arg)
 		 */
 		cmd = (bg_cmd_data_t *) ring_deq(sc->bg_ops);
 		if (cmd != NULL) {
+			any = 1;
 			switch(cmd->cmd) {
 				case BG_SEARCHLET:
 					sc->bg_status |= BG_SET_SEARCHLET;
@@ -618,9 +674,11 @@ bg_main(void *arg)
 			free(cmd);
 		}
 
-		timeout.tv_sec = 0;
-		timeout.tv_nsec = 10000000; /* 10 ms */
-		nanosleep(&timeout, NULL);
+		if (any == 0) {
+			timeout.tv_sec = 0;
+			timeout.tv_nsec = 10000000; /* 10 ms */
+			nanosleep(&timeout, NULL);
+		}
 	}
 }
 

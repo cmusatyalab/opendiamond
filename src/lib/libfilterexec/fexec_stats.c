@@ -605,6 +605,19 @@ fexec_evaluate(filter_data_t * fdata, permutation_t * perm, int gen,
 }
 
 
+float
+fexec_get_prate(filter_data_t *fdata)
+{
+	float           avg;
+	if (fdata == NULL) {
+		return (1.0);
+	}
+	avg = 1.0/fdata->fd_avg_wall;
+	return(avg);
+}
+
+
+
 /*
  * same as fexec_evaluate, but assume filters are independent 
  */

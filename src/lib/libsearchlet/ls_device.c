@@ -511,6 +511,25 @@ remote_list_leafs(char *path, int *num_ents, dctl_entry_t *space,
 	return(err);
 }
 
+static int
+read_float_as_uint32(void *cookie, int *len, char *data)
+{
+
+    assert(cookie != NULL);
+    assert(data != NULL);
+
+    if (*len < sizeof(uint32_t)) {
+        *len = sizeof(uint32_t);
+        return(ENOMEM);
+    }
+
+
+    *len = sizeof(uint32_t);
+    *(uint32_t *)data = (uint32_t)(*(float *)cookie);
+
+    return(0);
+}
+
 
 
 
@@ -525,6 +544,8 @@ register_remote_dctl(uint32_t devid, device_handle_t *dev_handle)
 	char *          delim;
 	char            node_name[128];
 	char            cr_name[128];
+
+	printf("register remote on %08x \n", devid);
 
 	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
 	if (hent == NULL) {
@@ -556,6 +577,8 @@ register_remote_dctl(uint32_t devid, device_handle_t *dev_handle)
 	cbs.dfwd_lleafs_cb = remote_list_leafs;
 	cbs.dfwd_cookie = (void *)dev_handle;
 
+	printf("register remote <%s> \n", node_name);
+
 	err = dctl_register_fwd_node(HOST_DEVICE_PATH, node_name, &cbs);
 	if (err) {
 		printf("XXX failed to register on %d \n", err);
@@ -567,7 +590,24 @@ register_remote_dctl(uint32_t devid, device_handle_t *dev_handle)
 
 	/* also register a dctl for the credit count */
 	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-	                         dctl_read_uint32, dctl_write_uint32, &dev_handle->credit_incr);
+				dctl_read_uint32, dctl_write_uint32, 
+				&dev_handle->credit_incr);
+
+	err = snprintf(cr_name, 128, "%s_%s", "cur_credits", node_name);
+	cr_name[127] = '\0';
+	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
+	                         read_float_as_uint32, NULL, 
+							&dev_handle->cur_credits);
+
+	err = snprintf(cr_name, 128, "%s_%s", "be_serviced", node_name);
+	cr_name[127] = '\0';
+
+	/* also register a dctl for the credit count */
+	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
+				dctl_read_uint32, NULL, &dev_handle->serviced);
+
+	printf("register  <%s> \n", cr_name);
+
 	assert(err == 0);
 }
 

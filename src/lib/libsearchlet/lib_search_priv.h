@@ -58,33 +58,34 @@
 #define	DEV_FLAG_BLOCKED		0x04
 struct search_context;
 
-#define	DEFAULT_CREDIT_INCR		4
-#define	MAX_CREDIT_INCR			20
-#define	MAX_CUR_CREDIT			100
+#define       DEFAULT_CREDIT_INCR             4.0
+#define       MAX_CREDIT_INCR                 20.0
+#define       MAX_CUR_CREDIT                  100.0
 
-#define	DEFAULT_QUEUE_LEN		30
+#define	DEFAULT_QUEUE_LEN		10
 
 #define	MAX_DEV_GROUPS		64
 
 typedef struct device_handle {
 	struct device_handle * 			next;
-	uint32_t				dev_id;	
-	groupid_t				dev_groups[MAX_DEV_GROUPS];
+	uint32_t			dev_id;	
+	groupid_t			dev_groups[MAX_DEV_GROUPS];
 	int					num_groups;
-	unsigned int				flags;
-	void *					dev_handle;
+	unsigned int		flags;
+	void *				dev_handle;
 	int					ver_no;
-	time_t					start_time;
+	time_t				start_time;
 	int					remain_old;
 	int					remain_mid;
 	int					remain_new;
-	int					done;
-	float					delta;
+	float				done;
+	float				delta;
+	float				prate;
 	int					obj_total;
-	float					cur_credits;	/* credits for current iteration */
+	float				cur_credits;	/* credits for current iteration */
 	int					credit_incr;	/* incremental credits to add */
 	int					serviced;	/* times data removed */
-	struct search_context *	sc;
+	struct 				search_context *	sc;
 } device_handle_t;
 
 
@@ -125,19 +126,20 @@ typedef enum {
 struct filter_info;
 typedef struct search_context {
 	int			cur_search_id;	/* ID of current search */
+	double				avg_proc_time;	/* time spent per object */
 	device_handle_t *	dev_list;
 	device_handle_t *	last_dev;
-	search_status_t		cur_status;	/* current status of search */
-	ring_data_t *		proc_ring;	/* processed objects */
-	ring_data_t *		bg_ops;	/* unprocessed objects */
-	ring_data_t *		log_ring;	/* data to log */
+	search_status_t		cur_status;		/* current status of search */
+	ring_data_t *		proc_ring;		/* processed objects */
+	ring_data_t *		bg_ops;			/* unprocessed objects */
+	ring_data_t *		log_ring;		/* data to log */
 	unsigned long		bg_status;
 	int					bg_credit_policy;
-	struct filter_data  *	bg_fdata; /* filter_data_t  */
-	int			pend_hw;	/* pending hw mark */
-	int			pend_lw;	/* pending lw mark */
-	void *			dctl_cookie;	/* cookie for dctl library */
-	void *			log_cookie;	/* cookie for log library */
+	struct filter_data *bg_fdata; 		/* filter_data_t  */
+	int					pend_hw;		/* pending hw mark */
+	int					pend_lw;		/* pending lw mark */
+	void *				dctl_cookie;	/* cookie for dctl library */
+	void *				log_cookie;		/* cookie for log library */
 } search_context_t;
 
 /*

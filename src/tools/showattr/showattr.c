@@ -45,6 +45,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <dirent.h>
 #include <ctype.h>
 #include <dirent.h>
 #include "obj_attr.h"

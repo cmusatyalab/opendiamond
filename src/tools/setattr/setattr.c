@@ -43,6 +43,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>

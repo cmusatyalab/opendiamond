@@ -24,6 +24,9 @@
 #include "filter_exec.h"
 #include "search_state.h"
 
+/* XXX move to seperate header file !!! */
+#define	CONTROL_RING_SIZE	512
+
 
 typedef enum {
 	DEV_STOP,
@@ -522,7 +525,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	/*
 	 * init the ring to hold the queue of pending operations.
 	 */
-	err = ring_init(&sstate->control_ops);
+	err = ring_init(&sstate->control_ops, CONTROL_RING_SIZE);
 	if (err) {
 		free(sstate);
 		*app_cookie = NULL;

@@ -22,6 +22,9 @@
 #include "lib_hstub.h"
 
 
+#define	PROC_RING_SIZE		1024
+#define	UNPROC_RING_SIZE	1024
+
 /* XXX locking for multi-threaded apps !! */
 
 /*
@@ -51,13 +54,13 @@ ls_init_search()
 	sc->dev_list = NULL;
 	sc->cur_status = SS_EMPTY;
 	sc->bg_status = 0;
-	err = ring_init(&sc->proc_ring);
+	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
 	if (err) {
 		/* XXX log */
 		free(sc);
 		return(NULL);
 	}
-	err = ring_init(&sc->unproc_ring);
+	err = ring_init(&sc->unproc_ring, UNPROC_RING_SIZE);
 	if (err) {
 		/* XXX log */
 		free(sc);

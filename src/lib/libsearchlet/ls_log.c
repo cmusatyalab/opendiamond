@@ -25,6 +25,9 @@
 #include "log_impl.h"
 #include "assert.h"
 
+#define	LOG_RING_SIZE	512
+
+
 /*
  * send a specific log entry.
  */
@@ -214,7 +217,7 @@ log_start(search_context_t *sc)
 	/*
 	 * Initialize the ring of commands for the thread.
 	 */
-	err = ring_init(&sc->log_ring);
+	err = ring_init(&sc->log_ring, LOG_RING_SIZE);
 	if (err) {
 		/* XXX err log */
 		return(err);

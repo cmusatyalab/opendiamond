@@ -25,6 +25,10 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
+/* XXX debug */
+#define OBJ_RING_SIZE		512
+#define CONTROL_RING_SIZE	1024
+
 /*
  * this is a flag that tells use if we should fork
  * when we get a new connection.  This isn't very useful
@@ -178,14 +182,14 @@ have_full_conn(listener_state_t *list_state, int conn)
 
 
 	cstate = &list_state->conns[conn];
-	err = ring_2init(&cstate->obj_ring);
+	err = ring_2init(&cstate->obj_ring, OBJ_RING_SIZE);
 	if (err) {
 		/* XXX */
 		printf("failed to init obj ring \n");
 		return;	
 	}
 
-	err = ring_init(&cstate->control_tx_ring);
+	err = ring_init(&cstate->control_tx_ring, CONTROL_RING_SIZE);
 	if (err) {
 		/* XXX */
 		printf("failed to init control ring \n");

@@ -25,6 +25,9 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
+/* XXX move to common header */
+#define	HSTUB_RING_SIZE	512
+
 
 /*
  * Return the cache device characteristics.
@@ -347,7 +350,7 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 	 * initialize the ring that is used to queue "commands"
 	 * to the background thread.
 	 */
-	err = ring_init(&new_dev->device_ops);
+	err = ring_init(&new_dev->device_ops, HSTUB_RING_SIZE);
 	if (err) {
 		free(new_dev);
 		return (NULL);

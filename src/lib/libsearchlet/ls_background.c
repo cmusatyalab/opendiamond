@@ -19,6 +19,9 @@
 #include "lib_search_priv.h"
 #include "filter_exec.h"
 
+/* XXX put later */
+#define	BG_RING_SIZE	512
+
 
 #define	BG_STOPPED	0x01
 #define	BG_STARTED	0x01
@@ -235,7 +238,7 @@ bg_init(search_context_t *sc, int id)
 	/*
 	 * Initialize the ring of commands for the thread.
 	 */
-	err = ring_init(&sc->bg_ops);
+	err = ring_init(&sc->bg_ops, BG_RING_SIZE);
 	if (err) {
 		/* XXX err log */
 		return(err);

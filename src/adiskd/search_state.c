@@ -446,6 +446,7 @@ device_main(void *arg)
     obj_data_t     *new_obj;
     int             err;
     int             any;
+	int				complete;
     struct timespec timeout;
 	int				force_eval;
 
@@ -477,7 +478,25 @@ device_main(void *arg)
          */
         if ((sstate->flags & DEV_FLAG_RUNNING) &&
             (sstate->pend_objs < sstate->pend_max)) {
+
+			force_eval = 0;
             err = odisk_next_obj(&new_obj, sstate->ostate);
+		
+			/*
+			 * If no fresh objects, try to get some from
+			 * the partial queue.
+			 */	
+			if (err == ENOENT) {
+				printf("tyring partial !! \n");
+				err = sstub_get_partial(sstate->comm_cookie, &new_obj);
+				if (err == 0) {
+					printf("have partial !! \n");
+					force_eval = 1;
+                    sstate->pend_objs--; 
+				} else {
+					err = ENOENT;
+				}
+			}
             if (err == ENOENT) {
                 /*
                  * We have processed all the objects,
@@ -494,7 +513,7 @@ device_main(void *arg)
                  */
                 new_obj = create_null_obj();
                 err = sstub_send_obj(sstate->comm_cookie,
-                                     new_obj, sstate->ver_no);
+                                     new_obj, sstate->ver_no, 1);
                 if (err) {
                     /*
                      * XXX overflow gracefully  and log
@@ -538,9 +557,7 @@ device_main(void *arg)
 
                 if ((sstate->obj_processed & 0xf) == 0xf) {
 					force_eval = 1;
-                } else {
-					force_eval = 0;
-				}
+                }
 
                 err = eval_filters(new_obj, sstate->fdata, force_eval,
 					sstate, continue_fn, NULL);
@@ -550,8 +567,14 @@ device_main(void *arg)
 
                 } else {
                     sstate->obj_passed++;
+					if (err == 1) {
+						complete = 0;
+					} else {
+						complete = 1;
+					}
+					
                     err = sstub_send_obj(sstate->comm_cookie, new_obj,
-                                         sstate->ver_no);
+                                         sstate->ver_no, complete);
                     if (err) {
                         /*
                          * XXX overflow gracefully 

@@ -1003,6 +1003,11 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
          */
 
     }
+
+	if ((cur_fidx >= pmLength(fdata->fd_perm)) && pass) {
+		pass = 2;
+	}
+
     active_filter = NULL;
 
     log_message(LOGT_FILT, LOGL_TRACE,

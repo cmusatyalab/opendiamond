@@ -28,6 +28,16 @@
 
 
 static int
+queued_objects(cstate_t *cstate)
+{
+	int	count;
+
+	count = ring_2count(cstate->partial_obj_ring);
+	count += ring_2count(cstate->complete_obj_ring);
+	return(count);
+}
+
+static int
 drop_attributes(cstate_t *cstate)
 {
 
@@ -42,7 +52,7 @@ drop_attributes(cstate_t *cstate)
 			return(0);
 		}
 	} else if (cstate->attr_policy == NW_ATTR_POLICY_QUEUE) {
-		tx_count = ring_2count(cstate->obj_ring);
+		tx_count = queued_objects(cstate);
 		if ((tx_count > DESIRED_MAX_TX_THRESH) && 
 			(cstate->cc_credits >= DESIRED_MAX_CREDITS)) {
 			return(1);
@@ -52,7 +62,6 @@ drop_attributes(cstate_t *cstate)
 	}
 	return(0);
 
-
 }
 
 static float
@@ -61,7 +70,7 @@ prop_get_tx_ratio(cstate_t *cstate)
 	float	ratio;
 	int		count;
 
-	count = ring_2count(cstate->obj_ring);
+	count = queued_objects(cstate);
 	ratio = (float)count/(float)DESIRED_MAX_TX_QUEUE;	
 	if (ratio > 1.0) {
 		ratio = 1.0;
@@ -154,16 +163,16 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->obj_ring, (void **)&obj  , 
+		err = ring_2deq(cstate->complete_obj_ring, (void **)&obj  , 
 				(void **)&vnum);
-
 		/*
-	 	 * periodically we want to update our send policy if
-	 	 * we are dynamic.
-	 	 */
-		if ((cstate->stats_objs_tx & 0xF) == 0) {
-			update_attr_policy(cstate);
+		 * If we don't get a complete object, look for a partial.
+		 */
+		if (err) {
+			err = ring_2deq(cstate->partial_obj_ring, (void **)&obj  , 
+				(void **)&vnum);
 		}
+
 				
 		/*
 		 * if there is no other data, then clear the obj data flag
@@ -174,6 +183,14 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 			return;
 		}
 		pthread_mutex_unlock(&cstate->cmutex);
+
+		/*
+	 	 * periodically we want to update our send policy if
+	 	 * we are dynamic.
+	 	 */
+		if ((cstate->stats_objs_tx & 0xF) == 0) {
+			update_attr_policy(cstate);
+		}
 
 		cstate->data_tx_obj = obj;
 

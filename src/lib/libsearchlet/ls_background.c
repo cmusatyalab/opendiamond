@@ -125,8 +125,8 @@ redo:
 				sc->last_dev = cur_dev;
 				return(obj_inf);
 			}
-			cur_dev = cur_dev->next;
 		}
+		cur_dev = cur_dev->next;
 	}
 
 	/* if we fall through and it is our first iteration

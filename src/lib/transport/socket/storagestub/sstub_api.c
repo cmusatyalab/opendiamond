@@ -149,7 +149,7 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
  * return current queue depth??
  */
 int
-sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no)
+sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no, int complete)
 {
 
 	cstate_t *	cstate;
@@ -164,7 +164,11 @@ sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no)
 	/* XXX log */
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_OBJ_DATA;
-	err = ring_2enq(cstate->obj_ring, (void *)obj, (void *)ver_no);
+	if (complete) {
+		err = ring_2enq(cstate->complete_obj_ring, (void *)obj, (void *)ver_no);
+	} else {
+		err = ring_2enq(cstate->partial_obj_ring, (void *)obj, (void *)ver_no);
+	}
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	if (err) {
@@ -176,6 +180,28 @@ sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no)
 	return(0);
 }
 
+int
+sstub_get_partial(void *cookie, obj_data_t **obj)
+{
+
+	cstate_t *	cstate;
+	int		err;
+	int		vnum;
+
+	cstate = (cstate_t *)cookie;
+
+	/*
+	 * Set a flag to indicate there is object
+	 * data associated with our connection.
+	 */
+	/* XXX log */
+	pthread_mutex_lock(&cstate->cmutex);
+	err = ring_2deq(cstate->partial_obj_ring, (void **)obj,
+                (void **)&vnum);
+	pthread_mutex_unlock(&cstate->cmutex);
+
+	return(err);
+}
 
 int
 sstub_flush_objs(void *cookie, int ver_no)
@@ -197,7 +223,20 @@ sstub_flush_objs(void *cookie, int ver_no)
 	/* XXX log */
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->obj_ring, (void **)&obj, (void **)&vnum);
+		err = ring_2deq(cstate->complete_obj_ring, (void **)&obj, (void **)&vnum);
+		pthread_mutex_unlock(&cstate->cmutex);
+
+		/* we got through them all */
+		if (err) {
+			break;
+		}
+		(*lstate->release_obj_cb)(cstate->app_cookie, obj);
+	}
+
+	while (1) {
+		pthread_mutex_lock(&cstate->cmutex);
+		err = ring_2deq(cstate->partial_obj_ring,
+			(void **)&obj, (void **)&vnum);
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* we got through them all */
@@ -206,7 +245,7 @@ sstub_flush_objs(void *cookie, int ver_no)
 		}
 		(*lstate->release_obj_cb)(cstate->app_cookie, obj);
 
-	}		
+	}
 
 	return(0);
 }

@@ -221,7 +221,14 @@ have_full_conn(listener_state_t *list_state, int conn)
 
 
 	cstate = &list_state->conns[conn];
-	err = ring_2init(&cstate->obj_ring, OBJ_RING_SIZE);
+	err = ring_2init(&cstate->complete_obj_ring, OBJ_RING_SIZE);
+	if (err) {
+		/* XXX */
+		printf("failed to init obj ring \n");
+		return;	
+	}
+
+	err = ring_2init(&cstate->partial_obj_ring, OBJ_RING_SIZE);
 	if (err) {
 		/* XXX */
 		printf("failed to init obj ring \n");

@@ -575,7 +575,6 @@ fexec_update_grouping(filter_data_t * fdata, double ratio)
     float          target_cost;
     int            err;
 
-    target_cost = avg_cost * ratio;
 
     switch (fexec_bypass_type) {
 	case  BP_NONE:
@@ -593,6 +592,7 @@ fexec_update_grouping(filter_data_t * fdata, double ratio)
 	case BP_HYBRID:
     	err = fexec_estimate_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 		assert(err == 0);
+    	target_cost = avg_cost * ratio;
     	fexec_set_grouping_hybrid(fdata, fdata->fd_perm, target_cost);
 		break;
     }

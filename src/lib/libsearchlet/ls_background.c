@@ -124,6 +124,12 @@ redo:
 }
 
 
+int
+bg_val(void *cookie)
+{
+	return(1);
+}
+
 /*
  * The main loop that the background thread runs to process
  * the data coming from the individual devices.
@@ -215,7 +221,7 @@ bg_main(void *arg)
 				 * an evaluated all the filters on the
 				 * object.
 				 */
-				err = eval_filters(new_obj, sc->bg_fdata, 1, NULL, NULL);
+				err = eval_filters(new_obj, sc->bg_fdata, 1, sc, bg_val, NULL);
 				if (err == 0) {
 					/* XXX printf("releasing object \n");*/
 					ls_release_object(sc, new_obj);

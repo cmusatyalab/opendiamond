@@ -28,7 +28,14 @@ extern          "C" {
         BP_HYBRID
     };
 
-    extern int      fexec_bypass_type;
+	enum auto_part_t {
+        AUTO_PART_NONE = 0,
+        AUTO_PART_BYPASS,
+        AUTO_PART_QUEUE
+    };
+
+    extern int             fexec_bypass_type;
+    extern int             fexec_autopart_type;
 
     struct filter_exec_t {
         enum policy_type_t current_policy;
@@ -51,8 +58,8 @@ extern          "C" {
     int             fexec_term_search(filter_data_t * fdata);
     int             eval_filters(obj_data_t * obj_handle,
                                  filter_data_t * fdata, int force_eval,
-                                 void *cookie, int (*cb_func) (void *cookie,
-                                                               char *name,
+                                 void *cookie, int (*continue_cb)(void* vookie),
+								int (*cb_func) (void *cookie, char *name,
                                                                int *pass,
                                                                uint64_t *
                                                                et));
@@ -68,6 +75,7 @@ extern          "C" {
 
 
     int             fexec_update_bypass(filter_data_t * fdata, double ratio);
+    int             fexec_update_grouping(filter_data_t * fdata, double ratio);
 
 #ifdef __cplusplus
 }

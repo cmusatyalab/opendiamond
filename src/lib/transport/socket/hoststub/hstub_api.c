@@ -949,6 +949,14 @@ setup_stats(sdevice_state_t *dev, uint32_t devid)
             dctl_read_uint32, NULL, &dev->con_data.stat_log_rx);
     dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64, 
             dctl_read_uint64, NULL, &dev->con_data.stat_log_byte_rx);
+
+
+    dctl_register_leaf(path_name, "attr_policy", DCTL_DT_UINT32, 
+			dctl_read_uint32, dctl_write_uint32, 
+			&dev->con_data.attr_policy);
+    dctl_register_leaf(path_name, "attr_ratio", DCTL_DT_UINT32, 
+			dctl_read_uint32, dctl_write_uint32, 
+			&dev->con_data.attr_ratio);
 }
 
 /*

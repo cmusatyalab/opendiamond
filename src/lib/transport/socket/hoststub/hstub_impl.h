@@ -35,6 +35,17 @@ typedef enum {
 } log_rx_state_t;
 
 
+typedef enum {
+	NW_ATTR_POLICY_NONE = 0,
+	NW_ATTR_POLICY_FIXED,
+	NW_ATTR_POLICY_ADAPTIVE
+} nw_attr_policy;
+
+#define	DEFAULT_NW_ATTR_POLICY	(NW_ATTR_POLICY_NONE)
+#define	DEFAULT_NW_ATTR_RATIO	(0)
+
+
+/* flag definitons */
 /* flag definitons */
 #define	CINFO_PENDING_CONTROL	0x01
 #define	CINFO_BLOCK_OBJ			0x02
@@ -64,7 +75,9 @@ typedef struct conn_info {
 	log_header_t		log_rx_header;
 	credit_count_msg_t 	cc_msg;
 	int			        obj_limit;
-	int			        log_fd;
+	int			        log_fd;				/* file descriptor for the logging connection */
+	int			        attr_ratio;			/* percent object to clean in transfer */
+	int			        attr_policy;		/* policy for adjusting attrs to send over network */
 	fd_set			    read_fds;
 	fd_set			    write_fds;
 	fd_set			    except_fds;

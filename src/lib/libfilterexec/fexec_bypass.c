@@ -79,6 +79,18 @@ fexec_set_bypass_none(filter_data_t * fdata)
     }
 }
 
+void
+fexec_set_grouping_none(filter_data_t * fdata)
+{
+    int             i;
+
+    for (i = 0; i < fdata->fd_num_filters; i++) {
+		fdata->fd_filters[i].fi_firstgroup = 0;
+	}
+}
+
+
+
 #define SMALL_FRACTION (0.00001)
 
 void
@@ -182,6 +194,17 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
 }
 
 
+void
+fexec_set_grouping_greedy(filter_data_t * fdata, permutation_t * perm)
+{
+	int	i;
+
+    for (i = 0; i < fdata->fd_num_filters; i++) {
+		fdata->fd_filters[i].fi_firstgroup = 1;
+	}
+}
+
+
 
 /*
  * This computes the byapss by just splitting the first percentage.
@@ -207,6 +230,22 @@ fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
     for (i = 1; i < pmLength(perm); i++) {
         info = &fdata->fd_filters[pmElt(perm, i)];
         info->fi_bpthresh = RAND_MAX;
+    }
+    return;
+}
+
+void
+fexec_set_grouping_trivial(filter_data_t * fdata, permutation_t * perm)
+{
+    int             i;
+
+    /*
+     * only the first filter is first in the group.
+     */
+    fdata->fd_filters[pmElt(perm, 0)].fi_firstgroup = 1;
+
+    for (i = 1; i < pmLength(perm); i++) {
+    	fdata->fd_filters[pmElt(perm, i)].fi_firstgroup = 0;
     }
     return;
 }
@@ -379,6 +418,104 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
   return;
 }
 
+void
+fexec_set_grouping_hybrid(filter_data_t *fdata, permutation_t *perm,
+	float target_ms)
+{
+  int i, j;
+  filter_info_t * info;
+  filter_prob_t * fprob;
+  bp_hybrid_state_t* hstate;
+  double dcost = 0;
+  double this_cost;
+  double p, pass = 1;
+  double maxbytes = 100.0;
+	
+  hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
+  assert(hstate != NULL);
+
+  /*
+   * Reconstruct the cost function of the greedy distribution.
+   */
+  for(i=0; i < pmLength(perm); i++) {
+    int n;
+
+    hstate[i].dcost = dcost;
+    hstate[i].greedy_ncost = pass * maxbytes;
+
+    info = &fdata->fd_filters[pmElt(perm, i)];
+    n = info->fi_called;
+	if (n == 0) {
+		n = 1;
+	}
+    maxbytes += (double) info->fi_added_bytes / (double) n;
+	this_cost = pass * ((double)info->fi_time_ns / (double) n); /* update cumulative cost */
+	/* we don't want the incremental cost to be zero */
+	if (this_cost == 0.0) {
+		this_cost = SMALL_FRACTION;
+	}
+    dcost += this_cost;
+
+    /* obtain conditional pass rate */
+    fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
+    if(fprob) {
+      p = (double)fprob->num_pass / fprob->num_exec;
+    } else {
+      /* really no data, return an error */
+      /* XXX */
+	  p = 1.0;
+    }
+    
+    assert(p >= 0 && p <= 1.0);
+    
+    pass *= p;
+    if (pass < SMALL_FRACTION) {
+      pass = SMALL_FRACTION;
+    }
+  }
+  hstate[i].dcost = dcost;
+  hstate[i].greedy_ncost = pass * maxbytes;
+
+  
+  /*
+   * Identify optimal breakdown into unit subsequences.
+   */
+  for (i=0; i < pmLength(perm); i++) {
+    double delta, lowest_delta;
+    int best_j=0, k;
+
+    lowest_delta = 999999999999.0;  /* XXX */
+    for(j=i+1; j <= pmLength(perm); j++) {
+      /* compute reduction factor for candidate filter unit */
+      assert((hstate[j].dcost - hstate[i].dcost)>0.0);
+
+      delta = (hstate[j].greedy_ncost - hstate[i].greedy_ncost) /
+	(hstate[j].dcost - hstate[i].dcost);
+      if(delta < lowest_delta){
+	/* record candidate unit parameters */
+	lowest_delta = delta;
+	best_j = j;
+      }
+    }
+
+    /*
+     * Found optimal unit starting with filter i.  
+     */
+
+    (fdata->fd_filters[pmElt(perm, i)]).fi_firstgroup = 1;
+
+    for(k=i+1; k<best_j; k++)
+      (fdata->fd_filters[pmElt(perm, k)]).fi_firstgroup = 0;
+
+    i = best_j-1; /* next unit */
+  }
+
+  
+
+  free(hstate);
+  return;
+}
+
 
 
 
@@ -426,8 +563,38 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 	case BP_HYBRID:
     		fexec_set_bypass_hybrid(fdata, fdata->fd_perm, target_cost);
 		break;
-	
+    }
 
+    return (0);
+}
+
+int
+fexec_update_grouping(filter_data_t * fdata, double ratio)
+{
+    float          avg_cost;
+    float          target_cost;
+    int            err;
+
+    target_cost = avg_cost * ratio;
+
+    switch (fexec_bypass_type) {
+	case  BP_NONE:
+       	fexec_set_grouping_none(fdata);
+		break;
+
+	case BP_SIMPLE:
+    	fexec_set_grouping_trivial(fdata, fdata->fd_perm);
+		break;
+		
+	case BP_GREEDY:
+    	fexec_set_grouping_greedy(fdata, fdata->fd_perm);
+		break;
+
+	case BP_HYBRID:
+    	err = fexec_estimate_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
+		assert(err == 0);
+    	fexec_set_grouping_hybrid(fdata, fdata->fd_perm, target_cost);
+		break;
     }
 
 #ifdef XXX
@@ -443,3 +610,5 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 
       return (0);
 }
+
+

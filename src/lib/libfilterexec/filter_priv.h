@@ -86,6 +86,7 @@ typedef struct filter_info {
      */
 
     int             fi_bpthresh;
+  int             fi_firstgroup;
 
     /*
      * input characteristics 

@@ -384,6 +384,12 @@ create_null_obj()
     return (new_obj);
 }
 
+static int
+continue_fn(void *cookie)
+{
+	return(1);
+}
+
 /*
  * This is the main thread that executes a "search" on a device.
  * This interates it handles incoming messages as well as processing
@@ -514,7 +520,8 @@ device_main(void *arg)
                      */
                     sstate->obj_processed++;
 
-                    err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
+                    err = eval_filters(new_obj, sstate->fdata, 0, sstate,
+						continue_fn, NULL);
                     if (err == 0) {
                         sstate->obj_dropped++;
                         search_free_obj(new_obj);

@@ -88,7 +88,8 @@ static opt_policy_t policy_arr[] = {
 /*
  * Global state for the filter init code.
  */
-int             fexec_bypass_type = BP_HYBRID;
+int             fexec_bypass_type = BP_NONE;
+int             fexec_autopart_type = AUTO_PART_NONE;
 int             fexec_cpu_slowdown = 0; /* percentage slowdown for CPU */
 
 char            ratio[40];
@@ -162,6 +163,10 @@ fexec_system_init()
     rtimer_system_init(RTIMER_PAPI);
 
     dctl_register_leaf(DEV_FEXEC_PATH, "split_policy", DCTL_DT_UINT32,
+                       dctl_read_uint32, dctl_write_uint32,
+                       &fexec_bypass_type);
+
+    dctl_register_leaf(DEV_FEXEC_PATH, "split_type", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &fexec_bypass_type);
 
@@ -241,6 +246,8 @@ fexec_init_search(filter_data_t * fdata)
     return (0);
 }
 
+
+
 int
 fexec_term_search(filter_data_t * fdata)
 {
@@ -267,6 +274,7 @@ fexec_term_search(filter_data_t * fdata)
     }
     return (0);
 }
+
 static int
 load_filter_lib(char *lib_name, filter_data_t * fdata)
 {
@@ -804,7 +812,8 @@ fexec_get_load(filter_data_t * fdata)
 
 int
 eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
-             void *cookie, int (*cb_func) (void *cookie, char *name,
+             void *cookie, int (*continue_cb)(void *cookie),
+			 int (*cb_func) (void *cookie, char *name,
                                            int *pass, uint64_t * et))
 {
     filter_info_t  *cur_filter;
@@ -900,11 +909,18 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
          * run it or pass it.
          */
         if (force_eval == 0) {
-            rv = random();
-            if (rv > cur_filter->fi_bpthresh) {
-                pass = 1;
-                break;
-            }
+			if (fexec_autopart_type == AUTO_PART_BYPASS) {
+            	rv = random();
+            	if (rv > cur_filter->fi_bpthresh) {
+                	pass = 1;
+                	break;
+            	}
+			} else if (fexec_autopart_type == AUTO_PART_QUEUE) {
+				if ((*continue_cb)(cookie) == 0) {
+                	pass = 1;
+                	break;
+				}
+			}
         }
 
         cur_filter->fi_called++;

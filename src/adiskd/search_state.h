@@ -3,8 +3,7 @@
 
 
 /* some of the default constants for packet processing */
-#define	SSTATE_DEFAULT_OBJ_THRESH	150
-#define	SSTATE_DEFAULT_BP_THRESH	10
+#define	SSTATE_DEFAULT_PEND_MAX	100
 
 
 enum split_types_t {
@@ -13,11 +12,12 @@ enum split_types_t {
 };
 
 
+#define	SPLIT_DEFAULT_BP_THRESH	15
 #define	SPLIT_DEFAULT_TYPE		(SPLIT_TYPE_FIXED)
 #define	SPLIT_DEFAULT_RATIO		(78)
 #define	SPLIT_DEFAULT_AUTO_STEP		5
 #define	SPLIT_DEFAULT_PEND_LOW		200
-#define	SPLIT_DEFAULT_MULT			200
+#define	SPLIT_DEFAULT_MULT			400
 #define	SPLIT_DEFAULT_PEND_HIGH		10
 
 #define DEV_FLAG_RUNNING                0x01
@@ -42,13 +42,12 @@ typedef struct search_state {
     uint            obj_passed;
     uint            obj_skipped;
     uint            pend_objs;
-    uint            pend_thresh;
+    uint            pend_max;
     uint            split_type;		/* policy for the splitting */
     uint            split_ratio;	/* amount of computation to do local */
-    uint            split_mult;	/* multiplier for queue size */
+    uint            split_mult;		/* multiplier for queue size */
     uint            split_auto_step;	/* step to increment ration by */
-    uint            split_pend_low;	/* below, not enough work for host */
-    uint            split_pend_high;	/* above, too much work for host */
+    uint            split_bp_thresh;	/* below, not enough work for host */
     void           *dctl_cookie;
     void           *log_cookie;
 } search_state_t;

@@ -380,29 +380,6 @@ create_null_obj()
 }
 
 
-#ifdef	XXX
-static void
-dynamic_update_bypass(search_state_t *sstate) 
-{
-	printf("update_bypass: pend %2d old_ratio %02d ", sstate->pend_objs, 
-					sstate->split_ratio);
-	if (sstate->pend_objs < sstate->split_pend_low) {
-		/* XXX do this if the input queue is low */
-		if (sstate->split_ratio < sstate->split_auto_step) {
-			sstate->split_ratio = 0;
-		} else {
-			sstate->split_ratio -= sstate->split_auto_step;
-		}
-	} else if (sstate->pend_objs > sstate->split_pend_high) {
-		if (sstate->split_ratio > (100 - sstate->split_auto_step)) {
-			sstate->split_ratio = 100;
-		} else {
-			sstate->split_ratio += sstate->split_auto_step;
-		}
-	}
-
-}
-#endif
 static void
 dynamic_update_bypass(search_state_t *sstate) 
 {
@@ -423,17 +400,35 @@ update_bypass(search_state_t *sstate)
 		case SPLIT_TYPE_FIXED:
 			ratio = ((float)sstate->split_ratio)/100.0;
 			fexec_update_bypass(sstate->fdata, ratio);
+			fexec_update_grouping(sstate->fdata, ratio);
 			break;
 			
 		case SPLIT_TYPE_DYNAMIC:
 			old_target = sstate->split_ratio;
 			dynamic_update_bypass(sstate);
-			if (old_target != sstate->split_ratio) {
-				ratio = ((float)sstate->split_ratio)/100.0;
-				fexec_update_bypass(sstate->fdata, ratio);
-			}
+			ratio = ((float)sstate->split_ratio)/100.0;
+			fexec_update_bypass(sstate->fdata, ratio);
+			fexec_update_grouping(sstate->fdata, ratio);
 			break;	
 	}
+}
+
+/* 
+ * This function is called to see if we should continue
+ * processing an object, or put it into the queue.
+ */
+static int
+continue_fn(void *cookie)
+{
+    search_state_t *sstate = cookie;
+
+	/* XXX include input queue size */
+	if (sstate->pend_objs > sstate->split_bp_thresh) {
+		return(0);
+	} else {
+		return(1);	
+	}
+
 }
 
 /*
@@ -480,12 +475,9 @@ device_main(void *arg)
          * XXX look for data from device to process.
          */
         if ((sstate->flags & DEV_FLAG_RUNNING) &&
-            (sstate->pend_objs < sstate->pend_thresh)) {
+            (sstate->pend_objs < sstate->pend_max)) {
             err = odisk_next_obj(&new_obj, sstate->ostate);
             if (err == ENOENT) {
-                /*
-                 * XXX fexec_dump_prob(sstate->fdata); 
-                 */
                 /*
                  * We have processed all the objects,
                  * clear the running and set the complete
@@ -522,7 +514,6 @@ device_main(void *arg)
                 continue;
             } else {
                 any = 1;
-#ifndef	XXX
                 /*
                  * set the bypass values periodically 
                  */
@@ -537,13 +528,21 @@ device_main(void *arg)
 
                 sstate->obj_processed++;
 
+				/*
+				 * We want to process some number of objects
+				 * locally to get the necessary statistics.  
+				 * Setting force_eval will make sure process the whole
+				 * object.
+				 */
+
                 if ((sstate->obj_processed & 0xf) == 0xf) {
 					force_eval = 1;
-                }  else {
+                } else {
 					force_eval = 0;
 				}
 
-                err = eval_filters(new_obj, sstate->fdata, force_eval, NULL, NULL);
+                err = eval_filters(new_obj, sstate->fdata, force_eval,
+					sstate, continue_fn, NULL);
                 if (err == 0) {
                     sstate->obj_dropped++;
                     search_free_obj(new_obj);
@@ -563,37 +562,6 @@ device_main(void *arg)
                         sstate->pend_objs++;
                     }
                 }
-
-#else
-			if (sstate->pend_objs < sstate->split_pend_low) {
-				 	err = sstub_send_obj( sstate->comm_cookie, new_obj,
-											sstate->ver_no);
-                        sstate->pend_objs++;
-																							} else {
-                err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
-                if (err == 0) {
-                    sstate->obj_dropped++;
-                    search_free_obj(new_obj);
-
-                } else {
-                    sstate->obj_passed++;
-                    err = sstub_send_obj(sstate->comm_cookie, new_obj,
-                                         sstate->ver_no);
-                    if (err) {
-                        /*
-                         * XXX overflow gracefully 
-                         */
-                    } else {
-                        /*
-                         * XXX log 
-                         */
-                        sstate->pend_objs++;
-                    }
-                }
-			}
-			printf("eval_obj: pend %d \n", sstate->pend_objs);
-
-#endif
             }
         }
 
@@ -753,9 +721,9 @@ search_new_conn(void *comm_cookie, void **app_cookie)
                        dctl_read_uint32, NULL, &sstate->obj_skipped);
     dctl_register_leaf(DEV_SEARCH_PATH, "pend_objs", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &sstate->pend_objs);
-    dctl_register_leaf(DEV_SEARCH_PATH, "pend_thresh", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_SEARCH_PATH, "pend_maximum", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
-                       &sstate->pend_thresh);
+                       &sstate->pend_max);
     dctl_register_leaf(DEV_SEARCH_PATH, "split_type", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &sstate->split_type);
@@ -765,12 +733,9 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     dctl_register_leaf(DEV_SEARCH_PATH, "split_auto_step", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &sstate->split_auto_step);
-    dctl_register_leaf(DEV_SEARCH_PATH, "split_pend_high", DCTL_DT_UINT32,
+    dctl_register_leaf(DEV_SEARCH_PATH, "split_bp_thresh", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
-                       &sstate->split_pend_high);
-    dctl_register_leaf(DEV_SEARCH_PATH, "split_pend_low", DCTL_DT_UINT32,
-                       dctl_read_uint32, dctl_write_uint32,
-                       &sstate->split_pend_low);
+                       &sstate->split_bp_thresh);
     dctl_register_leaf(DEV_SEARCH_PATH, "split_multiplier", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &sstate->split_mult);
@@ -798,7 +763,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     sstate->flags = 0;
     sstate->comm_cookie = comm_cookie;
 
-    sstate->pend_thresh = SSTATE_DEFAULT_OBJ_THRESH;
+    sstate->pend_max = SSTATE_DEFAULT_PEND_MAX;
+    sstate->pend_objs = 0;
+
+    sstate->pend_max = SSTATE_DEFAULT_PEND_MAX;
     sstate->pend_objs = 0;
 
     /*
@@ -808,9 +776,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     sstate->split_type = SPLIT_DEFAULT_TYPE;
     sstate->split_ratio = SPLIT_DEFAULT_RATIO;;
     sstate->split_auto_step = SPLIT_DEFAULT_AUTO_STEP;
-    sstate->split_pend_low = SPLIT_DEFAULT_PEND_LOW;
+    sstate->split_bp_thresh = SPLIT_DEFAULT_BP_THRESH;
     sstate->split_mult = SPLIT_DEFAULT_MULT;
-    sstate->split_pend_high = SPLIT_DEFAULT_PEND_HIGH;
 
 
     /*

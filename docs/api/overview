@@ -23,13 +23,13 @@ then it is passed to the applications.
 The filter code is passed as a shared library and each filter function
 is an entry point within this shared library.  We require that the
 application link all the required libraries into this shared library
-so we don't need to worry about versioning, etc. at the storage device.
+so we don't need to worry about visioning, etc. at the storage device.
 The filter specification specifies each entry point to use
 as well as parameters that are passed to the filter functions.  Each
 filter provides three entry points; an init function, an eval
-function, and a fini function.  The init fuction is called once
+function, and a fini function.  The init function is called once
 per search with any arguments passed in the filter specification.  This
-fuction can build state the is passed to the eval function.  The eval
+function can build state the is passed to the eval function.  The eval
 function is called to evaluate and object, and the fini function is
 called when the search completes to clean up any state.
 

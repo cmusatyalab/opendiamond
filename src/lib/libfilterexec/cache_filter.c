@@ -50,14 +50,14 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-#include "lib_od.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "lib_odisk.h"
-#include "lib_searchlet.h"
 #include "lib_log.h"
-#include "attr.h"
-#include "filter_exec.h"
+#include "sys_attr.h"
+#include "lib_filterexec.h"
 #include "filter_priv.h"
 #include "rtimer.h"
 #include "rgraph.h"

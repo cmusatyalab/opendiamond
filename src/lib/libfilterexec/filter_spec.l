@@ -9,12 +9,12 @@
 #include <stdint.h>
 #include <ctype.h>
 #include "ring.h"
-#include "attr.h"
-#include "lib_od.h"
+#include "sys_attr.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_odisk.h"
 #include "lib_filter.h"
-#include "lib_searchlet.h"
-#include "filter_exec.h"
+#include "lib_filterexec.h"
 #include "filter_priv.h"
 #include <assert.h>
 

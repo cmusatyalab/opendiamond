@@ -35,8 +35,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FILTER_EXEC_H_
-#define _FILTER_EXEC_H_ 1
+#ifndef _LIB_FILTEREXEC_H_
+#define _LIB_FILTEREXEC_H_ 1
+
+
+#include "rcomb.h"
 
 #ifdef __cplusplus
 extern          "C" {
@@ -78,6 +81,7 @@ extern          "C" {
         AUTO_PART_BYPASS,
         AUTO_PART_QUEUE
     };
+
 
     extern int             fexec_bypass_type;
     extern int             fexec_autopart_type;
@@ -127,7 +131,15 @@ extern          "C" {
     int             fexec_update_grouping(filter_data_t * fdata, double ratio);
     float           fexec_get_prate(filter_data_t *fdata);
 
+    int             fexec_estimate_cost(filter_data_t * fdata,
+			    permutation_t * perm, int gen, int indep,
+						float *cost);
+    int             fexec_estimate_cur_cost(filter_data_t * fdata, 
+    				float *cost);
+									                                                                                
+
+
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* _FILTER_EXEC_H_ */
+#endif                          /* ! _LIB_FILTEREXEC_H_ */

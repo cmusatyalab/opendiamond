@@ -45,17 +45,15 @@
 #include <stddef.h>
 #include <assert.h>
 #include <stdint.h>
-#ifdef linux
 #include <values.h>
-#endif
 
-#include "lib_od.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_odisk.h"
 #include "lib_log.h"
-#include "lib_searchlet.h"
-#include "attr.h"
+#include "sys_attr.h"
 #include "queue.h"
-#include "filter_exec.h"
+#include "lib_filterexec.h"
 #include "filter_priv.h"
 #include "rtimer.h"
 #include "rgraph.h"
@@ -434,6 +432,8 @@ fexec_compute_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 }
 
 #define SMALL_FRACTION (0.00001)
+
+
 int
 fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
                     int indep, float *cost)
@@ -503,6 +503,14 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 	return 0;
 }
 
+int
+fexec_estimate_cur_cost(filter_data_t * fdata, float *cost)
+{
+	int             err;
+
+	err = fexec_estimate_cost(fdata, fdata->fd_perm, 1, 0, cost);
+	return err;
+}
 
 int
 fexec_estimate_remaining( filter_data_t * fdata, permutation_t * perm, 

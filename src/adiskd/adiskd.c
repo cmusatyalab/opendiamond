@@ -44,13 +44,14 @@
 #include <errno.h>
 #include <stdint.h>
 #include <dirent.h>
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "obj_attr.h"
-#include "lib_od.h"
 #include "lib_odisk.h"
-#include "lib_searchlet.h"
+//XXX#include "lib_searchlet.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
-#include "filter_exec.h"
+#include "lib_filterexec.h"
 #include "ring.h"
 #include "search_state.h"
 

@@ -47,10 +47,10 @@
 #include <sys/time.h>
 #include <netdb.h>
 #include "ring.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "obj_attr.h"
-#include "lib_od.h"
 #include "lib_odisk.h"
-#include "lib_searchlet.h"
 #include "socket_trans.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"

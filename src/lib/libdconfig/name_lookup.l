@@ -48,7 +48,7 @@
 #include <stdint.h>
 #include <netdb.h>
 #include <assert.h>
-#include "lib_od.h"
+#include "diamond_types.h"
 #include "name_map.h"
 #include "lib_dconfig.h"
 

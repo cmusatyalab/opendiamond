@@ -52,7 +52,8 @@
 #include <sys/uio.h>
 #include <openssl/evp.h>
 
-#include "lib_od.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_log.h"
 #include "sig_calc.h"
 #include "lib_dctl.h"
@@ -61,13 +62,10 @@
 #include "rtimer.h"
 #include "ring.h"
 #include "obj_attr.h"
-#include "consts.h"
-#include "lib_od.h"
 #include "obj_attr.h"
 #include "lib_filter.h"
 #include "lib_odisk.h"
-#include "lib_searchlet.h"
-#include "filter_exec.h"
+#include "lib_filterexec.h"
 #include "lib_ocache.h"
 
 #define	MAX_FNAME	128

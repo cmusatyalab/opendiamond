@@ -79,7 +79,7 @@
 #include    <stdlib.h>
 #include    <stdint.h>
 #include    <assert.h>
-#include    "lib_od.h"
+#include    "diamond_types.h"
 #include    "lib_dconfig.h"
 
 

@@ -53,15 +53,15 @@
 #include <assert.h>
 #include "ring.h"
 #include "rstat.h"
-#include "lib_searchlet.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "obj_attr.h"
-#include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "lib_log.h"
-#include "filter_exec.h"
-#include "filter_priv.h"        /* to read stats -RW */
+#include "rcomb.h"
+#include "lib_filterexec.h"
 #include "search_state.h"
 #include "dctl_common.h"
 #include "lib_ocache.h"
@@ -520,8 +520,7 @@ dynamic_update_bypass(search_state_t *sstate)
 	float	erate;
 	float	drate;
 
-	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
-			1, 0, &avg_cost);
+	err = fexec_estimate_cur_cost(sstate->fdata, &avg_cost);
 	if (err) {
 		avg_cost = 30000000.0;
 	}

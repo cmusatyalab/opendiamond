@@ -44,7 +44,7 @@
 #include "rgraph.h"
 #include "lib_filter.h"         /* for filter_proto */
 #include "queue.h"
-#include "consts.h"
+#include "diamond_consts.h"
 #include "rcomb.h"
 
 
@@ -186,16 +186,7 @@ struct filter_data {
     int             fd_num_filters;
     filter_id_t     fd_max_filters;
     filter_id_t     fd_app_id;
-
-
-
-
-         
-         
-         
-         
-            LIST_HEAD(prob_hash, filter_prob) fd_prob_hash[PROB_HASH_BUCKETS];
-
+    LIST_HEAD(prob_hash, filter_prob) fd_prob_hash[PROB_HASH_BUCKETS];
     permutation_t  *fd_perm;    /* current permutation */
     partial_order_t *fd_po;     /* the partial ordering of filters */
 

@@ -40,22 +40,27 @@
 #PAPI_HOME = $(DIAMOND_ROOT)/../support/papi
 #PERFCTR_HOME = $(DIAMOND_ROOT)/../support/perfctr
 
-# flags for performance counter support
 
-# normally, we would setup LDFLAGS
-#LDFLAGS += -L$(PAPI_HOME)/src -lpapi -L$(PERFCTR_HOME)/usr.lib -lperfctr
-#LIBS += $(PAPI_HOME)/src/libpapi.a $(PERFCTR_HOME)/usr.lib/libperfctr.a -lm
-#LIBDIR += -L$(PAPI_HOME)/src -L$(PERFCTR_HOME)/usr.lib
-#CFLAGS += -DRTIMER_PAPI
+BUILD_LIB_PATH = $(DIAMOND_ROOT)/target/lib
+BUILD_INC_PATH = $(DIAMOND_ROOT)/target/include
+BUILD_BIN_PATH = $(DIAMOND_ROOT)/target/bin
+
+INCDIR += -I${BUILD_INC_PATH}
+
+LIBDIR += -L${BUILD_LIB_PATH}
+
 
 # general flags
 CFLAGS += -O2
-#CFLAGS += -pg -ggdb
 CFLAGS += -ggdb
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
-#CFLAGS += -Werror
 
+# un comment if you want profiling
+#CFLAGS += -pg 
+
+
+# The tools we want to use to compile
 FLEX = flex
 AWK = gawk
 CC = gcc
@@ -64,12 +69,9 @@ CPLUSPLUS = g++
 
 #Just to go overboard and be sure
 CFLAGS += -D_REENTRANT
-CFLAGS += -D_THREAD_SAFE	
-
-
+CFLAGS += -D_THREAD_SAFE
 
 MKDIR = mkdir
-
 
 #
 # Other misc objects to remove during a make clean operation.
@@ -83,7 +85,6 @@ CLEAN_OTHERS += gmon.out core.* *.core filters.gviz filters.daVinci
 # Objects to remove during "distclean".  For now just the .depend
 #
 DIST_OBJS += .depend
-
 
 %.o: %.S
 	${CPP} $(filter -I% -D%, ${INCDIR} ${CFLAGS}) $< | \
@@ -100,6 +101,11 @@ DIST_OBJS += .depend
 
 %.o: %.cc
 	${CPLUSPLUS} ${INCDIR} ${CFLAGS} -c $< -o $@
+
+%.a: $(LIBOBJS)
+	rm -f $@ 
+	ar -csr $@  $^
+	cp -f $@ ${BUILD_LIB_PATH}
 
 # The common targets
 
@@ -121,14 +127,14 @@ define do-subdirs
 endef
 endif
 
+TARGETS += copyheader 
 
 #  Rebuild everything, which is the program "PROG" and its 
 #	subdirectories "SUBDIRS" 
 #
 
-#  General note: the "+" in front of a commmand makes the command happen
-#  	even when the user has specified "make -n" (tell me what would
-#	happen, but don't do it).
+#   Note: the "+" in front of a commmand makes the command happen
+#  	even when the user has specified "make -n" 
 
 all: ${SRCS} ${HSRCS} ${SSRCS} ${OSRCS} ${CYSRCS} ${HYSRCS} ${CLSRCS} ${PROG} ${TARGETS}
 	+${do-subdirs}
@@ -163,6 +169,12 @@ ifneq ($(strip ${OBJS} ${PROG} $(CLEAN_OTHERS) $(TARGETS) $(DIST_OBJS)),)
 endif
 	+${do-subdirs}
 
+copyheader:
+	@for entry in ${SHARED_HEADERS} ; do \
+		echo copying $${entry}; \
+		cp -f $${entry} ${BUILD_INC_PATH}; \
+	done
+
 
 
 #  Install the program, and its children
@@ -190,6 +202,7 @@ endif
 ifneq ($(strip ${INSTALL_OTHERS}),)	
 	${INSTALL} ${INSTALL_OTHERS} ${INSTALLDIR}
 endif
+
 
 
 # Make copies as needed.

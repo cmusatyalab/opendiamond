@@ -46,9 +46,8 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <netdb.h>
-#include "ring.h"
 #include <assert.h>
-#include "lib_od.h"
+#include "diamond_types.h"
 #include "gid_map.h"
 
 static void have_gid();

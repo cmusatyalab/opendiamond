@@ -53,7 +53,6 @@
 
 #include "ring.h"
 #include "lib_searchlet.h"
-#include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_log.h"
@@ -61,7 +60,7 @@
 #include "dctl_common.h"
 #include "rstat.h"
 #include "lib_search_priv.h"
-#include "filter_exec.h"
+#include "lib_filterexec.h"
 
 /* XXX put later */
 #define	BG_RING_SIZE	512

@@ -40,6 +40,8 @@
 #include <assert.h>     /* always needed  */
 #include <stdio.h>     /* always needed  */
 #include <ctype.h>	// For isxdigit
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_od.h"
 
 // Modified by rahuls 2003.05.13 to be take a file and gid

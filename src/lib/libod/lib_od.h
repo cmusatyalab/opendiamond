@@ -46,7 +46,6 @@ extern "C" {
 /* XXX hack */
 #ifdef	RPCGEN
 typedef	uint64_t	groupid_t;
-#endif
 
 
 struct obj_id {
@@ -56,6 +55,7 @@ struct obj_id {
 
 typedef struct obj_id obj_id_t;
 
+#endif
 
 #ifndef RPCGEN
 

@@ -160,7 +160,7 @@ extern int ls_terminate_search(ls_search_handle_t handle);
  */
 
 extern int ls_set_searchlist(ls_search_handle_t, int num_groups, 
-		groupid_t *glist);
+			     groupid_t *glist);
 
 
 /*

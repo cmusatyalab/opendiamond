@@ -16,6 +16,7 @@
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_log.h"
+#include "lib_hstub.h"
 
 
 /* XXX locking for multi-threaded apps !! */
@@ -43,7 +44,7 @@ ls_init_search()
 
 	sc->cur_search_id = 1; /* XXX should we randomize ??? */
 	sc->dev_list = NULL;
-	sc->cur_state = SS_EMPTY;
+	sc->cur_status = SS_EMPTY;
 	err = ring_init(&sc->proc_ring);
 	if (err) {
 		/* XXX log */
@@ -70,7 +71,7 @@ int
 ls_terminate_search(ls_search_handle_t handle)
 {
 	search_context_t	*sc;
-	device_state_t		*cur_dev;
+	device_handle_t		*cur_dev;
 	int			err;
 
 	sc = (search_context_t *)handle;
@@ -80,11 +81,12 @@ ls_terminate_search(ls_search_handle_t handle)
 	/*
 	 * if there is a current search, we need to start shutting it down
 	 */
-	if (sc->cur_state == SS_ACTIVE) {
+	if (sc->cur_status == SS_ACTIVE) {
 		cur_dev = sc->dev_list;
 
 		while (cur_dev != NULL) {
-			err = device_stop(cur_dev, sc->cur_search_id);
+			err = device_stop(cur_dev->dev_handle , 
+					sc->cur_search_id);
 			if (err != 0) {
 				/* if we get an error we note it for
 			 	 * the return value but try to process the rest
@@ -99,7 +101,7 @@ ls_terminate_search(ls_search_handle_t handle)
 	sc->cur_search_id++;
 
 	/* change to indicated we are shutting down */
-	sc->cur_state = SS_SHUTDOWN;
+	sc->cur_status = SS_SHUTDOWN;
 
 	/*
 	 * XXX think more about the shutdown.  How do we 
@@ -113,7 +115,7 @@ ls_terminate_search(ls_search_handle_t handle)
 	cur_dev = sc->dev_list;
 
 	while (cur_dev != NULL) {
-		err = device_terminate(cur_dev, sc->cur_search_id);
+		err = device_terminate(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
 			/* 
 			 * if we get an error we note it for
@@ -128,13 +130,11 @@ ls_terminate_search(ls_search_handle_t handle)
 	return (0);	
 }
 
-
-
 int
 ls_set_searchlist(ls_search_handle_t handle)
 {
 	search_context_t	*sc;
-	device_state_t *new_dev;
+	device_handle_t *	new_dev;
 
 	sc = (search_context_t *)handle;
 /*
@@ -144,11 +144,21 @@ XXX do this
 	 * all items added to search list.  Fix this later !!!
 	 * XXXXXXXXXXX
 	 */
-	new_dev = device_init(sc, 1);
+	new_dev = (device_handle_t *)malloc(sizeof(*new_dev));
 	if (new_dev == NULL) {
 		/* XXX log */
+		printf("XXX to create new device \n"); 
+		return(ENOMEM);
+	}
+
+	new_dev->dev_handle = device_init(sc->cur_search_id, 
+			"127.0.0.1", (void *)new_dev, dev_new_obj_cb);
+	if (new_dev->dev_handle == NULL) {
+		/* XXX log */
+		printf("device init failed \n");
 		return (EINVAL);
 	}
+	printf("set slist:  dhandle %p \n", new_dev->dev_handle);
 
 	/*
 	 * Put this device on the list of devices involved
@@ -156,6 +166,7 @@ XXX do this
 	 */
 	new_dev->next = sc->dev_list;
 	sc->dev_list = new_dev;
+	new_dev->sc = sc;
 
 	return(0);
 }
@@ -171,7 +182,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 {
 
 	search_context_t	*sc;
-	device_state_t		*cur_dev;
+	device_handle_t		*cur_dev;
 	int			err;
 	int			started = 0;;
 
@@ -182,7 +193,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	 * if state is active, we can't change the searchlet.
 	 * XXX what other states are no valid ??
 	 */
-	if (sc->cur_state == SS_ACTIVE) {
+	if (sc->cur_status == SS_ACTIVE) {
 		/* XXX log */
 		printf("still idle \n");
 		return (EINVAL);
@@ -191,8 +202,8 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	/* we need to verify the searchlet somehow */
 	cur_dev = sc->dev_list;
 	while (cur_dev != NULL) {
-		err = device_set_searchlet(cur_dev, sc->cur_search_id, 
-			filter_file_name, filter_spec_name);
+		err = device_set_searchlet(cur_dev->dev_handle, 
+			sc->cur_search_id, filter_file_name, filter_spec_name);
 		if (err != 0) {
 			/*
 			 * It isn't obvious what we need to do if we
@@ -216,7 +227,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 
 	/* XXXX */
 	printf("set searchlet !! \n");
-	sc->cur_state = SS_IDLE;
+	sc->cur_status = SS_IDLE;
 
 	return(0);
 }
@@ -243,7 +254,7 @@ ls_start_search(ls_search_handle_t handle)
 {
 
 	search_context_t	*sc;
-	device_state_t		*cur_dev;
+	device_handle_t		*cur_dev;
 	int			err;
 	int			started = 0;;
 
@@ -253,11 +264,11 @@ ls_start_search(ls_search_handle_t handle)
 	 * if state isn't idle, then we haven't set the searchlet on
 	 * all the devices, so this is an error condition.
 	 *
-	 * If the cur_state == ACTIVE, it is already running which
+	 * If the cur_status == ACTIVE, it is already running which
 	 * is also an error.
 	 *
 	 */
-	if (sc->cur_state != SS_IDLE) {
+	if (sc->cur_status != SS_IDLE) {
 		/* XXX log */
 		printf("still idle \n");
 		return (EINVAL);
@@ -265,7 +276,7 @@ ls_start_search(ls_search_handle_t handle)
 
 	cur_dev = sc->dev_list;
 	while (cur_dev != NULL) {
-		err = device_start(cur_dev, sc->cur_search_id);
+		err = device_start(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
 			/*
 			 * It isn't obvious what we need to do if we
@@ -285,7 +296,7 @@ ls_start_search(ls_search_handle_t handle)
 	started++;
 
 	if (started > 0) {
-		sc->cur_state = SS_ACTIVE;
+		sc->cur_status = SS_ACTIVE;
 		return (0);
 	} else {
 		return (EINVAL);
@@ -303,7 +314,7 @@ int
 ls_abort_search(ls_search_handle_t handle)
 {
 	search_context_t	*sc;
-	device_state_t		*cur_dev;
+	device_handle_t		*cur_dev;
 	int			err;
 	int			ret_err;
 
@@ -313,7 +324,7 @@ ls_abort_search(ls_search_handle_t handle)
 	 * If no search is currently active (or just completed) then
 	 * this is an error.
 	 */
-	if ((sc->cur_state != SS_ACTIVE) && (sc->cur_state != SS_DONE)) {
+	if ((sc->cur_status != SS_ACTIVE) && (sc->cur_status != SS_DONE)) {
 		return (EINVAL);
 	}
 
@@ -322,7 +333,7 @@ ls_abort_search(ls_search_handle_t handle)
 	ret_err = 0;
 
 	while (cur_dev != NULL) {
-		err = device_stop(cur_dev, sc->cur_search_id);
+		err = device_stop(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
 			/* if we get an error we note it for
 			 * the return value but try to process the rest
@@ -338,7 +349,7 @@ ls_abort_search(ls_search_handle_t handle)
 	sc->cur_search_id++;
 
 	/* change the current state to idle */
-	sc->cur_state = SS_IDLE;
+	sc->cur_status = SS_IDLE;
 	return (ret_err);	
 
 }
@@ -404,7 +415,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 		 * Make sure we are still processing data.
 		 */
 
-		if (sc->cur_state == SS_DONE) {
+		if (sc->cur_status == SS_DONE) {
 			return (ENOENT);
 		}
 	
@@ -512,12 +523,11 @@ ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
  */
 
 int
-ls_get_dev_list(ls_search_handle_t handle, 
-		ls_dev_handle_t *handle_list,
+ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t *handle_list,
 		int *num_handles)
 {
 	search_context_t	*sc;
-	device_state_t		*cur_dev;
+	device_handle_t		*cur_dev;
 	int                      dev_count;
 
 	if(!handle_list) return EINVAL;
@@ -561,16 +571,15 @@ ls_get_dev_list(ls_search_handle_t handle,
  */
 
 int
-ls_dev_characteristics(ls_search_handle_t handle, 
-		       ls_dev_handle_t dev_handle,
+ls_dev_characteristics(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 		       device_char_t *dev_chars)
 {
-	device_state_t *dev;
+	device_handle_t *dev;
 
-	dev = (device_state_t *)dev_handle;
+	dev = (device_handle_t *)dev_handle;
 	/* validate dev? */
 
-	return device_characteristics(dev, dev_chars);
+	return device_characteristics(dev->dev_handle, dev_chars);
 }
 
 
@@ -608,12 +617,11 @@ ls_dev_characteristics(ls_search_handle_t handle,
  */
 
 int
-ls_get_dev_stats(ls_search_handle_t handle, 
-		 ls_dev_handle_t  dev_handle,
+ls_get_dev_stats(ls_search_handle_t handle, ls_dev_handle_t  dev_handle,
 		 dev_stats_t *dev_stats, int *stat_len)
 {
-	device_state_t *dev;
-	dev = (device_state_t *)dev_handle;
+	device_handle_t *dev;
+	dev = (device_handle_t *)dev_handle;
 
-	return device_statistics(dev, dev_stats, stat_len);
+	return device_statistics(dev->dev_handle, dev_stats, stat_len);
 }

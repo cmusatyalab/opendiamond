@@ -16,15 +16,13 @@
 #define	DEV_FLAG_COMPLETE		0x02	
 struct search_context;
 
-typedef struct device_state {
-	struct device_state * 	next;
-	pthread_t		thread_id;
-	ring_data_t *		device_ops;	
+typedef struct device_handle {
+	struct device_handle * 	next;
 	unsigned int		flags;
-	struct search_context * sc;
-	odisk_state_t *		ostate;
+	void *			dev_handle;
 	int			ver_no;
-} device_state_t;
+	struct search_context *	sc;
+} device_handle_t;
 
 
 typedef enum {
@@ -33,7 +31,7 @@ typedef enum {
 	SS_EMPTY,
 	SS_SHUTDOWN,	
 	SS_IDLE	
-} search_state_t;
+} search_status_t;
 
 
 typedef struct {
@@ -49,8 +47,8 @@ typedef struct {
 #define	OBJ_QUEUE_SIZE		1024
 typedef struct search_context {
 	int			cur_search_id;	/* ID of current search */
-	struct device_state *	dev_list;
-	search_state_t		cur_state;	/* current state of search */
+	device_handle_t *	dev_list;
+	search_status_t		cur_status;	/* current status of search */
 	ring_data_t *		proc_ring;	/* processed objects */
 	ring_data_t *		unproc_ring;	/* unprocessed objects */
 	ring_data_t *		bg_ops;	/* unprocessed objects */
@@ -62,18 +60,7 @@ typedef struct search_context {
  * These are the prototypes of the device operations that
  * in the file ls_device.c
  */
-extern int device_stop(device_state_t *dev, int id);
-extern int device_terminate(device_state_t *dev, int id);
-extern int device_start(device_state_t *dev, int id);
-extern int device_set_searchlet(device_state_t *dev, int id, char *filter,
-	                        char *spec);
-extern device_state_t * device_init(search_context_t *sc, int id);
-
-struct device_char;
-struct dev_stats;
-extern int device_characteristics(device_state_t *dev, struct device_char *);
-extern int device_statistics(device_state_t *dev,
-			     struct dev_stats *dev_stats, int *stat_len);
+extern int dev_new_obj_cb(void *hcookie, obj_data_t *odata, int vno);
 
 /*
  * These are background processing functions.
@@ -81,5 +68,6 @@ extern int device_statistics(device_state_t *dev,
 extern int bg_init(search_context_t *sc, int id);
 extern int bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 			char *spec_name);
+
 
 #endif

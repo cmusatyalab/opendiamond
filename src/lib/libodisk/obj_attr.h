@@ -11,6 +11,10 @@ typedef struct {
 } obj_attr_t;
 
 
+/*
+ * XXX we need to store these in network byte order and fixed
+ * size for sharing across the network.
+ */
 
 
 typedef struct attr_record {

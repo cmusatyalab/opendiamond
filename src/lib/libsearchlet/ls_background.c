@@ -52,7 +52,7 @@ bg_main(void *arg)
 	int			err;
 	bg_cmd_data_t *		cmd;
 	int			any;
-	device_state_t *	cur_dev;
+	device_handle_t *	cur_dev;
 
 
 	pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
@@ -91,6 +91,7 @@ bg_main(void *arg)
 			obj_info = (obj_info_t *)ring_deq(sc->unproc_ring);
 			if (obj_info != NULL) {
 				new_obj = obj_info->obj;
+				printf("bacground:  new obj %p \n", new_obj);
 				/* 
 			 	 * Make sure the version number is the
 				 * latest.  If it is not equal, then this
@@ -103,15 +104,16 @@ bg_main(void *arg)
 							sc->cur_search_id,
 							obj_info->ver_num);
 					ls_release_object(sc, new_obj); 
+					free(obj_info);
 					continue;
 				}
+				free(obj_info);
 
 				/*
 				 * Now that we have an object, go ahead
 				 * an evaluated all the filters on the
 				 * object.
 				 */
-				new_obj = obj_info->obj;
 				err = eval_filters(new_obj, sc->bg_froot);
 				if (err == 0) {
 					/* XXX printf("releasing object \n");*/
@@ -124,6 +126,7 @@ bg_main(void *arg)
 						/* XXX log */
 					}
 				}
+
 			} else {
 				/*
 				 * These are no objects.  See if all the devices
@@ -141,8 +144,7 @@ bg_main(void *arg)
 				}
 
 				if (any == 0) {
-					/* printf("XXX sc done \n"); */
-					sc->cur_state = SS_DONE;
+					sc->cur_status = SS_DONE;
 				}
 			}
 	

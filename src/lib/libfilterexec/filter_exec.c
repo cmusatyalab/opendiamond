@@ -166,6 +166,10 @@ build_label(char *buf, filter_info_t *fil) {
 		strcat(buf, " ");
 		strcat(buf, fil->fi_args[i]);
 		//strcat(buf, "\\n");
+		if(strlen(buf)>24) {	/* too long */
+			strcat(buf, "...");
+			break;
+		}
 	}
 }
 
@@ -183,7 +187,6 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	graph_t graph;
 	node_t *np;
 	char *filename = "filters.daVinci";
-	char *toponame = "topo.daVinci";
 	filter_info_t dummy;
 	node_t *src_node;
 
@@ -265,14 +268,17 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	fprintf(stderr, "exporting filter graph to %s\n", filename);
 	gExport(&graph, filename);
 
+#if 0
 	/* export ordered list */
 	{
+		char *toponame = "topo.daVinci";
 		graph_t gordered;
 		fprintf(stderr, "exporting filter order to %s\n", toponame);
 		gInitFromList(&gordered, &graph);
 		gExport(&gordered, toponame);
 		gClear(&gordered);
 	}
+#endif
 
 	/* ugly hack - delete the application dummy filter from the
 	 * end.  unfortunately, we only have a singly-linked list, so

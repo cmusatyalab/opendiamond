@@ -449,6 +449,10 @@ static void
 export_node(FILE *fp, node_t *np, int indent) {
   edge_t *ep;
   int count = 0;
+  char *edgecolor;
+  char *red = "red";
+  char *black = "black";
+
   if(np->color) return;
     
   np->color = 1;
@@ -464,8 +468,11 @@ export_node(FILE *fp, node_t *np, int indent) {
   //TAILQ_FOREACH(ep, &np->edges, eg_link) {
   VEC_FOREACH(ep, &np->edgelist) {
     if(count++) fprintf(fp, ",\n\t");
-    fprintf(fp, "l(\"%d-%d\",e(\"B\",[],r(\"%d\")))",
-	    np->id, ep->eg_v->id, ep->eg_v->id);
+
+    edgecolor = (TAILQ_NEXT(np, olink) == ep->eg_v) ? red : black;
+
+    fprintf(fp, "l(\"%d-%d\",e(\"B\",[a(\"EDGECOLOR\",\"%s\")],r(\"%d\")))",
+	    np->id, ep->eg_v->id, edgecolor, ep->eg_v->id);
     //export_node(fp, ep->node, indent+1);    
   }
   fprintf(fp, "\n\t]))\n");

@@ -184,7 +184,6 @@ fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
     int             i;
     filter_info_t  *info;
 
-	printf("bypass trivial:  ration %f \n", ratio);
     /*
      * for the first filtre run int locally
      */
@@ -193,7 +192,6 @@ fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
         info->fi_bpthresh = RAND_MAX;
     } else {
         info->fi_bpthresh = (int) ((float) RAND_MAX * ratio);
-		printf("new thresh %d \n", info->fi_bpthresh);
     }
 
 

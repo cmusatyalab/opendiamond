@@ -39,31 +39,31 @@ typedef enum {
 #define	CINFO_PENDING_CONTROL	0x01
 
 typedef struct conn_info {
-	int			flags;
-	uint32_t		dev_id;
+	int			        flags;
+	uint32_t		    dev_id;
 	pthread_mutex_t		mutex;
-	uint32_t		con_cookie;
-	int			control_fd;
+	uint32_t		    con_cookie;
+	int			        control_fd;
 	control_tx_state_t	control_state;
 	control_header_t *	control_header;		
-	int			control_offset;
+	int			        control_offset;
 	control_header_t	control_rx_header;	/* hdr being recieved */
 	control_rx_state_t	control_rx_state;	/* recieve state */
-	int			control_rx_offset;	/* current rx offset  */
-	char *			control_rx_data;	/* rx data buffer */ 
-	int			data_fd;
+	int			        control_rx_offset;	/* current rx offset  */
+	char *			    control_rx_data;	/* rx data buffer */ 
+	int			        data_fd;
 	data_rx_state_t		data_rx_state;
 	obj_header_t		data_rx_header;
-	int			data_rx_offset;
+	int			        data_rx_offset;
 	obj_data_t *		data_rx_obj;
 	log_rx_state_t		log_rx_state;
-	int			log_rx_offset;
-	char *			log_rx_data;
+	int			        log_rx_offset;
+	char *			    log_rx_data;
 	log_header_t		log_rx_header;
-	int			log_fd;
-	fd_set			read_fds;
-	fd_set			write_fds;
-	fd_set			except_fds;
+	int			        log_fd;
+	fd_set			    read_fds;
+	fd_set			    write_fds;
+	fd_set			    except_fds;
 } conn_info_t;
 
 
@@ -75,18 +75,22 @@ typedef struct conn_info {
 
 typedef struct sdevice_state {
 	struct sdevice_state * 	next;
-	pthread_t		thread_id;
-	ring_data_t *		device_ops;	
-	conn_info_t 		con_data;
-	unsigned int		flags;
-	int			ver_no;
-	void *			hcookie;
-	device_char_t		dev_char;	/* cached device chars */
-	int			stat_size;	/* size of caches stats */
-	dev_stats_t *		dstats;		/* caches stats */
-	hstub_new_obj_fn	hstub_new_obj_cb;
-	hstub_log_data_fn	hstub_log_data_cb;
+	pthread_t		        thread_id;
+	ring_data_t *		    device_ops;	
+	conn_info_t 		    con_data;
+	unsigned int		    flags;
+	int			            ver_no;
+	void *			        hcookie;
+	device_char_t		    dev_char;	/* cached device chars */
+	int			            stat_size;	/* size of caches stats */
+	dev_stats_t *		    dstats;		/* caches stats */
+	hstub_new_obj_fn	    hstub_new_obj_cb;
+	hstub_log_data_fn	    hstub_log_data_cb;
 	hstub_search_done_fn	hstub_search_done_cb;
+	hstub_wleaf_done_fn	    hstub_wleaf_done_cb;
+	hstub_rleaf_done_fn	    hstub_rleaf_done_cb;
+	hstub_lnodes_done_fn    hstub_lnode_done_cb;
+	hstub_lleafs_done_fn    hstub_lleaf_done_cb;
 } sdevice_state_t;
 
 

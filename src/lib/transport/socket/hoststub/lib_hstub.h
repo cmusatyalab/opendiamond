@@ -6,11 +6,23 @@ typedef	int (*hstub_new_obj_fn)(void *hcookie, obj_data_t *odata, int vno);
 typedef	void (*hstub_log_data_fn)(void *hcookie, char *data, int len, int dev);
 typedef	void (*hstub_search_done_fn)(void *hcookie, int ver_num);
 
+typedef	void (*hstub_rleaf_done_fn)(void *hcookie, int err, 
+                dctl_data_type_t dtype, int len, char *data, int32_t opid);
+typedef	void (*hstub_wleaf_done_fn)(void *hcookie, int err, int32_t opid);
+typedef	void (*hstub_lnodes_done_fn)(void *hcookie, int err, int num_ents,
+                dctl_entry_t *data, int32_t opid);
+typedef	void (*hstub_lleafs_done_fn)(void *hcookie, int err, int num_ents,
+                dctl_entry_t *data, int32_t opid);
+
 
 typedef struct {
-	hstub_new_obj_fn		new_obj_cb;
-	hstub_log_data_fn		log_data_cb;
-	hstub_search_done_fn		search_done_cb;
+	hstub_new_obj_fn		    new_obj_cb;
+	hstub_log_data_fn		    log_data_cb;
+	hstub_search_done_fn	    search_done_cb;
+	hstub_rleaf_done_fn		    rleaf_done_cb;
+	hstub_wleaf_done_fn		    wleaf_done_cb;
+	hstub_lnodes_done_fn		lnode_done_cb;
+	hstub_lleafs_done_fn		lleaf_done_cb;
 } hstub_cb_args_t;
 
 
@@ -28,8 +40,14 @@ extern int device_set_searchlet(void *dev, int id, char *filter, char *spec);
 extern int device_characteristics(void *handle, device_char_t *dev_chars);
 extern int device_statistics(void *dev, dev_stats_t *dev_stats, 
 		int *stat_len);
-
 extern int device_set_log(void *handle, uint32_t level, uint32_t src);
+
+extern int device_write_leaf(void *dev, char *path, int len, char *data,
+                int32_t opid);
+extern int device_read_leaf(void *dev, char *path, int32_t opid);
+extern int device_list_nodes(void *dev, char *path, int32_t opid);
+extern int device_list_leafs(void *dev, char *path, int32_t opid);
+
 
 
 #endif	/* _LIB_HSTUB_H_ */

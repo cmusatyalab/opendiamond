@@ -22,6 +22,7 @@
 #include "socket_trans.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
+#include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
@@ -380,6 +381,276 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 }
 
 
+
+
+int 
+device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
+{
+	int		        	    err;
+	control_header_t *  	cheader;
+	sdevice_state_t *       dev;
+	dctl_subheader_t *      dsub;
+    int                     plen;
+    int                     tot_len;
+
+	dev = (sdevice_state_t *)handle;
+
+    plen = strlen(path) + 1;
+    tot_len = plen + len + sizeof(*dsub);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+    dsub = (dctl_subheader_t *) malloc(tot_len);
+	if (dsub == NULL) {
+		/* XXX log */
+        free(cheader);
+		return (EAGAIN);
+	}
+
+
+    /* fill in the data */
+
+	cheader->generation_number = htonl(0);
+	cheader->command = htonl(CNTL_CMD_WRITE_LEAF);
+	cheader->data_len = htonl(tot_len);
+	/*
+	 * XXX HACK.  For now we store the pointer to the data
+	 * using the spare field in the header to point to the data.
+	 */
+	cheader->spare = (uint32_t) dsub;	
+
+    /*
+     * Fill in the subheader.
+     */
+    dsub->dctl_err = htonl(0);
+    dsub->dctl_opid = htonl(opid);
+    dsub->dctl_plen = htonl(plen);
+    dsub->dctl_dlen = htonl(len);
+    memcpy(&dsub->dctl_data[0], path, plen);
+    memcpy(&dsub->dctl_data[plen], data, len);
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to write leaf \n");
+		free(cheader);
+        free(dsub);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+int 
+device_read_leaf(void *handle, char *path, int32_t opid)
+{
+	int		        	    err;
+	control_header_t *  	cheader;
+	sdevice_state_t *       dev;
+	dctl_subheader_t *      dsub;
+    int                     plen;
+    int                     tot_len;
+
+	dev = (sdevice_state_t *)handle;
+
+    plen = strlen(path) + 1;
+    tot_len = plen + sizeof(*dsub);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+    dsub = (dctl_subheader_t *) malloc(tot_len);
+	if (dsub == NULL) {
+		/* XXX log */
+        free(cheader);
+		return (EAGAIN);
+	}
+
+
+    /* fill in the data */
+
+	cheader->generation_number = htonl(0);
+	cheader->command = htonl(CNTL_CMD_READ_LEAF);
+	cheader->data_len = htonl(tot_len);
+	/*
+	 * XXX HACK.  For now we store the pointer to the data
+	 * using the spare field in the header to point to the data.
+	 */
+	cheader->spare = (uint32_t) dsub;	
+
+    /*
+     * Fill in the subheader.
+     */
+    dsub->dctl_err = htonl(0);
+    dsub->dctl_opid = htonl(opid);
+    dsub->dctl_plen = htonl(plen);
+    dsub->dctl_dlen = htonl(0);
+    memcpy(&dsub->dctl_data[0], path, plen);
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to write leaf \n");
+		free(cheader);
+        free(dsub);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+
+}
+
+
+int 
+device_list_nodes(void *handle, char *path, int32_t opid)
+{
+	int		        	    err;
+	control_header_t *  	cheader;
+	sdevice_state_t *       dev;
+	dctl_subheader_t *      dsub;
+    int                     plen;
+    int                     tot_len;
+
+	dev = (sdevice_state_t *)handle;
+
+    plen = strlen(path) + 1;
+    tot_len = plen + sizeof(*dsub);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+    dsub = (dctl_subheader_t *) malloc(tot_len);
+	if (dsub == NULL) {
+		/* XXX log */
+        free(cheader);
+		return (EAGAIN);
+	}
+
+
+    /* fill in the data */
+
+	cheader->generation_number = htonl(0);
+	cheader->command = htonl(CNTL_CMD_LIST_NODES);
+	cheader->data_len = htonl(tot_len);
+	/*
+	 * XXX HACK.  For now we store the pointer to the data
+	 * using the spare field in the header to point to the data.
+	 */
+	cheader->spare = (uint32_t) dsub;	
+
+    /*
+     * Fill in the subheader.
+     */
+    dsub->dctl_err = htonl(0);
+    dsub->dctl_opid = htonl(opid);
+    dsub->dctl_plen = htonl(plen);
+    dsub->dctl_dlen = htonl(0);
+    memcpy(&dsub->dctl_data[0], path, plen);
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to write leaf \n");
+		free(cheader);
+        free(dsub);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+int 
+device_list_leafs(void *handle, char *path, int32_t opid)
+{
+	int		        	    err;
+	control_header_t *  	cheader;
+	sdevice_state_t *       dev;
+	dctl_subheader_t *      dsub;
+    int                     plen;
+    int                     tot_len;
+
+	dev = (sdevice_state_t *)handle;
+
+    plen = strlen(path) + 1;
+    tot_len = plen + sizeof(*dsub);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+    dsub = (dctl_subheader_t *) malloc(tot_len);
+	if (dsub == NULL) {
+		/* XXX log */
+        free(cheader);
+		return (EAGAIN);
+	}
+
+
+    /* fill in the data */
+
+	cheader->generation_number = htonl(0);
+	cheader->command = htonl(CNTL_CMD_LIST_LEAFS);
+	cheader->data_len = htonl(tot_len);
+	/*
+	 * XXX HACK.  For now we store the pointer to the data
+	 * using the spare field in the header to point to the data.
+	 */
+	cheader->spare = (uint32_t) dsub;	
+
+    /*
+     * Fill in the subheader.
+     */
+    dsub->dctl_err = htonl(0);
+    dsub->dctl_opid = htonl(opid);
+    dsub->dctl_plen = htonl(plen);
+    dsub->dctl_dlen = htonl(0);
+    memcpy(&dsub->dctl_data[0], path, plen);
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to write leaf \n");
+		free(cheader);
+        free(dsub);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+
 /*
  * This is the initialization function that is
  * called by the searchlet library when we startup.
@@ -428,6 +699,11 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 	new_dev->hstub_new_obj_cb = cb_list->new_obj_cb;
 	new_dev->hstub_log_data_cb = cb_list->log_data_cb;
 	new_dev->hstub_search_done_cb = cb_list->search_done_cb;
+	new_dev->hstub_rleaf_done_cb = cb_list->rleaf_done_cb;
+	new_dev->hstub_wleaf_done_cb = cb_list->wleaf_done_cb;
+	new_dev->hstub_lnode_done_cb = cb_list->lnode_done_cb;
+	new_dev->hstub_lleaf_done_cb = cb_list->lleaf_done_cb;
+
 
 	/*
 	 * Init caches stats.

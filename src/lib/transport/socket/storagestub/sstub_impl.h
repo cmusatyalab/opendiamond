@@ -58,32 +58,32 @@ typedef enum {
 
 typedef struct cstate {
 	unsigned int		flags;
-	pthread_t		thread_id;
+	pthread_t		    thread_id;
 	pthread_mutex_t		cmutex;
-	int			control_fd;
-	int			data_fd;
-	int			log_fd;
-	void *			app_cookie;
-	fd_set			read_fds;
-	fd_set			write_fds;
-	fd_set			except_fds;
+	int			        control_fd;
+	int			        data_fd;
+	int			        log_fd;
+	void *			    app_cookie;
+	fd_set			    read_fds;
+	fd_set			    write_fds;
+	fd_set			    except_fds;
 	ring_data_t *		obj_ring;
 	control_rx_state_t	control_rx_state;
 	control_header_t	control_rx_header;
-	char *			control_rx_data;
-	int			control_rx_offset;
+	char *			    control_rx_data;
+	int			        control_rx_offset;
 	ring_data_t * 		control_tx_ring;
 	control_tx_state_t	control_tx_state;
 	control_header_t *	control_tx_header;
-	int			control_tx_offset;
-	char *			log_tx_buf;
-	int			log_tx_len;
-	int			log_tx_offset;
+	int			        control_tx_offset;
+	char *			    log_tx_buf;
+	int			        log_tx_len;
+	int			        log_tx_offset;
 	log_header_t		log_tx_header;
 	log_tx_state_t		log_tx_state;
 	obj_data_t *		data_tx_obj;
 	data_tx_state_t		data_tx_state;
-	int			data_tx_offset;
+	int			        data_tx_offset;
 	obj_header_t		data_tx_oheader;
 } cstate_t;
 
@@ -95,27 +95,31 @@ typedef struct cstate {
  */
 
 typedef struct listener_state {
-	pthread_t		thread_id;
-	int			control_fd;
-	int			data_fd;
-	int			log_fd;
-	unsigned int		flags;
-	fd_set			read_fds;
-	fd_set			write_fds;
-	fd_set			except_fds;
-	sstub_new_conn_fn 	new_conn_cb;
+	pthread_t		        thread_id;
+	int			            control_fd;
+	int			            data_fd;
+	int			            log_fd;
+	unsigned int		    flags;
+	fd_set			        read_fds;
+	fd_set			        write_fds;
+	fd_set			        except_fds;
+	sstub_new_conn_fn 	    new_conn_cb;
 	sstub_close_conn_fn 	close_conn_cb;
-	sstub_start_fn 		start_cb;
-	sstub_stop_fn 		stop_cb;
+	sstub_start_fn 		    start_cb;
+	sstub_stop_fn 		    stop_cb;
 	sstub_set_searchlet_fn	set_searchlet_cb;
-	sstub_set_list_fn	set_list_cb;
-	sstub_terminate_fn	terminate_cb;
-	sstub_getstats_fn	get_stats_cb;
+	sstub_set_list_fn	    set_list_cb;
+	sstub_terminate_fn	    terminate_cb;
+	sstub_getstats_fn	    get_stats_cb;
 	sstub_release_obj_fn	release_obj_cb;
 	sstub_get_devchar_fn	get_char_cb;
-	sstub_log_done_fn	log_done_cb;
-	sstub_set_log_fn	setlog_cb;
-	cstate_t		conns[MAX_CONNS];
+	sstub_log_done_fn	    log_done_cb;
+	sstub_set_log_fn	    setlog_cb;
+	sstub_rleaf_fn	        rleaf_cb;
+	sstub_wleaf_fn	        wleaf_cb;
+	sstub_lleaf_fn	        lleaf_cb;
+	sstub_lnode_fn	        lnode_cb;
+	cstate_t		        conns[MAX_CONNS];
 } listener_state_t;
 
 

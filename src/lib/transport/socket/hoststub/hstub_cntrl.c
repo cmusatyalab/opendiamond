@@ -22,6 +22,7 @@
 #include "socket_trans.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
+#include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
@@ -117,6 +118,89 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 }
 
 static void
+write_leaf_done(sdevice_state_t *dev, char *data)
+{
+    dctl_subheader_t    *dsub;
+    int                  err;
+    int32_t             opid;
+
+
+    dsub = (dctl_subheader_t *)data;
+
+    err = htonl(dsub->dctl_err);
+    opid = htonl(dsub->dctl_opid);
+
+    (*dev->hstub_wleaf_done_cb)(dev->hcookie, err, opid);
+
+
+}
+
+
+static void
+read_leaf_done(sdevice_state_t *dev, char *data)
+{
+    dctl_subheader_t *  dsub;
+    int                 err;
+    int32_t             opid;
+    int                 dlen;
+    dctl_data_type_t    dtype;
+
+    dsub = (dctl_subheader_t *)data;
+
+    err = htonl(dsub->dctl_err);
+    opid = htonl(dsub->dctl_opid);
+    dlen = htonl(dsub->dctl_dlen);
+    dtype = htonl(dsub->dctl_dtype);
+
+    (*dev->hstub_rleaf_done_cb)(dev->hcookie, err, dtype, dlen, 
+                                dsub->dctl_data, opid);
+}
+
+static void
+list_nodes_done(sdevice_state_t *dev, char *data)
+{
+    dctl_subheader_t *  dsub;
+    int                 err;
+    int32_t             opid;
+    int                 dlen;
+    int                 ents;
+
+    dsub = (dctl_subheader_t *)data;
+
+    err = htonl(dsub->dctl_err);
+    opid = htonl(dsub->dctl_opid);
+    dlen = htonl(dsub->dctl_dlen);
+
+    ents = dlen /(sizeof(dctl_entry_t));
+
+    (*dev->hstub_lnode_done_cb)(dev->hcookie, err, ents, 
+                                 (dctl_entry_t *)dsub->dctl_data, opid);
+}
+
+static void
+list_leafs_done(sdevice_state_t *dev, char *data)
+{
+    dctl_subheader_t *  dsub;
+    int                 err;
+    int32_t             opid;
+    int                 dlen;
+    int                 ents;
+
+    dsub = (dctl_subheader_t *)data;
+
+    err = htonl(dsub->dctl_err);
+    opid = htonl(dsub->dctl_opid);
+    dlen = htonl(dsub->dctl_dlen);
+
+    ents = dlen /(sizeof(dctl_entry_t));
+
+    (*dev->hstub_lleaf_done_cb)(dev->hcookie, err, ents, 
+                                 (dctl_entry_t *)dsub->dctl_data, opid);
+}
+
+
+
+static void
 process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
 {
 
@@ -132,6 +216,26 @@ process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
 
 		case CNTL_CMD_RET_CHAR:
 			store_dev_char(dev, data_buf);
+			free(data_buf);
+			break;
+
+		case CNTL_CMD_WLEAF_DONE:
+			write_leaf_done(dev, data_buf);
+			free(data_buf);
+			break;
+
+		case CNTL_CMD_RLEAF_DONE:
+			read_leaf_done(dev, data_buf);
+			free(data_buf);
+			break;
+
+		case CNTL_CMD_LNODES_DONE:
+			list_nodes_done(dev, data_buf);
+			free(data_buf);
+			break;
+
+		case CNTL_CMD_LLEAFS_DONE:
+			list_leafs_done(dev, data_buf);
 			free(data_buf);
 			break;
 

@@ -21,6 +21,7 @@
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "socket_trans.h"
+#include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
@@ -304,6 +305,10 @@ sstub_init(sstub_cb_args_t *cb_args)
 	list_state->get_stats_cb = cb_args->get_stats_cb;
 	list_state->log_done_cb = cb_args->log_done_cb;
 	list_state->setlog_cb = cb_args->setlog_cb;
+	list_state->rleaf_cb = cb_args->rleaf_cb;
+	list_state->wleaf_cb = cb_args->wleaf_cb;
+	list_state->lleaf_cb = cb_args->lleaf_cb;
+	list_state->lnode_cb = cb_args->lnode_cb;
 
 	/*
 	 * Open the listner sockets for the different types of connections.
@@ -333,6 +338,286 @@ sstub_init(sstub_cb_args_t *cb_args)
 	}
 
 	return((void *)list_state);
+}
+
+
+int 
+sstub_wleaf_response(void *cookie, int err, int32_t opid)
+{
+	cstate_t *		    cstate;
+	control_header_t *	cheader;
+	dctl_subheader_t *	shead;
+	int			        eno;
+    int                 tot_len;
+
+	cstate = (cstate_t *)cookie;
+    tot_len = sizeof(*shead);
+
+	cheader = (control_header_t *)malloc(sizeof(*cheader));
+	if(cheader == NULL) {
+		/* XXX */
+		printf("no memory for header \n");
+		exit(1);
+	}
+
+	shead = (dctl_subheader_t *)malloc(tot_len);
+	if(shead == NULL) {
+		/* XXX */
+        free(cheader);
+		printf("no memory for subheader \n");
+		exit(1);
+	}
+
+
+	cheader->generation_number = 0; /* XXX ??? */
+	cheader->command = htonl(CNTL_CMD_WLEAF_DONE);
+	cheader->data_len = htonl(tot_len);
+	cheader->spare = (uint32_t)shead;
+
+    shead->dctl_err = htonl(err);
+    shead->dctl_opid = htonl(opid);
+    shead->dctl_plen = htonl(0);
+    shead->dctl_dlen = htonl(0);
+
+	/*
+	 * mark the control state that there is a pending
+	 * control message to send.
+	 */
+
+	pthread_mutex_lock(&cstate->cmutex);
+	cstate->flags |= CSTATE_CONTROL_DATA;
+
+	eno = ring_enq(cstate->control_tx_ring, (void *)cheader);
+	pthread_mutex_unlock(&cstate->cmutex);
+	if (eno) {
+		/* XXX */
+        free(shead);
+        free(cheader);
+		printf("can't enq message \n");
+		exit(1);
+	}
+
+    return(0);
+}
+
+
+int 
+sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
+                int len, char *data, int32_t opid)
+{
+	cstate_t *		    cstate;
+	control_header_t *	cheader;
+	dctl_subheader_t *	shead;
+	int			        eno;
+    int                 tot_len;
+
+	cstate = (cstate_t *)cookie;
+
+    if (err == 0) {
+        tot_len = sizeof(*shead) + len;
+    } else {
+        tot_len = sizeof(*shead);
+    }
+
+	cheader = (control_header_t *)malloc(sizeof(*cheader));
+	if(cheader == NULL) {
+		/* XXX */
+		printf("no memory for header \n");
+		exit(1);
+	}
+
+	shead = (dctl_subheader_t *)malloc(tot_len);
+	if(shead == NULL) {
+		/* XXX */
+        free(cheader);
+		printf("no memory for subheader \n");
+		exit(1);
+	}
+
+
+	cheader->generation_number = 0; /* XXX ??? */
+	cheader->command = htonl(CNTL_CMD_RLEAF_DONE);
+	cheader->data_len = htonl(tot_len);
+	cheader->spare = (uint32_t)shead;
+
+    shead->dctl_err = htonl(err);
+    shead->dctl_opid = htonl(opid);
+    shead->dctl_plen = htonl(0);
+    shead->dctl_dtype = htonl(dtype);
+    shead->dctl_dlen = htonl(len);
+
+    if (err == 0) {
+        memcpy(shead->dctl_data, data, len);
+    }
+
+	/*
+	 * mark the control state that there is a pending
+	 * control message to send.
+	 */
+
+	pthread_mutex_lock(&cstate->cmutex);
+	cstate->flags |= CSTATE_CONTROL_DATA;
+
+	eno = ring_enq(cstate->control_tx_ring, (void *)cheader);
+	pthread_mutex_unlock(&cstate->cmutex);
+	if (eno) {
+		/* XXX */
+        free(shead);
+        free(cheader);
+		printf("can't enq message \n");
+		exit(1);
+	}
+
+    return(0);
+}
+
+int 
+sstub_lleaf_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
+               int32_t opid)
+{
+	cstate_t *		    cstate;
+	control_header_t *	cheader;
+	dctl_subheader_t *	shead;
+	int			        eno;
+    int                 tot_len;
+    int                 dlen;
+
+	cstate = (cstate_t *)cookie;
+
+    dlen = num_ents * sizeof(dctl_entry_t);
+
+    if (err == 0) {
+        tot_len = sizeof(*shead) + dlen;
+    } else {
+        if (err != ENOSPC) {
+                dlen = 0;
+        }
+        tot_len = sizeof(*shead);
+    }
+
+	cheader = (control_header_t *)malloc(sizeof(*cheader));
+	if(cheader == NULL) {
+		/* XXX */
+		printf("no memory for header \n");
+		exit(1);
+	}
+
+	shead = (dctl_subheader_t *)malloc(tot_len);
+	if(shead == NULL) {
+		/* XXX */
+        free(cheader);
+		printf("no memory for subheader \n");
+		exit(1);
+	}
+
+
+	cheader->generation_number = 0; /* XXX ??? */
+	cheader->command = htonl(CNTL_CMD_LLEAFS_DONE);
+	cheader->data_len = htonl(tot_len);
+	cheader->spare = (uint32_t)shead;
+
+    shead->dctl_err = htonl(err);
+    shead->dctl_opid = htonl(opid);
+    shead->dctl_plen = htonl(0);
+    shead->dctl_dlen = htonl(dlen);
+
+    if (err == 0) {
+        memcpy(shead->dctl_data, (char *)data, dlen);
+    }
+
+	/*
+	 * mark the control state that there is a pending
+	 * control message to send.
+	 */
+
+	pthread_mutex_lock(&cstate->cmutex);
+	cstate->flags |= CSTATE_CONTROL_DATA;
+
+	eno = ring_enq(cstate->control_tx_ring, (void *)cheader);
+	pthread_mutex_unlock(&cstate->cmutex);
+	if (eno) {
+		/* XXX */
+        free(shead);
+        free(cheader);
+		printf("can't enq message \n");
+		exit(1);
+	}
+    return(0);
+
+}
+
+int 
+sstub_lnode_response(void *cookie, int err, int num_ents, dctl_entry_t *data,
+               int32_t opid)
+{
+	cstate_t *		    cstate;
+	control_header_t *	cheader;
+	dctl_subheader_t *	shead;
+	int			        eno;
+    int                 tot_len;
+    int                 dlen;
+
+	cstate = (cstate_t *)cookie;
+
+    dlen = num_ents * sizeof(dctl_entry_t);
+
+    if (err == 0) {
+        tot_len = sizeof(*shead) + dlen;
+    } else {
+        if (err != ENOSPC) {
+                dlen = 0;
+        }
+        tot_len = sizeof(*shead);
+    }
+
+	cheader = (control_header_t *)malloc(sizeof(*cheader));
+	if(cheader == NULL) {
+		/* XXX */
+		printf("no memory for header \n");
+		exit(1);
+	}
+
+	shead = (dctl_subheader_t *)malloc(tot_len);
+	if(shead == NULL) {
+		/* XXX */
+        free(cheader);
+		printf("no memory for subheader \n");
+		exit(1);
+	}
+
+
+	cheader->generation_number = 0; /* XXX ??? */
+	cheader->command = htonl(CNTL_CMD_LNODES_DONE);
+	cheader->data_len = htonl(tot_len);
+	cheader->spare = (uint32_t)shead;
+
+    shead->dctl_err = htonl(err);
+    shead->dctl_opid = htonl(opid);
+    shead->dctl_plen = htonl(0);
+    shead->dctl_dlen = htonl(dlen);
+
+    if (err == 0) {
+        memcpy(shead->dctl_data, (char *)data, dlen);
+    }
+
+	/*
+	 * mark the control state that there is a pending
+	 * control message to send.
+	 */
+
+	pthread_mutex_lock(&cstate->cmutex);
+	cstate->flags |= CSTATE_CONTROL_DATA;
+
+	eno = ring_enq(cstate->control_tx_ring, (void *)cheader);
+	pthread_mutex_unlock(&cstate->cmutex);
+	if (eno) {
+		/* XXX */
+        free(shead);
+        free(cheader);
+		printf("can't enq message \n");
+		exit(1);
+	}
+    return(0);
 }
 
 

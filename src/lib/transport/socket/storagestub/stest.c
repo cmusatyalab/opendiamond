@@ -15,6 +15,7 @@
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "socket_trans.h"
+#include "lib_dctl.h"
 #include "lib_sstub.h"
 
 

@@ -2,14 +2,15 @@
 #define _SOCKET_TRANS_H_
 
 
+/* some random port numbers that we are  using ??? */
 #define		CONTROL_PORT		5872
-#define		DATA_PORT		5873
-#define		LOG_PORT		5874
+#define		DATA_PORT	    	5873
+#define		LOG_PORT		    5874
 
 
 #define	CNTL_CMD_START			1
 #define	CNTL_CMD_STOP			2
-#define	CNTL_CMD_SET_SEARCHLET		3
+#define	CNTL_CMD_SET_SEARCHLET	3
 #define	CNTL_CMD_SET_LIST		4
 #define	CNTL_CMD_TERMINATE		5
 #define	CNTL_CMD_TERM_DONE		6
@@ -18,6 +19,14 @@
 #define	CNTL_CMD_GET_CHAR		9
 #define	CNTL_CMD_RET_CHAR		10
 #define	CNTL_CMD_SETLOG			11
+#define	CNTL_CMD_WRITE_LEAF 	12
+#define	CNTL_CMD_READ_LEAF 	    13
+#define	CNTL_CMD_LIST_NODES     14
+#define	CNTL_CMD_LIST_LEAFS     15
+#define	CNTL_CMD_WLEAF_DONE 	16
+#define	CNTL_CMD_RLEAF_DONE     17
+#define	CNTL_CMD_LNODES_DONE    18
+#define	CNTL_CMD_LLEAFS_DONE    19
 
 
 /*
@@ -91,6 +100,16 @@ typedef struct {
 	uint32_t	log_src;	/* the source flags */ 
 }  setlog_subheader_t;
 
+
+
+typedef struct {
+	uint32_t	dctl_err;       /* error code on this request */
+    int32_t     dctl_opid;      /* opid to match request/response */
+    uint32_t    dctl_plen;      /* len of path in data (include termination) */
+    uint32_t    dctl_dlen;      /* len of data (include termination) */
+    uint32_t    dctl_dtype;     /* len of data (include termination) */
+	char	    dctl_data[0];	/* the len of the data */
+} dctl_subheader_t;
 
 /*
  * Header that goes on the log buffers that are sent to the host.

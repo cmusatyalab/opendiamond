@@ -21,6 +21,7 @@
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "socket_trans.h"
+#include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
@@ -384,6 +385,67 @@ process_control(listener_state_t *lstate, cstate_t *cstate, char *data)
 			break;
 		}
 
+		case CNTL_CMD_READ_LEAF: {
+            dctl_subheader_t *   shead;
+            int32_t              opid;
+			assert(data != NULL);
+
+			shead = (dctl_subheader_t *)data;
+            opid = ntohl(shead->dctl_opid);
+
+			(*lstate->rleaf_cb)(cstate->app_cookie, shead->dctl_data, opid);
+            free(data);
+            break;
+        }
+
+
+		case CNTL_CMD_WRITE_LEAF: {
+            dctl_subheader_t *   shead;
+            int32_t              opid;
+            int                  dlen, plen;
+			assert(data != NULL);
+
+			shead = (dctl_subheader_t *)data;
+            opid = ntohl(shead->dctl_opid);
+            dlen = ntohl(shead->dctl_dlen);
+            plen = ntohl(shead->dctl_plen);
+
+			(*lstate->wleaf_cb)(cstate->app_cookie, shead->dctl_data, 
+                                dlen, &shead->dctl_data[plen], opid);
+
+            free(data);
+            break;
+        }
+
+		case CNTL_CMD_LIST_NODES: {
+            dctl_subheader_t *   shead;
+            int32_t              opid;
+			assert(data != NULL);
+
+			shead = (dctl_subheader_t *)data;
+            opid = ntohl(shead->dctl_opid);
+
+			(*lstate->lnode_cb)(cstate->app_cookie, shead->dctl_data, opid);
+            free(data);
+            break;
+        }
+
+
+		case CNTL_CMD_LIST_LEAFS: {
+            dctl_subheader_t *   shead;
+            int32_t              opid;
+			assert(data != NULL);
+
+			shead = (dctl_subheader_t *)data;
+            opid = ntohl(shead->dctl_opid);
+
+			(*lstate->lleaf_cb)(cstate->app_cookie, shead->dctl_data, opid);
+            free(data);
+            break;
+        }
+
+
+
 		default:
 			printf("unknown command: %d \n", cmd);
 			if (data) {
@@ -486,8 +548,6 @@ sstub_read_control(listener_state_t *lstate, cstate_t *cstate)
 				 * some un-handled error happened, we
 				 * just shutdown the connection.
 				 */	
-				/* XXX log */
-				perror("process_control");
 				shutdown_connection(lstate, cstate);
 				return;
 			}
@@ -561,8 +621,6 @@ sstub_read_control(listener_state_t *lstate, cstate_t *cstate)
 				 * some un-handled error happened, we
 				 * just shutdown the connection.
 				 */	
-				/* XXX log */
-				perror("process_control");
 				shutdown_connection(lstate, cstate);
 				return;
 			}

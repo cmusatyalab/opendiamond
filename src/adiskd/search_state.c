@@ -64,6 +64,10 @@ typedef struct {
 
 extern char *data_dir;
 
+/* XXX clean this up later */
+
+int	cpu_split = 0;
+int	cpu_split_thresh = RAND_MAX;
 
 int
 search_stop(void *app_cookie, int gen_num)
@@ -433,7 +437,19 @@ device_main(void *arg)
 							/* XXX log */
 		    					sstate->pend_objs++;
 						}
-
+				} else if ((cpu_split) && 
+					(random() > cpu_split_thresh)) {
+						sstate->obj_skipped++;
+						err = sstub_send_obj( sstate->comm_cookie, new_obj, 
+							sstate->ver_no);
+						if (err) {
+							/* XXX overflow gracefully  */
+							/* XXX log */
+		
+						} else {
+							/* XXX log */
+		    					sstate->pend_objs++;
+						}
 				} else {
 					/* XXX process the object */
 					sstate->obj_processed++;
@@ -1017,5 +1033,23 @@ search_set_blob(void *app_cookie, int gen_num, char *name,
 	}
 	return (0);
 }
+
+int
+search_set_offload(void *app_cookie, int gen_num, uint64_t load)
+{
+	double		ratio;
+	uint64_t	my_clock;
+
+	/* XXX clean this up */
+	cpu_split = 1;
+
+	r_cpu_freq(&my_clock);
+	ratio = ((double) my_clock)/((double)load + (double)my_clock);
+	cpu_split_thresh = (double)(RAND_MAX) * ratio;
+
+	
+	return (0);
+}
+
 
 

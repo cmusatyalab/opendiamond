@@ -117,6 +117,7 @@ main(int argc , char **argv)
 	cb_args.sgid_cb = search_set_gid;
 	cb_args.clear_gids_cb = search_clear_gids;
 	cb_args.set_blob_cb = search_set_blob;
+	cb_args.set_offload_cb = search_set_offload;
 
 	cookie = sstub_init(&cb_args);
 	if (cookie == NULL) {

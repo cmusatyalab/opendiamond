@@ -17,8 +17,7 @@
 \maketitle
 
 
-\section{Introduction}
-\label{Introduction}
+\section{Overview} \label{sec:overview}
 
 The document provides an overview of the different components 
 in the Diamond implementation and how they integrate together.
@@ -58,6 +57,63 @@ XXX fill in.
 
 \subsection{Disk Implementation}
 
+
+
+\section{Libraries}
+
+\begin{itemize}
+
+\item
+\textbf{Filter evaluation (\texttt{libfexec})}
+The filter evaluation library is responsible to using a searchlet
+to evaluate the objects.  The library has calls that load a searchlet
+and then calls to evaluate an object against the searchlet.  The 
+return value from the evaluate call will indicate whether the object
+passes searchlet or not.
+
+The filter evaluation library keeps all the statistics associated
+with evaluating the different filters (conditionial pass propabilities)
+average cost to evaluate a filter, etc.   This library also
+implements the different filter ordering algorithms and dynamically
+changes the orders that filters are evaluated. 
+
+\item
+\textbf{Object Disk (\texttt{libodisk})}
+The object disk library implements our object disk implementation.
+The current version keeps all of the object in the native file.
+Associated with each object there are two files.  The first file
+keeps the object data, the other file stores the object attributes.
+These attributes are common values such as mod time as well as
+attributes added by the application storing the data.  Some examples
+are the MIME type so applications can help understand file contents
+and pointers to other object so that other relationships can
+be kept track of.
+
+\item
+\textbf{Tools (\texttt{libtools})}
+The tools library is a dumping ground for code snippets that
+many different libraries may want to use.  This includes ring
+buffers for communication between the different components, timing
+support, list management, etc. 
+
+\item
+\textbf{DCTL (\texttt{libdctl})}
+
+
+\item
+\textbf{Remote Object Access (\texttt{libod})}
+
+\item
+\textbf{Diamond Config (\texttt{libdconfig})}
+
+\item
+\textbf{Diamond Config (\texttt{libdconfig})}
+
+\item
+\textbf{Diamond Config (\texttt{libsearchlet})}
+
+
+\end{itemize}
 
 
 \end{document}

@@ -1,6 +1,7 @@
 #ifndef _RTIMER_H_
 #define _RTIMER_H_
 
+#include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>

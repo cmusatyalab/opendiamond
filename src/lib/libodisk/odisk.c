@@ -156,6 +156,11 @@ next:
 		return(err);
 	}
 
+	/* XXX */
+	obj_write_attr(&((*new_object)->attr_info),
+		       OBJ_PATH, strlen(path_name)+1, path_name);
+
+
 	return(0);
 }
 

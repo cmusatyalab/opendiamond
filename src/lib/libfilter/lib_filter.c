@@ -108,6 +108,24 @@ lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name,
 	return(err);
 }
 
+
+/* XXX */
+int
+lf_dump_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj)
+{
+	obj_data_t	*odata;
+	obj_attr_t	*adata;
+	int		err;
+
+	odata = (obj_data_t *)obj;
+	adata = &odata->attr_info;
+	err = obj_dump_attr(adata);
+	return(err);
+}
+
+
+
+
 /*
  * Quick hacks for now.  Fix this later.
  * XXX

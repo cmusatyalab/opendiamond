@@ -141,7 +141,7 @@ bg_main(void *arg)
 				}
 
 				if (any == 0) {
-					printf("XXX sc done \n");
+					/* printf("XXX sc done \n"); */
 					sc->cur_state = SS_DONE;
 				}
 			}

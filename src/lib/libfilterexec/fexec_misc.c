@@ -67,8 +67,12 @@ fexec_get_stats(struct filter_info *finfo, int max, filter_stats_t *fstats)
 		cur_stat->fs_name[MAX_FILTER_NAME-1] = '\0';
 		cur_stat->fs_objs_processed = cur_filt->fi_called;
 		cur_stat->fs_objs_dropped = cur_filt->fi_drop;
-		cur_stat->fs_avg_exec_time =  cur_filt->fi_called ?
-			cur_filt->fi_time_ns / cur_filt->fi_called : 0;
+		if (cur_filt->fi_called != 0) {
+			cur_stat->fs_avg_exec_time =  
+				cur_filt->fi_time_ns / cur_filt->fi_called;
+		} else {
+			cur_stat->fs_avg_exec_time =  0;
+		}
 
 
 		/* update the number counter and the cur filter pointer */

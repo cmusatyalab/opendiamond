@@ -75,7 +75,6 @@ main(int argc, char **argv)
 	FILE * 		cur_file;
 	char		idx_file[256];
 	char *		path = "/opt/dir1";
-	int			max = 0;
 	int			have_gid = 0;
 	gid_idx_ent_t	gid_ent;
 	uint64_t	gid = 0;

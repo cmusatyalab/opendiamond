@@ -24,6 +24,7 @@
 #include "filter_exec.h"
 #include "lib_log.h"
 
+static write_attr_cb 	write_attr_fn = NULL;
 
 /*
  * This is called to initialize an instance of the filter library.  It
@@ -130,7 +131,12 @@ lf_dump_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj)
 }
 
 
-
+int
+lf_set_write_cb(write_attr_cb cb_fn)
+{
+	write_attr_fn = cb_fn;
+	return(0);
+}
 
 /*
  * Quick hacks for now.  Fix this later.
@@ -144,6 +150,9 @@ lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
 	obj_attr_t	*adata;
 	int		err;
 
+	if (write_attr_fn != NULL) {
+		(*write_attr_fn)(name, len);
+	}
 	odata = (obj_data_t *)obj;
 	adata = &odata->attr_info;
 	err = obj_write_attr(adata, name, len, data);
@@ -198,7 +207,7 @@ lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
 	 * See if there is any data to read.
 	 */
 	if (odata->data_len <= odata->cur_offset) { 
-		printf("too much dat %0llx  off %d len %d \n",
+		printf("too much dat %0llx  off %lld len %lld \n",
 			odata->local_id, odata->cur_offset, odata->data_len);
 		*len = 0;
 		return(ENOENT);

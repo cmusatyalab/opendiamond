@@ -337,6 +337,13 @@ int lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,
 int lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...);
 
 
+/* 
+ * Debug function used by the runtime, we probably should move it
+ * elsewhere.
+ */
+typedef void (*write_attr_cb)(char *name, off_t len);
+int lf_set_write_cb(write_attr_cb);
+
 
 #ifdef __cplusplus
 }

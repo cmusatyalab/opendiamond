@@ -24,44 +24,45 @@ fexec_num_filters(struct filter_data *fdata)
 
 
     if (fdata == NULL) {
-        return(0);
-    } else { 
-        return(fdata->fd_num_filters);
+        return (0);
+    } else {
+        return (fdata->fd_num_filters);
     }
 }
 
 
 
-int     
-fexec_set_blob(filter_data_t *fdata, char *filter_name, 
-				int blob_len, void *blob_data)
+int
+fexec_set_blob(filter_data_t * fdata, char *filter_name,
+               int blob_len, void *blob_data)
 {
-	void *	new_data;
-	int		i;
+    void           *new_data;
+    int             i;
 
     if (fdata == NULL) {
-        return(0);
+        return (0);
     }
 
 
-	for (i=0; i < fdata->fd_num_filters; i++) {
-		if (strcmp(filter_name, fdata->fd_filters[i].fi_name) == 0) {
-			if (fdata->fd_filters[i].fi_blob_data != NULL) {
-				free(fdata->fd_filters[i].fi_blob_data);	
-			}
+    for (i = 0; i < fdata->fd_num_filters; i++) {
+        if (strcmp(filter_name, fdata->fd_filters[i].fi_name) == 0) {
+            if (fdata->fd_filters[i].fi_blob_data != NULL) {
+                free(fdata->fd_filters[i].fi_blob_data);
+            }
 
-			new_data = malloc(blob_len);
-			assert(new_data != NULL);
+            new_data = malloc(blob_len);
+            assert(new_data != NULL);
 
 
-			memcpy(new_data, blob_data, blob_len);
+            memcpy(new_data, blob_data, blob_len);
 
-			fdata->fd_filters[i].fi_blob_len = blob_len;
-			fdata->fd_filters[i].fi_blob_data = new_data;
-			return(0);
-		}
-	}
-	/* XXX log */
-	return(ENOENT);
+            fdata->fd_filters[i].fi_blob_len = blob_len;
+            fdata->fd_filters[i].fi_blob_data = new_data;
+            return (0);
+        }
+    }
+    /*
+     * XXX log 
+     */
+    return (ENOENT);
 }
-

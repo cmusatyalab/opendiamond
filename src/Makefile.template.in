@@ -1,5 +1,5 @@
 
-CFLAGS += -g -p -O2
+CFLAGS += -g -pg -O2
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
 FLEX = flex
@@ -20,7 +20,7 @@ MKDIR = mkdir
 # files that have been generated.
 #
 
-CLEAN_OTHERS += gmon.out core.* *.core *.daVinci
+CLEAN_OTHERS += gmon.out core.* *.core filters.gviz filters.daVinci
 
 #
 # Objects to remove during "distclean".  For now just the .depend

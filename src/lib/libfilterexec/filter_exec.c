@@ -179,6 +179,7 @@ print_filter_list(char *tag, filter_info_t *froot)
 static void
 build_label(char *buf, filter_info_t *fil) {
 	int i;
+	int width = strlen(fil->fi_name) * 2;
 
 	buf[0] = '\0';
 	sprintf(buf, "%s\\n", fil->fi_name);
@@ -186,7 +187,7 @@ build_label(char *buf, filter_info_t *fil) {
 		strcat(buf, " ");
 		strcat(buf, fil->fi_args[i]);
 		//strcat(buf, "\\n");
-		if(strlen(buf)>24) {	/* too long */
+		if(strlen(buf)>width) {	/* too long */
 			strcat(buf, "...");
 			break;
 		}
@@ -206,7 +207,7 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	int i;
 	graph_t graph;
 	node_t *np;
-	char *filename = "filters.daVinci";
+	char *filename = "filters";
 	filter_info_t dummy;
 	node_t *src_node;
 
@@ -285,7 +286,7 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	froot = dummy.fi_next;
 
 	/* export filters */
-	fprintf(stderr, "filterexec: exporting filter graph to %s\n", filename);
+	fprintf(stderr, "filterexec: exporting filter graph to %s.*\n", filename);
 	
 	{
 		node_t *prev = NULL;

@@ -118,7 +118,7 @@ gClear(graph_t *g) {
 node_t *
 gNewNode(graph_t *g, char *label) {
   node_t *np;
-  np = (node_t *)malloc(sizeof(node_t));
+  np = (node_t *)calloc(1, sizeof(node_t));
   assert(np);
   np->id = g->current_id++;
   np->label = strdup(label);
@@ -448,9 +448,11 @@ gSSSP(graph_t *g, node_t *src) {
 
 
 /* ********************************************************************** */
+/* daVinci export */
+/* ********************************************************************** */
 
 static void
-export_node(FILE *fp, node_t *np, int indent) {
+dv_export_node(FILE *fp, node_t *np, int indent) {
   edge_t *ep;
   int count = 0;
   char *edgecolor;
@@ -487,8 +489,8 @@ export_node(FILE *fp, node_t *np, int indent) {
 
 
 /* export in daVinci format */
-void
-gExport(graph_t *g, char *filename) {
+static void
+dv_export(graph_t *g, char *filename) {
   node_t *np;
   int indent = 0;
   FILE *fp;
@@ -507,11 +509,87 @@ gExport(graph_t *g, char *filename) {
   TAILQ_FOREACH(np, &g->nodes, link) {
     if(count++) fprintf(fp, ",");
     fprintf(fp, "\n");
-    export_node(fp, np, indent);
+    dv_export_node(fp, np, indent);
   }
   fprintf(fp, "]\n");
 
   fclose(fp);
+}
+
+/* ********************************************************************** */
+/* graphgiv export */
+/* ********************************************************************** */
+
+static void
+gviz_export_node(FILE *fp, node_t *np, int indent) {
+  edge_t *ep;
+  char *red = "red";
+  //char *black = "black";
+
+  /* node already exported */
+  if(np->color) return;
+    
+  np->color = 1;
+
+  fprintf(fp, "\t%d [shape=record] [label=\"%s|%d\"];\n", np->id, np->label, np->val);
+
+  /* export edges */
+  VEC_FOREACH(ep, &np->edgelist) {
+    fprintf(fp, "\t%d -> %d", np->id, ep->eg_v->id);
+    if(ep->eg_color) {
+	    fprintf(fp, " [constraint=false, color=%s]", red);
+    }
+    fprintf(fp, ";\n");
+
+  }
+}
+
+
+
+static void
+gviz_export(graph_t *g, char *filename) {
+  node_t *np;
+  int indent = 0;
+  FILE *fp;
+
+  fp = fopen(filename, "w");
+  if(!fp) {
+    perror(filename);
+    exit(1);
+  }
+
+  TAILQ_FOREACH(np, &g->nodes, link) {
+    np->color = 0;
+  }
+
+  fprintf(fp, "digraph G {\n");
+  fprintf(fp, "size=\"7.5,10\";\n");
+  fprintf(fp, "fontname=\"Helvetica\";\n");
+  fprintf(fp, "rankdir=\"LR\";\n");
+  TAILQ_FOREACH(np, &g->nodes, link) {
+	  gviz_export_node(fp, np, indent);
+  }
+  fprintf(fp, "}\n");
+
+  fclose(fp);
+}
+
+
+
+/* ********************************************************************** */
+
+
+void
+gExport(graph_t *g, char *filename) {
+	char buf[BUFSIZ];
+
+ 	if(0) {
+		sprintf(buf, "%s.daVinci", filename);
+		dv_export(g, buf); 
+	}
+
+	sprintf(buf, "%s.gviz", filename);
+	gviz_export(g, buf);
 }
 
 /* ********************************************************************** */

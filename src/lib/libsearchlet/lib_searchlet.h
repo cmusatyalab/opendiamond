@@ -65,6 +65,7 @@ typedef struct dev_stats {
 	int		ds_objs_total;	   	/* total objs in search  */
 	int		ds_objs_processed;	/* total objects by device */
 	int		ds_objs_dropped;	/* total objects dropped */
+	int		ds_objs_nproc;		/* objs not procced at disk */
 	int		ds_system_load;		/* average load on  device??? */
 	rtime_t		ds_avg_obj_time;	/* average time per objects */
 	int		ds_num_filters; 	/* number of filters */

@@ -826,6 +826,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_total = sstate->obj_total; 
 	stats->ds_objs_processed = sstate->obj_processed; 
 	stats->ds_objs_dropped = sstate->obj_dropped;
+	stats->ds_objs_nproc = sstate->obj_passed;
 	stats->ds_system_load = 
 		(int) (fexec_get_load(sstate->fdata) * 100.0); /* XXX */
 	stats->ds_avg_obj_time = 0;
@@ -1035,6 +1036,7 @@ search_set_blob(void *app_cookie, int gen_num, char *name,
 }
 
 extern int fexec_cpu_slowdown;
+
 int
 search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 {

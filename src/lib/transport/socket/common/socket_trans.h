@@ -98,6 +98,7 @@ typedef struct dstats_subheader {
 	uint32_t	dss_total_objs;
 	uint32_t	dss_objs_proc;
 	uint32_t	dss_objs_drop;
+	uint32_t	dss_objs_bp;
 	uint32_t	dss_system_load;
 	uint64_t	dss_avg_obj_time;
 	uint32_t	dss_num_filters;

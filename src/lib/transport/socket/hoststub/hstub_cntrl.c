@@ -92,6 +92,7 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 	dstats->ds_objs_total = ntohl(shead->dss_total_objs);
 	dstats->ds_objs_processed = ntohl(shead->dss_objs_proc);
 	dstats->ds_objs_dropped = ntohl(shead->dss_objs_drop);
+	dstats->ds_objs_nproc = ntohl(shead->dss_objs_bp);
 	dstats->ds_system_load = ntohl(shead->dss_system_load);
 	/* XXX 64 bit ntohl */
 	dstats->ds_avg_obj_time = shead->dss_avg_obj_time;

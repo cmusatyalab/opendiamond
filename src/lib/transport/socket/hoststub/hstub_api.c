@@ -52,8 +52,6 @@ device_characteristics(void *handle, device_char_t *dev_chars)
 
 
 
-
-
 int
 device_statistics(void *handle, dev_stats_t *dev_stats, int *stat_len)
 {
@@ -69,7 +67,6 @@ device_statistics(void *handle, dev_stats_t *dev_stats, int *stat_len)
 		}
 		memcpy(dev_stats, dev->dstats, dev->stat_size);
 		*stat_len = dev->stat_size;
-
 	}
 	return(0);
 }

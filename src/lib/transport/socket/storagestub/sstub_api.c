@@ -95,6 +95,7 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 	dhead->dss_total_objs = htonl(stats->ds_objs_total);
 	dhead->dss_objs_proc = htonl(stats->ds_objs_processed);
 	dhead->dss_objs_drop = htonl(stats->ds_objs_dropped);
+	dhead->dss_objs_bp = htonl(stats->ds_objs_nproc);
 	dhead->dss_system_load = htonl(stats->ds_system_load);
 	/* XXX 64 bit */
 	dhead->dss_avg_obj_time = stats->ds_avg_obj_time;

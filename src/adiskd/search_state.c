@@ -295,6 +295,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				return;
 			}
 
+#ifdef	XXX
 			/*
 			 * Remove the files that held the data.
 			 */
@@ -304,6 +305,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				perror("failed to unlink");
 				exit(1);
 			}
+#endif
 			free(obj_name);
 			unlink(spec_name);
 			if (err) {

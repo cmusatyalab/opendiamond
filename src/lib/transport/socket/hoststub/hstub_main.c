@@ -114,9 +114,7 @@ hstub_main(void *arg)
 
 	dev = (sdevice_state_t *)arg;
 
-	printf("register dctl %p \n", dev->dctl_cookie);
 	dctl_thread_register(dev->dctl_cookie);
-	printf("register log %p \n", dev->log_cookie);
 	log_thread_register(dev->log_cookie);
 
 	/*

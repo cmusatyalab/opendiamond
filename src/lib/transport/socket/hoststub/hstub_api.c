@@ -934,8 +934,6 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 	sdevice_state_t *new_dev;
 	int		err;
 
-	printf("dev init:  dc %p log %p \n", dctl_cookie, log_cookie);
-
 	new_dev = (sdevice_state_t *) malloc(sizeof(*new_dev));	
 	if (new_dev == NULL) {
 		return (NULL);

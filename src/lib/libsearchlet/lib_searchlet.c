@@ -85,8 +85,6 @@ ls_init_search()
 	assert(err == 0);
 
 	log_init(&sc->log_cookie);
-	printf("log cookie %p \n", sc->log_cookie);
-	
 
 	sc->cur_search_id = 1; /* XXX should we randomize ??? */
 	sc->dev_list = NULL;

@@ -590,7 +590,6 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	cb_data.lleaf_done_cb  = lleafs_done_cb;
 
 
-	printf("dev init dc %p log %p \n", sc->dctl_cookie, sc->log_cookie);
 	new_dev->dev_handle = device_init(sc->cur_search_id, devid, 
 			(void *)new_dev, &cb_data, sc->dctl_cookie,
 			sc->log_cookie);

@@ -322,7 +322,7 @@ log_start(search_context_t *sc)
 	/*
 	 * Create a thread to handle background processing.
 	 */
-	err = pthread_create(&thread_id, NULL, log_main, (void *)sc);
+	err = pthread_create(&thread_id, PATTR_DEFAULT, log_main, (void *)sc);
 	if (err) {
 		/* XXX log */
 		printf("failed to create background thread \n");

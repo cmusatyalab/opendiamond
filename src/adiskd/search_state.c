@@ -561,6 +561,12 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
     dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
 
+
+    /* 
+     * initialize libfilterexec
+     */
+    fexec_system_init();
+
 	/*
 	 * init the ring to hold the queue of pending operations.
 	 */
@@ -579,7 +585,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * search.  (We probably want to make this a seperate process ??).
 	 */
 
-	err = pthread_create(&sstate->thread_id, NULL, device_main, 
+	err = pthread_create(&sstate->thread_id, PATTR_DEFAULT, device_main, 
 			    (void *)sstate);
 	if (err) {
 		/* XXX log */
@@ -594,7 +600,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 */
 	pthread_cond_init(&sstate->log_cond, NULL);
 	pthread_mutex_init(&sstate->log_mutex, NULL);
-	err = pthread_create(&sstate->log_thread, NULL, log_main,
+	err = pthread_create(&sstate->log_thread, PATTR_DEFAULT, log_main,
 			    (void *)sstate);
 	if (err) {
 		/* XXX log */

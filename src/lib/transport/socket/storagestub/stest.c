@@ -91,7 +91,7 @@ handle_new_connection(void *cookie, void **newcookie)
 
 	printf("stest:  new conn - cookie %p  !!! \n", cookie);
 	conn_cookie = cookie;
-	pthread_create(&thread, NULL,  main_thread, cookie);
+	pthread_create(&thread, PATTR_DEFAULT,  main_thread, cookie);
 	/* XXX err code */
 	*newcookie = (void *)1;
 	return(0);

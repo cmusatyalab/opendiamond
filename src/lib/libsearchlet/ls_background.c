@@ -230,7 +230,7 @@ bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 	cmd->cmd = BG_SEARCHLET;
 	/* XXX local storage for these !!! */
 	cmd->filter_name = filter_name;
-	cmd->ver_id = id;
+	cmd->ver_id = (bg_op_type_t)id;
 	cmd->spec_name = spec_name;
 
 	ring_enq(sc->bg_ops, (void *)cmd);

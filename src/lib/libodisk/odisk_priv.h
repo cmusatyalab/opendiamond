@@ -42,16 +42,18 @@
 struct odisk_state;
 
 
-#define	MAX_DIR_PATH	128
 #define	MAX_GID_NAME	128
 
 #define	GID_IDX		"GIDIDX"
 
-#define	MAX_GID_FILTER	64
 /*
  * XXX we need to clean up this interface so this is not externally 
  * visible.
  */
+
+/* for now, moved this to lib_odisk. but do we want to keep in private?
+#define	MAX_DIR_PATH	128
+#define	MAX_GID_FILTER	64
 typedef struct odisk_state {
 	char		odisk_path[MAX_DIR_PATH];
 	groupid_t	gid_list[MAX_GID_FILTER];
@@ -67,7 +69,7 @@ typedef struct odisk_state {
 	uint32_t	next_blocked;
 	uint32_t	readahead_full;
 } odisk_state_t;
-
+*/
 
 typedef	struct gid_idx_ent {
 	char		gid_name[MAX_GID_NAME];

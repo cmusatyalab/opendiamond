@@ -146,8 +146,10 @@ fexec_get_stats(filter_data_t * fdata, int max, filter_stats_t * fstats)
         if (cur_filt->fi_called != 0) {
             cur_stat->fs_avg_exec_time =
                 cur_filt->fi_time_ns / cur_filt->fi_called;
+		//printf("filter %s was called %d times, time_ns %lld\n", cur_filt->fi_name, cur_filt->fi_called, cur_filt->fi_time_ns);
         } else {
             cur_stat->fs_avg_exec_time = 0;
+		//printf("filter %s has 0 fi_called\n", cur_filt->fi_name);
         }
 
     }

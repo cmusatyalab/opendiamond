@@ -63,6 +63,7 @@
 #include "rgraph.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
+//#include "lib_ocache.h"
 
 /*
  * #define VERBOSE 1 
@@ -87,15 +88,16 @@ static char    *no_filter = "None";
  */
 /*
  ********************************************************************** */
-
+/*
 typedef struct opt_policy_t {
     enum policy_type_t policy;
     void           *(*p_new) (struct filter_data *);
     void            (*p_delete) (void *context);
     int             (*p_optimize) (void *context, struct filter_data *);
     void           *p_context;
-    int             exploit;    /* if we are in exploit mode */
+    int             exploit;    
 } opt_policy_t;
+*/
 
 struct filter_exec_t filter_exec = {
     NULL_POLICY
@@ -184,7 +186,15 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 static void
 fexec_wattr_cb(char *name, off_t len)
 {
-    active_filter->fi_added_bytes += len;
+    if( active_filter != NULL )
+    	active_filter->fi_added_bytes += len;
+	printf("fexec_wattr_cb end\n");
+}
+
+static void
+fexec_rattr_cb(char *name, off_t len)
+{
+	printf("fexec_rattr_cb end\n");
 }
 
 void
@@ -211,12 +221,13 @@ fexec_system_init()
                        dctl_read_uint32, fexec_set_slowdown,
                        &fexec_cpu_slowdown);
 
-#ifdef VERBOSE
+//#ifdef VERBOSE
     fprintf(stderr, "fexec_system_init: policy = %d\n",
             filter_exec.current_policy);
-#endif
+//#endif
 
-    lf_set_write_cb(fexec_wattr_cb);
+    //lf_set_read_cb(fexec_rattr_cb);
+    //lf_set_write_cb(fexec_wattr_cb);
 
 
     /*
@@ -279,6 +290,11 @@ fexec_init_search(filter_data_t * fdata)
         }
 
         cur_filt->fi_filt_arg = data;
+
+	/* JIAYING: calculate the signature for this filter 
+	cur_filt->fi_sig = (unsigned char *)malloc(16);
+	err = digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name, cur_filt->fi_numargs, cur_filt->fi_arglist, cur_filt->fi_blob_len, cur_filt->fi_blob_data, &cur_filt->fi_sig);
+*/
     }
     return (0);
 }
@@ -343,7 +359,6 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
         if (fid == fdata->fd_app_id) {
             continue;
         }
-
         fe = dlsym(handle, cur_filt->fi_eval_name);
         if ((error = dlerror()) != NULL) {
             /*
@@ -376,6 +391,12 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
         }
         cur_filt->fi_fini_fp = ff;
 
+	/* JIAYING: temporaryly pass in lib name. we may want to use separate lib for
+	   each filter later */
+	if( strlen(lib_name) > PATH_MAX ) {
+		return (EINVAL);
+	}
+	memcpy(cur_filt->lib_name, lib_name, strlen(lib_name));
 
 
 #ifdef VERBOSE
@@ -793,7 +814,7 @@ update_filter_order(filter_data_t * fdata, const permutation_t * perm)
 /*
  * jump to function (see fexec_opt.c) 
  */
-static void
+void
 optimize_filter_order(filter_data_t * fdata, opt_policy_t * policy)
 {
     if (policy->p_optimize) {
@@ -801,7 +822,7 @@ optimize_filter_order(filter_data_t * fdata, opt_policy_t * policy)
     }
 }
 
-static double
+double
 tv_diff(struct timeval *end, struct timeval *start)
 {
     double          temp;
@@ -934,6 +955,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
          * if the read is sucessful, then this stage
          * has been run.
          */
+	//printf("eval_filters filter %s, err %d, obj %016llX\n", cur_filter->fi_name, err, obj_handle->local_id);
         if (err == 0) {
             log_message(LOGT_FILT, LOGL_TRACE,
                         "eval_filters: Filter %s has already been run",
@@ -1088,3 +1110,4 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
     return pass;
 }
+

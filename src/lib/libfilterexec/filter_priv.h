@@ -145,6 +145,9 @@ typedef struct filter_info {
     int             fi_pass;    /* # times above threshold */
     rtime_t         fi_time_ns; /* total time used */
     int64_t         fi_added_bytes; /* XXX debug */
+    /* JIAYING */
+    char	    lib_name[PATH_MAX];
+    unsigned char *  fi_sig;
 } filter_info_t;
 
 

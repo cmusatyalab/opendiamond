@@ -45,7 +45,6 @@ extern          "C" {
     struct filter_data;
     typedef struct filter_data filter_data_t;
 
-
     /*
      * optimizer policy setup
      */
@@ -57,6 +56,15 @@ extern          "C" {
         RANDOM_POLICY,
         STATIC_POLICY
     };
+
+    typedef struct opt_policy_t {
+    	enum policy_type_t policy;
+    	void           *(*p_new) (struct filter_data *);
+    	void            (*p_delete) (void *context);
+    	int             (*p_optimize) (void *context, struct filter_data *);
+    	void           *p_context;
+    	int             exploit;    /* if we are in exploit mode */
+    } opt_policy_t;
 
     enum bypass_type_t {
         BP_NONE = 0,
@@ -93,6 +101,8 @@ extern          "C" {
                                          filter_data_t ** fdata);
     int             fexec_init_search(filter_data_t * fdata);
     int             fexec_term_search(filter_data_t * fdata);
+    void	    optimize_filter_order(filter_data_t * fdata, opt_policy_t * policy);
+    double	    tv_diff(struct timeval *end, struct timeval *start);
     int             eval_filters(obj_data_t * obj_handle,
                                  filter_data_t * fdata, int force_eval,
                                  void *cookie, int (*continue_cb)(void* vookie),

@@ -64,6 +64,7 @@
 #include "filter_priv.h"        /* to read stats -RW */
 #include "search_state.h"
 #include "dctl_common.h"
+#include "lib_ocache.h"
 
 
 /*
@@ -276,8 +277,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
     char           *obj_name;
     char           *spec_name;
 
-
-
     switch (cmd->cmd) {
     case DEV_STOP:
         /*
@@ -323,11 +322,20 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
              */
             return;
         }
+	err = ocache_start();
+	if (err) {
+		return;
+	}
 
         /*
          * init the filter exec code 
          */
         fexec_init_search(sstate->fdata);
+        ceval_init_search(sstate->fdata, sstate->ostate);
+	err = ceval_start();
+	if (err) {
+		return;
+	}
 
         sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
         sstate->ver_no = cmd->id;
@@ -341,7 +349,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
         spec_name = cmd->extra_data.sdata.spec;
 
         err = fexec_load_searchlet(obj_name, spec_name, &sstate->fdata);
-
         if (err) {
             /*
              * XXX log 
@@ -349,6 +356,11 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
             assert(0);
             return;
         }
+
+	/* JIAYING: for now, we calculate the signature for the whole
+		librar and spec file */
+	//sstate->sig = (unsigned char *)malloc(16);
+	//digest_cal(obj_name, spec_name, &sstate->sig);
 
         /*
          * Remove the files that held the data.  If do_cleanup is
@@ -600,19 +612,29 @@ device_main(void *arg)
 					force_eval = 1;
                 }
 
-                err = eval_filters(new_obj, sstate->fdata, force_eval,
-					sstate, continue_fn, NULL);
+/*
+		err = ceval_filters1(new_obj, sstate->fdata, force_eval, 
+			sstate, continue_fn, NULL);
+
+		if( err ) {
+		    err = ceval_filters2(new_obj, sstate->fdata, force_eval,
+				sstate->ostate->odisk_path, sstate, continue_fn, NULL);
+		}
+*/
+
+                err = ceval_filters2(new_obj, sstate->fdata, force_eval,
+                                        sstate, continue_fn, NULL);
+
                 if (err == 0) {
                     sstate->obj_dropped++;
                     search_free_obj(new_obj);
-
                 } else {
-                    sstate->obj_passed++;
-					if (err == 1) {
-						complete = 0;
-					} else {
-						complete = 1;
-					}
+		    sstate->obj_passed++;
+		    if (err == 1) {
+			complete = 0;
+		    } else {
+			complete = 1;
+		    }
 					
                     err = sstub_send_obj(sstate->comm_cookie, new_obj,
                                          sstate->ver_no, complete);
@@ -815,6 +837,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
     dctl_register_node(ROOT_PATH, DEV_OBJ_NODE);
 
+    dctl_register_node(ROOT_PATH, DEV_CACHE_NODE);
+
 
     /*
      * initialize libfilterexec
@@ -898,6 +922,14 @@ search_new_conn(void *comm_cookie, void **app_cookie)
         return (err);
     }
 
+    /* JIAYING: add ocache_init */
+    err = ocache_init(data_dir, sstate->dctl_cookie, sstate->log_cookie);	
+    if (err) {
+        fprintf(stderr, "Failed to init the object cache \n");
+        assert(0);
+        return (err);
+    }
+
     return (0);
 }
 
@@ -936,6 +968,9 @@ search_get_char(void *app_cookie, int gen_num)
 int
 search_close_conn(void *app_cookie)
 {
+    /* JIAYING: may use dctl option later */
+    ocache_stop(data_dir);
+    //exit(0);
     return (0);
 }
 
@@ -1267,3 +1302,4 @@ search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 {
     return (0);
 }
+

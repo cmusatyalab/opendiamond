@@ -88,6 +88,7 @@ typedef struct search_state {
     uint            split_bp_thresh;	/* below, not enough work for host */
     void           *dctl_cookie;
     void           *log_cookie;
+    unsigned char  *sig;
 } search_state_t;
 
 
@@ -119,6 +120,5 @@ int             search_clear_gids(void *app_cookie, int gen);
 int             search_set_blob(void *app_cookie, int gen, char *name,
                                 int blob_len, void *blob_data);
 int             search_set_offload(void *app_cookie, int gen, uint64_t data);
-
 
 #endif                          /* ifndef _SEARCH_STATE_H_ */

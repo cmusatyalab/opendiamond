@@ -60,7 +60,9 @@
 #include "obj_attr_dump.h"
 #include "filter_exec.h"
 #include "lib_log.h"
+//#include "lib_ocache.h"
 
+static read_attr_cb 	read_attr_fn = NULL;
 static write_attr_cb 	write_attr_fn = NULL;
 
 /*
@@ -130,14 +132,18 @@ lf_init_lib(int major_version, int minor_version)
 
 extern int lf_close_lib(lf_fhandle_t *fhandle);
 
-
-
+int
+lf_set_read_cb(read_attr_cb cb_fn)
+{
+	read_attr_fn = cb_fn;
+	return(0);
+}
 
 /*
  * Quick hacks for now.  Fix this later.
  * XXX
  */
-
+/* need to pass in fhandle as the filter name */
 int
 lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name, 
 	     off_t *len, char *data)
@@ -149,6 +155,12 @@ lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
 	odata = (obj_data_t *)obj;
 	adata = &odata->attr_info;
 	err = obj_read_attr(adata, name, len, data);
+	/* add read attrs into cache queue: input attr set */
+	if ( !err && (read_attr_fn != NULL) ) {
+		(*read_attr_fn)((char *)fhandle, odata->local_id, name, *len, data);
+	}
+	//if( !err )
+	//	ocache_add_iattr((char *)fhandle, odata->local_id, name, *len, data);
 	return(err);
 }
 
@@ -187,16 +199,17 @@ lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
 	obj_attr_t	*adata;
 	int		err;
 
-	if (write_attr_fn != NULL) {
-		(*write_attr_fn)(name, len);
-	}
 	odata = (obj_data_t *)obj;
 	adata = &odata->attr_info;
 	err = obj_write_attr(adata, name, len, data);
+	/* add writen attrs into cache queue: output attr set */
+	if ( !err && (write_attr_fn != NULL) ) {
+		(*write_attr_fn)((char *)fhandle, odata->local_id, name, len, data);
+	}
+	//if( !err )
+	//	ocache_add_oattr((char *)fhandle, odata->local_id, name, len, data);
 	return(err);
 }
-
-
 
 /*
  * This gets the next blocks of data in an object.  The block size is

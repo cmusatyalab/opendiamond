@@ -38,6 +38,7 @@
 #ifndef	_LIB_ODISK_H_
 #define	_LIB_ODISK_H_ 	1
 
+#include <dirent.h>
 #include "obj_attr.h"
 
 #ifdef	__cplusplus
@@ -45,6 +46,26 @@ extern "C" {
 #endif
 
 struct odisk_state;
+
+/* maybe we need to remove this later */
+#define MAX_DIR_PATH    128
+#define MAX_GID_FILTER  64
+
+typedef struct odisk_state {
+        char            odisk_path[MAX_DIR_PATH];
+        groupid_t       gid_list[MAX_GID_FILTER];
+        FILE *          index_files[MAX_GID_FILTER];
+        int             num_gids;
+        int             max_files;
+        int             cur_file;
+        pthread_t       thread_id;
+        DIR *           odisk_dir;
+        void *          dctl_cookie;
+        void *          log_cookie;
+        uint32_t        obj_load;
+        uint32_t        next_blocked;
+        uint32_t        readahead_full;
+} odisk_state_t;
 
 typedef struct gid_list {
     int         num_gids;
@@ -72,7 +93,14 @@ typedef struct {
     int                 ver_num;
 } obj_info_t;
 
-
+typedef struct {
+   uint64_t obj_id;
+   char **filters;
+   char **oattr_fname;
+   int oattr_fnum;
+   u_int64_t       stack_ns;	
+} pr_obj_t;
+ 
 /*
  * These are the function prototypes for the device emulation
  * function in dev_emul.c
@@ -108,6 +136,9 @@ int odisk_num_waiting(struct odisk_state *odisk);
 int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
 
 
+/* JIAYING */
+int odisk_read_next_oid(uint64_t *oid, odisk_state_t *odisk);
+int odisk_pr_add(pr_obj_t *pr_obj);
 
 #ifdef	__cplusplus
 }

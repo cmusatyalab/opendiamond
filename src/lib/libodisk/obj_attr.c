@@ -53,7 +53,8 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 
-
+#define TEMP_ATTR_BUF_SIZE      1024
+#define CACHE_DIR               "cache"
 
 int
 obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
@@ -474,6 +475,7 @@ again:
 	}
 
 	/* XXX see if we should toss this */
+
 	*len = record->rec_len;
 	*buf = (void *)record;
 
@@ -482,3 +484,58 @@ again:
 
 	return(0);
 }
+
+int
+obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr)
+{
+        int fd;
+        unsigned int name_len;
+        char name[MAX_ATTR_NAME];
+        off_t data_len;
+        char data[TEMP_ATTR_BUF_SIZE];
+        char *ldata;
+        off_t           size, rsize;
+        int err;
+        struct stat     stats;
+        char attrbuf[PATH_MAX];
+
+        sprintf(attrbuf, "%s/%s/%s", disk_path, CACHE_DIR, fname);
+        fd = open(attrbuf, O_RDONLY );
+        if (fd == -1) {
+                printf("failed to open file %s\n", attrbuf);
+                return (EINVAL);
+        }
+        err = fstat(fd, &stats);
+        if (err != 0) {
+                perror("failed to stat attributes\n");
+                close(fd);
+                return (EINVAL);
+        }
+        size = stats.st_size;
+
+        if (size == 0) {
+                close(fd);
+                return (0);
+        }
+        while(size > 0) {
+                read(fd, &name_len, sizeof(unsigned int));
+                assert( name_len < MAX_ATTR_NAME );
+                read(fd, name, name_len);
+                name[name_len] = '\0';
+                read(fd, &data_len, sizeof(off_t));
+                if( data_len > TEMP_ATTR_BUF_SIZE ) {
+                        ldata = (char *) malloc(data_len);
+                        read(fd, ldata, data_len);
+                        obj_write_attr(attr, name, data_len, ldata);
+                        free(ldata);
+                } else {
+                        read(fd, data, data_len);
+                        obj_write_attr(attr, name, data_len, data);
+                }
+                rsize = sizeof(unsigned int) + name_len + sizeof(off_t) + data_len;
+                size -= rsize;
+        }
+        close(fd);
+        return (0);
+}
+

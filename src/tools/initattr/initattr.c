@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include "attr.h"
 #include "obj_attr.h"
 
 

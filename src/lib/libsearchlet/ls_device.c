@@ -98,6 +98,18 @@ dev_new_obj_cb(void *hcookie, obj_data_t *odata, int ver_no)
 			/* XXX */
 		printf("ring_enq failed \n");
 	}
+
+	/* increment the count of pending operations,
+	 * if we are above threshold, then stop all the devices
+	 * from further recieves.
+	 */
+	/* XXX lock */
+	dev->sc->pend_count++;
+	if (dev->sc->pend_count > dev->sc->pend_hw) {
+    		err = device_stop_obj(dev->dev_handle);
+		/* XXX dev lock ?? */
+		dev->flags |= DEV_FLAG_BLOCKED;
+	}
 	return(0);
 }
 

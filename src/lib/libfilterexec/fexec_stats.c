@@ -296,7 +296,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
     assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
-    printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ));
+    /* XXX printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ)); */
 
     for(i=0; i < pmLength(perm); i++) {
         double c;			/* cost of this filter */
@@ -306,19 +306,19 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
         c = info->fi_time_ns;
         n = info->fi_called;
         if(n < SIGNIFICANT_NUMBER(gen)) {
-            printf("not enough data:  %d %d \n", n, SIGNIFICANT_NUMBER(gen));
+            /* printf("not enough data:  %d %d \n", n, SIGNIFICANT_NUMBER(gen)); */
             return 1;
         }
 
         totalcost += pass * c / n;		/* prev cumul pass * curr cost */
-        printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost);
+        /* XXX printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost); */
 
         /* lookup this permutation */
         /* XXX */
         fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
         if(fprob) {
             p = (double)fprob->num_pass / fprob->num_exec;
-            printf("\t(cond p=%f)", p);
+            /* XXX printf("\t(cond p=%f)", p); */
         } else {
             /* really no data, return an error */
             printf("no perm data for %s \n", info->fi_name);
@@ -326,7 +326,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
             //p = 1;			/* cost will be 0 anyway */
             //n = 1;
         }
-        printf("\n");
+        /* XXX printf("\n"); */
 
         assert(p >= 0 && p <= 1.0);
         pass *= p;
@@ -338,10 +338,11 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     }
 
     *cost = totalcost;
-
+#ifdef	XXX
     printf("fexec_evaluate: ");
     fexec_print_cost(fdata, perm);
     printf(" cost=%s\n", format_number(buf, totalcost));
+#endif
     return 0;
 }
 

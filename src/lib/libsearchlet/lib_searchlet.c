@@ -72,6 +72,9 @@ ls_init_search()
 	sc->dev_list = NULL;
 	sc->cur_status = SS_EMPTY;
 	sc->bg_status = 0;
+	sc->pend_count = 0;
+	sc->pend_hw = LS_OBJ_PEND_HW;
+	sc->pend_lw = LS_OBJ_PEND_LW;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
 	if (err) {
 		/* XXX log */
@@ -457,6 +460,11 @@ ls_start_search(ls_search_handle_t handle)
 		return (EINVAL);
 	}
 
+	err = bg_start_search(sc, sc->cur_search_id);
+	if (err) {
+		/* XXX log */
+	}
+
 	cur_dev = sc->dev_list;
 	while (cur_dev != NULL) {
 		/* clear the complete flag */
@@ -514,6 +522,11 @@ ls_abort_search(ls_search_handle_t handle)
 		return (EINVAL);
 	}
 
+	err = bg_stop_search(sc, sc->cur_search_id);
+	if (err) {
+		/* XXX log */
+	}
+
 	cur_dev = sc->dev_list;
 
 	ret_err = 0;
@@ -538,6 +551,23 @@ ls_abort_search(ls_search_handle_t handle)
 	sc->cur_status = SS_IDLE;
 	return (ret_err);	
 
+}
+
+
+
+void
+decrement_pend_count(search_context_t *sc)
+{
+	device_handle_t *	cur_dev;
+
+	/* XXX lock */
+	sc->pend_count--;
+	if (sc->pend_count < sc->pend_lw) {
+		for (cur_dev = sc->dev_list; cur_dev != NULL; 
+				cur_dev = cur_dev->next) {
+			device_enable_obj(cur_dev->dev_handle);
+		}
+	}
 }
 
 
@@ -579,7 +609,6 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 
 
 	/* XXX  make sure search is running */ 
-
 	sc = (search_context_t *)handle;
 
 
@@ -617,6 +646,8 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 	}
 	obj_data = (obj_data_t *)data;
 
+	decrement_pend_count(sc);
+
 	/* XXX how should we get this state really ?? */
 	obj_data->cur_offset = 0;
 	obj_data->cur_blocksize = 1024;
@@ -626,6 +657,20 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 	return (0);
 }
 
+int
+ls_num_objects(ls_search_handle_t handle, int *obj_cnt)
+{
+
+	search_context_t	*sc;
+
+	/* XXX  make sure search is running */ 
+
+	sc = (search_context_t *)handle;
+
+	*obj_cnt = ring_count(sc->proc_ring);
+
+	return (0);
+}
 
 
  

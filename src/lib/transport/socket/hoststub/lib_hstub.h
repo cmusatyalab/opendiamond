@@ -50,6 +50,8 @@ int device_list_leafs(void *dev, char *path, int32_t opid);
 int device_new_gid(void *handle, int id, groupid_t gid);
 int device_clear_gids(void *handle, int id);
 int device_set_blob(void *handle, int id, char *name, int blob_len, void *blob);
+int device_stop_obj(void *handle);
+int device_enable_obj(void *handle);
 #endif	/* _LIB_HSTUB_H_ */
 
 

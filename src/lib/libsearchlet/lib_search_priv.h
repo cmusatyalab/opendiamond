@@ -8,12 +8,17 @@
  */
 
 
+/* Some constants */
+#define	LS_OBJ_PEND_HW	60
+#define	LS_OBJ_PEND_LW	55
+
 /*
  * This structure keeps track of the state associated with each
  * of the storage devices.
  */
 #define	DEV_FLAG_RUNNING		0x01	
 #define	DEV_FLAG_COMPLETE		0x02	
+#define	DEV_FLAG_BLOCKED		0x04
 struct search_context;
 
 #define	MAX_DEV_GROUPS		8
@@ -22,10 +27,10 @@ typedef struct device_handle {
 	struct device_handle * 	next;
 	uint32_t		dev_id;	
 	groupid_t		dev_groups[MAX_DEV_GROUPS];
-	int			    num_groups;
-	unsigned int	flags;
+	int			num_groups;
+	unsigned int		flags;
 	void *			dev_handle;
-	int			    ver_no;
+	int			ver_no;
 	struct search_context *	sc;
 } device_handle_t;
 
@@ -69,7 +74,10 @@ typedef struct search_context {
 	ring_data_t *		bg_ops;	/* unprocessed objects */
 	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
-	struct filter_data  *bg_fdata; /* filter_data_t  */
+	struct filter_data  *	bg_fdata; /* filter_data_t  */
+	int			pend_hw;	/* pending hw mark */
+	int			pend_lw;	/* pending lw mark */
+	int			pend_count;	/* pending hw mark */
 } search_context_t;
 
 /*
@@ -89,6 +97,8 @@ int bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 			char *spec_name);
 int bg_set_blob(search_context_t *sc, int id, char *filter_name,
 			int blob_len, void *blob_data);
+int bg_start_search(search_context_t *sc, int id);
+int bg_stop_search(search_context_t *sc, int id);
 
 
 int log_start(search_context_t *sc);

@@ -164,8 +164,11 @@ hstub_main(void *arg)
 		FD_ZERO(&cinfo->except_fds);
 
 		FD_SET(cinfo->control_fd,  &cinfo->read_fds);
-		FD_SET(cinfo->data_fd,  &cinfo->read_fds);
 		FD_SET(cinfo->log_fd,  &cinfo->read_fds);
+		
+		if (!(cinfo->flags & CINFO_BLOCK_OBJ)) {
+			FD_SET(cinfo->data_fd,  &cinfo->read_fds);
+		}
 
 		if (cinfo->flags & CINFO_PENDING_CONTROL) {
 			FD_SET(cinfo->control_fd,  &cinfo->write_fds);

@@ -123,9 +123,6 @@ fexec_set_bypass_target(filter_data_t *fdata, permutation_t *perm, float target)
                 assert(ratio >= 0.0 && ratio <= 1.0);
 
                 info->fi_bpthresh = (int)((float)RAND_MAX * ratio);
-
-                printf("split:  ratio %f  bp_thresh %d max %d \n",
-					ratio, info->fi_bpthresh, RAND_MAX);
             } else {
                 /* if we are below threshold, run everything. */
                 info->fi_bpthresh = RAND_MAX;
@@ -163,39 +160,39 @@ fexec_set_bypass_target(filter_data_t *fdata, permutation_t *perm, float target)
 
 
 
+
 int
 fexec_update_bypass(filter_data_t *fdata)
 {
-    double       avg_cost;
-    float       target_cost;
-    float       num_searches;
-    int         disk_cycles;
-    int         err;
+	double       avg_cost;
+	float       target_cost;
+	float       num_searches;
+	int         disk_cycles;
+	int         err;
 
-    err = fexec_compute_cost(fdata, fdata->fd_perm, 1, &avg_cost);
+	err = fexec_compute_cost(fdata, fdata->fd_perm, 1, &avg_cost);
 
-    /*
-     * If we have an error, we can't compute the cost, so
-     * we don't send anything to the host yet.
-     */
-    if (err == 1) {
-        printf("XXXXXXXXXXX bypass is none \n");
-        fexec_set_bypass_none(fdata);
-        return(0);
-    }
+	/*
+	 * If we have an error, we can't compute the cost, so
+	 * we don't send anything to the host yet.
+	 */
+	/* XXX using diferent splitting algorithm ?? */
+	if (err == 1) {
+		fexec_set_bypass_none(fdata);
+		return(0);
+	}
 
-    num_searches = get_active_searches();
+	num_searches = get_active_searches();
 
-    disk_cycles = get_disk_cycles();
+	disk_cycles = get_disk_cycles();
 
-    disk_cycles /= num_searches;
+	disk_cycles /= num_searches;
 
-    /*
+	/*
 	 * Compute the target goal for here.
 	 */
 	if (fexec_fixed_split) {
 		target_cost = avg_cost * ((float)fexec_fixed_ratio/100.0);
-		printf("new target cost %f -> %f \n", avg_cost, target_cost);
   	} else {
     		target_cost = 
 		((float) (disk_cycles)/(disk_cycles + host_cycles)) * avg_cost;
@@ -203,10 +200,9 @@ fexec_update_bypass(filter_data_t *fdata)
     	target_cost = ((float)  avg_cost * 0.70);
 	}
 
-    printf("setting target %f of %f \n", target_cost, avg_cost);
-    fexec_set_bypass_target(fdata, fdata->fd_perm, target_cost);
+	fexec_set_bypass_target(fdata, fdata->fd_perm, target_cost);
 
-    return(0);
+	return(0);
 }
 
 

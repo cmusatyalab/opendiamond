@@ -255,9 +255,6 @@ device_new_gid(void *handle, int id, groupid_t gid)
     assert(sgid != NULL);
     sgid->sgid_gid = gid;
 
-    printf("gid %llx \n", gid );
-    printf("gid %llx \n", sgid->sgid_gid );
-
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_ADD_GID);
 	cheader->data_len = htonl(sizeof(*sgid));
@@ -797,6 +794,25 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	return (0);
 }
 
+int 
+device_stop_obj(void *handle)
+{
+	sdevice_state_t *       dev = (sdevice_state_t *)handle;
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_BLOCK_OBJ;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+}
+
+int 
+device_enable_obj(void *handle)
+{
+	sdevice_state_t *       dev = (sdevice_state_t *)handle;
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags &= ~CINFO_BLOCK_OBJ;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+}
 
 static void
 setup_stats(sdevice_state_t *dev, uint32_t devid)
@@ -946,6 +962,8 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 
 	return((void *)new_dev);
 }
+
+
 
 
 /*

@@ -381,6 +381,9 @@ int ls_next_object(ls_search_handle_t handle,
 			       ls_obj_handle_t *obj_handle,
 		               int flags);
 
+/* XXX */
+int
+ls_num_objects(ls_search_handle_t handle, int *obj_cnt);
 /*
  * These calls allow us to manipulate an object returned through ls_next_obj.
  * These is an open question if these should be part of this library or

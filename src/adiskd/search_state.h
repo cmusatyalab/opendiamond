@@ -1,6 +1,7 @@
 #ifndef _SEARCH_STATE_H_
 #define _SEARCH_STATE_H_
 
+#define	SSTATE_DEFAULT_OBJ_THRESH	50
 
 #define DEV_FLAG_RUNNING                0x01
 #define DEV_FLAG_COMPLETE               0x02
@@ -21,6 +22,8 @@ typedef struct search_state {
 	uint			        obj_processed;
 	uint			        obj_dropped;
 	uint			        obj_passed;
+	uint			        pend_objs;
+	uint			        pend_thresh;
 } search_state_t;
 
 

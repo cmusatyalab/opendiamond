@@ -31,6 +31,7 @@
 /* XXX move to seperate header file !!! */
 #define	CONTROL_RING_SIZE	512
 
+static int search_free_obj(obj_data_t *obj);
 
 typedef enum {
 	DEV_STOP,
@@ -285,7 +286,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			/*
 			 * Remove the files that held the data.
 			 */
-#if 0
 			/* XXX dont unlink so we can run the debugger */
 			err = unlink(obj_name);
 			if (err) {
@@ -293,7 +293,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				exit(1);
 			}
 			free(obj_name);
-#endif
 			unlink(spec_name);
 			if (err) {
 				perror("failed to unlink");
@@ -385,10 +384,11 @@ device_main(void *arg)
 		/*
 		 * XXX look for data from device to process.
 		 */
-		if (sstate->flags & DEV_FLAG_RUNNING) {
+		if ((sstate->flags & DEV_FLAG_RUNNING) && 
+		    (sstate->pend_objs < sstate->pend_thresh)) { 
 			err = odisk_next_obj(&new_obj, sstate->ostate);
 			if (err == ENOENT) {
-                /* XXX fexec_dump_prob(sstate->fdata); */
+                		/* XXX fexec_dump_prob(sstate->fdata); */
 				/*
 				 * We have processed all the objects,
 				 * clear the running and set the complete
@@ -409,6 +409,9 @@ device_main(void *arg)
 					/* XXX overflow gracefully  */
 					/* XXX log */
 	
+				} else {
+					/* XXX log */
+					sstate->pend_objs++;
 				}
 			} else if (err) {
 				/* printf("dmain: failed to get obj !! \n"); */
@@ -422,7 +425,7 @@ device_main(void *arg)
 				err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
 				if (err == 0) {
 					sstate->obj_dropped++;
-					search_release_obj(NULL, new_obj);
+					search_free_obj(new_obj);
 
 				} else {
 					sstate->obj_passed++;
@@ -432,6 +435,9 @@ device_main(void *arg)
 						/* XXX overflow gracefully  */
 						/* XXX log */
 		
+					} else {
+						/* XXX log */
+		    				sstate->pend_objs++;
 					}
 				}
 			}
@@ -583,6 +589,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
                     dctl_read_uint32, NULL, &sstate->obj_dropped);
     	dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32, 
                     dctl_read_uint32, NULL, &sstate->obj_passed);
+    	dctl_register_leaf(DEV_SEARCH_PATH, "pend_objs", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &sstate->pend_objs);
+    	dctl_register_leaf(DEV_SEARCH_PATH, "pend_thresh", DCTL_DT_UINT32, 
+                    dctl_read_uint32, dctl_write_uint32, &sstate->pend_thresh);
 
 
     	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
@@ -590,10 +600,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     	dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
 
 
-    /* 
-     * initialize libfilterexec
-     */
-    fexec_system_init();
+	/* 
+	 * initialize libfilterexec
+	 */
+	fexec_system_init();
 
 	/*
 	 * init the ring to hold the queue of pending operations.
@@ -608,6 +618,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->flags = 0;
 	sstate->comm_cookie = comm_cookie;
 
+	sstate->pend_thresh = SSTATE_DEFAULT_OBJ_THRESH;
+	sstate->pend_objs = 0;
 	/*
 	 * Create a new thread that handles the searches for this current
 	 * search.  (We probably want to make this a seperate process ??).
@@ -687,6 +699,20 @@ search_close_conn(void *app_cookie)
 	return(0);
 }
 
+int
+search_free_obj(obj_data_t *obj)
+{
+
+	if (obj->data != NULL) {
+		free(obj->data);
+	}
+	if (obj->attr_info.attr_data != NULL) {
+		free(obj->attr_info.attr_data);
+	}
+	free(obj);
+	return(0);
+
+}
 
 /*
  * This releases an object that is no longer needed.
@@ -695,6 +721,11 @@ search_close_conn(void *app_cookie)
 int
 search_release_obj(void *app_cookie, obj_data_t *obj)
 {
+	search_state_t *	sstate;
+	sstate = (search_state_t *)app_cookie;
+
+
+	sstate->pend_objs--;
 
 	if (obj->data != NULL) {
 		free(obj->data);

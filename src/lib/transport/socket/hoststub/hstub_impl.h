@@ -37,6 +37,7 @@ typedef enum {
 
 /* flag definitons */
 #define	CINFO_PENDING_CONTROL	0x01
+#define	CINFO_BLOCK_OBJ		0x02
 
 typedef struct conn_info {
 	int			        flags;

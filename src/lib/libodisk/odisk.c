@@ -466,10 +466,10 @@ int
 odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
 {
 	char				path_name[NAME_MAX];
-	int					err;
-	gid_idx_ent_t		gid_ent;
-	int					i;
-	int					num;
+	int				err;
+	gid_idx_ent_t			gid_ent;
+	int				i;
+	int				num;
 
 
 again:

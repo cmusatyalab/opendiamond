@@ -19,6 +19,7 @@
 #include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
+#include "lib_hstub.h"
 #include "dctl_common.h"
 #include "lib_search_priv.h"
 #include "filter_exec.h"
@@ -27,8 +28,9 @@
 #define	BG_RING_SIZE	512
 
 
-#define	BG_STOPPED	0x01
 #define	BG_STARTED	0x01
+#define	BG_SET_SEARCHLET	0x02
+
 
 typedef enum {
 	BG_STOP,
@@ -47,6 +49,21 @@ typedef struct {
 	int				blob_len;
 } bg_cmd_data_t;
 
+
+void
+bg_decrement_pend_count(search_context_t *sc)
+{
+	device_handle_t *	cur_dev;
+
+	/* XXX lock */
+	sc->pend_count--;
+	if (sc->pend_count < sc->pend_lw) {
+		for (cur_dev = sc->dev_list; cur_dev != NULL; 
+				cur_dev = cur_dev->next) {
+			device_enable_obj(cur_dev->dev_handle);
+		}
+	}
+}
 /*
  * The main loop that the background thread runs to process
  * the data coming from the individual devices.
@@ -98,11 +115,10 @@ bg_main(void *arg)
 		 * This code processes the objects that have not yet
 		 * been fully processed.
 		 */
-		if (sc->bg_status & BG_STARTED) { 
+		if (sc->bg_status & BG_STARTED) {
 			obj_info = (obj_info_t *)ring_deq(sc->unproc_ring);
 			if (obj_info != NULL) {
 				new_obj = obj_info->obj;
-				/* printf("bacground:  new obj %p \n", new_obj); */
 				/* 
 			 	 * Make sure the version number is the
 				 * latest.  If it is not equal, then this
@@ -116,6 +132,7 @@ bg_main(void *arg)
 							obj_info->ver_num);
 							*/
 					ls_release_object(sc, new_obj); 
+					bg_decrement_pend_count(sc);
 					free(obj_info);
 					continue;
 				}
@@ -130,6 +147,7 @@ bg_main(void *arg)
 				if (err == 0) {
 					/* XXX printf("releasing object \n");*/
 					ls_release_object(sc, new_obj);
+					bg_decrement_pend_count(sc);
 				} else {
 					/* XXXprintf("putting object on ring \n"); */
 					err = ring_enq(sc->proc_ring, (void *)new_obj);
@@ -138,8 +156,6 @@ bg_main(void *arg)
 						/* XXX log */
 					}
 				}
-					
-
 			} else {
 				/*
 				 * These are no objects.  See if all the devices
@@ -166,6 +182,7 @@ bg_main(void *arg)
 			 * There are no objects.  See if all devices
 			 * are done.
 			 */
+			
 
 		}
 	
@@ -178,7 +195,7 @@ bg_main(void *arg)
 		if (cmd != NULL) {
 			switch(cmd->cmd) {
 				case BG_SEARCHLET:
-					sc->bg_status |= BG_STARTED;
+					sc->bg_status |= BG_SET_SEARCHLET;
 					err = init_filters(cmd->filter_name,
 						     cmd->spec_name, 
 						     &sc->bg_fdata);
@@ -189,6 +206,33 @@ bg_main(void *arg)
 					fexec_set_blob(sc->bg_fdata, cmd->filter_name,
 							cmd->blob_len, cmd->blob);	
 					assert(!err);
+					break;
+
+				case BG_START:
+					/* XXX reinit filter is not new one */
+					if (!(sc->bg_status & BG_SET_SEARCHLET)) {
+						printf("start: no searchlet\n");
+						break;
+					}
+					/* XXX clear out the proc ring */
+					{
+						obj_data_t *		new_obj;
+
+						while(!ring_empty(sc->proc_ring)) {
+							/* XXX lock */
+							new_obj = (obj_data_t *)ring_deq(sc->proc_ring);
+							ls_release_object(sc, new_obj); 
+							bg_decrement_pend_count(sc);
+						}
+					}
+				
+					sc->bg_status |= BG_STARTED;
+						
+
+					break;
+					
+				case BG_STOP:
+					sc->bg_status &= ~BG_STARTED;
 					break;
 
 				default:
@@ -204,7 +248,6 @@ bg_main(void *arg)
 		timeout.tv_sec = 0;
 		timeout.tv_nsec = 10000000; /* 10 ms */
 		nanosleep(&timeout, NULL);
-
 
 	}
 }
@@ -245,6 +288,47 @@ bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 	cmd->ver_id = (bg_op_type_t)id;
 	cmd->spec_name = spec_name;
 
+	ring_enq(sc->bg_ops, (void *)cmd);
+	return(0);
+}
+
+
+int
+bg_start_search(search_context_t *sc, int id)
+{
+	bg_cmd_data_t *		cmd;
+
+	/*
+	 * Allocate a command struct to store the new command.
+	 */
+	cmd = (bg_cmd_data_t *)malloc(sizeof(*cmd));
+	if (cmd == NULL) {
+		/* XXX log */
+		/* XXX error ? */
+		return (0);
+	}
+
+	cmd->cmd = BG_START;
+	ring_enq(sc->bg_ops, (void *)cmd);
+	return(0);
+}
+
+int
+bg_stop_search(search_context_t *sc, int id)
+{
+	bg_cmd_data_t *		cmd;
+
+	/*
+	 * Allocate a command struct to store the new command.
+	 */
+	cmd = (bg_cmd_data_t *)malloc(sizeof(*cmd));
+	if (cmd == NULL) {
+		/* XXX log */
+		/* XXX error ? */
+		return (0);
+	}
+
+	cmd->cmd = BG_START;
 	ring_enq(sc->bg_ops, (void *)cmd);
 	return(0);
 }

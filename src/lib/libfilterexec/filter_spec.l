@@ -39,6 +39,7 @@ filter_data_t   *fdata;
 
 %}
 %array
+%option nounput
 ID      [a-zA-Z][-a-zA-Z0-9_]*
 %%
 #.*\n
@@ -369,6 +370,9 @@ read_filter_spec(char *spec_name, filter_data_t **fdp)
     for (i=0; i < PROB_HASH_BUCKETS; i++) {
         LIST_INIT(&fdata->fd_prob_hash[i]);    
     }
+
+    fdata->obj_ns_valid = 0;
+    fdata->obj_ns_pos = 0;
 
 	yyin = fopen(spec_name, "r");
     assert(yyin != NULL);

@@ -810,7 +810,8 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_total = sstate->obj_total; 
 	stats->ds_objs_processed = sstate->obj_processed; 
 	stats->ds_objs_dropped = sstate->obj_dropped;
-	stats->ds_system_load = 1; /* XXX */
+	stats->ds_system_load = 
+		(int) (fexec_get_load(sstate->fdata) * 100.0); /* XXX */
 	stats->ds_avg_obj_time = 0;
 	stats->ds_num_filters = num_filt;
 

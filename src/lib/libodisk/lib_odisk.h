@@ -24,8 +24,8 @@ typedef struct gid_list {
 typedef struct {
 	off_t			data_len;
 	off_t			cur_offset;
-    	uint64_t        local_id;
-	int			    cur_blocksize;
+    	uint64_t        	local_id;
+	int		    	cur_blocksize;
 	char *			data;
 	obj_attr_t		attr_info;
 } obj_data_t;

@@ -23,23 +23,6 @@
 
 #define	MAX_FNAME	128
 
-
-                                                                                
-/* call to read the cycle counter */
-#define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
-                                                                                
-                                                                                
-static unsigned long long
-read_cycle()
-{
-        unsigned long long      foo;
-                                                                                
-        /* rdtscll(foo); */
-                                                                                
-        return(foo);
-                                                                                
-}
-
 /* forward declarations */
 static void update_gid_idx(odisk_state_t *odisk, char *name, groupid_t *gid);
 
@@ -58,6 +41,8 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	char *		data;
 	int		err;
 	size_t		size;
+	uint64_t	local_id;
+	char *		ptr;
     	char        	attr_name[MAX_ATTR_NAME];
 	
 
@@ -112,6 +97,15 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
     	}	 
 	new_obj->data = data;
 	new_obj->data_len = stats.st_size;
+
+	ptr = rindex(name, '/');
+	if (ptr == NULL) {
+		ptr = name;
+	} else {
+		ptr++;
+	}
+	sscanf(ptr, "OBJ%016llX", &local_id);
+	new_obj->local_id = local_id;
 
     	/*
      	 * Load the attributes, if any.
@@ -187,7 +181,6 @@ odisk_save_obj(odisk_state_t *odisk, obj_data_t *obj)
 
 
     sprintf(attrbuf, "%s%s", buf, ATTR_EXT);
-
     obj_write_attr_file(attrbuf, &obj->attr_info);
 
 
@@ -458,7 +451,7 @@ odisk_read_next(obj_data_t **new_object, odisk_state_t *odisk)
 
 
 again:
-	for (i = odisk->cur_file; i < odisk->max_files; i++ ) {
+	for (i = odisk->cur_file; i < odisk->max_files; i++) {
 		if (odisk->index_files[i] != NULL) {
 			num = fread(&gid_ent, sizeof(gid_ent), 1, 
 				odisk->index_files[i]);
@@ -874,6 +867,93 @@ odisk_build_indexes(odisk_state_t *odisk)
 
 
 
+	}
+
+	closedir(dir);
+}
+
+
+int
+odisk_write_oids(odisk_state_t *odisk, uint32_t devid)
+{
+	struct dirent *		cur_ent;
+	int			extlen, flen;
+	char *			poss_ext;
+	char 	max_path[256];	/* XXX */
+	DIR *		dir;
+	int		count = 0;
+	int			err;
+	obj_id_t		obj_id;
+	obj_data_t	 *	new_object;
+
+	obj_id.dev_id = (uint64_t)devid;
+
+	dir = opendir(odisk->odisk_path);
+	if (dir == NULL) {
+		/* XXX log */
+		printf("failed to open %s \n", odisk->odisk_path);
+		return(0);
+	}
+
+
+	while (1) {
+
+		cur_ent = readdir(dir);
+		/*
+		 * If readdir fails, then we have enumerated all
+		 * the contents.
+		 */
+
+		if (cur_ent == NULL) {
+			closedir(dir);
+			return(count);
+		}
+
+		/*
+	 	 * If this isn't a file then we skip the entry.
+	 	 */
+		if ((cur_ent->d_type != DT_REG) && 
+				(cur_ent->d_type != DT_LNK)) {
+			continue;
+		}
+
+		/* make sure this isn't an index file */
+		flen = strlen(cur_ent->d_name);
+		extlen = strlen(GID_IDX);
+		if (flen > extlen) {
+			if (strncmp(cur_ent->d_name, GID_IDX, extlen) == 0) {
+				continue;
+			}
+		}
+
+		/* see if this is an attribute file */	
+		extlen = strlen(ATTR_EXT);
+		flen = strlen(cur_ent->d_name);
+		if (flen > extlen) {
+			poss_ext = &cur_ent->d_name[flen - extlen];
+			if (strcmp(poss_ext, ATTR_EXT) == 0) {
+				continue;
+			}
+		}
+
+		sprintf(max_path, "%s/%s", odisk->odisk_path, cur_ent->d_name);
+
+		err = odisk_load_obj(&new_object, max_path);
+		if (err) {
+			/* XXX log */
+			fprintf(stderr, "create obj failed %d \n", err);
+			return(err);
+		}
+		obj_id.local_id = new_object->local_id;
+
+		/* XXX write attribute */
+    		err = obj_write_attr(&new_object->attr_info, "MY_OID",     
+                    sizeof(obj_id), (char *)&obj_id);
+		assert(err == 0);
+
+		/* save the state */
+		odisk_save_obj(odisk, new_object);
+		odisk_release_obj(odisk, new_object);
 	}
 
 	closedir(dir);

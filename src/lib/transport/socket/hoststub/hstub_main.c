@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <netdb.h>
 #include <assert.h>
 #include "ring.h"
@@ -139,21 +138,24 @@ hstub_main(void *arg)
 	 * is available for processing.
 	 */
 	while (1) {
+
 		gettimeofday(&this_time, &tz);
 
-		if ((this_time.tv_sec >= next_time.tv_sec) &&
-		    (this_time.tv_usec >= next_time.tv_usec)) {
+		if (((this_time.tv_sec == next_time.tv_sec) &&
+		    	(this_time.tv_usec >= next_time.tv_usec)) ||
+				(this_time.tv_sec > next_time.tv_sec)) {
+
 			request_chars(dev);
 			request_stats(dev);
 
+			assert(POLL_USECS < 1000000);
 			next_time.tv_sec = this_time.tv_sec + POLL_SECS;
-			assert(POLL_USECS <= 1000000);
 			next_time.tv_usec = this_time.tv_usec + POLL_USECS;
-			if (next_time.tv_usec > 1000000) {
+
+			if (next_time.tv_usec >= 1000000) {
 				next_time.tv_usec -= 1000000;
 				next_time.tv_sec += 1;
-			}	
-
+			}
 		}
 
 

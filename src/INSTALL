@@ -1,0 +1,30 @@
+
+- You need to set the environmental variable DIAMOND_ROOT
+  that points to the top level of the tree (it should
+  be the directory this file is in).
+
+- Build the support files. Check support/readme for other dependencies.
+
+  cd support; make
+
+- Build Diamond.
+
+  cd diamond; make
+
+
+These two steps apply to the server:
+
+- Index the data.
+
+  Before you start the daemon, you need to run the program "odisk_idx"
+  on the machine with the data.  You can find this in lib/libodisk.
+  This will build the index files.
+
+- Run adiskd.
+
+  After this, the adiskd should work as normal.
+
+
+This step applies to the client:
+
+- Update gid_map and name_map to agree with the data on the server(s)

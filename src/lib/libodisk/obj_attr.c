@@ -67,10 +67,6 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 	off_t		rsize;
 	obj_adata_t *	adata;
 
-	/* clear the umask so we get the permissions we want */
-	/* XXX do we really want to do this ??? */
-	umask(0000);
-
 	/*
 	 * Open the file or create it.
 	 */
@@ -91,7 +87,7 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 	if (size == 0) {
 		attr->attr_ndata = 0;
 		attr->attr_dlist = NULL;
-	} else  {
+	} else {
 		adata = (obj_adata_t *)malloc(sizeof(*adata));
 		assert(adata != NULL);
 
@@ -106,8 +102,7 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 
 		rsize = read(attr_fd, adata->adata_data, ALIGN_ROUND(size));
 		if (rsize != size) {
-			printf("failed to read all data: got %ld wanted %ld algin %ld\n",
-				rsize, size, ALIGN_ROUND(size));
+			perror("Reading attribute file:");
 			exit(1);
 		}
 	}
@@ -126,14 +121,10 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 	int			err;
 	void *		cookie;
 
-	/* clear the umask so we get the permissions we want */
-	/* XXX do we really want to do this ??? */
-	umask(0000);
-
 	/*
 	 * Open the file or create it.
 	 */
-	attr_fd = open(attr_fname, O_CREAT|O_WRONLY|O_TRUNC, 00777);
+	attr_fd = open(attr_fname, O_CREAT|O_WRONLY|O_TRUNC, 00700);
 	if (attr_fd == -1) {
 		perror("failed to open stat file");
 		exit(1);
@@ -336,7 +327,12 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	int		total_size;
 	int		namelen;
 	unsigned char *sig_ptr;
+	static int	done_init = 0;
 
+	if (!done_init) {
+		sig_cal_init();
+		done_init = 1;
+	}
 	/* XXX validate object ??? */
 	/* XXX make sure we don't have the same name on the list ?? */
 
@@ -344,6 +340,7 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 		return (EINVAL);
 	}
 	namelen = strlen(name) + 1;
+
 
 	/* XXX round to word boundary ?? */
 	total_size  = sizeof(*data_rec) + namelen + len;
@@ -378,8 +375,8 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	memcpy(&data_rec->data[namelen], data, len);
 
 	/* compute the attribute signature and save it */
-	memset(data_rec->attr_sig, 0, ATTR_MAX_SIG);
-	sig_ptr = data_rec->attr_sig;
+	sig_ptr = &data_rec->attr_sig[0];
+	memset(sig_ptr, 0, ATTR_MAX_SIG);
 	sig_cal(data, len, &sig_ptr);	
 
 	return(0);

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1991, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *  The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,8 +12,8 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
+ *  This product includes software developed by the University of
+ *  California, Berkeley and its contributors.
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -30,7 +30,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)queue.h	8.5 (Berkeley) 8/20/94
+ *  @(#)queue.h 8.5 (Berkeley) 8/20/94
  * $FreeBSD: src/sys/sys/queue.h,v 1.32 1999/12/29 04:24:46 peter Exp $
  */
 
@@ -87,22 +87,22 @@
  * For details on the use of these macros, see the queue(3) manual page.
  *
  *
- *			SLIST	LIST	STAILQ	TAILQ	CIRCLEQ
- * _HEAD		+	+	+	+	+
- * _ENTRY		+	+	+	+	+
- * _INIT		+	+	+	+	+
- * _EMPTY		+	+	+	+	+
- * _FIRST		+	+	+	+	+
- * _NEXT		+	+	+	+	+
- * _PREV		-	-	-	+	+
- * _LAST		-	-	+	+	+
- * _FOREACH		+	+	+	+	+
- * _INSERT_HEAD		+	+	+	+	+
- * _INSERT_BEFORE	-	+	-	+	+
- * _INSERT_AFTER	+	+	+	+	+
- * _INSERT_TAIL		-	-	+	+	+
- * _REMOVE_HEAD		+	-	+	-	-
- * _REMOVE		+	+	+	+	+
+ *          SLIST   LIST    STAILQ  TAILQ   CIRCLEQ
+ * _HEAD        +   +   +   +   +
+ * _ENTRY       +   +   +   +   +
+ * _INIT        +   +   +   +   +
+ * _EMPTY       +   +   +   +   +
+ * _FIRST       +   +   +   +   +
+ * _NEXT        +   +   +   +   +
+ * _PREV        -   -   -   +   +
+ * _LAST        -   -   +   +   +
+ * _FOREACH     +   +   +   +   +
+ * _INSERT_HEAD     +   +   +   +   +
+ * _INSERT_BEFORE   -   +   -   +   +
+ * _INSERT_AFTER    +   +   +   +   +
+ * _INSERT_TAIL     -   -   +   +   +
+ * _REMOVE_HEAD     +   -   +   -   -
+ * _REMOVE      +   +   +   +   +
  *
  */
 
@@ -116,12 +116,12 @@ struct name {								\
 
 #define SLIST_HEAD_INITIALIZER(head)					\
 	{ NULL }
- 
+
 #define SLIST_ENTRY(type)						\
 struct {								\
 	struct type *sle_next;	/* next element */			\
 }
- 
+
 /*
  * Singly-linked List functions.
  */
@@ -490,8 +490,8 @@ struct {								\
  */
 
 struct quehead {
-	struct quehead *qh_link;
-	struct quehead *qh_rlink;
+    struct quehead *qh_link;
+    struct quehead *qh_rlink;
 };
 
 #ifdef	__GNUC__
@@ -499,31 +499,32 @@ struct quehead {
 static __inline void
 insque(void *a, void *b)
 {
-	struct quehead *element = a, *head = b;
+    struct quehead *element = a,
+        *head = b;
 
-	element->qh_link = head->qh_link;
-	element->qh_rlink = head;
-	head->qh_link = element;
-	element->qh_link->qh_rlink = element;
+    element->qh_link = head->qh_link;
+    element->qh_rlink = head;
+    head->qh_link = element;
+    element->qh_link->qh_rlink = element;
 }
 
 static __inline void
 remque(void *a)
 {
-	struct quehead *element = a;
+    struct quehead *element = a;
 
-	element->qh_link->qh_rlink = element->qh_rlink;
-	element->qh_rlink->qh_link = element->qh_link;
-	element->qh_rlink = 0;
+    element->qh_link->qh_rlink = element->qh_rlink;
+    element->qh_rlink->qh_link = element->qh_link;
+    element->qh_rlink = 0;
 }
 
-#else /* !__GNUC__ */
+#else                           /* !__GNUC__ */
 
-void	insque __P((void *a, void *b));
-void	remque __P((void *a));
+void insque     __P((void *a, void *b));
+void remque     __P((void *a));
 
-#endif /* __GNUC__ */
+#endif                          /* __GNUC__ */
 
-#endif /* _KERNEL */
+#endif                          /* _KERNEL */
 
-#endif /* !_SYS_QUEUE_H_ */
+#endif                          /* !_SYS_QUEUE_H_ */

@@ -26,6 +26,24 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
+static int
+sstub_attr_len(obj_data_t *obj)
+{
+	int	err;
+	size_t	len, total;
+	char *	buf;
+	void *	cookie;
+
+	total = 0;
+
+	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie);
+	while (err == 0) {
+		total += len;
+		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie);
+	}
+
+	return(total);
+}
 
 
 void
@@ -36,7 +54,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 	int		vnum;
 	int		err;
 	int		header_remain, header_offset;
-	int		attr_remain, attr_offset;
+	size_t		attr_remain, attr_offset;
 	int		data_remain, data_offset;
 	char *		data;
 
@@ -63,7 +81,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		 * to send out.
 		 */
 		cstate->data_tx_oheader.obj_magic = htonl(OBJ_MAGIC_HEADER);
-		cstate->data_tx_oheader.attr_len  = 
+		cstate->data_tx_oheader.attr_len  = htonl(sstub_attr_len(obj));
 			htonl((int)obj->attr_info.attr_len);
 		cstate->data_tx_oheader.data_len  = 
 			htonl((int)obj->data_len);
@@ -74,20 +92,39 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		/* setup the remain and offset counters */
 		header_offset = 0;
 		header_remain = sizeof(cstate->data_tx_oheader);
+
+		/* setup attr setup */
+		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
+			&cstate->attr_buf, &cstate->attr_remain,
+			&cstate->attr_cookie);
 		attr_offset = 0;
-		attr_remain = obj->attr_info.attr_len;
+		if (err == ENOENT) {
+			attr_remain = 0;
+		} else {
+			attr_remain = cstate->attr_remain;
+		}
+
 		data_offset = 0;
 		data_remain = obj->data_len;
 		
-
 	} else if (cstate->data_tx_state == DATA_TX_HEADER) {
 		obj = cstate->data_tx_obj;
 
 		header_offset = cstate->data_tx_offset;
 		header_remain = sizeof(cstate->data_tx_oheader) - 
 			header_offset;
+
+		/* setup the attribute information */
+		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
+			&cstate->attr_buf, &cstate->attr_remain,
+			&cstate->attr_cookie);
 		attr_offset = 0;
-		attr_remain = obj->attr_info.attr_len;
+		if (err == ENOENT) {
+			attr_remain = 0;
+		} else {
+			attr_remain = cstate->attr_remain;
+		}
+
 		data_offset = 0;
 		data_remain = obj->data_len;
 
@@ -97,7 +134,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		header_offset = 0;
 		header_remain = 0;
 		attr_offset = cstate->data_tx_offset;
-		attr_remain = obj->attr_info.attr_len - attr_offset;
+		attr_remain = cstate->attr_remain;
 		data_offset = 0;
 		data_remain = obj->data_len;
 	} else {
@@ -148,9 +185,10 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 	 * send it.
 	 */
 
+more_attrs:
+
 	if (attr_remain) {
-		data = (char *)cstate->data_tx_obj->attr_info.attr_data;
-		sent = send(cstate->data_fd, &data[attr_offset],
+		sent = send(cstate->data_fd, &cstate->attr_buf[attr_offset],
 			       	attr_remain, 0);
 
 		if (sent < 0) {
@@ -169,8 +207,19 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		if (sent != attr_remain) {
 			cstate->data_tx_state = DATA_TX_ATTR;
 			cstate->data_tx_offset = attr_offset + sent;
+			cstate->attr_remain = attr_remain - sent;
 			return;
+		} else {
+			err = obj_get_attr_next(&cstate->data_tx_obj->attr_info,
+				&cstate->attr_buf, &attr_remain,
+				&cstate->attr_cookie);
+			if (err == ENOENT) {
+				attr_remain = 0;
+			} else {
+				goto more_attrs;	
+			}
 		}
+		/* XXX fix up attr bytes send !!! */
 	}
 
 

@@ -26,6 +26,7 @@ typedef struct attr_record {
 } attr_record_t;
 
 #define	ATTR_FLAG_FREE		0x01
+#define	ATTR_FLAG_RECOMPUTE	0x02
 
 /* constant for the extend increment size */
 #define	ATTR_INCREMENT	4096
@@ -46,12 +47,18 @@ typedef struct attr_record {
 /*
  * These are the object attribute managment calls.
  */
-extern int obj_write_attr(obj_attr_t *attr, const char *name,
+int obj_write_attr(obj_attr_t *attr, const char *name,
 			  off_t len, const char *data);
-extern int obj_read_attr(obj_attr_t *attr, const char *name,
+int obj_read_attr(obj_attr_t *attr, const char *name,
 			 off_t *len, char *data);
-extern int obj_del_attr(obj_attr_t *attr, const char *name);
-extern int obj_read_attr_file(char *attr_fname, obj_attr_t *attr);
-extern int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
+int obj_del_attr(obj_attr_t *attr, const char *name);
+int obj_read_attr_file(char *attr_fname, obj_attr_t *attr);
+int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
+
+int obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, 
+	void **cookie);
+
+int obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, 
+	void **cookie);
 
 #endif

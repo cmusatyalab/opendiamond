@@ -178,7 +178,6 @@ find_free_record(obj_attr_t *attr, int size)
 		}
 		/* this one doesn't work advance */
 		cur_offset += cur_rec->rec_len;
-
 	}
 
 
@@ -369,6 +368,77 @@ obj_del_attr(obj_attr_t *attr, const char * name)
 
 
 	free_record(attr, record);
+
+	return(0);
+}
+
+int 
+obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, void **cookie)
+{
+	attr_record_t *		record;
+	size_t			offset;
+
+	offset = 0;
+
+again:
+	/* see if we have gone through all the attributes */
+	if (offset >= attr->attr_len) {
+		return(ENOENT);
+	}
+
+	record = (attr_record_t *)&attr->attr_data[offset];
+	offset += record->rec_len;
+
+	/* Skip any records without data */
+	if (record->flags & ATTR_FLAG_FREE) {
+		goto again;
+	}
+
+	/* XXX see if we should toss this */
+	if (record->data_len > 1000) {
+		goto again;
+	}
+
+	*len = record->rec_len;
+	*buf = (void *)record;
+
+	*cookie = (void *)offset;
+
+	return(0);
+}
+
+int 
+obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie)
+{
+	attr_record_t *		record;
+	size_t			offset;
+
+	offset = (size_t)*cookie;
+
+again:
+	/* see if we have gone through all the attributes */
+	if (offset >= attr->attr_len) {
+		return(ENOENT);
+	}
+
+	record = (attr_record_t *)&attr->attr_data[offset];
+	offset += record->rec_len;
+
+	/* Skip any records without data */
+	if (record->flags & ATTR_FLAG_FREE) {
+		goto again;
+	}
+
+	if (record->data_len > 1000) {
+		goto again;
+	}
+
+	/* XXX see if we should toss this */
+
+	*len = record->rec_len;
+	*buf = (void *)record;
+
+	*cookie = (void *)offset;
 
 	return(0);
 }

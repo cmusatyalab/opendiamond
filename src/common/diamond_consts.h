@@ -6,7 +6,8 @@
 #define	MAX_FILTER_NAME		128
 #define	MAX_FILTER_FUNC_NAME	64
 
-#define	MAX_NUM_ARGS		64
+/* XXX this is getting pretty big. there should be a better way? */
+#define	MAX_NUM_ARGS		1024
 #define	MAX_NUM_DEPS		20
 
 

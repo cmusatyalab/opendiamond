@@ -264,7 +264,7 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
      */
 	data = (char *)&cstate->cc_msg;
 	data_size = sizeof(credit_count_msg_t);
-	rsize = recv(cstate->control_fd, data, data_size, 0);
+	rsize = recv(cstate->data_fd, data, data_size, 0);
 
 	/* make sure we read the whole message and that it has the right header */
 	assert(rsize == data_size);

@@ -240,14 +240,13 @@ device_next_obj(void *handle)
 {
 	sdevice_state_t *dev;
 	obj_info_t *	oinfo;
+
 	dev = (sdevice_state_t *)handle;
-
-	printf("device_next_obj ring %p \n", dev->obj_ring);
-
 	oinfo = ring_deq(dev->obj_ring);
 
-	dev->con_data.flags |= CINFO_PENDING_CREDIT;
-	printf("ret %p \n", oinfo);
+	if (oinfo != NULL) {
+		dev->con_data.flags |= CINFO_PENDING_CREDIT;
+	}
 	return(oinfo);
 }
 
@@ -857,10 +856,8 @@ device_set_limit(void *handle, int limit)
 	sdevice_state_t *       dev;
 	dev = (sdevice_state_t *)handle;
 
-	printf("setting limit %d \n", limit);
-	dev->con_data.flags |= CINFO_PENDING_CREDIT;
-	dev->con_data.flags &= ~CINFO_BLOCK_OBJ;
 	if (dev->con_data.obj_limit != limit) {
+		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 		dev->con_data.obj_limit = limit;
 	}
 
@@ -1011,7 +1008,6 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 	 * Save the callback and the host cookie.
 	 */
 	new_dev->hcookie = hcookie;
-	new_dev->hstub_new_obj_cb = cb_list->new_obj_cb;
 	new_dev->hstub_log_data_cb = cb_list->log_data_cb;
 	new_dev->hstub_search_done_cb = cb_list->search_done_cb;
 	new_dev->hstub_rleaf_done_cb = cb_list->rleaf_done_cb;

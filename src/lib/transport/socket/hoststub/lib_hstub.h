@@ -2,7 +2,6 @@
 #define	_LIB_HSTUB_H_
 
 
-typedef	int (*hstub_new_obj_fn)(void *hcookie, obj_data_t *odata, int vno);
 typedef	void (*hstub_log_data_fn)(void *hcookie, char *data, int len, int dev);
 typedef	void (*hstub_search_done_fn)(void *hcookie, int ver_num);
 typedef	void (*hstub_rleaf_done_fn)(void *hcookie, int err, 
@@ -15,7 +14,6 @@ typedef	void (*hstub_lleafs_done_fn)(void *hcookie, int err, int num_ents,
 
 
 typedef struct {
-	hstub_new_obj_fn		    new_obj_cb;
 	hstub_log_data_fn		    log_data_cb;
 	hstub_search_done_fn	    search_done_cb;
 	hstub_rleaf_done_fn		    rleaf_done_cb;

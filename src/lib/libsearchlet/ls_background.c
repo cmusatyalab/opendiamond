@@ -53,21 +53,6 @@ typedef struct {
 } bg_cmd_data_t;
 
 
-void
-bg_decrement_pend_count(search_context_t *sc)
-{
-	device_handle_t *	cur_dev;
-
-	/* XXX lock */
-	sc->pend_count--;
-	if (sc->pend_count < sc->pend_lw) {
-		for (cur_dev = sc->dev_list; cur_dev != NULL; 
-				cur_dev = cur_dev->next) {
-			device_enable_obj(cur_dev->dev_handle);
-		}
-	}
-}
-
 
 void
 update_rates(search_context_t *sc) 
@@ -103,6 +88,20 @@ update_rates(search_context_t *sc)
 /* XXX constant config */
 #define         POLL_SECS       1
 #define         POLL_USECS      0
+
+obj_info_t *
+get_next_object(search_context_t *sc)
+{
+	device_handle_t *cur_dev;
+	obj_info_t	*obj_inf;
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		obj_inf = device_next_obj(cur_dev->dev_handle);
+		if (obj_inf != NULL)
+			return(obj_inf);
+	}
+	return(NULL);
+}
 
 
 /*
@@ -169,8 +168,9 @@ bg_main(void *arg)
 		 * This code processes the objects that have not yet
 		 * been fully processed.
 		 */
-		if (sc->bg_status & BG_STARTED) {
-			obj_info = (obj_info_t *)ring_deq(sc->unproc_ring);
+		if ((sc->bg_status & BG_STARTED)  &&
+			(ring_count(sc->proc_ring) < sc->pend_lw)) {
+			obj_info = get_next_object(sc);
 			if (obj_info != NULL) {
 				new_obj = obj_info->obj;
 				/* 
@@ -186,7 +186,6 @@ bg_main(void *arg)
 							obj_info->ver_num);
 							*/
 					ls_release_object(sc, new_obj); 
-					bg_decrement_pend_count(sc);
 					free(obj_info);
 					continue;
 				}
@@ -200,7 +199,6 @@ bg_main(void *arg)
 				if (err == 0) {
 					/* XXX printf("releasing object \n");*/
 					ls_release_object(sc, new_obj);
-					bg_decrement_pend_count(sc);
 					free(obj_info);
 				} else {
 					/* XXXprintf("putting object on ring \n"); */
@@ -208,6 +206,7 @@ bg_main(void *arg)
 					if (err) {
 						/* XXX handle overflow gracefully !!! */
 						/* XXX log */
+						assert(0);
 					}
 				}
 			} else {
@@ -299,7 +298,6 @@ bg_main(void *arg)
 							obj_info = (obj_info_t *)ring_deq(sc->proc_ring);
 							new_obj = obj_info->obj;
 							ls_release_object(sc, new_obj); 
-							bg_decrement_pend_count(sc);
 							free(obj_info);
 						}
 					}

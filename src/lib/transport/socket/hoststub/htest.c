@@ -47,7 +47,6 @@ main(int argc, char **argv)
 	struct in_addr		addr;
 
 
-	cb_args.new_obj_cb = handle_new_obj;
 	cb_args.log_data_cb = handle_log_data;
 
 	err = inet_aton("127.0.0.1", &addr);

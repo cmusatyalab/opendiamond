@@ -76,42 +76,6 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 }
 
 
-/* XXX  ret type??*/
-int
-dev_new_obj_cb(void *hcookie, obj_data_t *odata, int ver_no)
-{
-	device_handle_t *	dev;
-	int			err;
-	obj_info_t *		oinfo;
-	dev = (device_handle_t *)hcookie;
-
-	oinfo = (obj_info_t *)malloc (sizeof(*oinfo));
-	if (oinfo == NULL ) {
-		printf("XXX failed oinfo malloc \n");
-		exit(1);
-	}
-	oinfo->ver_num = ver_no; /* XXX XXX */
-	oinfo->obj = odata;	
-	err = ring_enq(dev->sc->unproc_ring, (void *)oinfo);
-	if (err) {
-			/* XXX */
-		printf("ring_enq failed \n");
-	}
-
-	/* increment the count of pending operations,
-	 * if we are above threshold, then stop all the devices
-	 * from further recieves.
-	 */
-	/* XXX lock */
-	dev->sc->pend_count++;
-	if (dev->sc->pend_count > dev->sc->pend_hw) {
-    		err = device_stop_obj(dev->dev_handle);
-		/* XXX dev lock ?? */
-		dev->flags |= DEV_FLAG_BLOCKED;
-	}
-	return(0);
-}
-
 void
 dev_search_done_cb(void *hcookie, int ver_no)
 {
@@ -583,7 +547,6 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	new_dev->dev_id = devid;
 	new_dev->num_groups = 0;
 
-	cb_data.new_obj_cb = dev_new_obj_cb;
 	cb_data.log_data_cb  = dev_log_data_cb;
 	cb_data.search_done_cb  = dev_search_done_cb;
 	cb_data.rleaf_done_cb  = read_leaf_done_cb;

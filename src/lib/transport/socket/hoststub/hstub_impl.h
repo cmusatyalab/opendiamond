@@ -102,7 +102,6 @@ typedef struct sdevice_state {
 	dev_stats_t *		    dstats;		/* caches stats */
 	void *				dctl_cookie;
 	void *				log_cookie;
-	hstub_new_obj_fn	    hstub_new_obj_cb;
 	hstub_log_data_fn	    hstub_log_data_cb;
 	hstub_search_done_fn	hstub_search_done_cb;
 	hstub_wleaf_done_fn	    hstub_wleaf_done_cb;

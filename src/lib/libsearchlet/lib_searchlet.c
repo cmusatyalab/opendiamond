@@ -90,16 +90,9 @@ ls_init_search()
 	sc->dev_list = NULL;
 	sc->cur_status = SS_EMPTY;
 	sc->bg_status = 0;
-	sc->pend_count = 0;
 	sc->pend_hw = LS_OBJ_PEND_HW;
 	sc->pend_lw = LS_OBJ_PEND_LW;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
-	if (err) {
-		/* XXX log */
-		free(sc);
-		return(NULL);
-	}
-	err = ring_init(&sc->unproc_ring, UNPROC_RING_SIZE);
 	if (err) {
 		/* XXX log */
 		free(sc);
@@ -580,22 +573,6 @@ ls_abort_search(ls_search_handle_t handle)
 
 
 
-void
-decrement_pend_count(search_context_t *sc)
-{
-	device_handle_t *	cur_dev;
-
-	/* XXX lock */
-	sc->pend_count--;
-	if (sc->pend_count < sc->pend_lw) {
-		for (cur_dev = sc->dev_list; cur_dev != NULL; 
-				cur_dev = cur_dev->next) {
-			device_enable_obj(cur_dev->dev_handle);
-		}
-	}
-}
-
-
 /*
  * This call gets the next object that matches the searchlet.  The flags specify
  * the behavior for blocking.  If no flags are passed, then the call will block
@@ -676,13 +653,11 @@ again:
 	obj_data = obj_info->obj;
 	if (sc->cur_search_id != obj_info->ver_num) {
 		ls_release_object(sc, obj_data);
-		decrement_pend_count(sc);
 		free(obj_info);
 		goto again;
 	}
 
 	free(obj_info);
-	decrement_pend_count(sc);
 
 	/* XXX how should we get this state really ?? */
 	obj_data->cur_offset = 0;

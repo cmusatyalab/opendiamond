@@ -20,10 +20,12 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "filter_priv.h"	/* to read stats -RW */ 
+#include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "lib_log.h"
 #include "filter_exec.h"
 #include "search_state.h"
+#include "dctl_common.h"
 
 /* XXX move to seperate header file !!! */
 #define	CONTROL_RING_SIZE	512
@@ -538,6 +540,21 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 */
 
 	log_init();
+	dctl_init();
+
+    dctl_register_node(ROOT_PATH, SEARCH_NAME);
+
+    dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
+                   DCTL_DT_UINT32, dctl_read_uint32, NULL, &sstate->ver_no);
+    dctl_register_leaf(DEV_SEARCH_PATH, "obj_total",
+                   DCTL_DT_UINT32, dctl_read_uint32, NULL, &sstate->obj_total);
+    dctl_register_leaf(DEV_SEARCH_PATH, "obj_processed", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &sstate->obj_processed);
+    dctl_register_leaf(DEV_SEARCH_PATH, "obj_dropped", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &sstate->obj_dropped);
+    dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32, 
+                    dctl_read_uint32, dctl_write_uint32, &sstate->obj_passed);
+
 
 	/*
 	 * init the ring to hold the queue of pending operations.
@@ -720,6 +737,114 @@ search_get_stats(void *app_cookie, int gen_num)
 	return;
 }
 
+#define MAX_DBUF    1024
+#define MAX_ENTS    512
+
+int
+search_read_leaf(void *app_cookie, char *path, int32_t opid)
+{
+    
+    /* XXX hack for now */
+    int                 len;
+    char                data_buf[MAX_DBUF];
+    dctl_data_type_t    dtype;
+	int		            err, eno;
+	search_state_t *    sstate;
+
+	sstate = (search_state_t *)app_cookie;
+
+    len = MAX_DBUF;
+    err = dctl_read_leaf(path, &dtype, &len, data_buf);
+    /* XXX deal with ENOSPC */
+
+    if (err) {
+            len = 0;
+    }
+
+	eno = sstub_rleaf_response(sstate->comm_cookie, err, dtype, len, 
+                    data_buf, opid);
+    assert(eno == 0);
+
+	return (0);
+}
+
+        
+int
+search_write_leaf(void *app_cookie, char *path, int len, char *data, 
+                int32_t opid)
+{
+    /* XXX hack for now */
+	int		        err, eno;
+	search_state_t * sstate;
+	sstate = (search_state_t *)app_cookie;
+
+    err = dctl_write_leaf(path, len, data);
+    /* XXX deal with ENOSPC */
+
+    if (err) {
+            len = 0;
+    }
+
+	eno = sstub_wleaf_response(sstate->comm_cookie, err, opid);
+    assert(eno == 0);
+
+	return (0);
+}
+
+int
+search_list_leafs(void *app_cookie, char *path, int32_t opid)
+{
+
+    /* XXX hack for now */
+	int		        err, eno;
+    dctl_entry_t    ent_data[MAX_ENTS];
+    int             num_ents;
+	search_state_t * sstate;
+
+	sstate = (search_state_t *)app_cookie;
+
+    num_ents = MAX_ENTS;
+    err = dctl_list_leafs(path, &num_ents, ent_data);
+    /* XXX deal with ENOSPC */
+
+    if (err) {
+            num_ents = 0;
+    }
+
+	eno = sstub_lleaf_response(sstate->comm_cookie, err, num_ents, 
+                    ent_data, opid);
+    assert(eno == 0);
+
+	return (0);
+}
+
+
+int
+search_list_nodes(void *app_cookie, char *path, int32_t opid)
+{
+
+    /* XXX hack for now */
+	int		        err, eno;
+    dctl_entry_t    ent_data[MAX_ENTS];
+    int             num_ents;
+	search_state_t * sstate;
+
+	sstate = (search_state_t *)app_cookie;
+
+    num_ents = MAX_ENTS;
+    err = dctl_list_nodes(path, &num_ents, ent_data);
+    /* XXX deal with ENOSPC */
+
+    if (err) {
+            num_ents = 0;
+    }
+
+	eno = sstub_lnode_response(sstate->comm_cookie, err, num_ents, 
+                    ent_data, opid);
+    assert(eno == 0);
+
+	return (0);
+}
 
 
 

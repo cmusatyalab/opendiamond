@@ -10,6 +10,7 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
+#include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "ring.h"
 #include "search_state.h"
@@ -107,6 +108,10 @@ main(int argc , char **argv)
 	cb_args.get_stats_cb = search_get_stats;
 	cb_args.log_done_cb = search_log_done;
 	cb_args.setlog_cb = search_setlog;
+	cb_args.rleaf_cb = search_read_leaf;
+	cb_args.wleaf_cb = search_write_leaf;
+	cb_args.lnode_cb = search_list_nodes;
+	cb_args.lleaf_cb = search_list_leafs;
 
 	cookie = sstub_init(&cb_args);
 	if (cookie == NULL) {

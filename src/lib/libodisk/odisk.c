@@ -987,14 +987,12 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
     new_state->dctl_cookie = dctl_cookie;
     new_state->log_cookie = log_cookie;
 
-
     dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &new_state->obj_load);
     dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &new_state->next_blocked);
     dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", DCTL_DT_UINT32,
                        dctl_read_uint32, NULL, &new_state->readahead_full);
-
 
     /*
      * the length has already been tested above 
@@ -1065,6 +1063,7 @@ odisk_term(odisk_state_t * odisk)
     return (err);
 }
 
+#ifdef	XXX
 static void
 update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 {
@@ -1093,6 +1092,82 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 
     fclose(idx_file);
 }
+#else
+static void
+update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
+{
+    char            new_name[NAME_MAX];
+    char            old_name[NAME_MAX];
+    FILE           *old_file;
+    FILE           *new_file;
+    int             num;
+    gid_idx_ent_t   gid_idx;
+    gid_idx_ent_t   cur_gididx;
+    int             err;
+    int             len;
+	int				skip_copy = 0;
+
+    len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", odisk->odisk_path,
+                   GID_IDX, *gid);
+    assert(len < NAME_MAX);
+    len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
+                   GID_IDX, *gid);
+    assert(len < NAME_MAX);
+
+
+    /*
+     * rename the old index file 
+     */
+    err = rename(new_name, old_name);
+    if (err) {
+        perror("Failed renaming index file:");
+        //return;
+    }
+
+    old_file = fopen(old_name, "r");
+    if (old_file == NULL) {
+        fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
+                old_name);
+		skip_copy = 1;
+    }
+
+    new_file = fopen(new_name, "w+");
+    if (new_file == NULL) {
+        fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
+                new_name);
+        return;
+    }
+
+    err = unlink(old_name);
+    if (err) {
+        perror("removing old file ");
+        /*
+         * XXX what to do .... 
+         */
+    }
+
+	/* write the new entry */
+    memset(&gid_idx, 0, sizeof(gid_idx));
+    len = snprintf(gid_idx.gid_name, NAME_MAX, "%s", name);
+    assert(len < NAME_MAX);
+
+    num = fwrite(&gid_idx, sizeof(gid_idx), 1, new_file);
+    assert(num == 1);
+
+	if (skip_copy) goto done;
+
+	/* copy over the old entries */
+    while (fread(&cur_gididx, sizeof(cur_gididx), 1, old_file) == 1) {
+        num = fwrite(&cur_gididx, sizeof(cur_gididx), 1, new_file);
+        if (num != 1) {
+            perror("Failed writing odisk index: ");
+        }
+    }
+    fclose(old_file);
+done:
+    fclose(new_file);
+}
+#endif
 
 static void
 remove_gid_from_idx(odisk_state_t * odisk, char *name, groupid_t * gid)

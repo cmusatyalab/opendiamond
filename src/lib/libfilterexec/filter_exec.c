@@ -72,7 +72,7 @@ int	fexec_fixed_split = 0;	/* we use a fixed partioning if this is 1 */
 int	fexec_fixed_ratio = 0;	/* percentage for a fixed partitioning */
 int	fexec_cpu_slowdown = 0;	/* percentage slowdown for CPU  */
 
-char 		name_str[40];
+char 		ratio[40];
 char 		pid_str[40];
 
 int
@@ -109,13 +109,11 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 
 	new_pid = fork();
 	if (new_pid == 0) {
-		sprintf(name_str, "%d", data);
+		sprintf(ratio, "%d", data);
 		sprintf(pid_str, "%d", my_pid);
-		printf("forking with arg %s %s \n", name_str, pid_str);
-		err = execlp("/home/diamond/bin/slowdown", "slowdown", name_str, 
-			pid_str, NULL);
+		err = execlp("/home/diamond/bin/slowdown", "slowdown", "-r", ratio, 
+			"-p", pid_str, NULL);
 		if (err) {
-			
 			perror("exec failed:");
 		}
 	}

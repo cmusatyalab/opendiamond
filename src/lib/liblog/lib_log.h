@@ -27,10 +27,10 @@
 
 
 typedef struct log_ent {
-	unsigned int	le_level;	/* the level */
-	unsigned int	le_type;	/* the type */
-	unsigned int	le_dlen;	/* length of data */
-	unsigned int	le_nextoff;	/* off set of the next record */
+	uint32_t 	le_level;	/* the level */
+	uint32_t 	le_type;	/* the type */
+	uint32_t 	le_dlen;	/* length of data */
+	uint32_t 	le_nextoff;	/* off set of the next record */
 	char		le_data[1];	/* where the string is stored */
 } log_ent_t;
 

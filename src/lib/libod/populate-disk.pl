@@ -244,7 +244,10 @@ sub process_image {
 
   if(!$noact) {
       $retval = system("convert", $img, '-resize', '400x300', "ppm:$tempfile");
-      die qid()." convert gave a return code of $retval: $!" if $retval;
+      if($retval) {
+	  warn qid()." convert gave a return code of $retval: $!";
+	  exit(1);
+      }
   }
 
   @args = ($tempfile, $gid2,

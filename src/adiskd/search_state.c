@@ -275,13 +275,15 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			/*
 			 * Remove the files that held the data.
 			 */
+#if 0
+			/* XXX dont unlink so we can run the debugger */
 			err = unlink(obj_name);
 			if (err) {
 				perror("failed to unlink");
 				exit(1);
 			}
 			free(obj_name);
-
+#endif
 			unlink(spec_name);
 			if (err) {
 				perror("failed to unlink");
@@ -388,7 +390,7 @@ device_main(void *arg)
 				/* XXX process the object */
 				sstate->obj_processed++;
 
-				err = eval_filters(new_obj, sstate->fdata);
+				err = eval_filters(new_obj, sstate->fdata, NULL, NULL);
 				if (err == 0) {
 					sstate->obj_dropped++;
 					search_release_obj(NULL, new_obj);

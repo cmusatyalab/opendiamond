@@ -112,6 +112,9 @@ int sstub_lleaf_response(void *cookie, int err, int num_ents,
                 dctl_entry_t *data, int32_t opid);
 int sstub_lnode_response(void *cookie, int err, int num_ents,
                 dctl_entry_t *data, int32_t opid);
+float sstub_get_drate(void *cookie);
+int sstub_queued_objects(void *cookie);
+
 
 #endif /* !_LIB_SSTUB_H_ */
 

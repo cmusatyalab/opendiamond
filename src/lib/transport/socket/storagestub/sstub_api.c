@@ -183,6 +183,16 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 	return(0);
 }
 
+/* XXX do we manage the complete ring also?? */
+float
+sstub_get_drate(void *cookie)
+{
+
+	cstate_t *	cstate;
+	cstate = (cstate_t *)cookie;
+
+	return(ring_2drate(cstate->partial_obj_ring));
+}
 
 
 /*

@@ -130,7 +130,7 @@ connection_main(listener_state_t *lstate, int conn)
 		if ((cstate->flags & CSTATE_OBJ_DATA) &&
 		    (cstate->cc_credits > 0)) {
 			FD_SET(cstate->data_fd,  &cstate->write_fds);
-		}
+		} 
 		if (cstate->cc_credits == 0) {
 			// printf("block on no credits \n");
 			// XXX stats 

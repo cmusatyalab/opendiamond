@@ -64,9 +64,10 @@
 #include "sstub_impl.h"
 
 
-static int
-queued_objects(cstate_t *cstate)
+int
+sstub_queued_objects(void *cookie)
 {
+	cstate_t *cstate = (cstate_t *)cookie;
 	int	count;
 
 	count = ring_2count(cstate->partial_obj_ring);
@@ -88,7 +89,7 @@ drop_attributes(cstate_t *cstate)
 			return(0);
 		}
 	} else if (cstate->attr_policy == NW_ATTR_POLICY_QUEUE) {
-		tx_count = queued_objects(cstate);
+		tx_count = sstub_queued_objects(cstate);
 		if ((tx_count > DESIRED_MAX_TX_THRESH) &&
 		    (cstate->cc_credits >= DESIRED_CREDIT_THRESH)) {
 			return(1);
@@ -105,8 +106,8 @@ prop_get_tx_ratio(cstate_t *cstate)
 	float	ratio;
 	int		count;
 
-	count = queued_objects(cstate);
-	ratio = (float)count/(float)DESIRED_MAX_TX_QUEUE;
+	count = sstub_queued_objects(cstate);
+	ratio = ((float)count)/(float)DESIRED_MAX_TX_QUEUE;
 	if (ratio > 1.0) {
 		ratio = 1.0;
 	} else if (ratio < 0) {
@@ -120,7 +121,7 @@ prop_get_rx_ratio(cstate_t *cstate)
 {
 	float	ratio;
 
-	ratio = (float)cstate->cc_credits/(float)DESIRED_MAX_CREDITS;
+	ratio = ((float)cstate->cc_credits)/(float)DESIRED_MAX_CREDITS;
 	if (ratio > 1.0) {
 		ratio = 1.0;
 	} else if (ratio < 0) {
@@ -483,6 +484,7 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 	 */
 	if (rsize == -1) {
 		perror("sstub_read_data:");
+		exit(1);
 		return;
 	} else if (rsize == 0) {
 		//printf("no data \n");

@@ -10,6 +10,9 @@
 #include "consts.h"
 #include "rcomb.h"
 
+
+
+
 /*
  * This the the header file used to keep track of the 
  * filter state for each of the filters in the current
@@ -61,7 +64,8 @@ typedef struct filter_info {
 	int			        	fi_threshold;
 	int			        	fi_merit;
 	int			        	fi_numargs;
-	char *			        fi_args[MAX_NUM_ARGS];
+	int			        	fi_maxargs;
+	char **				fi_arglist;
 	filter_id_t            	fi_filterid;    /* id of this filter */
 	void *					fi_filt_arg;	/* associated argument data */
 
@@ -145,6 +149,8 @@ struct filter_data {
     filter_info_t       fd_filters[0]; /* variable size struct */
 };
 
+
+#define	ARG_CHUNK	16
 
 int     read_filter_spec(char *spec_name, struct filter_data **fdp);
 void    fexec_update_prob(struct filter_data *fdata, filter_id_t cur_filt,

@@ -93,6 +93,7 @@ static void
 new_filter()
 {
 	char * name;
+	char ** arg_data;
 	name = eat_token(yytext); 
 #ifdef VERBOSE
 	printf("filter name <%s> \n", name);
@@ -130,13 +131,20 @@ new_filter()
     memset(&fdata->fd_filters[cur_filt_id], 0, sizeof(filter_info_t));
 
     strcpy(fdata->fd_filters[cur_filt_id].fi_name, name);
+
 #ifdef VERBOSE
     printf(" id %d name %s \n", cur_filt_id, fdata->fd_filters[cur_filt_id].fi_name);
 #endif
     fdata->fd_filters[cur_filt_id].fi_threshold = -1;
     fdata->fd_filters[cur_filt_id].fi_merit = 0;
-    fdata->fd_filters[cur_filt_id].fi_numargs = 0;
     fdata->fd_filters[cur_filt_id].fi_filterid = cur_filt_id;
+
+    fdata->fd_filters[cur_filt_id].fi_numargs = 0;
+
+	arg_data = (char **)malloc(sizeof(char *) * ARG_CHUNK);
+	assert(arg_data != NULL);
+    fdata->fd_filters[cur_filt_id].fi_maxargs = ARG_CHUNK;
+    fdata->fd_filters[cur_filt_id].fi_arglist = arg_data;
 
     /*
      * Default values is to run all filters on the storage
@@ -226,12 +234,8 @@ filter_args()
 		return;
     }
 
-    this_filter = &fdata->fd_filters[cur_filt_id];
+	this_filter = &fdata->fd_filters[cur_filt_id];
     
-	if ((this_filter->fi_numargs + 1) >= MAX_NUM_ARGS) {
-		fprintf(stderr, "Too many args \n");
-		return;
-	}
 
 	len = strlen(arg_str) + 1;
 	arg_data = (char *)malloc(len);
@@ -245,7 +249,20 @@ filter_args()
 	printf("arg %s\n", arg_data);
 #endif
 
-	this_filter->fi_args[this_filter->fi_numargs] = arg_data;
+	if (this_filter->fi_numargs >= this_filter->fi_maxargs) {
+		int			new_size;
+		char **		arg_list;
+
+		this_filter->fi_maxargs += ARG_CHUNK;
+		new_size = sizeof(char *) * this_filter->fi_maxargs;
+		arg_list = realloc(this_filter->fi_arglist, new_size);
+		assert(arg_list != NULL);
+
+		
+		this_filter->fi_arglist = arg_list;	
+	}
+
+	this_filter->fi_arglist[this_filter->fi_numargs] = arg_data;
 	this_filter->fi_numargs++;
 }
 

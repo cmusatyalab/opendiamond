@@ -204,7 +204,7 @@ fexec_init_search(filter_data_t *fdata)
 		}
 
 	    err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
-			cur_filt->fi_args, cur_filt->fi_blob_len, 
+			cur_filt->fi_arglist, cur_filt->fi_blob_len, 
 			cur_filt->fi_blob_data, &data);
 
 		if (err != 0) {
@@ -410,7 +410,7 @@ build_label(char *buf, filter_info_t *fil) {
 	sprintf(buf, "%s\\n", fil->fi_name);
 	for(i=0; i<fil->fi_numargs; i++) {
 		strcat(buf, " ");
-		strcat(buf, fil->fi_args[i]);
+		strcat(buf, fil->fi_arglist[i]);
 		//strcat(buf, "\\n");
 		if(strlen(buf)>width) {	/* too long */
 			strcat(buf, "...");

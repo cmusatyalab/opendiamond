@@ -32,7 +32,7 @@ read_cycle()
 {
         unsigned long long      foo;
                                                                                 
-        rdtscll(foo);
+        /* rdtscll(foo); */
                                                                                 
         return(foo);
                                                                                 

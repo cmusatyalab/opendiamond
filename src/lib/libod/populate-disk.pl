@@ -22,13 +22,15 @@ my $insert_parent = 0; # whether to insert parent objects
 sub usage {
     return <<EOT;
 Usage $0 [options] src-dir [dest-machine-list]
+populate disks with search form of images from src-dir.
 options:
 [-g<gid1>] [-g<gid2>] - gids to be used they should be in the 
       gid_map file. if gids are specified, machine names will be ignored.
       gids should be specified as : separated bytes in hex. gids will
       be padded to 64 bits length (8 bytes).
+      gid1 is used for the search images, gid2 for the parent images
 -h    - this help text
--p    - insert parents also
+-p    - insert parent images also
 EOT
 }
 

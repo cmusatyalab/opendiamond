@@ -47,24 +47,24 @@
 #include "lib_od.h"
 #include "lib_ocache.h"
 #include "ocache_priv.h"
-//#include "obj_attr.h"
+// #include "obj_attr.h"
 
 int
 main(int argc, char **argv)
 {
-	ocache_state_t*	ocache;
-	void *		log_cookie;
-	void *		dctl_cookie;
-	int		err;
-	char fsig[16]={"ANIMOWLOEMOKLWML"};
-	char iattr_sig[16]={"VNIMOWLOEMOKLWML"};
-	char oattr_sig[16]={"BNIMOWLOEMOKLWML"};
-	unsigned char signature[16];
+	ocache_state_t *ocache;
+	void           *log_cookie;
+	void           *dctl_cookie;
+	int             err;
+	char            fsig[16] = { "ANIMOWLOEMOKLWML" };
+	char            iattr_sig[16] = { "VNIMOWLOEMOKLWML" };
+	char            oattr_sig[16] = { "BNIMOWLOEMOKLWML" };
+	unsigned char   signature[16];
 
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);
 
-	//err = ocache_init(&ocache, "/opt/dir1", dctl_cookie, log_cookie);
+	// err = ocache_init(&ocache, "/opt/dir1", dctl_cookie, log_cookie);
 	err = ocache_init("/opt/dir1", dctl_cookie, log_cookie);
 	if (err) {
 		errno = err;

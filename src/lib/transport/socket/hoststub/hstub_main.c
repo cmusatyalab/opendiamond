@@ -48,7 +48,7 @@ request_chars(sdevice_state_t *dev)
 	if (err) {
 		/* XXX log */
 		/* XXX should we wait ?? */
-		printf("XXX failed to enq start \n");
+		printf("XXX failed to request_chars  \n");
 		free(cheader);
 		return;
 	}
@@ -79,7 +79,7 @@ request_stats(sdevice_state_t *dev)
 	if (err) {
 		/* XXX log */
 		/* XXX should we wait ?? */
-		printf("XXX failed to enq start \n");
+		printf("XXX failed to request stats  \n");
 		free(cheader);
 		return;
 	}
@@ -105,7 +105,7 @@ hstub_main(void *arg)
 	struct timeval 		to;
 	int			err;
 	int			max_fd;
-	int			loop_cnt = 200;
+	int			loop_cnt = 2000000;
 
 
 
@@ -134,9 +134,8 @@ hstub_main(void *arg)
 	 * is available for processing.
 	 */
 	while (1) {
-		loop_cnt++;
-
-		if (loop_cnt > 50) {
+		loop_cnt++; 
+		if (loop_cnt > 500000) {
 			request_chars(dev);
 			request_stats(dev);
 			loop_cnt = 0;

@@ -187,7 +187,7 @@ device_start(void *handle, int id)
 	if (err) {
 		/* XXX log */
 		/* XXX should we wait ?? */
-		printf("XXX failed to enq start \n");
+		printf("XXX failed to enq start  on ring\n");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -222,7 +222,7 @@ device_clear_gids(void *handle, int id)
 	if (err) {
 		/* XXX log */
 		/* XXX should we wait ?? */
-		printf("XXX failed to enq start \n");
+		printf("XXX failed to enq clear_gids \n");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -267,7 +267,7 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	if (err) {
 		/* XXX log */
 		/* XXX should we wait ?? */
-		printf("XXX failed to enq start \n");
+		printf("XXX failed to enq set gids \n");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -451,7 +451,7 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 	if (err) {
 		/* XXX log */
 		/* XXX should we wait ?? */
-		printf("XXX failed to enq start \n");
+		printf("XXX failed to enq set_log \n");
 		free(cheader);
 		return (EAGAIN);
 	}

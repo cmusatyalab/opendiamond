@@ -103,7 +103,7 @@ typedef enum {
 #define DESIRED_MAX_CREDITS    	8
                                                                                 
 #define DEFAULT_NW_ATTR_POLICY  (NW_ATTR_POLICY_FIXED)
-#define DEFAULT_NW_ATTR_RATIO   (RAND_MAX)
+#define DEFAULT_NW_ATTR_RATIO   (100)
 
 
 /* XXX forward ref */

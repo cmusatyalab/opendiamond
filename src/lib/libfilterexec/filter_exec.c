@@ -61,7 +61,7 @@ typedef struct opt_policy_t {
 } opt_policy_t;
 
 struct filter_exec_t filter_exec = {
-    NULL_POLICY
+    BEST_FIRST_POLICY
 };
 
 // int CURRENT_POLICY = NULL_POLICY;
@@ -607,7 +607,7 @@ resolve_filter_deps(filter_data_t * fdata)
     gExport(&graph, filename);
 
 
-#ifdef VERBOSE
+#ifdef	VERBOSE
     /*
      * XXX print out the order 
      */
@@ -618,7 +618,6 @@ resolve_filter_deps(filter_data_t * fdata)
     }
     fprintf(stderr, "\n");
 #endif
-
     return (0);
 }
 
@@ -734,12 +733,12 @@ fexec_load_searchlet(char *lib_name, char *filter_spec,
 void
 update_filter_order(filter_data_t * fdata, const permutation_t * perm)
 {
-#ifdef VERBOSE
+#ifdef	VERBOSE
     char            buf[BUFSIZ];
 #endif
 
     pmCopy(fdata->fd_perm, perm);
-#ifdef VERBOSE
+#ifdef	VERBOSE
     printf("changed filter order to: %s\n", pmPrint(perm, buf, BUFSIZ));
 #endif
 

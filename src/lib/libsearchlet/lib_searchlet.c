@@ -841,7 +841,14 @@ ls_get_dev_stats(ls_search_handle_t handle, ls_dev_handle_t  dev_handle,
 		 dev_stats_t *dev_stats, int *stat_len)
 {
 	device_handle_t *dev;
+
+
 	dev = (device_handle_t *)dev_handle;
+
+	/* check that this is a valid argument */
+	if (dev == NULL) {
+		return(EINVAL);
+	}
 
 	return device_statistics(dev->dev_handle, dev_stats, stat_len);
 }

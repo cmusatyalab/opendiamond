@@ -400,8 +400,10 @@ resolve_filter_deps(filter_data_t *fdata)
 					cur_filter->fi_name);
 				return(EINVAL);
 			}
+#ifdef	XXX
 			free(cur_filter->fi_deps[i].name);
 			cur_filter->fi_deps[i].name = NULL; /* XXX */
+#endif
 			//cur_filter->fi_deps[i].filter = tmp;
 			gAddEdge(&graph, fdata->fd_filters[tempid].fi_gnode, 
                             cur_filter->fi_gnode);

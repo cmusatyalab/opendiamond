@@ -436,10 +436,13 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
         *utility = -totalcost;
     }
 #ifdef VERBOSE
-    // printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
-    printf("fexec_evaluate: ");
-    fexec_print_cost(fdata, perm);
-    printf(" cost=%s\n", format_number(buf, totalcost));
+    {
+      char buf[BUFSIZ];
+      // printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
+      printf("fexec_evaluate: ");
+      fexec_print_cost(fdata, perm);
+      printf(" cost=%s\n", format_number(buf, totalcost));
+    }
 #endif
   return err;
 }
@@ -457,10 +460,13 @@ fexec_evaluate_indep(filter_data_t *fdata, permutation_t *perm, int gen, int *ut
         *utility = -totalcost;
     }
 #ifdef VERBOSE
-    // printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
-    printf("fexec_evaluate: ");
-    fexec_print_cost(fdata, perm);
-    printf(" cost=%s\n", format_number(buf, totalcost));
+    {
+      char buf[BUFSIZ];
+      printf("fexec_evaluate_indep: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
+      printf("fexec_evaluate_indep: ");
+      fexec_print_cost(fdata, perm);
+      printf(" cost=%s\n", format_number(buf, totalcost));
+    }
 #endif
   return err;
 }

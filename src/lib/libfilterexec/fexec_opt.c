@@ -152,7 +152,7 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 		  IFVERBOSE printf("--- restarting optimizer ------------------------------\n");
 		  best_first_cleanup(bf);
 		  best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
-				  (evaluation_func_t)fexec_evaluate, fdata);
+				  bf->evfunc, fdata);
 		}
 		return 1;
 	}
@@ -177,7 +177,7 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 		  update_filter_order(fdata, best_first_result(bf));
 		  best_first_cleanup(bf);
 		  best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
-				  (evaluation_func_t)fexec_evaluate, fdata);
+				  bf->evfunc, fdata);
 		}
 		break;
 	case RC_ERR_NODATA:
@@ -205,15 +205,15 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 void *
 indep_new(filter_data_t *fdata) {
   bf_state_t *bf = (bf_state_t *)malloc(sizeof(bf_state_t));
-
+  
   if(bf) {
     best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
-		    (evaluation_func_t)fexec_evaluate, fdata);
+		    (evaluation_func_t)fexec_evaluate_indep, fdata);
   }
 #ifdef VERBOSE
   {
     char buf[BUFSIZ];
-    printf("best_first starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
+    printf("indep starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
   }
 #endif
   return (void *)bf;

@@ -2,6 +2,14 @@
 #define	_LIB_DCTL_H_	1
 
 
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
 typedef enum {
 	DCTL_DT_NODE = 1,
 	DCTL_DT_UINT32,
@@ -89,6 +97,10 @@ int dctl_write_char(void *cookie, int len, char *data);
 int dctl_read_string(void *cookie, int *len, char *data);
 
 
+
+#ifdef __cplusplus
+}
+#endif
+
+
 #endif	/* !defined(_LIB_DCTL_H_) */
-
-

@@ -7,7 +7,7 @@
 
 #include "rcomb.h"
 
-// #define VERBOSE 1
+//#define VERBOSE 1
 
 /* ---------------------------------------------------------------------- */
 /* heap implementation (CLR) */
@@ -623,6 +623,10 @@ hill_climb_next(hc_state_t *hc) {
 /* 
  */
 
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
+
 void
 best_first_init(bf_state_t *ptr, int n, const partial_order_t *po,
 		evaluation_func_t evf, const void *context) {
@@ -630,7 +634,7 @@ best_first_init(bf_state_t *ptr, int n, const partial_order_t *po,
   ptr->i = 0;
   ptr->j = 0;
   ptr->improved = 1;
-  ptr->pq = heap_new(n * n);	/* XXX */
+  ptr->pq = heap_new(MAX(n * n, 1000));	/* XXX */
   ptr->po = po;
   ptr->best_seq = pmNew(n);
   ptr->next_seq = pmNew(n);

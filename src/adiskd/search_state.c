@@ -235,6 +235,9 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			 *
 			 */
 			sstate->flags &= ~DEV_FLAG_RUNNING;
+
+			err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
+			assert(err == 0);
 			break;
 	
 		case DEV_TERM:
@@ -325,6 +328,8 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 
 	}
 }
+
+
 
 /* XXX hack */
 obj_data_t *
@@ -421,11 +426,7 @@ device_main(void *arg)
 
 				} else {
 					sstate->obj_passed++;
-
-					/* XXX add vnum !!! */
-					err = sstub_send_obj(
-							sstate->comm_cookie, 
-							new_obj, 
+					err = sstub_send_obj( sstate->comm_cookie, new_obj, 
 							sstate->ver_no);
 					if (err) {
 						/* XXX overflow gracefully  */

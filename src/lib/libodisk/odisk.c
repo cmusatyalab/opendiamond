@@ -27,11 +27,6 @@
  */
 #define MAX_GID_FILTER  64
 
-static groupid_t   gid_list[MAX_GID_FILTER];
-static int         num_gids = 0;
-
-
-
 
 static int
 odisk_open_dir(odisk_state_t *odisk)
@@ -46,7 +41,6 @@ odisk_open_dir(odisk_state_t *odisk)
 	}
 
 	odisk->odisk_dir = dir;
-
 	return(0);
 }
 
@@ -60,7 +54,7 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	char *		data;
 	int		err;
 	size_t		size;
-    char        attr_name[MAX_ATTR_NAME];
+    	char        	attr_name[MAX_ATTR_NAME];
 
 
 	/* XXX printf("load_obj: <%s> \n", name); */
@@ -98,7 +92,7 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 
 	}
 
-    if (stats.st_size > 0) {
+    	if (stats.st_size > 0) {
 	    size = fread(data, stats.st_size, 1, os_file);
 	    if (size != 1) {
 		    /* XXX log error */
@@ -108,16 +102,16 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 		    free(new_obj);
 		    return (ENOENT);
 	    }
-    } 
+    	}	 
 	new_obj->data = data;
 	new_obj->data_len = stats.st_size;
 
-    /*
-     * Load the attributes, if any.
-     */
-    /* XXX overflow */
-    sprintf(attr_name, "%s%s", name, ATTR_EXT);
-    obj_read_attr_file(attr_name , &new_obj->attr_info);
+    	/*
+     	 * Load the attributes, if any.
+     	 */
+    	/* XXX overflow */
+    	sprintf(attr_name, "%s%s", name, ATTR_EXT);
+    	obj_read_attr_file(attr_name , &new_obj->attr_info);
 
 	
 	*obj_handle = (obj_data_t *)new_obj;
@@ -126,7 +120,7 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	return(0);
 }
 
-
+#ifdef	XXX
 int
 odisk_get_obj_cnt(odisk_state_t *odisk)
 {
@@ -185,6 +179,36 @@ odisk_get_obj_cnt(odisk_state_t *odisk)
 	closedir(dir);
 
 }
+#else
+
+int
+odisk_get_obj_cnt(odisk_state_t *odisk)
+{
+	int		count = 0;
+	char	idx_file[256];	/* XXX */
+	FILE *	new_file;
+	gid_idx_ent_t		gid_ent;
+	int	i;
+
+	
+
+	for (i=0; i < odisk->num_gids; i++) {
+		sprintf(idx_file, "%s/%s%016llX", odisk->odisk_path, GID_IDX, 
+			odisk->gid_list[i]);
+		new_file = fopen(idx_file, "r");
+		if (new_file == NULL) {
+			continue;
+		}
+		while (fread(&gid_ent, sizeof(gid_ent), 1, new_file) == 1) {
+			count++;
+		}
+		fclose(new_file);
+	}
+
+	return(count);
+	
+}
+#endif
 
 int
 odisk_save_obj(odisk_state_t *odisk, obj_data_t *obj)
@@ -375,23 +399,36 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
 }
 
 int
-odisk_clear_gids(odisk_state_t *odisk, groupid_t gid)
+odisk_clear_gids(odisk_state_t *odisk)
 {
-	num_gids = 0;
+	odisk->num_gids = 0;
     	return(0);
 }
 
 int
 odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
 {
+	int	i;
 
-    if (num_gids >= MAX_GID_FILTER) {
-        return(ENOMEM);
-    }
+	/*
+	 * make sure this GID is not already in the list 
+	 */
+	for (i=0; i < odisk->num_gids; i++) {
+		if (odisk->gid_list[i] == gid) {
+			return(0);
+		}
+	}
 
-    gid_list[num_gids] = gid;
-    num_gids++;
-    return(0);
+	/*
+	 * make sure there is room for this new entry.
+	 */
+    	if (odisk->num_gids >= MAX_GID_FILTER) {
+       		 return(ENOMEM);
+    	}
+
+    	odisk->gid_list[odisk->num_gids] = gid;
+    	odisk->num_gids++;
+    	return(0);
 }
         
 int
@@ -443,7 +480,7 @@ odisk_read_obj(odisk_state_t *odisk, obj_data_t *obj, int *len,
     return(0);
 }
 
-
+#ifdef	XXX
 static int
 odisk_gid_good(obj_data_t *obj)
 {
@@ -462,7 +499,7 @@ odisk_gid_good(obj_data_t *obj)
     assert(err == 0);
 
     for (i=0; i < glist->num_gids; i++) {
-        for (j=0; j < num_gids; j++) {
+        for (j=0; j < odisk->num_gids; j++) {
             if ((glist->gids[i] == gid_list[j])) {
                 free(glist);
                 return(0);
@@ -474,8 +511,9 @@ odisk_gid_good(obj_data_t *obj)
     free(glist);
     return(ENOENT);
 }
+#endif
 
-
+#ifdef	XXX
 int
 odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
 {
@@ -524,11 +562,11 @@ next:
 		return(err);
 	}
 
-    err = odisk_gid_good(*new_object);
-    if (err) {
-        odisk_release_obj(odisk, *new_object);
-        goto next;
-    }
+	err = odisk_gid_good(*new_object);
+    	if (err) {
+        	odisk_release_obj(odisk, *new_object);
+        	goto next;
+    	}
 
 	/* XXX */
 	obj_write_attr(&((*new_object)->attr_info),
@@ -538,12 +576,71 @@ next:
 	return(0);
 }
 
+#else
+
+int
+odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
+{
+	struct dirent *		cur_ent;
+	char			path_name[NAME_MAX];
+	int			err;
+	int			extlen, flen;
+	char *			poss_ext;
+	gid_idx_ent_t		gid_ent;
+	int			i;
+	int			num;
+
+
+again:
+	for (i = odisk->cur_file; i < odisk->max_files; i++ ) {
+		if (odisk->index_files[i] != NULL) {
+			num = fread(&gid_ent, sizeof(gid_ent), 1, 
+				odisk->index_files[i]);
+			if (num == 1) {
+				sprintf(path_name, "%s/%s", odisk->odisk_path, 
+					gid_ent.gid_name);
+				err = odisk_load_obj(new_object, path_name);
+				if (err) {
+					/* XXX log */
+					printf("load obj <%s> failed %d \n", path_name, err);
+					return(err);
+				} else {
+					odisk->cur_file = i + 1;
+					if (odisk->cur_file >= odisk->max_files) {
+						odisk->cur_file = 0;
+					}
+					return(0);
+				}
+			} else {
+				/*
+				 * This file failed, close it and continue.
+				 */
+				fclose(odisk->index_files[i]);	
+				odisk->index_files[i] = NULL;
+			}
+		}
+	}
+
+	/*
+	 * if we get here, either we need to start at the begining,
+	 * or there is no more data.
+	 */
+	if (odisk->cur_file != 0) {
+		odisk->cur_file = 0;
+		goto again;
+	} else {
+		return(ENOENT);
+	}
+
+}
+
+#endif
 
 
 int
 odisk_init(odisk_state_t **odisk, char *dir_path)
 {
-	int	err;
+	int			err;
 	odisk_state_t  *	new_state;
 
 	if (strlen(dir_path) > (MAX_DIR_PATH-1)) {
@@ -551,31 +648,76 @@ odisk_init(odisk_state_t **odisk, char *dir_path)
 		return(EINVAL);
 	}
 
-
 	new_state = (odisk_state_t *)malloc(sizeof(*new_state));
 	if (new_state == NULL) {
 		/* XXX err log */
 		return(ENOMEM);
 	}
 
+	memset(new_state, 0, sizeof(*new_state));
+
 	/* the length has already been tested above */
 	strcpy(new_state->odisk_path, dir_path);	
 
 
-	err = odisk_open_dir(new_state);
-	if (err != 0) {
-		free(new_state);
-		/* XXX log */
-		printf("failed to init device emulation \n");
-		return (err);
-	}
 	*odisk = new_state;
 	return(0);
 }
 
 
+#ifdef	OLD
+int
+odisk_reset(odisk_state_t *odisk)
+{
+	int	err;
+
+	if (odisk->odisk_dir != NULL) {
+		err = closedir(odisk->odisk_dir);
+		assert(err == 0);
+	}
 
 
+	odisk_open_dir(odisk);
+
+
+}
+
+#else
+int
+odisk_reset(odisk_state_t *odisk)
+{
+	char	idx_file[256];	/* XXX */
+	FILE *	new_file;
+	int	i;
+
+	/*
+	 * First go through all the index files and close them.
+	 */
+	for (i=0; i < odisk->max_files; i++) {
+		if (odisk->index_files[i] != NULL) {
+			fclose(odisk->index_files[i]);
+			odisk->index_files[i] = NULL;
+		}
+	}
+
+
+	for (i=0; i < odisk->num_gids; i++) {
+		sprintf(idx_file, "%s/%s%016llX", odisk->odisk_path, GID_IDX, 
+			odisk->gid_list[i]);
+		new_file = fopen(idx_file, "r");
+		if (new_file == NULL) {
+			fprintf(stderr, "unable to open idx %s \n", idx_file);
+		} else {
+			odisk->index_files[i] = new_file;
+		}
+	}
+	
+	odisk->max_files = odisk->num_gids;
+	odisk->cur_file = 0;
+	return(0);
+}
+
+#endif
 
 
 int
@@ -609,6 +751,8 @@ update_gid_idx(odisk_state_t *odisk, char *name, groupid_t gid)
 		return;
 	}
 
+	fprintf(stdout, "adding %s to %s \n", name, idx_name);
+
 	memset(&gid_idx, 0, sizeof(gid_idx));
 	sprintf(gid_idx.gid_name, "%s", name);
 
@@ -637,6 +781,9 @@ update_object_gids(odisk_state_t *odisk, obj_data_t *obj, char *name)
     assert(err == 0);
 
     for (i=0; i < glist->num_gids; i++) {
+	if (glist->gids[i] == 0) {
+		continue;
+	}
 	update_gid_idx(odisk, name, glist->gids[i]);
     }
 
@@ -701,6 +848,7 @@ odisk_clear_indexes(odisk_state_t *odisk)
     			     
 			        sprintf(max_path, "%s/%s", odisk->odisk_path,
 					 cur_ent->d_name);
+				printf("removing: %s \n", max_path);
 				err = remove(max_path);
 				if (err == -1) {
 					fprintf(stderr, "Failed to remove %s\n",

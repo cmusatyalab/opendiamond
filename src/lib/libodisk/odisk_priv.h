@@ -10,12 +10,18 @@ struct odisk_state;
 
 #define	GID_IDX		"GIDIDX"
 
+#define	MAX_GID_FILTER	64
 /*
  * XXX we need to clean up this interface so this is not externally 
  * visible.
  */
 typedef struct odisk_state {
 	char		odisk_path[MAX_DIR_PATH];
+	groupid_t	gid_list[MAX_GID_FILTER];
+	FILE *		index_files[MAX_GID_FILTER];
+	int		num_gids;
+	int		max_files;
+	int		cur_file;
 	DIR *		odisk_dir;
 } odisk_state_t;
 

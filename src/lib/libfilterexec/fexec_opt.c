@@ -26,7 +26,7 @@ static const int RESTART_INTERVAL = 200;
 
 
 void *
-hill_climb_new(const filter_data_t *fdata) {
+hill_climb_new(filter_data_t *fdata) {
   hc_state_t *hc = (hc_state_t *)malloc(sizeof(hc_state_t));
   char buf[BUFSIZ];
 
@@ -110,7 +110,7 @@ hill_climb_optimize(void *context, filter_data_t *fdata) {
 /* ********************************************************************** */
 
 void *
-best_first_new(const filter_data_t *fdata) {
+best_first_new(filter_data_t *fdata) {
   bf_state_t *bf = (bf_state_t *)malloc(sizeof(bf_state_t));
 
   if(bf) {
@@ -203,7 +203,25 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 
 
 void *
-indep_new(const filter_data_t *fdata) {
+indep_new(filter_data_t *fdata) {
+  bf_state_t *bf = (bf_state_t *)malloc(sizeof(bf_state_t));
+
+  if(bf) {
+    best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+		    (evaluation_func_t)fexec_evaluate, fdata);
+  }
+#ifdef VERBOSE
+  {
+    char buf[BUFSIZ];
+    printf("best_first starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
+  }
+#endif
+  return (void *)bf;
+}
+
+
+void *
+x_indep_new(filter_data_t *fdata) {
   indep_state_t *iSt = (indep_state_t *)malloc(sizeof(indep_state_t));
 
   if(iSt) {
@@ -291,3 +309,73 @@ indep_optimize(void *context, filter_data_t *fdata) {
 
 
 
+/* ********************************************************************** */
+
+
+void *
+random_new(filter_data_t *fdata) {
+  permutation_t *perm;
+
+  perm = pmDup(fdata->fd_perm);
+  randomize_permutation(perm, fdata->fd_po);
+  update_filter_order(fdata, perm);
+  pmDelete(perm);
+
+#ifdef VERBOSE
+  {
+    char buf[BUFSIZ];
+    printf("random starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
+  }
+#endif
+
+  return NULL;
+}
+
+
+int
+random_optimize(void *context, filter_data_t *fdata) {
+#ifdef VERBOSE
+  char buf[BUFSIZ];
+#endif
+  static int optimizer_done = 0; /* time before restart */
+
+  IFVERBOSE printf("iSt-opt\n");
+
+  if(optimizer_done > 0) {
+    optimizer_done--;
+  }
+
+  /* restart (in case we have better data now */
+  if(!optimizer_done) {
+    permutation_t *perm;
+
+    IFVERBOSE printf("--- restarting optimizer ------------------------------\n");
+    
+    perm = pmDup(fdata->fd_perm);
+    randomize_permutation(perm, fdata->fd_po);
+    update_filter_order(fdata, perm);
+    pmDelete(perm);
+    optimizer_done = RESTART_INTERVAL;
+  }
+
+  return RC_ERR_COMPLETE;
+}
+
+
+
+/* ********************************************************************** */
+
+void *
+static_new(filter_data_t *fdata) {
+
+  /* use a fixed permutation -- XXX -- figure out how to set it here */
+
+#ifdef VERBOSE
+  {
+    char buf[BUFSIZ];
+    printf("static starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
+  }
+#endif
+
+  return NULL;
+}

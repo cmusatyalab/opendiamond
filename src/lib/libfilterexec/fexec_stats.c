@@ -283,14 +283,15 @@ fexec_dump_prob(filter_data_t *fdata)
 
 int
 fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen, 
-                double *cost)
+		   int indep,
+		   double *cost)
 {
     int i;
     filter_prob_t *fprob;
     double pass = 1;		/* cumul pass rate */
     double totalcost = 0;		/* = utility */
     filter_info_t *info;
-    char buf[BUFSIZ];
+    //char buf[BUFSIZ];
     int n;
 
     /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
@@ -315,7 +316,12 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
 
         /* lookup this permutation */
         /* XXX */
-        fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
+	if(indep) {
+	  /* pretend there's no context */
+	  fprob = fexec_lookup_prob(fdata, pmElt(perm, i), 0, NULL); 
+	} else {
+	  fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
+	}
         if(fprob) {
             p = (double)fprob->num_pass / fprob->num_exec;
             /* XXX printf("\t(cond p=%f)", p); */
@@ -355,7 +361,7 @@ fexec_estimate_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     double pass = 1;		/* cumul pass rate */
     double totalcost = 0;		/* = utility */
     filter_info_t *info;
-    char buf[BUFSIZ];
+    //char buf[BUFSIZ];
     int n;
 
     /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
@@ -425,7 +431,7 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
     int err;
     double totalcost = 0;		/* = utility */
 
-    err = fexec_compute_cost(fdata, perm, gen, &totalcost);
+    err = fexec_compute_cost(fdata, perm, gen, 0, &totalcost);
     if (err == 0) {
         *utility = -totalcost;
     }
@@ -438,6 +444,26 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
   return err;
 }
 
+
+/* same as fexec_evaluate, but assume filters are independent */
+int
+fexec_evaluate_indep(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
+{
+    int err;
+    double totalcost = 0;		/* = utility */
+
+    err = fexec_compute_cost(fdata, perm, gen, 1, &totalcost);
+    if (err == 0) {
+        *utility = -totalcost;
+    }
+#ifdef VERBOSE
+    // printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
+    printf("fexec_evaluate: ");
+    fexec_print_cost(fdata, perm);
+    printf(" cost=%s\n", format_number(buf, totalcost));
+#endif
+  return err;
+}
 
 
 /* not used? */
@@ -487,11 +513,16 @@ fexec_print_cost(const filter_data_t *fdata, const permutation_t *perm) {
 
 
 /* only use this many entries. must be less than STAT_WINDOW */
-#define STAT_WINDOW_USED 8
+#define STAT_WINDOW_USED 1
 
 
 void
 fstat_add_obj_info(filter_data_t *fdata, int pass, rtime_t time_ns) {
+  double sanity;
+
+  sanity = time_ns;
+  assert(sanity >= 0);
+
   fdata->obj_ns[fdata->obj_ns_pos] = time_ns;
   fdata->obj_ns_pos++;
   if(fdata->obj_ns_pos > STAT_WINDOW_USED) {
@@ -517,7 +548,7 @@ fstat_sprint(char *buf, const filter_data_t *fdata) {
       pos = 0;
     }
   }
-  sprintf(buf, "%s %f %d", format_number(buf2, total/fdata->obj_ns_valid), 
+  sprintf(buf, "%s %f %d", format_number(buf2, total/fdata->obj_ns_valid/1000000000), 
 	  total, fdata->obj_ns_valid);
   return buf;
 }

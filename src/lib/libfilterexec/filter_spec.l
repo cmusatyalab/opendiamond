@@ -115,15 +115,19 @@ new_filter()
         fdata->fd_max_filters = new_num;
     }
   
+#ifdef VERBOSE
     printf("fdata %p num_filt %d max %d \n", fdata, fdata->fd_num_filters,
 	   fdata->fd_max_filters);
+#endif
     cur_filt_id = fdata->fd_num_filters;
     fdata->fd_num_filters++;
 
     memset(&fdata->fd_filters[cur_filt_id], 0, sizeof(filter_info_t));
 
     strcpy(fdata->fd_filters[cur_filt_id].fi_name, name);
+#ifdef VERBOSE
     printf(" id %d name %s \n", cur_filt_id, fdata->fd_filters[cur_filt_id].fi_name);
+#endif
     fdata->fd_filters[cur_filt_id].fi_threshold = -1;
     fdata->fd_filters[cur_filt_id].fi_merit = 0;
     fdata->fd_filters[cur_filt_id].fi_numargs = 0;

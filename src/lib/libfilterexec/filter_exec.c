@@ -8,6 +8,9 @@
 #include <stddef.h>
 #include <assert.h>
 #include <stdint.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <dirent.h>
 
 #include "lib_od.h"
@@ -23,6 +26,7 @@
 #include "rgraph.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
+#include "fexec_bypass.h"
 
 /* #define VERBOSE 1 */
 #define SIM_REPORT
@@ -41,7 +45,8 @@ static char			*no_filter = "None";
 /* ********************************************************************** */
 
 typedef struct opt_policy_t {
-  void *(*p_new)(const struct filter_data *);
+  enum policy_type_t policy;
+  void *(*p_new)(struct filter_data *);
   void  (*p_delete)(void *context);
   int   (*p_optimize)(void *context, struct filter_data *);
   void *p_context;
@@ -56,13 +61,16 @@ struct filter_exec_t filter_exec = {
 //int CURRENT_POLICY = HILL_CLIMB_POLICY;
 // int CURRENT_POLICY = BEST_FIRST_POLICY;
 
-
+/* order here should match enum policy_type_t */
 static opt_policy_t policy_arr[] = {
-  { NULL, NULL, NULL, NULL },
-  { hill_climb_new, hill_climb_delete, hill_climb_optimize, NULL },
-  { best_first_new, best_first_delete, best_first_optimize, NULL },
-  { indep_new, indep_delete, indep_optimize, NULL },
-  { NULL, NULL, NULL, NULL }
+  { NULL_POLICY, NULL, NULL, NULL, NULL },
+  { HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete, hill_climb_optimize, NULL },
+  { BEST_FIRST_POLICY, best_first_new, best_first_delete, best_first_optimize, NULL },
+  //{ INDEP_POLICY, indep_new, indep_delete, indep_optimize, NULL },
+  { INDEP_POLICY, indep_new, best_first_delete, best_first_optimize, NULL },
+  { RANDOM_POLICY, random_new, NULL, NULL, NULL },
+  { STATIC_POLICY, static_new, NULL, NULL, NULL },
+  { NULL_POLICY, NULL, NULL, NULL, NULL }
 };
 
 
@@ -145,6 +153,19 @@ fexec_system_init()
   	fprintf(stderr, "fexec_system_init: policy = %d\n", 
 		filter_exec.current_policy);
 #endif
+
+	{
+	  unsigned int seed;
+	  int fd;
+	  int rbytes;
+
+	  fd = open("/dev/random", O_RDONLY);
+	  assert(fd != -1);
+	  rbytes = read(fd, (void *)&seed, sizeof(seed));
+	  assert(rbytes == sizeof(seed));
+
+	  srandom(seed);
+	}
 }
 
 
@@ -519,6 +540,7 @@ initialize_policy(filter_data_t *fdata) {
 
 	/* initialize policy */
 	policy = &policy_arr[filter_exec.current_policy];
+	assert(policy->policy == filter_exec.current_policy);
 	if(policy->p_new) {
 	  policy->p_context = policy->p_new(fdata);
 	}
@@ -746,6 +768,8 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	  /* run the filter and update pass */
 	  if(cb_func) {
 	    err =  (*cb_func)(cookie, cur_filter->fi_name, &pass, &time_ns);
+#define SANITY_NS_PER_FILTER (2 * 1000000000)
+	    assert(time_ns < SANITY_NS_PER_FILTER);
 	  } else {
 	    rt_init(&rt);
 	    rt_start(&rt);	/* assume only one thread here */

@@ -25,6 +25,7 @@
 #include "rgraph.h"
 #include "rcomb.h"
 #include "fexec_stats.h"
+#include "fexec_bypass.h"
 
 static int  host_cycles = 0;
 
@@ -205,7 +206,7 @@ fexec_update_bypass(filter_data_t *fdata)
 	}
 
 
-	err = fexec_compute_cost(fdata, fdata->fd_perm, 1, &avg_cost);
+	err = fexec_compute_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 
 	/*
 	 * If we have an error, we can't compute the cost, so

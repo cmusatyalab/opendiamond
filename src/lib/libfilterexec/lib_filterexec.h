@@ -16,7 +16,9 @@ enum policy_type_t {
   NULL_POLICY=0,
   HILL_CLIMB_POLICY,
   BEST_FIRST_POLICY,
-  INDEP_POLICY
+  INDEP_POLICY,
+  RANDOM_POLICY,
+  STATIC_POLICY
 };
 
 struct filter_exec_t {

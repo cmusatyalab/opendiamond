@@ -3,7 +3,7 @@
  * the fifo scheduling an sucking up cycles.
  */
 
-#include <sys/io.h>		// ioperm(), iopl()
+#include <sys/io.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -13,165 +13,160 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
-
-#include <time.h>
 #include <sched.h>
 #include <errno.h>
 #include <assert.h>
 
-#define	MAX_DATA	1397
+/* call to read the cycle counter */
+#define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
 
-double	data[MAX_DATA];
 
-void
-compute(int num)
+unsigned long long 
+read_cycle()
 {
-	int	index;
+	unsigned long long	foo;
 
-	index = num % MAX_DATA;
+	rdtscll(foo);
 
-	data[index] = cos(num) * data[index];	
-	data[index] = sin(data[index]) /(float)num;
-			
+	return(foo);
+
 }
 
 void
 usage()
 {
-	fprintf(stderr, "slowdown <percent decrease> \n");
-
+	fprintf(stdout, "slowdown -r <ratio> [-v][-p <pid>\n");
+	fprintf(stdout, "\t-r <ratio> : consume ratio percent of cpu \n");
+	fprintf(stdout, "\t-v         : verbose mode for debugging \n");
+	fprintf(stdout, "\t-p <pid>   : exit when pid is no longer running \n");
 }
 
-#define	INIT_LOOP_VAL	100000
-#define	INT_LOOP_CNT	20
 
-double
-tv_to_float(struct timeval *tv)
-{
-	double	val;
-
-	val = (float)tv->tv_sec;
-	val += ((float)((float)tv->tv_usec/1000000.0));   
-
-	return(val);
-}
-
-int
-over_adj_amt(double ratio, double target, int loop_val)
-{
-
-	if ((ratio - target) > .10) {
-		return(10000);
-	} else if ((ratio - target) > .05) {
-		return(1000);
-	} else {
-		return(100);
-	}
-}
-
-int
-under_adj_amt(double ratio, double target, int loop_val)
-{
-
-	if ((target - ratio) > .1) {
-		return(10000);
-	} else if ((target - ratio) > .05) {
-		return(1000);
-	} else {
-		return(100);
-	}
-}
-
+#define	MAX_NAME		128
 
 int 
 main(int argc, char* argv[]) 
 {
-	struct sched_param params;
-	float	target;
-	unsigned int		loop_val = INIT_LOOP_VAL;;
-	struct	rusage		user_time_start;
-	struct	rusage		user_time_end;
-	struct	timeval		wall_start;
-	struct	timeval		wall_end;
-	struct	timezone	tz;
-	int		i,j, loop, err;
-	double	wtime;
-	double	app_time;
-	double	ratio;
-	pid_t	parent_pid;
-	int		have_pid = 0;
-	pid_t	new_pid;
+	struct sched_param 	params;
+	double			target = 0.0;
+	unsigned long long	wall_start;
+	unsigned long long	wall_elapsed;
+	unsigned long long	wait_cum = 0;
+	unsigned long long	wait_start;
+	unsigned long long	wait_end;
+	unsigned long long	temp_cycle;
+	unsigned long long	delta;
+	double			ratio;
+	int			err;
+	int			have_pid = 0;
+	extern char *		optarg;
+	int			target_set = 0;
+	int			verbose = 0;
+	char			proc_dir[MAX_NAME];
+	struct	stat		stat_buf;
+	int			c;
 
+	/*
+	 * The command line options.
+	 */
+	while (1) {
+		c = getopt(argc, argv, "hp:r:v");
+		if (c == -1) {
+			break;
+		}
 
+		switch (c) {
+			case 'h':
+				usage();
+				exit(0);
+				break;
 
-	target = atof(argv[1])/100.0;
-	printf("target %f \n", target);
- 
+			case 'r':
+				target = atof(optarg)/100.0;
+				target_set = 1;
+				break;
+	
+			case 'p':
+				err = snprintf(proc_dir, MAX_NAME, "%s/%s", "/proc", optarg);
+				if (err >= MAX_NAME) {
+					fprintf(stderr, "path name too long: increase MAX_NAME\n");	
+					exit(1);
+				}
+				have_pid = 1;
+				break;
+
+			case 'v':
+				verbose = 1;
+				break;
+
+			default:
+				printf("unknown option %c\n", c);
+				break;
+		}
+	}
+	
+	if (target_set == 0) {
+		usage();
+		exit(1);
+	}
+
+	if (verbose) {
+		fprintf(stdout, "target ration: %f \n", target);
+		if (have_pid) {
+			fprintf(stdout, "parent_proc = %s \n", proc_dir);
+		}
+	}
+
+	/*
+	 * Setup the scheduler so we do real-time scheduling.
+	 */ 
 	sched_getparam(0, &params);
 	params.sched_priority = 50;
 	if (sched_setscheduler(0, SCHED_FIFO, &params)) {
 		perror("Failed to set scheduler");
 		exit(0);
 	}
-	
-	if (argc > 2) {
-		parent_pid = atoi(argv[2]);
-		printf("parent pid %d \n", parent_pid);
-		have_pid = 1;
-	}
 
-	for (loop = 0; loop < 1000000; loop++) {
+	/*
+	 * Get our initial time.
+	 */
+	wall_start = read_cycle();
+
+	while (1) {
+		wait_start = read_cycle();
+
 		if (have_pid) {
-			char	proc_dir[256];
-			struct	stat	buf;
-			sprintf(proc_dir, "%s/%d", "/proc", parent_pid);
-			err = stat(proc_dir, &buf);
+			err = stat(proc_dir, &stat_buf);
 			if (err == -1) {
 				printf("Stat failed\n");
 				exit(0);
 			}
 		}
-			
-		err = getrusage(RUSAGE_SELF, &user_time_start);
-		assert(err == 0);
-		err = gettimeofday(&wall_start, &tz);
-		assert(err == 0);
-		
 
-		for (i=0; i < INT_LOOP_CNT; i++) {
-			usleep(25000);
 
-			for (j=1; j < loop_val; j++) {
-				compute(loop_val);
-			}
+		wall_elapsed = wait_start - wall_start;
+		delta = (unsigned long long) (((double)wall_elapsed) *
+			target) - wait_cum;
+
+		if (verbose) {
+			fprintf(stdout, "new delta: %lld (wall %lld wait %lld)\n", 
+				delta, wall_elapsed, wait_cum);
+			ratio = ((double) wait_cum) / ((double)wall_elapsed);
+			fprintf(stdout, "ratio %16.12f \n", ratio);
+			ratio = (((double) wait_cum) + ((double)delta))/ ((double)wall_elapsed);
+			fprintf(stdout, "ratio %16.12f \n", ratio);
 		}
-		err = getrusage(RUSAGE_SELF, &user_time_end);
-		assert(err == 0);
-		err = gettimeofday(&wall_end, &tz);
-		assert(err == 0);
 
-		wtime = tv_to_float(&wall_end) - tv_to_float(&wall_start);
+		wait_end = wait_start + delta;
 
-		app_time = tv_to_float(&user_time_end.ru_utime) +
-			   tv_to_float(&user_time_end.ru_stime) -
-			   tv_to_float(&user_time_start.ru_utime) - 
-			   tv_to_float(&user_time_start.ru_stime);
-
-		ratio = app_time/wtime;
-
-#ifdef	XXX
-		printf("ratio %f  target %f \n", ratio, target);
-#endif
-
-		if (ratio < target) {
-			loop_val += under_adj_amt(ratio, target, loop_val);
-		} else {
-			loop_val -= over_adj_amt(ratio, target, loop_val);
+		temp_cycle = read_cycle();
+		while (temp_cycle < wait_end) {
+			temp_cycle = read_cycle();
 		}
-#ifdef	XXX
-		printf("loop_val %d \n", loop_val);
-#endif
+
+		wait_cum += temp_cycle - wait_start;
+		usleep(10000);
+
 	}
 	return 0;
 }

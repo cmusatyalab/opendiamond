@@ -23,6 +23,13 @@
 #include "rcomb.h"
 #include "fexec_stats.h"
 
+//#define VERBOSE 1
+#ifdef VERBOSE
+#define VERB if(1)
+#else
+#define VERB if(0)
+#endif
+
 /*
  * This function walks through the list of filters and resets
  * all the statistics assocaited with each one.  This is typically
@@ -286,8 +293,9 @@ fexec_update_cost(finfo_filter, int pass)
 #define SIGNIFICANT_NUMBER(g) ((g)*8)
 
 /* evaluate a permutation in the context of the currently available
- * data, and return a utility value (higher is better).
- * the function value is non-zero on error
+ * data, and return a utility value (higher is better).  the function
+ * value is non-zero if not enough data (but the utility should then
+ * be set to an upper bound)
  */
 int
 fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility) {
@@ -295,15 +303,19 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
   int i;
   filter_prob_t *fprob;
   double pass = 1;		/* cumul pass rate */
-  double totalcost = 0;		/* = utility */
+  double totalcost = 0;		/* = inv utility */
   filter_info_t *info;
+#ifdef VERBOSE
   char buf[BUFSIZ];
+#endif
   int n;
 
   /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
   assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
+#ifdef VERBOSE
   printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ));
+#endif
 
   for(i=0; i < pmLength(perm); i++) {
     double c;			/* cost of this filter */
@@ -313,31 +325,32 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
     c = info->fi_time_ns;
     n = info->fi_called;
     if(n < SIGNIFICANT_NUMBER(gen)) {
-      return 1;
+      goto done;
     }
 
     totalcost += pass * c / n;		/* prev cumul pass * curr cost */
-    printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost);
+    VERB printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost);
 
     /* lookup this permutation */
     fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); /* XXX */
     if(fprob) {
       p = (double)fprob->num_pass / fprob->num_exec;
-      printf("\t(cond p=%f)", p);
+      VERB printf("\t(cond p=%f)", p);
 #if 0
     } else if(n > SIGNIFICANT_NUMBER(gen)) {
       /* permutation not found, try assuming independence */
       p = 1.0 - (double)info->fi_drop / n;
-      printf("\t(indp p=%f)", p);
+      VERB printf("\t(indp p=%f)", p);
 #endif
     } else {
       /* really no data, return an error */
       //printf("fexec_evaluate: could not evaluate permutation, giving up\n");
-      return 1;
+      err = 1;
+      goto done;
       //p = 1;			/* cost will be 0 anyway */
       //n = 1;
     }
-    printf("\n");
+    VERB printf("\n");
 
     assert(p >= 0 && p <= 1.0);
     pass *= p;
@@ -348,13 +361,17 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
     }
   }
 
+
+ done:
   *utility = -totalcost;
   //assert(*utility >= 0);
 
+#ifdef VERBOSE
   //printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
   printf("fexec_evaluate: ");
   fexec_print_cost(fdata, perm);
   printf(" cost=%s\n", format_number(buf, totalcost));
+#endif
   return err;
 }
 
@@ -402,3 +419,41 @@ fexec_print_cost(const filter_data_t *fdata, const permutation_t *perm) {
   }
   printf(" ]");
 }
+
+
+/* only use this many entries. must be less than STAT_WINDOW */
+#define STAT_WINDOW_USED 100
+
+
+void
+fstat_add_obj_info(filter_data_t *fdata, int pass, rtime_t time_ns) {
+  fdata->obj_ns[fdata->obj_ns_pos] = time_ns;
+  fdata->obj_ns_pos++;
+  if(fdata->obj_ns_pos > STAT_WINDOW_USED) {
+    fdata->obj_ns_pos = 0;
+  }
+  if(fdata->obj_ns_valid < STAT_WINDOW_USED) {
+    fdata->obj_ns_valid++;
+  }
+}
+
+char *
+fstat_sprint(char *buf, const filter_data_t *fdata) {
+  int i;
+  int pos = ( (STAT_WINDOW_USED + fdata->obj_ns_pos - fdata->obj_ns_valid)
+	      % STAT_WINDOW_USED );
+  double total = 0;
+  char buf2[BUFSIZ];
+
+  for(i=0; i<fdata->obj_ns_valid; i++) {
+    total += fdata->obj_ns[pos];
+    pos++;
+    if(pos >= STAT_WINDOW_USED) {
+      pos = 0;
+    }
+  }
+  sprintf(buf, "%s %f %d", format_number(buf2, total/fdata->obj_ns_valid), 
+	  total, fdata->obj_ns_valid);
+  return buf;
+}
+

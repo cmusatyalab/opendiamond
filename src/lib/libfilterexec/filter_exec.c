@@ -24,7 +24,7 @@
 
 
 
-#define VERBOSE 1
+//#define VERBOSE 1
 
 /*
  * Some state to keep track of the active filter. XXX
@@ -40,20 +40,22 @@ static char			*no_filter = "None";
 /* ********************************************************************** */
 
 typedef struct policy_t {
-	void *(*p_new)(const struct filter_data *);
-	void  (*p_delete)(void *context);
-	void  (*p_optimize)(void *context, struct filter_data *);
-	void *p_context;
+  void *(*p_new)(const struct filter_data *);
+  void  (*p_delete)(void *context);
+  int   (*p_optimize)(void *context, struct filter_data *);
+  void *p_context;
+  int  exploit;			/* if we are in exploit mode */
 } policy_t;
 
 /* index into table below */
-#define NULL_POLICY 0
-#define HILL_CLIMB_POLICY 1
-#define BEST_FIRST_POLICY 2
+enum policy_type_t {
+  NULL_POLICY=0,
+  HILL_CLIMB_POLICY,
+  BEST_FIRST_POLICY
+};
 
-#define CURRENT_POLICY NULL_POLICY
-//#define CURRENT_POLICY BEST_FIRST_POLICY
-//#define CURRENT_POLICY HILL_CLIMB_POLICY
+//static enum policy_type_t CURRENT_POLICY = BEST_FIRST_POLICY;
+static int CURRENT_POLICY = HILL_CLIMB_POLICY;
 
 static policy_t policy_arr[] = {
   { NULL, NULL, NULL, NULL },
@@ -521,18 +523,22 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 
 void
 update_filter_order(filter_data_t *fdata, const permutation_t *perm) {
-	char buf[BUFSIZ];
+#ifdef VERBOSE
+  char buf[BUFSIZ];
+#endif
 
 	pmCopy(fdata->fd_perm, perm);
+#ifdef VERBOSE
 	printf("changed filter order to: %s\n", pmPrint(perm, buf, BUFSIZ));
+#endif
 }
 
 
-
+/* jump to function (see fexec_opt.c) */
 static void
 optimize_filter_order(filter_data_t *fdata, policy_t *policy) {
   if(policy->p_optimize) {
-    policy->p_optimize(policy->p_context, fdata);
+    policy->exploit = policy->p_optimize(policy->p_context, fdata);
   }
 }
 
@@ -571,13 +577,12 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
 
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
 
+	fdata->obj_counter++;
+
 	if (fdata->fd_num_filters == 0) {
-		log_message(LOGT_FILT, LOGL_ERR, 
-			"eval_filters: no filter root");
-		return 1;
+	  log_message(LOGT_FILT, LOGL_ERR, "eval_filters: no filters");
+	  return 1;
 	}
-
-
 
 	/*
 	 * We need to put more smarts about what filters to evaluate
@@ -646,6 +651,7 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
 		if(cb_func) {
 		  err =  (*cb_func)(cookie, cur_filter->fi_name, &pass, &time_ns);
 		} else {
+		  rt_init(&rt);
 		  rt_start(&rt);	/* assume only one thread here */
 		  
 		  assert(cur_filter->fi_fp);
@@ -698,8 +704,18 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
 	obj_write_attr(&obj_handle->attr_info,
 		       FLTRTIME,
 		       sizeof(stack_ns), (void*)&stack_ns);
-
+	/* track per-object info */
+	fstat_add_obj_info(fdata, pass, stack_ns);
 	
+	{
+	  char buf[BUFSIZ];
+	  printf("%d average time/obj = %s (%s)\n",
+		 fdata->obj_counter,
+		 fstat_sprint(buf, fdata),
+		 policy_arr[CURRENT_POLICY].exploit ? "EXPLOIT" : "EXPLORE");
+
+	}
+
 	return pass;
 }
 

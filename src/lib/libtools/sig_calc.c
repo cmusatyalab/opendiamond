@@ -40,11 +40,17 @@
 #include <assert.h>
 
 
-const EVP_MD *md;
+static const EVP_MD *md;
+static int	 done_sig_init = 0;
 
 int
 sig_cal_init()
 {
+	/* make sure we only call once */
+	if (done_sig_init) {
+		return(0);
+	}
+
     OpenSSL_add_all_digests();
     md = EVP_get_digestbyname("md5");
     if(!md) {
@@ -52,6 +58,7 @@ sig_cal_init()
         assert( md!= NULL);
         //exit(1);
     }
+	done_sig_init = 1;
     return(0);                                                                           
 }
 
@@ -61,7 +68,9 @@ sig_cal(const void *buf, off_t buflen, unsigned char **signature)
     EVP_MD_CTX mdctx;
     unsigned char *md_value;
     int md_len=0;
-                                                                                
+                    
+	assert(done_sig_init == 1);
+
     md_value = *signature;
                                                                                 
     EVP_MD_CTX_init(&mdctx);

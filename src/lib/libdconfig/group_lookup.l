@@ -132,7 +132,7 @@ convert_gid(char *str)
 {
 	groupid_t	gid;
 	int		i;
-	long int	new;
+	long int	newval;
 	char		buf[4];
 
 	gid = 0;
@@ -142,8 +142,8 @@ convert_gid(char *str)
 		buf[1] = str[1];	
 		buf[2] = '\0';
 
-		new = strtol(buf, NULL, 16);
-		gid = (gid * 256) + new;
+		newval = strtol(buf, NULL, 16);
+		gid = (gid * 256) + newval;
 
 		str += 3;
 	}
@@ -372,7 +372,7 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
  * is /usr/local/diamond/etc.
  */
 
-FILE *
+static FILE *
 open_map_file(char *map_name)
 {
 

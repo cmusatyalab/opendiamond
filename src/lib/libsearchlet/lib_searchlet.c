@@ -92,6 +92,7 @@ ls_init_search()
 	sc->bg_status = 0;
 	sc->pend_hw = LS_OBJ_PEND_HW;
 	sc->pend_lw = LS_OBJ_PEND_LW;
+	sc->last_dev = NULL;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
 	if (err) {
 		/* XXX log */

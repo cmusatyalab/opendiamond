@@ -94,9 +94,14 @@ get_next_object(search_context_t *sc)
 {
 	device_handle_t *	cur_dev;
 	obj_info_t	*		obj_inf;
-	static	int	 		first = 1;
+	int	 		first = 1;
 
-   	cur_dev = sc->last_dev->next;
+
+	if (sc->last_dev == NULL) {
+		cur_dev = sc->dev_list;
+	} else {
+		cur_dev = sc->last_dev->next;
+	}
 
 redo:
 	while (cur_dev != NULL) {

@@ -35,7 +35,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +60,7 @@
 #include "ring.h"
 
 
+
 #define	CACHE_EXT	".CACHEFL"
 /*
  * forward declarations 
@@ -75,6 +75,7 @@ static void     delete_object_gids(odisk_state_t * odisk, obj_data_t * obj);
  */
 #define MAX_GID_FILTER  64
 
+#define	OBJ_ALIGN	512
 int
 odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 {
@@ -82,6 +83,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	struct stat     stats;
 	int             os_file;
 	char           *data;
+	char           *base;
 	int             err, len;
 	size_t          size;
 	uint64_t        local_id;
@@ -107,8 +109,9 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	/*
 	 * open the file 
 	 */
-	os_file = open(name, O_RDONLY);
+	os_file = open(name, (O_RDONLY|O_DIRECT));
 	if (os_file == -1) {
+		printf("XXXX open failed \n");
 		free(new_obj);
 		return (ENOENT);
 	}
@@ -119,8 +122,9 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 		return (ENOENT);
 	}
 
-	data = (char *) malloc(stats.st_size);
-	if (data == NULL) {
+	base = (char *) malloc(stats.st_size + (2 * OBJ_ALIGN));
+	data = (char *)(((uint32_t)base + OBJ_ALIGN - 1) & (~(OBJ_ALIGN - 1)));
+	if (base == NULL) {
 		close(os_file);
 		free(new_obj);
 		return (ENOENT);
@@ -128,19 +132,23 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	}
 
 	if (stats.st_size > 0) {
-		size = read(os_file, data, stats.st_size);
+		size = read(os_file, data, 
+			((stats.st_size + OBJ_ALIGN) &(~(OBJ_ALIGN - 1))));
 		if (size != stats.st_size) {
 			/*
 			 * XXX log error 
 			 */
 			printf("odisk_load_obj: failed to reading data \n");
-			free(data);
+			printf("rs %d stat %ld \n", size, stats.st_size);
+			perror("read");
+			free(base);
 			close(os_file);
 			free(new_obj);
 			return (ENOENT);
 		}
 	}
 	new_obj->data = data;
+	new_obj->base = base;
 	new_obj->data_len = stats.st_size;
 
 	ptr = rindex(name, '/');
@@ -307,12 +315,12 @@ odisk_release_obj(odisk_state_t * odisk, obj_data_t * obj)
 		return (0);
 	}
 
-	if (obj->data != NULL) {
-		free(obj->data);
+	if (obj->base != NULL) {
+		free(obj->base);
 	}
 
-	if (obj->attr_info.attr_data != NULL) {
-		free(obj->attr_info.attr_data);
+	if (obj->attr_info.attr_base != NULL) {
+		free(obj->attr_info.attr_base);
 	}
 
 	free(obj);
@@ -572,6 +580,7 @@ static ring_data_t *    obj_pr_ring;
 static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t   pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
 #define OBJ_PR_RING_SIZE        64
+
 
 int
 odisk_read_next(obj_data_t ** new_object, odisk_state_t * odisk)

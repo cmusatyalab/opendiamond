@@ -86,6 +86,7 @@ typedef struct {
 	int		    	cur_blocksize;
 	float			remain_compute;
 	char *			data;
+	char *			base;
 	obj_attr_t		attr_info;
 } obj_data_t;
 
@@ -136,6 +137,7 @@ int odisk_reset(struct odisk_state *odisk);
 int odisk_clear_indexes(odisk_state_t * odisk); 
 int odisk_build_indexes(odisk_state_t * odisk); 
 int odisk_num_waiting(struct odisk_state *odisk);
+int odisk_load_obj(odisk_state_t *odisk, obj_data_t **o_handle, char *name);
 
 int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
 

@@ -1075,10 +1075,10 @@ search_free_obj(obj_data_t * obj)
 {
 
 	if (obj->data != NULL) {
-		free(obj->data);
+		free(obj->base);
 	}
 	if (obj->attr_info.attr_data != NULL) {
-		free(obj->attr_info.attr_data);
+		free(obj->attr_info.attr_base);
 	}
 	free(obj);
 	return (0);
@@ -1100,10 +1100,10 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 	sstate->pend_compute -= obj->remain_compute;
 
 	if (obj->data != NULL) {
-		free(obj->data);
+		free(obj->base);
 	}
 	if (obj->attr_info.attr_data != NULL) {
-		free(obj->attr_info.attr_data);
+		free(obj->attr_info.attr_base);
 	}
 	free(obj);
 	return (0);

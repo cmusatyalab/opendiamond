@@ -57,6 +57,7 @@
 #define TEMP_ATTR_BUF_SIZE      1024
 #define CACHE_DIR               "cache"
 
+#define	OBJ_ALIGN	512
 int
 obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 {
@@ -73,7 +74,7 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 	/*
 	 * Open the file or create it.
 	 */
-	attr_fd = open(attr_fname, O_CREAT|O_RDWR, 00777);
+	attr_fd = open(attr_fname, O_CREAT|O_RDONLY|O_DIRECT, 00777);
 	if (attr_fd == -1) {
 		perror("failed to open stat file");
 		exit(1);
@@ -92,12 +93,15 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 		attr->attr_data = NULL;
 	} else  {
 		attr->attr_len = size;
-		attr->attr_data = (char *)malloc(size);
-		if (attr->attr_data == NULL) {
+		attr->attr_base = (char *)malloc(size + (2 * OBJ_ALIGN));
+		if (attr->attr_base == NULL) {
 			perror("no memory available");
 			exit(1);
 		}
-		rsize = read(attr_fd, attr->attr_data, size);
+		attr->attr_data = (char *)(((uint32_t)attr->attr_base + 
+			OBJ_ALIGN - 1) & (~(OBJ_ALIGN - 1)));
+		rsize = read(attr_fd, attr->attr_data, 
+			((size + OBJ_ALIGN) &(~(OBJ_ALIGN-1))));
 		if (rsize != size) {
 			perror("failed to read all data \n");
 			exit(1);
@@ -175,9 +179,10 @@ extend_attr_store(obj_attr_t *attr, int new_size)
 	memset( new_attr, 0, new_len);
 
 	memcpy(new_attr, attr->attr_data, attr->attr_len);
-	free(attr->attr_data);
+	free(attr->attr_base);
 
 	attr->attr_data = new_attr;
+	attr->attr_base = new_attr;
 	attr->attr_len = new_len;
 
 	/*

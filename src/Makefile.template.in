@@ -65,6 +65,7 @@ CPLUSPLUS = g++
 #Just to go overboard and be sure
 CFLAGS += -D_REENTRANT
 CFLAGS += -D_THREAD_SAFE	
+CFLAGS += -pg
 
 
 

@@ -154,10 +154,7 @@ update_dev_stats(search_context_t *sc)
 		err = device_statistics(cur_dev->dev_handle, dstats, &size);
 		assert(err == 0);
 
-		printf("updatedev: tot %d proc %d \n",
-			dstats->ds_objs_total, dstats->ds_objs_processed);
 		remain = dstats->ds_objs_total - dstats->ds_objs_processed;
-		printf("remain %d \n", remain);
 		if (remain < 0) remain = 0;
 		if (remain == 0) {
 			 continue;
@@ -172,7 +169,6 @@ update_dev_stats(search_context_t *sc)
 		}
 		cur_dev->done = (cur_dev->remain_new)/ delta;
 
-		printf("dev %x done %d \n", cur_dev->dev_id, cur_dev->done);
 	}
 	free(dstats);
 }
@@ -220,7 +216,6 @@ update_total_rate(search_context_t *sc)
 		} else if (target < cur_dev->credit_incr) {
 			cur_dev->credit_incr--;
 		}
-		printf("rail: update dev %x incr %d \n", cur_dev->dev_id, cur_dev->credit_incr);
 	}
 }
 
@@ -284,7 +279,6 @@ update_rail(search_context_t *sc)
 	int			max_done = 0;
 	int			target;
 	
-	printf("update rates: rail \n");
 	update_dev_stats(sc);
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
@@ -306,17 +300,12 @@ update_rail(search_context_t *sc)
 		} else if (target < cur_dev->credit_incr) {
 			cur_dev->credit_incr--;
 		}
-		printf("dev: %x credit %d cur %f svcd %d \n", 
-			cur_dev->dev_id, cur_dev->credit_incr,
-			cur_dev->cur_credits, cur_dev->serviced);
 	}
 }
 
 void
 update_rates(search_context_t *sc)
 {
-	printf("update rates \n");
-
 	switch (sc->bg_credit_policy) {
 		case	CREDIT_POLICY_RAIL:
 			update_rail(sc);

@@ -46,6 +46,7 @@
 typedef struct {
     off_t           attr_len;
     char           *attr_data;
+    char           *attr_base;
 } obj_attr_t;
 
 

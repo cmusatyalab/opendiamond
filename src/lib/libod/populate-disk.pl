@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
+use File::Temp qw/ tempfile tempdir /; 
 
 # Given a subdirectory of images, inserts each image into the
 # object database with the appropriate GID, both as a
@@ -21,21 +22,27 @@ die "Usage $0 directory [machine1 ... machinen]" unless scalar(@ARGV) >= 1;
 # List of known image types (extensions)
 # The key is extension, value is the Content-Type MIME string
 my %valid = (
-    jpeg => 'image/jpeg',
-    jpg => 'image/jpeg',
-    gif => 'image/gif',
-    ppm => 'image/x-portable-pixmap',
-    pgm => 'image/x-portable-graymap',
-    png => 'image/png'
+	     jpeg => 'image/jpeg',
+	     jpg => 'image/jpeg',
+	     gif => 'image/gif',
+	     ppm => 'image/x-portable-pixmap',
+	     pgm => 'image/x-portable-graymap',
+	     png => 'image/png',
+	     tif => 'image/tiff',
+	     tiff => 'image/tiff'
   );
 
 # This will probably change TODO
-my $insert_command = "apitest";
+my $insert_command = "./apitest";
+
+# don't really do anything (imperfect)
+my $noact;# = 1;
 
 # Temporary file used for conversion purposes
 my $tempext = 'ppm';
-my $tempfile = "/tmp/diamond-ppm-$$.$tempext";
-die "The tempfile ($tempfile) already exists." if (-e $tempfile);
+my $tempdir = tempdir("diamond-temp-XXXX", TMPDIR => 1, CLEANUP => 1 );
+#my $tempfile = "/tmp/diamond-ppm-$$.$tempext";
+#die "The tempfile ($tempfile) already exists." if (-e $tempfile);
 
 # Hashtable of gids that have been used (defined in gid_map
 # or during this run of the program).
@@ -161,37 +168,54 @@ sub process_image {
   my $dispname = $path;
   $dispname =~ s|/|:|g;
 
-  my ($exec, $retval);
-  my $parent_oid = undef;
+  my ($retval);
+  my @args;
+  my $parent_oid = 0;
 
   my $keywords = &make_keywords($dispname);
 
-  $exec = "$insert_command $img $gid1" .
-	     " Display-Name $dispname " .
-	     " Keywords $keywords " .
-	     " Content-Type " . $valid{$ext};
+  # build args
+  #args: file gid [attr1 val1] [attr2 val2]
+  @args = ($img, $gid1,
+	   'Display-Name', $dispname,
+	   'Keywords', $keywords,
+	   'Content-Type', $valid{$ext});
+  # display version of command:
+  my $exec = "$insert_command " . join(' ', @args);
   print "$exec\n";
 # $retval = system($exec);
 # die "$insert_command failed with return code of $retval: $!" if $retval;
-  open(PROG, "$exec |") or die "Unable to execute: $exec\n";
-  while (<PROG>) {
-    chomp;
-    next unless /OID\s*=\s*(.+)/;
-    $parent_oid = $1;
-    print "extracted parent oid: $parent_oid\n";
+  if(!$noact) {
+      open(PROG, '-|', $insert_command, @args) or die "Unable to execute: $exec\n";
+      while (<PROG>) {
+	  chomp;
+	  next unless /OID\s*=\s*(.+)/;
+	  $parent_oid = $1;
+	  print "extracted parent oid: $parent_oid\n";
+      }
+      close PROG;
   }
-  close PROG;
 
-  $retval = system("convert $img -resize 400x300 $tempfile");
-  die "convert gave a return code of $retval: $!" if $retval;
-  $exec = "$insert_command $tempfile $gid2" .
-	     " Display-Name $dispname " .
-	     " Keywords $keywords " .
-	     " Content-Type " . $valid{$tempext} .
-	     " Parent-OID $parent_oid";
+  my($tempfh, $tempfile) = tempfile("loader-XXXXXX", UNLINK => 0, DIR => $tempdir);
+  #my $tempfile = "/dev/fd/".fileno($tempfh);
+  close($tempfh);
+
+  if(!$noact) {
+      $retval = system("convert", $img, '-resize', '400x300', "ppm:$tempfile");
+      die "convert gave a return code of $retval: $!" if $retval;
+  }
+
+  @args = ($tempfile, $gid2,
+	   'Display-Name', $dispname,
+	   'Keywords', $keywords,
+	   'Content-Type', $valid{$tempext},
+	   'Parent-OID', $parent_oid);
+  $exec = "$insert_command " . join(' ', @args);
   print "$exec\n";
-  $retval = system($exec);
-  die "$insert_command failed with return code of $retval: $!" if $retval;
+  if(!$noact) {
+      $retval = system($insert_command, @args);
+      die "$insert_command failed with return code of $retval: $!" if $retval;
+  }
 
   print "---\n";
   unlink $tempfile or die "Unable to delete $tempfile";

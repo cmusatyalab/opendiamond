@@ -68,6 +68,7 @@ char           *data_dir = "/opt/dir1/";
 int             do_daemon = 1;
 int             do_fork = 1;
 int             do_cleanup = 1;
+int             run_silent = 1;
 
 void
 usage()
@@ -77,6 +78,7 @@ usage()
 	fprintf(stdout, "\t -n do not fork for a  new connection \n");
 	fprintf(stdout, "\t -p <pathname>  set alternative data directory \n");
 	fprintf(stdout, "\t -c do not cleanup *.so files from /tmp \n");
+	fprintf(stdout, "\t -s run silently \n");
 	fprintf(stdout, "\t -h get this help message \n");
 }
 
@@ -94,7 +96,7 @@ main(int argc, char **argv)
 	 */
 
 	while (1) {
-		c = getopt(argc, argv, "cdhnp:");
+		c = getopt(argc, argv, "cdhnp:s");
 		if (c == -1) {
 			break;
 		}
@@ -122,6 +124,10 @@ main(int argc, char **argv)
 				data_dir = optarg;
 				break;
 
+			case 's':
+				run_silent = 0;
+				break;
+
 			default:
 				usage();
 				exit(1);
@@ -136,7 +142,7 @@ main(int argc, char **argv)
 	 * make this a daemon by the appropriate call 
 	 */
 	if (do_daemon) {
-		err = daemon(1, 1);
+		err = daemon(1, run_silent);
 		if (err != 0) {
 			perror("daemon call failed !! \n");
 			exit(1);

@@ -431,31 +431,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 }
 
 
-
-/*
- * XXX hack 
- */
-obj_data_t     *
-create_null_obj()
-{
-	obj_data_t     *new_obj;
-
-	new_obj = (obj_data_t *) malloc(sizeof(*new_obj));
-	assert(new_obj != NULL);
-
-	new_obj->data_len = 0;
-	new_obj->data = NULL;
-	new_obj->base = NULL;
-	new_obj->ref_count = 1;
-	pthread_mutex_init(&new_obj->mutex, NULL);
-
-	new_obj->attr_info.attr_ndata = 0;
-	new_obj->attr_info.attr_dlist = NULL;
-
-	return (new_obj);
-}
-
-
 static void
 dynamic_update_bypass(search_state_t *sstate)
 {
@@ -627,7 +602,7 @@ device_main(void *arg)
 				 * we are done we send object with
 				 * no data or attributes.
 				 */
-				new_obj = create_null_obj();
+				new_obj = odisk_null_obj();
 				new_obj->remain_compute = 0.0;
 				err = sstub_send_obj(sstate->comm_cookie,
 				                     new_obj, sstate->ver_no, 1);

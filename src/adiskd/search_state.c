@@ -267,6 +267,10 @@ clear_ss_stats(search_state_t * sstate)
 	sstate->obj_passed = 0;
 	sstate->obj_skipped = 0;
 	sstate->network_stalls = 0;
+
+	sstate->avg_ratio = 0.0;
+	sstate->avg_int_ratio = 0;
+	sstate->old_proc = 0;
 }
 
 
@@ -458,13 +462,42 @@ create_null_obj()
 static void
 dynamic_update_bypass(search_state_t *sstate)
 {
+	int	err;
+	float	avg_cost;
 
-	sstate->split_ratio = (sstate->pend_objs * sstate->split_mult)/100;
+        err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
+		1, 0, &avg_cost);
+	if (err) {
+		avg_cost = 30000000.0;
+	}
+                                                                               
+
+	if (sstate->obj_processed != 0) {
+		float	ratio;
+		float	new_val;
+
+		ratio = (float)sstate->old_proc/(float)sstate->obj_processed;
+		new_val = sstate->avg_ratio * ratio;
+		new_val += sstate->split_ratio * (1 - ratio);
+		sstate->avg_ratio = new_val;
+		sstate->avg_int_ratio = (int)new_val;
+		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
+			0.5 * new_val;
+		sstate->smoothed_int_ratio = (int)sstate->smoothed_ratio;
+		sstate->old_proc = sstate->obj_processed;
+	}
+
+	sstate->split_ratio = (int)((sstate->pend_compute * 
+		(float)sstate->split_mult));
 
 	if (sstate->split_ratio < 5)
 		sstate->split_ratio = 5;
 	if (sstate->split_ratio > 100)
 		sstate->split_ratio = 100;
+
+	//printf("dynupdate new ratio: %d pend %f mult %d avg %f\n", 
+		//sstate->split_ratio, sstate->pend_compute, sstate->split_mult,
+		//sstate->avg_ratio);
 }
 
 static void
@@ -499,13 +532,31 @@ continue_fn(void *cookie)
 {
 	search_state_t *sstate = cookie;
 
+#ifdef	XXX_OLD
 	/* XXX include input queue size */
-	if ((sstate->pend_objs < sstate->split_bp_thresh) &&
+	if ((sstate->pend_compute < sstate->split_bp_thresh) &&
 	    (odisk_num_waiting(sstate->ostate) > 0)) {
 		return(0);
 	} else {
 		return(1);
 	}
+#else
+
+	float	avg_cost;
+	int	err;
+        err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
+		1, 0, &avg_cost);
+	if (err) {
+		avg_cost = 30000000.0;
+	}
+                                                                               
+	/* XXX include input queue size */
+	if ((int)(sstate->pend_compute/avg_cost) < sstate->split_bp_thresh) {
+		return(0);
+	} else {
+		return(1);
+	}
+#endif
 
 }
 
@@ -550,7 +601,7 @@ device_main(void *arg)
 			free(cmd);
 		}
 
-		if (sstate->pend_objs >= sstate->pend_max) {
+		if (sstate->pend_compute >= sstate->pend_max) {
 		}
 
 		/*
@@ -571,11 +622,15 @@ device_main(void *arg)
 				if (err == 0) {
 					force_eval = 1;
 					sstate->pend_objs--;
+					sstate->pend_compute -= new_obj->remain_compute;
 				} else {
 					err = ENOENT;
 				}
 			}
 			if (err == ENOENT) {
+				time_t	cur_time;
+      				time(&cur_time);
+        			fprintf(stderr, "last obj at %s", ctime(&cur_time));
 				/*
 				 * We have processed all the objects,
 				 * clear the running and set the complete
@@ -590,6 +645,7 @@ device_main(void *arg)
 				 * no data or attributes.
 				 */
 				new_obj = create_null_obj();
+				new_obj->remain_compute = 0.0;
 				err = sstub_send_obj(sstate->comm_cookie,
 				                     new_obj, sstate->ver_no, 1);
 				if (err) {
@@ -662,17 +718,20 @@ device_main(void *arg)
 						complete = 1;
 					}
 
+					sstate->pend_objs++;
+					sstate->pend_compute += new_obj->remain_compute;
+					//printf("queu %f new %f \n",
+						//new_obj->remain_compute,
+						//sstate->pend_compute);
+
 					err = sstub_send_obj(sstate->comm_cookie, new_obj,
 					                     sstate->ver_no, complete);
 					if (err) {
 						/*
 						 * XXX overflow gracefully 
 						 */
-					} else {
-						/*
-						 * XXX log 
-						 */
-						sstate->pend_objs++;
+						sstate->pend_objs--;
+						sstate->pend_compute -= new_obj->remain_compute;
 					}
 				}
 			}
@@ -855,6 +914,13 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	dctl_register_leaf(DEV_SEARCH_PATH, "split_multiplier", DCTL_DT_UINT32,
 	                   dctl_read_uint32, dctl_write_uint32,
 	                   &sstate->split_mult);
+	dctl_register_leaf(DEV_SEARCH_PATH, "average_ratio", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL,
+	                   &sstate->avg_int_ratio);
+	dctl_register_leaf(DEV_SEARCH_PATH, "smoothed_beta", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL,
+	                   &sstate->smoothed_int_ratio);
+
 
 
 	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
@@ -886,8 +952,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->pend_max = SSTATE_DEFAULT_PEND_MAX;
 	sstate->pend_objs = 0;
 
-	sstate->pend_max = SSTATE_DEFAULT_PEND_MAX;
-	sstate->pend_objs = 0;
+	sstate->pend_compute = 0.0;
+
+	sstate->smoothed_ratio = 0.0;
+	sstate->smoothed_int_ratio = 0.0;
 
 	/*
 	 * default setting way computation is split between the host
@@ -1029,6 +1097,7 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 
 
 	sstate->pend_objs--;
+	sstate->pend_compute -= obj->remain_compute;
 
 	if (obj->data != NULL) {
 		free(obj->data);

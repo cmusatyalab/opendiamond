@@ -109,11 +109,12 @@ typedef struct devchar_subhead {
 } devchar_subhead_t;
 
 
-#define	OBJ_MAGIC_HEADER	0x54124566
+#define	OBJ_MAGIC_HEADER	0x54124567
 typedef struct object_header {
 	uint32_t	obj_magic;	/* for debugging */
 	uint32_t	attr_len;	/* length of the attributes */
 	uint32_t	data_len;	/* length of the data portion */
+	uint32_t	remain_compute;	/* remaining compute * 1000 */
 	uint32_t	version_num;	/* search version number */
 }  obj_header_t;
 

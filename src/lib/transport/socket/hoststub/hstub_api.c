@@ -357,7 +357,7 @@ device_set_offload(void *handle, int id, uint64_t offload)
 	if (err) {
 		/* XXX log */
 		/* XXX should we wait ?? */
-		printf("XXX failed to enq set gids \n");
+		printf("XXX failed to set offload\n");
 		free(cheader);
 		free(offl);
 		return (EAGAIN);
@@ -1060,8 +1060,6 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 	 */
 	new_dev->dstats = NULL;
 	new_dev->stat_size = 0;
-
-
 
 	setup_stats(new_dev, devid);
 

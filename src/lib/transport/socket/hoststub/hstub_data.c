@@ -229,7 +229,8 @@ hstub_read_data(sdevice_state_t *dev)
 		obj->data = odata;
 		obj->attr_info.attr_len = alen;
 		obj->attr_info.attr_data = adata;
-
+		obj->remain_compute = (float)ntohl(cinfo->data_rx_header.remain_compute)/1000.0;
+		printf("remain compute= %f \n", obj->remain_compute);
 		cinfo->data_rx_obj = obj;
 
 		attr_offset = 0;
@@ -363,17 +364,16 @@ hstub_except_data(sdevice_state_t *dev)
 void
 hstub_write_data(sdevice_state_t * dev)
 {
-	conn_info_t *	cinfo;
+	conn_info_t *		cinfo;
 	char *			data;
 	size_t			send_size, mcount;
-	int				count;
-
+	int			count;
 
 	cinfo = &dev->con_data;
 
 	/*
 	 * the only data we should every need to write is 
-	    	 * credit count messages.
+	 * credit count messages.
 	 */
 
 	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0) {

@@ -56,6 +56,7 @@
 #include "ring.h"
 #include "obj_attr.h"
 #include "lib_od.h"
+#include "rtimer.h"
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "socket_trans.h"
@@ -130,6 +131,10 @@ connection_main(listener_state_t *lstate, int conn)
 		    (cstate->cc_credits > 0)) {
 			FD_SET(cstate->data_fd,  &cstate->write_fds);
 		}
+		if (cstate->cc_credits == 0) {
+			// printf("block on no credits \n");
+			// XXX stats 
+		}
 		if (cstate->flags & CSTATE_LOG_DATA) {
 			FD_SET(cstate->log_fd,  &cstate->write_fds);
 		}
@@ -158,6 +163,10 @@ connection_main(listener_state_t *lstate, int conn)
 		 * that have data.
 		 */
 		if (err > 0) {
+			rtimer_t 	rt;
+			u_int64_t 	time_ns;
+			rt_init(&rt);
+			rt_start(&rt);
 			/* handle reads on the sockets */
 			if (FD_ISSET(cstate->control_fd, &cstate->read_fds)) {
 				sstub_read_control(lstate, cstate);
@@ -189,6 +198,12 @@ connection_main(listener_state_t *lstate, int conn)
 			}
 			if (FD_ISSET(cstate->log_fd, &cstate->write_fds)) {
 				sstub_write_log(lstate, cstate);
+			}
+			rt_stop(&rt);
+			time_ns = rt_nanos(&rt);
+			if (time_ns > 100000000) {
+				printf("XXXX socket took %lld \n",
+					time_ns);
 			}
 		}
 	}

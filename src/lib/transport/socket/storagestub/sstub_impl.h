@@ -101,6 +101,7 @@ typedef enum {
 #define DESIRED_MAX_TX_QUEUE    20
 #define DESIRED_MAX_TX_THRESH   10
 #define DESIRED_MAX_CREDITS    	8
+#define DESIRED_CREDIT_THRESH  	6
                                                                                 
 #define DEFAULT_NW_ATTR_POLICY  (NW_ATTR_POLICY_FIXED)
 #define DEFAULT_NW_ATTR_RATIO   (100)

@@ -500,7 +500,7 @@ ls_start_search(ls_search_handle_t handle)
 	device_handle_t		*cur_dev;
 	int			err;
 	int			started = 0;
-	;
+	time_t			cur_time;
 
 	sc = (search_context_t *)handle;
 	thread_setup(sc);
@@ -523,10 +523,13 @@ ls_start_search(ls_search_handle_t handle)
 		/* XXX log */
 	}
 
+	time(&cur_time);
+
 	cur_dev = sc->dev_list;
 	while (cur_dev != NULL) {
 		/* clear the complete flag */
 		cur_dev->flags &= ~DEV_FLAG_COMPLETE;
+		cur_dev->start_time = cur_time;
 		err = device_start(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
 			/*

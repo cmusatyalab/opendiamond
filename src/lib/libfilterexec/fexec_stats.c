@@ -259,7 +259,6 @@ fexec_new_prob(filter_data_t * fdata, filter_id_t cur_filt, int num_prev,
 	new_node->num_prev = num_prev;
 
 	LIST_INSERT_HEAD(&fdata->fd_prob_hash[hash], new_node, prob_link);
-
 	return (new_node);
 }
 
@@ -498,6 +497,77 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 }
 
 
+int
+fexec_estimate_remaining( filter_data_t * fdata, permutation_t * perm, 
+		int offset, int indep, float *cost)
+{
+	int             i;
+	filter_prob_t  *fprob;
+	float           pass = 1;   /* cumul pass rate */
+	float           totalcost = 0;  /* = utility */
+	filter_info_t  *info;
+	int             n;
+
+	// XXX printf("estmate: offset %d \n", offset);
+	/*
+	 * NB: this assumes that filter_id_t and pelt_t are the same type XXX 
+	 */
+	assert(sizeof(pelt_t) == sizeof(filter_id_t));
+
+	for (i = offset; i < pmLength(perm); i++) {
+		float           c;      /* cost of this filter */
+		float           p;      /* pass rate for this filter in this pos */
+		/*
+		 * pass = pass rate of all filters before this one 
+		 */
+		info = &fdata->fd_filters[pmElt(perm, i)];
+		c = info->fi_time_ns;
+		n = info->fi_called;
+		if (n < FSTATS_VALID_NUM) {
+			c = FSTATS_UNKNOWN_COST;
+			n = FSTATS_UNKNOWN_NUM;
+		}
+
+		totalcost += pass * c / n;  /* prev cumul pass * curr cost */
+		/*
+		 * lookup this permutation 
+		 */
+		/*
+		 * XXX 
+		 */
+		if (indep) {
+			/*
+			 * pretend there's no context 
+			 */
+			fprob = fexec_lookup_prob(fdata, pmElt(perm, i), 0, NULL);
+		} else {
+			fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm));
+		}
+		if (fprob) {
+			if (fprob->num_exec < FSTATS_VALID_NUM) {
+				p = FSTATS_UNKNOWN_PROB;
+			} else {
+				p = (float) fprob->num_pass / fprob->num_exec;
+			}
+		} else {
+			p = FSTATS_UNKNOWN_PROB;
+		}
+
+		assert(p >= 0 && p <= 1.0);
+		pass *= p;
+		/*
+		 * don't let it go to zero XXX 
+		 */
+		if (pass < SMALL_FRACTION) {
+			pass = SMALL_FRACTION;
+		}
+	}
+
+	// XXX printf("remain cost %f \n", totalcost);
+	*cost = totalcost;
+	return 0;
+}
+
 /*
  * evaluate a permutation in the context of the currently available data, and 
  * return a utility value (higher is better).  the function value is non-zero 
@@ -665,7 +735,7 @@ fstat_add_obj_info(filter_data_t * fdata, int pass, rtime_t time_ns)
 	}
 }
 
-char           *
+char *
 fstat_sprint(char *buf, const filter_data_t * fdata)
 {
 	int             i;

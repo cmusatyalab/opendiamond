@@ -113,13 +113,10 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 		if (dev->dstats != NULL) {
 			free(dev->dstats);
 		}
-
 		dstats = (dev_stats_t *) malloc(len);
 		assert(dstats != NULL);
 		dev->dstats = dstats;
-
 		dev->stat_size = len;
-
 	} else {
 		dstats = dev->dstats;
 		dev->stat_size  = len;
@@ -129,6 +126,8 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 	dstats->ds_objs_total = ntohl(shead->dss_total_objs);
 	dstats->ds_objs_processed = ntohl(shead->dss_objs_proc);
 	dstats->ds_objs_dropped = ntohl(shead->dss_objs_drop);
+	//printf("update stats: proc %d drop %d \n", dstats->ds_objs_processed,
+		//dstats->ds_objs_dropped);
 	dstats->ds_objs_nproc = ntohl(shead->dss_objs_bp);
 	dstats->ds_system_load = ntohl(shead->dss_system_load);
 	/* XXX 64 bit ntohl */
@@ -161,7 +160,6 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 		/* XXX byte order !!! */
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
 		    fhead->fss_avg_exec_time;
-
 	}
 }
 

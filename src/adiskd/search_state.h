@@ -54,7 +54,7 @@ enum split_types_t {
 #define	SPLIT_DEFAULT_RATIO		(78)
 #define	SPLIT_DEFAULT_AUTO_STEP		5
 #define	SPLIT_DEFAULT_PEND_LOW		200
-#define	SPLIT_DEFAULT_MULT			400
+#define	SPLIT_DEFAULT_MULT		20
 #define	SPLIT_DEFAULT_PEND_HIGH		10
 
 #define DEV_FLAG_RUNNING                0x01
@@ -81,12 +81,18 @@ typedef struct search_state {
     uint            obj_skipped;
     uint            network_stalls;
     uint            pend_objs;
+    float	    pend_compute;
     uint            pend_max;
     uint            split_type;		/* policy for the splitting */
     uint            split_ratio;	/* amount of computation to do local */
     uint            split_mult;		/* multiplier for queue size */
     uint            split_auto_step;	/* step to increment ration by */
     uint            split_bp_thresh;	/* below, not enough work for host */
+    uint	    avg_int_ratio;	/* average ratio for this run */
+    uint	    smoothed_int_ratio;	/* integer smoothed ratio */
+    float	    smoothed_ratio;	/* smoothed value */
+    uint	    old_proc;		/* last number run */
+    float	    avg_ratio;	        /* floating point avg ratio */
     void           *dctl_cookie;
     void           *log_cookie;
     unsigned char  *sig;

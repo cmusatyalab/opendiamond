@@ -94,6 +94,7 @@ bg_cmd_data_t;
 
 
 
+#ifdef	XXX
 void
 update_rates(search_context_t *sc)
 {
@@ -124,17 +125,227 @@ update_rates(search_context_t *sc)
 		assert(err == 0);
 	}
 }
+#else
 
+static void
+thread_setup(search_context_t * sc)
+{
+        log_thread_register(sc->log_cookie);
+        dctl_thread_register(sc->dctl_cookie);
+}
+
+void
+update_dev_stats(search_context_t *sc)
+{
+	device_handle_t	*	cur_dev;
+	int			err;
+	dev_stats_t *		dstats;
+	int			size;
+	int			remain;
+	int			delta;
+
+	thread_setup(sc);
+
+	dstats = (dev_stats_t *)malloc(DEV_STATS_SIZE(20));
+	assert(dstats != NULL);
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		size = DEV_STATS_SIZE(20);
+		err = device_statistics(cur_dev->dev_handle, dstats, &size);
+		assert(err == 0);
+
+		printf("updatedev: tot %d proc %d \n",
+			dstats->ds_objs_total, dstats->ds_objs_processed);
+		remain = dstats->ds_objs_total - dstats->ds_objs_processed;
+		printf("remain %d \n", remain);
+		if (remain < 0) remain = 0;
+		if (remain == 0) {
+			 continue;
+		}
+		cur_dev->obj_total = dstats->ds_objs_total;
+		cur_dev->remain_old = cur_dev->remain_mid;
+		cur_dev->remain_mid = cur_dev->remain_new;
+		cur_dev->remain_new = remain;
+		delta = cur_dev->remain_old - cur_dev->remain_new;
+		if (delta == 0) {
+			delta = 1;
+		}
+		cur_dev->done = (cur_dev->remain_new)/ delta;
+
+		printf("dev %x done %d \n", cur_dev->dev_id, cur_dev->done);
+	}
+	free(dstats);
+}
+
+void
+update_total_rate(search_context_t *sc)
+{
+	device_handle_t	*	cur_dev;
+	int			min_done = 1000000;
+	float			max_delta = 0;
+	int			target;
+	float			scale;
+
+	update_dev_stats(sc);
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->done < min_done) {
+			min_done = cur_dev->done;
+		}
+	}
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		cur_dev->delta = ((float)cur_dev->done)/
+			(float)min_done;
+		if (cur_dev->delta < 0.0) {
+			cur_dev->delta = 0.0;
+		}
+		if (cur_dev->delta > max_delta) {
+			max_delta = cur_dev->delta;
+		} 
+	}
+
+	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
+
+	/* now adjust all the values */
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		target = (int)(cur_dev->delta * scale);
+		if (target > MAX_CREDIT_INCR) {
+			target = MAX_CREDIT_INCR;
+		} else if (target < 1) {
+			target = 1;
+		}
+		if (target > cur_dev->credit_incr) {
+			cur_dev->credit_incr++;
+		} else if (target < cur_dev->credit_incr) {
+			cur_dev->credit_incr--;
+		}
+		printf("rail: update dev %x incr %d \n", cur_dev->dev_id, cur_dev->credit_incr);
+	}
+}
+
+void
+update_delta_rate(search_context_t *sc)
+{
+	device_handle_t	*	cur_dev;
+	int			min_done = 1000000;
+	float			max_delta = 0;
+	int			target;
+	float			scale;
+
+	update_dev_stats(sc);
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->done < min_done) {
+			min_done = cur_dev->done;
+		}
+	}
+	if (min_done == 0.0) {
+		min_done = 1.0;
+	}
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		cur_dev->delta = ((float)(cur_dev->done - min_done))/
+			(float)min_done;
+		if (cur_dev->delta < 0.0) {
+			cur_dev->delta = 0.0;
+		}
+		if (cur_dev->delta > max_delta) {
+			max_delta = cur_dev->delta;
+		} 
+	}
+
+	if (max_delta == 0) {
+		max_delta = 1.0;
+	}	
+
+	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
+
+	/* now adjust all the values */
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		target = (int)(cur_dev->delta * scale);
+		if (target > MAX_CREDIT_INCR) { 
+			target = MAX_CREDIT_INCR;
+		} else if (target < 1) {
+			target = 1;
+		}
+		if (target > cur_dev->credit_incr) {
+			cur_dev->credit_incr++;
+		} else if (target < cur_dev->credit_incr) {
+			cur_dev->credit_incr--;
+		}
+	}
+}
+
+void
+update_rail(search_context_t *sc)
+{
+	device_handle_t	*	cur_dev;
+	int			max_done = 0;
+	int			target;
+	
+	printf("update rates: rail \n");
+	update_dev_stats(sc);
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->done > max_done) {
+			max_done = cur_dev->done;
+		}
+	}
+
+	/* now adjust all the values */
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->done == max_done) {
+			target = MAX_CREDIT_INCR;
+		} else {
+			target = 1;
+		}
+
+		if (target > cur_dev->credit_incr) {
+			cur_dev->credit_incr++;
+		} else if (target < cur_dev->credit_incr) {
+			cur_dev->credit_incr--;
+		}
+		printf("dev: %x credit %d cur %f svcd %d \n", 
+			cur_dev->dev_id, cur_dev->credit_incr,
+			cur_dev->cur_credits, cur_dev->serviced);
+	}
+}
+
+void
+update_rates(search_context_t *sc)
+{
+	printf("update rates \n");
+
+	switch (sc->bg_credit_policy) {
+		case	CREDIT_POLICY_RAIL:
+			update_rail(sc);
+			break;
+
+		case	CREDIT_POLICY_PROP_TOTAL:
+			update_total_rate(sc);
+			break;
+			
+		case	CREDIT_POLICY_PROP_DELTA:
+			update_delta_rate(sc);
+			break;
+
+		case	CREDIT_POLICY_STATIC:
+		default:
+			break;
+	}
+}
+#endif
 
 static void
 refill_credits(search_context_t *sc)
 {
 	device_handle_t *	cur_dev;
 
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		cur_dev->cur_credits += cur_dev->credit_incr;
-		if (cur_dev->credit_incr > MAX_CUR_CREDIT) {
-			cur_dev->credit_incr = MAX_CUR_CREDIT;
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next){
+		cur_dev->cur_credits += (float)cur_dev->credit_incr;
+		if (cur_dev->cur_credits > (float)MAX_CUR_CREDIT) {
+			cur_dev->cur_credits = (float)MAX_CUR_CREDIT;
 		}
 	}
 }
@@ -142,6 +353,7 @@ refill_credits(search_context_t *sc)
 /* XXX constant config */
 #define         POLL_SECS       1
 #define         POLL_USECS      0
+
 
 obj_info_t *
 get_next_object(search_context_t *sc)
@@ -158,10 +370,11 @@ get_next_object(search_context_t *sc)
 
 redo:
 	while (cur_dev != NULL) {
-		if (cur_dev->cur_credits > 0) {
+		if (cur_dev->cur_credits > 0.0) {
 			obj_inf = device_next_obj(cur_dev->dev_handle);
 			if (obj_inf != NULL) {
-				cur_dev->cur_credits--;
+				cur_dev->cur_credits -= obj_inf->obj->remain_compute;
+				cur_dev->serviced++;
 				sc->last_dev = cur_dev;
 				return(obj_inf);
 			}
@@ -170,7 +383,8 @@ redo:
 	}
 
 	/* if we fall through and it is our first iteration
-	 * then retry from the beggining.
+	 * then retry from the begining.  On the second interation we
+	 * decide there isn't any data.
 	 */
 	if (loop == 0) {
 		loop = 1;
@@ -333,8 +547,6 @@ bg_main(void *arg)
 
 		}
 
-
-
 		/* timeout look that runs once a second */
 		gettimeofday(&this_time, &tz);
 
@@ -353,7 +565,6 @@ bg_main(void *arg)
 				next_time.tv_sec += 1;
 			}
 		}
-
 
 		/*
 		 * This section looks for any commands on the bg ops 

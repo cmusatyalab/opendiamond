@@ -59,22 +59,31 @@
 struct search_context;
 
 #define	DEFAULT_CREDIT_INCR		4
-#define	MAX_CREDIT_INCR			10
-#define	MAX_CUR_CREDIT			20
+#define	MAX_CREDIT_INCR			20
+#define	MAX_CUR_CREDIT			100
 
+#define	DEFAULT_QUEUE_LEN		30
 
 #define	MAX_DEV_GROUPS		64
 
 typedef struct device_handle {
-	struct device_handle * 	next;
+	struct device_handle * 			next;
 	uint32_t				dev_id;	
 	groupid_t				dev_groups[MAX_DEV_GROUPS];
-	int						num_groups;
-	unsigned int			flags;
+	int					num_groups;
+	unsigned int				flags;
 	void *					dev_handle;
-	int						ver_no;
-	int						cur_credits;	/* credits for current iteration */
-	int						credit_incr;	/* incremental credits to add */
+	int					ver_no;
+	time_t					start_time;
+	int					remain_old;
+	int					remain_mid;
+	int					remain_new;
+	int					done;
+	float					delta;
+	int					obj_total;
+	float					cur_credits;	/* credits for current iteration */
+	int					credit_incr;	/* incremental credits to add */
+	int					serviced;	/* times data removed */
 	struct search_context *	sc;
 } device_handle_t;
 
@@ -99,7 +108,10 @@ typedef enum {
 
 typedef enum {
 		CREDIT_POLICY_STATIC = 0,
-		CREDIT_POLICY_DYAMIC
+		CREDIT_POLICY_RAIL,
+		CREDIT_POLICY_PROP_TOTAL,
+		CREDIT_POLICY_PROP_DELTA
+
 } credit_policies_t;
 
 #define	BG_DEFAULT_CREDIT_POLICY	(CREDIT_POLICY_STATIC)

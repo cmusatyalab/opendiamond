@@ -77,7 +77,6 @@ queued_objects(cstate_t *cstate)
 static int
 drop_attributes(cstate_t *cstate)
 {
-
 	unsigned int	rv;
 	int	tx_count;
 	if ((cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) ||
@@ -91,14 +90,13 @@ drop_attributes(cstate_t *cstate)
 	} else if (cstate->attr_policy == NW_ATTR_POLICY_QUEUE) {
 		tx_count = queued_objects(cstate);
 		if ((tx_count > DESIRED_MAX_TX_THRESH) &&
-		    (cstate->cc_credits >= DESIRED_MAX_CREDITS)) {
+		    (cstate->cc_credits >= DESIRED_CREDIT_THRESH)) {
 			return(1);
 		} else {
 			return(0);
 		}
 	}
 	return(0);
-
 }
 
 static float
@@ -114,7 +112,6 @@ prop_get_tx_ratio(cstate_t *cstate)
 	} else if (ratio < 0) {
 		ratio = 0.0;
 	}
-
 	return(ratio);
 }
 
@@ -145,7 +142,8 @@ update_attr_policy(cstate_t *cstate)
 	if (cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) {
 		tx_ratio = prop_get_tx_ratio(cstate);
 		rx_ratio = prop_get_rx_ratio(cstate);
-		if (rx_ratio > tx_ratio) {
+		/* we use the min to set the threshold */
+		if (rx_ratio < tx_ratio) {
 			cstate->attr_threshold = rx_ratio * RAND_MAX;
 			cstate->attr_ratio = (int) (rx_ratio * 100.0);
 		} else {
@@ -245,6 +243,8 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		    htonl(sstub_attr_len(obj, cstate->drop_attrs));
 		cstate->data_tx_oheader.data_len  =
 		    htonl((int)obj->data_len);
+		cstate->data_tx_oheader.remain_compute  =
+			 htonl((int)(obj->remain_compute * 1000));
 		cstate->data_tx_oheader.version_num  = htonl((int)vnum);
 
 
@@ -255,8 +255,9 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 		/* setup attr setup */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
-		                         &cstate->attr_buf, &cstate->attr_remain,
-		                         &cstate->attr_cookie,  cstate->drop_attrs);
+		                        &cstate->attr_buf,
+					&cstate->attr_remain,
+		                        &cstate->attr_cookie,  cstate->drop_attrs);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -434,8 +435,9 @@ more_attrs:
 	/* XXX do I need to lock */
 	if (cstate->cc_credits > 0) {
 		cstate->cc_credits--;
+	} else {
+		printf("no decrementing credis because it is too low \n");
 	}
-
 	return;
 }
 
@@ -473,7 +475,9 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 	data_size = sizeof(credit_count_msg_t);
 	rsize = recv(cstate->data_fd, data, data_size, 0);
 
-	/* make sure we read the whole message and that it has the right header */
+	/* make sure we read the whole message and that it has 
+	 * the right header 
+	 */
 	if (rsize == -1) {
 		perror("sstub_read_data:");
 		return;

@@ -655,16 +655,16 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		                    &asize, (void *) &time_ns);
 
 	    /*
-		 * we still want to use cached results for filters after cache 
-         * missing point at which we stopped in ceval_filters1, if we can 
-         */
+	     * we still want to use cached results for filters after cache 
+	     * missing point at which we stopped in ceval_filters1, if we can 
+             */
 		if ((miss == 0) && (use_cache_table)) {
 			lookup = cache_lookup2(obj_handle->local_id, 
 				cur_filter->fi_sig, cur_filter->cache_table, 
 				&change_attr, &conf, &oattr_set, &fpath, err);
 		} else {
 			lookup = ENOENT;
-	    		fpath = NULL;
+			fpath = NULL;
 		}
 
 		if ((lookup == 0) && (conf < cur_filter->fi_threshold)) {
@@ -796,7 +796,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				cur_filter->fi_sig, cur_filter->cache_table, 
 				&change_attr, &oattr_set);
 			if (lookup == 0) {
-				if( oattr_set != NULL )
+				if (oattr_set != NULL)
 					combine_attr_set(&change_attr, oattr_set);
 			} else {
 				miss = 1;
@@ -805,7 +805,15 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	}
 
 	if ((cur_fidx >= pmLength(fdata->fd_perm)) && pass) {
+		obj_handle->remain_compute = 0.0;
 		pass = 2;
+	} else if ((cur_fidx < pmLength(fdata->fd_perm)) && pass) {
+		float	avg;
+		err = fexec_estimate_remaining(fdata, fdata->fd_perm, 
+			cur_fidx, 0, &obj_handle->remain_compute);
+		err = fexec_estimate_remaining(fdata, fdata->fd_perm, 
+			0, 0, &avg);
+		obj_handle->remain_compute /= avg;
 	}
 
 	active_filter = NULL;

@@ -52,6 +52,11 @@ int             fexec_evaluate_indep(filter_data_t * fdata,
                                      permutation_t * perm, int gen,
                                      int *utility);
 
+int 		fexec_estimate_remaining( filter_data_t * fdata,
+			permutation_t * perm, int offset, int indep,
+			float *cost);
+
+
 /*
  * evaluate a single filter 
  */

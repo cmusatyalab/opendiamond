@@ -661,6 +661,7 @@ odisk_pr_next(pr_obj_t **new_object)
 				return(ENOENT);
 			}
 			pr_fg_wait = 1;
+			printf("blocking on pr_next \n");
 			pthread_cond_wait(&pr_fg_cv, &shared_mutex);
 		}
 	}
@@ -747,7 +748,7 @@ int
 odisk_pr_add(pr_obj_t *pr_obj)
 {
 	pthread_mutex_lock(&shared_mutex);
-	if( !ring_full(obj_pr_ring) ) {
+	if (!ring_full(obj_pr_ring) ) {
 		ring_enq(obj_pr_ring, pr_obj);
 	} else {
 		pr_bg_wait_q = 1;
@@ -828,7 +829,7 @@ odisk_flush(odisk_state_t *odisk)
 			break;
 		}
 	}
-	printf("after flushing obj_pr_ring\n");
+	//printf("after flushing obj_pr_ring\n");
 	while(!ring_empty(obj_ring)) {
 		if( !ring_empty(obj_ring) ) {
 			obj = ring_deq(obj_ring);
@@ -870,6 +871,7 @@ odisk_main(void *arg)
 		 */
 		pthread_mutex_lock(&shared_mutex);
 		while (search_active == 0) {
+			printf("waiting for active search \n");
 			pthread_cond_wait(&bg_active_cv, &shared_mutex);
 		}
 		pthread_mutex_unlock(&shared_mutex);
@@ -886,7 +888,9 @@ odisk_main(void *arg)
 			search_done = 1;
 			if (fg_wait) {
 				fg_wait = 0;
+				pthread_mutex_lock(&shared_mutex);
 				pthread_cond_signal(&fg_data_cv);
+				pthread_mutex_unlock(&shared_mutex);
 			}
 			continue;
 		} else if (err) {

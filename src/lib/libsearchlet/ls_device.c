@@ -118,7 +118,9 @@ dev_search_done_cb(void *hcookie, int ver_no)
 {
 
 	device_handle_t *	dev;
-	time_t	cur_time;
+	time_t			cur_time;
+	time_t			delta;
+
 	dev = (device_handle_t *)hcookie;
 
 	/*
@@ -133,7 +135,9 @@ dev_search_done_cb(void *hcookie, int ver_no)
 
 	dev->flags |= DEV_FLAG_COMPLETE;
 	time(&cur_time);
-	fprintf(stderr, "complete: %08x at %s", dev->dev_id, ctime(&cur_time));
+	delta = cur_time - dev->start_time;
+	fprintf(stdout, "complete: %08x elapsed time %ld data %s ", 
+		dev->dev_id, delta, ctime(&cur_time));
 	return;
 }
 
@@ -596,9 +600,13 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	new_dev->sc = sc;
 	new_dev->dev_id = devid;
 	new_dev->num_groups = 0;
+	new_dev->remain_old = 100003;
+	new_dev->remain_mid = 100002;
+	new_dev->remain_new = 100001;
 
 	new_dev->cur_credits = DEFAULT_CREDIT_INCR;
 	new_dev->credit_incr = DEFAULT_CREDIT_INCR;
+	new_dev->serviced = 0;
 
 	cb_data.log_data_cb  = dev_log_data_cb;
 	cb_data.search_done_cb  = dev_search_done_cb;
@@ -619,7 +627,8 @@ create_new_device(search_context_t *sc, uint32_t devid)
 		return (NULL);
 	}
 
-	device_set_limit(new_dev->dev_handle, 100);	/* XXX */
+	device_set_limit(new_dev->dev_handle, DEFAULT_QUEUE_LEN);
+
 	/*
 	 * Put this device on the list of devices involved
 	 * in the search.

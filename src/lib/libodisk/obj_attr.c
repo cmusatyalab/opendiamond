@@ -78,6 +78,8 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 	off_t		wsize;
 	size_t		len;
 	char 	*	buf;
+	void *cookie;
+	int err;
 
 	/* clear the umask so we get the permissions we want */
 	/* XXX do we really want to do this ??? */
@@ -86,17 +88,17 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 	/*
 	 * Open the file or create it.
 	 */
-	attr_fd = open(attr_fname, O_CREAT|O_RDWR, 00777);
+	attr_fd = open(attr_fname, O_CREAT|O_WRONLY|O_TRUNC, 00777);
 	if (attr_fd == -1) {
 		perror("failed to open stat file");
 		exit(1);
 	}
 
 
-	err = obj_get_attr_first(&attr, &buf, &len, &cookie, 0);
-	while (err != ENONET) {
-		wsize = write(attr_fd, data, len);
-		if (wsize != attr->attr_len) {
+	err = obj_get_attr_first(attr, &buf, &len, &cookie, 0);
+	while (err != ENOENT) {
+		wsize = write(attr_fd, buf, len);
+		if (wsize != len) {
 			perror("failed to write attributes \n");
 			exit(1);
 		}	
@@ -406,7 +408,8 @@ again:
 		goto again;
 	}
 
-	*len = record->rec_len;
+	*len = record->name_len + record->data_len + sizeof(struct attr_record);
+	//*len = record->rec_len;
 	*buf = (void *)record;
 
 	*cookie = (void *)offset;
@@ -443,7 +446,7 @@ again:
 
 	/* XXX see if we should toss this */
 
-	*len = record->rec_len;
+	*len = record->name_len + record->data_len + sizeof(struct attr_record);
 	*buf = (void *)record;
 
 	*cookie = (void *)offset;

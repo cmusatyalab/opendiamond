@@ -928,10 +928,13 @@ setup_stats(sdevice_state_t *dev, uint32_t devid)
 
 /* XXX callback for new packets  */
 void *
-device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
+device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
+	void *dctl_cookie, void *log_cookie)
 {
 	sdevice_state_t *new_dev;
 	int		err;
+
+	printf("dev init:  dc %p log %p \n", dctl_cookie, log_cookie);
 
 	new_dev = (sdevice_state_t *) malloc(sizeof(*new_dev));	
 	if (new_dev == NULL) {
@@ -940,6 +943,8 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 
 	memset(new_dev, 0, sizeof(*new_dev));
 
+	new_dev->log_cookie = log_cookie;
+	new_dev->dctl_cookie = dctl_cookie;
 	/*
 	 * initialize the ring that is used to queue "commands"
 	 * to the background thread.
@@ -982,7 +987,6 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 	 */
 	new_dev->dstats = NULL;
 	new_dev->stat_size = 0;
-
 
 	setup_stats(new_dev, devid); 
 

@@ -23,6 +23,7 @@
 #include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
+#include "lib_log.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
@@ -111,16 +112,17 @@ hstub_main(void *arg)
 	struct timeval		next_time = {0,0};
 	struct timezone		tz;
 
-
-
 	dev = (sdevice_state_t *)arg;
+
+	printf("register dctl %p \n", dev->dctl_cookie);
+	dctl_thread_register(dev->dctl_cookie);
+	printf("register log %p \n", dev->log_cookie);
+	log_thread_register(dev->log_cookie);
 
 	/*
 	 * XXX need to open comm channel with device
 	 */
-
 	cinfo = &dev->con_data;
-
 
 	max_fd = cinfo->control_fd;
 	if (cinfo->data_fd > max_fd) {

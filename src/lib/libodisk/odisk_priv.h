@@ -24,6 +24,8 @@ typedef struct odisk_state {
 	int		cur_file;
 	pthread_t	thread_id;
 	DIR *		odisk_dir;
+	void *		dctl_cookie;
+	void *		log_cookie;
 } odisk_state_t;
 
 

@@ -19,6 +19,7 @@
 #include "lib_od.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
+#include "lib_log.h"
 #include "lib_hstub.h"
 #include "dctl_common.h"
 #include "lib_search_priv.h"
@@ -125,6 +126,11 @@ bg_main(void *arg)
 	uint32_t			loop_count = 0;
 	uint32_t			dummy = 0;
 
+	sc = (search_context_t *)arg;
+
+	dctl_thread_register(sc->dctl_cookie);
+	log_thread_register(sc->log_cookie);
+
 	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
 	assert(err == 0);
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count", DCTL_DT_UINT32,
@@ -141,7 +147,6 @@ bg_main(void *arg)
 					dctl_read_uint32, dctl_write_uint32, &dummy);
 	assert(err == 0);
 
-	sc = (search_context_t *)arg;
 
 	/*
 	 * There are two main tasks that this thread does. The first

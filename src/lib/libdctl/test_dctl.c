@@ -203,8 +203,9 @@ simple_test()
 int
 main(int argc, char **argv)
 {
+	void *cookie;
 
-	dctl_init();
+	dctl_init(&cookie);
 
 	simple_test();
 

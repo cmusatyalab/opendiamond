@@ -17,6 +17,7 @@
 #include "socket_trans.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
+#include "lib_log.h"
 
 
 int
@@ -40,15 +41,23 @@ main(int argc, char **argv)
 {
 	int	err;
 	void *	cookie;
+	void *	log_cookie;
+	void *	dctl_cookie;
 	hstub_cb_args_t		cb_args;
 	struct in_addr		addr;
+
 
 	cb_args.new_obj_cb = handle_new_obj;
 	cb_args.log_data_cb = handle_log_data;
 
 	err = inet_aton("127.0.0.1", &addr);
 
-	cookie = device_init(100, addr.s_addr, 0, &cb_args);
+	log_init(&log_cookie);
+	dctl_init(&dctl_cookie);
+
+	/* XXX */
+	cookie = device_init(100, addr.s_addr, 0, &cb_args, dctl_cookie, 
+		log_cookie);
 
 
 	err = device_start(cookie, 101);

@@ -91,11 +91,13 @@ typedef struct sdevice_state {
 	ring_data_t *		    device_ops;	
 	conn_info_t 		    con_data;
 	unsigned int		    flags;
-	int			            ver_no;
-	void *			        hcookie;
+	int			      ver_no;
+	void *		       	     hcookie;
 	device_char_t		    dev_char;	/* cached device chars */
-	int			            stat_size;	/* size of caches stats */
+	int		            stat_size;	/* size of caches stats */
 	dev_stats_t *		    dstats;		/* caches stats */
+	void *				dctl_cookie;
+	void *				log_cookie;
 	hstub_new_obj_fn	    hstub_new_obj_cb;
 	hstub_log_data_fn	    hstub_log_data_cb;
 	hstub_search_done_fn	hstub_search_done_cb;

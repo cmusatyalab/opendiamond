@@ -14,9 +14,29 @@
 
 #define	MAX_TOKEN	128
 
-static	dctl_node_t *	root_node;
+/* some state for handling our multiple instantiations */
+static	pthread_key_t	root_node_key;
+static	pthread_once_t	root_node_once = PTHREAD_ONCE_INIT;
+
 static  pthread_mutex_t	dctl_mutex;
 
+
+static dctl_node_t *
+get_root_node()
+{
+	dctl_node_t *	rn;
+
+	rn = (dctl_node_t *)pthread_getspecific(root_node_key);
+	assert(rn != NULL);
+	return(rn);
+}
+
+
+void
+dctl_thread_register(void *cookie)
+{
+	pthread_setspecific(root_node_key, (char *)cookie);
+}
 
 
 static dctl_node_t *
@@ -86,7 +106,7 @@ lookup_node(char *node_name)
 	 * try to see if this is a lits of items.
 	 */
 
-	cur_node = root_node;
+	cur_node = get_root_node();
 	head = node_name;
 	while ((head != NULL) && (*head != '\0')) {
 		delim = index(head, '.');
@@ -130,7 +150,7 @@ lookup_leaf(char *leaf_name)
 	 * try to see if this is a lits of items.
 	 */
 
-	cur_node = root_node;
+	cur_node = get_root_node();
 	head = leaf_name;
 	while ((head != NULL) && (*head != '\0')) {
 		delim = index(head, '.');
@@ -160,12 +180,22 @@ lookup_leaf(char *leaf_name)
 }
 
 
+static void
+root_key_alloc()
+{
+	pthread_key_create(&root_node_key, NULL);
+}
+
+
 int 
-dctl_init( )
+dctl_init(void **cookie )
 {
 	int err;
+	dctl_node_t *	root_node;
+
+	pthread_once(&root_node_once, root_key_alloc);
 	
-	if (root_node != NULL) {
+	if (pthread_getspecific(root_node_key) != NULL) {
 		return(ENOENT);	/* XXX different error ?? */
 	}
 
@@ -182,6 +212,8 @@ dctl_init( )
 	err = pthread_mutex_init(&dctl_mutex, NULL);
 	assert(err == 0);
 
+	pthread_setspecific(root_node_key, (char *)root_node);
+	*cookie = root_node;
 	return(0);
 }
 
@@ -461,7 +493,7 @@ dctl_list_nodes(char *path, int *num_ents, dctl_entry_t *entry_space)
 	 * try to see if this is a lits of items.
 	 */
 
-	pnode = root_node;
+	pnode = get_root_node();
 	head = path;
 	while (*head != '\0') {
 		delim = index(head, '.');
@@ -541,7 +573,7 @@ dctl_list_leafs(char *path, int *num_ents, dctl_entry_t *entry_space)
 	 * try to see if this is a lits of items.
 	 */
 
-	pnode = root_node;
+	pnode = get_root_node();
 	head = path;
 	while (*head != '\0') {
 		delim = index(head, '.');
@@ -621,7 +653,7 @@ dctl_read_leaf(char *leaf_name, dctl_data_type_t *dtype, int *len, char *data)
 	 * try to see if this is a lits of items.
 	 */
 
-	pnode = root_node;
+	pnode = get_root_node();
 	head = leaf_name;
 	while (*head != '\0') {
 		delim = index(head, '.');
@@ -683,7 +715,7 @@ dctl_write_leaf(char *leaf_name, int len, char *data)
 	 * try to see if this is a lits of items.
 	 */
 
-	pnode = root_node;
+	pnode = get_root_node();
 	head = leaf_name;
 	while (*head != '\0') {
 		delim = index(head, '.');

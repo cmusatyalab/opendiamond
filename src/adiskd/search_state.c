@@ -377,6 +377,9 @@ device_main(void *arg)
 
 	sstate = (search_state_t *)arg;
 
+	log_thread_register(sstate->log_cookie);
+	dctl_thread_register(sstate->dctl_cookie);
+
 	/*
 	 * XXX need to open comm channel with device
 	 */
@@ -535,6 +538,8 @@ log_main(void *arg)
 	tz.tz_dsttime = 0;
 
 	sstate = (search_state_t *)arg;
+	log_thread_register(sstate->log_cookie);
+	dctl_thread_register(sstate->dctl_cookie);
 
 	while (1) {
 
@@ -613,8 +618,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * log data.
 	 */
 
-	log_init();
-	dctl_init();
+	log_init(&sstate->log_cookie);
+	dctl_init(&sstate->dctl_cookie);
 
     	dctl_register_node(ROOT_PATH, SEARCH_NAME);
 	
@@ -701,7 +706,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Initialize our communications with the object
 	 * disk sub-system.
 	 */
-	err = odisk_init(&sstate->ostate, data_dir);
+	err = odisk_init(&sstate->ostate, data_dir, sstate->dctl_cookie,
+		sstate->log_cookie);
 	if (err) {
 	  	fprintf(stderr, "Failed to init the object disk \n");
 		assert(0);

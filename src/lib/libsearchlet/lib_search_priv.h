@@ -78,6 +78,8 @@ typedef struct search_context {
 	int			pend_hw;	/* pending hw mark */
 	int			pend_lw;	/* pending lw mark */
 	int			pend_count;	/* pending hw mark */
+	void *			dctl_cookie;	/* cookie for dctl library */
+	void *			log_cookie;	/* cookie for log library */
 } search_context_t;
 
 /*

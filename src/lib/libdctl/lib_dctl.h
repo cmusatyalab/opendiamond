@@ -59,21 +59,22 @@ typedef	struct {
 
 
 
-extern int dctl_init();
-extern int dctl_register_node(char *path, char *node_name);
-extern int dctl_unregister_node(char *path, char *node_name);
-extern int dctl_register_leaf(char *path, char *leaf_name, 
+int dctl_init(void **cookie);
+int dctl_register_node(char *path, char *node_name);
+void dctl_thread_register(void *cookie);
+int dctl_unregister_node(char *path, char *node_name);
+int dctl_register_leaf(char *path, char *leaf_name, 
 		dctl_data_type_t dctl_data_t, dctl_read_fn read_cb, 
 		dctl_write_fn write_cb, void *cookie);
-extern int dctl_unregister_leaf(char *path, char *leaf_name);
+int dctl_unregister_leaf(char *path, char *leaf_name);
 
-extern int dctl_read_leaf(char *leaf_name, dctl_data_type_t *type, 
+int dctl_read_leaf(char *leaf_name, dctl_data_type_t *type, 
                 int *len, char *data);
-extern int dctl_write_leaf(char *leaf_name, int len, char *data);
+int dctl_write_leaf(char *leaf_name, int len, char *data);
 
-extern int dctl_list_nodes(char *parent_node, int *num_ents, dctl_entry_t *
+int dctl_list_nodes(char *parent_node, int *num_ents, dctl_entry_t *
 		entry_space);
-extern int dctl_list_leafs(char *parent_node, int *num_ents, dctl_entry_t *
+int dctl_list_leafs(char *parent_node, int *num_ents, dctl_entry_t *
 		entry_space);
 
 extern int dctl_register_fwd_node(char *parent_node, char *node_name,

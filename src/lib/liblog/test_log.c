@@ -116,8 +116,9 @@ test_many_writes()
 int
 main(int argc, char **argv)
 {
+	void	*foo;
 
-	log_init();
+	log_init(&foo);
 	string_test();
 	test_many_writes();
 	return(0);

@@ -28,6 +28,8 @@ typedef struct search_state {
 	uint			pend_thresh;
 	uint			bp_feedback;
 	uint			bp_thresh;
+	void *			dctl_cookie;
+	void *			log_cookie;
 } search_state_t;
 
 

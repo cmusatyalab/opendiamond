@@ -227,6 +227,9 @@ dctl_main(void *arg)
 	umask(0);
 
 	sc = (search_context_t *)arg;
+	
+	dctl_thread_register(sc->dctl_cookie);
+	log_thread_register(sc->log_cookie);
 
 	/*
 	 * Open the socket for the log information.

@@ -35,6 +35,24 @@
 /* XXX locking for multi-threaded apps !! */
 
 /*
+ * this is a helper function that is called before every
+ * API call.  We need to make sure that the thread local
+ * state is initialized correctly since we don't know anything
+ * about how the application is calling us. 
+ *
+ * XXX it may be overkill to do this for every call, but
+ * just the ones that touch state the uses the thread
+ * specific data. 
+ */
+
+static void
+thread_setup(search_context_t * sc)
+{
+	log_thread_register(sc->log_cookie);
+	dctl_thread_register(sc->dctl_cookie);
+}
+
+/*
  * This funciton initilizes the search state and returns the handle
  * used for other calls.
  */
@@ -54,7 +72,7 @@ ls_init_search()
 	/*
 	 * Initialize the logging on the local host.
 	 */
-	err = dctl_init();
+	err = dctl_init(&sc->dctl_cookie);
 	assert(err == 0);
 
 	err = dctl_register_node(ROOT_PATH, HOST_PATH);
@@ -66,7 +84,8 @@ ls_init_search()
 	err = dctl_register_node(HOST_PATH, HOST_NETWORK_NODE);
 	assert(err == 0);
 
-	log_init();
+	log_init(&sc->log_cookie);
+	printf("log cookie %p \n", sc->log_cookie);
 	
 
 	sc->cur_search_id = 1; /* XXX should we randomize ??? */
@@ -112,6 +131,7 @@ ls_terminate_search(ls_search_handle_t handle)
 
 	sc = (search_context_t *)handle;
 
+	thread_setup(sc);
 
 
 	/*
@@ -182,13 +202,15 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	int			err;
 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
+
 
 	/*
 	 * we have two steps.  One is to clear the current
    	 * searchlist on all the devices that
 	 * we are currently connected to.  The to add the gid
-     * to each of the devices.
-     */
+     	 * to each of the devices.
+     	 */
 	/* XXX todo, clean up connection not involved in search
      * after this call.
      */
@@ -229,8 +251,8 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 				 */
                 in.s_addr = host_ids[j];
                 name = inet_ntoa(in);
-				fprintf(stderr, "Failed to connect to device %s for gid %llx\n", 
-				 	name, cur_gid);
+		fprintf(stderr, "Failed to connect to device %s for gid %llx\n", 
+		 	name, cur_gid);
                 assert(0);
 				return (EINVAL);
 			}
@@ -257,6 +279,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	int			started = 0;;
 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 	/* XXX do something with the isa_type !! */
 	/*
@@ -356,6 +379,7 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 	int					err;
 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 	if (sc->cur_status == SS_ACTIVE) {
 		/* XXX log */
@@ -447,6 +471,7 @@ ls_start_search(ls_search_handle_t handle)
 	int			started = 0;;
 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 	/*
 	 * if state isn't idle, then we haven't set the searchlet on
@@ -514,6 +539,7 @@ ls_abort_search(ls_search_handle_t handle)
 	int			ret_err;
 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 	/*
 	 * If no search is currently active (or just completed) then
@@ -612,6 +638,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 
 	/* XXX  make sure search is running */ 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 
 	/*
@@ -677,6 +704,7 @@ ls_num_objects(ls_search_handle_t handle, int *obj_cnt)
 	/* XXX  make sure search is running */ 
 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 	*obj_cnt = ring_count(sc->proc_ring);
 
@@ -765,6 +793,7 @@ ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t *handle_list,
 	if(!num_handles) return EINVAL;
 
 	sc = (search_context_t *)handle;
+	thread_setup(sc);
 	/* XXX check for active? */
 	cur_dev = sc->dev_list;
 	
@@ -806,6 +835,10 @@ ls_dev_characteristics(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 		       device_char_t *dev_chars)
 {
 	device_handle_t *dev;
+	search_context_t *	sc;
+
+	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 	dev = (device_handle_t *)dev_handle;
 	/* validate dev? */
@@ -851,8 +884,11 @@ int
 ls_get_dev_stats(ls_search_handle_t handle, ls_dev_handle_t  dev_handle,
 		 dev_stats_t *dev_stats, int *stat_len)
 {
-	device_handle_t *dev;
+	device_handle_t *	dev;
+	search_context_t *	sc;
 
+	sc = (search_context_t *)handle;
+	thread_setup(sc);
 
 	dev = (device_handle_t *)dev_handle;
 

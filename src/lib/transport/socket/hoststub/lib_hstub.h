@@ -32,7 +32,8 @@ typedef struct {
  */
 
 void *	device_init(int id, uint32_t devid, void *hcookie, 
-			hstub_cb_args_t *cbs);
+			hstub_cb_args_t *cbs, void *dctl_cookie, 
+			void *log_cookie);
 int device_stop(void *dev, int id);
 int device_terminate(void *dev, int id);
 int device_start(void *dev, int id);

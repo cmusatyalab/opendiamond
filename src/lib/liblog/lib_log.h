@@ -61,13 +61,14 @@ typedef struct log_ent {
 extern "C" {
 #endif
 
-extern void log_init();
-extern void log_setlevel(unsigned int level_mask);
-extern void log_settype(unsigned int type_mask);
-extern int  log_getdrops();
-extern void log_message(unsigned int type, unsigned int level, char *fmt, ...);
-extern int  log_getbuf(char **data);
-extern void  log_advbuf(int len);
+void log_init(void **log_cookie);
+void log_thread_register(void *log_cookie);
+void log_setlevel(unsigned int level_mask);
+void log_settype(unsigned int type_mask);
+int  log_getdrops();
+void log_message(unsigned int type, unsigned int level, char *fmt, ...);
+int  log_getbuf(char **data);
+void  log_advbuf(int len);
 
 
 

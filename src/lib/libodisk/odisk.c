@@ -15,6 +15,8 @@
 #include "obj_attr.h"
 #include "lib_od.h"
 #include "lib_odisk.h"
+#include "lib_log.h"
+#include "lib_dctl.h"
 #include "odisk_priv.h"
 #include "attr.h"
 #include "rtimer.h"
@@ -508,6 +510,9 @@ odisk_main(void *arg)
 	obj_data_t*		nobj;
 	int			err;
 
+	dctl_thread_register(ostate->dctl_cookie);
+	log_thread_register(ostate->log_cookie);
+
 	while (1) {
 		/* If there is no search don't do anything */
 		pthread_mutex_lock(&shared_mutex);
@@ -577,8 +582,9 @@ odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
 
 
 int
-odisk_init(odisk_state_t **odisk, char *dir_path)
-{
+odisk_init(odisk_state_t **odisk, char *dir_path, void *dctl_cookie,
+	void *log_cookie)
+{ 
 	odisk_state_t  *	new_state;
 	int			err;
 
@@ -594,6 +600,9 @@ odisk_init(odisk_state_t **odisk, char *dir_path)
 	}
 
 	memset(new_state, 0, sizeof(*new_state));
+
+	new_state->dctl_cookie = dctl_cookie;
+	new_state->log_cookie = log_cookie;
 
 	/* the length has already been tested above */
 	strcpy(new_state->odisk_path, dir_path);	

@@ -15,16 +15,28 @@ typedef struct log_state {
 	int		drops;	
 	unsigned int	level;
 	unsigned int	type;
+	pthread_mutex_t	log_mutex;
 	char 		buffer[MAX_LOG_BUFFER];
 } log_state_t;
 
-/*
- * The pointer to the log state that these functions are going to use
- * to save the data.
- */
+/* some state for handling our multiple instantiations */
+static  pthread_key_t   log_state_key;
+static  pthread_once_t  log_state_once = PTHREAD_ONCE_INIT;
 
-static log_state_t *	ls = NULL;
-static pthread_mutex_t	log_mutex;
+
+/*
+ * get the log state.
+ */
+static log_state_t * 
+log_get_state()
+{
+	log_state_t *   ls;
+                                                                                
+        ls = (log_state_t *)pthread_getspecific(log_state_key);
+        //XXX ??? assert(ls != NULL);
+        return(ls);
+}
+
 
 /*
  * Set the mask that corresponds to the level of events we are
@@ -34,10 +46,12 @@ static pthread_mutex_t	log_mutex;
 void
 log_setlevel(unsigned int level_mask)
 {
+	log_state_t *ls;
 	/*
 	 * If we haven't been initialized then there is nothing
 	 * that we can do.
 	 */
+	ls = log_get_state();
 	if (ls == NULL) {
 		return;
 	}
@@ -55,10 +69,12 @@ log_setlevel(unsigned int level_mask)
 void
 log_settype(unsigned int type_mask)
 {
+	log_state_t *ls;
 	/*
 	 * If we haven't been initialized then there is nothing
 	 * that we can do.
 	 */
+	ls = log_get_state();
 	if (ls == NULL) {
 		return;
 	}
@@ -66,29 +82,46 @@ log_settype(unsigned int type_mask)
 	ls->type = type_mask;
 }
 
+static void
+log_state_alloc()
+{
+        pthread_key_create(&log_state_key, NULL);
+}
 
+void
+log_thread_register(void *cookie)
+{
+	pthread_setspecific(log_state_key, (char *)cookie);
+}
 
 void 
-log_init( )
+log_init(void **cookie)
 {
 	int err;
-	
-	if (ls != NULL) {
+	log_state_t *ls;
 
+	pthread_once(&log_state_once, log_state_alloc);
+
+	/* make sure we haven't be initialized more than once */
+	if (pthread_getspecific(log_state_key) != NULL) {
+		assert(0);
 	}
+	
 	ls = (log_state_t *) malloc(sizeof(*ls));
 	if (ls == NULL) {
 		/* XXX  don't know what to do and who to report it to*/
 		return;	
 	}
-
 	ls->head = 0;
 	ls->tail = 0;
 	ls->drops = 0;
 	ls->level = LOGL_ERR;
 	ls->type = LOGT_ALL;
 
-	err = pthread_mutex_init(&log_mutex, NULL);
+	err = pthread_mutex_init(&ls->log_mutex, NULL);
+	pthread_setspecific(log_state_key, (char *)ls);
+	*cookie = ls;
+
 	assert(err == 0);
 }
 
@@ -108,7 +141,9 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	int		remain;
 	int		total_len;
 	log_ent_t *	ent;
+	log_state_t *	ls;
 
+	ls = log_get_state();
 	/* if ls == NULL, the we haven't initalized yet, so return */
 	if (ls == NULL) {
 		return;
@@ -131,14 +166,14 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	 * begining when we did the alignment thing.
 	 */
 
-	pthread_mutex_lock(&log_mutex);
+	pthread_mutex_lock(&ls->log_mutex);
 	assert((MAX_LOG_BUFFER - ls->head) >= MAX_LOG_ENTRY);
 
 	if (ls->head == -1) {
 		if (ls->tail != 0) {
 			ls->head = 0;
 		} else {
-			pthread_mutex_unlock(&log_mutex);
+			pthread_mutex_unlock(&ls->log_mutex);
 			return;
 		}
 	}
@@ -146,7 +181,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	remain = ls->tail - ls->head;
 	if ((remain < MAX_LOG_ENTRY) && (remain > 0)) {
 		ls->drops++;
-		pthread_mutex_unlock(&log_mutex);
+		pthread_mutex_unlock(&ls->log_mutex);
 		return;
 	}
 
@@ -209,7 +244,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 
 	ent->le_nextoff = htonl(total_len);
 
-	pthread_mutex_unlock(&log_mutex);
+	pthread_mutex_unlock(&ls->log_mutex);
 }
 
 
@@ -218,14 +253,15 @@ int
 log_getbuf(char **data)
 {
 	int 	len;
+	log_state_t *	ls;
 
+	ls = log_get_state();
 	/*
 	 * if they are equal we have no more data
 	 */
 	if (ls->tail == ls->head) {
 		return(0);
 	}
-
 
 	if (ls->tail < ls->head) {
 		len = ls->head - ls->tail;
@@ -247,8 +283,11 @@ log_getbuf(char **data)
 void
 log_advbuf(int len)
 {
+	log_state_t *ls;
 
-	pthread_mutex_lock(&log_mutex);
+	ls = log_get_state();
+
+	pthread_mutex_lock(&ls->log_mutex);
 
 	ls->tail += len;
 	if (ls->tail >= MAX_LOG_BUFFER) {
@@ -258,6 +297,6 @@ log_advbuf(int len)
 		}
 	}
 
-	pthread_mutex_unlock(&log_mutex);
+	pthread_mutex_unlock(&ls->log_mutex);
 }
 

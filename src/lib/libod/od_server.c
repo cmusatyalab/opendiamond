@@ -4,6 +4,8 @@
 #include <errno.h>
 #include "od.h"
 #include "lib_odisk.h"
+#include "lib_dctl.h"
+#include "lib_log.h"
 
 
 static struct odisk_state * odata = NULL;
@@ -17,9 +19,14 @@ void
 init_disk()
 {
     int err;
+    void *	log_cookie;
+    void *	dctl_cookie;
 
+    log_init(&log_cookie);
+    dctl_init(&dctl_cookie);
+    
     /* XXX */
-    err = odisk_init(&odata, "/opt/dir1");
+    err = odisk_init(&odata, "/opt/dir1", dctl_cookie, log_cookie);
     if (err) {
         odata = NULL;
         fprintf(stderr, "unable to initialize odisk \n");

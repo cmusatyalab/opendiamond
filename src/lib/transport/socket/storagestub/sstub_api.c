@@ -118,13 +118,6 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 		fhead++;
 	}
 
-	/* XXX construct the message header */
-	err = ring_enq(cstate->control_tx_ring, (void *)cheader);
-	if (err) {
-		/* XXX */
-		printf("can't enq message \n");
-		exit(1);
-	}
 
 	/*
 	 * mark the control state that there is a pending
@@ -133,7 +126,14 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_CONTROL_DATA;
+
+	err = ring_enq(cstate->control_tx_ring, (void *)cheader);
 	pthread_mutex_unlock(&cstate->cmutex);
+	if (err) {
+		/* XXX */
+		printf("can't enq message \n");
+		exit(1);
+	}
 
 	return(0);
 }
@@ -161,9 +161,9 @@ sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no)
 	/* XXX log */
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_OBJ_DATA;
+	err = ring_2enq(cstate->obj_ring, (void *)obj, (void *)ver_no);
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	err = ring_2enq(cstate->obj_ring, (void *)obj, (void *)ver_no);
 	if (err) {
 		/* XXX log */
 		/* XXX how do we handle this */
@@ -178,7 +178,6 @@ sstub_send_log(void *cookie, char *data, int len)
 {
 
 	cstate_t *	cstate;
-	int		err;
 
 	cstate = (cstate_t *)cookie;
 
@@ -190,17 +189,16 @@ sstub_send_log(void *cookie, char *data, int len)
 	assert(len > 0);
 	assert(data != NULL);
 
+	pthread_mutex_lock(&cstate->cmutex);
+
 	cstate->log_tx_buf = data;
 	cstate->log_tx_len = len;
 	cstate->log_tx_offset = 0;
-
 
 	/*
 	 * Set a flag to indicate there is object
 	 * data associated with our connection.
 	 */
-	/* XXX log */
-	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_LOG_DATA;
 	pthread_mutex_unlock(&cstate->cmutex);
 
@@ -245,12 +243,6 @@ sstub_send_dev_char(void *cookie, device_char_t *dev_char)
 	shead->dcs_speed = dev_char->dc_speed;
 	shead->dcs_mem = dev_char->dc_mem;
 
-	err = ring_enq(cstate->control_tx_ring, (void *)cheader);
-	if (err) {
-		/* XXX */
-		printf("can't enq message \n");
-		exit(1);
-	}
 
 	/*
 	 * mark the control state that there is a pending
@@ -259,7 +251,14 @@ sstub_send_dev_char(void *cookie, device_char_t *dev_char)
 
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_CONTROL_DATA;
+
+	err = ring_enq(cstate->control_tx_ring, (void *)cheader);
 	pthread_mutex_unlock(&cstate->cmutex);
+	if (err) {
+		/* XXX */
+		printf("can't enq message \n");
+		exit(1);
+	}
 
 
 	return(0);

@@ -16,6 +16,7 @@
 
 char *	data_dir = "/opt/dir1/";
 
+int	do_daemon = 1;
 
 int
 main(int argc , char **argv) 
@@ -28,13 +29,17 @@ main(int argc , char **argv)
 	/* XXX parse arguments for logging, root directory, ... */
 
 	while (1) {
-		c = getopt(argc, argv, "d:");
+		c = getopt(argc, argv, "dp:");
 		if (c == -1) {
 			break;
 		}
 		switch (c) {
-		case 'd':
+		case 'p':
 			data_dir = optarg;
+			break;
+
+		case 'd':
+			do_daemon = 0;
 			break;
 
 		default:
@@ -48,15 +53,14 @@ main(int argc , char **argv)
 	
 
 	/* make this a daemon by the appropriate call */
-
-#ifdef	XXX
-	err = daemon(0, 1);
-	if (err != 0) {
-		perror("daemon call failed !! \n");
-		exit(1);
+	if (do_daemon) {
+		err = daemon(0, 1);
+		if (err != 0) {
+			perror("daemon call failed !! \n");
+			exit(1);
+		}
 	}
 
-#endif
 
 	cb_args.new_conn_cb = search_new_conn;
 	cb_args.close_conn_cb = search_close_conn;

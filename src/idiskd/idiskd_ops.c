@@ -48,6 +48,9 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <string.h>
 #include <dirent.h>
 #include <assert.h>
@@ -59,11 +62,14 @@
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
+#include "lib_hstub.h"
 #include "lib_log.h"
 #include "filter_exec.h"
 #include "filter_priv.h"        /* to read stats -RW */
 #include "idiskd_ops.h"
 #include "dctl_common.h"
+#include "id_search_priv.h"
+#include "lib_dconfig.h"
 
 
 /*
@@ -83,7 +89,8 @@ typedef enum {
     DEV_TERM,
     DEV_START,
     DEV_SEARCHLET,
-    DEV_BLOB
+    DEV_BLOB,
+    DEV_GID
 } dev_op_type_t;
 
 
@@ -94,13 +101,11 @@ typedef struct
 }
 dev_slet_data_t;
 
-typedef struct
-{
+typedef struct {
 	char           *fname;
 	void           *blob;
 	int             blen;
-}
-dev_blob_data_t;
+} dev_blob_data_t;
 
 typedef struct
 {
@@ -109,6 +114,7 @@ typedef struct
 	union {
 		dev_slet_data_t sdata;
 		dev_blob_data_t bdata;
+		groupid_t		gid;
 	} extra_data;
 }
 dev_cmd_data_t;
@@ -121,6 +127,70 @@ extern char    *data_dir;
 
 int             cpu_split = 0;
 int             cpu_split_thresh = RAND_MAX;
+
+
+int
+ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
+{
+    obj_data_t *    new_obj;
+    obj_adata_t     *cur, *next;
+
+    new_obj = (obj_data_t *)obj_handle;
+
+    if (new_obj->base != NULL) {
+        free(new_obj->base);
+    }
+
+    cur = new_obj->attr_info.attr_dlist;
+    while (cur != NULL) {
+        next = cur->adata_next;
+        free(cur->adata_base);
+        free(cur);
+        cur = next;
+    }
+    free(new_obj);
+    return(0);
+}
+
+static int
+release_object(ls_obj_handle_t obj_handle)
+{
+    obj_data_t *    new_obj;
+    obj_adata_t     *cur, *next;
+
+    new_obj = (obj_data_t *)obj_handle;
+
+    if (new_obj->base != NULL) {
+        free(new_obj->base);
+    }
+
+    cur = new_obj->attr_info.attr_dlist;
+    while (cur != NULL) {
+        next = cur->adata_next;
+        free(cur->adata_base);
+        free(cur);
+        cur = next;
+    }
+    free(new_obj);
+}
+
+/*
+ * this is a helper function that is called before every
+ * API call.  We need to make sure that the thread local
+ * state is initialized correctly since we don't know anything
+ * about how the application is calling us.
+ *
+ * XXX it may be overkill to do this for every call, but
+ * just the ones that touch state the uses the thread
+ * specific data.
+ */
+
+static void
+thread_setup(search_state_t * sstate)
+{
+    log_thread_register(sstate->log_cookie);
+    dctl_thread_register(sstate->dctl_cookie);
+}
 
 int
 search_stop(void *app_cookie, int gen_num)
@@ -272,8 +342,269 @@ clear_ss_stats(search_state_t * sstate)
 }
 
 
+/*
+ * This initites a search on the disk.  For this to work, 
+ * we need to make sure that we have searchlets set for all
+ * the devices and that we have an appropraite search_set.
+ */
+static int
+id_start_search(search_state_t *sstate)
+{
+	device_handle_t		*cur_dev;
+	int			err;
+	int			started = 0;
+	time_t			cur_time;
+
+	thread_setup(sstate);
+
+	/*
+	 * if state isn't idle, then we haven't set the searchlet on
+	 * all the devices, so this is an error condition.
+	 *
+	 * If the cur_status == ACTIVE, it is already running which
+	 * is also an error.
+	 *
+	 */
+	if (sstate->cur_status != SS_IDLE) {
+		/* XXX log */
+		return (EINVAL);
+	}
+
+	err = bg_start_search(sstate, sstate->cur_search_id);
+	if (err) {
+		/* XXX log */
+	}
+
+	time(&cur_time);
+
+	cur_dev = sstate->dev_list;
+	while (cur_dev != NULL) {
+		/* clear the complete flag */
+		cur_dev->flags &= ~DEV_FLAG_COMPLETE;
+		cur_dev->start_time = cur_time;
+		err = device_start(cur_dev->dev_handle, sstate->cur_search_id);
+		if (err != 0) {
+			/*
+			 * It isn't obvious what we need to do if we
+			 * get an error here.  This applies to the fault
+			 * tolerance story.  For now we keep trying the
+			 * rest of the device
+			 * XXX figure out what to do here ???
+			 */
+			assert(0);
+			/* XXX logging */
+		} else {
+			started++;
+		}
+		cur_dev = cur_dev->next;
+	}
+
+	printf("end start!!\n");
+	/* XXX */
+	started++;
+
+	if (started > 0) {
+		sstate->flags |= DEV_FLAG_RUNNING;
+		sstate->cur_status = SS_ACTIVE;
+		return (0);
+	} else {
+		return (EINVAL);
+	}
+}
 
 
+/*
+ * This stops the current search.  We actually do an async shutdown
+ * by changing the sequence number (so that we will just drop incoming
+ * data) and asynchronously sending messages to the disk to stop processing.
+ */
+
+int
+id_stop_search(search_state_t *sstate)
+{
+	device_handle_t		*cur_dev;
+	int			err;
+	int			ret_err;
+
+	thread_setup(sstate);
+
+	/*
+	 * If no search is currently active (or just completed) then
+	 * this is an error.
+	 */
+	if ((sstate->cur_status != SS_ACTIVE) && (sstate->cur_status != SS_DONE)) {
+		return (EINVAL);
+	}
+
+	err = bg_stop_search(sstate, sstate->cur_search_id);
+	if (err) {
+		/* XXX log */
+	}
+
+	cur_dev = sstate->dev_list;
+
+	ret_err = 0;
+
+	while (cur_dev != NULL) {
+		err = device_stop(cur_dev->dev_handle, sstate->cur_search_id);
+		if (err != 0) {
+			/* if we get an error we note it for
+			 * the return value but try to process the rest
+			 * of the devices
+			 */
+			/* XXX logging */
+			ret_err = EINVAL;
+		}
+		cur_dev = cur_dev->next;
+	}
+
+	/* change the search id */
+	sstate->cur_search_id++;
+
+	/* change the current state to idle */
+	sstate->cur_status = SS_IDLE;
+	sstate->flags &= ~DEV_FLAG_RUNNING;
+	return (ret_err);
+
+}
+
+
+int
+id_set_searchlet(search_state_t *sstate, char *filter_file_name, 
+	char *filter_spec_name, int vid)
+{
+	device_handle_t		*cur_dev;
+	int			err;
+	int			started = 0;
+
+	thread_setup(sstate);
+
+	/*
+	 * if state is active, we can't change the searchlet.
+	 * XXX what other states are no valid ??
+	 */
+	if (sstate->cur_status == SS_ACTIVE) {
+		/* XXX log */
+		printf("still active \n");
+		return (EINVAL);
+	}
+	/* change the search id */
+	sstate->cur_search_id = vid;
+
+	/* we need to verify the searchlet somehow */
+	cur_dev = sstate->dev_list;
+	while (cur_dev != NULL) {
+		err = device_set_searchlet(cur_dev->dev_handle,
+		                           sstate->cur_search_id, filter_file_name, filter_spec_name);
+		if (err != 0) {
+			/*
+			 * It isn't obvious what we need to do if we
+			 * get an error here.  This applies to the fault
+			 * tolerance story.  For now we keep trying the
+			 * rest of the device
+			 * XXX figure out what to do here ???
+			 */
+			/* XXX logging */
+		} else {
+			started++;
+		}
+		cur_dev = cur_dev->next;
+	}
+
+	err = bg_set_searchlet(sstate, sstate->cur_search_id,
+	                       filter_file_name, filter_spec_name);
+	if (err) {
+		/* XXX log */
+	}
+
+	/* XXXX */
+	sstate->cur_status = SS_IDLE;
+
+	return(0);
+}
+
+
+int
+id_set_blob(search_state_t *sstate, char *filter_name,
+            int  blob_len, void *blob_data)
+{
+
+	device_handle_t		*cur_dev;
+	int					err;
+
+	thread_setup(sstate);
+
+	if (sstate->cur_status == SS_ACTIVE) {
+		/* XXX log */
+		fprintf(stderr, " Search is active \n");
+		return (EBUSY);
+	}
+
+	/* we need to verify the searchlet somehow */
+	for (cur_dev = sstate->dev_list; cur_dev != NULL; cur_dev= cur_dev->next) {
+		err = device_set_blob(cur_dev->dev_handle,
+		                      sstate->cur_search_id, filter_name, blob_len, blob_data);
+		if (err != 0) {
+			/*
+			 * It isn't obvious what we need to do if we
+			 * get an error here.  This applies to the fault
+			 * tolerance story.  For now we keep trying the
+			 * rest of the device
+			 * XXX figure out what to do here ???
+			 */
+			/* XXX logging */
+			assert(0);
+		}
+	}
+
+	err = bg_set_blob(sstate, sstate->cur_search_id, filter_name, blob_len,
+	                  blob_data);
+	if (err) {
+		/* XXX log */
+	}
+
+	return(0);
+}
+
+#define	MAX_HOST_IDS	40	/* XXX */
+void
+id_set_gid(search_state_t *sstate, groupid_t gid)
+{
+    uint32_t        host_ids[MAX_HOST_IDS];
+    int         hosts;
+    int         j;
+    int         err;
+                                                                                
+
+    /*
+     * for each of the groups, get the list
+     * of machines that have some of this data.
+     */
+        hosts = MAX_HOST_IDS;
+        glkup_gid_hosts(gid, &hosts, host_ids);
+		printf("gid match %d hosts \n", hosts);
+        for (j=0; j<hosts; j++) {
+            err = device_add_gid(sstate, gid, host_ids[j]);
+            if (err) {
+                struct in_addr in;
+                char *  name;
+                /*
+                 * we failed to add of init with the host,
+                 * just fail this call for now, this
+                 * is basically a bad state
+                 * we can't recover from.
+                 */
+                in.s_addr = host_ids[j];
+                name = inet_ntoa(in);
+                fprintf(stderr, "Failed to connect to device %s for gid %llx\n",                        name, gid);
+            }
+        }
+                                                                                
+    /* XXX push the list of groups to disk */
+                                                                                
+
+
+}
 
 /*
  * Take the current command and process it.  Note, the command
@@ -294,16 +625,12 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			 * Stop the current search by 
 			 *
 			 */
-			sstate->flags &= ~DEV_FLAG_RUNNING;
-
-			/*
-			 * clean up the filter exec state 
-			 */
-			fexec_term_search(sstate->fdata);
+			id_stop_search(sstate);
 
 			/*
 			 * flush objects in the transmit queue 
 			 */
+			/* XXX do we need to do this */
 			err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
 			assert(err == 0);
 
@@ -313,75 +640,30 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			break;
 
 		case DEV_START:
-			/*
-			 * Start the emulated device for now.
-			 * XXX do this for real later.
-			 */
 
 			/*
 			 * Clear the stats.
 			 */
+			printf("starting \n");
 			clear_ss_stats(sstate);
-
-			err = odisk_reset(sstate->ostate);
-			if (err) {
-				/*
-				 * XXX log 
-				 */
-				/*
-				 * XXX crap !! 
-				 */
-				return;
-			}
-
-			/*
-			 * init the filter exec code 
-			 */
-			fexec_init_search(sstate->fdata);
-
-			sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
-			sstate->ver_no = cmd->id;
-			sstate->flags |= DEV_FLAG_RUNNING;
+			id_start_search(sstate);
 			break;
 
 		case DEV_SEARCHLET:
+			printf("setting searchlet \n");
 			sstate->ver_no = cmd->id;
 
 			obj_name = cmd->extra_data.sdata.filter;
 			spec_name = cmd->extra_data.sdata.spec;
 
-			err = fexec_load_searchlet(obj_name, spec_name, &sstate->fdata);
-
-			if (err) {
-				/*
-				 * XXX log 
-				 */
-				assert(0);
-				return;
-			}
-
-			/*
-			 * Remove the files that held the data.  If do_cleanup is
-			 * not set then we keep the files so we can do debugging.
-			 */
-			if (do_cleanup) {
-				err = unlink(obj_name);
-				if (err) {
-					perror("failed to unlink");
-					exit(1);
-				}
-				unlink(spec_name);
-				if (err) {
-					perror("failed to unlink");
-					exit(1);
-				}
-			}
-			free(obj_name);
-			free(spec_name);
+			id_set_searchlet(sstate, obj_name, spec_name, cmd->id);
+			// XXX free(obj_name);
+			// XXX free(spec_name);
 
 			break;
 
 		case DEV_BLOB: {
+
 				char           *name;
 				int             blen;
 				void           *blob;
@@ -389,15 +671,16 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 				name = cmd->extra_data.bdata.fname;
 				blen = cmd->extra_data.bdata.blen;
 				blob = cmd->extra_data.bdata.blob;
-
-				err = fexec_set_blob(sstate->fdata, name, blen, blob);
-				assert(err == 0);
-
-				free(name);
-				free(blob);
+				id_set_blob(sstate, name, blen, blob);
+				// free(name);
+				// free(blob);
 				break;
 			}
 
+		case DEV_GID:
+			printf("setting GID \n");
+			id_set_gid(sstate, cmd->extra_data.gid);
+			break;
 
 		default:
 			printf("unknown command %d \n", cmd->cmd);
@@ -427,9 +710,11 @@ device_main(void *arg)
 	search_state_t *sstate;
 	dev_cmd_data_t *cmd;
 	obj_data_t     *new_obj;
+	obj_info_t *	obj_info;	
 	int             err;
 	int             any;
 	int				complete; 
+	double			time;
 	struct timespec timeout;
 	int		force_eval;
 
@@ -456,15 +741,32 @@ device_main(void *arg)
 		/*
 		 * XXX look for data from device to process.
 		 */
-		if ((sstate->flags & DEV_FLAG_RUNNING) &&
-		    (sstate->pend_objs < sstate->pend_thresh)) {
+		if ((sstate->flags & DEV_FLAG_RUNNING) && 
+			(sstub_queued_objects(sstate->comm_cookie) < 40)) {
+			obj_info = (obj_info_t *)ring_deq(sstate->proc_ring);
+			if (obj_info != NULL) {
+				any = 1;
+				new_obj = obj_info->obj;
+				err = sstub_send_obj(sstate->comm_cookie,
+				                     	new_obj, sstate->ver_no, 1);
+				assert(err == 0);
+				free(obj_info);
+			} else if (sstate->cur_status == SS_DONE) {
+				sstate->flags &= ~DEV_FLAG_RUNNING;
+				sstate->flags |= DEV_FLAG_COMPLETE;
+				new_obj = odisk_null_obj();
+				new_obj->remain_compute = 0.0;
+				err = sstub_send_obj(sstate->comm_cookie,
+				                     new_obj, sstate->ver_no, 1);
+			}
+		}
+#ifdef	XXX
+		ls_release_object(sc, new_obj);
+
+		cmd = (dev_cmd_data_t *) ring_deq(sstate->control_ops);
 			force_eval = 0;
 			/* XXXX change this */
-			err = odisk_next_obj(&new_obj, sstate->ostate);
 			if (err == ENOENT) {
-				/*
-				 * XXX fexec_dump_prob(sstate->fdata); 
-				 */
 				/*
 				 * We have processed all the objects,
 				 * clear the running and set the complete
@@ -524,9 +826,8 @@ device_main(void *arg)
                     force_eval = 1;
                 }
 
-                err = eval_filters(new_obj, sstate->fdata, force_eval,
+                err = eval_filters(new_obj, sstate->fdata, force_eval, &time,
                                      sstate, continue_fn, NULL);
-                                                                                
                 if (err == 0) {
                     sstate->obj_dropped++;
                     search_free_obj(sstate, new_obj);
@@ -556,6 +857,7 @@ device_main(void *arg)
                 }
 			}
 		}
+#endif
 
 		/*
 		 * If we didn't have any work to process this time around,
@@ -567,7 +869,7 @@ device_main(void *arg)
 		 */
 		if (!any) {
 			timeout.tv_sec = 0;
-			timeout.tv_nsec = 10000000; /* XXX 10ms */
+			timeout.tv_nsec = 100000000; /* XXX 10ms */
 			nanosleep(&timeout, NULL);
 		}
 	}
@@ -685,6 +987,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Set the return values to this "handle".
 	 */
 	*app_cookie = sstate;
+	sstate->cur_status = SS_IDLE;
+	sstate->pend_lw = 55; /* XXX magic const */
 
 	/*
 	 * This is called in the new process, now we initializes it
@@ -721,11 +1025,25 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	                   dctl_read_uint32, dctl_write_uint32,
 	                   &sstate->bp_feedback);
 
+ 	err = dctl_register_node(ROOT_PATH, HOST_PATH);
+    assert(err == 0);
+                                                                                
+    err = dctl_register_node(ROOT_PATH, DEVICE_PATH);
+    assert(err == 0);
+                                                                                
+    err = dctl_register_node(HOST_PATH, HOST_NETWORK_NODE);
+    assert(err == 0);
+
 
 	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
 
 	dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
 
+
+	log_start(sstate);
+	//dctl_start(sstate);
+
+	bg_init(sstate, 1);
 
 	/*
 	 * initialize libfilterexec
@@ -741,6 +1059,16 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		*app_cookie = NULL;
 		return (ENOENT);
 	}
+
+	/* XXX fix this */
+	err = ring_init(&sstate->proc_ring, 512 );
+	if (err) {
+		free(sstate);
+		*app_cookie = NULL;
+		return (ENOENT);
+	}
+
+
 
 	sstate->flags = 0;
 	sstate->comm_cookie = comm_cookie;
@@ -779,24 +1107,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		 * XXX log 
 		 */
 		free(sstate);
-		/*
-		 * XXX what else 
-		 */
 		return (ENOENT);
 	}
-
-	/*
-	 * Initialize our communications with the object
-	 * disk sub-system.
-	 */
-	err = odisk_init(&sstate->ostate, data_dir, sstate->dctl_cookie,
-	                 sstate->log_cookie);
-	if (err) {
-		fprintf(stderr, "Failed to init the object disk \n");
-		assert(0);
-		return (err);
-	}
-
 	return (0);
 }
 
@@ -842,7 +1154,7 @@ search_close_conn(void *app_cookie)
 int
 search_free_obj(search_state_t *sstate, obj_data_t * obj)
 {
-	odisk_release_obj(obj);
+	release_object(obj);
 	return(0);
 }
 
@@ -861,9 +1173,9 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 	}
 
 	sstate->pend_objs--;
-	sstate->pend_compute == obj->remain_compute;
+	sstate->pend_compute -= obj->remain_compute;
 
-	odisk_release_obj(obj);
+	release_object(obj);
 	return (0);
 
 }
@@ -1082,12 +1394,28 @@ search_list_nodes(void *app_cookie, char *path, int32_t opid)
 int
 search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 {
+	dev_cmd_data_t *cmd;
 	int             err;
 	search_state_t *sstate;
 
 	sstate = (search_state_t *) app_cookie;
-	err = odisk_set_gid(sstate->ostate, gid);
-	assert(err == 0);
+
+	cmd = (dev_cmd_data_t *) malloc(sizeof(*cmd));
+	if (cmd == NULL) {
+		return (1);
+	}
+
+	cmd->cmd = DEV_GID;
+	cmd->id = gen_num;
+
+	cmd->extra_data.gid = gid;
+
+	err = ring_enq(sstate->control_ops, (void *) cmd);
+	if (err) {
+		free(cmd);
+		assert(0);
+		return (1);
+	}
 	return (0);
 }
 
@@ -1102,9 +1430,7 @@ search_clear_gids(void *app_cookie, int gen_num)
 	 * XXX check gen num 
 	 */
 
-	sstate = (search_state_t *) app_cookie;
-	err = odisk_clear_gids(sstate->ostate);
-	assert(err == 0);
+	/* XXXX */
 	return (0);
 
 }

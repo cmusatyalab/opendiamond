@@ -410,14 +410,14 @@ fexec_compute_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 
 int
 fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
-                    double *cost)
+                   int indep, double *cost)
 {
     int             i;
     filter_prob_t  *fprob;
     double          pass = 1;   /* cumul pass rate */
     double          totalcost = 0;  /* = utility */
     filter_info_t  *info;
-    // char buf[BUFSIZ];
+    char            buf[BUFSIZ];
     int             n;
 
     /*
@@ -439,13 +439,9 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
         c = info->fi_time_ns;
         n = info->fi_called;
         if (n < SIGNIFICANT_NUMBER(gen)) {
-
-            if (n == 0) {
-                n = 1;
-                c = 1000000;
-            }
-        }
-#define SMALL_FRACTION (0.00001)
+			n = 1;
+			c = 100000;
+		}
 
         totalcost += pass * c / n;  /* prev cumul pass * curr cost */
         /*
@@ -458,16 +454,30 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
         /*
          * XXX 
          */
-        fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm));
-        if (fprob) {
-            p = (double) fprob->num_pass / fprob->num_exec;
-        } else {
+        if (indep) {
             /*
-             * really no data, return an error 
+             * pretend there's no context 
              */
+            fprob = fexec_lookup_prob(fdata, pmElt(perm, i), 0, NULL);
+        } else {
+            fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm));
+        }
+        if (fprob) {
+            /*
+             * not enough data 
+             */
+            if (fprob->num_exec < SIGNIFICANT_NUMBER(gen)) {
+                return 1;
+            }
+            p = (double) fprob->num_pass / fprob->num_exec;
+#if 0
+            printf("\t(np=%d, ne=%d)", fprob->num_pass, fprob->num_exec);
+            printf("\t(cond p=%f)\n", p);
+#endif
+        } else {
+            p = 1.0; /* cost will be 0 anyway */
             n = 1;
-            c = 1000000;
-            p = 1;
+			c = 100000;
         }
         /*
          * XXX printf("\n"); 
@@ -475,6 +485,7 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 
         assert(p >= 0 && p <= 1.0);
         pass *= p;
+#define SMALL_FRACTION (0.00001)
         /*
          * don't let it go to zero XXX 
          */
@@ -484,7 +495,7 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
     }
 
     *cost = totalcost;
-#ifdef	XXX
+#if 0
     printf("fexec_evaluate: ");
     fexec_print_cost(fdata, perm);
     printf(" cost=%s\n", format_number(buf, totalcost));

@@ -22,10 +22,10 @@ typedef struct device_handle {
 	struct device_handle * 	next;
 	uint32_t		dev_id;	
 	group_id_t		dev_groups[MAX_DEV_GROUPS];
-	int			num_groups;
-	unsigned int		flags;
+	int			    num_groups;
+	unsigned int	flags;
 	void *			dev_handle;
-	int			ver_no;
+	int			    ver_no;
 	struct search_context *	sc;
 } device_handle_t;
 
@@ -69,7 +69,7 @@ typedef struct search_context {
 	ring_data_t *		bg_ops;	/* unprocessed objects */
 	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
-	struct filter_info     *bg_froot; /* filter_info_t -RW */
+	struct filter_data  *bg_fdata; /* filter_data_t  */
 } search_context_t;
 
 /*

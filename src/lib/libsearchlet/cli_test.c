@@ -77,17 +77,6 @@ main(int argc , char **argv) {
 	}
 
 		
-#ifdef	XXX
-	filter_info_t 	*froot;
-	init_filters(argv[1], argv[2], &froot);
-
-	err = get_first_obj(&cur_obj, &cookie); 
-	while (err == 0) {
-		eval_filters(cur_obj, froot);
-		err= get_next_obj(&cur_obj, &cookie);
-	}
-#endif
-
 
 	
 	return (0);

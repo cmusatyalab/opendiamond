@@ -11,26 +11,23 @@
 #include <dirent.h>
 
 #include "lib_odisk.h"
+#include "lib_searchlet.h"
 #include "lib_log.h"
 #include "attr.h"
+#include "filter_exec.h"
 #include "filter_priv.h"
 #include "rtimer.h"
 #include "rgraph.h"
 
 // #define VERBOSE 1
 
-
-/*
- * Prototype for function generated from filter_spec.l
- */
-extern int read_filter_spec(char *spec_name, filter_info_t **finfo,
-			    char **root_name);
-
 /*
  * Some state to keep track of the active filter.
  */
 static filter_info_t  		*active_filter = NULL;
 static char			*no_filter = "None";
+
+
 
 char *
 fexec_cur_filtname()
@@ -46,12 +43,13 @@ fexec_cur_filtname()
 
 
 static int
-load_filter_lib(char *lib_name, filter_info_t *froot)
+load_filter_lib(char *lib_name, filter_data_t *fdata)
 {
-	void *handle;
+	void *          handle;
 	filter_info_t *	cur_filt;
 	filter_proto	fp;
-	char *		error;
+    filter_id_t     fid;
+	char *		    error;
 
 	handle = dlopen(lib_name, RTLD_NOW);
 	if (!handle) {
@@ -60,10 +58,14 @@ load_filter_lib(char *lib_name, filter_info_t *froot)
 		exit (1);
 	}
 
-	cur_filt = froot;
+
 
 	/* XXX keep the handle somewhere */
-	while (cur_filt != NULL) {
+    for (fid = 0; fid < fdata->fd_num_filters; fid++) {
+        cur_filt = &fdata->fd_filters[fid];
+        if (fid == fdata->fd_app_id) {
+            continue;
+        }
 		fp = dlsym(handle, cur_filt->fi_fname);
 		if ((error = dlerror()) != NULL) {
 			/* XXX error handling */
@@ -86,10 +88,10 @@ load_filter_lib(char *lib_name, filter_info_t *froot)
  * fields then we return EINVAL.
  */
 static int
-verify_filters(filter_info_t *froot)
+verify_filters(filter_data_t *fdata)
 {
 
-	filter_info_t *	cur_filter;
+    filter_id_t     fid;
 
 	log_message(LOGT_FILT, LOGL_TRACE, "verify_filters(): starting");
 
@@ -97,9 +99,10 @@ verify_filters(filter_info_t *froot)
 	/*
 	 * Make sure we have at least 1 filter defined.
 	 */
-	if (froot == NULL) {
+	if (fdata->fd_num_filters == 0) {
 		log_message(LOGT_FILT, LOGL_ERR, 
 				"verify_filters(): no filters");
+        printf("num filters is 0 \n");
 		return(EINVAL);
 	}
 
@@ -109,32 +112,30 @@ verify_filters(filter_info_t *froot)
 	 * Loop over all the filters and makes sure some minimum requirements
 	 * are checked.
 	 */
-	cur_filter = froot;
-	while (cur_filter != NULL) {
+    for (fid = 0; fid < fdata->fd_num_filters; fid++) {
+        if (fid == fdata->fd_app_id) {
+            continue;
+        }
 		/*
 		 * Make sure the filter exisits and it is at least
 		 * 1 character.
 		 */
-		if (strlen(cur_filter->fi_name) == 0) {
+		if (strlen(fdata->fd_filters[fid].fi_name) == 0) {
 			log_message(LOGT_FILT, LOGL_ERR, 
 				"verify_filters(): no filter name");
-			return(EINVAL);
-		}
-		if (strlen(cur_filter->fi_fname) == 0) {
-			log_message(LOGT_FILT, LOGL_ERR, 
-				"verify_filters(): filter name invalid");
+        printf("bad name len  on %d \n", fid);
 			return(EINVAL);
 		}
 
 		/*
 		 * Make sure the threshold is defined.
 		 */
-		if (cur_filter->fi_threshold  == -1) {
+		if (fdata->fd_filters[fid].fi_threshold  == -1) {
 			log_message(LOGT_FILT, LOGL_ERR, 
 				"verify_filters(): no threshold");
+        printf("bad threshold on %s \n", fdata->fd_filters[fid].fi_name);
 			return(EINVAL);
 		}
-		cur_filter = cur_filter->fi_next;
 	}
 
 	log_message(LOGT_FILT, LOGL_TRACE, "verify_filters(): complete");
@@ -143,30 +144,32 @@ verify_filters(filter_info_t *froot)
 }
 
 
-static filter_info_t *
-find_filter(filter_info_t *froot, const char *name)
+static filter_id_t 
+find_filter_id(filter_data_t *fdata, const char *name)
 {
-	filter_info_t *cur_filter;
+    filter_id_t i;
 
-	cur_filter = froot;
-	while(cur_filter) {
-		if(strcmp(cur_filter->fi_name, name) == 0) return cur_filter;
-		cur_filter = cur_filter->fi_next;
+    for (i=0; i < fdata->fd_num_filters; i++) {
+        if(strcmp(fdata->fd_filters[i].fi_name, name) == 0) {
+            return(i);
+        }
 	}
-	return NULL;
+	return(INVALID_FILTER_ID);
 }
 
 static void
-print_filter_list(char *tag, filter_info_t *froot)
+print_filter_list(char *tag, filter_data_t *fdata)
 {
-	filter_info_t *cur_filter;
+    int         i;
 
 	fprintf(stderr, "%s:", tag);
-	if(!froot) fprintf(stderr, "<null>");
-	cur_filter = froot;
-	while(cur_filter) {
-		fprintf(stderr, " %s", cur_filter->fi_name);
-		cur_filter = cur_filter->fi_next;
+	if(fdata->fd_num_filters == 0) {
+        fprintf(stderr, "<null>");
+        return;
+    }
+
+    for (i = 0; i < fdata->fd_num_filters; i++) {
+		fprintf(stderr, " %s", fdata->fd_filters[i].fi_name);
 	}
 	fprintf(stderr, "\n");
 }
@@ -194,21 +197,21 @@ build_label(char *buf, filter_info_t *fil) {
 	}
 }
 
-/* figure out the filter execution graph from the dependency
+/*
+ * figure out the filter execution graph from the dependency
  * information. generate the initial ordering.
  * this function also exports the graphs.
  * RETURNS a pointer to the list for the initial order, or NULL if error
  */
-static filter_info_t *
-resolve_filter_deps(filter_info_t *froot, char *troot_name)
+static int
+resolve_filter_deps(filter_data_t *fdata)
 {
-	filter_info_t *cur_filter, *tmp, *troot;
-	filter_info_t *prev_filter;
+	filter_info_t *cur_filter;
 	int i;
+	int id, tempid, lastid;
 	graph_t graph;
 	node_t *np;
 	char *filename = "filters";
-	filter_info_t dummy;
 	node_t *src_node;
 
 	/* 
@@ -216,37 +219,28 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	 */
 	gInit(&graph);
 	src_node = gNewNode(&graph, "DATASRC");
-	cur_filter = froot;
-	while(cur_filter) {
+
+
+    for (id = 0; id < fdata->fd_num_filters; id++) {
 		char buf[BUFSIZ];
+        cur_filter = &fdata->fd_filters[id];
 		build_label(buf, cur_filter);
 		cur_filter->fi_gnode = gNewNode(&graph, buf);
-		cur_filter->fi_gnode->data = cur_filter;
+		cur_filter->fi_gnode->data = (void *)id;
 		cur_filter->fi_gnode->val = cur_filter->fi_merit;
-		cur_filter = cur_filter->fi_next;
 	}
 
-	if(!troot_name) {
-		fprintf(stderr, "no root filter found!\n");
-		return NULL;
-	}
-	troot = find_filter(froot, troot_name);
-	if(!troot) {
-		fprintf(stderr, "could not find root filter <%s>\n", troot_name);
-		print_filter_list("list", froot);
-		return NULL;
-	}
-	/* free(troot_name); */	/* XXX */
 
 	/* 
 	 * add the dependencies
 	 */
-	cur_filter = froot;
-	while(cur_filter) {
+    for (id = 0; id < fdata->fd_num_filters; id++) {
+        cur_filter = &fdata->fd_filters[id];
 #ifdef VERBOSE
 		fprintf(stderr, "resolving dependencies for %s\n", 
 			cur_filter->fi_name);
 #endif
+
 		/* everyone depends on source (at least transitively) */
 		if(cur_filter->fi_depcount == 0) {
 			gAddEdge(&graph, src_node, cur_filter->fi_gnode);
@@ -254,20 +248,20 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 
 		/* add edges; note direction reversed */
 		for(i=0; i<cur_filter->fi_depcount; i++) {
-			tmp = find_filter(froot, cur_filter->fi_deps[i].name);
-			if(!tmp) {
+			tempid = find_filter_id(fdata, cur_filter->fi_deps[i].name);
+			if (tempid == INVALID_FILTER_ID) {
 				fprintf(stderr, "could not resolve filter <%s>"
 					" needed by <%s>\n",
 					cur_filter->fi_deps[i].name,
 					cur_filter->fi_name);
-				return NULL;
+				return(EINVAL);
 			}
 			free(cur_filter->fi_deps[i].name);
-			cur_filter->fi_deps[i].name = NULL; /* XX */
+			cur_filter->fi_deps[i].name = NULL; /* XXX */
 			//cur_filter->fi_deps[i].filter = tmp;
-			gAddEdge(&graph, tmp->fi_gnode, cur_filter->fi_gnode);
+			gAddEdge(&graph, fdata->fd_filters[tempid].fi_gnode, 
+                            cur_filter->fi_gnode);
 		}
-		cur_filter = cur_filter->fi_next;
 	}
 
 	/* 
@@ -276,14 +270,22 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 
 	gTopoSort(&graph);
 
-	cur_filter = &dummy;
+    lastid = INVALID_FILTER_ID;
 	GLIST(&graph, np) {
-		if(np == src_node) continue; /* skip */
-		cur_filter->fi_next = (filter_info_t*)np->data;
-		cur_filter = (filter_info_t*)np->data;
+        filter_id_t fid;
+        fid = FILTER_ID(np->data);
+		if ((np == src_node) || (fid == fdata->fd_app_id)) {
+                continue; /* skip */
+        }
+        if (lastid == INVALID_FILTER_ID) {
+            fdata->fd_first_filter = fid;
+        } else {
+            fdata->fd_filters[lastid].fi_nextfilter = fid;
+        }
+        lastid = fid;
 	}
-	cur_filter->fi_next = NULL;
-	froot = dummy.fi_next;
+    fdata->fd_filters[lastid].fi_nextfilter = INVALID_FILTER_ID;
+
 
 	/* export filters */
 	fprintf(stderr, "filterexec: exporting filter graph to %s.*\n", filename);
@@ -302,42 +304,10 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 	}
 	gExport(&graph, filename);
 
-#if 0
-	/* export ordered list */
-	{
-		char *toponame = "topo.daVinci";
-		graph_t gordered;
-		fprintf(stderr, "exporting filter order to %s\n", toponame);
-		gInitFromList(&gordered, &graph);
-		gExport(&gordered, toponame);
-		gClear(&gordered);
-	}
-#endif
-
-	/* ugly hack - delete the application dummy filter from the
-	 * end.  unfortunately, we only have a singly-linked list, so
-	 * can't get to it easily.  XXX */
-	cur_filter = froot;
-	prev_filter = NULL;
-	while(cur_filter) {
-		if(strcmp(cur_filter->fi_name, troot_name) == 0) {
-			/* nuke it */
-			free(cur_filter);
-			cur_filter = NULL;
-			if(!prev_filter) {
-				fprintf(stderr, "no filters to run!\n");
-				return NULL;
-			}
-			prev_filter->fi_next = NULL;
-		} else {
-			prev_filter = cur_filter;
-			cur_filter = cur_filter->fi_next;
-		}	
-	}
 
 	/* XXX print out the order */
-	print_filter_list("filterexec: filter seq ordering", froot);
-	return froot;
+	print_filter_list("filterexec: filter seq ordering", fdata);
+	return(0);
 }
 
 
@@ -359,39 +329,40 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
  * 	!0	something failed.	
  */
 int
-init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
+init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
 {
-	int			err;
-	char	  		*troot;
+	int			     err;
 
 	log_message(LOGT_FILT, LOGL_TRACE, 
 		"init_filters: lib %s spec %s", lib_name, filter_spec);
 
 
 	fprintf(stderr, "filterexec: reading filter spec %s...\n", filter_spec);
-	err = read_filter_spec(filter_spec, froot, &troot);
+	err = read_filter_spec(filter_spec, fdata);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR, 
 				"Failed to read filter spec <%s>", 
 				filter_spec);
+        printf("XXX read fspec  \n");
 		return (err);
 	}
-	print_filter_list("filterexec", *froot);
+	print_filter_list("filterexec", *fdata);
 
-	*froot = resolve_filter_deps(*froot, troot);
-	if (!*froot) {
+	err = resolve_filter_deps(*fdata);
+	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR, 
 				"Failed resolving filter dependancies <%s>", 
 				filter_spec);
+        printf("XXX faile resolve \n");
 		return (1);
 	}
 
-	err = verify_filters(*froot);
+	err = verify_filters(*fdata);
 	if (err) {
-		log_message(LOGT_FILT, LOGL_ERR, 
-				"Filter verify failed <%s>", 
-				filter_spec);
-		return (err);
+        log_message(LOGT_FILT, LOGL_ERR, "Filter verify failed <%s>", 
+                filter_spec);
+        printf("XXX faile verify \n");
+        return (err);
 	}
 
 
@@ -400,7 +371,7 @@ init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
 	 * and resolve the dependancies against it.
 	 */
 
-	err = load_filter_lib(lib_name, *froot);
+	err = load_filter_lib(lib_name, *fdata);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR, 
 				"Failed loading filter library <%s>", 
@@ -418,11 +389,11 @@ init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
 
 /*
  * This take an object pointer and a list of filters and evaluates
- * the different filters as appropriated.
+ * the different filters as appropriate.
  *
  * Input:
  * 	obj_handle:	The object handle for the object to search.
- * 	froot: 		pointer to the list of filters to evaluate.
+ * 	fdata: 		The data for the filters to evaluate.
  *
  * Return:
  * 	1		Object passed all the filters evaluated.
@@ -430,15 +401,18 @@ init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
  */
 
 int
-eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
+eval_filters(obj_data_t *obj_handle, filter_data_t *fdata)
 {
-	filter_info_t  		*cur_filter;
-	int			conf;
-	obj_data_t *		out_list[16];
-	char 			timebuf[BUFSIZ];
-	int			err;
-	off_t			asize;
-	int                     pass = 1; /* return value */
+    filter_info_t *     cur_filter;
+	int			        conf;
+	obj_data_t *	    out_list[16];
+	char 			    timebuf[BUFSIZ];
+	int			        err;
+	off_t			    asize;
+	int                 pass = 1; /* return value */
+    int                 num_filts;
+    filter_id_t *       filt_list;  
+    filter_id_t         cur_fid;
 
 	/* timer info */
 	rtimer_t                rt;	
@@ -448,14 +422,16 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
 
-	if (froot == NULL) {
+	if (fdata->fd_num_filters == 0) {
 		log_message(LOGT_FILT, LOGL_ERR, 
 			"eval_filters: no filter root");
 		return 1;
 	}
 
-	cur_filter = froot;
-
+    filt_list = (filter_id_t *)malloc(sizeof(filter_id_t) *
+                    fdata->fd_num_filters);
+    assert(filt_list != 0);
+    num_filts = 0;
 
 	/*
 	 * We need to put more smarts about what filters to evaluate
@@ -478,7 +454,9 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		stack_ns = 0;
 	}
 
-	while (cur_filter != NULL) {
+    cur_fid = fdata->fd_first_filter;
+	while ((cur_fid != INVALID_FILTER_ID) && (pass)) {
+	    cur_filter = &fdata->fd_filters[cur_fid];
 		active_filter = cur_filter;
 
 		/*
@@ -500,7 +478,7 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 			log_message(LOGT_FILT, LOGL_TRACE, 
 				"eval_filters: Filter %s has already been run",
 				cur_filter->fi_name);
-			cur_filter = cur_filter->fi_next;
+            cur_fid = cur_filter->fi_nextfilter;
 			continue;
 		}
 
@@ -514,12 +492,6 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		obj_handle->cur_offset = 0;
 		obj_handle->cur_blocksize = 1024; /* XXX */
 
-#if 0
-		/* XXX save filter ptr (definite hack) */
-		obj_write_attr(&obj_handle->attr_info,
-			       "_FILTER.ptr",
-			       sizeof(void *), (void*)&cur_filter);
-#endif
 
 		rt_start(&rt);	/* assume only one thread here */
 
@@ -554,15 +526,27 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 			/* XXX cache results if appropriate */
 			cur_filter->fi_drop++;
 			pass = 0;
-			break;
-		}
-		cur_filter->fi_pass++;
+		} else {
+		    cur_filter->fi_pass++;
+        }
+
+        fexec_update_prob(fdata, cur_fid, filt_list, num_filts, pass);
 
 		/* XXX update the time spent on filter */
 
-		cur_filter = cur_filter->fi_next;
+                
+        /*
+         * Update the list of filters that have been run. for the next
+         * run.
+         */
+        filt_list[num_filts] = cur_fid;
+        num_filts++;
+    
+        /* get the next filter id to run */
+        cur_fid = cur_filter->fi_nextfilter;
 	}
 	active_filter = NULL;
+    free(filt_list);
 
 	log_message(LOGT_FILT, LOGL_TRACE, 
 	    	"eval_filters:  done - total time is %lld", stack_ns);

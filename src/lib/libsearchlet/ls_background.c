@@ -120,7 +120,7 @@ bg_main(void *arg)
 				 * an evaluated all the filters on the
 				 * object.
 				 */
-				err = eval_filters(new_obj, sc->bg_froot);
+				err = eval_filters(new_obj, sc->bg_fdata);
 				if (err == 0) {
 					/* XXX printf("releasing object \n");*/
 					ls_release_object(sc, new_obj);
@@ -175,7 +175,7 @@ bg_main(void *arg)
 					sc->bg_status |= BG_STARTED;
 					err = init_filters(cmd->filter_name,
 						     cmd->spec_name, 
-						     &sc->bg_froot);
+						     &sc->bg_fdata);
 					assert(!err);
 					break;
 

@@ -13,9 +13,6 @@
  * application.
  */
 
-
-
-
 typedef enum filter_output_type {
 	FO_UNMODIFIED=0,	/* default */
 	FO_NEW,
@@ -36,24 +33,36 @@ typedef struct filter_dep_t {
 } filter_dep_t;
 
 
+typedef  uint8_t filter_id_t;
+#define INVALID_FILTER_ID   0xFF
+
+typedef union {
+    void *      ptr;
+    filter_id_t fid;
+} fid_union_t;
+
+#define FILTER_ID(x)    ((fid_union_t)(x))
+
 typedef struct filter_info {
 	/*
 	 * general filter info (not device-specific)
 	 */
-	char			fi_name[MAX_FILTER_NAME];
-	char			fi_fname[MAX_FILTER_FUNC_NAME];
-	filter_proto		fi_fp;
-	int			fi_threshold;
-	int			fi_merit;
-	int			fi_numargs;
-	char *			fi_args[MAX_NUM_ARGS];
+	char			        fi_name[MAX_FILTER_NAME];
+	char			        fi_fname[MAX_FILTER_FUNC_NAME];
+	filter_proto            fi_fp;
+	int			            fi_threshold;
+	int			            fi_merit;
+	int			            fi_numargs;
+	char *			        fi_args[MAX_NUM_ARGS];
 	struct filter_info *	fi_next;
+    filter_id_t             fi_filterid;    /* id of this filter */
+    filter_id_t             fi_nextfilter;  /* next filter to run */
+
 
 	/* dependency info */
 	int                     fi_color; /* used by dfs */
 	int                     fi_depcount;
 	filter_dep_t            fi_deps[MAX_NUM_DEPS];
-	//TAILQ_HEAD(deps, filter_dep_t)  fi_deps;
 	node_t                 *fi_gnode;
 
 	/* input characteristics */
@@ -66,12 +75,45 @@ typedef struct filter_info {
 	/*
 	 * statistics. these should be local to each device.
 	 */
-	int			fi_called;   /* # of times called */
-	int			fi_drop;     /* # times below threshold */
-	int			fi_pass;     /* # times above threshold */
+	int			            fi_called;   /* # of times called */
+	int			            fi_drop;     /* # times below threshold */
+	int			            fi_pass;     /* # times above threshold */
 	rtime_t                 fi_time_ns;  /* total time used */
-
 } filter_info_t;
+
+
+typedef struct filter_prob {
+    LIST_ENTRY(filter_prob) prob_link;
+    int             num_pass;       /* # of times this combination passed */
+    int             num_exec;       /* # of times this combination was run */
+    int             num_prev;       /* # of previus filters run */
+    filter_id_t     cur_fid;        /* current filter id */
+    filter_id_t     prev_id[0];     /* list of previous IDs */
+} filter_prob_t;
+
+
+#define FILTER_PROB_SIZE(x)     \
+        (sizeof(filter_prob_t)+((x)* sizeof(filter_id_t)))
+
+/* must be power of 2 */
+#define PROB_HASH_BUCKETS   64
+
+/*
+ * This is the structure that holds all the data.
+ */
+struct filter_data {
+    int                 fd_num_filters;
+    filter_id_t         fd_first_filter;
+    filter_id_t         fd_max_filters;
+    filter_id_t         fd_app_id;
+    LIST_HEAD(prob_hash, filter_prob)   fd_prob_hash[PROB_HASH_BUCKETS];
+    filter_info_t       fd_filters[0];
+};
+
+
+int     read_filter_spec(char *spec_name, filter_data_t **fdp);
+void    fexec_update_prob(filter_data_t *fdata, filter_id_t cur_filt,
+                filter_id_t *prev_list, int num_prev, int pass);
 
 
 #endif	/* ifndef _FILTER_PRIV_H_ */

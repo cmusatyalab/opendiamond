@@ -82,8 +82,11 @@ typedef struct sdevice_state {
 	int			ver_no;
 	void *			hcookie;
 	device_char_t		dev_char;	/* cached device chars */
+	int			stat_size;	/* size of caches stats */
+	dev_stats_t *		dstats;		/* caches stats */
 	hstub_new_obj_fn	hstub_new_obj_cb;
 	hstub_log_data_fn	hstub_log_data_cb;
+	hstub_search_done_fn	hstub_search_done_cb;
 } sdevice_state_t;
 
 
@@ -116,7 +119,7 @@ void hstub_write_data(sdevice_state_t *dev);
 /*
  * Functions available in hstub_socket.h.
  */
-int hstub_establish_connection(conn_info_t *cinfo, char *devid);
+int hstub_establish_connection(conn_info_t *cinfo, uint32_t devid);
 
 
 

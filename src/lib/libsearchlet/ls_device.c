@@ -9,7 +9,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <string.h>
+#include <stdint.h>
+#include <dirent.h>
 #include "ring.h"
 #include "rstat.h"
 #include "lib_searchlet.h"
@@ -20,6 +25,7 @@
 #include "log.h"
 #include "log_impl.h"
 #include "assert.h"
+#include "lib_hstub.h"
 
 
 /*
@@ -93,66 +99,164 @@ dev_new_obj_cb(void *hcookie, obj_data_t *odata, int ver_no)
 	return(0);
 }
 
-
-
-int
-device_statistics(device_handle_t *dev,
-		  dev_stats_t *dev_stats, int *stat_len)
+void
+dev_search_done_cb(void *hcookie, int ver_no)
 {
 
-	return(ENOENT);
-}
+	device_handle_t *	dev;
+	dev = (device_handle_t *)hcookie;
 
-
-#ifdef XXX
-
-int
-device_statistics(device_state_t *dev,
-		  dev_stats_t *dev_stats, int *stat_len)
-{
-	filter_info_t *cur_filter;
-	filter_stats_t *cur_filter_stats;
-	rtime_t total_obj_time = 0;
-
-	/* check args */
-	if(!dev) return EINVAL;
-	if(!dev_stats) return EINVAL;
-	if(!stat_len) return EINVAL;
-	if(*stat_len < sizeof(dev_stats_t)) return ENOSPC;
-
-	memset(dev_stats, 0, *stat_len);
-	
-	cur_filter = dev->sc->bg_froot;
-	cur_filter_stats = dev_stats->ds_filter_stats;
-	while(cur_filter != NULL) {
-		/* aggregate device stats */
-		dev_stats->ds_num_filters++;
-		/* make sure we have room for this filter */
-		if(*stat_len < DEV_STATS_SIZE(dev_stats->ds_num_filters)) {
-			return ENOSPC;
-		}
-		dev_stats->ds_objs_processed += cur_filter->fi_called;
-		dev_stats->ds_objs_dropped += cur_filter->fi_drop;
-		dev_stats->ds_system_load = 1; /* XXX FIX-RW */
-		total_obj_time += cur_filter->fi_time_ns;
-		
-		/* fill in this filter stats */
-		strncpy(cur_filter_stats->fs_name, cur_filter->fi_name, MAX_FILTER_NAME);
-		cur_filter_stats->fs_name[MAX_FILTER_NAME-1] = '\0';
-		cur_filter_stats->fs_objs_processed = cur_filter->fi_called;
-		cur_filter_stats->fs_objs_dropped = cur_filter->fi_drop;
-		cur_filter_stats->fs_avg_exec_time =  
-			cur_filter->fi_time_ns / cur_filter->fi_called;
-
-		cur_filter_stats++;		
-		cur_filter = cur_filter->fi_next;
+	if (dev->sc->cur_search_id != ver_no) {
+		/* XXX */
+		printf("search done but vno doesn't match !!! \n");
+		return;
 	}
 
-	dev_stats->ds_avg_obj_time = total_obj_time / dev_stats->ds_objs_processed;
-	/* set number of bytes used */
-	*stat_len = DEV_STATS_SIZE(dev_stats->ds_num_filters);
+	printf("search done \n");
+	dev->flags |= DEV_FLAG_COMPLETE;
 
-
-	return 0;
+	return;
 }
-#endif
+
+
+
+
+static device_handle_t *
+lookup_dev_by_id(search_context_t *sc, uint32_t devid)
+{
+	device_handle_t *cur_dev;
+
+	cur_dev = sc->dev_list;
+	while(cur_dev != NULL) {
+		if (cur_dev->dev_id == devid) {
+			break;
+		}
+		cur_dev = cur_dev->next;
+	}
+
+	return(cur_dev);	
+}
+
+
+static device_handle_t *
+create_new_device(search_context_t *sc, uint32_t devid)
+{
+	device_handle_t *new_dev;
+	hstub_cb_args_t	cb_data;
+
+	new_dev = (device_handle_t *)malloc(sizeof(*new_dev));
+	if (new_dev == NULL) {
+		/* XXX log */
+		printf("XXX to create new device \n"); 
+		return(NULL);
+	}
+
+	new_dev->flags = 0;
+	new_dev->sc = sc;
+	new_dev->dev_id = devid;
+	new_dev->num_groups = 0;
+
+	cb_data.new_obj_cb = dev_new_obj_cb;
+	cb_data.log_data_cb  = dev_log_data_cb;
+	cb_data.search_done_cb  = dev_search_done_cb;
+
+
+	new_dev->dev_handle = device_init(sc->cur_search_id, devid, 
+			(void *)new_dev, &cb_data);
+	if (new_dev->dev_handle == NULL) {
+		/* XXX log */
+		printf("device init failed \n");
+		free(new_dev);
+		return (NULL);
+	}
+
+	/*
+	 * Put this device on the list of devices involved
+	 * in the search.
+	 */
+	new_dev->next = sc->dev_list;
+	sc->dev_list = new_dev;
+
+	/* XXX log */
+
+	return(new_dev);
+}
+
+
+int
+lookup_group_hosts(group_id_t gid, int *num_hosts, uint32_t *hostids)
+{
+	static gid_map_t *	gid_map = NULL;
+	gid_map_t *		cur_map;
+	int			i;
+
+
+	if (gid_map == NULL) {
+		/* XXX */
+		gid_map = read_gid_map("gid_map");
+	}
+
+	if (gid_map == NULL) {
+		*num_hosts = 0;
+		return(ENOENT);
+	}
+
+
+	cur_map = gid_map;
+
+	while (cur_map != NULL) {
+		if (cur_map->gid == gid) {
+			break;
+		}
+
+		cur_map = cur_map->next;
+	}
+
+
+	if (cur_map == NULL) {
+		*num_hosts = 0;
+		return(ENOENT);
+	}
+
+
+	if (cur_map->num_dev > *num_hosts) {
+		/* XXX log */
+		*num_hosts = cur_map->num_dev;
+		return(ENOMEM);
+	}
+
+	for (i = 0; i < cur_map->num_dev; i++) {
+		hostids[i] = cur_map->devs[i];
+	}
+	*num_hosts = cur_map->num_dev;
+	return(0);
+}
+
+int
+device_add_gid(search_context_t *sc, group_id_t gid, uint32_t devid)
+{
+
+	device_handle_t * 	cur_dev;
+
+	cur_dev = lookup_dev_by_id(sc, devid);
+	if (cur_dev == NULL) {
+		cur_dev = create_new_device(sc, devid);
+		if (cur_dev == NULL) {
+			/* XXX log */
+			return(ENOENT);
+		}
+	}
+	/*
+	 * check to see if we can add more groups, if so add it to the list
+	 */
+	if (cur_dev->num_groups >= MAX_DEV_GROUPS) {
+		/* XXX log */
+		return(ENOENT);
+	}
+
+	cur_dev->dev_groups[cur_dev->num_groups] = gid;
+	cur_dev->num_groups++;
+	return(0);
+}
+
+

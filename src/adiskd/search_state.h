@@ -10,13 +10,14 @@ typedef struct search_state {
 	void *			comm_cookie;
         pthread_t               thread_id;
         unsigned int            flags;
-        odisk_state_t *         ostate;
+        struct odisk_state *    ostate;
         int                     ver_no;
         ring_data_t *           control_ops;
 	pthread_mutex_t		log_mutex;
 	pthread_cond_t		log_cond;
         pthread_t               log_thread;
 	struct filter_info *	finfo;
+	uint			obj_total;
 	uint			obj_processed;
 	uint			obj_dropped;
 	uint			obj_passed;
@@ -36,7 +37,7 @@ extern int search_set_searchlet(void *app_cookie, int gen_num,
 		char *filter, char *spec);
 extern int search_set_list(void *app_cookie, int gen_num);
 extern int search_term(void *app_cookie, int gen_num);
-extern int search_get_stats(void *app_cookie, int gen_num);
+extern void search_get_stats(void *app_cookie, int gen_num);
 extern int search_release_obj(void *app_cookie, obj_data_t *obj);
 extern int search_get_char(void *app_cookie, int gen_num);
 extern int search_log_done(void *app_cookie, char *buf, int len);

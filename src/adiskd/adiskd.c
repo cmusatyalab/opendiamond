@@ -5,12 +5,16 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdint.h>
+#include <dirent.h>
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "lib_sstub.h"
 #include "ring.h"
 #include "search_state.h"
+
+char *	data_dir = "/opt/dir1/";
 
 
 int
@@ -19,9 +23,29 @@ main(int argc , char **argv)
 	int			err;
 	void *			cookie;
 	sstub_cb_args_t		cb_args;
+	int			c;
 
 	/* XXX parse arguments for logging, root directory, ... */
 
+	while (1) {
+		c = getopt(argc, argv, "d:");
+		if (c == -1) {
+			break;
+		}
+		switch (c) {
+		case 'd':
+			data_dir = optarg;
+			break;
+
+		default:
+			printf("unknown option %c \n", c);
+			exit(1);
+		}
+			
+	}
+
+	printf("data dir <%s> \n", data_dir);	
+	
 
 	/* make this a daemon by the appropriate call */
 

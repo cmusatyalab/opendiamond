@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <string.h>
+#include <dirent.h>
+#include <assert.h>
 #include "ring.h"
 #include "rstat.h"
 #include "lib_searchlet.h"
@@ -44,7 +46,8 @@ typedef struct {
 		dev_slet_data_t	sdata;
 	} extra_data;
 } dev_cmd_data_t;
-	
+
+extern char *data_dir;
 
 
 int
@@ -168,6 +171,20 @@ search_set_searchlet(void *app_cookie, int id, char *filter, char *spec)
 }
 
 
+void
+clear_ss_stats(search_state_t *sstate)
+{
+
+	sstate->obj_total = 100;   /* XXX */
+	sstate->obj_processed = 0;
+	sstate->obj_dropped = 0;
+	sstate->obj_passed = 0;
+
+}
+
+
+
+
 
 /*
  * Take the current command and process it.  Note, the command
@@ -199,12 +216,22 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 	 		 * Start the emulated device for now.
 	 	  	 * XXX do this for real later.
 	 		 */
-			err = odisk_init(&sstate->ostate);
+
+			/*
+			 * Clear the stats.
+			 */
+			clear_ss_stats(sstate);
+			fexec_clear_stats(sstate->finfo);
+
+			printf("odisk_init: data dir <%s> \n", data_dir);
+			err = odisk_init(&sstate->ostate, data_dir);
 			if (err) {
 				/* XXX log */
 				/* XXX crap !! */
 				return;
 			}
+			sstate->obj_total  = odisk_get_obj_cnt(sstate->ostate);
+			printf("total objs %d \n", sstate->obj_total);
 			sstate->ver_no = cmd->id;
 			sstate->flags |= DEV_FLAG_RUNNING;
 			break;
@@ -231,6 +258,23 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 	}
 }
 
+/* XXX hack */
+obj_data_t *
+get_null_obj()
+{
+	obj_data_t *new_obj;
+
+	new_obj = (obj_data_t *)malloc(sizeof(*new_obj));
+	assert(new_obj != NULL);
+
+	new_obj->data_len = 0;
+	new_obj->data = NULL;
+	new_obj->attr_info.attr_len = 0;
+	new_obj->attr_info.attr_data = NULL;
+
+	return(new_obj);
+}
+
 /*
  * This is the main thread that executes a "search" on a device.
  * This interates it handles incoming messages as well as processing
@@ -245,14 +289,8 @@ device_main(void *arg)
 	obj_data_t*	new_obj;
 	int		err;
 	int		any;
-	pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t  cond = PTHREAD_COND_INITIALIZER;
-	struct timeval now;
 	struct timespec timeout;
-	struct timezone tz;
 
-	tz.tz_minuteswest = 0;
-	tz.tz_dsttime = 0;
 
 	sstate = (search_state_t *)arg;
 
@@ -284,7 +322,21 @@ device_main(void *arg)
 				 */
 				sstate->flags &= ~DEV_FLAG_RUNNING;
 				sstate->flags |= DEV_FLAG_COMPLETE;
-				/* XXX send complete message */
+
+				/*
+				 * XXX big hack for now.  To indiate
+				 * we are done we send object with
+				 * no data or attributes.
+				 */
+				new_obj = get_null_obj();
+				err = sstub_send_obj( sstate->comm_cookie, 
+						new_obj, sstate->ver_no);
+				if (err) {
+					/* XXX overflow gracefully  */
+					/* XXX log */
+	
+				}
+
 			} else if (err) {
 				/* printf("dmain: failed to get obj !! \n"); */
 				/* sleep(1); */
@@ -324,13 +376,10 @@ device_main(void *arg)
 		 */
 		/* XXX move mutex's to the state data structure */
 		if (!any) {
-			gettimeofday(&now, &tz);
-			pthread_mutex_lock(&mut);
-			timeout.tv_sec = now.tv_sec + 1;
-			timeout.tv_nsec = now.tv_usec * 1000;
-	
-			pthread_cond_timedwait(&cond, &mut, &timeout);
-			pthread_mutex_unlock(&mut);
+			timeout.tv_sec = 0;
+			timeout.tv_nsec = 10000000; /* XXX 10ms */
+
+			nanosleep(&timeout, NULL);
 		}
 	}
 }
@@ -501,26 +550,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
 
 
-int
-search_get_stats(void *app_cookie, int gen_num)
-{
-	int len;
-	search_state_t *	sstate;
-	dev_stats_t	*stats;
-	int		err;
-
-	sstate = (search_state_t *)app_cookie;
-
-	len = sizeof(*stats);
-	stats = (dev_stats_t *)malloc(len);
-
-	stats->ds_num_filters = 0;
-
-	err = sstub_send_stats(sstate->comm_cookie, stats, len);
-
-	return(0);
-}
-
 
 /*
  * a request to get the characteristics of the device.
@@ -579,6 +608,75 @@ search_set_list(void *app_cookie, int gen_num)
 {
 	/* printf("XXX set list \n"); */
 	return(0);
+}
+
+/*
+ * Get the current statistics on the system.
+ */
+
+void
+search_get_stats(void *app_cookie, int gen_num)
+{
+	search_state_t *	sstate;
+	dev_stats_t	*	stats;
+	int			err;
+	int			num_filt;
+	int 			len;
+
+	sstate = (search_state_t *)app_cookie;
+
+	/*
+	 * Figure out how many filters we have an allocate
+	 * the needed space.
+	 */
+	num_filt = fexec_num_filters(sstate->finfo);
+	len = DEV_STATS_SIZE(num_filt);
+
+	stats = (dev_stats_t *)malloc(len);
+	if (stats == NULL) {
+		/*
+		 * This is a periodic poll, so we can ingore this
+		 * one if we don't have enough state.
+		 */
+		log_message(LOGT_DISK, LOGL_ERR, 
+				"search_get_stats: no mem");
+		return;
+	}
+
+	/*
+	 * Fill in the state we can handle here.
+	 */
+	stats->ds_objs_total = sstate->obj_total; 
+	stats->ds_objs_processed = sstate->obj_processed; 
+	stats->ds_objs_dropped = sstate->obj_dropped;
+	stats->ds_system_load = 1; /* XXX */
+	stats->ds_avg_obj_time = 0;
+	stats->ds_num_filters = num_filt;
+
+
+	/*
+	 * Get the stats for each filter.
+	 */
+	err = fexec_get_stats(sstate->finfo, num_filt, stats->ds_filter_stats);
+	if (err) {
+		log_message(LOGT_DISK, LOGL_ERR, 
+				"search_get_stats: failed to get filter stats");
+		return;
+	}
+
+
+
+	/*
+	 * Send the stats.
+	 */
+	err = sstub_send_stats(sstate->comm_cookie, stats, len);
+	if (err) {
+		log_message(LOGT_DISK, LOGL_ERR, 
+				"search_get_stats: failed to send stats");
+		return;
+	}
+
+	return;
 }
 
 

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdint.h>
+#include <dirent.h>
 #include <sys/time.h>
 #include "ring.h"
 #include "lib_searchlet.h"
@@ -48,6 +49,7 @@ ls_init_search()
 	sc->cur_search_id = 1; /* XXX should we randomize ??? */
 	sc->dev_list = NULL;
 	sc->cur_status = SS_EMPTY;
+	sc->bg_status = 0;
 	err = ring_init(&sc->proc_ring);
 	if (err) {
 		/* XXX log */
@@ -65,7 +67,6 @@ ls_init_search()
 	log_start(sc);
 	
 	bg_init(sc, 1);
-
 
 	return((ls_search_handle_t)sc);
 }
@@ -138,50 +139,49 @@ ls_terminate_search(ls_search_handle_t handle)
 	return (0);	
 }
 
+
+#define	MAX_HOST_IDS	16
+
 int
-ls_set_searchlist(ls_search_handle_t handle)
+ls_set_searchlist(ls_search_handle_t handle, int num_groups,
+		group_id_t *glist)
 {
-	search_context_t	*sc;
-	device_handle_t *	new_dev;
-	hstub_cb_args_t		cb_data;
+	search_context_t *	sc;
+	group_id_t		cur_gid;
+	uint32_t		host_ids[MAX_HOST_IDS];
+	int			hosts;
+	int			i,j;
+	int			err;
+
+
 
 	sc = (search_context_t *)handle;
-/*
-XXX do this
-*/
-	/* we actually want to craete a new device from
-	 * all items added to search list.  Fix this later !!!
-	 * XXXXXXXXXXX
-	 */
-	new_dev = (device_handle_t *)malloc(sizeof(*new_dev));
-	if (new_dev == NULL) {
-		/* XXX log */
-		printf("XXX to create new device \n"); 
-		return(ENOMEM);
-	}
-
-	new_dev->flags = 0;
-	new_dev->sc = sc;
-
-	cb_data.new_obj_cb = dev_new_obj_cb;
-	cb_data.log_data_cb  = dev_log_data_cb;
-
-
-	new_dev->dev_handle = device_init(sc->cur_search_id, 
-			"127.0.0.1", (void *)new_dev, &cb_data);
-	if (new_dev->dev_handle == NULL) {
-		/* XXX log */
-		printf("device init failed \n");
-		return (EINVAL);
-	}
-	printf("set slist:  dhandle %p \n", new_dev->dev_handle);
 
 	/*
-	 * Put this device on the list of devices involved
-	 * in the search.
+	 * for each of the groups, get the list
+	 * of machines that have some of this data.
 	 */
-	new_dev->next = sc->dev_list;
-	sc->dev_list = new_dev;
+	for (i=0; i < num_groups; i++) {
+		cur_gid = glist[i];
+		hosts = MAX_HOST_IDS;
+		lookup_group_hosts(cur_gid, &hosts, host_ids);
+		for (j=0; j<hosts; j++) {
+			err = device_add_gid(sc, cur_gid, host_ids[j]);
+			if (err) {
+				/*
+				 * we failed to add of init with the host,
+				 * just fail this call for now, this
+				 * is basically a bad state
+				 * we can't recover from.
+				 */
+				printf("dev add failed \n");
+				return (EINVAL);
+
+			}
+		}	
+	}
+
+	/* XXX push the list of groups to disk */
 
 	return(0);
 }
@@ -404,17 +404,10 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 	search_context_t	*sc;
 	obj_data_t	*	obj_data;
 	void *			data;
-	pthread_mutex_t 	mut = PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t  	cond = PTHREAD_COND_INITIALIZER;
-	struct timeval 		now;
 	struct timespec 	timeout;
-	struct timezone 	tz;
 
 
 	/* XXX  make sure search is running */ 
-
-	tz.tz_minuteswest = 0;
-	tz.tz_dsttime = 0;
 
 	sc = (search_context_t *)handle;
 
@@ -446,13 +439,9 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 		 * We need to sleep until data is available, we do a
 		 * timed sleep for now. 
 		 */
-		pthread_mutex_lock(&mut);
-		gettimeofday(&now, &tz);
-		timeout.tv_sec = now.tv_sec + 1;
-		timeout.tv_nsec = now.tv_usec * 1000;
-
-		pthread_cond_timedwait(&cond, &mut, &timeout);
-		pthread_mutex_unlock(&mut);
+		timeout.tv_sec = 0;
+		timeout.tv_nsec = 30000000; 	/* 30 ms */
+		nanosleep(&timeout, NULL);
 
 	}
 	obj_data = (obj_data_t *)data;

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <netdb.h>
 #include <assert.h>
@@ -42,6 +43,31 @@ device_characteristics(void *handle, device_char_t *dev_chars)
 
 	return (0);
 }
+
+
+
+
+
+int
+device_statistics(void *handle, dev_stats_t *dev_stats, int *stat_len)
+{
+	sdevice_state_t *dev = (sdevice_state_t *)handle;
+
+	if (dev->stat_size == 0) { 
+		memset(dev_stats, 0, *stat_len);
+	} else {
+		/* XXX locking ?? */
+		if (dev->stat_size > *stat_len) {
+			*stat_len = dev->stat_size;
+			return(ENOMEM);
+		}
+		memcpy(dev_stats, dev->dstats, dev->stat_size);
+		*stat_len = dev->stat_size;
+
+	}
+	return(0);
+}
+
 
 
 /*
@@ -307,7 +333,7 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 
 /* XXX callback for new packets  */
 void *
-device_init(int id, char * devid, void *hcookie, hstub_cb_args_t *cb_list)
+device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 {
 	sdevice_state_t *new_dev;
 	int		err;
@@ -347,7 +373,13 @@ device_init(int id, char * devid, void *hcookie, hstub_cb_args_t *cb_list)
 	new_dev->hcookie = hcookie;
 	new_dev->hstub_new_obj_cb = cb_list->new_obj_cb;
 	new_dev->hstub_log_data_cb = cb_list->log_data_cb;
+	new_dev->hstub_search_done_cb = cb_list->search_done_cb;
 
+	/*
+	 * Init caches stats.
+	 */
+	new_dev->dstats = NULL;
+	new_dev->stat_size = 0;
 
 	/*
 	 * Spawn a thread for this device that process data to and

@@ -77,6 +77,7 @@ typedef struct fstats_subheader {
 
 
 typedef struct dstats_subheader {
+	uint32_t	dss_total_objs;
 	uint32_t	dss_objs_proc;
 	uint32_t	dss_objs_drop;
 	uint32_t	dss_system_load;

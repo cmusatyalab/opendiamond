@@ -49,7 +49,7 @@ socket_non_block(int fd)
  * side.
  */
 int
-hstub_establish_connection(conn_info_t *cinfo, char *devid)
+hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 {
 	struct protoent	*	pent;
 	struct sockaddr_in	sa;
@@ -67,15 +67,10 @@ hstub_establish_connection(conn_info_t *cinfo, char *devid)
 
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons((unsigned short) CONTROL_PORT);
-	err = inet_aton(devid, &sa.sin_addr);
-	if (err == 0) {
-		/* XXX log */
-		printf("XXX failed inet_aton\n");
-		return(ENOENT);
-	}
+	sa.sin_addr.s_addr = devid;
 
 	/* save the device id for later use */
-	cinfo->dev_id = sa.sin_addr.s_addr;
+	cinfo->dev_id = devid;
 
 	err = connect(cinfo->control_fd, (struct sockaddr *)&sa, sizeof(sa));
 	if (err) {

@@ -39,12 +39,14 @@ main(int argc, char **argv)
 	int	err;
 	void *	cookie;
 	hstub_cb_args_t		cb_args;
+	struct in_addr		addr;
 
 	cb_args.new_obj_cb = handle_new_obj;
 	cb_args.log_data_cb = handle_log_data;
 
+	err = inet_aton("127.0.0.1", &addr);
 
-	cookie = device_init(100, "127.0.0.1", 0, &cb_args);
+	cookie = device_init(100, addr.s_addr, 0, &cb_args);
 
 
 	err = device_start(cookie, 101);

@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include <errno.h>
 #include <string.h>
+#include <dirent.h>
 #include "lib_odisk.h"
+#include "odisk_priv.h"
 
 void
 remove_some_attr(obj_attr_t *attr, int size, int num)
@@ -163,7 +165,7 @@ main(int argc, char **argv)
 	obj_data_t *	new_obj;
 	int		err;
 
-	err = odisk_init(&odisk);
+	err = odisk_init(&odisk, "/opt/dir1");
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

@@ -1,7 +1,5 @@
 #ifndef _LIB_SEARCHLET_H_
 #define	_LIB_SEARCHLET_H_ 
-/* XXX move */
-#include <unistd.h>
 
 #include "consts.h"
 #include "rtimer.h"
@@ -35,6 +33,7 @@ typedef	void *	ls_obj_handle_t;
 typedef	void *	ls_dev_handle_t;
 
 
+typedef uint64_t	group_id_t;
 
 
 /*
@@ -63,6 +62,7 @@ typedef struct filter_stats {
  *  These will primarily be used for profiling and monitoring progres.
  */
 typedef struct dev_stats {
+	int		ds_objs_total;	   	/* total objs in search  */
 	int		ds_objs_processed;	/* total objects by device */
 	int		ds_objs_dropped;	/* total objects dropped */
 	int		ds_system_load;		/* average load on  device??? */
@@ -101,8 +101,8 @@ typedef enum {
 
 typedef struct device_char {
 	device_isa_t	dc_isa;		/* instruction set of the device    */
-	u_int64_t	dc_speed;	/* CPU speed, (some bogomips, etc.) */
-	u_int64_t	dc_mem;		/* Available memory for the system  */
+	uint64_t	dc_speed;	/* CPU speed, (some bogomips, etc.) */
+	uint64_t	dc_mem;		/* Available memory for the system  */
 } device_char_t;
 
 /*
@@ -147,8 +147,10 @@ extern int ls_terminate_search(ls_search_handle_t handle);
  *
  * Args:
  * 	handle	- the search handle returned by init_libsearchlet().
+ *	
+ *	num_groups - the number of groups in the list.
  *
- * 	XXX  define the group list.
+ *	glist   - An array of groups with num groups elements.
  *
  * Returns:
  * 	0  	- the call was successful.
@@ -156,10 +158,8 @@ extern int ls_terminate_search(ls_search_handle_t handle);
  * 	EINVAL  - the handle or the search list is not valid.
  */
 
-/* XXX other args */
-/* extern int ls_set_searchlist(ls_search_handle_t, XXX ); */
-/* XXX fix this soon!!! */
-extern int ls_set_searchlist(ls_search_handle_t);
+extern int ls_set_searchlist(ls_search_handle_t, int num_groups, 
+		group_id_t *glist);
 
 
 /*

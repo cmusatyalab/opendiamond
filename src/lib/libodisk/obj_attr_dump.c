@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
+#include <dirent.h>
 
 #include "obj_attr.h"
 #include "lib_odisk.h"
+#include "odisk_priv.h"
 
 
 

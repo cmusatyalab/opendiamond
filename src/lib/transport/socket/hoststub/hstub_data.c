@@ -273,15 +273,25 @@ hstub_read_data(sdevice_state_t *dev)
 			return;
 		}
 	}
+
 	
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 	ver_no = ntohl(cinfo->data_rx_header.version_num);
-	/* XXX extract version number */
 
-	/*
-	 * Now sent the callback.  Should there be a return ??
-	 */
-	(*dev->hstub_new_obj_cb)(dev->hcookie, cinfo->data_rx_obj, ver_no);
+	if ((cinfo->data_rx_obj->data_len == 0) &&
+	    (cinfo->data_rx_obj->attr_info.attr_len == 0)) {
+		printf("XXX search done !!!!!!!!!!!!!!!!!!!! \n");
+		(*dev->hstub_search_done_cb)(dev->hcookie, ver_no);
+		free(cinfo->data_rx_obj);
+	
+	} else {
+
+		/*
+	 	 * Now sent the callback.  Should there be a return ??
+	 	 */
+		(*dev->hstub_new_obj_cb)(dev->hcookie,
+					 cinfo->data_rx_obj, ver_no);
+	}
 }
 
 void

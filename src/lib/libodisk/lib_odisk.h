@@ -3,9 +3,8 @@
 
 #include "obj_attr.h"
 
-typedef struct {
-	void *		iter_cookie;
-} odisk_state_t;
+
+struct odisk_state;
 
 
 /*
@@ -20,15 +19,14 @@ typedef struct {
 } obj_data_t;
 
 
-
-
 /*
  * These are the function prototypes for the device emulation
  * function in dev_emul.c
  */
-extern int odisk_term(odisk_state_t *odisk);
-extern int odisk_init(odisk_state_t **odisk);
-extern int odisk_next_obj(obj_data_t **new_obj, odisk_state_t *odisk);
+extern int odisk_term(struct odisk_state *odisk);
+extern int odisk_init(struct odisk_state **odisk, char *path_name);
+extern int odisk_get_obj_cnt(struct odisk_state *odisk);
+extern int odisk_next_obj(obj_data_t **new_obj, struct odisk_state *odisk);
 
 #endif	/* !_LIB_ODISK_H */
 

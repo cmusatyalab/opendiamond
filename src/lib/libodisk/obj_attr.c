@@ -9,8 +9,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
 #include "obj_attr.h"
 #include "lib_odisk.h"
+#include "odisk_priv.h"
 
 
 

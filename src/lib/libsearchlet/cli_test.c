@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -15,6 +16,7 @@ main(int argc , char **argv) {
 	int			err;
 	ls_obj_handle_t		cur_obj;
 	ls_search_handle_t	shandle;
+	group_id_t		gid;
 
 
 	shandle = ls_init_search();
@@ -27,7 +29,8 @@ main(int argc , char **argv) {
 	 * set the set of items we want to search.
 	 * XXX figure out the correct set of functions.
 	 */
-	err = ls_set_searchlist(shandle);
+	gid = 1;
+	err = ls_set_searchlist(shandle, 1, &gid);
 	if (err) {
 		printf("Failed to set searchlet on err %d \n", err);
 		exit(1);\

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <netdb.h>
 #include <assert.h>
@@ -45,6 +46,78 @@ store_dev_char(sdevice_state_t *dev, char *data_buf)
 	dev->dev_char.dc_mem = shead->dcs_mem;
 }
 
+
+
+/*
+ * This stores caches the statistics to answer requests
+ * from users.
+ */
+static void
+store_dev_stats(sdevice_state_t *dev, char *data_buf)
+{
+	dstats_subheader_t *	shead;
+	fstats_subheader_t *	fhead;
+	dev_stats_t *		dstats;
+	int			len;
+	int			num_filt;
+	int			offset;
+	int			i;
+
+
+	shead = (dstats_subheader_t *)data_buf;
+
+	num_filt = ntohl(shead->dss_num_filters);
+	len = DEV_STATS_SIZE(num_filt);
+
+
+	if (len > dev->stat_size) {
+		if (dev->dstats != NULL) {
+			free(dev->dstats);
+		}
+
+		dstats = (dev_stats_t *) malloc(len);
+		assert(dstats != NULL);
+		dev->dstats = dstats;
+
+		dev->stat_size = len;
+
+	} else {
+		dstats = dev->dstats;
+		dev->stat_size  = len;
+	}
+
+
+	dstats->ds_objs_total = ntohl(shead->dss_total_objs);
+	dstats->ds_objs_processed = ntohl(shead->dss_objs_proc);
+	dstats->ds_objs_dropped = ntohl(shead->dss_objs_drop);
+	dstats->ds_system_load = ntohl(shead->dss_system_load);
+	/* XXX 64 bit ntohl */
+	dstats->ds_avg_obj_time = shead->dss_avg_obj_time;
+	dstats->ds_num_filters = ntohl(shead->dss_num_filters);
+
+	for (i = 0; i < num_filt; i ++) {
+		offset = sizeof(*shead) + (i * sizeof(*fhead));
+		fhead = (fstats_subheader_t *)&data_buf[offset];
+
+		strncpy(dstats->ds_filter_stats[i].fs_name,
+				fhead->fss_name, MAX_FILTER_NAME);
+		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME-1] =
+				'\0';
+	
+		dstats->ds_filter_stats[i].fs_objs_processed = 
+				ntohl(fhead->fss_objs_processed);
+			
+		dstats->ds_filter_stats[i].fs_objs_dropped = 
+				ntohl(fhead->fss_objs_dropped);
+
+		/* XXX byte order !!! */
+		dstats->ds_filter_stats[i].fs_avg_exec_time = 
+				fhead->fss_objs_dropped;
+	}
+
+
+}
+
 static void
 process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
 {
@@ -54,6 +127,7 @@ process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
 	switch(cmd) {
 
 		case CNTL_CMD_RET_STATS:
+			store_dev_stats(dev, data_buf);
 			free(data_buf);
 			break;
 

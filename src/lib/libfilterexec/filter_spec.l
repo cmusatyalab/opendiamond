@@ -296,6 +296,13 @@ filter_out_obj(filter_output_type_t type)
 
 
 int
+fspecwrap()
+{
+	return(1);
+}
+
+
+int
 read_filter_spec(char *spec_name, filter_info_t **froot, char **troot)
 {
 
@@ -308,7 +315,7 @@ read_filter_spec(char *spec_name, filter_info_t **froot, char **troot)
 
 	printf("reading filter spec (%s)...\n", spec_name);
 	yyin = fopen(spec_name, "r");
-	err = yylex();
+	err = fspeclex();
 
 	*froot = first_filter;
 	*troot = root_filter;

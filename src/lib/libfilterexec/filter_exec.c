@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <assert.h>
 #include <stdint.h>
+#include <dirent.h>
 
 #include "lib_odisk.h"
 #include "lib_log.h"

@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <stdint.h>
+#include <dirent.h>
 
 #include "ring.h"
 #include "lib_searchlet.h"
@@ -18,10 +20,8 @@
 #include "filter_exec.h"
 
 
-typedef enum {
-	BG_STOPPED,
-	BG_STARTED,
-} bg_status_t;
+#define	BG_STOPPED	0x01
+#define	BG_STARTED	0x01
 
 typedef enum {
 	BG_STOP,
@@ -51,17 +51,7 @@ bg_main(void *arg)
 	bg_cmd_data_t *		cmd;
 	int			any;
 	device_handle_t *	cur_dev;
-
-
-	pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t  cond = PTHREAD_COND_INITIALIZER;
-	struct timeval now;
 	struct timespec timeout;
-	struct timezone tz;
-
-	tz.tz_minuteswest = 0;
-	tz.tz_dsttime = 0;
-
 
 
 	sc = (search_context_t *)arg;
@@ -143,7 +133,7 @@ bg_main(void *arg)
 
 				if (any == 0) {
 					sc->cur_status = SS_DONE;
-				}
+				} 
 			}
 	
 		} else {
@@ -177,13 +167,12 @@ bg_main(void *arg)
 			}
 		}
 
-		pthread_mutex_lock(&mut);
-		gettimeofday(&now, &tz);
-		timeout.tv_sec = now.tv_sec + 1;
-		timeout.tv_nsec = now.tv_usec * 1000;
 
-		pthread_cond_timedwait(&cond, &mut, &timeout);
-		pthread_mutex_unlock(&mut);
+
+		timeout.tv_sec = 0;
+		timeout.tv_nsec = 10000000; /* 10 ms */
+		nanosleep(&timeout, NULL);
+
 
 	}
 }

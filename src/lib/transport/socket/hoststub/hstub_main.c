@@ -163,7 +163,7 @@ hstub_main(void *arg)
 
 		if (err == -1) {
 			/* XXX log */
-			printf("XXX select failed \n");
+			perror("XXX select failed \n");
 			exit(1);
 		}
 

@@ -13,11 +13,12 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <assert.h>
+#include <dirent.h>
 #include <stdint.h>
 #include "ring.h"
 #include "lib_searchlet.h"
-#include "lib_odisk.h"
 #include "lib_log.h"
+#include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "filter_exec.h"
 #include "log.h"

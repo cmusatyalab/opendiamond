@@ -798,7 +798,7 @@ odisk_pr_add(pr_obj_t *pr_obj)
 		ring_enq(obj_pr_ring, pr_obj);
 	} else {
 		pthread_cond_wait(&pr_bg_queue_cv, &shared_mutex);
-		if( search_active == 0 ) {
+		if (search_active == 0) {
 			odisk_release_pr_obj(pr_obj);
 			pthread_mutex_unlock(&shared_mutex);
 			return(0);
@@ -870,11 +870,12 @@ odisk_flush(odisk_state_t *odisk)
 			break;
 		}
 	}
-	while(!ring_empty(obj_ring)) {
-		if( !ring_empty(obj_ring) ) {
+	while (!ring_empty(obj_ring)) {
+		if (!ring_empty(obj_ring) ) {
 			obj = ring_deq(obj_ring);
-			if( obj != NULL )
+			if (obj != NULL) {
 				odisk_release_obj(obj);
+			}
 		} else {
 			break;
 		}

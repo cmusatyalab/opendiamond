@@ -345,7 +345,7 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	}
 	namelen = strlen(name) + 1;
 
-	/* XXX this overcounts data space !! \n */
+	/* XXX round to word boundary ?? */
 	total_size  = sizeof(*data_rec) + namelen + len;
 
 	data_rec = find_record(attr, name);

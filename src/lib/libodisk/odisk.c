@@ -318,7 +318,7 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
     int                 fd;
     obj_data_t  *       obj;
 
-    local_id = 1;
+    local_id = rand();
 
     while (1) {
 
@@ -328,7 +328,7 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
         fd = open(buf, O_CREAT|O_EXCL, 0777); 
 
         if (fd == -1) {
-            local_id++;
+            local_id = rand();
         } else {
             break;
         }

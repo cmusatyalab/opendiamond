@@ -121,7 +121,7 @@ bg_main(void *arg)
 				 * an evaluated all the filters on the
 				 * object.
 				 */
-				err = eval_filters(new_obj, sc->bg_fdata);
+				err = eval_filters(new_obj, sc->bg_fdata, NULL, NULL);
 				if (err == 0) {
 					/* XXX printf("releasing object \n");*/
 					ls_release_object(sc, new_obj);

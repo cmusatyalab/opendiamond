@@ -517,30 +517,35 @@ dv_export(graph_t *g, char *filename) {
 }
 
 /* ********************************************************************** */
-/* graphgiv export */
+/* graphviz export */
 /* ********************************************************************** */
 
 static void
-gviz_export_node(FILE *fp, node_t *np, int indent) {
+gviz_export_node(FILE *fp, node_t *np, int printedges, int indent) {
   edge_t *ep;
   char *red = "red";
   //char *black = "black";
+  char ind[10] = "\t\t\t\t\t\t\t\t\t";
+
+  assert(indent < 10);
+  ind[indent] = '\0';
 
   /* node already exported */
   if(np->color) return;
-    
   np->color = 1;
 
-  fprintf(fp, "\t%d [shape=record] [label=\"%s|%d\"];\n", np->id, np->label, np->val);
+  fprintf(fp, "%s%d [shape=record] [label=\"%s|%d\"];\n",
+	  ind, np->id, np->label, np->val);
 
-  /* export edges */
-  VEC_FOREACH(ep, &np->edgelist) {
-    fprintf(fp, "\t%d -> %d", np->id, ep->eg_v->id);
-    if(ep->eg_color) {
-	    fprintf(fp, " [constraint=false, color=%s]", red);
+  if(printedges) {
+    /* export edges */
+    VEC_FOREACH(ep, &np->edgelist) {
+      fprintf(fp, "%s%d -> %d", ind, np->id, ep->eg_v->id);
+      if(ep->eg_color) {
+	fprintf(fp, " [constraint=false, style=bold, color=%s]", red);
+      }
+      fprintf(fp, ";\n");
     }
-    fprintf(fp, ";\n");
-
   }
 }
 
@@ -551,6 +556,8 @@ gviz_export(graph_t *g, char *filename) {
   node_t *np;
   int indent = 0;
   FILE *fp;
+  nodelist_t *clusters;
+  int i, n;
 
   fp = fopen(filename, "w");
   if(!fp) {
@@ -565,10 +572,34 @@ gviz_export(graph_t *g, char *filename) {
   fprintf(fp, "digraph G {\n");
   fprintf(fp, "size=\"7.5,10\";\n");
   fprintf(fp, "fontname=\"Helvetica\";\n");
+  fprintf(fp, "fontsize=\"10\";\n");
   fprintf(fp, "rankdir=\"LR\";\n");
-  TAILQ_FOREACH(np, &g->nodes, link) {
-	  gviz_export_node(fp, np, indent);
+  fprintf(fp, "orientation=\"[1L]*\";\n");
+  fprintf(fp, "edge [style=\"dashed\"];\n"); 
+
+  gAssignClusters(g, &clusters, &n);
+  for(i=0; i<n; i++) {
+    if(TAILQ_EMPTY(&clusters[i])) continue;
+       
+    fprintf(fp, "\tsubgraph cluster%d {\n", i);
+    fprintf(fp, "\t\tstyle=filled;\n");
+    fprintf(fp, "\t\tcolor=lightgrey;\n");
+    TAILQ_FOREACH(np, &clusters[i], clink) {
+      gviz_export_node(fp, np, 0, indent+2);
+    }
+    fprintf(fp, "\t}\n");
   }
+  free(clusters);
+
+  fprintf(stderr, "exporting nodes\n");
+  TAILQ_FOREACH(np, &g->nodes, link) {
+    np->color = 0;
+  }
+  TAILQ_FOREACH(np, &g->nodes, link) {
+    gviz_export_node(fp, np, 1, indent+1);
+  }
+
+
   fprintf(fp, "}\n");
 
   fclose(fp);
@@ -590,6 +621,77 @@ gExport(graph_t *g, char *filename) {
 
 	sprintf(buf, "%s.gviz", filename);
 	gviz_export(g, buf);
+}
+
+/* ********************************************************************** */
+
+typedef struct ac_info_t {
+  node_t *parent;
+  int nparents;
+  node_t *child;
+  int nchildren;
+  int group;
+} ac_info_t;
+
+
+void
+gAssignClusters(graph_t *g, nodelist_t **clustersp, int *nclusters) {
+  ac_info_t *info;
+  node_t *np, *np2;
+  int group = 1;
+  nodelist_t *clusters;
+  edge_t *ep;
+  int i;
+  
+  info = (ac_info_t*)calloc(g->current_id, sizeof(ac_info_t));
+  assert(info);
+
+  TAILQ_FOREACH(np, &g->nodes, link) {
+    VEC_FOREACH(ep, &np->edgelist) {
+      if(ep->eg_color) continue;	/* ignore colored edges XXX */
+      info[np->id].nchildren++;
+      info[np->id].child = ep->eg_v;
+      info[ep->eg_v->id].nparents++;
+      info[ep->eg_v->id].parent = np;
+    }
+  }
+  
+  TAILQ_FOREACH(np, &g->nodes, link) {
+    assert(np->id < g->current_id);
+    if(info[np->id].group == 0) {
+      //fprintf(stderr, "node %d <- group %d\n", np->id, group);
+      info[np->id].group = group++;
+    }
+    if(info[np->id].nparents != 1) continue;
+    if(info[np->id].nchildren != 1) continue;
+    assert(info[np->id].group < group);
+    //fprintf(stderr, "%d: parent=%d, child=%d\n", 
+    //    np->id, info[np->id].parent->id, info[np->id].child->id);
+    TAILQ_FOREACH(np2, &g->nodes, link) {
+      if((info[np->id].parent == info[np2->id].parent && info[np2->id].nparents == 1) &&
+	 (info[np->id].child == info[np2->id].child && info[np2->id].nchildren == 1)) {
+	info[np2->id].group = info[np->id].group;
+	//fprintf(stderr, "%d, %d in same cluster\n", np2->id, np->id);
+      }
+    }
+  }
+
+  clusters = (nodelist_t*)malloc(group * sizeof(nodelist_t));
+  assert(clusters);
+
+  for(i=0; i<group; i++) {
+    TAILQ_INIT(&clusters[i]);
+  }
+
+  TAILQ_FOREACH(np, &g->nodes, link) {
+    assert(info[np->id].group < group);
+    TAILQ_INSERT_TAIL(&clusters[info[np->id].group], np, clink);
+  }
+
+  free(info);
+
+  *clustersp = clusters;
+  *nclusters = group;
 }
 
 /* ********************************************************************** */

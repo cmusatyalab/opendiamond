@@ -30,6 +30,7 @@ typedef struct edge_t {
 struct node_t;
 
 typedef TAILQ_HEAD(nodelist_t, node_t) nodelist_t;
+
 //typedef TAILQ_HEAD(edgelist_t, edge_t) edgelist_t;
 typedef struct edgelist_t {
   int len;
@@ -54,7 +55,7 @@ typedef struct node_t {
   char *label;			/* printable label */
   TAILQ_ENTRY(node_t) link;	/* link for node list */
   edgelist_t edgelist;		/* list of edges */
-
+  TAILQ_ENTRY(node_t) clink;	/* link for cluster list */
 
   /* user's data */
   int val;
@@ -67,7 +68,7 @@ typedef struct node_t {
 typedef struct graph_t {
   nodelist_t nodes;
   nodelist_t olist;		/* alternate list (output of some funcs) see GLIST */
-  int current_id;
+  int current_id;		/* also an upper bound on no. of nodes */
 } graph_t;
 
 
@@ -114,6 +115,10 @@ int gTopoSort(graph_t *g);
  * output (depth) will be in node->td, SP can be found via node->visit
  */
 void gSSSP(graph_t *g, node_t *src);
+
+
+void gAssignClusters(graph_t *g, nodelist_t **, int *);
+
 
 #ifdef __cplusplus
 }

@@ -487,10 +487,8 @@ device_main(void *arg)
 			 * the partial queue.
 			 */	
 			if (err == ENOENT) {
-				printf("tyring partial !! \n");
 				err = sstub_get_partial(sstate->comm_cookie, &new_obj);
 				if (err == 0) {
-					printf("have partial !! \n");
 					force_eval = 1;
                     sstate->pend_objs--; 
 				} else {

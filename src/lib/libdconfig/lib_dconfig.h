@@ -1,6 +1,12 @@
 #ifndef _LIB_DCONFIG_H_
 #define _LIB_DCONFIG_H_
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * Name lookup functions that map names into a collection of
  * group ids.
@@ -20,5 +26,9 @@ int nlkup_next_entry(char **name, void **cookie);
  */
 
 int glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* !_LIB_DCONFIG_H_ */

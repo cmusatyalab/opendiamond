@@ -58,6 +58,9 @@ DIST_OBJS += .depend
 %.o: %.c
 	${CC} ${INCDIR} ${CFLAGS} -c $< -o $@
 
+%.o: %.cc
+	${CPLUSPLUS} ${INCDIR} ${CFLAGS} -c $< -o $@
+
 # The common targets
 
 .PHONY :  all depend clean installdirs install mail FORCE

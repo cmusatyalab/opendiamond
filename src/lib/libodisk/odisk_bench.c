@@ -87,7 +87,7 @@ obj_fetch(void *arg)
 
 		} else {
 			cnt++;
-			odisk_release_obj(odisk, new_obj);
+			odisk_release_obj(new_obj);
 		}
 	}
 

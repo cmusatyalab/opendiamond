@@ -44,6 +44,7 @@
 //#include "filter_exec.h"
 //#include "obj_attr.h"
 //#include "lib_filter.h"
+#include "obj_attr.h"
 
 #ifdef	__cplusplus
 extern "C"
@@ -132,23 +133,19 @@ extern "C"
 	cache_ring_entry;
 
 	typedef struct {
-		unsigned int name_len;
-		char *name;
-		off_t data_len;
-		char *data;
-	}
-	cache_attr_t;
+		attr_record_t*	arec;
+		obj_data_t *	obj;	
+	} cache_attr_t;
 
 	typedef struct {
-		int			type;
-		uint64_t                oid;
+		int				type;
+		uint64_t    	oid;
 		union {
-			char                    *file_name;     /* the file name to cache oattr */
+			char            *file_name;     /* the file name to cache oattr */
 			cache_attr_t		oattr;		/*add output attr*/
 			char			iattr_sig[16];
 		} u;
-	}
-	oattr_ring_entry;
+	} oattr_ring_entry;
 
 	int digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args, int blob_len, void *blob, unsigned char ** signature);
 	int cache_lookup(uint64_t local_id, char *fsig, void *fcache_table, cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, char **fpath);

@@ -453,6 +453,9 @@ create_null_obj()
 	new_obj->data_len = 0;
 	new_obj->data = NULL;
 	new_obj->base = NULL;
+	new_obj->ref_count = 1;
+	pthread_mutex_init(&new_obj->mutex, NULL);
+
 	new_obj->attr_info.attr_ndata = 0;
 	new_obj->attr_info.attr_dlist = NULL;
 
@@ -1073,10 +1076,8 @@ search_close_conn(void *app_cookie)
 int
 search_free_obj(search_state_t *sstate, obj_data_t * obj)
 {
-	int 			err;
-	err = odisk_release_obj(sstate->ostate, obj);
+	odisk_release_obj(obj);
 	return (0);
-
 }
 
 /*
@@ -1087,7 +1088,6 @@ int
 search_release_obj(void *app_cookie, obj_data_t * obj)
 {
 	search_state_t *sstate;
-	int 			err;
 	sstate = (search_state_t *) app_cookie;
 
 	if (obj == NULL) {
@@ -1097,7 +1097,7 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 	sstate->pend_objs--;
 	sstate->pend_compute -= obj->remain_compute;
 
-	err = odisk_release_obj(sstate->ostate, obj);
+	odisk_release_obj(obj);
 	return (0);
 }
 

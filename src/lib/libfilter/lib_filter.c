@@ -156,7 +156,7 @@ lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
 	err = obj_read_attr(adata, name, len, data);
 	/* add read attrs into cache queue: input attr set */
 	if ( !err && (read_attr_fn != NULL) ) {
-		(*read_attr_fn)((char *)fhandle, odata->local_id, name, *len, data);
+		(*read_attr_fn)((char *)fhandle, obj, name, *len, data);
 	}
 	//if( !err )
 	//	ocache_add_iattr((char *)fhandle, odata->local_id, name, *len, data);
@@ -177,7 +177,7 @@ lf_ref_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
 	err = obj_ref_attr(adata, name, len, data);
 	/* add read attrs into cache queue: input attr set */
 	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn)((char *)fhandle, odata->local_id, name, *len, *data);
+		(*read_attr_fn)((char *)fhandle, obj, name, *len, *data);
 	}
 	//if( !err )
 	//	ocache_add_iattr((char *)fhandle, odata->local_id, name, *len, data);
@@ -223,7 +223,7 @@ lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
 	err = obj_write_attr(adata, name, len, data);
 	/* add writen attrs into cache queue: output attr set */
 	if ( !err && (write_attr_fn != NULL) ) {
-		(*write_attr_fn)((char *)fhandle, odata->local_id, name, len, data);
+		(*write_attr_fn)((char *)fhandle, obj, name, len, data);
 	}
 	//if( !err )
 	//	ocache_add_oattr((char *)fhandle, odata->local_id, name, len, data);

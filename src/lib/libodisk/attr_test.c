@@ -262,7 +262,7 @@ main(int argc, char **argv)
 	err = odisk_save_obj(odisk, new_obj);
 	assert(err == 0);
 
-	err = odisk_release_obj(odisk, new_obj);
+	odisk_release_obj(new_obj);
 
 
 	/*
@@ -277,8 +277,7 @@ main(int argc, char **argv)
 	err = odisk_save_obj(odisk, new_obj);
 	assert(err == 0);
 
-	err = odisk_release_obj(odisk, new_obj);
-	assert(err == 0);
+	odisk_release_obj(new_obj);
 
 
 	/* reload and make sure our size is now less than before */

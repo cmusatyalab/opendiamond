@@ -79,11 +79,13 @@ typedef struct gid_list {
 /*
  * This is the state associated with the object
  */
-typedef struct {
+typedef struct obj_data {
 	off_t			data_len;
 	off_t			cur_offset;
-    	uint64_t        	local_id;
+   	uint64_t       	local_id;
 	int		    	cur_blocksize;
+	int		    	ref_count;
+	pthread_mutex_t	mutex;
 	float			remain_compute;
 	char *			data;
 	char *			base;
@@ -129,7 +131,8 @@ int odisk_read_obj(struct odisk_state *odisk, obj_data_t *obj, int *len,
 
 int odisk_add_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
 int odisk_rem_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
-int odisk_release_obj(struct odisk_state *odisk, obj_data_t *obj);
+void odisk_release_obj(obj_data_t *obj);
+void odisk_ref_obj(obj_data_t *obj);
 int odisk_set_gid(struct odisk_state *odisk, groupid_t gid);
 int odisk_clear_gids(struct odisk_state *odisk);
 int odisk_reset(struct odisk_state *odisk);
@@ -140,6 +143,8 @@ int odisk_num_waiting(struct odisk_state *odisk);
 int odisk_load_obj(odisk_state_t *odisk, obj_data_t **o_handle, char *name);
 
 int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
+
+int odisk_get_attr_sig(obj_data_t *obj, const char *name, char *data, int len);
 
 
 /* JIAYING */

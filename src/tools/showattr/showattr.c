@@ -118,6 +118,7 @@ show_attr(char *attr_name)
 	int		err;
 	obj_attr_t 	attr;
 	attr_record_t	*cur_rec = NULL;
+	obj_adata_t *		adata;
 	int		cur_offset;
 
 	err = obj_read_attr_file(attr_name, &attr);
@@ -130,11 +131,14 @@ show_attr(char *attr_name)
 	 * walk through all the attributes records and
 	 * display them.
 	 */
-	cur_offset = 0;
-	while (cur_offset < attr.attr_len) {
-		cur_rec = (attr_record_t *)&attr.attr_data[cur_offset];
-		print_attr(cur_rec);
-		cur_offset += cur_rec->rec_len;
+
+	for (adata = attr.attr_dlist; adata != NULL; adata = adata->adata_next) {
+		cur_offset = 0;
+		while (cur_offset < adata->adata_len) {
+			cur_rec = (attr_record_t *)&adata->adata_data[cur_offset];
+			print_attr(cur_rec);
+			cur_offset += cur_rec->rec_len;
+		}
 	}
 
 	return (0);

@@ -89,9 +89,7 @@ rpc_create_obj_1_svc(create_obj_arg_t *arg, struct svc_req *rq)
 		init_disk();
 	}
 
-	printf("createing obj \n");
 	err = odisk_new_obj(odata, &new_oid, arg->gid);
-	printf("done create obj \n");
 
 	result.obj_id = &new_oid;
 	result.status = err;
@@ -124,7 +122,7 @@ rpc_write_data_1_svc(write_data_arg_t *arg, struct svc_req *rq)
 			err = odisk_save_obj(odata, obj);
 		}
 		result = err;
-		odisk_release_obj(odata, obj);
+		odisk_release_obj(obj);
 	}
 
 	return(&result);
@@ -167,7 +165,7 @@ rpc_read_data_1_svc(read_data_arg_t *arg, struct svc_req *rq)
 			result.data.data_len = len;
 			result.data.data_val = buf;
 		}
-		odisk_release_obj(odata, obj);
+		odisk_release_obj(obj);
 	}
 	return(&result);
 }
@@ -194,7 +192,7 @@ rpc_add_gid_1_svc(update_gid_args_t *arg, struct svc_req *rq)
 		result = err;
 		err = odisk_save_obj(odata, obj);
 		assert(err == 0);
-		odisk_release_obj(odata, obj);
+		odisk_release_obj(obj);
 	}
 
 	return(&result);
@@ -223,7 +221,7 @@ rpc_rem_gid_1_svc(update_gid_args_t *arg, struct svc_req *rq)
 		result = err;
 		err = odisk_save_obj(odata, obj);
 		assert(err == 0);
-		odisk_release_obj(odata, obj);
+		odisk_release_obj(obj);
 	}
 
 	return(&result);
@@ -260,7 +258,7 @@ rpc_write_attr_1_svc(wattr_args_t *arg, struct svc_req *rq)
 
 	err = odisk_save_obj(odata, obj);
 	assert(err == 0);
-	odisk_release_obj(odata, obj);
+	odisk_release_obj(obj);
 
 	result = 0;
 	return(&result);
@@ -320,7 +318,7 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
 	err = obj_read_attr(&obj->attr_info, arg->name, &len, dbuf);
 	if (err)
 	{
-		odisk_release_obj(odata, obj);
+		odisk_release_obj(obj);
 		result.status = err;
 		result.data.data_len = 0;
 		result.data.data_val = NULL;
@@ -334,7 +332,7 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
 	result.data.data_val = dbuf;
 
 done:
-	odisk_release_obj(odata, obj);
+	odisk_release_obj(obj);
 	return(&result);
 }
 

@@ -53,8 +53,8 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
+#include "sig_calc.h"
 
-#define TEMP_ATTR_BUF_SIZE      1024
 #define CACHE_DIR               "cache"
 
 int
@@ -167,6 +167,7 @@ extend_attr_store(obj_attr_t *attr, int new_size)
 	/* we extend the store by multiples of attr_increment */
 	buf_size = (new_size + (ATTR_INCREMENT -1)) &
 	                 ~(ATTR_INCREMENT - 1);
+	assert(buf_size >= new_size);
 
 	new_attr = (char *)malloc(buf_size);
 	assert(new_attr != NULL);
@@ -238,7 +239,6 @@ match:
 		new_frag = (attr_record_t *)&(((char *)good_rec)[size]);
 		new_frag->rec_len = good_rec->rec_len - size;
 		new_frag->flags = ATTR_FLAG_FREE;
-
 		/* set the new size and clear free flag */
 		good_rec->rec_len = size;
 		good_rec->flags &= ~ATTR_FLAG_FREE;
@@ -309,6 +309,20 @@ find_record(obj_attr_t *attr, const char *name)
 	return(NULL);
 }
 
+int 
+odisk_get_attr_sig(obj_data_t *obj, const char *name, char *data, int len)
+{
+	attr_record_t *	arec;
+
+
+	arec = find_record(&obj->attr_info, name);
+	if (arec == NULL) {
+		return(ENOENT);
+	}
+
+	memcpy(data, arec->attr_sig, len);
+	return(0);
+}
 
 
 /*
@@ -321,12 +335,14 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	attr_record_t *	data_rec;
 	int		total_size;
 	int		namelen;
+	unsigned char *sig_ptr;
 
 	/* XXX validate object ??? */
 	/* XXX make sure we don't have the same name on the list ?? */
 
-	if( name == NULL )
+	if (name == NULL) {
 		return (EINVAL);
+	}
 	namelen = strlen(name) + 1;
 
 	/* XXX this overcounts data space !! \n */
@@ -360,6 +376,11 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	data_rec->data_len = len;
 	memcpy(data_rec->data, name, namelen);
 	memcpy(&data_rec->data[namelen], data, len);
+
+	/* compute the attribute signature and save it */
+	memset(data_rec->attr_sig, 0, ATTR_MAX_SIG);
+	sig_ptr = data_rec->attr_sig;
+	sig_cal(data, len, &sig_ptr);	
 
 	return(0);
 }
@@ -409,10 +430,9 @@ obj_read_attr(obj_attr_t *attr, const char * name, off_t *len, char *data)
  * the real data.  The caller may not modify it.
  */
 int
-obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, char **data)
+obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, char **data) 
 {
 	attr_record_t *		record;
-	char *			dptr;
 
 	record = find_record(attr, name);
 	if (record == NULL) {
@@ -538,99 +558,6 @@ obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
 }
 
 
-#ifdef	XXX
-int
-obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr)
-{
-	int fd;
-	unsigned int name_len;
-	char name[MAX_ATTR_NAME];
-	off_t data_len;
-	char data[TEMP_ATTR_BUF_SIZE];
-	char *ldata;
-	off_t           size, rsize;
-	struct stat     stats;
-	char attrbuf[PATH_MAX];
-	uint64_t tmp1, tmp2, tmp3, tmp4;
-	int err, len;
-
-	if( (fsig == NULL) || (iattrsig == NULL) ) {
-		printf("fsig or iattrsig is NULL\n");
-		return (EINVAL);
-	}
-	memcpy(&tmp1, fsig, sizeof(tmp1) );
-	memcpy(&tmp2, fsig+8, sizeof(tmp2) );
-	memcpy(&tmp3, iattrsig, sizeof(tmp3) );
-	memcpy(&tmp4, iattrsig+8, sizeof(tmp4) );
-
-	len = snprintf(attrbuf, MAX_ATTR_NAME,
-	               "%s/%s/%016llX%016llX/%016llX.%016llX%016llX",
-	               disk_path, CACHE_DIR, tmp1, tmp2, oid, tmp3, tmp4);
-	assert(len < (MAX_ATTR_NAME - 1));
-
-	err = access(attrbuf, F_OK);
-	if( err != 0 ) {
-		//printf("file %s does not exist\n", attrbuf);
-		return(EINVAL);
-	}
-
-	//printf("use oattr file %s\n", attrbuf);
-	fd = open(attrbuf, O_RDONLY );
-	if (fd == -1) {
-		printf("failed to open file %s\n", attrbuf);
-		return (EINVAL);
-	}
-
-	err = flock(fd, LOCK_EX);
-	if (err != 0) {
-		perror("failed to lock attributes file\n");
-		close(fd);
-		return (EINVAL);
-	}
-	err = fstat(fd, &stats);
-	if (err != 0) {
-		perror("failed to stat attributes\n");
-		close(fd);
-		return (EINVAL);
-	}
-	size = stats.st_size;
-
-	if (size == 0) {
-		close(fd);
-		return (0);
-	}
-	while(size > 0) {
-		read(fd, &name_len, sizeof(unsigned int));
-		if( name_len >= MAX_ATTR_NAME ) {
-			printf("too long att name %d for oid %016llX\n", name_len, oid);
-			close(fd);
-			return(EINVAL);
-		}
-		assert( name_len < MAX_ATTR_NAME );
-		read(fd, name, name_len);
-		name[name_len] = '\0';
-		read(fd, &data_len, sizeof(off_t));
-		if( data_len > TEMP_ATTR_BUF_SIZE ) {
-			ldata = (char *) malloc(data_len);
-			read(fd, ldata, data_len);
-			err = obj_write_attr(attr, name, data_len, ldata);
-			free(ldata);
-		} else {
-			read(fd, data, data_len);
-			err = obj_write_attr(attr, name, data_len, data);
-		}
-		if( err != 0 ) {
-			printf("CHECK OBJECT %016llX ATTR FILE\n", oid);
-		}
-		assert( err == 0 );
-		rsize = sizeof(unsigned int) + name_len + sizeof(off_t) + data_len;
-		size -= rsize;
-	}
-	close(fd);
-	return (0);
-}
-#endif
-
 int
 obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, 
 	obj_attr_t *attr)
@@ -701,3 +628,14 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig,
 		return(0);
     }
 }
+
+
+attr_record_t * 
+odisk_get_arec(struct obj_data *obj, const char *name)
+{
+	attr_record_t *arec;
+
+	arec = find_record(&obj->attr_info, name);
+	return(arec);
+}
+

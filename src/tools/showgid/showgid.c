@@ -87,9 +87,6 @@ show_gid(gid_list_t *glist)
 }
 
 
-int odisk_load_obj(obj_data_t **ohandle, char *name);
-
-
 
 
 int
@@ -102,8 +99,12 @@ main(int argc , char **argv)
 	int			extlen;
 	int             err;
 	gid_list_t  *       glist;
+	odisk_state_t *		odisk;
 	off_t           len;
 	obj_data_t  *ohandle;
+
+	odisk_init(&odisk, ".", NULL, NULL);
+
 
 	while (argc != i) {
 		cur_file = argv[i];
@@ -126,7 +127,7 @@ main(int argc , char **argv)
 			}
 		}
 
-		err = odisk_load_obj(&ohandle, cur_file);
+		err = odisk_load_obj(odisk, &ohandle, cur_file);
 		assert(err == 0);
 
 		len = 0;

@@ -40,6 +40,9 @@
 
 #include <stdint.h>
 
+
+struct obj_data;
+
 typedef struct obj_adata {
     off_t           	adata_len;
     char           	*	adata_data;
@@ -63,20 +66,26 @@ typedef struct {
  */
 
 
+/* maximum signature size we support */
+#define	ATTR_MAX_SIG		20
+
 typedef struct attr_record {
-	int		rec_len;
-	int		name_len;
-	int		data_len;
-	int		flags;
-	char 	data[0];
+	int				rec_len;
+	int				name_len;
+	int				data_len;
+	unsigned char	attr_sig[ATTR_MAX_SIG];
+	int				flags;
+	char 			data[0];
 } attr_record_t;
+
+
 
 #define	ATTR_FLAG_FREE		0x01
 #define	ATTR_FLAG_RECOMPUTE	0x02
 
 /* constant for the extend increment size */
 #define	ATTR_INCREMENT	4096
-#define	ATTR_MIN_FRAG	64
+#define	ATTR_MIN_FRAG	(sizeof(attr_record_t) + 64)
 
 #define	ATTR_BIG_THRESH	1000
 
@@ -85,7 +94,6 @@ typedef struct attr_record {
  * The extension on a file that shows it is an attribute.
  */
 #define	ATTR_EXT	".attr"
-
 /*
  * The maximum lenght of the name string for an attribute.
  */
@@ -114,5 +122,8 @@ int obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len,
 
 //int obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr);
 int obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr);
+
+attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
+
 
 #endif                          /* ! _OBJ_ATTR_H_ */

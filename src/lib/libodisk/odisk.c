@@ -110,8 +110,9 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 		return (ENOMEM);
 	}
 
-	/*
-	 * open the file 
+	/* open and read the data file, since we are streaming through
+     * the data we try to use the direct reads to save the memcopy
+     * in the buffer cache.
 	 */
 	os_file = open(name, (O_RDONLY|O_DIRECT));
 	if (os_file == -1) {
@@ -149,9 +150,12 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 			return (ENOENT);
 		}
 	}
+	close(os_file);
 	new_obj->data = data;
 	new_obj->base = base;
 	new_obj->data_len = stats.st_size;
+	new_obj->ref_count = 1;
+	pthread_mutex_init(&new_obj->mutex, NULL);
 
 	ptr = rindex(name, '/');
 	if (ptr == NULL) {
@@ -167,13 +171,11 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	 */
 	len = snprintf(attr_name, NAME_MAX, "%s%s", name, ATTR_EXT);
 	assert(len < NAME_MAX);
-
 	obj_read_attr_file(attr_name, &new_obj->attr_info);
 
 
 	*obj_handle = (obj_data_t *) new_obj;
 
-	close(os_file);
 
 	odisk->obj_load++;
 
@@ -306,16 +308,42 @@ odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
 	return (err);
 }
 
+void
+odisk_ref_obj(obj_data_t * obj)
+{
 
-int
-odisk_release_obj(odisk_state_t * odisk, obj_data_t * obj)
+	/* increment ref count */
+	pthread_mutex_lock(&obj->mutex);
+	obj->ref_count++;
+	pthread_mutex_unlock(&obj->mutex);
+
+	return;
+}
+
+void
+odisk_release_obj(obj_data_t * obj)
 {
 
 	obj_adata_t *cur, *next;
 
+	/* decrement ref count */
+	pthread_mutex_lock(&obj->mutex);
+	obj->ref_count--;
+	if (obj->ref_count != 0) {
+		pthread_mutex_unlock(&obj->mutex);
+		return;
+	}
+
+	/*
+	 * we can release the lock now because we own the last reference
+	 * (or else someone screwed up).
+	 */	
+	pthread_mutex_unlock(&obj->mutex);
+
+	
 	/* XXX make assert ?? */
 	if (obj == NULL) {
-		return (0);
+		return;
 	}
 
 	if (obj->base != NULL) {
@@ -330,8 +358,9 @@ odisk_release_obj(odisk_state_t * odisk, obj_data_t * obj)
 		cur = next;
 	}
 	
+	pthread_mutex_destroy(&obj->mutex);
 	free(obj);
-	return (0);
+	return;
 }
 
 static int
@@ -477,7 +506,7 @@ odisk_new_obj(odisk_state_t * odisk, obj_id_t * oid, groupid_t * gid)
 	update_gid_idx(odisk, buf, gid);
 
 	odisk_save_obj(odisk, obj);
-	odisk_release_obj(odisk, obj);
+	odisk_release_obj(obj);
 
 	return (0);
 }
@@ -526,10 +555,13 @@ odisk_write_obj(odisk_state_t * odisk, obj_data_t * obj, int len,
 	total_len = offset + len;
 
 	if (total_len > obj->data_len) {
-		dbuf = realloc(obj->data, total_len);
+		dbuf = (char *)malloc(total_len);
 		assert(dbuf != NULL);
+		memcpy(dbuf, obj->data, obj->data_len);
 		obj->data_len = total_len;
+		free(obj->base);
 		obj->data = dbuf;
+		obj->base = dbuf;
 	}
 
 	memcpy(&obj->data[offset], data, len);
@@ -842,7 +874,7 @@ odisk_flush(odisk_state_t *odisk)
 		if( !ring_empty(obj_ring) ) {
 			obj = ring_deq(obj_ring);
 			if( obj != NULL )
-				odisk_release_obj(odisk, obj);
+				odisk_release_obj(obj);
 		} else {
 			break;
 		}
@@ -1488,7 +1520,7 @@ odisk_build_indexes(odisk_state_t * odisk)
 		 * Go through each of the GID's and update the index file.
 		 */
 		update_object_gids(odisk, new_object, cur_ent->d_name);
-		odisk_release_obj(odisk, new_object);
+		odisk_release_obj(new_object);
 	}
 
 	closedir(dir);
@@ -1588,7 +1620,7 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 		 * save the state 
 		 */
 		odisk_save_obj(odisk, new_object);
-		odisk_release_obj(odisk, new_object);
+		odisk_release_obj(new_object);
 	}
 
 	closedir(dir);

@@ -86,7 +86,7 @@ obj_fetch(void *arg)
 
 		} else {
 			cnt++;
-			odisk_release_obj(odisk, new_obj);
+			odisk_release_obj(new_obj);
 		}
 	}
 }
@@ -135,7 +135,7 @@ get_oid_loop(void *arg)
 					path_name, err);
         		} else {
 				cnt++;
-				odisk_release_obj(odisk, new_obj);
+				odisk_release_obj(new_obj);
 			}
 		} else if (err == ENOENT) {
 			gettimeofday(&tv, &tz);

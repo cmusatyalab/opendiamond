@@ -34,6 +34,9 @@ options:
 EOT
 }
 
+1;
+
+my $no_exec;
 
 while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     if(/^-g(.*)/) {
@@ -45,6 +48,9 @@ while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     }
     if(/^-p/) {
 	die $insert_parent = 1;
+    }
+    if(/^-n/) {
+	$no_exec = 1;
     }
     shift @ARGV;
 }
@@ -111,6 +117,12 @@ foreach my $gid (@gids) {# foreach is by ref
 	print GIDMAP "#\n# $root\n$gid\t$machines\n";
 	close GIDMAP;
     }
+}
+
+warn("using gids: ", join(", ", @gids), "\n");
+
+if($no_exec) {
+    exit(0);
 }
 
 &process_directory($root);

@@ -3,6 +3,11 @@
 use strict;
 use File::Temp qw/ tempfile tempdir /; 
 
+# Modified version of populate-disk that only sticks sound
+# files for Solar into Diamond.
+# Main changes: no longer does convert, so concept of parent
+# image is no longer valid
+
 # Given a subdirectory of images, inserts each image into the
 # object database with the appropriate GID, both as a
 # reduced-resolution PPM and as the full-resolution original.
@@ -16,35 +21,37 @@ use File::Temp qw/ tempfile tempdir /;
 #   only, and gives the OID of the original image.
 
 my $main_pid = $$;
-my @gids;
-my $insert_parent = 0; # whether to insert parent objects
+# my @gids;
+my $gid;
 
 sub usage {
     return <<EOT;
 Usage $0 [options] src-dir [dest-machine-list]
 populate disks with search form of images from src-dir.
 options:
-[-g<gid1>] [-g<gid2>] - gids to be used they should be in the 
+[-g<gid1>] - gid to be used they should be in the 
       gid_map file. if gids are specified, machine names will be ignored.
       gids should be specified as : separated bytes in hex. gids will
       be padded to 64 bits length (8 bytes).
-      gid1 is used for the search images, gid2 for the parent images
 -h    - this help text
--p    - insert parent images also
 EOT
 }
+# [-g<gid1>] [-g<gid2>] - gids to be used they should be in the 
+#       gid_map file. if gids are specified, machine names will be ignored.
+#       gids should be specified as : separated bytes in hex. gids will
+#       be padded to 64 bits length (8 bytes).
+#       gid1 is used for the search images, gid2 for the parent images
 
 
 while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     if(/^-g(.*)/) {
 	# this should be a : separated hex string
-	push(@gids, check_gid($1));
+	print STDERR "saw gid = $1\n";
+        # push(@gids, check_gid($1));
+	$gid = $1;
     }
     if(/^-h/) {
 	die usage();
-    }
-    if(/^-p/) {
-	die $insert_parent = 1;
     }
     shift @ARGV;
 }
@@ -53,31 +60,21 @@ die usage() unless scalar(@ARGV) >= 1;
 
 # print "$0 ", join(' ', @ARGV), "\n";
 
-# List of known image types (extensions)
+# List of known file types (extensions)
 # The key is extension, value is the Content-Type MIME string
 my %valid = (
-	     jpeg => 'image/jpeg',
-	     jpg => 'image/jpeg',
-	     gif => 'image/gif',
-	     ppm => 'image/x-portable-pixmap',
-	     pgm => 'image/x-portable-graymap',
-	     png => 'image/png',
-	     tif => 'image/tiff',
-	     tiff => 'image/tiff',
-	     pcd => 'image/pcd'
+	     wav => 'audio/wav'	
   );
 
 # This will probably change TODO
 my $insert_command = "./apitest";
 
-# don't really do anything (imperfect)
-my $noact;# = 1;
 
-# Temporary file used for conversion purposes
-my $tempext = 'ppm';
-my $tempdir = tempdir("diamond-temp-XXXX", TMPDIR => 1, CLEANUP => 0 );
-#my $tempfile = "/tmp/diamond-ppm-$$.$tempext";
-#die "The tempfile ($tempfile) already exists." if (-e $tempfile);
+# # Temporary file used for conversion purposes
+# my $tempext = 'ppm';
+# my $tempdir = tempdir("diamond-temp-XXXX", TMPDIR => 1, CLEANUP => 0 );
+# #my $tempfile = "/tmp/diamond-ppm-$$.$tempext";
+# #die "The tempfile ($tempfile) already exists." if (-e $tempfile);
 
 # Hashtable of gids that have been used (defined in gid_map
 # or during this run of the program).
@@ -101,8 +98,9 @@ my $maxchild = 5;
 # Two unique, unused gids.
 # gids[2] is for the originals
 # gids[1] is for the reduced-resolution ones
-$#gids  = 1;			#  only need 2
-foreach my $gid (@gids) {# foreach is by ref
+# $#gids  = 1;			#  only need 2
+# $#gids  = 0;			#  only need 1
+# foreach my $gid (@gids) {# foreach is by ref
     if(defined $gid) {
 	die("gid $gid not defined in map file") unless $used_gid{$gid};
     } else {
@@ -112,7 +110,8 @@ foreach my $gid (@gids) {# foreach is by ref
 	print GIDMAP "#\n# $root\n$gid\t$machines\n";
 	close GIDMAP;
     }
-}
+# }
+
 
 #die;
 
@@ -123,9 +122,9 @@ END {
 	while(wait() > 0) {
 	    print "reaping children...\n";
 	}
-	if($tempdir) {
-	    rmdir $tempdir || warn("$tempdir not cleaned\n");
-	}
+#	if($tempdir) {
+#	    rmdir $tempdir || warn("$tempdir not cleaned\n");
+#	}
     }
 }
 
@@ -145,6 +144,7 @@ sub process_gidmapfile {
     #$g =~ s/://g;
     $g = "\L$g";
     $used_gid{$g}++;
+    # print STDERR "Added gid: $g\n";
   }
   close GIDMAP;
 }
@@ -253,63 +253,67 @@ sub process_image {
   my ($retval);
   my @args;
   my $exec;			# display version
-  my $parent_oid = 0;
+#  my $parent_oid = 0;
+  my $oid = 0;
 
   my $keywords = &make_keywords($dispname);
 
-  if($insert_parent) {
+  {
       # build args
       #args: file gid [attr1 val1] [attr2 val2]
-      @args = ($img, $gids[2],
+      # @args = ($img, $gids[2],
+      @args = ($img, $gid,
 	       'Display-Name', $dispname,
 	       'Keywords', $keywords,
 	       'Content-Type', $valid{$ext});
       # display version of command:
       $exec = "$insert_command " . join(' ', @args);
       print qid()." $exec\n";
-      if(!$noact) {
+      {
 	  open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
 	  while (<PROG>) {
 	      chomp;
 	      next unless /OID\s*=\s*(.+)/;
-	      $parent_oid = $1;
-	      print qid()." extracted parent oid: $parent_oid\n";
+	      $oid = $1;
+	      print qid()." extracted oid: $oid\n";
 	  }
 	  close PROG;
       }
   }
 
-  my($tempfh, $tempfile) = tempfile("loader-$$-XXXXXX", UNLINK => 0, DIR => $tempdir);
-  #my $tempfile = "/dev/fd/".fileno($tempfh);
-
-  if(!$noact) {
-      $retval = system("convert", $img, '-resize', '400x300', "ppm:$tempfile");
-      if($retval) {
-	  warn qid()." convert gave a return code of $retval: $!";
-	  exit(1);
-      }
-  }
-
-  @args = ($tempfile, $gids[1],
-	   'Display-Name', $dispname,
-	   'Keywords', $keywords,
-	   'Content-Type', $valid{$tempext},
-	   'Parent-OID', $parent_oid);
-  $exec = "$insert_command " . join(' ', @args);
-  print qid()." $exec\n";
-  if(!$noact) {
-      open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
-      $SIG{PIPE} = 'IGNORE';
-      while (<PROG>) {
-      }
-      close PROG || die qid()."cant close $exec: status $?\n";
-      #$retval = system($insert_command, @args);
-      #die qid()." $insert_command failed with return code of $retval: $!" if $retval;
-  }
-
-  print qid()." ---\n";
-  unlink $tempfile or die qid()." Unable to delete $tempfile";
-  close($tempfh);
+####################
+# 
+#   my($tempfh, $tempfile) = tempfile("loader-$$-XXXXXX", UNLINK => 0, DIR => $tempdir);
+#   #my $tempfile = "/dev/fd/".fileno($tempfh);
+# 
+#   if(!$noact) {
+#       $retval = system("convert", $img, '-resize', '400x300', "ppm:$tempfile");
+#       if($retval) {
+# 	  warn qid()." convert gave a return code of $retval: $!";
+# 	  exit(1);
+#       }
+#   }
+# 
+#   @args = ($tempfile, $gids[1],
+# 	   'Display-Name', $dispname,
+# 	   'Keywords', $keywords,
+# 	   'Content-Type', $valid{$tempext},
+# 	   'Parent-OID', $parent_oid);
+#   $exec = "$insert_command " . join(' ', @args);
+#   print qid()." $exec\n";
+#   if(!$noact) {
+#       open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
+#       $SIG{PIPE} = 'IGNORE';
+#       while (<PROG>) {
+#       }
+#       close PROG || die qid()."cant close $exec: status $?\n";
+#       #$retval = system($insert_command, @args);
+#       #die qid()." $insert_command failed with return code of $retval: $!" if $retval;
+#   }
+# 
+#   print qid()." ---\n";
+#   unlink $tempfile or die qid()." Unable to delete $tempfile";
+#   close($tempfh);
 }
 
 #  print $count++, ": Insert $img with gid=$gid1 (TODO)\n";

@@ -108,17 +108,17 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 
     fprintf(stderr, "slowdown !!!! \n");
     if (fexec_cpu_slowdown != 0) {
-        fprintf(stderr, "slowdonw already set !!!! \n");
+        fprintf(stderr, "slowdown already set !!!! \n");
         return (EAGAIN);
     }
 
     if (data == 0) {
-        fprintf(stderr, "slowdonw no data  !!!! \n");
+        fprintf(stderr, "slowdown no data  !!!! \n");
         return (0);
     }
 
     if (data > 90) {
-        fprintf(stderr, "slowdonw out of range  !!!! \n");
+        fprintf(stderr, "slowdown out of range  !!!! \n");
         return (EINVAL);
     }
 
@@ -915,7 +915,8 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
                 	pass = 1;
                 	break;
             	}
-			} else if (fexec_autopart_type == AUTO_PART_QUEUE) {
+			} else if ((fexec_autopart_type == AUTO_PART_QUEUE) &&
+					   (cur_filter->fi_firstgroup)) {
 				if ((*continue_cb)(cookie) == 0) {
                 	pass = 1;
                 	break;

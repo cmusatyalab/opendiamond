@@ -389,7 +389,7 @@ device_main(void *arg)
 				/* XXX process the object */
 				sstate->obj_processed++;
 
-				err = eval_filters(new_obj, sstate->fdata, NULL, NULL);
+				err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
 				if (err == 0) {
 					sstate->obj_dropped++;
 					search_release_obj(NULL, new_obj);
@@ -409,7 +409,6 @@ device_main(void *arg)
 					}
 				}
 			}
-
 		}
 
 		/*

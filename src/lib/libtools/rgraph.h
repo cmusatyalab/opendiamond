@@ -15,7 +15,10 @@
 extern "C" {
 #endif
 
-
+#if 0
+}
+#endif
+  
 struct node_t;
 typedef struct edge_t {
 	struct node_t        *eg_v;
@@ -37,7 +40,7 @@ typedef struct edgelist_t {
   int size;
   edge_t *edges;
 } edgelist_t;
-
+  
 
 
 typedef struct node_t {
@@ -54,7 +57,8 @@ typedef struct node_t {
   int id;			/* unique id */
   char *label;			/* printable label */
   TAILQ_ENTRY(node_t) link;	/* link for node list */
-  edgelist_t edgelist;		/* list of edges */
+  edgelist_t successors;	/* list of edges */
+  edgelist_t predecessors;	/* list of edges */
   TAILQ_ENTRY(node_t) clink;	/* link for cluster list */
 
   /* user's data */
@@ -63,7 +67,7 @@ typedef struct node_t {
 } node_t;
 
 
-
+  
 
 typedef struct graph_t {
   nodelist_t nodes;
@@ -86,6 +90,9 @@ node_t *gNewNode(graph_t *g, char *label);
 
 /* add a directed edge to the graph */
 edge_t *gAddEdge(graph_t *g, node_t *u, node_t *v);
+
+const edgelist_t *gSuccessors(const graph_t *g, node_t *u);
+const edgelist_t *gPredecessors(const graph_t *g, node_t *u);
 
 /* print to stdout */
 void gPrint(graph_t *g);

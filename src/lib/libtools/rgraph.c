@@ -105,7 +105,8 @@ gClear(graph_t *g) {
     TAILQ_REMOVE(&g->nodes, np, link);
 
     /* free edges */
-    vec_free(&np->edgelist);
+    vec_free(&np->successors);
+    vec_free(&np->predecessors);
 /*     while(!TAILQ_EMPTY(&np->edges)) { */
 /*       ep = TAILQ_FIRST(&np->edges); */
 /*       TAILQ_REMOVE(&np->edges, ep, eg_link); */
@@ -123,7 +124,8 @@ gNewNode(graph_t *g, char *label) {
   np->id = g->current_id++;
   np->label = strdup(label);
   //TAILQ_INIT(&np->edges);
-  vec_init(&np->edgelist);
+  vec_init(&np->successors);
+  vec_init(&np->predecessors);
 
   TAILQ_INSERT_TAIL(&g->nodes, np, link);
   return np;
@@ -139,8 +141,13 @@ gAddEdge(graph_t *g, node_t *u, node_t *v) {
 /*   ep->eg_v = v; */
 
   //TAILQ_INSERT_TAIL(&u->edges, ep, eg_link);
-  ep = vec_append(&u->edgelist);
+  ep = vec_append(&u->successors);
   ep->eg_v = v;
+  ep->eg_val = v->val;		/* XXX */
+  ep->eg_color = 0;
+
+  ep = vec_append(&v->predecessors);
+  ep->eg_v = u;
   ep->eg_val = v->val;		/* XXX */
   ep->eg_color = 0;
 
@@ -155,6 +162,17 @@ gRemoveEdge(graph_t *g, edge_t *ep) {
   free(ep);
 }
 
+const edgelist_t *
+gSuccessors(const graph_t *g, node_t *u) {
+  return &(u->successors);
+}
+
+
+const edgelist_t *
+gPredecessors(const graph_t *g, node_t *u) {
+  return &(u->predecessors);
+}
+
 
 
 void
@@ -166,7 +184,7 @@ gPrintNode(node_t *np) {
 
   printf("E(");
   //TAILQ_FOREACH(ep, &np->edges, eg_link) {
-  VEC_FOREACH(ep, &np->edgelist) {
+  VEC_FOREACH(ep, &np->successors) {
     printf(" <%s>", ep->eg_v->label);
   }
   printf(" )}\n");
@@ -253,8 +271,8 @@ topo_visit(node_t *np, nodelist_t *list) {
   fprintf(stderr, "visiting %s\n", np->label);
 #endif
   //TAILQ_FOREACH(ep, &np->edges, eg_link) {
-  sort_edgelist(&np->edgelist);	/* XXX */
-  VEC_FOREACH(ep, &np->edgelist) {
+  sort_edgelist(&np->successors);	/* XXX */
+  VEC_FOREACH(ep, &np->successors) {
     loop += topo_visit(ep->eg_v, list);
   }
   np->color = 2;
@@ -426,7 +444,7 @@ gSSSP(graph_t *g, node_t *src) {
     printf("processing node %s\n", np->label);
     np->color = 1;
     //TAILQ_FOREACH(ep, &np->edges, eg_link) {   
-    VEC_FOREACH(ep, &np->edgelist) {
+    VEC_FOREACH(ep, &np->successors) {
       node_t *v = ep->eg_v;	/* alias */
       if(v->color == 0) {
 	if(v->td > np->td + v->val) {
@@ -473,7 +491,7 @@ dv_export_node(FILE *fp, node_t *np, int indent) {
   /* export edges */
   fprintf(fp, "\t[");
   //TAILQ_FOREACH(ep, &np->edges, eg_link) {
-  VEC_FOREACH(ep, &np->edgelist) {
+  VEC_FOREACH(ep, &np->successors) {
     if(count++) fprintf(fp, ",\n\t");
 
     //edgecolor = (TAILQ_NEXT(np, olink) == ep->eg_v) ? red : black;
@@ -539,7 +557,7 @@ gviz_export_node(FILE *fp, node_t *np, int printedges, int indent) {
 
   if(printedges) {
     /* export edges */
-    VEC_FOREACH(ep, &np->edgelist) {
+    VEC_FOREACH(ep, &np->successors) {
       fprintf(fp, "%s%d -> %d", ind, np->id, ep->eg_v->id);
       if(ep->eg_color) {
 	fprintf(fp, " [constraint=false, style=bold, color=%s]", red);
@@ -647,7 +665,7 @@ gAssignClusters(graph_t *g, nodelist_t **clustersp, int *nclusters) {
   assert(info);
 
   TAILQ_FOREACH(np, &g->nodes, link) {
-    VEC_FOREACH(ep, &np->edgelist) {
+    VEC_FOREACH(ep, &np->successors) {
       if(ep->eg_color) continue;	/* ignore colored edges XXX */
       info[np->id].nchildren++;
       info[np->id].child = ep->eg_v;

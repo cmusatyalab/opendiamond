@@ -567,7 +567,7 @@ resolve_filter_deps(filter_data_t *fdata)
 		}
 		
 	}
-	gExport(&graph, filename);
+	// XXX gExport(&graph, filename);
 
 
 #ifdef VERBOSE
@@ -637,7 +637,7 @@ fexec_load_searchlet(char *lib_name, char *filter_spec, filter_data_t **fdata)
 				filter_spec);
 		return (err);
 	}
-	print_filter_list("filterexec: init", *fdata);
+	// XXX print_filter_list("filterexec: init", *fdata);
 
 	err = resolve_filter_deps(*fdata);
 	if (err) {

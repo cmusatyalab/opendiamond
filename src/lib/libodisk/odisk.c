@@ -291,8 +291,6 @@ odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
     err = odisk_load_obj(odisk, obj, buf);
     if (err == 0) {
     	(*obj)->local_id = oid->local_id;
-    } else {
-	printf("get obj failed \n");
     }
     return (err);
 }

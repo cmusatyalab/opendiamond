@@ -206,6 +206,7 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 {
     char            buf[NAME_MAX];
     int             len;
+	int				err;
 
     delete_object_gids(odisk, obj);
 

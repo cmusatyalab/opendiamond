@@ -1034,19 +1034,27 @@ search_set_blob(void *app_cookie, int gen_num, char *name,
 	return (0);
 }
 
+extern int fexec_cpu_slowdown;
 int
 search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 {
 	double		ratio;
 	uint64_t	my_clock;
+	double		my_clock_float;
+	double		eff_ratio;
 
+	eff_ratio =(double) (double)(100 - fexec_cpu_slowdown)/100.0;
 	/* XXX clean this up */
 	cpu_split = 1;
 
+	my_clock_float =  (double)my_clock * eff_ratio; 
 	r_cpu_freq(&my_clock);
 	ratio = ((double) my_clock)/((double)load + (double)my_clock);
+
 	cpu_split_thresh = (double)(RAND_MAX) * ratio;
 
+	printf("set_offload: ratio %f thresh %d cpu %d adj %f \n",
+		ratio, cpu_split_thresh, my_clock, my_clock_float);
 	
 	return (0);
 }

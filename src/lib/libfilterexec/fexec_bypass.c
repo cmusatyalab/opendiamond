@@ -244,8 +244,8 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
   double maxbytes = 100.0;
 
 	
-	hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
-	assert(hstate != NULL);
+  hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
+  assert(hstate != NULL);
 
   /*
    * Reconstruct the cost function of the greedy distribution.
@@ -297,7 +297,7 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
     double delta, lowest_delta;
     int best_j=0, k;
 
-    lowest_delta = 9999999999.0;  /* XXX */
+    lowest_delta = 999999999999.0;  /* XXX */
     for(j=i+1; j <= pmLength(perm); j++) {
       /* compute reduction factor for candidate filter unit */
       assert((hstate[j].dcost - hstate[i].dcost)>0.0);
@@ -321,7 +321,7 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
       hstate[k].c_j = hstate[best_j].dcost;
     }
 
-    i = best_j; /* next unit */
+    i = best_j-1; /* next unit */
   }
 
   
@@ -329,27 +329,30 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
    * Compute the greedy distribution on unit subsequences.
    */
   for(i=0; i <= pmLength(perm); i++) {
-    if(hstate[i].dcost>target_ms)
+    if(hstate[i].dcost>target_ms){
+      i--;
       break;
+    }
   }
 
   if(i>=pmLength(perm)){
     i = pmLength(perm) - 1;
   }
-  
-  for(j=0; j<i; j++)
-    (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
 
-  (fdata->fd_filters[pmElt(perm, i)]).fi_bpthresh =
+  for(j=0; j<hstate[i].i; j++){
+    (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
+  }
+  (fdata->fd_filters[pmElt(perm, hstate[i].i)]).fi_bpthresh =
     (int)((float)RAND_MAX *
 	  ((target_ms - hstate[i].c_i) /
 	   (hstate[i].c_j - hstate[i].c_i)));
 
-  for(j=i+1; j<hstate[i].j; j++)
+  for(j=hstate[i].i+1; j<hstate[i].j; j++){
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
-
-  for(j=hstate[i].j; j<pmLength(perm); j++)
+  }
+  for(j=hstate[i].j; j<pmLength(perm); j++){
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = -1;
+  }
 
   free(hstate);
   return;
@@ -381,7 +384,6 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
     }
 
     target_cost = avg_cost * ratio;
-
 
     switch (fexec_bypass_type) {
 	case  BP_NONE:

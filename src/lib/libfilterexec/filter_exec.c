@@ -267,6 +267,19 @@ resolve_filter_deps(filter_info_t *froot, char *troot_name)
 
 	/* export filters */
 	fprintf(stderr, "exporting filter graph to %s\n", filename);
+	
+	{
+		node_t *prev = NULL;
+		GLIST(&graph, np) {
+			edge_t *ep;
+			if(prev) {
+				ep = gAddEdge(&graph, prev, np);
+				ep->eg_color = 1;
+			}
+			prev = np;
+		}
+		
+	}
 	gExport(&graph, filename);
 
 #if 0

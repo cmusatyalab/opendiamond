@@ -18,11 +18,12 @@ extern "C" {
 
 struct node_t;
 typedef struct edge_t {
-  struct node_t        *eg_v;
+	struct node_t        *eg_v;
 //  TAILQ_ENTRY(edge_t)  eg_link;
 
   /* user's data */
-  int                  eg_val;
+	int                  eg_val;
+	int			eg_color;
 } edge_t;
 
 
@@ -83,7 +84,7 @@ void gClear(graph_t *g);
 node_t *gNewNode(graph_t *g, char *label);
 
 /* add a directed edge to the graph */
-void gAddEdge(graph_t *g, node_t *u, node_t *v);
+edge_t *gAddEdge(graph_t *g, node_t *u, node_t *v);
 
 /* print to stdout */
 void gPrint(graph_t *g);

@@ -19,8 +19,9 @@
 static void
 vec_init(edgelist_t *vec) {
   vec->len = 0;
-  vec->size = 0;
-  vec->edges = NULL;
+  vec->size = 64;
+  vec->edges = (edge_t *)malloc( sizeof(edge_t) * vec->size );
+  assert(vec->edges);
 }
 
 static void
@@ -32,8 +33,8 @@ static edge_t *
 vec_append(edgelist_t *vec) {
   
   if(vec->len == vec->size) {
-    vec->size += 32;		/* linear growth */
-    vec->edges = realloc(vec->edges, vec->size);
+	  vec->size += 32;		/* linear growth */
+	  vec->edges = realloc(vec->edges, sizeof(edge_t) * vec->size);
   }
   return &vec->edges[vec->len++];
 }
@@ -129,7 +130,7 @@ gNewNode(graph_t *g, char *label) {
 }
   
 
-void
+edge_t *
 gAddEdge(graph_t *g, node_t *u, node_t *v) {
   edge_t *ep;
 
@@ -141,6 +142,9 @@ gAddEdge(graph_t *g, node_t *u, node_t *v) {
   ep = vec_append(&u->edgelist);
   ep->eg_v = v;
   ep->eg_val = v->val;		/* XXX */
+  ep->eg_color = 0;
+
+  return ep;
 }
 
 void
@@ -452,6 +456,7 @@ export_node(FILE *fp, node_t *np, int indent) {
   char *edgecolor;
   char *red = "red";
   char *black = "black";
+  static int edgeid = 1;
 
   if(np->color) return;
     
@@ -469,11 +474,13 @@ export_node(FILE *fp, node_t *np, int indent) {
   VEC_FOREACH(ep, &np->edgelist) {
     if(count++) fprintf(fp, ",\n\t");
 
-    edgecolor = (TAILQ_NEXT(np, olink) == ep->eg_v) ? red : black;
+    //edgecolor = (TAILQ_NEXT(np, olink) == ep->eg_v) ? red : black;
+    edgecolor = (ep->eg_color ? red : black);
 
-    fprintf(fp, "l(\"%d-%d\",e(\"B\",[a(\"EDGECOLOR\",\"%s\")],r(\"%d\")))",
-	    np->id, ep->eg_v->id, edgecolor, ep->eg_v->id);
+    fprintf(fp, "l(\"%d\",e(\"B\",[a(\"EDGECOLOR\",\"%s\")],r(\"%d\")))",
+	    edgeid, edgecolor, ep->eg_v->id);
     //export_node(fp, ep->node, indent+1);    
+    edgeid++;
   }
   fprintf(fp, "\n\t]))\n");
 }

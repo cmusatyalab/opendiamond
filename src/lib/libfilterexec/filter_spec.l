@@ -128,6 +128,14 @@ new_filter()
     fdata->fd_filters[cur_filt_id].fi_merit = 0;
     fdata->fd_filters[cur_filt_id].fi_numargs = 0;
     fdata->fd_filters[cur_filt_id].fi_filterid = cur_filt_id;
+
+    /*
+     * Default values is to run all filters on the storage
+     * device.
+     */
+    fdata->fd_filters[cur_filt_id].fi_bpcnt = 0;
+    fdata->fd_filters[cur_filt_id].fi_bprun = 1;
+    fdata->fd_filters[cur_filt_id].fi_bpmax = 1;
     
     if (strcmp(name, "APPLICATION") == 0) {
         fdata->fd_app_id = cur_filt_id;

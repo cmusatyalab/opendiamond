@@ -1,6 +1,12 @@
 
 /* optimizers for filter execution. */
+#include "lib_od.h"
+#include "lib_odisk.h"
+#include "lib_log.h"
+#include "lib_searchlet.h"
+#include "attr.h"
 
+#include "filter_exec.h"
 #include "filter_priv.h"
 
 struct filter_data;

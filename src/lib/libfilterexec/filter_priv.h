@@ -58,9 +58,7 @@ typedef struct filter_info {
 	int			            fi_merit;
 	int			            fi_numargs;
 	char *			        fi_args[MAX_NUM_ARGS];
-  //struct filter_info *	fi_next;
     filter_id_t             fi_filterid;    /* id of this filter */
-  //filter_id_t             fi_nextfilter;  /* next filter to run */
 
 
 	/* dependency info */
@@ -68,6 +66,15 @@ typedef struct filter_info {
 	int                     fi_depcount;
 	filter_dep_t            fi_deps[MAX_NUM_DEPS];
 	node_t                 *fi_gnode;
+
+    /* bypass information, the fi_bpcnt keeps track of where
+     * we are in the loop.  We logically process fi_bprun/fi_bpmax
+     * of these objects.  
+     */
+
+    int                     fi_bpcnt;
+    int                     fi_bprun;
+    int                     fi_bpmax;
 
 	/* input characteristics */
 	int                     fi_blocksize_in;
@@ -80,6 +87,7 @@ typedef struct filter_info {
 	 * statistics. these should be local to each device.
 	 */
 	int			            fi_called;   /* # of times called */
+	int			            fi_bypassed; /* # of times we would have run */
 	int			            fi_drop;     /* # times below threshold */
 	int			            fi_pass;     /* # times above threshold */
 	rtime_t                 fi_time_ns;  /* total time used */
@@ -111,13 +119,12 @@ typedef struct filter_prob {
  */
 struct filter_data {
     int                 fd_num_filters;
-  //filter_id_t         fd_first_filter;
     filter_id_t         fd_max_filters;
     filter_id_t         fd_app_id;
     LIST_HEAD(prob_hash, filter_prob)   fd_prob_hash[PROB_HASH_BUCKETS];
 
     permutation_t       *fd_perm;	/* current permutation */
-    partial_order_t     *fd_po;	/* the partial ordering of filters */
+    partial_order_t     *fd_po;	    /* the partial ordering of filters */
 
   time_t obj_ns[STAT_WINDOW];	/* data */
   int    obj_ns_valid;		/* number of valid entries */
@@ -133,5 +140,11 @@ int     read_filter_spec(char *spec_name, struct filter_data **fdp);
 void    fexec_update_prob(struct filter_data *fdata, filter_id_t cur_filt,
 			  const filter_id_t *prev_list, int num_prev, int pass);
 
+
+filter_prob_t * fexec_lookup_prob(filter_data_t *fdata, filter_id_t cur_filt,
+                int num_prev, const filter_id_t *slist);
+
+int fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
+                double *cost);
 
 #endif	/* ifndef _FILTER_PRIV_H_ */

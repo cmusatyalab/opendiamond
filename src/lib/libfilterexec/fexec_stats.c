@@ -31,6 +31,26 @@
 #endif
 
 /*
+ * Comparison function for qsort that compares to filter_id_t.
+ */
+int
+id_comp(const void *data1, const void *data2)
+{
+    filter_id_t d1, d2;
+
+    d1 = *(filter_id_t*)data1;
+    d2 = *(filter_id_t*)data2;
+
+    if (d1 < d2) {
+        return(-1);
+    } else if (d1 > d2) {
+        return(1);
+    } else {
+        return(0);
+    }
+}
+
+/*
  * This function walks through the list of filters and resets
  * all the statistics assocaited with each one.  This is typically
  * called when a new search is started.
@@ -50,6 +70,9 @@ fexec_clear_stats(filter_data_t *fdata)
 
 }
 
+/*
+ * Get the statistics for each of the filters.
+ */
 
 int
 fexec_get_stats(filter_data_t *fdata, int max, filter_stats_t *fstats)
@@ -57,7 +80,6 @@ fexec_get_stats(filter_data_t *fdata, int max, filter_stats_t *fstats)
 	filter_info_t *	    cur_filt;
 	filter_stats_t *    cur_stat;
     int                 i;
-
 
     if (fdata == NULL) {
         return(-1);
@@ -98,9 +120,12 @@ fexec_hash_prob(filter_id_t cur_filt, int num_prev, const filter_id_t *sorted_li
 }
 
 
-
-static filter_prob_t *
-fexec_lookup_prob(filter_data_t *fdata, filter_id_t cur_filt, int num_prev, 
+/*
+ * This looks up a the probabilty given a filter and a sorted
+ * list of other filters that have been run before this.
+ */
+filter_prob_t *
+fexec_find_prob(filter_data_t *fdata, filter_id_t cur_filt, int num_prev, 
                 const filter_id_t *sorted_list)
 {
     int              hash;
@@ -122,6 +147,30 @@ fexec_lookup_prob(filter_data_t *fdata, filter_id_t cur_filt, int num_prev,
     return(NULL);
 }
 
+/*
+ * This looks up a probabilty given a filter and an unsorted list
+ * of previous elements.
+ */
+filter_prob_t *
+fexec_lookup_prob(filter_data_t *fdata, filter_id_t cur_filt, int num_prev, 
+                const filter_id_t *unsorted_list)
+{
+    filter_prob_t*   match;
+    filter_id_t *   sorted_list;
+
+    /* we need it one larger for union stats */
+    sorted_list = (filter_id_t *)malloc(sizeof(*sorted_list) * (num_prev + 1));
+    assert(sorted_list != NULL);
+
+    memcpy(sorted_list, unsorted_list, (num_prev * sizeof(filter_id_t)));
+    
+    qsort(sorted_list, num_prev, sizeof(filter_id_t), id_comp);
+
+    match = fexec_find_prob(fdata, cur_filt, num_prev, sorted_list);
+    free(sorted_list);
+
+    return(match);
+}
 
 
 static filter_prob_t *
@@ -154,26 +203,6 @@ fexec_new_prob(filter_data_t *fdata, filter_id_t cur_filt, int num_prev,
 
 
 
-/*
- * Comparison function for qsort that compares to filter_id_t.
- */
-int
-id_comp(const void *data1, const void *data2)
-{
-    filter_id_t d1, d2;
-
-    d1 = *(filter_id_t*)data1;
-    d2 = *(filter_id_t*)data2;
-
-    if (d1 < d2) {
-        return(-1);
-    } else if (d1 > d2) {
-        return(1);
-    } else {
-        return(0);
-    }
-}
-
 
 void
 fexec_update_prob(filter_data_t * fdata,  filter_id_t cur_filt, 
@@ -191,7 +220,7 @@ fexec_update_prob(filter_data_t * fdata,  filter_id_t cur_filt,
     qsort(sorted_list, num_prev, sizeof(filter_id_t), id_comp);
 
     /* lookup the prob data structure or allocatea  new one */
-    prob = fexec_lookup_prob(fdata, cur_filt, num_prev, sorted_list);
+    prob = fexec_find_prob(fdata, cur_filt, num_prev, sorted_list);
     if (prob == NULL) {
         prob = fexec_new_prob(fdata, cur_filt, num_prev, sorted_list);
         assert(prob != NULL);
@@ -206,7 +235,7 @@ fexec_update_prob(filter_data_t * fdata,  filter_id_t cur_filt,
     sorted_list[num_prev] = cur_filt;
     qsort(sorted_list, (num_prev + 1), sizeof(filter_id_t), id_comp);
     
-    prob = fexec_lookup_prob(fdata, INVALID_FILTER_ID, (num_prev + 1), 
+    prob = fexec_find_prob(fdata, INVALID_FILTER_ID, (num_prev + 1), 
                     sorted_list);
     if (prob == NULL) {
         prob = fexec_new_prob(fdata, INVALID_FILTER_ID, (num_prev + 1), 
@@ -245,52 +274,76 @@ fexec_dump_prob(filter_data_t *fdata)
 }
 
 
+#define SIGNIFICANT_NUMBER(g) ((g)*8)
+/*
+ * evalute the cost of given permutation using the data that is available.
+ */
 
-
-#ifdef  XXX
 int
-fexec_update_cost(finfo_filter, int pass)
+fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen, 
+                double *cost)
 {
-	filter_info_t *	cur_filt;
-	filter_stats_t * cur_stat;
-	int		cur_num;
+    int i;
+    filter_prob_t *fprob;
+    double pass = 1;		/* cumul pass rate */
+    double totalcost = 0;		/* = utility */
+    filter_info_t *info;
+    char buf[BUFSIZ];
+    int n;
 
+    /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
+    assert(sizeof(pelt_t) == sizeof(filter_id_t));
 
-	cur_filt = finfo;
-	cur_num = 0;
+    printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ));
 
-	/* XXX keep the handle somewhere */
-	while (cur_filt != NULL) {
-		/* if we are out of space return an error */
-		if (cur_num > max) {
-			return(-1);
-		}
+    for(i=0; i < pmLength(perm); i++) {
+        double c;			/* cost of this filter */
+        double p;			/* pass rate for this filter in this pos */
+        /* pass = pass rate of all filters before this one */
+        info = &fdata->fd_filters[pmElt(perm, i)];
+        c = info->fi_time_ns;
+        n = info->fi_called;
+        if(n < SIGNIFICANT_NUMBER(gen)) {
+            printf("not enough data:  %d %d \n", n, SIGNIFICANT_NUMBER(gen));
+            return 1;
+        }
 
-		cur_stat = &fstats[cur_num];
+        totalcost += pass * c / n;		/* prev cumul pass * curr cost */
+        printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost);
 
-		strncpy(cur_stat->fs_name, cur_filt->fi_name, MAX_FILTER_NAME);
-		cur_stat->fs_name[MAX_FILTER_NAME-1] = '\0';
-		cur_stat->fs_objs_processed = cur_filt->fi_called;
-		cur_stat->fs_objs_dropped = cur_filt->fi_drop;
-		if (cur_filt->fi_called != 0) {
-			cur_stat->fs_avg_exec_time =  
-				cur_filt->fi_time_ns / cur_filt->fi_called;
-		} else {
-			cur_stat->fs_avg_exec_time =  0;
-		}
+        /* lookup this permutation */
+        /* XXX */
+        fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
+        if(fprob) {
+            p = (double)fprob->num_pass / fprob->num_exec;
+            printf("\t(cond p=%f)", p);
+        } else {
+            /* really no data, return an error */
+            printf("no perm data for %s \n", info->fi_name);
+            return 1;
+            //p = 1;			/* cost will be 0 anyway */
+            //n = 1;
+        }
+        printf("\n");
 
+        assert(p >= 0 && p <= 1.0);
+        pass *= p;
+#define SMALL_FRACTION (0.00001)
+        /* don't let it go to zero XXX */
+        if(pass < SMALL_FRACTION) {
+            pass = SMALL_FRACTION;
+        }
+    }
 
-		/* update the number counter and the cur filter pointer */
-		cur_num++;	
-		cur_filt = cur_filt->fi_next;
-	}
+    *cost = totalcost;
 
-	return(0);
+    printf("fexec_evaluate: ");
+    fexec_print_cost(fdata, perm);
+    printf(" cost=%s\n", format_number(buf, totalcost));
+    return 0;
 }
 
-#endif /* XXX_LH */
 
-#define SIGNIFICANT_NUMBER(g) ((g)*8)
 
 /* evaluate a permutation in the context of the currently available
  * data, and return a utility value (higher is better).  the function
@@ -298,82 +351,25 @@ fexec_update_cost(finfo_filter, int pass)
  * be set to an upper bound)
  */
 int
-fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility) {
-  int err=0;
-  int i;
-  filter_prob_t *fprob;
-  double pass = 1;		/* cumul pass rate */
-  double totalcost = 0;		/* = inv utility */
-  filter_info_t *info;
-#ifdef VERBOSE
-  char buf[BUFSIZ];
-#endif
-  int n;
+fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int gen, int *utility)
+{
+    int err;
+    double totalcost = 0;		/* = utility */
 
-  /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
-  assert(sizeof(pelt_t) == sizeof(filter_id_t));
-
-#ifdef VERBOSE
-  printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ));
-#endif
-
-  for(i=0; i < pmLength(perm); i++) {
-    double c;			/* cost of this filter */
-    double p;			/* pass rate for this filter in this pos */
-    /* pass = pass rate of all filters before this one */
-    info = &fdata->fd_filters[pmElt(perm, i)];
-    c = info->fi_time_ns;
-    n = info->fi_called;
-    if(n < SIGNIFICANT_NUMBER(gen)) {
-      goto done;
+    err = fexec_compute_cost(fdata, perm, gen, &totalcost);
+    if (err == 0) {
+        *utility = -totalcost;
     }
-
-    totalcost += pass * c / n;		/* prev cumul pass * curr cost */
-    VERB printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost);
-
-    /* lookup this permutation */
-    fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); /* XXX */
-    if(fprob) {
-      p = (double)fprob->num_pass / fprob->num_exec;
-      VERB printf("\t(cond p=%f)", p);
-#if 0
-    } else if(n > SIGNIFICANT_NUMBER(gen)) {
-      /* permutation not found, try assuming independence */
-      p = 1.0 - (double)info->fi_drop / n;
-      VERB printf("\t(indp p=%f)", p);
-#endif
-    } else {
-      /* really no data, return an error */
-      //printf("fexec_evaluate: could not evaluate permutation, giving up\n");
-      err = 1;
-      goto done;
-      //p = 1;			/* cost will be 0 anyway */
-      //n = 1;
-    }
-    VERB printf("\n");
-
-    assert(p >= 0 && p <= 1.0);
-    pass *= p;
-#define SMALL_FRACTION (0.00001)
-    /* don't let it go to zero XXX */
-    if(pass < SMALL_FRACTION) {
-      pass = SMALL_FRACTION;
-    }
-  }
-
-
- done:
-  *utility = -totalcost;
-  //assert(*utility >= 0);
-
 #ifdef VERBOSE
-  //printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
-  printf("fexec_evaluate: ");
-  fexec_print_cost(fdata, perm);
-  printf(" cost=%s\n", format_number(buf, totalcost));
+    // printf("fexec_evaluate: %s = %d\n", pmPrint(perm, buf, BUFSIZ), *utility);
+    printf("fexec_evaluate: ");
+    fexec_print_cost(fdata, perm);
+    printf(" cost=%s\n", format_number(buf, totalcost));
 #endif
   return err;
 }
+
+
 
 /* not used? */
 /* int */

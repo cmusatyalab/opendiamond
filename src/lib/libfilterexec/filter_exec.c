@@ -55,7 +55,7 @@ enum policy_type_t {
 };
 
 //static enum policy_type_t CURRENT_POLICY = BEST_FIRST_POLICY;
-static int CURRENT_POLICY = HILL_CLIMB_POLICY;
+static int CURRENT_POLICY = BEST_FIRST_POLICY;
 
 static policy_t policy_arr[] = {
   { NULL, NULL, NULL, NULL },
@@ -531,6 +531,7 @@ update_filter_order(filter_data_t *fdata, const permutation_t *perm) {
 #ifdef VERBOSE
 	printf("changed filter order to: %s\n", pmPrint(perm, buf, BUFSIZ));
 #endif
+    /* XXX lh fexec_update_bypass(fdata); */
 }
 
 
@@ -557,8 +558,8 @@ optimize_filter_order(filter_data_t *fdata, policy_t *policy) {
  */
 
 int
-eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
-	     void *cookie,
+eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
+         void *cookie,
 	     int (*cb_func)(void *cookie, char *name, int *pass, uint64_t* et)) {
     filter_info_t *     cur_filter;
 	int			        conf;
@@ -583,13 +584,6 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
 	  log_message(LOGT_FILT, LOGL_ERR, "eval_filters: no filters");
 	  return 1;
 	}
-
-	/*
-	 * We need to put more smarts about what filters to evaluate
-	 * here as well as the time spent in each of the filters.
-	 */ 
-
-
 
 	/* change the permutation if it's time for a change */
 	optimize_filter_order(fdata, &policy_arr[CURRENT_POLICY]);
@@ -637,6 +631,32 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata,
 			continue;
 		}
 
+        /*
+         * Look at the current filter bypass to see if we should actually
+         * run it or pass it.
+         */
+        if (force_eval == 0) {
+            if (cur_filter->fi_bpcnt >= cur_filter->fi_bprun) {
+                pass = 1;
+
+                printf("skipping : cnt %d max %d run%d \n",
+                                cur_filter->fi_bpcnt, cur_filter->fi_bpmax,
+                                cur_filter->fi_bprun);
+
+                cur_filter->fi_bpcnt++;
+                cur_filter->fi_bypassed++;
+                if (cur_filter->fi_bpcnt >= cur_filter->fi_bpmax) {
+                    cur_filter->fi_bpcnt = 0;
+                }
+                break;
+            } else {
+                cur_filter->fi_bpcnt++;
+                if (cur_filter->fi_bpcnt >= cur_filter->fi_bpmax) {
+                    cur_filter->fi_bpcnt = 0;
+                }
+            }
+        }
+    
 		cur_filter->fi_called++;
 
 		/* XXX build the out list appropriately */

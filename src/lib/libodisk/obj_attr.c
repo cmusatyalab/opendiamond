@@ -66,8 +66,7 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 
 	}
 
-	close(attr_fd);
-	return(0);
+	close(attr_fd); return(0);
 }
 
 
@@ -77,6 +76,8 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 {
 	int		attr_fd;
 	off_t		wsize;
+	size_t		len;
+	char 	*	buf;
 
 	/* clear the umask so we get the permissions we want */
 	/* XXX do we really want to do this ??? */
@@ -92,11 +93,16 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 	}
 
 
-	wsize = write(attr_fd, attr->attr_data, attr->attr_len);
-	if (wsize != attr->attr_len) {
-		perror("failed to write attributes \n");
-		exit(1);
-	}	
+	err = obj_get_attr_first(&attr, &buf, &len, &cookie, 0);
+	while (err != ENONET) {
+		wsize = write(attr_fd, data, len);
+		if (wsize != attr->attr_len) {
+			perror("failed to write attributes \n");
+			exit(1);
+		}	
+		err = obj_get_attr_next(attr, &buf, &len, &cookie, 0);
+
+	}
 
 	close(attr_fd);
 	return(0);

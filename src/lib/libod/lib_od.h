@@ -128,6 +128,12 @@ int od_set_attr(obj_id_t *oid, char *name, int len, char *buf);
  */
 int od_del_attr(obj_id_t *oid, char *name);
 
+/*
+ * Read a GID index file, hack bootstraping for now.
+ */
+int od_read_gididx(groupid_t gid, uint32_t devid, off_t offset, 
+	off_t len, char *buf);
+
 #endif
 
 #ifdef	__cplusplus

@@ -90,6 +90,27 @@ struct rattr_args {
 typedef struct rattr_args rattr_args_t;
 
 
+/*
+ * the argument to read gid_idx.
+ */
+struct rgid_idx_arg {
+    groupid_t               gid;        /* ptr to the obj id to read */
+    uint32_t                offset;     /* offset to read from */
+    uint32_t                len;        /* amount of data to read */
+};
+
+typedef struct rgid_idx_arg rgid_idx_arg_t;
+
+
+/*
+ * the reply for both read data and read attributes.
+ */
+struct rgid_results {
+    uint32_t               status;      /* 0 if op worked */
+    char                   data<>;      /* buffer for the read data */
+};
+
+typedef struct rgid_results rgid_results_t;
 
 
 program MESSAGEPROG {
@@ -101,6 +122,7 @@ program MESSAGEPROG {
             int rpc_rem_gid(update_gid_args_t *aarg) = 5;
             int rpc_write_attr(wattr_args_t *aarg) = 6;
             read_results_t rpc_read_attr(rattr_args_t *aarg) = 7;
+            rgid_results_t rpc_read_gididx(rgid_idx_arg *rgid) = 8;
     } = 1;
 } = 0x20000011;
 

@@ -117,7 +117,6 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
         return (ENOENT);
     }
 
-
     data = (char *) malloc(stats.st_size);
     if (data == NULL) {
         close(os_file);
@@ -282,12 +281,18 @@ odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
     int             err;
     int             len;
 
+
     len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_path,
                    oid->local_id);
+
     assert(len < NAME_MAX);
 
     err = odisk_load_obj(odisk, obj, buf);
-    (*obj)->local_id = oid->local_id;
+    if (err == 0) {
+    	(*obj)->local_id = oid->local_id;
+    } else {
+	printf("get obj failed \n");
+    }
     return (err);
 }
 

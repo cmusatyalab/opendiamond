@@ -142,6 +142,8 @@ rpc_read_data_1_svc(read_data_arg_t *arg, struct svc_req *rq)
     }
 
     err = odisk_get_obj(odata, &obj, arg->oid);
+    printf("read_data: get err %d alen %d off %d\n", err, arg->len,
+	arg->offset);
     if (err != 0) {
         result.status = err;
     } else {
@@ -149,8 +151,10 @@ rpc_read_data_1_svc(read_data_arg_t *arg, struct svc_req *rq)
         len = arg->len;
         err = odisk_read_obj(odata, obj, &len, arg->offset, buf);
         if (err) {
+    	    printf("read_data: read fail on %d \n", err);
             result.status = err;
         } else {
+    	    printf("read_data: new len %d \n", len);
             result.status = 0;
             result.data.data_len = len;
             result.data.data_val = buf;
@@ -301,4 +305,42 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
     return(&result);
 }
 
+
+rgid_results_t *
+rpc_read_gididx_1_svc(rgid_idx_arg_t *arg, struct svc_req *rq)
+{
+    char            idx_file[NAME_MAX];
+    FILE           *new_file;
+    static rgid_results_t   result;
+    int                     len;
+    char *                  buf;
+
+    printf("read gid \n");
+    if (odata == NULL) {
+        init_disk();
+    }
+
+    len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", odata->odisk_path,
+          "GIDIDX", arg->gid);
+    assert(len < NAME_MAX);
+    printf("name <%s> \n", idx_file);
+    new_file = fopen(idx_file, "r");
+    if (new_file == NULL) {
+	perror("open");
+	result.status = ENOENT;
+    } else {
+	
+        buf = (char *)malloc(arg->len);
+        len = arg->len;
+
+	fseek(new_file, arg->offset, SEEK_SET);
+
+	len = fread(buf, 1, len, new_file);
+    	result.status = 0;
+    	result.data.data_len = len;
+  	result.data.data_val = buf;
+	fclose(new_file);
+    }
+    return(&result);
+}
 

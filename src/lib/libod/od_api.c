@@ -40,9 +40,10 @@
 #include <errno.h>
 #include <rpc/rpc.h>
 #include <assert.h>
-/* #include "lib_od.h" */
+/* #include "lib_od.h"  */
 #include "queue.h"
 #include "od.h"
+#include "od_priv.h"
 #include "od_priv.h"
 
 
@@ -346,4 +347,48 @@ od_del_attr(obj_id_t *oid, char *name)
 {
     return(0);
 }
+
+/*
+ * Read a range of bytes from the GID index file
+ * The data is stored in "buf".  The return values
+ * is the number of bytes read.  -1 indicates the operation failed.
+ * If less than the specified number of bytes is returned, the end
+ * of the file has been reached.
+ */
+int 
+od_read_gididx(groupid_t gid, uint32_t devid, off_t offset, 
+	off_t len, char *buf)
+{
+    od_srv_t *          osrv; 
+    rgid_idx_arg_t      rgid;
+    rgid_results_t *    results;
+    uint64_t		bigid;
+
+    bigid = (uint64_t) devid;
+    osrv = ods_lookup_by_devid(devid);
+    if (osrv == NULL) {
+        return(ENOENT);
+    }
+
+    rgid.gid = gid;
+    rgid.offset = offset;
+    rgid.len = len;
+
+
+    results = rpc_read_gididx_1(&rgid, osrv->ods_client);
+    if (results == NULL) {
+        clnt_perror(osrv->ods_client, osrv->ods_name);
+        exit(1);
+    }
+
+    if (results->status != 0) {
+        fprintf(stderr, "failed to read on %d \n", results->status);
+        return(-1);
+    }
+    memcpy(buf, results->data.data_val, results->data.data_len);
+
+    return(results->data.data_len);
+}
+
+
 

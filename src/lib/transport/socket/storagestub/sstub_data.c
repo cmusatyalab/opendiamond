@@ -41,7 +41,7 @@ static int
 drop_attributes(cstate_t *cstate)
 {
 
-	int	rv;
+	unsigned int	rv;
 	int	tx_count;
 	if ((cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) ||
 		(cstate->attr_policy == NW_ATTR_POLICY_FIXED)) {
@@ -173,7 +173,6 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 				(void **)&vnum);
 		}
 
-				
 		/*
 		 * if there is no other data, then clear the obj data flag
 		 */

@@ -104,7 +104,7 @@ typedef struct cstate {
 	int			        data_tx_offset;
 	obj_header_t		data_tx_oheader;
 	int					attr_policy;
-	int					attr_threshold;
+	unsigned int		attr_threshold;
 	int					attr_ratio;
 	int					drop_attrs;
 	char *			attr_buf;

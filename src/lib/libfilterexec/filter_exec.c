@@ -37,13 +37,13 @@ static char			*no_filter = "None";
 /* filter optimization policy defs */
 /* ********************************************************************** */
 
-typedef struct policy_t {
+typedef struct opt_policy_t {
   void *(*p_new)(const struct filter_data *);
   void  (*p_delete)(void *context);
   int   (*p_optimize)(void *context, struct filter_data *);
   void *p_context;
   int  exploit;			/* if we are in exploit mode */
-} policy_t;
+} opt_policy_t;
 
 struct filter_exec_t filter_exec = {
   NULL_POLICY
@@ -54,7 +54,7 @@ struct filter_exec_t filter_exec = {
 // int CURRENT_POLICY = BEST_FIRST_POLICY;
 
 
-static policy_t policy_arr[] = {
+static opt_policy_t policy_arr[] = {
   { NULL, NULL, NULL, NULL },
   { hill_climb_new, hill_climb_delete, hill_climb_optimize, NULL },
   { best_first_new, best_first_delete, best_first_optimize, NULL },
@@ -434,7 +434,7 @@ resolve_filter_deps(filter_data_t *fdata)
  */
 static void
 initialize_policy(filter_data_t *fdata) {
-	policy_t *policy;
+	opt_policy_t *policy;
 	
 	/* explicitly create and save a permutation representing the filter order */
 	//fdata->fd_perm = fdata_new_perm(fdata);
@@ -543,7 +543,7 @@ update_filter_order(filter_data_t *fdata, const permutation_t *perm) {
 
 /* jump to function (see fexec_opt.c) */
 static void
-optimize_filter_order(filter_data_t *fdata, policy_t *policy) {
+optimize_filter_order(filter_data_t *fdata, opt_policy_t *policy) {
   if(policy->p_optimize) {
     policy->exploit = policy->p_optimize(policy->p_context, fdata);
   }

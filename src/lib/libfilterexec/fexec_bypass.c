@@ -8,7 +8,9 @@
 #include <stddef.h>
 #include <assert.h>
 #include <stdint.h>
+#ifdef linux
 #include <values.h>
+#endif
 
 #include "lib_od.h"
 #include "lib_odisk.h"

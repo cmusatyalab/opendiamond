@@ -159,6 +159,11 @@ display_results(log_msg_t *lheader, char *data, unsigned int level_flags,
 
 		level = ntohl(log_ent->le_level);	
 		type = ntohl(log_ent->le_type);	
+
+		/* update the offset now in case we decide to skip this */
+		cur_offset += ntohl(log_ent->le_nextoff);
+
+		/* make sure we want to display this entry */
         if (((level & level_flags) == 0) || ((type & src_flags) == 0)) {
             continue;
         }
@@ -171,8 +176,6 @@ display_results(log_msg_t *lheader, char *data, unsigned int level_flags,
 		fprintf(stdout, "<%c %s %s %s> %s \n",
 			       	source, host_id, level_string, type_string, 
 				log_ent->le_data);
-
-		cur_offset += ntohl(log_ent->le_nextoff);
 
 	}
 
@@ -338,7 +341,6 @@ set_log_flags(int fd, uint32_t level_flags, uint32_t src_flags)
 	log_msg.log_src = htonl(src_flags);
 	log_msg.dev_id = 0;
 
-
 	len = send(fd, &log_msg, sizeof(log_msg), MSG_WAITALL);
 	if (len != sizeof(log_msg)) {
 		if (len == -1) {
@@ -416,7 +418,6 @@ main(int argc, char **argv)
 		strcpy(sa.sun_path, SOCKET_LOG_NAME);
 		sa.sun_family = AF_UNIX;
 
-	
 		err = connect(fd, (struct sockaddr *)&sa, sizeof (sa));
 		if (err < 0) {
 			/*

@@ -36,10 +36,38 @@
  */
 
 
-#ifndef _RSTAT_H_
-#define _RSTAT_H_
+#include <stdlib.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
+#include "lib_tools.h"
 
-int             r_cpu_freq(u_int64_t *);
-int             r_freemem(u_int64_t *);
+/* XXXX move this else where */
+void    
+get_user_name(char *name)
+{
+	uid_t	uid;
+	struct passwd *pwd;
+	size_t	ret;
+	
+	uid = getuid();
 
-#endif                          /* _RSTAT_H_ */
+	pwd = getpwuid(uid);
+
+	/* if we fail, the name is the uid otherwise use the name */
+	if (pwd == NULL) {
+		ret = snprintf(name, MAX_USER_NAME, "%d", uid);
+	} else {
+		ret = snprintf(name, MAX_USER_NAME, "%s", pwd->pw_name);
+	}
+	
+	/* deal with overflow in the user name */
+	if (ret > (MAX_USER_NAME - 1)) {
+		name[MAX_USER_NAME -1] = '\0';	
+	}
+}
+
+                                                                                
+

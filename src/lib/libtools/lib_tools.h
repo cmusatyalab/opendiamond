@@ -36,10 +36,23 @@
  */
 
 
-#ifndef _RSTAT_H_
-#define _RSTAT_H_
+#ifndef _LIB_TOOLS_H_
+#define _LIB_TOOLS_H_
 
-int             r_cpu_freq(u_int64_t *);
-int             r_freemem(u_int64_t *);
+#include "rstat.h"
 
-#endif                          /* _RSTAT_H_ */
+
+
+/* external functions defined in user.c */
+
+/* max user name we support */
+#define MAX_USER_NAME   64
+
+/* 
+ * fill in string name of the current user (assumes
+ * string is MAX_USER_NAME bytes long).
+ */
+void    get_user_name(char *name);
+
+
+#endif                          /* _LIB_TOOOLS_H */

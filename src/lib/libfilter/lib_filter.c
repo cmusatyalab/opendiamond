@@ -8,9 +8,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <errno.h>
 #include <stdint.h>
+#include <assert.h>
 #include "ring.h"
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
@@ -18,6 +20,8 @@
 #include "lib_filter.h"
 #include "lib_filter_priv.h"
 #include "obj_attr_dump.h"
+#include "filter_exec.h"
+#include "lib_log.h"
 
 
 /*
@@ -375,3 +379,53 @@ lf_free_buffer(lf_fhandle_t fhandle, char *buf)
 }
 
 
+
+
+/*
+ * This function allows the programmer to log some data that
+ * can be retrieved from the host system.
+ *
+ * Args:  
+ * 	fhandle    - a handle to the instance of the library.
+ *
+ * 	level 	   - The log level associated with the command.  This
+ * 		     used to limit the amount of information being passed.
+ *
+ * 	name       - The name of the attribute to write.
+ *
+ * 	fmt	   - format string used for parsing the data.  This uses
+ * 		     printf syntax
+ *
+ * 	... 	   - the arguments for the format.
+ *
+ */
+/* XXX this should match the one in log, but doesn't need to */
+#define	MAX_LOG_BUF	80
+
+int 
+lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...)
+{
+	va_list	ap;
+	va_list	new_ap;
+	char	log_buffer[MAX_LOG_BUF];
+	char	*cur_filter;
+	int	len;
+	int	remain_len;
+
+	cur_filter = fexec_cur_filtname();
+	len = snprintf(log_buffer, MAX_LOG_BUF, "%s : ", cur_filter);
+	assert((len > 0) || (len < MAX_LOG_BUF)); 
+	
+	remain_len = MAX_LOG_BUF - len;  
+
+	va_start(ap, fmt);
+	va_copy(new_ap, ap);
+	vsnprintf(&log_buffer[len], remain_len, fmt, new_ap);
+	va_end(ap);
+
+	log_buffer[MAX_LOG_BUF - 1] = '\0';
+
+	log_message(LOGT_APP, level, "%s", log_buffer);
+
+	return(0);
+}

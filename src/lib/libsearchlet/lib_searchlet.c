@@ -642,7 +642,6 @@ int
 ls_next_object(ls_search_handle_t handle, ls_obj_handle_t *obj_handle,
 		int flags)
 {
-
 	search_context_t	*sc;
 	obj_data_t	*	obj_data;
 	obj_info_t	*	obj_info;
@@ -684,9 +683,8 @@ again:
 		 * timed sleep for now. 
 		 */
 		timeout.tv_sec = 0;
-		timeout.tv_nsec = 30000000; 	/* 30 ms */
+		timeout.tv_nsec = 10000000; 	/* 10 ms */
 		nanosleep(&timeout, NULL);
-
 	}
 	obj_info = (obj_info_t *)data;
 	obj_data = obj_info->obj;
@@ -703,7 +701,6 @@ again:
 	obj_data->cur_blocksize = 1024;
 
 	*obj_handle = (ls_obj_handle_t *)obj_data;
-
 	return (0);
 }
 

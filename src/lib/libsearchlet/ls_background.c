@@ -146,7 +146,6 @@ get_next_object(search_context_t *sc)
 	obj_info_t	*		obj_inf;
 	int	 				loop = 0;
 
-
 	if (sc->last_dev == NULL) {
 		cur_dev = sc->dev_list;
 	} else {
@@ -179,9 +178,9 @@ redo:
 		refill_credits(sc);
 		goto redo;
 	}
-
 	return(NULL);
 }
+
 
 
 int
@@ -283,7 +282,7 @@ bg_main(void *arg)
 
 				/*
 				 * Now that we have an object, go ahead
-				 * an evaluated all the filters on the
+				 * an evaluate all the filters on the
 				 * object.
 				 */
 				err = eval_filters(new_obj, sc->bg_fdata, 1, sc, bg_val, NULL);

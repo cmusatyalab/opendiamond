@@ -6,6 +6,12 @@
 #include "consts.h"
 #include "rtimer.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * Some of the common data structures used by the library calls
  */
@@ -566,6 +572,9 @@ extern int ls_get_dev_stats(ls_search_handle_t handle,
 		             dev_stats_t *dev_stats, int *stat_len);
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LIB_SEARCHLET_H_  */
 

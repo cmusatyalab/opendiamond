@@ -1,6 +1,12 @@
 #ifndef	_RING_H_
 #define	_RING_H_
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /* This number of elements in a ring.  This must be a multiple of
  * 2.
  */
@@ -37,6 +43,11 @@ extern int	ring_2init(ring_data_t **ring);
 extern int	ring_2empty(ring_data_t *ring);
 extern int	ring_2enq(ring_data_t *ring, void *data1, void *data2);
 extern int 	ring_2deq(ring_data_t *ring, void **data1, void **data2);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 
 #endif /* _RING_H_ */

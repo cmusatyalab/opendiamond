@@ -1,4 +1,7 @@
 
+#ifndef _RGRAPH_H_
+#define _RGRAPH_H_
+
 /* 
  * graph abstraction and some algorithms on graphs. currently uses an
  * edge-list representation.
@@ -8,8 +11,10 @@
 
 #include "queue.h"
 
-#ifndef _RGRAPH_H_
-#define _RGRAPH_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 struct node_t;
 typedef struct edge_t {
@@ -108,5 +113,9 @@ int gTopoSort(graph_t *g);
  * output (depth) will be in node->td, SP can be found via node->visit
  */
 void gSSSP(graph_t *g, node_t *src);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _RGRAPH_H_ */

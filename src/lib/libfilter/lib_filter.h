@@ -9,6 +9,9 @@
 
 #include <sys/types.h>		/* for off_t */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /*
@@ -310,5 +313,8 @@ extern int lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...);
 /* XXX */
 extern int lf_dump_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LIB_FILTER_H_  */

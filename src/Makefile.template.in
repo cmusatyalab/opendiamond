@@ -3,6 +3,7 @@ CFLAGS += -g -pg -O2
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
 FLEX = flex
+AWK = gawk
 
 
 #Just to go overboard and be sure

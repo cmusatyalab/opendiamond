@@ -19,11 +19,11 @@
 #include "lib_searchlet.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
-#include "filter_priv.h"	/* to read stats -RW */ 
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "lib_log.h"
 #include "filter_exec.h"
+#include "filter_priv.h"	/* to read stats -RW */ 
 #include "search_state.h"
 #include "dctl_common.h"
 
@@ -242,7 +242,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			 * Clear the stats.
 			 */
 			clear_ss_stats(sstate);
-			fexec_clear_stats(sstate->finfo);
+			fexec_clear_stats(sstate->fdata);
 
 			err = odisk_init(&sstate->ostate, data_dir);
 			if (err) {
@@ -262,7 +262,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			spec_name = cmd->extra_data.sdata.spec;
 
 			err = init_filters(obj_name, spec_name,
-				       	&sstate->finfo);
+				       	&sstate->fdata);
 
 			if (err) {
 				/* XXX log */
@@ -355,6 +355,7 @@ device_main(void *arg)
 		if (sstate->flags & DEV_FLAG_RUNNING) {
 			err = odisk_next_obj(&new_obj, sstate->ostate);
 			if (err == ENOENT) {
+                /* XXX fexec_dump_prob(sstate->fdata); */
 				/*
 				 * We have processed all the objects,
 				 * clear the running and set the complete
@@ -386,7 +387,7 @@ device_main(void *arg)
 				/* XXX process the object */
 				sstate->obj_processed++;
 
-				err = eval_filters(new_obj, sstate->finfo);
+				err = eval_filters(new_obj, sstate->fdata);
 				if (err == 0) {
 					sstate->obj_dropped++;
 					search_release_obj(NULL, new_obj);
@@ -687,7 +688,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	 * Figure out how many filters we have an allocate
 	 * the needed space.
 	 */
-	num_filt = fexec_num_filters(sstate->finfo);
+	num_filt = fexec_num_filters(sstate->fdata);
 	len = DEV_STATS_SIZE(num_filt);
 
 	stats = (dev_stats_t *)malloc(len);
@@ -715,7 +716,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	/*
 	 * Get the stats for each filter.
 	 */
-	err = fexec_get_stats(sstate->finfo, num_filt, stats->ds_filter_stats);
+	err = fexec_get_stats(sstate->fdata, num_filt, stats->ds_filter_stats);
 	if (err) {
 		free(stats);
 		log_message(LOGT_DISK, LOGL_ERR, 

@@ -12,6 +12,7 @@
 #include "lib_searchlet.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
+#include "filter_exec.h"
 #include "ring.h"
 #include "search_state.h"
 

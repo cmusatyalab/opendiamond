@@ -16,7 +16,7 @@ typedef struct search_state {
 	pthread_mutex_t		    log_mutex;
 	pthread_cond_t		    log_cond;
     pthread_t               log_thread;
-	struct filter_info *	finfo;
+	filter_data_t  *	    fdata;
 	uint			        obj_total;
 	uint			        obj_processed;
 	uint			        obj_dropped;

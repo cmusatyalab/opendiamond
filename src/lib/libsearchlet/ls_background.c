@@ -31,6 +31,8 @@
 #define	BG_STARTED	0x01
 #define	BG_SET_SEARCHLET	0x02
 
+/* XXX debug for now, enables cpu based load splitting */
+uint32_t	do_cpu_update	=  1;
 
 typedef enum {
 	BG_STOP,
@@ -66,15 +68,39 @@ bg_decrement_pend_count(search_context_t *sc)
 }
 
 void
-update_rates(sc) 
+update_rates(search_context_t *sc) 
 {
+	double	load;
+	device_handle_t	*	cur_dev;
+	int			dev_cnt = 0;
+	uint64_t		val;
+	uint64_t		target;
+	int			err;
 
+	if (do_cpu_update == 0) {
+		return;
+	}
+	load = fexec_get_load(sc->bg_fdata);
 
+	r_cpu_freq(&val);
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {		dev_cnt++;
+	}
+
+	target = (uint64_t)((double)val * load/(double)dev_cnt);
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {		dev_cnt++;
+		err = device_set_offload(cur_dev->dev_handle, 
+			sc->cur_search_id, target);
+		assert(err == 0);
+	}
 }
 
+
+
 /* XXX constant config */
-#define         POLL_SECS       0
-#define         POLL_USECS      200000
+#define         POLL_SECS       1
+#define         POLL_USECS      0
 
 
 /*
@@ -104,6 +130,12 @@ bg_main(void *arg)
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count", DCTL_DT_UINT32,
 					dctl_read_uint32, dctl_write_uint32, &loop_count);
 	assert(err == 0);
+
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "cpu_split", 
+			DCTL_DT_UINT32, dctl_read_uint32, 
+			dctl_write_uint32, &do_cpu_update);
+	assert(err == 0);
+
 
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "dummy", DCTL_DT_UINT32,
 					dctl_read_uint32, dctl_write_uint32, &dummy);

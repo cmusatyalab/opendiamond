@@ -489,6 +489,18 @@ process_control(listener_state_t *lstate, cstate_t *cstate, char *data)
             break;
         }
 
+		case CNTL_CMD_SET_OFFLOAD: {
+            offload_subheader_t *   shead;
+			uint64_t				val;
+
+			assert(data != NULL);
+			shead = (offload_subheader_t *)data;
+
+            val = shead->offl_data; /* XXX 64bit bswap */
+			(*lstate->set_offload_cb)(cstate->app_cookie, gen, val);
+            free(data);
+            break;
+        }
 
 		default:
 			printf("unknown command: %d \n", cmd);

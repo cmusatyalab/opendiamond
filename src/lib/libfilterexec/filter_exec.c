@@ -667,12 +667,16 @@ tv_diff(struct timeval *end, struct timeval *start)
 double
 fexec_get_load(filter_data_t *fdata)
 {
-	if (fdata == NULL) {
+	double	temp;
+
+	if ((fdata == NULL) || (fdata->fd_avg_wall == 0)) {
 		return(1.0);
 	}
-	double	temp;
+#ifdef	XXX	
 	temp = fdata->fd_avg_exec/fdata->fd_avg_wall;
 	return(temp);
+#endif
+	return(1.0000000);
 }
 /*
  * This take an object pointer and a list of filters and evaluates
@@ -826,6 +830,7 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	  }
 
 	  cur_filter->fi_time_ns += time_ns; /* update filter stats */
+
 	  stack_ns += time_ns;
 	  obj_write_attr(&obj_handle->attr_info, timebuf, 
 			 sizeof(time_ns), (void*)&time_ns);
@@ -865,8 +870,9 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	err = gettimeofday(&wstop, &tz);
 	assert(err == 0);
 	temp = tv_diff(&wstop, &wstart);
-	fdata->fd_avg_wall = (0.95 * fdata->fd_avg_wall) + (0.05 * temp);
 
+	/* XXX debug this better */
+	fdata->fd_avg_wall = (0.95 * fdata->fd_avg_wall) + (0.05 * temp);
 	temp = rt_time2secs(stack_ns);
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 

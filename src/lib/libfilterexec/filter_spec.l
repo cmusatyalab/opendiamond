@@ -384,6 +384,8 @@ read_filter_spec(char *spec_name, filter_data_t **fdp)
     fdata->obj_ns_valid = 0;
     fdata->obj_ns_pos = 0;
     fdata->obj_counter = 0;
+    fdata->fd_avg_wall = 1.0;
+    fdata->fd_avg_exec = 1.0;
 
 	yyin = fopen(spec_name, "r");
     assert(yyin != NULL);

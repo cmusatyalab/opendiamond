@@ -275,6 +275,46 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	return (0);
 }
 
+int
+device_set_offload(void *handle, int id, uint64_t offload)
+{
+	int			err;
+	control_header_t *	cheader;
+    	offload_subheader_t *   offl;
+	sdevice_state_t *dev;
+
+	dev = (sdevice_state_t *)handle;
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+	offl = (offload_subheader_t *) malloc(sizeof(*offl));	
+    	assert(offl != NULL);
+    	offl->offl_data = offload;	/* XXX bswap */
+
+	cheader->generation_number = htonl(id);
+	cheader->command = htonl(CNTL_CMD_SET_OFFLOAD);
+	cheader->data_len = htonl(sizeof(*offl));
+	cheader->spare = (uint32_t) offl;
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to enq set gids \n");
+		free(cheader);
+		free(offl);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+} 
 
 /*
  * This builds the command to set the searchlet on the remote device.
@@ -670,13 +710,13 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	control_header_t *  	cheader;
 	sdevice_state_t *       dev;
 	dctl_subheader_t *      dsub;
-    int                     plen;
-    int                     tot_len;
+    	int                     plen;
+    	int                     tot_len;
 
 	dev = (sdevice_state_t *)handle;
 
-    plen = strlen(path) + 1;
-    tot_len = plen + sizeof(*dsub);
+    	plen = strlen(path) + 1;
+    	tot_len = plen + sizeof(*dsub);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));	
 	if (cheader == NULL) {
@@ -684,7 +724,7 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 		return (EAGAIN);
 	}
 
-    dsub = (dctl_subheader_t *) malloc(tot_len);
+    	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
 		/* XXX log */
         free(cheader);
@@ -703,14 +743,14 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	 */
 	cheader->spare = (uint32_t) dsub;	
 
-    /*
-     * Fill in the subheader.
-     */
-    dsub->dctl_err = htonl(0);
-    dsub->dctl_opid = htonl(opid);
-    dsub->dctl_plen = htonl(plen);
-    dsub->dctl_dlen = htonl(0);
-    memcpy(&dsub->dctl_data[0], path, plen);
+	/*
+	 * Fill in the subheader.
+	 */
+	dsub->dctl_err = htonl(0);
+	dsub->dctl_opid = htonl(opid);
+	dsub->dctl_plen = htonl(plen);
+	dsub->dctl_dlen = htonl(0);
+	memcpy(&dsub->dctl_data[0], path, plen);
 
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
@@ -736,13 +776,13 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	control_header_t *  	cheader;
 	sdevice_state_t *       dev;
 	blob_subheader_t *      bsub;
-    int                     nlen;
-    int                     tot_len;
+    	int                     nlen;
+    	int                     tot_len;
 
 	dev = (sdevice_state_t *)handle;
 
-    nlen = strlen(name) + 1;
-    tot_len = nlen + blob_len + sizeof(*bsub);
+    	nlen = strlen(name) + 1;
+    	tot_len = nlen + blob_len + sizeof(*bsub);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));	
 	if (cheader == NULL) {
@@ -750,7 +790,7 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 		return (EAGAIN);
 	}
 
-    bsub = (blob_subheader_t *) malloc(tot_len);
+    	bsub = (blob_subheader_t *) malloc(tot_len);
 	if (bsub == NULL) {
 		/* XXX log */
         free(cheader);
@@ -758,7 +798,7 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	}
 
 
-    /* fill in the data */
+	/* fill in the data */
 
 	cheader->generation_number = htonl(id);	
 	cheader->command = htonl(CNTL_CMD_SET_BLOB);
@@ -769,13 +809,13 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	 */
 	cheader->spare = (uint32_t) bsub;	
 
-    /*
-     * Fill in the subheader.
-     */
-    bsub->blob_nlen = htonl(nlen);
-    bsub->blob_blen = htonl(blob_len);
-    memcpy(&bsub->blob_sdata[0], name, nlen);
-    memcpy(&bsub->blob_sdata[nlen], blob, blob_len);
+	/*
+	 * Fill in the subheader.
+	 */
+	bsub->blob_nlen = htonl(nlen);
+	bsub->blob_blen = htonl(blob_len);
+	memcpy(&bsub->blob_sdata[0], name, nlen);
+	memcpy(&bsub->blob_sdata[nlen], blob, blob_len);
 
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
@@ -847,10 +887,10 @@ setup_stats(sdevice_state_t *dev, uint32_t devid)
         node_name[len] = 0;
     }
 
-    sprintf(path_name, "%s.%s", HOST_NETWORK_PATH, node_name);
+	sprintf(path_name, "%s.%s", HOST_NETWORK_PATH, node_name);
 
-    err = dctl_register_node(HOST_NETWORK_PATH, node_name);
-    assert(err==0);
+	err = dctl_register_node(HOST_NETWORK_PATH, node_name);
+	assert(err==0);
 
 
        
@@ -898,7 +938,7 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 		return (NULL);
 	}
 
-    memset(new_dev, 0, sizeof(*new_dev));
+	memset(new_dev, 0, sizeof(*new_dev));
 
 	/*
 	 * initialize the ring that is used to queue "commands"
@@ -944,7 +984,7 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 	new_dev->stat_size = 0;
 
 
-    setup_stats(new_dev, devid); 
+	setup_stats(new_dev, devid); 
 
 	/*
 	 * Spawn a thread for this device that process data to and

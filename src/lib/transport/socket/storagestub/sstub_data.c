@@ -204,6 +204,13 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		}
 	}
 
+    /* some stats */
+    cstate->stats_objs_tx++;
+    cstate->stats_objs_attr_bytes_tx += obj->attr_info.attr_len;
+    cstate->stats_objs_data_bytes_tx += obj->data_len;
+    cstate->stats_objs_hdr_bytes_tx += sizeof(cstate->data_tx_oheader);
+    cstate->stats_objs_total_bytes_tx += sizeof(cstate->data_tx_oheader) +
+            obj->attr_info.attr_len + obj->data_len;
 
 	/*
 	 * If we make it here, then we have sucessfully sent

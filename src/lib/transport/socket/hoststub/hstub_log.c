@@ -182,6 +182,10 @@ hstub_read_log(sdevice_state_t  *dev)
 
 	}
 
+    cinfo->stat_log_rx ++;
+    cinfo->stat_log_byte_rx += sizeof(cinfo->log_rx_header) +
+		    ntohl(cinfo->log_rx_header.log_len);
+
 	/*
 	 * If we get here we have the full log message, now
 	 * call the function that handles it.  The called function will free

@@ -23,6 +23,7 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
+#include "dctl_common.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
@@ -650,6 +651,72 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	return (0);
 }
 
+static void
+setup_stats(sdevice_state_t *dev, uint32_t devid)
+{
+    struct hostent *hent;
+    int             len, err;
+    char *          delim;
+    char            node_name[128]; /* XXX */
+    char            path_name[128]; /* XXX */
+
+    hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
+    if (hent == NULL) {
+        struct in_addr in;
+
+        printf("failed to get hostname\n");
+        in.s_addr = devid;
+        delim = inet_ntoa(in);
+        strcpy(node_name, delim);
+
+        /* replace all the '.' with '_' */
+        while ((delim = index(node_name, '.')) != NULL) {
+            *delim = '_';
+        }
+    } else {
+        delim = index(hent->h_name ,'.');
+        if (delim == NULL) {
+            len = strlen(hent->h_name);
+        } else {
+            len = delim - hent->h_name;
+        }
+        strncpy(node_name, hent->h_name , len);
+        node_name[len] = 0;
+    }
+
+    sprintf(path_name, "%s.%s", HOST_NETWORK_PATH, node_name);
+
+    err = dctl_register_node(HOST_NETWORK_PATH, node_name);
+    assert(err==0);
+
+
+       
+    dctl_register_leaf(path_name, "obj_rx", DCTL_DT_UINT32, 
+            dctl_read_uint32, NULL, &dev->con_data.stat_obj_rx);
+    dctl_register_leaf(path_name, "obj_total_bytes_rx", DCTL_DT_UINT64, 
+            dctl_read_uint64, NULL, &dev->con_data.stat_obj_total_byte_rx);
+    dctl_register_leaf(path_name, "obj_hdr_bytes_rx", DCTL_DT_UINT64, 
+            dctl_read_uint64, NULL, &dev->con_data.stat_obj_hdr_byte_rx);
+    dctl_register_leaf(path_name, "obj_attr_bytes_rx", DCTL_DT_UINT64, 
+            dctl_read_uint64, NULL, &dev->con_data.stat_obj_attr_byte_rx);
+    dctl_register_leaf(path_name, "obj_data_bytes_rx", DCTL_DT_UINT64, 
+            dctl_read_uint64, NULL, &dev->con_data.stat_obj_data_byte_rx);
+
+    dctl_register_leaf(path_name, "control_rx", DCTL_DT_UINT32, 
+            dctl_read_uint32, NULL, &dev->con_data.stat_control_rx);
+    dctl_register_leaf(path_name, "control_byte_rx", DCTL_DT_UINT64, 
+            dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_rx);
+    dctl_register_leaf(path_name, "control_tx", DCTL_DT_UINT32, 
+            dctl_read_uint32, NULL, &dev->con_data.stat_control_tx);
+    dctl_register_leaf(path_name, "control_byte_tx", DCTL_DT_UINT64, 
+            dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_tx);
+    dctl_register_leaf(path_name, "log_rx", DCTL_DT_UINT32, 
+            dctl_read_uint32, NULL, &dev->con_data.stat_log_rx);
+    dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64, 
+            dctl_read_uint64, NULL, &dev->con_data.stat_log_byte_rx);
+
+
+}
 
 /*
  * This is the initialization function that is
@@ -667,6 +734,8 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 	if (new_dev == NULL) {
 		return (NULL);
 	}
+
+    memset(new_dev, 0, sizeof(*new_dev));
 
 	/*
 	 * initialize the ring that is used to queue "commands"
@@ -710,6 +779,9 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list)
 	 */
 	new_dev->dstats = NULL;
 	new_dev->stat_size = 0;
+
+
+    setup_stats(new_dev, devid); 
 
 	/*
 	 * Spawn a thread for this device that process data to and

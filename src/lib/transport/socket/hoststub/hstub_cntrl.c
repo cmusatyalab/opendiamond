@@ -407,6 +407,11 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 
 	}
 
+    cinfo->stat_control_rx++;
+    cinfo->stat_control_byte_rx += sizeof(cinfo->control_rx_header) +
+            ntohl(cinfo->control_rx_header.data_len);
+
+
 	/*
 	 * If we get here we have the full control message, now
 	 * call the function that handles it.  The called function will free
@@ -534,6 +539,9 @@ hstub_write_cntrl(sdevice_state_t *dev)
 		}
 		free(data);
 	}
+
+    cinfo->stat_control_tx++;
+    cinfo->stat_control_byte_tx += sizeof(*cheader) + ntohl(cheader->data_len);
 
 	cinfo->control_state = CONTROL_TX_NO_PENDING;
 	free(cheader);

@@ -85,6 +85,17 @@ typedef struct cstate {
 	data_tx_state_t		data_tx_state;
 	int			        data_tx_offset;
 	obj_header_t		data_tx_oheader;
+    uint32_t            stats_objs_tx;
+    uint64_t            stats_objs_attr_bytes_tx;
+    uint64_t            stats_objs_data_bytes_tx;
+    uint64_t            stats_objs_hdr_bytes_tx;
+    uint64_t            stats_objs_total_bytes_tx;
+    uint32_t            stats_control_tx;
+    uint64_t            stats_control_bytes_tx;
+    uint32_t            stats_control_rx;
+    uint64_t            stats_control_bytes_rx;
+    uint32_t            stats_log_tx;
+    uint64_t            stats_log_bytes_tx;
 } cstate_t;
 
 

@@ -23,6 +23,7 @@
 #include "lib_searchlet.h"
 #include "socket_trans.h"
 #include "lib_dctl.h"
+#include "dctl_common.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
@@ -53,6 +54,37 @@ socket_non_block(int fd)
 
 }
 
+static void
+register_stats(cstate_t *cstate)
+{
+
+       
+    dctl_register_leaf(DEV_NETWORK_PATH, "obj_sent", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &cstate->stats_objs_tx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "obj_tot_bytes_sent", DCTL_DT_UINT64, 
+                    dctl_read_uint64, NULL, &cstate->stats_objs_total_bytes_tx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "obj_data_bytes_sent", DCTL_DT_UINT64, 
+                    dctl_read_uint64, NULL, &cstate->stats_objs_data_bytes_tx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "obj_attr_bytes_sent", DCTL_DT_UINT64, 
+                    dctl_read_uint64, NULL, &cstate->stats_objs_attr_bytes_tx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "obj_hdr_bytes_sent", DCTL_DT_UINT64, 
+                    dctl_read_uint64, NULL, &cstate->stats_objs_hdr_bytes_tx);
+
+
+    dctl_register_leaf(DEV_NETWORK_PATH, "control_sent", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &cstate->stats_control_tx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "control_bytes_sent", DCTL_DT_UINT64, 
+                    dctl_read_uint64, NULL, &cstate->stats_control_bytes_tx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "control_recv", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &cstate->stats_control_rx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "control_bytes_recv", DCTL_DT_UINT64, 
+                    dctl_read_uint64, NULL, &cstate->stats_control_bytes_rx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "log_sent", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &cstate->stats_log_tx);
+    dctl_register_leaf(DEV_NETWORK_PATH, "log_bytes_sent", DCTL_DT_UINT64, 
+                    dctl_read_uint64, NULL, &cstate->stats_log_bytes_tx);
+
+}
 
 /*
  * This is called if the connection has been shutdown the remote
@@ -217,10 +249,18 @@ have_full_conn(listener_state_t *list_state, int conn)
 		}
 
 		/*
-	 	 * we registered correctly, save the cookie and create a thread
+	 	 * we registered correctly, save the cookie;
 	  	 */
-
 		list_state->conns[conn].app_cookie = new_cookie;
+
+
+        /*
+         * Register the statistics with dctl.  This needs to be
+         * done after the new_conn_cb()  !!!.
+         */
+        register_stats(cstate);
+
+        
 
 		/*
 		 * the main thread for this process is used

@@ -203,6 +203,11 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 
 	}
 
+
+	cstate->stats_log_tx++;
+	cstate->stats_log_bytes_tx += cstate->log_tx_len + 
+            sizeof(cstate->log_tx_header);
+
 	/*
 	 * All the data has been sent, so we update of state machine and
 	 * call the callback.
@@ -218,9 +223,13 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 	data = cstate->log_tx_buf;
 	cstate->log_tx_buf = NULL;
 	log_remain = cstate->log_tx_len;
+
+
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags &= ~CSTATE_LOG_DATA;
 	pthread_mutex_unlock(&cstate->cmutex);
+
+
 
 	(*lstate->log_done_cb)(cstate->app_cookie, data, log_remain);
 	return;

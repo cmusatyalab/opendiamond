@@ -64,6 +64,17 @@ typedef struct conn_info {
 	fd_set			    read_fds;
 	fd_set			    write_fds;
 	fd_set			    except_fds;
+    uint32_t            stat_log_rx;
+    uint64_t            stat_log_byte_rx;
+    uint32_t            stat_control_rx;
+    uint64_t            stat_control_byte_rx;
+    uint32_t            stat_control_tx;
+    uint64_t            stat_control_byte_tx;
+    uint32_t            stat_obj_rx;
+    uint64_t            stat_obj_total_byte_rx;
+    uint64_t            stat_obj_hdr_byte_rx;
+    uint64_t            stat_obj_attr_byte_rx;
+    uint64_t            stat_obj_data_byte_rx;
 } conn_info_t;
 
 

@@ -135,7 +135,7 @@ hstub_main(void *arg)
 	while (1) {
 		loop_cnt++;
 
-		if (loop_cnt > 200) {
+		if (loop_cnt > 50) {
 			request_chars(dev);
 			request_stats(dev);
 			loop_cnt = 0;

@@ -210,6 +210,11 @@ sstub_write_control(listener_state_t *lstate, cstate_t *cstate)
 		free(data);
 	}
 
+    /* some stats */
+    cstate->stats_control_tx++;
+    cstate->stats_control_bytes_tx += sizeof(*cheader) +
+            ntohl(cheader->data_len);
+
 
 
 	/*
@@ -642,15 +647,22 @@ sstub_read_control(listener_state_t *lstate, cstate_t *cstate)
 
 	}
 
+    /* update stats */
+    cstate->stats_control_rx++;
+    cstate->stats_control_bytes_rx += sizeof(cstate->control_rx_header) +
+            ntohl(cstate->control_rx_header.data_len);
+
 	/*
-	 * If we get here we have the full control message, now
-	 * call the function that handles it.  The called function will free
-	 * the data when done.
-	 */
+	 * Call the process control function.  The caller is responsible
+     * for freeing the allocated data structures.
+     */
+
 
 	process_control(lstate, cstate, data_buf);
-	
+
+    /* make sure the state is reset */
 	cstate->control_rx_state = CONTROL_RX_NO_PENDING;
+
 	return;
 }
 

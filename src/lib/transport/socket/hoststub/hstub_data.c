@@ -275,6 +275,14 @@ hstub_read_data(sdevice_state_t *dev)
 		}
 	}
 
+    cinfo->stat_obj_rx++;
+    cinfo->stat_obj_attr_byte_rx += cinfo->data_rx_obj->attr_info.attr_len;
+    cinfo->stat_obj_hdr_byte_rx += sizeof(obj_header_t); 
+    cinfo->stat_obj_data_byte_rx += cinfo->data_rx_obj->data_len;
+    cinfo->stat_obj_total_byte_rx += cinfo->data_rx_obj->attr_info.attr_len +
+            sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
+
+            
 	
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 	ver_no = ntohl(cinfo->data_rx_header.version_num);

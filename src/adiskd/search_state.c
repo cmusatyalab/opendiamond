@@ -263,8 +263,22 @@ clear_ss_stats(search_state_t * sstate)
 }
 
 
+static void
+sstats_drop(void *cookie)
+{
+	search_state_t * sstate = (search_state_t *)cookie;
+
+	sstate->obj_dropped++;
+}
 
 
+static void
+sstats_process(void *cookie)
+{
+	search_state_t * sstate = (search_state_t *)cookie;
+
+	sstate->obj_processed++;
+}
 
 /*
  * Take the current command and process it.  Note, the command
@@ -359,7 +373,8 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 
 	/* JIAYING: for now, we calculate the signature for the whole
 		librar and spec file */
-        ceval_init_search(sstate->fdata, sstate->ostate);
+        ceval_init_search(sstate->fdata, sstate->ostate, (void *)sstate, 
+				sstats_drop, sstats_process );
 
         /*
          * Remove the files that held the data.  If do_cleanup is

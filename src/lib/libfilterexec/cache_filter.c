@@ -21,12 +21,12 @@
 #include "attr.h"
 #include "filter_exec.h"
 #include "filter_priv.h"
-#include "cache_filter.h"
 #include "rtimer.h"
 #include "rgraph.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 #include "lib_ocache.h"
+#include "cache_filter.h"
 
 #define	MAX_FILTER_NUM	128
 
@@ -89,7 +89,8 @@ ceval_main(void *arg)
 }
 
 int
-ceval_init_search(filter_data_t * fdata, odisk_state_t *odisk)
+ceval_init_search(filter_data_t * fdata, odisk_state_t *odisk, void *cookie,
+			stats_drop stats_drop_fn, stats_process stats_process_fn)
 {
     filter_id_t     fid;
     filter_info_t  *cur_filt;
@@ -115,6 +116,9 @@ ceval_init_search(filter_data_t * fdata, odisk_state_t *odisk)
     memset(new_state, 0, sizeof(*new_state));
     new_state->fdata = fdata;
     new_state->odisk = odisk;
+    new_state->cookie = cookie;
+    new_state->stats_drop_fn = stats_drop_fn;
+    new_state->stats_process_fn = stats_process_fn;
 
     err = pthread_create(&new_state->ceval_thread_id, PATTR_DEFAULT, 
 	ceval_main, (void *) new_state);
@@ -138,6 +142,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 			 int (*cb_func) (void *cookie, char *name,
                                            int *pass, uint64_t * et))
 {
+    ceval_state_t  * cstate = (ceval_state_t *)cookie;
     filter_info_t  *cur_filter;
     int             conf;
     int             err;
@@ -160,6 +165,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
     int oattr_fnum=0;
     char *fpath;
     pr_obj_t * pr_obj;
+    int i, j;
 
     //printf("ceval_filters1: obj %016llX\n",oid);
     log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
@@ -214,6 +220,12 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 		/* get the cached output attr set and modify changed attr set */
             	if (conf < cur_filter->fi_threshold) {
                 	pass = 0;
+			cstate->stats_drop_fn(cstate->cookie);
+			cstate->stats_process_fn(cstate->cookie);
+			for( i=0; i <= cur_fidx; i++ ) {
+				j = pmElt(fdata->fd_perm, i);	
+				fdata->fd_filters[j].fi_called++;
+			}
 			//printf("drop obj %016llX with filter %s, conf %d, thresh %d\n", oid, cur_filter->fi_name, conf, cur_filter->fi_threshold);
             	}
 

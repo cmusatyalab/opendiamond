@@ -154,6 +154,7 @@ digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args, int bl
 	}
 	if(lib_fd < 0) {
 		printf("fail to open lib file %s, errno %d\n", lib_name,errno);
+		assert(0);
 		return(EINVAL);
 	}
 

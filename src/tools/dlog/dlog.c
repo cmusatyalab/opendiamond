@@ -122,7 +122,8 @@ get_type_string(uint32_t level, char *string, int max)
 
 
 void
-display_results(log_msg_t *lheader, char *data)
+display_results(log_msg_t *lheader, char *data, unsigned int level_flags,
+                unsigned int src_flags)
 {
 	char		source;
 	char *		host_id;
@@ -158,6 +159,9 @@ display_results(log_msg_t *lheader, char *data)
 
 		level = ntohl(log_ent->le_level);	
 		type = ntohl(log_ent->le_type);	
+        if (((level & level_flags) == 0) || ((type & src_flags) == 0)) {
+            continue;
+        }
 		dlen = ntohl(log_ent->le_dlen);
 		log_ent->le_data[dlen - 1] = '\0';
 
@@ -175,10 +179,9 @@ display_results(log_msg_t *lheader, char *data)
 
 
 
-}
-
+} 
 void
-read_log(int fd)
+read_log(int fd, unsigned int level_flags, unsigned int src_flags)
 {
 	int	len;
 	log_msg_t	lheader;
@@ -201,7 +204,7 @@ read_log(int fd)
 			return;
 		}
 
-		display_results(&lheader, data);
+		display_results(&lheader, data, level_flags, src_flags);
 
 		free(data);
 	}
@@ -336,17 +339,14 @@ set_log_flags(int fd, uint32_t level_flags, uint32_t src_flags)
 	log_msg.dev_id = 0;
 
 
-	printf("sending log command \n");
 	len = send(fd, &log_msg, sizeof(log_msg), MSG_WAITALL);
 	if (len != sizeof(log_msg)) {
-		printf("log error  \n");
 		if (len == -1) {
 			perror("failed to set log flags ");
 			exit(1);
 		}
 		return;
 	}
-	printf("log done  \n");
 }
 
 int
@@ -432,7 +432,7 @@ main(int argc, char **argv)
 			 * read the log.
 			 */
 			set_log_flags(fd, level_flags, src_flags); 
-			read_log(fd);
+			read_log(fd, level_flags, src_flags);
 		}
 		close(fd);
 	}

@@ -4,6 +4,10 @@
 #include <rpc/rpc.h>
 #include <assert.h>
 #include <netdb.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -51,6 +55,9 @@ void
 ods_init()
 {
     int i;
+    int     seed;
+    int     fd;
+    size_t  rbytes;
     assert(done_init == 0);
     done_init = 1;
 
@@ -59,7 +66,15 @@ ods_init()
         LIST_INIT(&ods_devid_hash[i]);
     }
 
-    srand(37);
+
+    fd = open("/dev/random", O_RDONLY);
+    assert(fd != -1);
+    rbytes = read(fd, (void *)&seed, sizeof(seed));
+    assert(rbytes == sizeof(seed));
+
+
+    srand(seed);
+
 }
 
 
@@ -174,6 +189,7 @@ ods_allocate_by_gid(groupid_t *gid)
     od_srv_t *  osrv;
     int         err;
     int         idx;
+    double      temp;
 
     assert(done_init);
 
@@ -193,7 +209,19 @@ ods_allocate_by_gid(groupid_t *gid)
         return(NULL);
     }
 
-    idx = (int) (((double)num_hosts * (double)rand())/(RAND_MAX + 1.0));
+
+    temp = (double) rand();
+    printf("tmp %f \n", temp);
+
+    temp = ((double)num_hosts * temp);
+    printf("tmp %f \n", temp);
+
+    temp  = temp / (RAND_MAX + 1.0);
+    
+    printf("tmp %f \n", temp);
+
+    idx = (int) temp;
+    printf("num hosts %d idx %d \n", num_hosts, idx);
 
     devid = host_list[idx];
 

@@ -167,10 +167,10 @@ ls_terminate_search(ls_search_handle_t handle)
 
 int
 ls_set_searchlist(ls_search_handle_t handle, int num_groups,
-		group_id_t *glist)
+		groupid_t *glist)
 {
 	search_context_t *	sc;
-	group_id_t		cur_gid;
+	groupid_t		cur_gid;
 	uint32_t		host_ids[MAX_HOST_IDS];
 	int			hosts;
 	int			i,j;

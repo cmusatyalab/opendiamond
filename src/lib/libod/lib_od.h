@@ -1,6 +1,7 @@
 #ifndef	_LIB_OD_H
 #define	_LIB_OD_H 	    1
 
+#include "diamond_types.h"
 
 #ifdef	__cplusplus
 extern "C" {
@@ -13,7 +14,6 @@ struct obj_id {
 
 typedef struct obj_id obj_id_t;
 
-typedef uint64_t    groupid_t;
 
 #ifndef RPCGEN
 

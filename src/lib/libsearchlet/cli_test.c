@@ -16,7 +16,7 @@ main(int argc , char **argv) {
 	int			err;
 	ls_obj_handle_t		cur_obj;
 	ls_search_handle_t	shandle;
-	group_id_t		gid;
+	groupid_t		gid;
 
 
 	shandle = ls_init_search();

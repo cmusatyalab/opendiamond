@@ -130,6 +130,7 @@ typedef struct listener_state {
 	sstub_wleaf_fn	        wleaf_cb;
 	sstub_lleaf_fn	        lleaf_cb;
 	sstub_lnode_fn	        lnode_cb;
+	sstub_sgid_fn	        sgid_cb;
 	cstate_t		        conns[MAX_CONNS];
 } listener_state_t;
 

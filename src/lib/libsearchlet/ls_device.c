@@ -606,7 +606,7 @@ create_new_device(search_context_t *sc, uint32_t devid)
 
 
 int
-device_add_gid(search_context_t *sc, group_id_t gid, uint32_t devid)
+device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid)
 {
 
 	device_handle_t * 	cur_dev;
@@ -626,6 +626,8 @@ device_add_gid(search_context_t *sc, group_id_t gid, uint32_t devid)
 		/* XXX log */
 		return(ENOENT);
 	}
+
+    device_new_gid(cur_dev->dev_handle, sc->cur_search_id, gid);
 
 	cur_dev->dev_groups[cur_dev->num_groups] = gid;
 	cur_dev->num_groups++;

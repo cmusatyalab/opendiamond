@@ -857,5 +857,18 @@ search_list_nodes(void *app_cookie, char *path, int32_t opid)
 	return (0);
 }
 
+int
+search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
+{
+	int		        err;
+	search_state_t * sstate;
+
+	sstate = (search_state_t *)app_cookie;
+    err = odisk_set_gid(sstate->ostate, gid);
+    assert(err == 0);
+	return (0);
+}
+
+
 
 

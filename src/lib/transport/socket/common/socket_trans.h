@@ -27,6 +27,7 @@
 #define	CNTL_CMD_RLEAF_DONE     17
 #define	CNTL_CMD_LNODES_DONE    18
 #define	CNTL_CMD_LLEAFS_DONE    19
+#define	CNTL_CMD_ADD_GID        20
 
 
 /*
@@ -84,6 +85,10 @@ typedef struct fstats_subheader {
 	uint32_t	fss_objs_dropped;
 	uint64_t	fss_avg_exec_time;
 } fstats_subheader_t;
+
+typedef struct sgid_subheader {
+	uint64_t	sgid_gid;
+} sgid_subheader_t;
 
 
 typedef struct dstats_subheader {

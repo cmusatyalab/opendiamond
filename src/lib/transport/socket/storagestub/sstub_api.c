@@ -310,6 +310,7 @@ sstub_init(sstub_cb_args_t *cb_args)
 	list_state->wleaf_cb = cb_args->wleaf_cb;
 	list_state->lleaf_cb = cb_args->lleaf_cb;
 	list_state->lnode_cb = cb_args->lnode_cb;
+	list_state->sgid_cb = cb_args->sgid_cb;
 
 	/*
 	 * Open the listner sockets for the different types of connections.

@@ -56,6 +56,7 @@ int odisk_read_obj(struct odisk_state *odisk, obj_data_t *obj, int *len,
 int odisk_add_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
 int odisk_rem_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
 int odisk_release_obj(struct odisk_state *odisk, obj_data_t *obj);
+int odisk_set_gid(struct odisk_state *odisk, groupid_t gid);
 
 #ifdef	__cplusplus
 }

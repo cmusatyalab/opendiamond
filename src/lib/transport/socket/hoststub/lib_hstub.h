@@ -47,8 +47,7 @@ extern int device_write_leaf(void *dev, char *path, int len, char *data,
 extern int device_read_leaf(void *dev, char *path, int32_t opid);
 extern int device_list_nodes(void *dev, char *path, int32_t opid);
 extern int device_list_leafs(void *dev, char *path, int32_t opid);
-
-
+int device_new_gid(void *handle, int id, groupid_t gid);
 
 #endif	/* _LIB_HSTUB_H_ */
 

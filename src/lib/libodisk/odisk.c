@@ -18,9 +18,17 @@
 #include "odisk_priv.h"
 #include "attr.h"
 
-#define	DIR_PATH_NAME	"/opt/dir1"
 #define	MAX_FNAME	128
 
+
+/*
+ * These are the set of group ID's we are using to 
+ * filter the data.
+ */
+#define MAX_GID_FILTER  64
+
+static groupid_t   gid_list[MAX_GID_FILTER];
+static int         num_gids = 0;
 
 
 
@@ -369,7 +377,18 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
 }
 
 
+int
+odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
+{
 
+    if (num_gids >= MAX_GID_FILTER) {
+        return(ENOMEM);
+    }
+
+    gid_list[num_gids] = gid;
+    num_gids++;
+    return(0);
+}
         
 int
 odisk_write_obj(odisk_state_t *odisk, obj_data_t *obj, int len,
@@ -421,6 +440,36 @@ odisk_read_obj(odisk_state_t *odisk, obj_data_t *obj, int *len,
 }
 
 
+static int
+odisk_gid_good(obj_data_t *obj)
+{
+    gid_list_t* glist;
+    off_t       len; 
+    int         i,j, err;
+
+    return(0);
+
+    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
+    if (err != ENOMEM) {
+        return(err);
+    }
+
+    glist = (gid_list_t *)malloc(len);
+    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *)glist);
+    assert(err == 0);
+
+    for (i=0; i < glist->num_gids; i++) {
+        for (j=0; j < num_gids; j++) {
+            if ((glist->gids[i] == gid_list[j])) {
+                free(glist);
+                return(0);
+            }
+        }
+    }
+
+    free(glist);
+    return(ENOENT);
+}
 
 
 int
@@ -470,6 +519,12 @@ next:
 		printf("create obj failed %d \n", err);
 		return(err);
 	}
+
+    err = odisk_gid_good(*new_object);
+    if (err) {
+        odisk_release_obj(odisk, *new_object);
+        goto next;
+    }
 
 	/* XXX */
 	obj_write_attr(&((*new_object)->attr_info),

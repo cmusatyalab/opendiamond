@@ -69,7 +69,6 @@ init_disk()
         fprintf(stderr, "unable to initialize odisk \n");
         exit(1);
     }
-
 }
 
 
@@ -134,13 +133,17 @@ rpc_read_data_1_svc(read_data_arg_t *arg, struct svc_req *rq)
     static read_results_t   result;
     int                     len;
     int                     err;
-    char *                  buf;
+    static char *           buf = NULL;
     obj_data_t *            obj;
 
     if (odata == NULL) {
         init_disk();
     }
 
+    if (buf != NULL) {
+	free(buf);
+	buf = NULL;
+    }
     err = odisk_get_obj(odata, &obj, arg->oid);
     if (err != 0) {
         result.status = err;
@@ -252,11 +255,16 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
     obj_data_t *            obj;
     int                     err;
     off_t                   len;
-    char *                  dbuf;
+    static char *           dbuf = NULL;
 
     if (odata == NULL) {
         init_disk();
     }
+
+    if (dbuf != NULL) {
+	free(dbuf);
+	dbuf = NULL;
+    } 
 
     err = odisk_get_obj(odata, &obj, arg->oid);
     if (err != 0) {
@@ -272,12 +280,12 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
         result.status = 0;
         result.data.data_len = 0;
         result.data.data_val = NULL;
-        return(&result);
+	goto done;
     } else if (err != ENOMEM) {
         result.status = err;
         result.data.data_len = 0;
         result.data.data_val = NULL;
-        return(&result);
+	goto done;
     }
    
     /*
@@ -288,16 +296,21 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
 
     err = obj_read_attr(&obj->attr_info, arg->name, &len, dbuf);
     if (err) {
+    	odisk_release_obj(odata, obj);
         result.status = err;
         result.data.data_len = 0;
         result.data.data_val = NULL;
         free(dbuf);
-        return(&result);
+	dbuf = NULL;
+	goto done;
     }
 
     result.status = 0;
     result.data.data_len = len;
     result.data.data_val = dbuf;
+
+done:
+    odisk_release_obj(odata, obj);
     return(&result);
 }
 
@@ -309,10 +322,15 @@ rpc_read_gididx_1_svc(rgid_idx_arg_t *arg, struct svc_req *rq)
     FILE           *new_file;
     static rgid_results_t   result;
     int                     len;
-    char *                  buf;
+    static char *           buf = NULL;
 
     if (odata == NULL) {
         init_disk();
+    }
+
+    if (buf != NULL) {
+	free(buf);
+	buf = NULL;
     }
 
     len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", odata->odisk_path,

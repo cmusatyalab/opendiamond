@@ -179,7 +179,7 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
  */
 void
 fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
-                          float ratio)
+                          double ratio)
 {
     int             i;
     filter_info_t  *info;
@@ -193,6 +193,7 @@ fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
         info->fi_bpthresh = RAND_MAX;
     } else {
         info->fi_bpthresh = (int) ((float) RAND_MAX * ratio);
+		printf("new thresh %d \n", info->fi_bpthresh);
     }
 
 
@@ -364,7 +365,7 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
     double          target_cost;
     int             err;
 
-    err = fexec_compute_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
+    err = fexec_estimate_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 
     /*
      * If we have an error, we can't compute the cost, so
@@ -374,6 +375,7 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
      * XXX using diferent splitting algorithm ?? 
      */
     if (err == 1) {
+		printf("failed to compute cost \n");
         fexec_set_bypass_none(fdata);
         return (0);
     }

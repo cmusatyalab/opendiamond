@@ -408,7 +408,6 @@ fexec_compute_cost(filter_data_t * fdata, permutation_t * perm, int gen,
     return 0;
 }
 
-#if 0
 int
 fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
                     double *cost)
@@ -492,7 +491,6 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
 #endif
     return 0;
 }
-#endif
 
 
 /*

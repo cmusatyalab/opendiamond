@@ -14,7 +14,7 @@ MKDIR = mkdir
 # files that have been generated.
 #
 
-CLEAN_OTHERS += gmon.out core.* *.core
+CLEAN_OTHERS += gmon.out core.* *.core *.daVinci
 
 #
 # Objects to remove during "distclean".  For now just the .depend

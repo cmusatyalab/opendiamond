@@ -54,7 +54,7 @@ main(int argc , char **argv)
 
 	/* make this a daemon by the appropriate call */
 	if (do_daemon) {
-		err = daemon(0, 1);
+		err = daemon(1, 1);
 		if (err != 0) {
 			perror("daemon call failed !! \n");
 			exit(1);

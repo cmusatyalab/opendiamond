@@ -369,12 +369,9 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 	cache_attr_set *oattr_set;
 	int             found;
 	int             hit = 1;
-	char          **filters;
-	char          **fsig;
-	char          **iattrsig;
-	// char **oattr_fname;
+	char          **filters, **fsig, **iattrsig;
 	int             oattr_fnum = 0;
-	char           *fpath;
+	char           *isig;
 	pr_obj_t       *pr_obj;
 	int             i, j;
 	int             perm_num;
@@ -386,7 +383,6 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 	fdata->obj_counter++;
 
 	if (use_cache_table == 0) {
-		// printf("not use cache table\n");
 		pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 		assert( pr_obj != NULL);
 		pr_obj->obj_id = oid;
@@ -417,15 +413,11 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 	assert(err == 0);
 
 	for (perm_num = 0; perm_num < cached_perm_num; perm_num++) {
-		/*
-		 * if the attr has not been changed, the change_attr is empty
-		 * initially; otherwise, the change_attr includes all attributes read 
-		 * in from the attr file. XXX add check if attr changed later 
-		 */
 		change_attr.entry_num = 0;
 		change_attr.entry_data = malloc(ATTR_ENTRY_NUM * sizeof(char *));
 		assert(change_attr.entry_data != NULL);
-		//change_attr.entry_data[0] = NULL;
+
+		cache_lookup0(oid, &change_attr, NULL);
 
 		cur_perm = cached_perm[perm_num];
 		assert(cur_perm != NULL);
@@ -452,7 +444,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 
 				found = cache_lookup(oid, cur_filter->fi_sig,
 									 cur_filter->cache_table, &change_attr,
-									 &conf, &oattr_set, &fpath);
+									 &conf, &oattr_set, &isig);
 
 				if (found) {
 					/*
@@ -478,15 +470,13 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 					if (pass) {
 						if (oattr_set != NULL)
 							combine_attr_set(&change_attr, oattr_set);
-						if (fpath != NULL && oattr_fnum < MAX_FILTER_NUM
+						if (isig != NULL && oattr_fnum < MAX_FILTER_NUM
 							&& perm_num == 0) {
 							filters[oattr_fnum] = cur_filter->fi_name;
 							fsig[oattr_fnum] = cur_filter->fi_sig;
-							iattrsig[oattr_fnum] = fpath;
-							// oattr_fname[oattr_fnum] = fpath;
+							iattrsig[oattr_fnum] = isig;
 							oattr_fnum++;
 						}
-						// cur_filter->fi_cache_pass++;
 					}
 					rt_stop(&rt);
 					time_ns = rt_nanos(&rt);
@@ -527,9 +517,6 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 			free(change_attr.entry_data);
 			break;
 		}
-		/*
-		 * free change_attr_set 
-		 */
 		free(change_attr.entry_data);
 	}
 	if (hit) {
@@ -610,7 +597,6 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 			pr_obj->stack_ns = stack_ns;
 			odisk_pr_add(pr_obj);
 		} else {
-			// printf("not use cache oattr\n");
 			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 			assert( pr_obj != NULL);
 			pr_obj->obj_id = oid;
@@ -625,7 +611,6 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 		free(filters);
 		free(fsig);
 		free(iattrsig);
-		// free(oattr_fname);
 	}
 
 	return pass;
@@ -667,7 +652,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	cache_attr_set *oattr_set;
 	int             lookup;
 	int             miss = 0;
-	char           *fpath = NULL;
+	int				 oattr_flag=0;
 
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
 	// printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
@@ -695,7 +680,8 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	change_attr.entry_num = 0;
 	change_attr.entry_data = malloc(ATTR_ENTRY_NUM * sizeof(char *));
 	assert(change_attr.entry_data != NULL);
-	//change_attr.entry_data[0] = NULL;
+
+	cache_lookup0(obj_handle->local_id, &change_attr, &obj_handle->attr_info);
 
 	for (cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm);
 		 cur_fidx++) {
@@ -718,20 +704,16 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			lookup = cache_lookup2(obj_handle->local_id,
 								   cur_filter->fi_sig,
 								   cur_filter->cache_table, &change_attr,
-								   &conf, &oattr_set, &fpath, err);
+								   &conf, &oattr_set, &oattr_flag, err);
 		} else {
 			lookup = ENOENT;
-			fpath = NULL;
+			oattr_flag = 0;
 		}
 
 		if ((lookup == 0) && (conf < cur_filter->fi_threshold)) {
 			pass = 0;
 			cur_filter->fi_drop++;
 			cur_filter->fi_called++;
-			if (fpath != NULL) {
-				free(fpath);
-				fpath = NULL;
-			}
 			break;
 		}
 
@@ -792,10 +774,9 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				/*
 				 * write the evaluation start message into the cache ring 
 				 */
-            //if( (fpath != NULL) && ((cur_filter->fi_time_ns/1000) <= (cur_filter->fi_compute * cache_oattr_thresh)) ) {
-				if( (fpath != NULL) && (cur_filter->fi_time_ns <= (cur_filter->fi_added_bytes*cache_oattr_thresh)) ) {
-               free(fpath);
-               fpath = NULL;
+            //if( (oattr_flag != 0) && ((cur_filter->fi_time_ns/1000) <= (cur_filter->fi_compute * cache_oattr_thresh)) ) {
+				if( (oattr_flag != 0) && (cur_filter->fi_time_ns <= (cur_filter->fi_added_bytes*cache_oattr_thresh)) ) {
+					oattr_flag = 0;
             }
 /*
 				 else {
@@ -808,7 +789,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				}
 */
 				ocache_add_start(cur_filter->fi_name, obj_handle->local_id,
-								 cur_filter->cache_table, lookup, fpath);
+						cur_filter->cache_table, lookup, oattr_flag, cur_filter->fi_sig);
 
 				conf = cur_filter->fi_eval_fp(obj_handle, 1, out_list,
 											  cur_filter->fi_filt_arg);
@@ -855,16 +836,11 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			   rt_time2secs(cur_filter->fi_time_ns) / cur_filter->fi_called);
 #endif
 
-		if (fpath != NULL) {
-			free(fpath);
-			fpath = NULL;
-		}
 		// XXX printf("ceval2: update prob, pass %d \n", pass);
 		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm),
 						  cur_fidx, pass);
 
 		if (!pass) {
-			// XXX printf("ceval2: incr drop\n");
 			cur_filter->fi_drop++;
 			break;
 		} else {
@@ -943,19 +919,16 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	}
 #endif
 
-	/*
-	 * free change_attr_set 
-	 */
 	free(change_attr.entry_data);
 
 	return pass;
 }
 
-#define SAMPLE_NUM		50
+#define SAMPLE_NUM		16
 //#define AJUST_RATE		5
 
 unsigned int sample_counter = 0;
-int oattr_percent = 100; //start with using rate 50%
+int oattr_percent = 80; //start with using rate 50%
 double opt_time=1000000.0; //initialize to an extrme large value
 struct timeval  sample_start_time, sample_end_time;
 int direction=-1;
@@ -963,7 +936,7 @@ int	adjust=5*4;
 
 static void sample_init()
 {
-	oattr_percent = 100;
+	oattr_percent = 80;
 	opt_time = 1000000.0; //initialize to an extrme large value
 	sample_counter = 0;
 	direction=-1;

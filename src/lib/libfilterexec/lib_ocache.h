@@ -39,11 +39,6 @@
 #ifndef	_LIB_OCACHE_H_
 #define	_LIB_OCACHE_H_ 	1
 
-//#include "lib_od.h"
-//#include "lib_odisk.h"
-//#include "filter_exec.h"
-//#include "obj_attr.h"
-//#include "lib_filter.h"
 #include "obj_attr.h"
 
 #ifdef	__cplusplus
@@ -81,6 +76,12 @@ extern "C"
 		struct cache_obj_s	*next;
 	};
 
+	struct cache_init_obj_s {
+		uint64_t                oid;
+		cache_attr_set    		attr;
+		struct cache_init_obj_s	*next;
+	};
+
 	typedef void (*stats_drop)(void *cookie);
 	typedef void (*stats_process)(void *cookie);
 
@@ -97,6 +98,7 @@ extern "C"
 	ceval_state_t;
 
 	typedef struct cache_obj_s cache_obj;
+	typedef struct cache_init_obj_s cache_init_obj;
 
 	typedef struct {
 		void *cache_table;
@@ -145,8 +147,9 @@ extern "C"
 	} oattr_ring_entry;
 
 	int digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args, int blob_len, void *blob, unsigned char ** signature);
-	int cache_lookup(uint64_t local_id, char *fsig, void *fcache_table, cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, char **fpath);
-	int cache_lookup2(uint64_t local_id, char *fsig, void *fcache_table, cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, char **fpath, int flag);
+	int cache_lookup0(uint64_t local_id, cache_attr_set * change_attr, obj_attr_t *init_attr);
+	int cache_lookup(uint64_t local_id, char *fsig, void *fcache_table, cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, char **iattr_sig);
+	int cache_lookup2(uint64_t local_id, char *fsig, void *fcache_table, cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, int *oattr_flag, int flag);
 	int cache_wait_lookup(obj_data_t *lobj, char *fsig, void *fcache_table, cache_attr_set *change_attr, cache_attr_set **oattr_set);
 	int ocache_init(char *path_name, void *dctl_cookie, void * log_cookie);
 	int ocache_start();
@@ -155,8 +158,7 @@ extern "C"
 	int ocache_wait_finish();
 	int ocache_read_file(char *disk_path, unsigned char *fsig, void **fcache_table, struct timeval *atime);
 	int sig_cal(const void *buf, off_t buflen, unsigned char **signature);
-	int ocache_add_start(char *fhandle, uint64_t obj_id, void *cache_table, int lookup, char *fpath);
-	//int ocache_add_start(char *fhandle, uint64_t obj_id, unsigned char *fsig, int lookup, char *fpath);
+	int ocache_add_start(char *fhandle, uint64_t obj_id, void *cache_table, int lookup, int oattr_flag, char *fsig);
 	int ocache_add_end(char *fhandle, uint64_t obj_id, int conf);
 	int combine_attr_set(cache_attr_set *attr1, cache_attr_set *attr2);
 

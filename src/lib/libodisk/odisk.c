@@ -109,6 +109,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
      * the data we try to use the direct reads to save the memcopy
      * in the buffer cache.
 	 */
+	/* XXX: add flock ? */
 	os_file = open(name, (O_RDONLY|O_DIRECT));
 	if (os_file == -1) {
 		printf("XXXX open failed \n");
@@ -606,7 +607,7 @@ static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
 
-#define	OBJ_RING_SIZE	32
+#define	OBJ_RING_SIZE	16
 
 static ring_data_t *    obj_pr_ring;
 static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
@@ -740,7 +741,7 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		return(0);
 	}
 
-	if ((dynamic_load) && (ring_count(obj_ring) < 3)) {
+	if( dynamic_load_oattr( ring_count(obj_ring) ) == 0 ) {
 		return(0);
 	}
 
@@ -930,19 +931,14 @@ odisk_main(void *arg)
 		pthread_mutex_lock(&shared_mutex);
 		active++;
 		pthread_mutex_unlock(&shared_mutex);
-		
+*/		
 		err = odisk_pr_load(pobj, &nobj, ostate);
 		odisk_release_pr_obj(pobj);
-
+/*
 		pthread_mutex_lock(&shared_mutex);
 		active--;
 		pthread_mutex_unlock(&shared_mutex);
 */
-
-		pthread_mutex_lock(&shared_mutex);
-		err = odisk_pr_load(pobj, &nobj, ostate);
-		odisk_release_pr_obj(pobj);
-		pthread_mutex_unlock(&shared_mutex);
 
 		pthread_mutex_lock(&shared_mutex);
 		if (err == ENOENT) {
@@ -1628,4 +1624,27 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 	}
 
 	closedir(dir);
+}
+
+static int
+dynamic_load_oattr(int ring_depth)
+{
+	unsigned int random;
+
+	if( dynamic_load == 0 ) {
+		return(1);
+	}
+
+	if( ring_depth < 3 ) {
+		return(0);
+	}
+
+/*
+	random = 1 + (int) (100.0 * rand()/(RAND_MAX+1.0) );
+	if( random <= (ring_depth*100/OBJ_RING_SIZE) ) {
+		return(1);
+	} else {
+		return(0);
+	}
+*/
 }

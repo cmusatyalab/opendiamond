@@ -201,14 +201,13 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 /* indep policy */
 /* ********************************************************************** */
 
-#if 0
 
 void *
 indep_new(const filter_data_t *fdata) {
-  bf_state_t *bf = (bf_state_t *)malloc(sizeof(bf_state_t));
+  indep_state_t *iSt = (indep_state_t *)malloc(sizeof(indep_state_t));
 
-  if(bf) {
-    indep_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+  if(iSt) {
+    indep_init(iSt, pmLength(fdata->fd_perm), fdata->fd_po, 
 		    (evaluation_func_t)fexec_evaluate, fdata);
   }
 #ifdef VERBOSE
@@ -217,70 +216,70 @@ indep_new(const filter_data_t *fdata) {
     printf("indep starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
   }
 #endif
-  return (void *)bf;
+  return (void *)iSt;
 }
 
 void
 indep_delete(void *context) {
-	bf_state_t *bf = (bf_state_t *)context;
-	indep_cleanup(bf);
-	free(bf);
+	indep_state_t *iSt = (indep_state_t *)context;
+	indep_cleanup(iSt);
+	free(iSt);
 }
 
 
 int
 indep_optimize(void *context, filter_data_t *fdata) {
 	int err = 0;
-	bf_state_t *bf = (bf_state_t *)context;
+	indep_state_t *iSt = (indep_state_t *)context;
 #ifdef VERBOSE
 	char buf[BUFSIZ];
 #endif
 	static int optimizer_done = 0; /* time before restart */
 
-	IFVERBOSE printf("bf-opt\n");
+	IFVERBOSE printf("iSt-opt\n");
 
 	if(optimizer_done > 0) {
 		optimizer_done--;
 		/* restart (in case we have better data now */
 		if(!optimizer_done) {
 		  IFVERBOSE printf("--- restarting optimizer ------------------------------\n");
-		  indep_cleanup(bf);
-		  indep_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+		  indep_cleanup(iSt);
+		  indep_init(iSt, pmLength(fdata->fd_perm), fdata->fd_po, 
 				  (evaluation_func_t)fexec_evaluate, fdata);
 		}
 		return 1;
 	}
 
 	while(!err) {
-		//printf("bf\n");
-	  err = indep_step(bf);
+		//printf("iSt\n");
+	  err = indep_step(iSt);
 	}
 	switch(err) {
 	case RC_ERR_COMPLETE:
 #ifdef VERBOSE
 		printf("optimizer done: %s\n", 
-		       pmPrint(indep_result(bf), buf, BUFSIZ));
-		fexec_print_cost(fdata, indep_result(bf)); printf("\n");
+		       pmPrint(indep_result(iSt), buf, BUFSIZ));
+		fexec_print_cost(fdata, indep_result(iSt)); printf("\n");
 #endif
 		/* update and restart */
-		if(pmEqual(fdata->fd_perm, indep_result(bf))) {
+		if(pmEqual(fdata->fd_perm, indep_result(iSt))) {
 		  IFVERBOSE printf("optimizer didn't find further improvement\n");
 		  optimizer_done = RESTART_INTERVAL;
-		  //indep_cleanup(bf);
+		  //indep_cleanup(iSt);
 		} else {
-		  update_filter_order(fdata, indep_result(bf));
-		  indep_cleanup(bf);
-		  indep_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+		  update_filter_order(fdata, indep_result(iSt));
+		  indep_cleanup(iSt);
+		  indep_init(iSt, pmLength(fdata->fd_perm), fdata->fd_po, 
 				  (evaluation_func_t)fexec_evaluate, fdata);
 		}
 		break;
 	case RC_ERR_NODATA:
 #ifdef VERBOSE
 		printf("optimizer needs more data for: %s\n", 
-		       pmPrint(indep_next(bf), buf, BUFSIZ));
-		printf("\t"); fexec_print_cost(fdata, indep_next(bf)); printf("\n");
+		       pmPrint(indep_next(iSt), buf, BUFSIZ));
+		printf("\t"); fexec_print_cost(fdata, indep_next(iSt)); printf("\n");
 #endif
-		update_filter_order(fdata, indep_next(bf));
+		update_filter_order(fdata, indep_next(iSt));
 		break;
 	default:
 		break;		
@@ -292,4 +291,3 @@ indep_optimize(void *context, filter_data_t *fdata) {
 
 
 
-#endif

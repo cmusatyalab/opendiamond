@@ -831,6 +831,45 @@ best_first_next(bf_state_t *bf) {
   return bf->next_seq;
 }
 
+
+
+/* ********************************************************************** */
+
+void 
+indep_init(indep_state_t *ptr, int n, const partial_order_t *po,
+	   evaluation_func_t evf, const void *context) {
+  ptr->best_seq = pmNew(n);
+  ptr->next_seq = pmNew(n);
+
+  ptr->evfunc = evf;
+  ptr->evcontext = context;
+
+  ptr->generation = 0;
+}
+
+void
+indep_cleanup(indep_state_t *ptr) {
+  pmDelete(ptr->best_seq);
+  pmDelete(ptr->next_seq);
+}
+
+int
+indep_step(indep_state_t *iSt) {
+  return RC_ERR_NONE;
+}
+
+const permutation_t *
+indep_result(indep_state_t *ptr) {
+  return ptr->best_seq;
+}
+
+const permutation_t *
+indep_next(indep_state_t *ptr) {
+  return ptr->next_seq;
+}
+
+
+
 /* ********************************************************************** */
 
 char *

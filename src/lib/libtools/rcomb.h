@@ -125,6 +125,8 @@ typedef struct bf_state_t {
   int 		improved;
   const partial_order_t *po;
   struct heap_t *pq;
+
+  /* common state */
   permutation_t *best_seq;
   permutation_t *next_seq;
 
@@ -146,12 +148,26 @@ const permutation_t *best_first_next(bf_state_t *hc);
 
 /* ---------------------------------------------------------------------- */
 
-void indep_init(bf_state_t *ptr, int n, const partial_order_t *po,
+typedef struct indep_state_t {
+
+  /* common state */
+  permutation_t *best_seq;
+  permutation_t *next_seq;
+
+  evaluation_func_t evfunc;
+  const void *evcontext;
+  int generation;		/* current generation number (number of times alg completed) */
+
+} indep_state_t;
+
+void indep_init(indep_state_t *, int n, const partial_order_t *po,
 		     evaluation_func_t func, const void *context);
-void indep_cleanup(bf_state_t *ptr);
+void indep_cleanup(indep_state_t *);
 
-int indep_step(bf_state_t *hc);
+int indep_step(indep_state_t *);
 
+const permutation_t *indep_result(indep_state_t *);
+const permutation_t *indep_next(indep_state_t *);
 
 
 /* ---------------------------------------------------------------------- */

@@ -42,6 +42,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -311,6 +312,8 @@ process_searchlet_message(listener_state_t *lstate, cstate_t *cstate,
 	}
 	sprintf(lib_name, "%s%s", TEMP_DIR_NAME, TEMP_OBJ_NAME);
 
+
+	umask(0000);
 
 	lib_fd = mkstemp(lib_name);
 	if (lib_fd == -1) {

@@ -13,6 +13,9 @@ typedef struct search_state {
         odisk_state_t *         ostate;
         int                     ver_no;
         ring_data_t *           control_ops;
+	pthread_mutex_t		log_mutex;
+	pthread_cond_t		log_cond;
+        pthread_t               log_thread;
 } search_state_t;
 
 
@@ -32,6 +35,7 @@ extern int search_term(void *app_cookie, int gen_num);
 extern int search_get_stats(void *app_cookie, int gen_num);
 extern int search_release_obj(void *app_cookie, obj_data_t *obj);
 extern int search_get_char(void *app_cookie, int gen_num);
+extern int search_log_done(void *app_cookie, char *buf, int len);
 
 
 #endif	/* ifndef _SEARCH_STATE_H_ */

@@ -175,6 +175,41 @@ sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no)
 }
 
 int
+sstub_send_log(void *cookie, char *data, int len)
+{
+
+	cstate_t *	cstate;
+	int		err;
+
+	cstate = (cstate_t *)cookie;
+
+	/*
+	 * we not have any other send logs outstanding
+	 * at this point.  
+	 */
+	assert(cstate->log_tx_buf == NULL);
+	assert(len > 0);
+	assert(data != NULL);
+
+	cstate->log_tx_buf = data;
+	cstate->log_tx_len = len;
+	cstate->log_tx_offset = 0;
+
+
+	/*
+	 * Set a flag to indicate there is object
+	 * data associated with our connection.
+	 */
+	/* XXX log */
+	pthread_mutex_lock(&cstate->cmutex);
+	cstate->flags |= CSTATE_LOG_DATA;
+	pthread_mutex_unlock(&cstate->cmutex);
+
+
+	return(0);
+}
+
+int
 sstub_send_dev_char(void *cookie, device_char_t *dev_char)
 {
 
@@ -269,6 +304,7 @@ sstub_init(sstub_cb_args_t *cb_args)
 	list_state->release_obj_cb = cb_args->release_obj_cb;
 	list_state->get_char_cb = cb_args->get_char_cb;
 	list_state->get_stats_cb = cb_args->get_stats_cb;
+	list_state->log_done_cb = cb_args->log_done_cb;
 
 	/*
 	 * Open the listner sockets for the different types of connections.

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include <string.h>
 #include "ring.h"
@@ -18,6 +19,7 @@
 #include "filter_priv.h"	/* to read stats -RW */ 
 #include "search_state.h"
 #include "lib_sstub.h"
+#include "lib_log.h"
 
 
 typedef enum {
@@ -214,7 +216,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			break;
 
 	}
-
 }
 
 /*
@@ -249,7 +250,7 @@ device_main(void *arg)
 	
 	while (1) {
 		any = 0;
-
+		log_message(LOGT_VDISK, LOGL_TRACE, "loop top");
 		cmd = (dev_cmd_data_t *)ring_deq(sstate->control_ops);
 		if (cmd != NULL) {
 			any = 1;
@@ -257,7 +258,6 @@ device_main(void *arg)
 			free(cmd);
 		}
 
-			
 		/*
 		 * XXX look for data from device to process.
 		 */
@@ -312,6 +312,94 @@ device_main(void *arg)
 
 
 
+/*
+ * This is called when we have finished sending a log entry.  For the 
+ * time being, we ignore the arguments because we only have one
+ * request outstanding.  This just flags a CV to wake up
+ * the main thread.
+ */
+int
+search_log_done(void *app_cookie, char *buf, int len)
+{
+	search_state_t *	sstate;
+
+	sstate = (search_state_t *)app_cookie;
+
+	pthread_mutex_lock(&sstate->log_mutex);
+	pthread_cond_signal(&sstate->log_cond);
+	pthread_mutex_unlock(&sstate->log_mutex);
+
+	return(0);
+}
+
+
+static void *
+log_main(void *arg)
+{
+	search_state_t *sstate;
+	char *		log_buf;
+	int		err;
+	struct timeval now;
+	struct timespec timeout;
+	struct timezone tz;
+	int	len;
+
+	tz.tz_minuteswest = 0;
+	tz.tz_dsttime = 0;
+
+	sstate = (search_state_t *)arg;
+
+	/*
+	 * XXX need to open comm channel with device
+	 */
+
+	
+	while (1) {
+
+
+		len = log_getbuf(&log_buf);
+		if (len > 0) {
+
+			/* send the buffer */
+			err = sstub_send_log(sstate->comm_cookie, log_buf,
+					len);
+			if (err) {
+				/*
+				 * probably shouldn't happen
+				 * but we ignore and return the data
+				 */
+				log_advbuf(len);
+				continue;
+			}
+
+			/* wait on cv for the send to complete */
+			pthread_mutex_lock(&sstate->log_mutex);
+			pthread_cond_wait(&sstate->log_cond, 
+					&sstate->log_mutex);
+			pthread_mutex_unlock(&sstate->log_mutex);
+
+			/*
+			 * let the log library know this space can
+			 * be re-used.
+			 */
+			log_advbuf(len);
+
+		} else {
+			gettimeofday(&now, &tz);
+			pthread_mutex_lock(&sstate->log_mutex);
+			timeout.tv_sec = now.tv_sec + 1;
+			timeout.tv_nsec = now.tv_usec * 1000;
+	
+			pthread_cond_timedwait(&sstate->log_cond, 
+					&sstate->log_mutex, &timeout);
+			pthread_mutex_unlock(&sstate->log_mutex);
+		}
+
+	}
+}
+
+
+
 
 
 /*
@@ -333,6 +421,18 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		*app_cookie = NULL;
 		return (ENOMEM);
 	}
+
+	/*
+	 * Set the return values to this "handle".
+	 */
+	*app_cookie = sstate;
+
+	/*
+	 * This is called in the new process, now we initializes it
+	 * log data.
+	 */
+
+	log_init();
 
 	/*
 	 * init the ring to hold the queue of pending operations.
@@ -361,8 +461,22 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		return (ENOENT);
 	}
 
-	/* set the  cookie and return */
-	*app_cookie = sstate;
+	/*
+	 * Now we also setup a thread that handles getting the log
+	 * data and pusshing it to the host.
+	 */
+	pthread_cond_init(&sstate->log_cond, NULL);
+	pthread_mutex_init(&sstate->log_mutex, NULL);
+	err = pthread_create(&sstate->log_thread, NULL, log_main,
+			    (void *)sstate);
+	if (err) {
+		/* XXX log */
+		free(sstate);
+		/* XXX what else */
+		return (ENOENT);
+	}
+
+
 	return(0);
 }
 

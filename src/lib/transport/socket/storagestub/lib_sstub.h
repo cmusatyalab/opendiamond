@@ -19,6 +19,7 @@ typedef	int (*sstub_terminate_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_getstats_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_release_obj_fn)(void *app_cookie, obj_data_t * obj);
 typedef	int (*sstub_get_devchar_fn)(void *app_cookie, int gen_num);
+typedef	int (*sstub_log_done_fn)(void *app_cookie, char *buf, int len);
 
 
 typedef struct {
@@ -32,6 +33,7 @@ typedef struct {
 	sstub_getstats_fn	get_stats_cb;
 	sstub_release_obj_fn	release_obj_cb;
 	sstub_get_devchar_fn	get_char_cb;
+	sstub_log_done_fn	log_done_cb;
 } sstub_cb_args_t;
 
 
@@ -41,6 +43,7 @@ extern void  sstub_listen(void * cookie);
 extern int sstub_send_stats(void *cookie, dev_stats_t *dstats, int len);
 extern int sstub_send_dev_char(void *cookie, device_char_t *dchar);
 extern int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum);
+extern int sstub_send_log(void *cookie, char *buf, int len);
 
 #endif /* !_LIB_SSTUB_H_ */
 

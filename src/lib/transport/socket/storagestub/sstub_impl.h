@@ -15,9 +15,9 @@
 #define	CSTATE_ESTABLISHED	0x0010
 #define	CSTATE_SHUTTING_DOWN	0x0020
 
-#define	CSTATE_CONTROL_DATA	0x0100
-#define	CSTATE_OBJ_DATA		0x0200
-#define	CSTATE_LOG_DATA		0x0400
+#define	CSTATE_CONTROL_DATA	0x0100	/* control messages pending */
+#define	CSTATE_OBJ_DATA		0x0200	/* data objects pending */
+#define	CSTATE_LOG_DATA		0x0400	/* log data pending */
 
 
 /*
@@ -48,6 +48,13 @@ typedef enum {
 	DATA_TX_DATA,
 } data_tx_state_t;
 
+typedef enum {
+	LOG_TX_NO_PENDING,
+	LOG_TX_HEADER,
+	LOG_TX_DATA,
+} log_tx_state_t;
+
+
 
 typedef struct cstate {
 	unsigned int		flags;
@@ -69,6 +76,11 @@ typedef struct cstate {
 	control_tx_state_t	control_tx_state;
 	control_header_t *	control_tx_header;
 	int			control_tx_offset;
+	char *			log_tx_buf;
+	int			log_tx_len;
+	int			log_tx_offset;
+	log_header_t		log_tx_header;
+	log_tx_state_t		log_tx_state;
 	obj_data_t *		data_tx_obj;
 	data_tx_state_t		data_tx_state;
 	int			data_tx_offset;
@@ -101,6 +113,7 @@ typedef struct listener_state {
 	sstub_getstats_fn	get_stats_cb;
 	sstub_release_obj_fn	release_obj_cb;
 	sstub_get_devchar_fn	get_char_cb;
+	sstub_log_done_fn	log_done_cb;
 	cstate_t		conns[MAX_CONNS];
 } listener_state_t;
 

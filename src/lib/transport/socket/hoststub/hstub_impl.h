@@ -28,6 +28,12 @@ typedef enum {
 	DATA_RX_DATA,
 } data_rx_state_t;
 
+typedef enum {
+	LOG_RX_NO_PENDING,
+	LOG_RX_HEADER,
+	LOG_RX_DATA
+} log_rx_state_t;
+
 
 /* flag definitons */
 #define	CINFO_PENDING_CONTROL	0x01
@@ -49,6 +55,10 @@ typedef struct conn_info {
 	obj_header_t		data_rx_header;
 	int			data_rx_offset;
 	obj_data_t *		data_rx_obj;
+	log_rx_state_t		log_rx_state;
+	int			log_rx_offset;
+	char *			log_rx_data;
+	log_header_t		log_rx_header;
 	int			log_fd;
 	fd_set			read_fds;
 	fd_set			write_fds;

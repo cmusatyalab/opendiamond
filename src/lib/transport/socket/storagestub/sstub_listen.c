@@ -285,7 +285,13 @@ accept_control_conn(listener_state_t *list_state)
 	list_state->conns[i].flags |= CSTATE_ALLOCATED;
 	list_state->conns[i].flags |= CSTATE_CNTRL_FD;
 	list_state->conns[i].control_fd = new_sock;
-	/* XXX return */
+	list_state->conns[i].log_tx_buf = NULL;
+	list_state->conns[i].log_tx_state = LOG_TX_NO_PENDING;
+	list_state->conns[i].control_rx_state = CONTROL_RX_NO_PENDING;
+	list_state->conns[i].control_tx_state = CONTROL_TX_NO_PENDING;
+	list_state->conns[i].data_tx_state = DATA_TX_NO_PENDING;
+
+	/* XXX return value ??*/
 	pthread_mutex_init(&list_state->conns[i].cmutex, NULL);
 
 	data = (uint32_t)i;

@@ -291,6 +291,8 @@ odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
     err = odisk_load_obj(odisk, obj, buf);
     if (err == 0) {
     	(*obj)->local_id = oid->local_id;
+    } else {
+	printf("get obj failed \n");
     }
     return (err);
 }
@@ -645,6 +647,7 @@ odisk_pr_next(pr_obj_t **new_object)
 		if( tmp->oattr_fnum == -1 ) {
 			free(tmp);
 			search_done = 1;
+			printf("odisk_pr_next: search_done\n");
 		} else {
                 	*new_object =  tmp;
                 	pthread_mutex_unlock(&shared_mutex);
@@ -685,8 +688,6 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
         err = odisk_load_obj(odisk, new_object, path_name);
         if (err) {
                 printf("load obj <%s> failed %d \n", path_name, err);
-		if( err != ENOENT )
-			assert(0);
                 return(err);
         }
 	if( (pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || (pr_obj->iattrsig==NULL) ) {
@@ -865,10 +866,24 @@ odisk_main(void *arg)
          */
         //err = odisk_read_next(&nobj, ostate);
 	err = odisk_pr_next(&pobj);
-	if( (err == 0) && (pobj != NULL) ) {
-		err = odisk_pr_load(pobj, &nobj, ostate);
+        if (err == ENOENT) {
+	    odisk_release_pr_obj(pobj);
+
+            search_active = 0;
+            search_done = 1;
+            if (fg_wait) {
+                fg_wait = 0;
+                pthread_cond_signal(&fg_data_cv);
+            }
+	    continue;
+        } 
+
+	if( err ) {
+		odisk_release_pr_obj(pobj);
+		continue;
 	}
-	odisk_release_pr_obj(pobj);
+
+	err = odisk_pr_load(pobj, &nobj, ostate);
 
         pthread_mutex_lock(&shared_mutex);
         if (err == ENOENT) {
@@ -880,11 +895,13 @@ odisk_main(void *arg)
                 fg_wait = 0;
                 pthread_cond_signal(&fg_data_cv);
             }
-        } else {
-	    if( err != 0 ) {
-		printf("ERR IS %d\n", err);
-		assert(0);
-	    }
+	    pthread_mutex_unlock(&shared_mutex);
+	    continue;
+	}
+	if( err != 0 ) {
+	    printf("ERR IS %d\n", err);
+	    assert(0);
+	} else {
             if (!ring_full(obj_ring)) {
                 err = ring_enq(obj_ring, nobj);
                 assert(err == 0);

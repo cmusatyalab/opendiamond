@@ -41,17 +41,21 @@ obj_dump_attr(obj_attr_t *attr)
 			name = cur_rec->data;
 			if(handle && name[0] == '_') {
 				val = name + cur_rec->name_len;
-				for(typ = name + 1; *typ != '.'; typ++) {}
-				typ++;
-				sprintf(buf, "%s_sprint", typ);
-				func = dlsym(handle, buf);
-				if ((error = dlerror()) != NULL) {
-					fprintf(stderr, "%s on <%s> \n", error, buf);
-					sprintf(buf, "?");
+				for(typ = name + 1;
+				    (*typ != '.') && (typ < val); typ++) {}
+				if(typ >= val) {
+					printf("<%s>\n", name);
 				} else {
-					func(buf, val);
+					sprintf(buf, "%s_sprint", ++typ);
+					func = dlsym(handle, buf);
+					if ((error = dlerror()) != NULL) {
+						fprintf(stderr, "%s on <%s> \n", error, buf);
+						sprintf(buf, "?");
+					} else {
+						func(buf, val);
+					}
+					printf("<%s> = %s\n", name, buf);
 				}
-				printf("<%s> = %s\n", name, buf);
 			} else {
 				printf("<%s>\n", name);
 			}

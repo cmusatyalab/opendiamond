@@ -34,7 +34,7 @@ HEX8	[[:xdigit:]][[:xdigit:]]
 HEX16	{HEX8}:{HEX8}
 HEX32	{HEX16}:{HEX16}
 HEX64	{HEX32}:{HEX32}
-NAME	[a-zA-Z][a-zA-Z0-9]*[[:blank:]]*
+NAME	[a-zA-Z0-9][a-zA-Z0-9.]*[[:blank:]]*
 
 %%
 #.*\n

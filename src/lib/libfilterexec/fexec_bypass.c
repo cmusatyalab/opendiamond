@@ -158,6 +158,35 @@ fexec_set_bypass_target(filter_data_t *fdata, permutation_t *perm, float target)
     return;
 }
 
+/*
+ * This computes the byapss by just splitting the first percentage.
+ */
+void
+fexec_set_bypass_target_a(filter_data_t *fdata, permutation_t *perm, float target)
+{
+    int             i;
+    filter_prob_t * fprob;
+    double          pass = 1;		/* cumul pass rate */
+    double          old_cost = 0;   /* cumulitive cost so far */
+    double          new_cost = 0;	/* new cost so far */
+    double          ratio;
+    filter_info_t * info;
+    int             n;
+
+	/*
+	 * for the first filtre run int locally
+	 */
+	info = &fdata->fd_filters[pmElt(perm, 0)];
+	info->fi_bpthresh = (int)((float)RAND_MAX * target);
+
+
+    for(i=1; i < pmLength(perm); i++) {
+        info = &fdata->fd_filters[pmElt(perm, i)];
+	info->fi_bpthresh = RAND_MAX;
+    }
+    return;
+}
+
 
 
 
@@ -200,7 +229,7 @@ fexec_update_bypass(filter_data_t *fdata)
     	target_cost = ((float)  avg_cost * 0.70);
 	}
 
-	fexec_set_bypass_target(fdata, fdata->fd_perm, target_cost);
+	fexec_set_bypass_target_a(fdata, fdata->fd_perm, target_cost);
 
 	return(0);
 }

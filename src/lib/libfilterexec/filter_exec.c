@@ -29,7 +29,7 @@
 #include "fexec_bypass.h"
 
 /* #define VERBOSE 1 */
-#define SIM_REPORT
+/* #define SIM_REPORT */
 
 /*
  * Some state to keep track of the active filter. XXX

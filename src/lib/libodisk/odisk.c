@@ -687,6 +687,8 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
         err = odisk_load_obj(odisk, new_object, path_name);
         if (err) {
                 printf("load obj <%s> failed %d \n", path_name, err);
+		if( err != ENOENT )
+			assert(0);
                 return(err);
         }
 	if( (pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || (pr_obj->iattrsig==NULL) ) {
@@ -881,6 +883,10 @@ odisk_main(void *arg)
                 pthread_cond_signal(&fg_data_cv);
             }
         } else {
+	    if( err != 0 ) {
+		printf("ERR IS %d\n", err);
+		assert(0);
+	    }
             if (!ring_full(obj_ring)) {
                 err = ring_enq(obj_ring, nobj);
                 assert(err == 0);

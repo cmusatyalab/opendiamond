@@ -64,7 +64,8 @@ my %valid = (
 	     png => 'image/png',
 	     tif => 'image/tiff',
 	     tiff => 'image/tiff',
-	     pcd => 'image/pcd'
+	     pcd => 'image/pcd',
+	     wav => 'audio/wav'	
   );
 
 # This will probably change TODO

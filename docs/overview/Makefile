@@ -9,7 +9,9 @@ clean:
 
 
 diamond_overview.pdf: diamond_overview.ps
-	ps2pdf diamond_overview.ps
+	ps2pdf -sPAPERSIZE=letter -dMaxSubsetPct=100 \
+  		-dCompatibilityLevel=1.3 -dSubsetFonts=true \
+        -dEmbedAllFonts=true $*.ps
 
 diamond_overview.ps: diamond_overview.dvi
 	dvips -t letter -o diamond_overview.ps diamond_overview

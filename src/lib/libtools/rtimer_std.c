@@ -1,25 +1,32 @@
 
 /*
- * provides resource usage measurement, in particular timer, functionality
+ * provides resource usage measurement, in particular timer, functionality.
+ * 2003 Rajiv Wickremesinghe
+ * based on a similar version
+ * 2001 Rajiv Wickremesinghe, Duke University
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+//#include "rtimer_std.h"
+//#include "rtimer_common.h"
 #include "rtimer.h"
 
 /* warning: assumes appropriate locks are already held when calling these functions */
 
+#ifdef RTIMER_STD
 
 void
-rt_init(rtimer_t *rt)
+rt_std_init(rtimer_std_t *rt)
 {
   /* null */
 }
 
 
 void
-rt_start(rtimer_t *rt)
+rt_std_start(rtimer_std_t *rt)
 {
   if(getrusage(RUSAGE_SELF, &rt->ru1) != 0) {
     perror("getrusage");
@@ -28,7 +35,7 @@ rt_start(rtimer_t *rt)
 }
 
 void
-rt_stop(rtimer_t *rt)
+rt_std_stop(rtimer_std_t *rt)
 {
   if(getrusage(RUSAGE_SELF, &rt->ru2) != 0) {
     perror("getrusage");
@@ -39,7 +46,7 @@ rt_stop(rtimer_t *rt)
 
 
 u_int64_t
-rt_nanos(rtimer_t *rt)
+rt_std_nanos(rtimer_std_t *rt)
 {
   u_int64_t nanos = 0;
   static const u_int64_t ns_s = 1000000000;
@@ -55,9 +62,4 @@ rt_nanos(rtimer_t *rt)
   return nanos;
 }
 
-double
-rt_time2secs(rtime_t t) {
-  double secs = t;
-  secs /= 1000000000.0;
-  return secs;
-}
+#endif

@@ -86,25 +86,32 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 
 	data = *(uint32_t *)val;
 
+	fprintf(stderr, "slowdown !!!! \n");
 	if (fexec_cpu_slowdown != 0) {
+		fprintf(stderr, "slowdonw already set !!!! \n");
 		return(EAGAIN);
 	}
 	
 	if (data == 0) {
+		fprintf(stderr, "slowdonw no data  !!!! \n");
 		return(0);
 	}
 
 	if (data > 90) {
+		fprintf(stderr, "slowdonw out of range  !!!! \n");
 		return(EINVAL);
 	}
 
 
 	my_pid = getpid();
-	
+
+	fprintf(stderr, "my pid %d \n", my_pid);
+
 	new_pid = fork();
 	if (new_pid == 0) {
 		sprintf(name_str, "%d", data);
-		printf("forking with arg %s \n", name_str);
+		sprintf(pid_str, "%d", my_pid);
+		printf("forking with arg %s %s \n", name_str, pid_str);
 		err = execlp("/home/diamond/bin/slowdown", "slowdown", name_str, 
 			pid_str, NULL);
 		if (err) {
@@ -113,6 +120,7 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 		}
 	}
 
+	fprintf(stderr, "child pid %d \n", new_pid);
 	return(0);	
 
 }

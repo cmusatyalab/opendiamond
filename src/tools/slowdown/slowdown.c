@@ -12,6 +12,7 @@
 #include <math.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 
 #include <time.h>
@@ -114,16 +115,20 @@ main(int argc, char* argv[])
 		exit(0);
 	}
 	
-	if (argc >= 2) {
+	if (argc > 2) {
 		parent_pid = atoi(argv[2]);
+		printf("parent pid %d \n", parent_pid);
 		have_pid = 1;
 	}
 
 	for (loop = 0; loop < 1000000; loop++) {
 		if (have_pid) {
-			new_pid = waitpid(parent_pid, NULL,  WNOHANG);
-			if (new_pid != 0) {
-				printf("parent exited \n");
+			char	proc_dir[256];
+			struct	stat	buf;
+			sprintf(proc_dir, "%s/%d", "/proc", parent_pid);
+			err = stat(proc_dir, &buf);
+			if (err == -1) {
+				printf("Stat failed\n");
 				exit(0);
 			}
 		}

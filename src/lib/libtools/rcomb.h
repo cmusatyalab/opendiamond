@@ -69,7 +69,7 @@ void poPrint(partial_order_t *po);
 
 /* ---------------------------------------------------------------------- */
 
-typedef int (*evaluation_func_t)(const void *context, permutation_t *seq, int *score);
+typedef int (*evaluation_func_t)(const void *context, permutation_t *seq, int gen, int *score);
 
 
 /* error codes */
@@ -87,6 +87,7 @@ typedef struct hc_state_t {
   permutation_t *best_seq, *next_seq;
   int		n, i, j;
   int 		improved;
+  int           generation;
 } hc_state_t;
 
 
@@ -112,7 +113,7 @@ typedef enum {
 struct heap_t;
 
 typedef struct bf_state_t {
-  bf_dfa_t    state;
+  bf_dfa_t    state;		/* state machine state */
   int		n;		/* size of perm */
   int           i; 		/* initialization */
   int           j;		/* inner loop state */
@@ -124,6 +125,7 @@ typedef struct bf_state_t {
 
   evaluation_func_t evfunc;
   const void *evcontext;
+  int generation;		/* current generation number (number of times alg completed) */
 } bf_state_t;
 
 
@@ -138,5 +140,9 @@ const permutation_t *best_first_next(bf_state_t *hc);
 
 
 /* ---------------------------------------------------------------------- */
+
+char *format_number(char *buf, double val);
+
+
 
 #endif /* RCOMB_H */

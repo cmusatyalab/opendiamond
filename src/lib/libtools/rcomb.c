@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <assert.h>
 
 #include "rcomb.h"
@@ -453,6 +454,7 @@ hill_climb_init(hc_state_t *ptr, const permutation_t *start) {
   ptr->i = 0;
   ptr->j = 1;
   ptr->improved = 1;
+  ptr->generation = 0;
 }
 
 
@@ -498,7 +500,7 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
   char buf[BUFSIZ];
 
   /* evaluate (re-evaluate?) current state */
-  err = evf(context, hc->best_seq, &best_score);
+  err = evf(context, hc->best_seq, hc->generation, &best_score);
 
   if(err) {
     printf("could not evaluate current best!\n");
@@ -526,7 +528,7 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
 	pmSwap(hc->next_seq, i, j);
 	
 	/* evaluate option */
-	err = evf(context, hc->next_seq, &next_score);
+	err = evf(context, hc->next_seq, hc->generation, &next_score);
 	if(err) {
 	  goto done;
 	}
@@ -567,6 +569,7 @@ hill_climb_step(hc_state_t *hc, const partial_order_t *po,
   
   /* check if we are done */
   if(!err && hc->improved == 0) {
+    hc->generation++;
     err = RC_ERR_COMPLETE;
   }
 
@@ -605,6 +608,7 @@ best_first_init(bf_state_t *ptr, int n, const partial_order_t *po,
   ptr->evcontext = context;
 
   ptr->state = RC_BFS_INIT;
+  ptr->generation = 0;
 }
 
 
@@ -687,14 +691,15 @@ best_first_step(bf_state_t *bf) {
 	pmSwap(perm, 0, bf->i);
 	pmSetSize(perm, 1);
 
-	err = bf->evfunc(bf->evcontext, perm, &next_score);
+	err = bf->evfunc(bf->evcontext, perm, bf->generation, &next_score);
 	if(err) {
 	  pmCopyAll(bf->next_seq, perm); /* try this */
 	  make_valid_perm(bf->po, bf->next_seq, n);
 	  pmSetSize(bf->next_seq, n);
 	  return RC_ERR_NODATA;
 	}
-	printf("heap insert: %s\n", pmPrint(perm, buf, BUFSIZ));
+	printf("heap insert: %s", pmPrint(perm, buf, BUFSIZ));
+	printf(" (score=%s)\n", format_number(buf, next_score));
 	heap_insert(bf->pq, next_score, perm);
       }
       bf->i++;
@@ -717,6 +722,7 @@ best_first_step(bf_state_t *bf) {
 
     /* found full permutation */
     if(pmLength(bf->best_seq) == bf->n) {
+      printf("bfs found terminal: %s\n", pmPrint(bf->best_seq, buf, BUFSIZ));
       bf->state = RC_BFS_DONE;
       return RC_ERR_COMPLETE;
     }
@@ -737,15 +743,15 @@ best_first_step(bf_state_t *bf) {
       pmSetSize(bf->next_seq, pos+1);
       if(is_valid_partial_perm(bf->po, bf->next_seq, n)) {
 	int score;
-	err = bf->evfunc(bf->evcontext, bf->next_seq, &score);
+	err = bf->evfunc(bf->evcontext, bf->next_seq, bf->generation, &score);
 	if(err) {
 	  printf("bfs needs info for %s\n", pmPrint(bf->next_seq, buf, BUFSIZ));
 	  make_valid_perm(bf->po, bf->next_seq, n);
 	  pmSetSize(bf->next_seq, n);
 	  return RC_ERR_NODATA;
 	}
-	printf("heap inserting: %s (size=%d)\n", 
-	       pmPrint(bf->next_seq, buf, BUFSIZ), heap_size(bf->pq));
+	printf("heap inserting: %s", pmPrint(bf->next_seq, buf, BUFSIZ));
+	printf(" (score=%s)\n", format_number(buf, score));
 	//score /= pmLength(bf->next_seq); /* XXX average cost */
 	heap_insert(bf->pq, score, pmDup(bf->next_seq));
       }
@@ -761,6 +767,9 @@ best_first_step(bf_state_t *bf) {
       perm = (permutation_t *)heap_extract_max(bf->pq);
       pmDelete(perm);
     }
+    bf->i = 0;
+    bf->j = 0;
+    bf->generation++;
     bf->state = RC_BFS_INIT;
     break;
 
@@ -777,6 +786,34 @@ best_first_result(bf_state_t *bf) {
 const permutation_t *
 best_first_next(bf_state_t *bf) {
   return bf->next_seq;
+}
+
+/* ********************************************************************** */
+
+char *
+format_number(char *buf, double val) {
+  int mult = 0;
+  char *mult_suffix = " kmgtp";
+  double aval;
+
+  aval = fabs(val);
+  while(aval >= 10000) {
+    aval /= 1000.0;
+    val /= 1000.0;
+    mult++;
+  }
+  if(aval < 1) {
+    mult = -1;
+  }
+  if(mult > 0) {
+    assert(mult < strlen(mult_suffix));
+    sprintf(buf, "%d%c", (int)val, mult_suffix[mult]);
+  } else if(mult < 0) {
+    sprintf(buf, "%f", val);
+  } else {
+    sprintf(buf, "%d", (int)val);
+  }
+  return buf;
 }
 
 /* ********************************************************************** */

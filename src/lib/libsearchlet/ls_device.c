@@ -120,13 +120,16 @@ dev_search_done_cb(void *hcookie, int ver_no)
 	device_handle_t *	dev;
 	dev = (device_handle_t *)hcookie;
 
+	/*
+ 	 * If this version number doesn't match this was
+	 * an old message stuck in the queue.
+	 */
 	if (dev->sc->cur_search_id != ver_no) {
 		/* XXX */
-		printf("search done but vno doesn't match !!! \n");
+		// printf("search done but vno doesn't match !!! \n");
 		return;
 	}
 
-	printf("search done \n");
 	dev->flags |= DEV_FLAG_COMPLETE;
 
 	return;

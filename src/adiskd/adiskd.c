@@ -28,6 +28,7 @@ char *	data_dir = "/opt/dir1/";
  */
 int	do_daemon = 1;
 int	do_fork = 1;
+int	do_cleanup = 1;
 
 void
 usage()
@@ -36,6 +37,7 @@ usage()
 	fprintf(stdout, "\t -d do not run adisk as a daemon \n");
 	fprintf(stdout, "\t -n do not fork for a  new connection \n");
 	fprintf(stdout, "\t -p <pathname>  set alternative data directory \n");
+	fprintf(stdout, "\t -c do not cleanup *.so files from /tmp \n");
 	fprintf(stdout, "\t -h get this help message \n");
 }
 
@@ -53,11 +55,15 @@ main(int argc , char **argv)
 	 */
 
 	while (1) {
-		c = getopt(argc, argv, "dhnp:");
+		c = getopt(argc, argv, "cdhnp:");
 		if (c == -1) {
 			break;
 		}
 		switch (c) {
+
+		case 'c':
+			do_cleanup = 0;
+			break;
 
 		case 'd':
 			do_daemon = 0;

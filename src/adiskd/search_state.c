@@ -28,6 +28,10 @@
 #include "search_state.h"
 #include "dctl_common.h"
 
+
+/* XXX other place */
+extern int do_cleanup;
+
 /* XXX move to seperate header file !!! */
 #define	CONTROL_RING_SIZE	512
 
@@ -295,23 +299,23 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				return;
 			}
 
-#ifdef	XXX
 			/*
-			 * Remove the files that held the data.
+			 * Remove the files that held the data.  If do_cleanup is
+ 			 * not set then we keep the files so we can do debugging.
 			 */
-			/* XXX dont unlink so we can run the debugger */
-			err = unlink(obj_name);
-			if (err) {
-				perror("failed to unlink");
-				exit(1);
+			if (do_cleanup) {
+				err = unlink(obj_name);
+				if (err) {
+					perror("failed to unlink");
+					exit(1);
+				}
+				unlink(spec_name);
+				if (err) {
+					perror("failed to unlink");
+					exit(1);
+				}
 			}
-#endif
 			free(obj_name);
-			unlink(spec_name);
-			if (err) {
-				perror("failed to unlink");
-				exit(1);
-			}
 			free(spec_name);
 
 			break;

@@ -46,6 +46,7 @@
 #include <sys/un.h>
 #include <string.h>
 #include "lib_dctl.h"
+#include "lib_tools.h"
 #include <assert.h>
 #include "dctl.h"
 
@@ -533,10 +534,15 @@ main(int argc, char **argv)
 	 */
 
 	while (1) {
+		char	user_name[MAX_USER_NAME];
+
 		fd = socket(PF_UNIX, SOCK_STREAM, 0);
 
+		/* bind the socket to a path name */
+    	get_user_name(user_name);
+    	sprintf(sa.sun_path, "%s.%s", SOCKET_DCTL_NAME, user_name);
 
-		strcpy(sa.sun_path, SOCKET_DCTL_NAME);
+
 		sa.sun_family = AF_UNIX;
 
 

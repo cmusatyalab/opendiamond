@@ -148,8 +148,6 @@ convert_gid(char *str)
 		str += 3;
 	}
 
-	/* printf("%0llx \n", gid); */
-
 	return(gid);
 }
 
@@ -159,7 +157,6 @@ lookup_devname(char *name)
 	struct hostent *hent;
 	uint32_t	addr;
 
-	/* printf("name str <%s> \n", name); */
 	hent = gethostbyname(name);
 	if (hent == NULL) {
         printf("Unable to resolve device %s \n", name);
@@ -174,8 +171,6 @@ lookup_devname(char *name)
 	assert(hent->h_length == 4);
 
 	addr = *((uint32_t *)hent->h_addr_list[0]);
-
-	/* printf("addr %08x \n", addr); */
 
 	return(addr);
 }

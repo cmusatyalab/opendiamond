@@ -28,6 +28,7 @@ typedef	int (*sstub_wleaf_fn)(void *app_cookie, char *path, int len,
 typedef	int (*sstub_lleaf_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_lnode_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_sgid_fn)(void *app_cookie, int gen_num, groupid_t gid);
+typedef	int (*sstub_clear_gids_fn)(void *app_cookie, int gen_num);
 
 
 typedef struct {
@@ -48,6 +49,7 @@ typedef struct {
 	sstub_lleaf_fn	        lleaf_cb;
 	sstub_lnode_fn	        lnode_cb;
 	sstub_sgid_fn	        sgid_cb;
+	sstub_clear_gids_fn	clear_gids_cb;
 } sstub_cb_args_t;
 
 

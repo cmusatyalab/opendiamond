@@ -199,6 +199,43 @@ device_start(void *handle, int id)
 }
 
 int
+device_clear_gids(void *handle, int id)
+{
+	int			err;
+	control_header_t *	cheader;
+	sdevice_state_t *dev;
+
+	dev = (sdevice_state_t *)handle;
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+	cheader->generation_number = htonl(id);
+	cheader->command = htonl(CNTL_CMD_CLEAR_GIDS);
+	cheader->data_len = htonl(0);
+	cheader->spare = 0;
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to enq start \n");
+		free(cheader);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+
+
+int
 device_new_gid(void *handle, int id, groupid_t gid)
 {
 	int			err;

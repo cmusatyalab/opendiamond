@@ -171,6 +171,7 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 {
 	search_context_t *	sc;
 	groupid_t		cur_gid;
+	device_handle_t		*cur_dev;
 	uint32_t		host_ids[MAX_HOST_IDS];
 	int			hosts;
 	int			i,j;
@@ -178,6 +179,31 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 
 
 	sc = (search_context_t *)handle;
+
+	/*
+	 * we have two steps.  One is to clear the current
+   	 * searchlist on all the devices that
+	 * we are currently connected to.  The to add the gid
+     * to each of the devices.
+     */
+	/* XXX todo, clean up connection not involved in search
+     * after this call.
+     */
+
+	/* clear the state */
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		cur_dev->num_groups = 0;
+		err = device_clear_gids(cur_dev->dev_handle, sc->cur_search_id);
+		if (err != 0) {
+			/* 
+			 * if we get an error we note it for
+		 	 * the return value but try to process the rest
+		 	 * of the devices
+		 	 */
+			/* XXX logging */
+		}
+	}
+
 
 	/*
 	 * for each of the groups, get the list
@@ -200,10 +226,10 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 				 */
                 in.s_addr = host_ids[j];
                 name = inet_ntoa(in);
-				printf("Failed to connect to device %s for gid %d\n", name, (int)cur_gid);
+				printf("Failed to connect to device %s for gid %llx\n", 
+				 	name, cur_gid);
                 assert(0);
 				return (EINVAL);
-
 			}
 		}	
 	}

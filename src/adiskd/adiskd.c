@@ -115,6 +115,7 @@ main(int argc , char **argv)
 	cb_args.lnode_cb = search_list_nodes;
 	cb_args.lleaf_cb = search_list_leafs;
 	cb_args.sgid_cb = search_set_gid;
+	cb_args.clear_gids_cb = search_clear_gids;
 
 	cookie = sstub_init(&cb_args);
 	if (cookie == NULL) {

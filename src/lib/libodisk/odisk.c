@@ -376,6 +376,12 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
     return(0);
 }
 
+int
+odisk_clear_gids(odisk_state_t *odisk, groupid_t gid)
+{
+	num_gids = 0;
+    	return(0);
+}
 
 int
 odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
@@ -447,8 +453,7 @@ odisk_gid_good(obj_data_t *obj)
     off_t       len; 
     int         i,j, err;
 
-    return(0);
-
+    len = 0;
     err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
     if (err != ENOMEM) {
         return(err);
@@ -466,6 +471,7 @@ odisk_gid_good(obj_data_t *obj)
             }
         }
     }
+
 
     free(glist);
     return(ENOENT);

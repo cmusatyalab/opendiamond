@@ -28,6 +28,7 @@
 #define	CNTL_CMD_LNODES_DONE    18
 #define	CNTL_CMD_LLEAFS_DONE    19
 #define	CNTL_CMD_ADD_GID        20
+#define	CNTL_CMD_CLEAR_GIDS     21
 
 
 /*

@@ -48,6 +48,7 @@ int search_write_leaf(void *app_cookie, char *path, int len, char *data,
 int search_list_nodes(void *app_cookie, char *path, int32_t opid);
 int search_list_leafs(void *app_cookie, char *path, int32_t opid);
 int search_set_gid(void *app_cookie, int gen, groupid_t gid);
+int search_clear_gids(void *app_cookie, int gen);
 
 
 #endif	/* ifndef _SEARCH_STATE_H_ */

@@ -870,5 +870,20 @@ search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 }
 
 
+int
+search_clear_gids(void *app_cookie, int gen_num)
+{
+	int		        err;
+	search_state_t * sstate;
+
+	/* XXX check gen num */
+
+	sstate = (search_state_t *)app_cookie;
+   	err = odisk_clear_gids(sstate->ostate);
+   	assert(err == 0);
+	return (0);
+    
+}
+
 
 

@@ -623,11 +623,12 @@ device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid)
 	 * check to see if we can add more groups, if so add it to the list
 	 */
 	if (cur_dev->num_groups >= MAX_DEV_GROUPS) {
+		fprintf(stderr, "Too many group id's \n");
 		/* XXX log */
 		return(ENOENT);
 	}
 
-    device_new_gid(cur_dev->dev_handle, sc->cur_search_id, gid);
+    	device_new_gid(cur_dev->dev_handle, sc->cur_search_id, gid);
 
 	cur_dev->dev_groups[cur_dev->num_groups] = gid;
 	cur_dev->num_groups++;

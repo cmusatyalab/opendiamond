@@ -454,26 +454,21 @@ process_control(listener_state_t *lstate, cstate_t *cstate, char *data)
 		case CNTL_CMD_ADD_GID: {
             sgid_subheader_t *   shead;
             groupid_t           gid;
-            groupid_t           gid1;
-			assert(data != NULL);
 
+			assert(data != NULL);
 			shead = (sgid_subheader_t *)data;
 
-            //gid = shead->sgid_gid; /* XXX 64bit bswap */
-            gid = 0x0102030405060708;
-            gid1 = gid;
-            printf("gid %llx \n", gid);
-            printf("size %d \n", sizeof(gid));
-            /* XXX swap data */
-            //assert(gid == 1);
-            //printf("gid %llx \n", gid);
-            //printf("size %d \n", sizeof(gid));
+            gid = shead->sgid_gid; /* XXX 64bit bswap */
 			(*lstate->sgid_cb)(cstate->app_cookie, gen, gid);
-            //assert(gid1 == gid);
             free(data);
             break;
         }
 
+		case CNTL_CMD_CLEAR_GIDS: 
+			assert(data == NULL);
+			(*lstate->clear_gids_cb)(cstate->app_cookie, gen);
+            break;
+ 
 
 		default:
 			printf("unknown command: %d \n", cmd);

@@ -31,23 +31,24 @@ typedef struct {
  * of the storage devices.
  */
 
-extern void *	device_init(int id, uint32_t devid, void *hcookie, 
+void *	device_init(int id, uint32_t devid, void *hcookie, 
 			hstub_cb_args_t *cbs);
-extern int device_stop(void *dev, int id);
-extern int device_terminate(void *dev, int id);
-extern int device_start(void *dev, int id);
-extern int device_set_searchlet(void *dev, int id, char *filter, char *spec);
-extern int device_characteristics(void *handle, device_char_t *dev_chars);
-extern int device_statistics(void *dev, dev_stats_t *dev_stats, 
+int device_stop(void *dev, int id);
+int device_terminate(void *dev, int id);
+int device_start(void *dev, int id);
+int device_set_searchlet(void *dev, int id, char *filter, char *spec);
+int device_characteristics(void *handle, device_char_t *dev_chars);
+int device_statistics(void *dev, dev_stats_t *dev_stats, 
 		int *stat_len);
-extern int device_set_log(void *handle, uint32_t level, uint32_t src);
+int device_set_log(void *handle, uint32_t level, uint32_t src);
 
-extern int device_write_leaf(void *dev, char *path, int len, char *data,
+int device_write_leaf(void *dev, char *path, int len, char *data,
                 int32_t opid);
-extern int device_read_leaf(void *dev, char *path, int32_t opid);
-extern int device_list_nodes(void *dev, char *path, int32_t opid);
-extern int device_list_leafs(void *dev, char *path, int32_t opid);
+int device_read_leaf(void *dev, char *path, int32_t opid);
+int device_list_nodes(void *dev, char *path, int32_t opid);
+int device_list_leafs(void *dev, char *path, int32_t opid);
 int device_new_gid(void *handle, int id, groupid_t gid);
+int device_clear_gids(void *handle, int id);
 
 #endif	/* _LIB_HSTUB_H_ */
 

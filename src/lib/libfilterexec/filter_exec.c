@@ -20,7 +20,7 @@
 #include "rtimer.h"
 #include "rgraph.h"
 
-// #define VERBOSE 1
+//#define VERBOSE 1
 
 /*
  * Some state to keep track of the active filter.
@@ -59,7 +59,9 @@ load_filter_lib(char *lib_name, filter_data_t *fdata)
 		exit (1);
 	}
 
-
+#ifdef VERBOSE
+	fprintf(stderr, "loaded %s at %p\n", lib_name, handle);
+#endif
 
 	/* XXX keep the handle somewhere */
     for (fid = 0; fid < fdata->fd_num_filters; fid++) {
@@ -273,12 +275,13 @@ resolve_filter_deps(filter_data_t *fdata)
 
 #define FILTER_ID_MASK  0x000000FF
 #define FILTER_ID(x)    ((filter_id_t)(((uint32_t)(x))&FILTER_ID_MASK))
-    lastid = INVALID_FILTER_ID;
+	lastid = INVALID_FILTER_ID;
+
 	GLIST(&graph, np) {
         filter_id_t fid;
 
         fid = FILTER_ID(np->data);
-		if ((np == src_node) || (fid == fdata->fd_app_id)) {
+	if ((np == src_node) || (fid == fdata->fd_app_id)) {
                 continue; /* skip */
         }
         if (lastid == INVALID_FILTER_ID) {
@@ -288,7 +291,7 @@ resolve_filter_deps(filter_data_t *fdata)
         }
         lastid = fid;
 	}
-    fdata->fd_filters[lastid].fi_nextfilter = INVALID_FILTER_ID;
+	fdata->fd_filters[lastid].fi_nextfilter = INVALID_FILTER_ID;
 
 
 	/* export filters */

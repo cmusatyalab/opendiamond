@@ -69,7 +69,7 @@ void
 fexec_system_init() {
   rtimer_system_init(RTIMER_PAPI); /* it will default to STD if this doesnt work */
 #ifdef VERBOSE
-  fprintf(stderr, "policy = %d\n", filter_exec.current_policy);
+  fprintf(stderr, "fexec_system_init: policy = %d\n", filter_exec.current_policy);
 #endif
 }
 

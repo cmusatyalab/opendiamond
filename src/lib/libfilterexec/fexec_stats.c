@@ -418,7 +418,7 @@ fexec_print_cost(const filter_data_t *fdata, const permutation_t *perm) {
 
 
 /* only use this many entries. must be less than STAT_WINDOW */
-#define STAT_WINDOW_USED 100
+#define STAT_WINDOW_USED 8
 
 
 void

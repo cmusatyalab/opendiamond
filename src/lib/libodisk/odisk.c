@@ -723,10 +723,10 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 	}
 	*/
 	//if( ring_empty(obj_ring) ) {
-	if( (ring_count(obj_ring)<=2) && (skip_cache_oattr==0) ) {
+	if( (ring_count(obj_ring)<=16) && (skip_cache_oattr==0) ) {
 		skip_cache_oattr = 1;
 	}
-	if( (ring_count(obj_ring)>=4) && (skip_cache_oattr==1) ) {
+	if( (ring_count(obj_ring)>=32) && (skip_cache_oattr==1) ) {
 		skip_cache_oattr = 0;
 	}
 

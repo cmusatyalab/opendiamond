@@ -148,7 +148,7 @@ main(int argc, char **argv)
 	fclose(cur_file);
 
 
-	for (i=0; i < nstat; i++) {
+	for (i=0; i < (nstat * 100); i++) {
 		j = get_rand(nstat);
 		k = get_rand(nstat);
 		if (j==k) continue;

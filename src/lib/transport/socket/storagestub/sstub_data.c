@@ -36,10 +36,10 @@ sstub_attr_len(obj_data_t *obj)
 
 	total = 0;
 
-	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie);
+	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, 0);
 	while (err == 0) {
 		total += len;
-		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie);
+		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie, 0);
 	}
 
 	return(total);
@@ -96,7 +96,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		/* setup attr setup */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
 			&cstate->attr_buf, &cstate->attr_remain,
-			&cstate->attr_cookie);
+			&cstate->attr_cookie, 0);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -117,7 +117,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		/* setup the attribute information */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
 			&cstate->attr_buf, &cstate->attr_remain,
-			&cstate->attr_cookie);
+			&cstate->attr_cookie, 0);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -212,7 +212,7 @@ more_attrs:
 		} else {
 			err = obj_get_attr_next(&cstate->data_tx_obj->attr_info,
 				&cstate->attr_buf, &attr_remain,
-				&cstate->attr_cookie);
+				&cstate->attr_cookie, 0);
 			if (err == ENOENT) {
 				attr_remain = 0;
 			} else {

@@ -32,6 +32,8 @@ typedef struct attr_record {
 #define	ATTR_INCREMENT	4096
 #define	ATTR_MIN_FRAG	64
 
+#define	ATTR_BIG_THRESH	1000
+
 
 /*
  * The extension on a file that shows it is an attribute.
@@ -56,9 +58,9 @@ int obj_read_attr_file(char *attr_fname, obj_attr_t *attr);
 int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
 
 int obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, 
-	void **cookie);
+	void **cookie, int skip_big);
 
 int obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, 
-	void **cookie);
+	void **cookie, int skip_big);
 
 #endif

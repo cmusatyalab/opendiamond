@@ -373,7 +373,8 @@ obj_del_attr(obj_attr_t *attr, const char * name)
 }
 
 int 
-obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, void **cookie)
+obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
+	int  skip_big)
 {
 	attr_record_t *		record;
 	size_t			offset;
@@ -395,7 +396,7 @@ again:
 	}
 
 	/* XXX see if we should toss this */
-	if (record->data_len > 1000) {
+	if ((record->data_len > ATTR_BIG_THRESH) && (skip_big)) {
 		goto again;
 	}
 
@@ -408,7 +409,8 @@ again:
 }
 
 int 
-obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie)
+obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
+	int skip_big)
 {
 	attr_record_t *		record;
 	size_t			offset;
@@ -429,7 +431,7 @@ again:
 		goto again;
 	}
 
-	if (record->data_len > 1000) {
+	if ((record->data_len > ATTR_BIG_THRESH) && (skip_big)) {
 		goto again;
 	}
 

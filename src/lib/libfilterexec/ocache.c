@@ -1740,7 +1740,7 @@ oattr_main(void *arg)
 					err = fwrite(&tobj->u.oattr.name_len, sizeof(unsigned int), 1, file);
 					if( err != 1 )
 						break;
-					err = fwrite(tobj->u.oattr.name, tobj->u.oattr.name_len, 1, file);
+					err = fwrite(tobj->u.oattr.name, tobj->u.oattr.name_len+1, 1, file);
 					if( err != 1 )
 						break;
 					err = fwrite(&tobj->u.oattr.data_len, sizeof(off_t), 1, file);
@@ -1751,7 +1751,7 @@ oattr_main(void *arg)
 						break;
 				} else {
 					write(fd, &tobj->u.oattr.name_len, sizeof(unsigned int));
-					write(fd, tobj->u.oattr.name, tobj->u.oattr.name_len);
+					write(fd, tobj->u.oattr.name, tobj->u.oattr.name_len+1);
 					write(fd, &tobj->u.oattr.data_len, sizeof(off_t));
 					write(fd, tobj->u.oattr.data, tobj->u.oattr.data_len);
 				}

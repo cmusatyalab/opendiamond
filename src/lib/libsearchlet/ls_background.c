@@ -279,6 +279,7 @@ update_rail(search_context_t *sc)
 	int			max_done = 0;
 	int			target;
 	
+	//printf("update rates: rail \n");
 	update_dev_stats(sc);
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
@@ -306,6 +307,8 @@ update_rail(search_context_t *sc)
 void
 update_rates(search_context_t *sc)
 {
+	//printf("update rates \n");
+
 	switch (sc->bg_credit_policy) {
 		case	CREDIT_POLICY_RAIL:
 			update_rail(sc);

@@ -494,14 +494,14 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 			for( i=0; i<cached_perm_num; i++ ) {
 				if( pmEqual(new_perm, cached_perm[i]) ) {
 					perm_done = 1;
-					//printf("no new perm\n");
+					printf("no new perm\n");
 					pmDelete(new_perm);
 					break;
 				}
 			}
 			if( perm_done == 0 ) {
 				pmPrint(new_perm, buf, BUFSIZ);
-				//printf("generate perm %s\n", buf);
+				printf("generate perm %s\n", buf);
 				cached_perm[cached_perm_num] = new_perm;
 				cached_perm_num++;
 			}
@@ -685,7 +685,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	         * to determine how much of * the allocation to run.
 		 */
 		if (err == 0) {
-		    printf("XXX lame cache update \n");
+		    //printf("XXX lame cache update \n");
 			cur_filter->fi_called++;
 			cur_filter->fi_cache_pass++;
 		} else {
@@ -752,6 +752,8 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				if (conf < cur_filter->fi_threshold) {
 					pass = 0;
 				}
+
+				//printf("eval_filters:  filter %s has val (%d) - threshold %d\n", cur_filter->fi_name, conf, cur_filter->fi_threshold);
 
 				log_message(LOGT_FILT, LOGL_TRACE,
 				            "eval_filters:  filter %s has val (%d) - threshold %d",

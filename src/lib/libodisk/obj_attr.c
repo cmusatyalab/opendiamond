@@ -112,6 +112,104 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 	return(0);
 }
 
+int
+obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr)
+{
+	int fd;
+	unsigned int *name_len;
+	char *name;
+	off_t *data_len;
+	char *data;
+	off_t           size, rsize;
+	struct stat     stats;
+	char attrbuf[PATH_MAX];
+	uint64_t tmp1, tmp2, tmp3, tmp4;
+	int err, len;
+	char *base;
+	char *ptr;
+
+	if( (fsig == NULL) || (iattrsig == NULL) ) {
+		printf("fsig or iattrsig is NULL\n");
+		return (EINVAL);
+	}
+	memcpy( &tmp1, fsig, sizeof(tmp1) );
+	memcpy( &tmp2, fsig+8, sizeof(tmp2) );
+	memcpy( &tmp3, iattrsig, sizeof(tmp3) );
+	memcpy( &tmp4, iattrsig+8, sizeof(tmp4) );
+
+	len = snprintf(attrbuf, MAX_ATTR_NAME,
+	               "%s/%s/%016llX%016llX/%016llX.%016llX%016llX",
+	               disk_path, CACHE_DIR, tmp1, tmp2, oid, tmp3, tmp4);
+	assert(len < (MAX_ATTR_NAME - 1));
+
+	err = access(attrbuf, F_OK);
+	if( err != 0 ) {
+		//printf("file %s does not exist\n", attrbuf);
+		return(EINVAL);
+	}
+
+	//printf("use oattr file %s\n", attrbuf);
+	fd = open(attrbuf, O_RDONLY );
+	if (fd == -1) {
+		printf("failed to open file %s\n", attrbuf);
+		return (EINVAL);
+	}
+
+	err = flock(fd, LOCK_EX);
+	if (err != 0) {
+		perror("failed to lock attributes file\n");
+		close(fd);
+		return (EINVAL);
+	}
+	err = fstat(fd, &stats);
+	if (err != 0) {
+		perror("failed to stat attributes\n");
+		close(fd);
+		return (EINVAL);
+	}
+
+	size = stats.st_size;
+	if (size == 0) {
+		close(fd);
+		return (0);
+	}
+	base = (char *) malloc(size + 1);
+	if(base == NULL) {
+		perror("no memory available");
+		close(fd);
+		exit(1);
+	}
+	rsize = read(fd, base, size);
+	if( rsize != size) {
+		perror("failed to read oattr data \n");
+		exit(1);
+	}
+	close(fd);
+
+	ptr = base;
+	while( size > 0 ){
+		name_len = (unsigned int *)ptr;
+		if( *name_len >= MAX_ATTR_NAME ) {
+			printf("too long att name %d for oid %016llX\n", *name_len, oid);
+			return(EINVAL);
+		}
+		name = ptr + sizeof(unsigned int);
+		ptr = name + *name_len + 1;
+		data_len = (off_t *)ptr;
+		data = ptr + sizeof(off_t);
+		err = obj_write_attr(attr, name, *data_len, data);
+		if( err != 0 ) {
+			printf("CHECK OBJECT %016llX ATTR FILE\n", oid);
+		}
+		rsize = sizeof(unsigned int) + *name_len + 1 + sizeof(off_t) + *data_len;
+		//printf("size %ld, rsize %ld\n", size, rsize);
+		ptr = ptr + sizeof(off_t) + *data_len;
+		size -= rsize;
+	}
+
+	free(base);
+	return (0);
+}
 
 
 int
@@ -522,6 +620,7 @@ again:
 	return(0);
 }
 
+/*
 int
 obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr)
 {
@@ -557,6 +656,7 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
 		return(EINVAL);
 	}
 
+	//printf("use oattr file %s\n", attrbuf);
 	fd = open(attrbuf, O_RDONLY );
 	if (fd == -1) {
 		printf("failed to open file %s\n", attrbuf);
@@ -611,4 +711,5 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
 	close(fd);
 	return (0);
 }
+*/
 

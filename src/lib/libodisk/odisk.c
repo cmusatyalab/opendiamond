@@ -516,7 +516,7 @@ odisk_read_obj(odisk_state_t *odisk, obj_data_t *obj, int *len,
     return(0);
 }
 
-/* XXX shared state */
+/* XXX shared state , move into state descriptor ???*/
 static int		search_active = 0;
 static int		search_done = 0;
 static int		bg_wait_q = 0;
@@ -659,6 +659,12 @@ odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
 			pthread_cond_wait(&fg_data_cv, &shared_mutex);
 		}
 	} 
+}
+
+int
+odisk_num_waiting(odisk_state_t *odisk)
+{
+	return(ring_count(obj_ring));
 }
 
 

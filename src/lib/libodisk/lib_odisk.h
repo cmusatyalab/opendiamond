@@ -66,6 +66,9 @@ int odisk_set_gid(struct odisk_state *odisk, groupid_t gid);
 int odisk_clear_gids(struct odisk_state *odisk);
 int odisk_reset(struct odisk_state *odisk);
 
+int odisk_num_waiting(struct odisk_state *odisk);
+
+
 #ifdef	__cplusplus
 }
 #endif

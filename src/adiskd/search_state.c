@@ -423,7 +423,8 @@ continue_fn(void *cookie)
     search_state_t *sstate = cookie;
 
 	/* XXX include input queue size */
-	if (sstate->pend_objs > sstate->split_bp_thresh) {
+	if ((sstate->pend_objs < sstate->split_bp_thresh) &&
+		(odisk_num_waiting(sstate->ostate) > 0)) {
 		return(0);
 	} else {
 		return(1);	

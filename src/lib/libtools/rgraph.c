@@ -11,6 +11,67 @@
 #include <assert.h>
 #include "rgraph.h"
 
+
+/* ********************************************************************** */
+
+
+static void
+vec_init(edgelist_t *vec) {
+  vec->len = 0;
+  vec->size = 0;
+  vec->edges = NULL;
+}
+
+static void
+vec_free(edgelist_t *vec) {
+  if(vec->edges) free(vec->edges);
+}
+
+static edge_t *
+vec_append(edgelist_t *vec) {
+  
+  if(vec->len == vec->size) {
+    vec->size += 32;		/* linear growth */
+    vec->edges = realloc(vec->edges, vec->size);
+  }
+  return &vec->edges[vec->len++];
+}
+
+
+static void
+sort_edgelist(edgelist_t *vec) {
+  int i, j;
+  edge_t v;
+
+  /* insertion sort */
+  for(i=1; i < vec->len; i++) {
+    v = vec->edges[i];
+    j = i;
+    while(j > 0 && vec->edges[j-1].eg_val > v.eg_val) {
+      vec->edges[j] = vec->edges[j-1];
+      j--;
+    }
+    vec->edges[j] = v;
+  }
+}
+
+static edge_t *
+vec_next(edgelist_t *vec, edge_t *ep) {
+  assert(ep >= vec->edges);
+  ep++;
+  return (ep < vec->edges + vec->len ? ep : NULL);
+}
+
+static edge_t *
+vec_first(edgelist_t *vec) {
+  return (vec->len ? vec->edges : NULL);
+}
+
+#define VEC_FOREACH(ep,vec) \
+  for(ep = vec_first(vec); (ep); ep = vec_next(vec, ep))
+
+/* ********************************************************************** */
+
 void
 gInit(graph_t *g) {
   TAILQ_INIT(&g->nodes);
@@ -33,7 +94,6 @@ gInitFromList(graph_t *g, graph_t *src) {
 void
 gClear(graph_t *g) {
   node_t *np;
-  edge_t *ep;
 
   /* travese node list */
   while(!TAILQ_EMPTY(&g->nodes)) {
@@ -41,11 +101,12 @@ gClear(graph_t *g) {
     TAILQ_REMOVE(&g->nodes, np, link);
 
     /* free edges */
-    while(!TAILQ_EMPTY(&np->edges)) {
-      ep = TAILQ_FIRST(&np->edges);
-      TAILQ_REMOVE(&np->edges, ep, eg_link);
-      free(ep);
-    }  
+    vec_free(&np->edgelist);
+/*     while(!TAILQ_EMPTY(&np->edges)) { */
+/*       ep = TAILQ_FIRST(&np->edges); */
+/*       TAILQ_REMOVE(&np->edges, ep, eg_link); */
+/*       free(ep); */
+/*     }   */
     free(np);
   }  
 }
@@ -57,22 +118,26 @@ gNewNode(graph_t *g, char *label) {
   assert(np);
   np->id = g->current_id++;
   np->label = strdup(label);
-  TAILQ_INIT(&np->edges);
+  //TAILQ_INIT(&np->edges);
+  vec_init(&np->edgelist);
 
   TAILQ_INSERT_TAIL(&g->nodes, np, link);
   return np;
 }
-
+  
 
 void
 gAddEdge(graph_t *g, node_t *u, node_t *v) {
   edge_t *ep;
 
-  ep = (edge_t *)malloc(sizeof(edge_t));
-  assert(ep);
-  ep->eg_v = v;
+/*   ep = (edge_t *)malloc(sizeof(edge_t)); */
+/*   assert(ep); */
+/*   ep->eg_v = v; */
 
-  TAILQ_INSERT_TAIL(&u->edges, ep, eg_link);
+  //TAILQ_INSERT_TAIL(&u->edges, ep, eg_link);
+  ep = vec_append(&u->edgelist);
+  ep->eg_v = v;
+  ep->eg_val = v->val;		/* XXX */
 }
 
 void
@@ -90,9 +155,11 @@ gPrintNode(node_t *np) {
   edge_t *ep;
 
   printf("{<%s>, ", np->label);
+  printf("%d, ", np->val);
 
   printf("E(");
-  TAILQ_FOREACH(ep, &np->edges, eg_link) {
+  //TAILQ_FOREACH(ep, &np->edges, eg_link) {
+  VEC_FOREACH(ep, &np->edgelist) {
     printf(" <%s>", ep->eg_v->label);
   }
   printf(" )}\n");
@@ -101,7 +168,7 @@ gPrintNode(node_t *np) {
 
 /* ********************************************************************** */
 
-#define print_list(list,link) 			\
+#define print_nodelist(list,link) 		\
 {						\
   node_t *np;					\
   TAILQ_FOREACH(np, (list), link) {		\
@@ -112,12 +179,13 @@ gPrintNode(node_t *np) {
 void
 gPrint(graph_t *g) {
   //printf("nodes:\n");
-  print_list(&g->nodes, link);
+  print_nodelist(&g->nodes, link);
 }
 
 
 /* ********************************************************************** */
 
+#if 0
 int
 dfs_visit(node_t *np, int *time) {
   int loop = 0;
@@ -160,6 +228,7 @@ gDFS(graph_t *g) {
     fprintf(stderr, "loop detected\n");
   }
 }
+#endif
 
 /* ********************************************************************** */
 
@@ -174,7 +243,9 @@ topo_visit(node_t *np, nodelist_t *list) {
 
   np->color = 1;
   //fprintf(stderr, "visiting %s\n", np->label);
-  TAILQ_FOREACH(ep, &np->edges, eg_link) {
+  //TAILQ_FOREACH(ep, &np->edges, eg_link) {
+  sort_edgelist(&np->edgelist);	/* XXX */
+  VEC_FOREACH(ep, &np->edgelist) {
     loop += topo_visit(ep->eg_v, list);
   }
   np->color = 2;
@@ -212,7 +283,7 @@ gTopoSort(graph_t *g) {
   }
 
   //printf("topo list:\n");
-  //print_list(&g->olist, olink);
+  //print_nodelist(&g->olist, olink);
   return 0;
 }
 
@@ -343,7 +414,8 @@ gSSSP(graph_t *g, node_t *src) {
     np = pDeleteMin(&pq);
     printf("processing node %s\n", np->label);
     np->color = 1;
-    TAILQ_FOREACH(ep, &np->edges, eg_link) {   
+    //TAILQ_FOREACH(ep, &np->edges, eg_link) {   
+    VEC_FOREACH(ep, &np->edgelist) {
       node_t *v = ep->eg_v;	/* alias */
       if(v->color == 0) {
 	if(v->td > np->td + v->val) {
@@ -376,13 +448,14 @@ export_node(FILE *fp, node_t *np, int indent) {
 
   fprintf(fp, "l(\"%d\",n(\"A\",", np->id);
   //fprintf(fp, "[a(\"OBJECT\",\"%s\")],\n", np->label);
-  fprintf(fp, "[a(\"OBJECT\",\"%s\")", np->label);
+  fprintf(fp, "[a(\"OBJECT\",\"%s\\n(%d)\")", np->label, np->val);
   //fprintf(fp, ",\na(\"COLOR\",\"red\")");
   fprintf(fp, "],\n");
 
   /* export edges */
   fprintf(fp, "\t[");
-  TAILQ_FOREACH(ep, &np->edges, eg_link) {
+  //TAILQ_FOREACH(ep, &np->edges, eg_link) {
+  VEC_FOREACH(ep, &np->edgelist) {
     if(count++) fprintf(fp, ",\n\t");
     fprintf(fp, "l(\"%d-%d\",e(\"B\",[],r(\"%d\")))",
 	    np->id, ep->eg_v->id, ep->eg_v->id);

@@ -22,6 +22,17 @@ typedef struct edge_t {
 
 
 struct node_t;
+
+typedef TAILQ_HEAD(nodelist_t, node_t) nodelist_t;
+//typedef TAILQ_HEAD(edgelist_t, edge_t) edgelist_t;
+typedef struct edgelist_t {
+  int len;
+  int size;
+  edge_t *edges;
+} edgelist_t;
+
+
+
 typedef struct node_t {
   /* temp data used/output by algorithms */
   int color;
@@ -36,7 +47,7 @@ typedef struct node_t {
   int id;			/* unique id */
   char *label;			/* printable label */
   TAILQ_ENTRY(node_t) link;	/* link for node list */
-  TAILQ_HEAD(edges, edge_t) edges; /* list of edges */
+  edgelist_t edgelist;		/* list of edges */
 
 
   /* user's data */
@@ -45,7 +56,7 @@ typedef struct node_t {
 } node_t;
 
 
-typedef TAILQ_HEAD(nodelist_t, node_t) nodelist_t;
+
 
 typedef struct graph_t {
   nodelist_t nodes;

@@ -136,6 +136,17 @@ sub process_directory {
   closedir(DIR);
 }
 
+# Takes a string, splits it on non-word characters, then joins
+# the set of words with commas into a string
+sub make_keywords {
+  my @words = split /\W+/, shift;
+  $_ = join(',', @words);
+  s/^,+//;      # Eliminate leading commas
+  s/,+$//;      # Eliminate trailing commas
+  s/,+/,/;      # And any duplicate commas
+  return $_;
+}
+
 
 sub process_image {
   my $path = shift;	# Image name from $root
@@ -151,20 +162,33 @@ sub process_image {
   $dispname =~ s|/|:|g;
 
   my ($exec, $retval);
+  my $parent_oid = undef;
 
-  $exec = "$insert_command $img $gid1 " .
-	     "Display-Name $dispname " .
-	     "Content-Type " . $valid{$ext};
+  my $keywords = &make_keywords($dispname);
+
+  $exec = "$insert_command $img $gid1" .
+	     " Display-Name $dispname " .
+	     " Keywords $keywords " .
+	     " Content-Type " . $valid{$ext};
   print "$exec\n";
-  $retval = system($exec);
-  die "$insert_command failed with return code of $retval: $!" if $retval;
-
+# $retval = system($exec);
+# die "$insert_command failed with return code of $retval: $!" if $retval;
+  open(PROG, "$exec |") or die "Unable to execute: $exec\n";
+  while (<PROG>) {
+    chomp;
+    next unless /OID\s*=\s*(.+)/;
+    $parent_oid = $1;
+    print "extracted parent oid: $parent_oid\n";
+  }
+  close PROG;
 
   $retval = system("convert $img -resize 400x300 $tempfile");
   die "convert gave a return code of $retval: $!" if $retval;
-  $exec = "$insert_command $tempfile $gid2 " .
-	     "Content-Type " . $valid{$ext} . " " .
-	     "Parent-OID 00:00:00:00:00:00:00:00";	# TODO
+  $exec = "$insert_command $tempfile $gid2" .
+	     " Display-Name $dispname " .
+	     " Keywords $keywords " .
+	     " Content-Type " . $valid{$tempext} .
+	     " Parent-OID $parent_oid";
   print "$exec\n";
   $retval = system($exec);
   die "$insert_command failed with return code of $retval: $!" if $retval;

@@ -7,6 +7,10 @@
 
 // Modified by rahuls 2003.05.13 to be take a file and gid
 // from the command-line and insert it into the object database
+//
+// Program now prints (to stdout) the OID of the object that
+// was inserted, in xx:xx:xx:xx:xx:xx:xx:xx form.
+// This program is used by the perl script "populate-disk.pl"
 
 #define BLOCK_SIZE      512
 
@@ -20,7 +24,6 @@ copy_file(char *fname, obj_id_t *oid)
 
     buf = (char *)malloc(BLOCK_SIZE);
     assert(buf != NULL);
-
    
     src_file = fopen(fname, "r");
     assert(src_file != NULL);
@@ -34,7 +37,6 @@ copy_file(char *fname, obj_id_t *oid)
     }
 
     printf("done with copy len %d off %d\n", len, offset);
-
 }
 
 void
@@ -64,38 +66,86 @@ fetch_file(char *fname, obj_id_t *oid)
     fclose(dst_file);
 }
 
-// Attempts to parse the GID string.  Dies horribly if string is
-// badly formatted.
+
 //
-groupid_t parse_gid_string(const char* s) {
+// REWRITE GENERICALLY AS A ROUTINE TO PARSE/PRINT UIN64s
+// TODO TODO TODO
+// [replace the three functions below thusly]
+
+// Parses a uint64_t string of the form xx:xx:xx:xx:xx:xx:xx:xx
+// where "xx" is a hex byte.
+//
+uint64_t parse_uint64_string(const char* s) {
   int i, o;
   unsigned int x;	// Will actually hold an unsigned char
-  groupid_t gid = 0u;
+  uint64_t u = 0u;
 
   /*
-  sscanf(s, "%llx", &gid);
-  printf("parsed gid is 0x%llx\n", gid);
-  return gid;
+  sscanf(s, "%llx", &u);
+  printf("parsed gid is 0x%llx\n", u);
+  return u;
   */
 
   assert(s);
-  printf("s = %s\n", s);
+  fprintf(stderr, "parse_uint64_string s = %s\n", s);
   for (i=0; i<8; i++) {
     o = 3*i;
     assert(isxdigit(s[o]) && isxdigit(s[o+1]));
     assert( (s[o+2] == ':') || (s[o+2] == '\0') );
     sscanf(s+o, "%2x", &x);
-    gid <<= 8;
-    gid += x;
+    u <<= 8;
+    u += x;
   }
-  // printf("parsed gid is 0x%llx\n", gid);
-  return gid;
+  // printf("parsed uint64_t is 0x%llx\n", u);
+  return u;
+}
+
+// Prints a uint64_t as xx:xx:xx:xx:xx:xx:xx:xx
+// to stdout.  Really, I should stick it into a char buf
+// but then someone has to deal with allocating space etc.
+// TODO
+void print_uint64(uint64_t u) {
+  int i;
+  for (i=0; i<8; i++) {
+    unsigned int x = u >> 56;
+    if (i>0) { printf(":"); }	// separator
+    printf("%02x", x);
+    u <<= 8;
+  }
+}
+
+inline groupid_t parse_gid_string(const char* s) {
+  return parse_uint64_string(s);
+}
+
+inline void print_gid(groupid_t gid) {
+  print_uint64(gid);
+}
+
+obj_id_t parse_oid_string(const char* s) {
+  obj_id_t oid;
+  oid.dev_id	= parse_uint64_string(s);
+  assert(s[23] == ':');
+  oid.local_id	= parse_uint64_string(s+24);
+  return oid;
+}
+
+inline void print_oid(obj_id_t oid) {
+  print_uint64(oid.dev_id);
+  printf(":");
+  print_uint64(oid.local_id);
 }
 
 
 int
 main(int argc, char **argv)
 {
+#if 0
+  obj_id_t uu;
+  uu = parse_oid_string(argv[1]);
+  printf("oid = "); print_oid(uu); printf("\n");
+  return 0;
+#endif // 0
 
     groupid_t   gid;
 //    groupid_t   newgid;
@@ -111,6 +161,7 @@ main(int argc, char **argv)
       fprintf(stderr, " file is a legal path to a real file\n");
       fprintf(stderr, " gid is in the form 9c:a1:7d:a9:f2:60:61:92\n");
       fprintf(stderr, " [attrn valn] are attribute value pairs of strings\n");
+      fprintf(stderr, "%s prints the OID of new object to stdout\n", argv[0]);
       exit(1);
     }
     file = argv[1];
@@ -121,6 +172,8 @@ main(int argc, char **argv)
     assert(err == 0);
     err = od_create(&oid, &gid);
     assert(err == 0);
+
+    printf("OID = "); print_oid(oid); printf("\n");
 
     copy_file(file, &oid);
 
@@ -151,5 +204,3 @@ main(int argc, char **argv)
 
     exit(0);
 }
-
-

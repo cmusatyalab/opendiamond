@@ -66,6 +66,10 @@
 #include "dctl_common.h"
 #include "lib_ocache.h"
 
+#define	SAMPLE_TIME_FLOAT	0.2
+#define	SAMPLE_TIME_NANO	200000000
+
+static void *update_bypass(void *arg);
 
 /*
  * XXX other place 
@@ -263,6 +267,8 @@ clear_ss_stats(search_state_t * sstate)
 	sstate->obj_passed = 0;
 	sstate->obj_skipped = 0;
 	sstate->network_stalls = 0;
+	sstate->tx_full_stalls = 0;
+	sstate->tx_idles = 0;
 
 	sstate->avg_ratio = 0.0;
 	sstate->avg_int_ratio = 0;
@@ -431,6 +437,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 }
 
 
+#ifdef	XXX
 static void
 dynamic_update_bypass(search_state_t *sstate)
 {
@@ -443,7 +450,6 @@ dynamic_update_bypass(search_state_t *sstate)
 		avg_cost = 30000000.0;
 	}
                                                                                
-
 	if (sstate->obj_processed != 0) {
 		float	ratio;
 		float	new_val;
@@ -469,27 +475,126 @@ dynamic_update_bypass(search_state_t *sstate)
 		sstate->split_ratio = 100;
 	}
 }
+#else
+
+static float
+deq_beta(float proc_rate, float erate)
+{
+	float	beta;
+	if ((proc_rate == 0.0) ||  (erate < 0.00001)) {
+		return(0.5);
+	}
+	beta = proc_rate/erate;
+	return(beta);
+}
+
+static float
+enq_beta(float proc_rate, float drate, int pend_objs)
+{
+	float	beta;
+	float	target;
+
+	if ((proc_rate == 0.0) ||  (drate < 0.00001)) {
+		return(0.5);
+	}
+
+	target = ((drate * SAMPLE_TIME_FLOAT) + 
+		((float)(20 - pend_objs)))/SAMPLE_TIME_FLOAT;
+	if (target < 0.0) {
+		target = 0;
+	}
+	beta = 1.0/((target/proc_rate) + 1);
+
+	return(beta);
+}
+
 
 static void
-update_bypass(search_state_t *sstate)
+dynamic_update_bypass(search_state_t *sstate)
 {
+	int	err;
+	float	avg_cost;
+	float	betain;
+	float	betaout;
+	float	proc_rate;
+	float	erate;
+	float	drate;
+
+	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
+			1, 0, &avg_cost);
+	if (err) {
+		avg_cost = 30000000.0;
+	}
+                                                                               
+	if (sstate->obj_processed != 0) {
+		float	ratio;
+		float	new_val;
+
+		ratio = (float)sstate->old_proc/(float)sstate->obj_processed;
+		new_val = sstate->avg_ratio * ratio;
+		new_val += sstate->split_ratio * (1 - ratio);
+		sstate->avg_ratio = new_val;
+		sstate->avg_int_ratio = (int)new_val;
+		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
+			0.5 * new_val;
+		sstate->smoothed_int_ratio = (int)sstate->smoothed_ratio;
+		sstate->old_proc = sstate->obj_processed;
+	}
+
+	drate = sstub_get_drate(sstate->comm_cookie);
+	erate = odisk_get_erate(sstate->ostate);
+	proc_rate =  fexec_get_prate(sstate->fdata);
+
+
+	betain = deq_beta(proc_rate, erate);
+	betaout = enq_beta(proc_rate, drate, sstate->pend_objs);
+
+	//printf("betain %f betaout %f drate %f erate %f prate %f\n", betain, betaout,
+		//drate, erate, proc_rate);
+	if (betain > betaout) {
+		sstate->split_ratio = (int)(betain * 100.0);
+	} else {
+		sstate->split_ratio = (int)(betaout * 100.0);
+	}
+
+	if (sstate->split_ratio < 5) {
+		sstate->split_ratio = 5;
+	}
+	if (sstate->split_ratio > 100) {
+		sstate->split_ratio = 100;
+	}
+}
+#endif
+
+static void *
+update_bypass(void *arg)
+{
+	search_state_t *sstate = (search_state_t *)arg;
 	uint 	old_target;
 	float ratio;
+	struct timespec ts;
 
-	switch(sstate->split_type) {
-		case SPLIT_TYPE_FIXED:
-			ratio = ((float)sstate->split_ratio)/100.0;
-			fexec_update_bypass(sstate->fdata, ratio);
-			fexec_update_grouping(sstate->fdata, ratio);
-			break;
+	while (1) {
+    	if (sstate->flags & DEV_FLAG_RUNNING) {
+			switch(sstate->split_type) {
+				case SPLIT_TYPE_FIXED:
+					ratio = ((float)sstate->split_ratio)/100.0;
+					fexec_update_bypass(sstate->fdata, ratio);
+					fexec_update_grouping(sstate->fdata, ratio);
+					break;
 
-		case SPLIT_TYPE_DYNAMIC:
-			old_target = sstate->split_ratio;
-			dynamic_update_bypass(sstate);
-			ratio = ((float)sstate->split_ratio)/100.0;
-			fexec_update_bypass(sstate->fdata, ratio);
-			fexec_update_grouping(sstate->fdata, ratio);
-			break;
+				case SPLIT_TYPE_DYNAMIC:
+					old_target = sstate->split_ratio;
+					dynamic_update_bypass(sstate);
+					ratio = ((float)sstate->split_ratio)/100.0;
+					fexec_update_bypass(sstate->fdata, ratio);
+					fexec_update_grouping(sstate->fdata, ratio);
+					break;
+			}
+		}
+		ts.tv_sec = 0;
+		ts.tv_nsec = SAMPLE_TIME_NANO;
+		nanosleep(&ts, NULL);
 	}
 }
 
@@ -501,9 +606,10 @@ static int
 continue_fn(void *cookie)
 {
 	search_state_t *sstate = cookie;
+#ifdef	XXX
 	float	avg_cost;
 	int	err;
-        err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
+ 	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
 		1, 0, &avg_cost);
 	if (err) {
 		avg_cost = 30000000.0;
@@ -515,7 +621,13 @@ continue_fn(void *cookie)
 	} else {
 		return(1);
 	}
-
+#else
+   	if ((sstate->pend_objs < 4) && (odisk_num_waiting(sstate->ostate) > 4)) {
+		return(0);
+	} else {
+		return(2);
+	}
+#endif
 }
 
 /*
@@ -631,9 +743,11 @@ device_main(void *arg)
 				 * set the bypass values periodically 
 				 */
 
+#ifdef	XXX
 				if ((sstate->obj_processed & 0xf) == 0xf) {
 					update_bypass(sstate);
 				}
+#endif
 
 				/*
 				 * XXX process the object 
@@ -683,6 +797,8 @@ device_main(void *arg)
 					}
 				}
 			}
+		} else if ((sstate->flags & DEV_FLAG_RUNNING)) {
+			sstate->tx_full_stalls++;
 		}
 
 		/*
@@ -837,6 +953,12 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	dctl_register_leaf(DEV_SEARCH_PATH, "nw_stalls", DCTL_DT_UINT32,
 	                   dctl_read_uint32, NULL, &sstate->network_stalls);
 
+	dctl_register_leaf(DEV_SEARCH_PATH, "tx_full_stalls", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &sstate->tx_full_stalls);
+
+	dctl_register_leaf(DEV_SEARCH_PATH, "tx_idles", DCTL_DT_UINT32,
+	                   dctl_read_uint32, NULL, &sstate->tx_idles);
+
 	dctl_register_leaf(DEV_SEARCH_PATH, "pend_objs", DCTL_DT_UINT32,
 	                   dctl_read_uint32, NULL, &sstate->pend_objs);
 	dctl_register_leaf(DEV_SEARCH_PATH, "pend_maximum", DCTL_DT_UINT32,
@@ -947,6 +1069,17 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		return (ENOENT);
 	}
 
+	/* thread to update the ration */
+	err = pthread_create(&sstate->bypass_id, PATTR_DEFAULT, update_bypass,
+	                     (void *) sstate);
+	if (err) {
+		/*
+		 * XXX log 
+		 */
+		free(sstate);
+		*app_cookie = NULL;
+
+	}
 	/*
 	 * Initialize our communications with the object
 	 * disk sub-system.
@@ -1035,6 +1168,9 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 	}
 
 	sstate->pend_objs--;
+	if (sstate->pend_objs == 0) {
+		sstate->tx_idles++;
+	}
 	sstate->pend_compute -= obj->remain_compute;
 
 	odisk_release_obj(obj);
@@ -1063,6 +1199,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	int             err;
 	int             num_filt;
 	int             len;
+	float			prate;
 
 	sstate = (search_state_t *) app_cookie;
 
@@ -1091,7 +1228,8 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_dropped = sstate->obj_dropped;
 	stats->ds_objs_nproc = sstate->obj_skipped;
 	stats->ds_system_load = (int) (fexec_get_load(sstate->fdata) * 100.0); 
-	stats->ds_avg_obj_time = 0;
+	prate = fexec_get_prate(sstate->fdata);
+	stats->ds_avg_obj_time = (long long)(prate * 1000.0);
 	stats->ds_num_filters = num_filt;
 
 

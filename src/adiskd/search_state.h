@@ -73,6 +73,7 @@ typedef struct search_state {
     pthread_mutex_t log_mutex;
     pthread_cond_t  log_cond;
     pthread_t       log_thread;
+    pthread_t       bypass_id;
     filter_data_t  *fdata;
     uint            obj_total;
     uint            obj_processed;
@@ -80,6 +81,8 @@ typedef struct search_state {
     uint            obj_passed;
     uint            obj_skipped;
     uint            network_stalls;
+    uint            tx_full_stalls;
+    uint            tx_idles;
     uint            pend_objs;
     float	    pend_compute;
     uint            pend_max;

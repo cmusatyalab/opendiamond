@@ -13,6 +13,9 @@
 #include <dirent.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "ring.h"
 #include "lib_searchlet.h"
 #include "attr.h"
@@ -186,13 +189,18 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 		for (j=0; j<hosts; j++) {
 			err = device_add_gid(sc, cur_gid, host_ids[j]);
 			if (err) {
+                struct in_addr in;    
+                char *  name;
 				/*
 				 * we failed to add of init with the host,
 				 * just fail this call for now, this
 				 * is basically a bad state
 				 * we can't recover from.
 				 */
-				printf("dev add failed \n");
+                in.s_addr = host_ids[j];
+                name = inet_ntoa(in);
+				printf("Failed to connect to device %s \n", name);
+                assert(0);
 				return (EINVAL);
 
 			}

@@ -12,6 +12,7 @@
 #include "ring.h"
 #include "lib_searchlet.h"
 #include "obj_attr.h"
+#include "lib_odisk.h"
 #include "lib_search_priv.h"
 
 
@@ -150,7 +151,7 @@ dev_process_cmd(device_state_t *dev, dev_cmd_data_t *cmd)
 	 		 * Start the emulated device for now.
 	 	  	 * XXX do this for real later.
 	 		 */
-			err = dev_emul_init(dev);
+			err = odisk_init(&dev->ostate);
 			if (err) {
 				/* XXX log */
 				/* XXX crap !! */
@@ -209,7 +210,7 @@ device_main(void *arg)
 		 * XXX look for data from device to process.
 		 */
 		if ((dev->flags & DEV_FLAG_RUNNING) == DEV_FLAG_RUNNING) {
-			err = dev_emul_next_obj(&new_obj, dev);
+			err = odisk_next_obj(&new_obj, dev->ostate);
 			if (err == ENOENT) {
 				/*
 				 * We have processed all the objects,

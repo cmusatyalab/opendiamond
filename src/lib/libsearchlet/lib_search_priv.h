@@ -22,7 +22,7 @@ typedef struct device_state {
 	ring_data_t *		device_ops;	
 	unsigned int		flags;
 	struct search_context * sc;
-	void	*		data_cookie;
+	odisk_state_t *		ostate;
 	int			ver_no;
 } device_state_t;
 
@@ -34,17 +34,6 @@ typedef enum {
 	SS_SHUTDOWN,	
 	SS_IDLE	
 } search_state_t;
-
-/*
- * This is the state associated with the object
- */
-typedef struct {
-	off_t			data_len;
-	off_t			cur_offset;
-	int			cur_blocksize;
-	char *			data;
-	obj_attr_t		attr_info;
-} obj_data_t;
 
 
 typedef struct {
@@ -79,14 +68,6 @@ extern int device_start(device_state_t *dev, int id);
 extern int device_set_searchlet(device_state_t *dev, int id, char *filter,
 	                        char *spec);
 extern device_state_t * device_init(search_context_t *sc, int id);
-
-/*
- * These are the function prototypes for the device emulation
- * function in dev_emul.c
- */
-extern int dev_emul_term(device_state_t *dev);
-extern int dev_emul_init(device_state_t *dev);
-extern int dev_emul_next_obj(obj_data_t **new_obj, device_state_t *dev);
 
 /*
  * These are background processing functions.

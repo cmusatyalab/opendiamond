@@ -12,6 +12,7 @@
 #include "ring.h"
 #include "lib_searchlet.h"
 #include "obj_attr.h"
+#include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_filter.h"
 #include "filter_priv.h"

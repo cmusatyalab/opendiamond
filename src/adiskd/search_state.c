@@ -395,6 +395,7 @@ update_bypass(search_state_t *sstate)
 	switch(sstate->split_type) {
 		case SPLIT_TYPE_FIXED:
 			ratio = ((double)sstate->split_ratio)/100.0;
+			printf("updating ratio to %f \n", ratio);
 			fexec_update_bypass(sstate->fdata, ratio);
 			break;
 			

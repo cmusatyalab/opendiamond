@@ -184,6 +184,7 @@ fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
     int             i;
     filter_info_t  *info;
 
+	printf("bypass trivial:  ration %f \n", ratio);
     /*
      * for the first filtre run int locally
      */
@@ -382,7 +383,7 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 
     switch (fexec_bypass_type) {
 	case  BP_NONE:
-        	fexec_set_bypass_none(fdata);
+       	fexec_set_bypass_none(fdata);
 		break;
 
 	case BP_SIMPLE:

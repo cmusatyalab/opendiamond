@@ -22,7 +22,7 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 
-#define VERBOSE 1
+//#define VERBOSE 1
 
 /*
  * Some state to keep track of the active filter. XXX

@@ -102,8 +102,12 @@ typedef struct filter_prob {
 /* must be power of 2 */
 #define PROB_HASH_BUCKETS   64
 
+/* size of history */
+#define STAT_WINDOW 1024
+
 /*
  * This is the structure that holds all the data.
+ * initialized in filter_spec.l:read_filter_spec -RW
  */
 struct filter_data {
     int                 fd_num_filters;
@@ -115,7 +119,13 @@ struct filter_data {
     permutation_t       *fd_perm;	/* current permutation */
     partial_order_t     *fd_po;	/* the partial ordering of filters */
 
-    filter_info_t       fd_filters[0];
+  time_t obj_ns[STAT_WINDOW];	/* data */
+  int    obj_ns_valid;		/* number of valid entries */
+  int    obj_ns_pos;		/* current insertion point */
+
+  int    obj_counter;		/* used to synchronize monitoring output (filter_exec) */
+
+    filter_info_t       fd_filters[0]; /* variable size struct */
 };
 
 

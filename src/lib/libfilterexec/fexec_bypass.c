@@ -207,6 +207,149 @@ fexec_set_bypass_target_a(filter_data_t * fdata, permutation_t * perm,
     return;
 }
 
+/*
+ * Computes the network-optimal ("hybrid") bypass distribution.
+ * (nizhner 05/11/2004)
+ */
+
+/*
+ * XXX
+ * Assume an array of these is allocated for each permutation
+ * when it is created, of size pmLength(perm)+1
+ *
+ */
+typedef struct {
+  /*
+   * The cumulative CPU cost of the sub-permutation up to (but not including)
+   * this filter. (e.g., 0 for the first element, the full cost of the
+   * searchlet for the last.)
+   */
+  double dcost;
+  /*
+   * The network cost (bytes transmitted) under the greedy distribution
+   * when the target CPU cost is precisely dcost.
+   */
+  double greedy_ncost;
+  int i;  /* filter unit begin */
+  int j;  /* filter unit end */
+  double c_i;  /* cumulative CPU cost up to filter i */
+  double c_j;  /* cumulative CPU cost up to filter j */
+} bp_hybrid_state_t;
+
+void
+fexec_set_bypass_target_hybrid(filter_data_t *fdata, permutation_t *perm, float target_ms)
+{
+  int i, j;
+  filter_info_t * info;
+  filter_prob_t * fprob;
+  bp_hybrid_state_t* hstate;
+  double dcost = 0;
+  double p, pass = 1;
+  double maxbytes;
+
+  /* XXX obtain bp_hybrid_state_t array for this permutation */
+  /* hstate = XXX; */
+
+  /* XXX initialize maxbytes with average object size */
+  
+  /*
+   * Reconstruct the cost function of the greedy distribution.
+   */
+  for(i=0; i < pmLength(perm); i++) {
+    int n;
+
+    hstate[i].dcost = dcost;
+    hstate[i].greedy_ncost = pass * maxbytes;
+
+    info = &fdata->fd_filters[pmElt(perm, i)];
+    n = info->fi_called;
+    maxbytes += (double) info->fi_added_bytes / (double) n;
+    dcost += pass * (info->fi_time_ns / (double) n); /* update cumulative cost */
+
+    /* obtain conditional pass rate */
+    fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
+    if(fprob) {
+      p = (double)fprob->num_pass / fprob->num_exec;
+    } else {
+      /* really no data, return an error */
+      /* XXX */
+      assert(0);
+      return;
+    }
+    
+    assert(p >= 0 && p <= 1.0);
+    
+    pass *= p;
+    if (pass < SMALL_FRACTION) {
+      pass = SMALL_FRACTION;
+    }
+  }
+  hstate[i].dcost = dcost;
+  hstate[i].greedy_ncost = pass * maxbytes;
+
+  
+  /*
+   * Identify optimal breakdown into unit subsequences.
+   */
+  for(i=0; i < pmLength(perm); i++) {
+    double delta, lowest_delta;
+    int best_j=0, k;
+
+    lowest_delta = 9999999999.0;  /* XXX */
+    for(j=i+1; j <= pmLength(perm); j++) {
+      /* compute reduction factor for candidate filter unit */
+      if((hstate[j].dcost - hstate[i].dcost)<=0.0){
+	/* XXX assertion here? */
+	return;
+      }
+      delta = (hstate[j].greedy_ncost - hstate[i].greedy_ncost) /
+	(hstate[j].dcost - hstate[i].dcost);
+      if(delta < lowest_delta){
+	/* record candidate unit parameters */
+	lowest_delta = delta;
+	best_j = j;
+      }
+    }
+
+    /*
+     * Found optimal unit starting with filter i.  
+     */
+    for(k=i; k<best_j; k++){
+      hstate[k].i = i;
+      hstate[k].j = best_j;
+      hstate[k].c_i = hstate[i].dcost;
+      hstate[k].c_j = hstate[best_j].dcost;
+    }
+
+    i = best_j; /* next unit */
+  }
+
+  
+  /*
+   * Compute the greedy distribution on unit subsequences.
+   */
+  for(i=0; i <= pmLength(perm); i++) {
+    if(hstate[i].dcost>target_ms)
+      break;
+  }
+  
+  for(j=0; j<i; j++)
+    (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
+
+  (fdata->fd_filters[pmElt(perm, i)]).fi_bpthresh =
+    (int)((float)RAND_MAX *
+	  ((target_ms - hstate[i].c_i) /
+	   (hstate[i].c_j - hstate[i].c_i)));
+
+  for(j=i+1; j<hstate[i].j; j++)
+    (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
+
+  for(j=hstate[i].j; j<pmLength(perm); j++)
+    (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = -1;
+
+  return;
+}
+
 
 
 

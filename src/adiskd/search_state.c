@@ -72,13 +72,6 @@ typedef struct {
 
 extern char    *data_dir;
 
-/*
- * XXX clean this up later 
- */
-
-int             cpu_split = 0;
-int             cpu_split_thresh = RAND_MAX;
-
 int
 search_stop(void *app_cookie, int gen_num)
 {
@@ -387,9 +380,35 @@ create_null_obj()
 }
 
 
+
+static void
+dynamic_update_bypass(search_state_t *sstate) 
+{
+	if (sstate->pend_objs < sstate->split_pend_low) {
+		/* XXX do this if the input queue is low */
+		if (sstate->split_ratio < sstate->split_auto_step) {
+			sstate->split_ratio = 0;
+		} else {
+			sstate->split_ratio -= sstate->split_auto_step;
+		}
+		
+		printf("too slow decrementing ration %d \n", sstate->split_ratio);
+		printf("pend %d split %d \n", sstate->pend_objs, sstate->split_pend_low);
+	} else if (sstate->pend_objs > sstate->split_pend_high) {
+		if (sstate->split_ratio > (100 - sstate->split_auto_step)) {
+			sstate->split_ratio = 100;
+		} else {
+			sstate->split_ratio += sstate->split_auto_step;
+		}
+		printf("too fast increasing ration %d \n", sstate->split_ratio);
+	}
+
+}
+
 static void
 update_bypass(search_state_t *sstate) 
 {
+	uint 	old_target;
 	double ratio;
 
 	switch(sstate->split_type) {
@@ -399,10 +418,13 @@ update_bypass(search_state_t *sstate)
 			break;
 			
 		case SPLIT_TYPE_DYNAMIC:
-			/* XXX do something here */
-			ratio = ((double)sstate->split_ratio)/100.0;
-			fexec_update_bypass(sstate->fdata, ratio);
-			break;
+			old_target = sstate->split_ratio;
+			dynamic_update_bypass(sstate);
+			if (old_target != sstate->split_ratio) {
+				ratio = ((double)sstate->split_ratio)/100.0;
+				fexec_update_bypass(sstate->fdata, ratio);
+			}
+			break;	
 	}
 }
 
@@ -693,10 +715,18 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     dctl_register_leaf(DEV_SEARCH_PATH, "split_ratio", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
                        &sstate->split_ratio);
+    dctl_register_leaf(DEV_SEARCH_PATH, "split_auto_step", DCTL_DT_UINT32,
+                       dctl_read_uint32, dctl_write_uint32,
+                       &sstate->split_auto_step);
+    dctl_register_leaf(DEV_SEARCH_PATH, "split_pend_high", DCTL_DT_UINT32,
+                       dctl_read_uint32, dctl_write_uint32,
+                       &sstate->split_pend_high);
+    dctl_register_leaf(DEV_SEARCH_PATH, "split_pend_low", DCTL_DT_UINT32,
+                       dctl_read_uint32, dctl_write_uint32,
+                       &sstate->split_pend_low);
 
 
     dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
-
     dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
 
 
@@ -721,8 +751,17 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     sstate->pend_thresh = SSTATE_DEFAULT_OBJ_THRESH;
     sstate->pend_objs = 0;
 
-    sstate->split_type = SPLIT_TYPE_FIXED;
-    sstate->split_ratio = 0;
+    /*
+     * default setting way computation is split between the host
+     * and the storage device.
+     */
+    sstate->split_type = SPLIT_DEFAULT_TYPE;
+    sstate->split_ratio = SPLIT_DEFAULT_RATIO;;
+    sstate->split_auto_step = SPLIT_DEFAULT_AUTO_STEP;
+    sstate->split_pend_low = SPLIT_DEFAULT_PEND_LOW;
+    sstate->split_pend_high = SPLIT_DEFAULT_PEND_HIGH;
+
+
     /*
      * Create a new thread that handles the searches for this current
      * search.  (We probably want to make this a seperate process ??).
@@ -1137,27 +1176,5 @@ extern int      fexec_cpu_slowdown;
 int
 search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 {
-    double          ratio;
-    uint64_t        my_clock;
-    double          my_clock_float;
-    double          eff_ratio;
-
-#ifdef	XXX
-    eff_ratio = (double) (double) (100 - fexec_cpu_slowdown) / 100.0;
-    /*
-     * XXX clean this up 
-     */
-    cpu_split = 1;
-
-    my_clock_float = (double) my_clock *eff_ratio;
-    r_cpu_freq(&my_clock);
-    ratio = ((double) my_clock) / ((double) load + (double) my_clock);
-
-    cpu_split_thresh = (double) (RAND_MAX) * ratio;
-
-    printf("set_offload: ratio %f thresh %d cpu %d adj %f \n",
-           ratio, cpu_split_thresh, my_clock, my_clock_float);
-#endif
-
     return (0);
 }

@@ -1,21 +1,32 @@
 #ifndef _SEARCH_STATE_H_
 #define _SEARCH_STATE_H_
 
+
+/* some of the default constants for packet processing */
 #define	SSTATE_DEFAULT_OBJ_THRESH	50
 #define	SSTATE_DEFAULT_BP_THRESH	10
+
+
+enum split_types_t {
+	SPLIT_TYPE_FIXED = 0,	/* Defined fixed ratio of work */
+	SPLIT_TYPE_DYNAMIC	/* use dynamic optimization */
+};
+
+
+#define	SPLIT_DEFAULT_TYPE		(SPLIT_TYPE_DYNAMIC)
+#define	SPLIT_DEFAULT_RATIO		(0)
+#define	SPLIT_DEFAULT_AUTO_STEP		5
+#define	SPLIT_DEFAULT_PEND_LOW		5
+#define	SPLIT_DEFAULT_PEND_HIGH		10
 
 #define DEV_FLAG_RUNNING                0x01
 #define DEV_FLAG_COMPLETE               0x02
 
-enum split_types_t {
-	SPLIT_TYPE_FIXED = 0,
-	SPLIT_TYPE_DYNAMIC
-};
 
 
 typedef struct search_state {
-    void           *comm_cookie;
-    pthread_t       thread_id;
+    void           *comm_cookie;	/* cookie from the communication lib */
+    pthread_t       thread_id;	
     unsigned int    flags;
     struct odisk_state *ostate;
     int             ver_no;
@@ -31,8 +42,11 @@ typedef struct search_state {
     uint            obj_skipped;
     uint            pend_objs;
     uint            pend_thresh;
-    uint            split_type;
-    uint            split_ratio;
+    uint            split_type;		/* policy for the splitting */
+    uint            split_ratio;	/* amount of computation to do local */
+    uint            split_auto_step;	/* step to increment ration by */
+    uint            split_pend_low;	/* below, not enough work for host */
+    uint            split_pend_high;	/* above, too much work for host */
     void           *dctl_cookie;
     void           *log_cookie;
 } search_state_t;

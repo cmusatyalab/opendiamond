@@ -31,6 +31,10 @@
 
 #define	LOG_RING_SIZE	512
 
+/* linux specific flag */
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
 
 /*
  * send a specific log entry.

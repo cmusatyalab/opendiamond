@@ -26,6 +26,11 @@
 #include "filter_exec.h"
 #include "dctl.h"
 
+/* linux specific flag */
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
+
 #define	DCTL_RING_SIZE	512
 
 /* create a buffer much larger than we need */

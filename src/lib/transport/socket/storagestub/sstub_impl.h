@@ -54,6 +54,21 @@ typedef enum {
 	LOG_TX_DATA,
 } log_tx_state_t;
 
+typedef enum {
+	NW_ATTR_POLICY_FIXED = 0,
+	NW_ATTR_POLICY_PROPORTIONAL,
+	NW_ATTR_POLICY_QUEUE
+} nw_attr_policy;
+
+
+#define DESIRED_MAX_TX_QUEUE    20
+#define DESIRED_MAX_TX_THRESH   10
+#define DESIRED_MAX_CREDITS    	8
+                                                                                
+#define DEFAULT_NW_ATTR_POLICY  (NW_ATTR_POLICY_FIXED)
+#define DEFAULT_NW_ATTR_RATIO   (0)
+
+
 /* XXX forward ref */
 struct listener_state;
 
@@ -87,6 +102,10 @@ typedef struct cstate {
 	data_tx_state_t		data_tx_state;
 	int			        data_tx_offset;
 	obj_header_t		data_tx_oheader;
+	int					attr_policy;
+	int					attr_threshold;
+	int					attr_ratio;
+	int					drop_attrs;
 	char *			attr_buf;
 	void *			attr_cookie;
 	size_t			attr_remain;

@@ -85,6 +85,11 @@ register_stats(cstate_t *cstate)
     dctl_register_leaf(DEV_NETWORK_PATH, "log_bytes_sent", DCTL_DT_UINT64, 
                     dctl_read_uint64, NULL, &cstate->stats_log_bytes_tx);
 
+	dctl_register_leaf(DEV_NETWORK_PATH, "attr_policy", DCTL_DT_UINT32,
+					dctl_read_uint32, dctl_write_uint32, &cstate->attr_policy);
+	dctl_register_leaf(DEV_NETWORK_PATH, "attr_ratio", DCTL_DT_UINT32,
+				dctl_read_uint32, dctl_write_uint32, &cstate->attr_ratio);
+
 }
 
 /*
@@ -262,6 +267,10 @@ have_full_conn(listener_state_t *list_state, int conn)
         register_stats(cstate);
 
         
+
+		cstate->attr_policy  =  DEFAULT_NW_ATTR_POLICY;
+		cstate->attr_threshold  = RAND_MAX;
+		cstate->attr_ratio  = DEFAULT_NW_ATTR_RATIO;
 
 		/*
 		 * the main thread for this process is used

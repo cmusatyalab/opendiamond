@@ -26,8 +26,96 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
+
 static int
-sstub_attr_len(obj_data_t *obj)
+drop_attributes(cstate_t *cstate)
+{
+
+	int	rv;
+	int	tx_count;
+	if ((cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) ||
+		(cstate->attr_policy == NW_ATTR_POLICY_FIXED)) {
+		rv = random();
+		if (rv > cstate->attr_threshold) {
+			return(1);
+		} else {
+			return(0);
+		}
+	} else if (cstate->attr_policy == NW_ATTR_POLICY_QUEUE) {
+		tx_count = ring_2count(cstate->obj_ring);
+		if ((tx_count > DESIRED_MAX_TX_THRESH) && 
+			(cstate->cc_credits >= DESIRED_MAX_CREDITS)) {
+			return(1);
+		} else {
+			return(0);
+		}
+	}
+	return(0);
+
+
+}
+
+static float
+prop_get_tx_ratio(cstate_t *cstate)
+{
+	float	ratio;
+	int		count;
+
+	count = ring_2count(cstate->obj_ring);
+	ratio = (float)count/(float)DESIRED_MAX_TX_QUEUE;	
+	if (ratio > 1.0) {
+		ratio = 1.0;
+	} else if (ratio < 0) {
+		ratio = 0.0;
+	}
+
+	return(ratio);
+}
+
+static float
+prop_get_rx_ratio(cstate_t *cstate)
+{
+	float	ratio;
+
+	ratio = (float)cstate->cc_credits/(float)DESIRED_MAX_CREDITS;	
+	if (ratio > 1.0) {
+		ratio = 1.0;
+	} else if (ratio < 0) {
+		ratio = 0.0;
+	}
+	return(ratio);
+}
+
+
+static void
+update_attr_policy(cstate_t *cstate)
+{
+	float tx_ratio;
+	float rx_ratio; 
+
+	/*
+	 * we only do updates for the proportional scheduling today.
+	 */
+	if (cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) {
+		tx_ratio = prop_get_tx_ratio(cstate);
+		rx_ratio = prop_get_rx_ratio(cstate);
+		if (rx_ratio > tx_ratio) {
+			cstate->attr_threshold = rx_ratio * RAND_MAX;
+			cstate->attr_ratio = (int) (rx_ratio * 100.0);
+		} else {
+			cstate->attr_threshold = tx_ratio * RAND_MAX;
+			cstate->attr_ratio = (int) (tx_ratio * 100.0);
+		}
+
+	} else if (cstate->attr_policy == NW_ATTR_POLICY_FIXED) {
+		cstate->attr_threshold = (RAND_MAX/100) * cstate->attr_ratio;
+	}
+	return;
+}
+
+
+static int
+sstub_attr_len(obj_data_t *obj, int drop_attrs)
 {
 	int	err;
 	size_t	len, total;
@@ -36,10 +124,11 @@ sstub_attr_len(obj_data_t *obj)
 
 	total = 0;
 
-	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, 0);
+	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, drop_attrs);
 	while (err == 0) {
 		total += len;
-		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie, 0);
+		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie,
+						drop_attrs);
 	}
 
 	return(total);
@@ -76,13 +165,19 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 		cstate->data_tx_obj = obj;
 
+		/*
+		 * Decide if we are going to send the attributes on this
+		 * object.
+		 */
+		cstate->drop_attrs = drop_attributes(cstate);
+
 		/* 
 		 * Construct the header for the object we are going
 		 * to send out.
 		 */
 		cstate->data_tx_oheader.obj_magic = htonl(OBJ_MAGIC_HEADER);
-		cstate->data_tx_oheader.attr_len  = htonl(sstub_attr_len(obj));
-			htonl((int)obj->attr_info.attr_len);
+		cstate->data_tx_oheader.attr_len  = 
+				htonl(sstub_attr_len(obj, cstate->drop_attrs));
 		cstate->data_tx_oheader.data_len  = 
 			htonl((int)obj->data_len);
 		cstate->data_tx_oheader.version_num  = htonl((int)vnum);
@@ -96,7 +191,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		/* setup attr setup */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
 			&cstate->attr_buf, &cstate->attr_remain,
-			&cstate->attr_cookie, 0);
+			&cstate->attr_cookie,  cstate->drop_attrs);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -117,7 +212,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		/* setup the attribute information */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
 			&cstate->attr_buf, &cstate->attr_remain,
-			&cstate->attr_cookie, 0);
+			&cstate->attr_cookie,  cstate->drop_attrs);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -212,7 +307,7 @@ more_attrs:
 		} else {
 			err = obj_get_attr_next(&cstate->data_tx_obj->attr_info,
 				&cstate->attr_buf, &attr_remain,
-				&cstate->attr_cookie, 0);
+				&cstate->attr_cookie,  cstate->drop_attrs);
 			if (err == ENOENT) {
 				attr_remain = 0;
 			} else {
@@ -262,6 +357,14 @@ more_attrs:
     cstate->stats_objs_total_bytes_tx += sizeof(cstate->data_tx_oheader) +
             obj->attr_info.attr_len + obj->data_len;
 
+	/*
+	 * periodically we want to update our send policy if
+	 * we are dynamic.
+	 */
+	if ((cstate->stats_objs_tx & 0xF) == 0) {
+		update_attr_policy(cstate);
+	}
+				
 	/*
 	 * If we make it here, then we have sucessfully sent
 	 * the object so we need to make sure our state is set

@@ -425,7 +425,14 @@ device_main(void *arg)
 						sstate->obj_skipped++;
 						err = sstub_send_obj( sstate->comm_cookie, new_obj, 
 							sstate->ver_no);
-
+						if (err) {
+							/* XXX overflow gracefully  */
+							/* XXX log */
+		
+						} else {
+							/* XXX log */
+		    					sstate->pend_objs++;
+						}
 
 				} else {
 					/* XXX process the object */
@@ -598,6 +605,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
                     dctl_read_uint32, NULL, &sstate->obj_dropped);
     	dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32, 
                     dctl_read_uint32, NULL, &sstate->obj_passed);
+    	dctl_register_leaf(DEV_SEARCH_PATH, "obj_skipped", DCTL_DT_UINT32, 
+                    dctl_read_uint32, NULL, &sstate->obj_skipped);
     	dctl_register_leaf(DEV_SEARCH_PATH, "pend_objs", DCTL_DT_UINT32, 
                     dctl_read_uint32, NULL, &sstate->pend_objs);
     	dctl_register_leaf(DEV_SEARCH_PATH, "pend_thresh", DCTL_DT_UINT32, 

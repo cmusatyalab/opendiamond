@@ -302,8 +302,6 @@ bg_main(void *arg)
 
 					fexec_init_search(sc->bg_fdata);	
 					sc->bg_status |= BG_STARTED;
-						
-
 					break;
 					
 				case BG_STOP:

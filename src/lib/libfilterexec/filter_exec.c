@@ -231,7 +231,7 @@ fexec_term_search(filter_data_t *fdata)
 			continue;
 		}
 
-	    err = cur_filt->fi_fini_fp(cur_filt->fi_filt_arg);
+	    	err = cur_filt->fi_fini_fp(cur_filt->fi_filt_arg);
 		if (err != 0) {
 			/* XXXX what now */
 			assert(0);
@@ -786,12 +786,13 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 	/* change the permutation if it's time for a change */
 	optimize_filter_order(fdata, &policy_arr[filter_exec.current_policy]);
-    
+   
+#ifdef	XXX 
 	if (++loop_cnt > 20) {
 		fexec_update_bypass(fdata); 
 		loop_cnt = 0; 
 	}
-
+#endif
 
 	/*
 	 * Get the total time we have execute so far (if we have

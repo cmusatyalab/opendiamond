@@ -252,7 +252,6 @@ int
 ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		 char *filter_file_name, char *filter_spec_name)
 {
-
 	search_context_t	*sc;
 	device_handle_t		*cur_dev;
 	int			err;
@@ -270,6 +269,8 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		printf("still idle \n");
 		return (EINVAL);
 	}
+	/* change the search id */
+	sc->cur_search_id++;
 
 	/* we need to verify the searchlet somehow */
 	cur_dev = sc->dev_list;

@@ -666,7 +666,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->pend_thresh = SSTATE_DEFAULT_OBJ_THRESH;
 	sstate->pend_objs = 0;
 	
-	sstate->bp_feedback = 1;
+	sstate->bp_feedback = 0;
 	sstate->bp_thresh = SSTATE_DEFAULT_BP_THRESH;
 	/*
 	 * Create a new thread that handles the searches for this current

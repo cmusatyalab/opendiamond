@@ -281,6 +281,11 @@ odisk_delete_obj(odisk_state_t *odisk, obj_data_t *obj)
 
     sprintf(buf, "%s/OBJ%016llX", odisk->odisk_path, obj->local_id);
 	unlink(buf);		
+
+    sprintf(buf, "%s/OBJ%016llX%s", odisk->odisk_path, obj->local_id,
+		ATTR_EXT);
+	unlink(buf);		
+
 	return(0);
 }
 

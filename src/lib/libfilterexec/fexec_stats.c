@@ -346,6 +346,72 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     return 0;
 }
 
+int
+fexec_estimate_cost(filter_data_t *fdata, permutation_t *perm, int gen, 
+                double *cost)
+{
+    int i;
+    filter_prob_t *fprob;
+    double pass = 1;		/* cumul pass rate */
+    double totalcost = 0;		/* = utility */
+    filter_info_t *info;
+    char buf[BUFSIZ];
+    int n;
+
+    /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */
+    assert(sizeof(pelt_t) == sizeof(filter_id_t));
+
+    /* XXX printf("fexec_evaluate: %s\n", pmPrint(perm, buf, BUFSIZ)); */
+
+    for(i=0; i < pmLength(perm); i++) {
+        double c;			/* cost of this filter */
+        double p;			/* pass rate for this filter in this pos */
+        /* pass = pass rate of all filters before this one */
+        info = &fdata->fd_filters[pmElt(perm, i)];
+        c = info->fi_time_ns;
+        n = info->fi_called;
+        if(n < SIGNIFICANT_NUMBER(gen)) {
+
+			if (n == 0) {
+				n = 1;
+				c = 1000000;
+			} 
+        }
+
+#define SMALL_FRACTION (0.00001)
+
+        totalcost += pass * c / n;		/* prev cumul pass * curr cost */
+        /* XXX printf("\tpass=%f, cst=%f, total=%f\t", pass, c/n, totalcost); */
+
+        /* lookup this permutation */
+        /* XXX */
+        fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
+        if(fprob) {
+            p = (double)fprob->num_pass / fprob->num_exec;
+        } else {
+            /* really no data, return an error */
+			n = 1;
+			c = 1000000;
+			p = 1;
+        }
+        /* XXX printf("\n"); */
+
+        assert(p >= 0 && p <= 1.0);
+        pass *= p;
+        /* don't let it go to zero XXX */
+        if(pass < SMALL_FRACTION) {
+            pass = SMALL_FRACTION;
+        }
+    }
+
+    *cost = totalcost;
+#ifdef	XXX
+    printf("fexec_evaluate: ");
+    fexec_print_cost(fdata, perm);
+    printf(" cost=%s\n", format_number(buf, totalcost));
+#endif
+    return 0;
+}
 
 
 /* evaluate a permutation in the context of the currently available

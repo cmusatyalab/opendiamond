@@ -165,24 +165,22 @@ void
 fexec_set_bypass_target_a(filter_data_t *fdata, permutation_t *perm, float target)
 {
     int             i;
-    filter_prob_t * fprob;
-    double          pass = 1;		/* cumul pass rate */
-    double          old_cost = 0;   /* cumulitive cost so far */
-    double          new_cost = 0;	/* new cost so far */
-    double          ratio;
     filter_info_t * info;
-    int             n;
 
 	/*
 	 * for the first filtre run int locally
 	 */
 	info = &fdata->fd_filters[pmElt(perm, 0)];
-	info->fi_bpthresh = (int)((float)RAND_MAX * target);
+	if (target >= 1.0) {
+		info->fi_bpthresh = RAND_MAX;
+	} else {
+		info->fi_bpthresh = (int)((float)RAND_MAX * target);
+	}
 
 
     for(i=1; i < pmLength(perm); i++) {
         info = &fdata->fd_filters[pmElt(perm, i)];
-	info->fi_bpthresh = RAND_MAX;
+		info->fi_bpthresh = RAND_MAX;
     }
     return;
 }
@@ -198,6 +196,14 @@ fexec_update_bypass(filter_data_t *fdata)
 	float       num_searches;
 	int         disk_cycles;
 	int         err;
+
+
+	if (fexec_fixed_split) {
+		target_cost =  ((float)fexec_fixed_ratio/100.0);
+		fexec_set_bypass_target_a(fdata, fdata->fd_perm, target_cost);
+		return(0);
+	}
+
 
 	err = fexec_compute_cost(fdata, fdata->fd_perm, 1, &avg_cost);
 

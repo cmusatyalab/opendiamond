@@ -906,10 +906,13 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
         /*
          * Look at the current filter bypass to see if we should actually
-         * run it or pass it.
+         * run it or pass it.  For the non-auto partitioning, we
+		 * we still use the bypass values to determine how much of
+		 * the allocation to run.
          */
         if (force_eval == 0) {
-			if (fexec_autopart_type == AUTO_PART_BYPASS) {
+			if ((fexec_autopart_type == AUTO_PART_BYPASS) ||
+				(fexec_autopart_type == AUTO_PART_NONE)) {
             	rv = random();
             	if (rv > cur_filter->fi_bpthresh) {
                 	pass = 1;

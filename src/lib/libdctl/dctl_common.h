@@ -72,6 +72,9 @@
 #define	DEV_OBJ_NODE			"obj_disk"
 #define	DEV_OBJ_PATH			"obj_disk"
 
+#define	DEV_CACHE_NODE			"cache"
+#define	DEV_CACHE_PATH			"cache"
+
 #endif	/* !defined(_DCTL_COMMON_H_) */
 
 

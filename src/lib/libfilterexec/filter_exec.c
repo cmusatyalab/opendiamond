@@ -602,6 +602,7 @@ init_filters(char *lib_name, char *filter_spec, filter_data_t **fdata)
         return (err);
 	}
 
+	/* this need to be cleaned up somewhere XXX */
 	initialize_policy(*fdata);
 
 	/*

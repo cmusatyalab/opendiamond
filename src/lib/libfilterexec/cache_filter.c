@@ -418,7 +418,7 @@ for( perm_num = 0; perm_num < cached_perm_num; perm_num++ ) {
 	stack_ns += time_ns;
         if (!pass) {
             cur_filter->fi_drop++;
-	    printf("ceval_filters1: drop obj %016llX\n", oid);
+	    //printf("ceval_filters1: drop obj %016llX\n", oid);
         } else {
             cur_filter->fi_pass++;
         }
@@ -556,7 +556,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
     char *fpath;
 
     log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
-    printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
+    //printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
 
     if (fdata->fd_num_filters == 0) {
         log_message(LOGT_FILT, LOGL_ERR, "eval_filters: no filters");

@@ -59,15 +59,15 @@ static pthread_cond_t	oattr_cv = PTHREAD_COND_INITIALIZER; /*queue non empty*/
 static pthread_cond_t	wait_lookup_cv = PTHREAD_COND_INITIALIZER; /*queue non empty*/
 
 #define	CACHE_RING_SIZE	512	
-#define	OATTR_RING_SIZE	128	
+#define	OATTR_RING_SIZE	4096	
 #define SIG_BUF_SIZE	256
 #define MAX_FILTER_ARG_NAME 256
 #define CACHE_ENTRY_NUM 4096
 #define FCACHE_NUM 500
-//#define MAX_CACHE_ENTRY_NUM 0X1000000
-//#define MAX_ENTRY_NUM	(2 * MAX_CACHE_ENTRY_NUM)
-#define MAX_CACHE_ENTRY_NUM 0X200
+#define MAX_CACHE_ENTRY_NUM 0X1000000
 #define MAX_ENTRY_NUM	(2 * MAX_CACHE_ENTRY_NUM)
+//#define MAX_CACHE_ENTRY_NUM 0X200
+//#define MAX_ENTRY_NUM	(2 * MAX_CACHE_ENTRY_NUM)
 #define MAX_IATTR_SIZE	4096
 #define PRE_LEN	50
 
@@ -557,8 +557,13 @@ cache_wait_lookup(obj_data_t *lobj, char *fsig, void *fcache_table, cache_attr_s
 			cobj = cobj->next;
 		}
 		if( *oattr_set == NULL ) {
-			wait_lookup = 1;
-			pthread_cond_wait(&wait_lookup_cv, &shared_mutex);
+			if( cache_entry_num < MAX_ENTRY_NUM ) {
+				wait_lookup = 1;
+				pthread_cond_wait(&wait_lookup_cv, &shared_mutex);
+			} else {
+				pthread_mutex_unlock(&shared_mutex);
+				return (ENOENT);
+			}
 		}
 		pthread_mutex_unlock(&shared_mutex);
 	}
@@ -587,8 +592,8 @@ free_fcache_entry(char *disk_path)
 	fcache_t *oldest=NULL;
 	int found = -1;
 
-	printf("free_fcache_entry\n");
-	while(cache_entry_num > MAX_CACHE_ENTRY_NUM) {
+	//printf("free_fcache_entry\n");
+	while(cache_entry_num >= MAX_CACHE_ENTRY_NUM) {
 		for( i=0; i < FCACHE_NUM; i++ ) {
 			if( filter_cache_table[i] == NULL )
 				continue;
@@ -773,7 +778,7 @@ ocache_read_file(char *disk_path, unsigned char *fsig, void **fcache_table, stru
 				    //&& if_equal_attr(&p->iattr, &cobj->iattr) ) {
 				    && !strncmp(p->iattr_sig, cobj->iattr_sig, 16) ) {
 					duplicate = 1;
-					printf("duplicate\n");
+					//printf("duplicate\n");
 					break;
 				}
 				q = p;
@@ -1282,6 +1287,7 @@ if (if_cache_oattr) {
 				return(0);
 			}
 			sig_cal(iattr_buf, iattr_buflen, &sig);
+			memcpy(oattr_entry->u.iattr_sig, sig, 16);
 
 			free(sig);
 			iattr_buflen = -1;
@@ -1351,9 +1357,6 @@ ocache_main(void *arg)
 			cobj->aeval_count = 1;
 			cobj->hit_count = 0;
 			cobj->ahit_count = 1;
-			//memcpy( cobj->filter_sig, tobj->u.start.filter_sig, 16 );
-			//fsig = cobj->filter_sig;
-			//memcpy( fsig, tobj->u.start.filter_sig, 16 );
 			cache_table = (cache_obj **) tobj->u.start.cache_table;
 			free(tobj);
 
@@ -1425,20 +1428,10 @@ ocache_main(void *arg)
 				}
 			}
 			/* insert into cache table */ 
-			/* XXX: now we just drop the latest inserted entry.
-			 * we should do something smarter later */
 			if( cache_entry_num < MAX_ENTRY_NUM ) {
-/*
-				cache_obj **cache_table=NULL;
-				for( i=0; i < FCACHE_NUM; i++ ) {
-					if( filter_cache_table[i] == NULL )
-						continue;
-					if( !strncmp(filter_cache_table[i]->fsig, fsig, 16) )
-						cache_table = (cache_obj **)filter_cache_table[i]->cache_table;
-				}
-*/
 				if( cache_table == NULL ) {
 					printf("invalid entry\n");
+					ocache_entry_free(cobj);
 					continue;
 				}
 				cobj->next = NULL;
@@ -1467,6 +1460,8 @@ ocache_main(void *arg)
 					pthread_cond_signal(&wait_lookup_cv);
 				}
 				pthread_mutex_unlock(&shared_mutex);
+			} else {
+				ocache_entry_free(cobj);
 			}
 			if( cache_entry_num >= MAX_ENTRY_NUM ) {
 				free_fcache_entry(cstate->ocache_path);
@@ -1537,13 +1532,12 @@ oattr_main(void *arg)
 if( stream_write == 1 ) {
 			err = access(attrbuf, F_OK);
 			if( err == 0 ) {
-				printf("file already exists\n");
+				//printf("file already exists\n");
 				continue;
 			}
 			file = fopen(attrbuf, "w+");
 			if( file == NULL ) {
-				printf("failed in open oattr file %s for oid %016llX\n", attrbuf, oid);
-				perror("error");
+				//printf("failed in open oattr file %s for oid %016llX\n", attrbuf, oid);
 				continue;
 			}
 			fd = fileno(file);
@@ -1551,10 +1545,10 @@ if( stream_write == 1 ) {
 			fd = open(attrbuf, O_WRONLY|O_CREAT|O_EXCL, 00777);
 			if( fd < 0 ) {
 				if( errno == EEXIST ) {
-					printf("file already exists\n");
+					//printf("file already exists\n");
 					continue;
 				} else {
-					printf("failed in open oattr file %s for oid %016llX\n", attrbuf, oid);
+					//printf("failed in open oattr file %s for oid %016llX\n", attrbuf, oid);
 					perror("error");
 					continue;
 				}

@@ -60,7 +60,6 @@ connection_main(listener_state_t *lstate, int conn)
 	
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {
-			/* XXX log */
 			pthread_mutex_lock(&cstate->cmutex);
 			cstate->flags &=~CSTATE_SHUTTING_DOWN;
 			cstate->flags &=~CSTATE_ALLOCATED;
@@ -101,7 +100,7 @@ connection_main(listener_state_t *lstate, int conn)
 				&cstate->except_fds,  &to);
 		if (err == -1) {
 			/* XXX log */
-			printf("XXX select failed \n");
+			perror("XXX select failed ");
 			exit(1);
 		}
 

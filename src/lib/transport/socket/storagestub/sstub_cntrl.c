@@ -49,13 +49,14 @@ sstub_write_control(listener_state_t *lstate, cstate_t *cstate)
 		 * is queued.  Otherwise we setup the header and data
 		 * offsets and remain counters as appropriate.
 		 */ 
+		pthread_mutex_lock(&cstate->cmutex);
 		cheader = (control_header_t *)ring_deq(cstate->control_tx_ring);
 		if (cheader == NULL) {
-			pthread_mutex_lock(&cstate->cmutex);
 			cstate->flags &= ~CSTATE_CONTROL_DATA;
 			pthread_mutex_unlock(&cstate->cmutex);
 			return;
 		}
+		pthread_mutex_unlock(&cstate->cmutex);
 
 		header_remain = sizeof(*cheader);
 		header_offset = 0;

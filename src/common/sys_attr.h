@@ -36,8 +36,8 @@
  */
 
 
-#ifndef _ATTR_H_
-#define _ATTR_H_
+#ifndef _SYS_ATTR_H_
+#define _SYS_ATTR_H_
 
 /*
  * Names for some of the system defined attributes.
@@ -59,4 +59,4 @@
 #define PERMEABILITY_FN "_FIL_STAT_%s_permeability.float"
 
 
-#endif /* _ATTR_H_ */
+#endif /* _SYS_ATTR_H_ */

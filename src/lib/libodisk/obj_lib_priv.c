@@ -45,7 +45,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <stdint.h>
-#include "lib_od.h"
+#include "diamond_types.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"

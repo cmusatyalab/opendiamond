@@ -45,7 +45,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <stdint.h>
-#include "lib_od.h"
+#include "diamond_types.h"
 #include "lib_dctl.h"
 #include "lib_log.h"
 #include "lib_odisk.h"

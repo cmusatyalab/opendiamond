@@ -1,0 +1,132 @@
+MKDIR = mkdir
+
+
+
+%.o: %.S
+	${CPP} $(filter -I% -D%, ${INCDIR} ${CFLAGS}) $< | \
+		${AS} ${ALL_ASFLAGS} -o $@
+%.o: %.s
+	${CPP} -E $(filter -I% -D%, ${INCDIR} ${CFLAGS}) $< | \
+		${AS} ${ALL_ASFLAGS} -o $@
+	@${LD} -x -r $@
+	@${MV} a.out $@
+
+
+%.o: %.c
+	${CC} ${INCDIR} ${CFLAGS} -c $< -o $@
+
+# The common targets
+
+.PHONY :  all depend clean installdirs install mail FORCE
+
+#
+#  Define a do-subdirs function to execute recursive targets such as "all"
+#  and clean. It calls "make" on each of the directories listed in SUBDIRS
+#
+ifndef do-subdirs
+define do-subdirs
+	@for entry in ${SUBDIRS}; do \
+		(if test -d $${entry}; then \
+			${MAKE} -C $${entry} $@; \
+		else \
+			echo "*** Warning:  couldn't find subdir $${entry}"; \
+		fi); \
+	done
+endef
+endif
+
+
+#  Rebuild everything, which is the program "PROG" and its 
+#	subdirectories "SUBDIRS" 
+#
+
+#  General note: the "+" in front of a commmand makes the command happen
+#  	even when the user has specified "make -n" (tell me what would
+#	happen, but don't do it).
+
+all: ${SRCS} ${HSRCS} ${SSRCS} ${OSRCS} ${CYSRCS} ${HYSRCS} ${CLSRCS} ${PROG} ${TARGETS}
+	+${do-subdirs}
+
+
+#
+# Make the dependencies for this directory and its children
+#
+depend: 
+ifneq ($(strip ${SRCS}),)
+	${CC} -E -M ${INCDIR} ${CFLAGS} ${SRCS} > .depend
+endif
+	+${do-subdirs}	
+
+
+#
+# Clean up the objects and binary in this directory and its children
+#
+clean: 
+ifneq ($(strip ${OBJS} ${PROG} ${CLEAN_OTHERS} $(TARGETS)),)
+	${RM} ${OBJS} $(TARGETS) ${PROG} ${CLEAN_OTHERS}
+endif
+	+${do-subdirs}
+
+
+
+#  Install the program, and its children
+
+ifndef INSTALLDIR
+INSTALLDIR=${DIAMOND_ROOT}/build
+endif
+ifndef INSTALLDIR_BIN
+INSTALLDIR_BIN=${INSTALLDIR}/bin
+endif
+ifndef INSTALLDIR_LIB
+INSTALLDIR_LIB=${INSTALLDIR}/lib
+endif
+ifndef INSTALLDIR_INCLUDE
+INSTALLDIR_INCLUDE=${INSTALLDIR}/include
+endif
+
+# Installs must get done as root, but we don't need to test here since 
+# installdirs will do it.  Note that local Makefiles should also perform
+# this check iff they define their own installdirs target.
+install: installdirs
+ifneq ($(strip ${PROG}),)
+	${INSTALL_BIN} ${PROG} ${INSTALLDIR_BIN}
+endif
+ifneq ($(strip ${INSTALL_OTHERS}),)	
+	${INSTALL} ${INSTALL_OTHERS} ${INSTALLDIR}
+endif
+
+
+# Make copies as needed.
+ifdef COPIES
+	@for copyit in ${COPIES}; do \
+		echo Creating copy of ${PROG} ; \
+		cd ${COPYDIR} ; \
+		${CP} ${INSTALLDIR_BIN}/${PROG} $${copyit} ; \
+	done
+endif
+
+	+${do-subdirs}
+
+
+
+#  Create the directories to install into
+
+ALL_INSTALLDIRS= ${INSTALLDIR} ${INSTALLDIR_BIN} ${INSTALLDIR_LIB} ${INSTALLDIR_INCLUDE}
+installdirs:
+	${TESTROOT}
+	@for entry in ${ALL_INSTALLDIRS} ; do \
+		(if ! test -d $${entry}; then \
+			echo Creating directory $${entry} ; \
+			${MKDIR} $${entry} ; \
+		fi); \
+	done
+	+${do-subdirs}
+
+
+
+#
+# Inlude the dependancies that were included earlier.
+-include .depend
+
+FORCE:
+

@@ -195,7 +195,6 @@ ceval_start(filter_data_t * fdata)
     return (0);
 }
 
-/* XXX: running-- */
 int
 ceval_stop(filter_data_t * fdata)
 {
@@ -381,10 +380,13 @@ for( perm_num = 0; perm_num < cached_perm_num; perm_num++ ) {
                 	pass = 0;
 			cstate->stats_drop_fn(cstate->cookie);
 			cstate->stats_process_fn(cstate->cookie);
-			for( i=0; i <= cur_fidx; i++ ) {
+			for( i=0; i < cur_fidx; i++ ) {
 				j = pmElt(cur_perm, i);	
 				fdata->fd_filters[j].fi_called++;
+				fdata->fd_filters[j].fi_cache_pass++;
 			}
+			cur_filter->fi_called++;
+			cur_filter->fi_cache_drop++;
 			//printf("drop obj %016llX with filter %s, conf %d, thresh %d\n", oid, cur_filter->fi_name, conf, cur_filter->fi_threshold);
             	}
 
@@ -399,6 +401,7 @@ for( perm_num = 0; perm_num < cached_perm_num; perm_num++ ) {
 				//oattr_fname[oattr_fnum] = fpath;
 				oattr_fnum++;
 			}
+			//cur_filter->fi_cache_pass++;
 		}
             	rt_stop(&rt);
             	time_ns = rt_nanos(&rt);
@@ -620,6 +623,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
          */
 	if( err == 0 ) {
 	   cur_filter->fi_called++;
+	   cur_filter->fi_cache_pass++;
 	} else {
            if (force_eval == 0) {
                         if ((fexec_autopart_type == AUTO_PART_BYPASS) ||
@@ -673,6 +677,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
            	/* write the evaluation end message into the cache ring */
             	ocache_add_end(cur_filter->fi_name, obj_handle->local_id, conf);
 
+		cur_filter->fi_compute++;
             	/*
              	 * get timing info and update stats
             	 */

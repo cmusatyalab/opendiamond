@@ -106,6 +106,9 @@ fexec_clear_stats(filter_data_t * fdata)
         fdata->fd_filters[i].fi_drop = 0;
         fdata->fd_filters[i].fi_pass = 0;
         fdata->fd_filters[i].fi_time_ns = 0;
+	fdata->fd_filters[i].fi_cache_drop = 0;
+	fdata->fd_filters[i].fi_cache_pass = 0;
+	fdata->fd_filters[i].fi_compute = 0;
     }
 
 }
@@ -143,6 +146,12 @@ fexec_get_stats(filter_data_t * fdata, int max, filter_stats_t * fstats)
         cur_stat->fs_name[MAX_FILTER_NAME - 1] = '\0';
         cur_stat->fs_objs_processed = cur_filt->fi_called;
         cur_stat->fs_objs_dropped = cur_filt->fi_drop;
+
+	/* JIAYING */
+        cur_stat->fs_objs_cache_dropped = cur_filt->fi_cache_drop;
+        cur_stat->fs_objs_cache_passed = cur_filt->fi_cache_pass;
+        cur_stat->fs_objs_compute = cur_filt->fi_compute;
+	/* JIAYING */
         if (cur_filt->fi_called != 0) {
             cur_stat->fs_avg_exec_time =
                 cur_filt->fi_time_ns / cur_filt->fi_called;

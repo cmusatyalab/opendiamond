@@ -150,9 +150,18 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 		dstats->ds_filter_stats[i].fs_objs_dropped = 
 				ntohl(fhead->fss_objs_dropped);
 
+		/* JIAYING */
+		dstats->ds_filter_stats[i].fs_objs_cache_dropped = 
+				ntohl(fhead->fss_objs_cache_dropped);
+		dstats->ds_filter_stats[i].fs_objs_cache_passed = 
+				ntohl(fhead->fss_objs_cache_passed);
+		dstats->ds_filter_stats[i].fs_objs_compute = 
+				ntohl(fhead->fss_objs_compute);
+
 		/* XXX byte order !!! */
 		dstats->ds_filter_stats[i].fs_avg_exec_time = 
 				fhead->fss_avg_exec_time;
+
 	}
 }
 

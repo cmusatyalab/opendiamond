@@ -86,6 +86,11 @@ typedef struct filter_stats {
 	char		fs_name[MAX_FILTER_NAME];  /* the filter name */
 	int		fs_objs_processed;	   /* objs processed by filter*/
 	int		fs_objs_dropped;	   /* obj dropped by filter */
+/* JIAYING */
+	int		fs_objs_cache_dropped;	   
+	int		fs_objs_cache_passed;	   
+	int		fs_objs_compute;	   
+/* JIAYING */
 	rtime_t		fs_avg_exec_time;	   /* avg time spent in filter*/
 } filter_stats_t;
 

@@ -153,6 +153,11 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 		fhead->fss_name[MAX_FILTER_NAME-1] = '\0';
 		fhead->fss_objs_processed = ntohl(fstats->fs_objs_processed);
 		fhead->fss_objs_dropped = ntohl(fstats->fs_objs_dropped);
+		/* JIAYING: cache related info */
+		fhead->fss_objs_cache_dropped = ntohl(fstats->fs_objs_cache_dropped);
+		fhead->fss_objs_cache_passed = ntohl(fstats->fs_objs_cache_passed);
+		fhead->fss_objs_compute = ntohl(fstats->fs_objs_compute);
+		/* XXX 64 bit byte order below */
 		/* XXX 64 bit byte order below */
 		fhead->fss_avg_exec_time = fstats->fs_avg_exec_time;
 		fhead++;

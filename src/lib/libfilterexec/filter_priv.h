@@ -149,6 +149,9 @@ typedef struct filter_info {
     char	    lib_name[PATH_MAX];
     unsigned char * fi_sig;
     void	*   cache_table;
+    int		    fi_cache_drop; /* # of objs dropped through cache lookup */
+    int		    fi_cache_pass; /* # of objs skipped by using cache */
+    int		    fi_compute;    /* # of objs computed */
 } filter_info_t;
 
 

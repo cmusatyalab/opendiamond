@@ -123,6 +123,11 @@ typedef struct fstats_subheader {
 	char		fss_name[MAX_FILTER_NAME];
 	uint32_t	fss_objs_processed;
 	uint32_t	fss_objs_dropped;
+/* JIAYING */
+	uint32_t	fss_objs_cache_dropped;
+	uint32_t	fss_objs_cache_passed;
+	uint32_t	fss_objs_compute;
+/* JIAYING */
 	uint64_t	fss_avg_exec_time;
 } fstats_subheader_t;
 

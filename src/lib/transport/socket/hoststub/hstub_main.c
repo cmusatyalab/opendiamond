@@ -155,7 +155,7 @@ hstub_main(void *arg)
 		}
 
 		to.tv_sec = 0;
-		to.tv_usec = 5000;
+		to.tv_usec = 1000;
 
 
 		err = select(max_fd, &cinfo->read_fds, &cinfo->write_fds, 

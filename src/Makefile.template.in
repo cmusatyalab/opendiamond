@@ -1,6 +1,3 @@
-# -*- makefile -*-
-
-
 # these should be set to point to the appropriate directories
 
 PAPI_HOME = $(DIAMOND_ROOT)/../support/papi
@@ -20,8 +17,12 @@ CFLAGS += -O2
 CFLAGS += -ggdb
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
+
 FLEX = flex
 AWK = gawk
+CC = gcc
+CPLUSPLUS = g++
+
 
 #Just to go overboard and be sure
 CFLAGS += -D_REENTRANT

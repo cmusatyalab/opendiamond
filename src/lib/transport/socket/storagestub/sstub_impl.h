@@ -54,12 +54,14 @@ typedef enum {
 	LOG_TX_DATA,
 } log_tx_state_t;
 
-
+/* XXX forward ref */
+struct listener_state;
 
 typedef struct cstate {
 	unsigned int		flags;
 	pthread_t		    thread_id;
 	pthread_mutex_t		cmutex;
+	struct listener_state *lstate;
 	int			        control_fd;
 	int			        data_fd;
 	int			        log_fd;

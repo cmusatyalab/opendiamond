@@ -175,6 +175,42 @@ sstub_send_obj(void *cookie, obj_data_t *obj, int ver_no)
 	return(0);
 }
 
+
+int
+sstub_flush_objs(void *cookie, int ver_no)
+{
+
+	cstate_t *		cstate;
+	int				err;
+	obj_data_t *	obj;
+	int				vnum;
+	listener_state_t *lstate;
+
+	cstate = (cstate_t *)cookie;
+	lstate = cstate->lstate;
+
+	/*
+	 * Set a flag to indicate there is object
+	 * data associated with our connection.
+	 */
+	/* XXX log */
+	while (1) {
+		pthread_mutex_lock(&cstate->cmutex);
+		err = ring_2deq(cstate->obj_ring, (void **)&obj, (void **)&vnum);
+		pthread_mutex_unlock(&cstate->cmutex);
+
+		/* we got through them all */
+		if (err) {
+			return(0);
+		}
+		(*lstate->release_obj_cb)(cstate->app_cookie, obj);
+
+	}		
+
+	return(0);
+}
+
+
 int
 sstub_send_log(void *cookie, char *data, int len)
 {

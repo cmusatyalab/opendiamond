@@ -62,6 +62,7 @@ void  sstub_listen(void * cookie, int fork);
 int sstub_send_stats(void *cookie, dev_stats_t *dstats, int len);
 int sstub_send_dev_char(void *cookie, device_char_t *dchar);
 int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum);
+int sstub_flush_objs(void *cookie, int vnum);
 int sstub_send_log(void *cookie, char *buf, int len);
 int sstub_wleaf_response(void *cookie, int err, int32_t opid);
 int sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,

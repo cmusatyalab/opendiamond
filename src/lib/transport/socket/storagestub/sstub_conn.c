@@ -58,6 +58,8 @@ connection_main(listener_state_t *lstate, int conn)
 	}
 	max_fd += 1;
 
+	cstate->lstate = lstate;
+
 
 	
 	while (1) {

@@ -324,6 +324,8 @@ fexec_term_search(filter_data_t * fdata)
              */
             assert(0);
         }
+	/* JIAYING */
+	//free(cur_filt->fi_sig);
     }
     return (0);
 }

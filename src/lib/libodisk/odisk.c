@@ -87,6 +87,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
     char           *ptr;
     char            attr_name[NAME_MAX];
 
+    assert( name != NULL );
     if (strlen(name) >= NAME_MAX) {
         /*
          * XXX log error 
@@ -301,6 +302,10 @@ int
 odisk_release_obj(odisk_state_t * odisk, obj_data_t * obj)
 {
 
+    if( obj == NULL ) {
+	    return (0);
+    }
+
     if (obj->data != NULL) {
         free(obj->data);
     }
@@ -316,6 +321,10 @@ odisk_release_obj(odisk_state_t * odisk, obj_data_t * obj)
 static int
 odisk_release_pr_obj(pr_obj_t * pobj)
 {
+	if( pobj == NULL ) {
+		return (0);
+	}
+
 	if( pobj->filters != NULL ) {
         	free(pobj->filters);
 	}
@@ -325,11 +334,7 @@ odisk_release_pr_obj(pr_obj_t * pobj)
 	if( pobj->iattrsig != NULL ) {
         	free(pobj->iattrsig);
 	}
-/*
-	if( pobj->oattr_fname != NULL ) {
-        	free(pobj->oattr_fname);
-	}
-*/
+
 	free(pobj);
 	return (0);
 }
@@ -640,6 +645,7 @@ odisk_pr_next(pr_obj_t **new_object)
                        pthread_cond_signal(&pr_bg_queue_cv);
                 }
 		if( tmp->oattr_fnum == -1 ) {
+			free(tmp);
 			search_done = 1;
 		} else {
                 	*new_object =  tmp;
@@ -648,6 +654,7 @@ odisk_pr_next(pr_obj_t **new_object)
 		}
         } else {
                 if (search_done) {
+			*new_object = NULL;
                         pthread_mutex_unlock(&shared_mutex);
                         return(ENOENT);
                 }
@@ -671,6 +678,7 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
         struct timeval  wstop;
         struct timezone tz;
 
+	assert( pr_obj != NULL );
         stack_ns = pr_obj->stack_ns;
         err = gettimeofday(&wstart, &tz);
         assert(err == 0);
@@ -681,34 +689,42 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
                 printf("load obj <%s> failed %d \n", path_name, err);
                 return(err);
         }
+	if( (pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || (pr_obj->iattrsig==NULL) ) {
+		printf("invalid pr_obj for oid %016llX\n", pr_obj->obj_id);
+		return(0);
+	}
         for( i=0; i<pr_obj->oattr_fnum; i++) {
-		//if( (pr_obj->filters[i] == NULL) || (pr_obj->oattr_fname[i] == NULL) )
 		if( (pr_obj->filters[i] == NULL) 
 		    || (pr_obj->fsig[i] == NULL) 
 		    || (pr_obj->iattrsig[i] == NULL) )
 			continue;
                 rt_init(&rt);
                 rt_start(&rt);
-                //err = obj_read_oattr(odisk->odisk_path, pr_obj->oattr_fname[i], &(*new_object)->attr_info );
                 err = obj_read_oattr(odisk->odisk_path, pr_obj->obj_id, pr_obj->fsig[i], pr_obj->iattrsig[i], &(*new_object)->attr_info );
                 rt_stop(&rt);
                 time_ns = rt_nanos(&rt);
 
                 if( err == 0 ) {
                         sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
-                        obj_write_attr(&(*new_object)->attr_info, timebuf,
+                        err = obj_write_attr(&(*new_object)->attr_info, timebuf,
                                 sizeof(time_ns), (void *) &time_ns);
+    			if( err != 0 ) {
+	    			printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
+    			}
+			assert(err==0);
                 } else {
 			//printf("obj_read_oattr wrong\n");
                 }
 
                 stack_ns += time_ns;
         }
-	//free(pr_obj->filters);
-	//free(pr_obj->oattr_fname);
 
-        obj_write_attr(&(*new_object)->attr_info,
+        err = obj_write_attr(&(*new_object)->attr_info,
                 FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
+    	if( err != 0 ) {
+	    printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
+    	}
+	assert(err==0);
         return (0);
 }
 
@@ -828,7 +844,7 @@ odisk_main(void *arg)
 {
     odisk_state_t  *ostate = (odisk_state_t *) arg;
     pr_obj_t *              pobj;
-    obj_data_t     *nobj;
+    obj_data_t     *nobj=NULL;
     int             err;
 
     dctl_thread_register(ostate->dctl_cookie);
@@ -849,13 +865,15 @@ odisk_main(void *arg)
          */
         //err = odisk_read_next(&nobj, ostate);
 	err = odisk_pr_next(&pobj);
-	if( err == 0 ) {
+	if( (err == 0) && (pobj != NULL) ) {
 		err = odisk_pr_load(pobj, &nobj, ostate);
-		odisk_release_pr_obj(pobj);
 	}
+	odisk_release_pr_obj(pobj);
 
         pthread_mutex_lock(&shared_mutex);
         if (err == ENOENT) {
+	    odisk_release_obj(ostate, nobj);
+
             search_active = 0;
             search_done = 1;
             if (fg_wait) {

@@ -209,7 +209,11 @@ find_free_record(obj_attr_t *attr, int size)
 
 	cur_offset = 0;
 	while (1) {
-		assert(cur_offset <= attr->attr_len);
+		//assert(cur_offset <= attr->attr_len);
+		if( cur_offset > attr->attr_len) {
+			printf("cur_offset %d, attr_len %d, rec_len %d\n", cur_offset, attr->attr_len, cur_rec->rec_len);
+			return (NULL);
+		}
 		if (cur_offset == attr->attr_len) {
 			err = extend_attr_store(attr, size);
 			if (err == ENOMEM) {
@@ -217,16 +221,31 @@ find_free_record(obj_attr_t *attr, int size)
 			}
 		}
 
+		if( (cur_offset + sizeof(cur_rec)) > attr->attr_len ) {
+			printf("invalid attr, cur_offset is %d, attr_len is %d, sizeof rec is %d\n", cur_offset, attr->attr_len, sizeof(cur_rec) );
+			return(NULL);
+		}
+
 		cur_rec = (attr_record_t *)&attr->attr_data[cur_offset];
 		if (((cur_rec->flags & ATTR_FLAG_FREE) == ATTR_FLAG_FREE) &&
 		     (cur_rec->rec_len >= size)) {
 			break;
+		}
+		if( cur_rec->rec_len < 0 ) {
+			printf("invalid rec, rec_len is %d\n", cur_rec->rec_len );
+			return(NULL);
 		}
 		/* this one doesn't work advance */
 		cur_offset += cur_rec->rec_len;
 	}
 
 
+	if( size < 0 ) {
+		return (NULL);
+	}
+	if( (cur_offset+size+sizeof(cur_rec)) > attr->attr_len ) {
+		return (NULL);
+	}
 	/* we have chunk, now decide if we want to split it */
 	if ((cur_rec->rec_len - size) >= ATTR_MIN_FRAG) {
 		new_frag = (attr_record_t *)&attr->attr_data[cur_offset+size];
@@ -278,9 +297,16 @@ find_record(obj_attr_t *attr, const char *name)
 	int			cur_offset;
 	attr_record_t *		cur_rec = NULL;
 
+	if( name == NULL )
+		return (NULL);
 	namelen = strlen(name) + 1;	/* include termination */
 	cur_offset = 0;
 	while (cur_offset < attr->attr_len) {
+		//assert( (cur_offset + sizeof(cur_rec)) <= attr->attr_len );
+		if( (cur_offset + sizeof(*cur_rec)) > attr->attr_len ) {
+			printf("invalid attr, cur_offset is %d, attr_len is %d, sizeof rec is %d\n", cur_offset, attr->attr_len, sizeof(cur_rec) );
+			return(NULL);
+		}
 		cur_rec = (attr_record_t *)&attr->attr_data[cur_offset];
 		if (((cur_rec->flags & ATTR_FLAG_FREE) == 0) &&
 		     (cur_rec->name_len >= namelen) &&
@@ -289,6 +315,11 @@ find_record(obj_attr_t *attr, const char *name)
 		}
 
 		/* this one doesn't work advance */
+		//assert(cur_rec->rec_len >= 0);
+		if( cur_rec->rec_len < 0 ) {
+			printf("invalid rec, rec_len is %d\n", cur_rec->rec_len );
+			return(NULL);
+		}
 		cur_offset += cur_rec->rec_len;
 
 	}
@@ -314,6 +345,8 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	/* XXX validate object ??? */
 	/* XXX make sure we don't have the same name on the list ?? */
 
+	if( name == NULL )
+		return (EINVAL);
 	namelen = strlen(name) + 1;
 
 	/* XXX this overcounts data space !! \n */
@@ -542,6 +575,11 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
         }
         while(size > 0) {
                 read(fd, &name_len, sizeof(unsigned int));
+		if( name_len >= MAX_ATTR_NAME ) {
+			printf("too long att name %d for oid %016llX\n", name_len, oid);
+			close(fd);
+			return(EINVAL);
+		}
                 assert( name_len < MAX_ATTR_NAME );
                 read(fd, name, name_len);
                 name[name_len] = '\0';
@@ -549,12 +587,16 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
                 if( data_len > TEMP_ATTR_BUF_SIZE ) {
                         ldata = (char *) malloc(data_len);
                         read(fd, ldata, data_len);
-                        obj_write_attr(attr, name, data_len, ldata);
+                        err = obj_write_attr(attr, name, data_len, ldata);
                         free(ldata);
                 } else {
                         read(fd, data, data_len);
-                        obj_write_attr(attr, name, data_len, data);
+                        err = obj_write_attr(attr, name, data_len, data);
                 }
+		if( err != 0 ) {
+			printf("CHECK OBJECT %016llX ATTR FILE\n", oid); 
+		}
+		assert( err == 0 );
                 rsize = sizeof(unsigned int) + name_len + sizeof(off_t) + data_len;
                 size -= rsize;
         }

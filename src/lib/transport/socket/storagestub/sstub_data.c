@@ -478,7 +478,7 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 		perror("sstub_read_data:");
 		return;
 	} else if (rsize == 0) {
-			printf("no data \n");
+			//printf("no data \n");
 			return;
 	} else if (rsize != data_size) {
 		printf("bad readsize %d  %d\n", rsize, data_size);

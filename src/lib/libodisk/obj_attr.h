@@ -80,7 +80,7 @@ typedef struct attr_record {
 /*
  * The maximum lenght of the name string for an attribute.
  */
-#define	MAX_ATTR_NAME	128
+#define	MAX_ATTR_NAME	1024
 
 
 /*

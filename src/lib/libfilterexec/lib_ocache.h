@@ -72,7 +72,7 @@ typedef struct {
 typedef struct {
 	//char			filter_sig[16]; 
 	void *			cache_table;
-	char			*file_name;  /*cached oattr file name*/
+	//char			*file_name;  /*cached oattr file name*/
 } cache_start_entry;
 
 typedef struct {

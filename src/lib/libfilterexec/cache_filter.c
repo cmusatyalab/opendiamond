@@ -79,7 +79,7 @@ ceval_main(void *arg)
    uint64_t oid;
    int err;
 
-   printf("ceval_main start\n");
+   //printf("ceval_main start\n");
    while (1) {
 	pthread_mutex_lock(&ceval_mutex);
 	while (search_active == 0) {
@@ -121,10 +121,12 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t *cstate)
             continue;
         }
         cur_filt->fi_sig = (unsigned char *)malloc(16);
+	assert( cur_filt->fi_sig != NULL );
         err = digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name, cur_filt->fi_numargs, cur_filt->fi_arglist, cur_filt->fi_blob_len, cur_filt->fi_blob_data, &cur_filt->fi_sig);
+	assert( cur_filt->fi_sig != NULL );
 	memcpy( &tmp1, cur_filt->fi_sig, sizeof(tmp1) );
 	memcpy( &tmp2, cur_filt->fi_sig+8, sizeof(tmp2) );
-	printf("filter %d, %s, signature %016llX%016llX\n", fid, cur_filt->fi_eval_name, tmp1, tmp2);
+	//printf("filter %d, %s, signature %016llX%016llX\n", fid, cur_filt->fi_eval_name, tmp1, tmp2);
 	sprintf( buf, "%s/%s/%016llX%016llX", cstate->odisk->odisk_path, CACHE_DIR, tmp1, tmp2 );
 	err = mkdir(buf, 0x777);
 	if( err && errno != EEXIST ) {
@@ -187,7 +189,7 @@ ceval_start(filter_data_t * fdata)
     cached_perm[0] = fdata->fd_perm;
     cached_perm_num = 1;
     pmPrint(fdata->fd_perm, buf, BUFSIZ);
-    printf("generate_new_perm %s\n", buf);
+    //printf("generate_new_perm %s\n", buf);
     search_active = 1;
     pthread_cond_signal(&active_cv);
     pthread_mutex_unlock(&ceval_mutex);
@@ -286,7 +288,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
     int             err;
     int             pass = 1;   /* return value */
     int             cur_fid,
-                    cur_fidx;
+                    cur_fidx=0;
     struct timeval  wstart;
     struct timeval  wstop;
     struct timezone tz;
@@ -436,8 +438,11 @@ for( perm_num = 0; perm_num < cached_perm_num; perm_num++ ) {
     	}
     }
     if( hit ) {
+    	free(change_attr.entry_data);
 	break;
     } 
+    /* free change_attr_set */
+    free(change_attr.entry_data);
 }
     if( hit ) {
 	//cached_perm[perm_num]->drop_rate++; /*XXX add later? */
@@ -448,14 +453,14 @@ for( perm_num = 0; perm_num < cached_perm_num; perm_num++ ) {
 		for( i=0; i<cached_perm_num; i++ ) {
 			if( pmEqual(new_perm, cached_perm[i]) ) {
 				perm_done = 1;
-   				printf("no new perm\n");
+   				//printf("no new perm\n");
 				pmDelete(new_perm);
 				break;
 			}
 		}
 		if( perm_done == 0 ) {
     			pmPrint(new_perm, buf, BUFSIZ);
-    			printf("generate perm %s\n", buf);
+    			//printf("generate perm %s\n", buf);
 			cached_perm[cached_perm_num] = new_perm;
 			cached_perm_num++;
 		}
@@ -525,8 +530,6 @@ for( perm_num = 0; perm_num < cached_perm_num; perm_num++ ) {
 	free(iattrsig);
 	//free(oattr_fname);
     }
-    /* free change_attr_set */
-    free(change_attr.entry_data);
 
     return pass;
 }
@@ -694,8 +697,12 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	   }
            cur_filter->fi_time_ns += time_ns;  /* update filter stats */
            stack_ns += time_ns;
-           obj_write_attr(&obj_handle->attr_info, timebuf,
+           err = obj_write_attr(&obj_handle->attr_info, timebuf,
                        sizeof(time_ns), (void *) &time_ns);
+           if( err != 0 ) {
+	        printf("CHECK OBJECT %016llX ATTR FILE\n", obj_handle->local_id);
+           }
+	   assert(err==0);
         }
 
 #ifdef PRINT_TIME
@@ -740,8 +747,12 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
     /*
      * save the total time info attribute
      */
-    obj_write_attr(&obj_handle->attr_info,
+    err = obj_write_attr(&obj_handle->attr_info,
                    FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
+    if( err != 0 ) {
+            printf("CHECK OBJECT %016llX ATTR FILE\n", obj_handle->local_id);
+    }
+
     /*
      * track per-object info
      */

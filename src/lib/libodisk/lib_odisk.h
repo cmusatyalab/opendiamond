@@ -96,7 +96,6 @@ typedef struct {
 typedef struct {
    uint64_t obj_id;
    char **filters;
-   //char **oattr_fname;
    char **fsig;
    char **iattrsig;
    int oattr_fnum;

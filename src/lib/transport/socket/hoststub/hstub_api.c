@@ -97,6 +97,7 @@ device_stop(void *handle, int id)
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_STOP);
 	cheader->data_len = htonl(0);
+	cheader->spare = 0;
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
 	if (err) {
@@ -140,6 +141,7 @@ device_terminate(void *handle, int id)
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_TERMINATE);
 	cheader->data_len = htonl(0);
+	cheader->spare = 0;
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
 	if (err) {
@@ -179,6 +181,7 @@ device_start(void *handle, int id)
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_START);
 	cheader->data_len = htonl(0);
+	cheader->spare = 0;
 
 	err = ring_enq(dev->device_ops, (void *)cheader);
 	if (err) {

@@ -14,10 +14,10 @@ MKDIR = mkdir
 # files that have been generated.
 #
 
-CLEAN_OTHERS += gmon.out core.*
+CLEAN_OTHERS += gmon.out core.* *.core
 
 #
-# Objects to remove during "diskclean".  For now just the .depend
+# Objects to remove during "distclean".  For now just the .depend
 #
 DIST_OBJS += .depend
 

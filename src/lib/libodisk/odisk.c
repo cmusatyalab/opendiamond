@@ -17,8 +17,26 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 #include "attr.h"
+#include "rtimer.h"
 
 #define	MAX_FNAME	128
+
+
+                                                                                
+/* call to read the cycle counter */
+#define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
+                                                                                
+                                                                                
+static unsigned long long
+read_cycle()
+{
+        unsigned long long      foo;
+                                                                                
+        rdtscll(foo);
+                                                                                
+        return(foo);
+                                                                                
+}
 
 
 /*
@@ -37,7 +55,11 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	int		err;
 	size_t		size;
     	char        	attr_name[MAX_ATTR_NAME];
+	unsigned long long	tstart, lstart, end;
+	
 
+
+	tstart = read_cycle();
 
 	/* XXX printf("load_obj: <%s> \n", name); */
 
@@ -52,19 +74,26 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 		return (ENOMEM);
 	}
 
+	lstart = read_cycle();
+
 	err = stat(name, &stats);
 	if (err != 0) {
 		free(new_obj);
 		return(ENOENT);
 	}
-		
+
+	end = read_cycle();
+	printf("stat time %lld \n", (end -lstart));		
 
 	/* open the file */
+	lstart = read_cycle();
 	os_file  = fopen(name, "rb");
 	if (os_file == NULL) {
 		free(new_obj);
 		return (ENOENT);
 	}
+	end = read_cycle();
+	printf("open time %lld \n", (end -lstart));		
 
 	data = (char *)malloc(stats.st_size);
 	if (data == NULL) {
@@ -74,6 +103,7 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 
 	}
 
+	lstart = read_cycle();
     	if (stats.st_size > 0) {
 	    size = fread(data, stats.st_size, 1, os_file);
 	    if (size != 1) {
@@ -88,80 +118,29 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	new_obj->data = data;
 	new_obj->data_len = stats.st_size;
 
+	end = read_cycle();
+	printf("data read %lld \n", (end - lstart));		
     	/*
      	 * Load the attributes, if any.
      	 */
     	/* XXX overflow */
     	sprintf(attr_name, "%s%s", name, ATTR_EXT);
+
+	lstart = read_cycle();
     	obj_read_attr_file(attr_name , &new_obj->attr_info);
 
+	end = read_cycle();
+	printf("attr read %lld\n", (end  - lstart));		
 	
 	*obj_handle = (obj_data_t *)new_obj;
 
 	fclose(os_file);
+
+	end = read_cycle();
+	printf("total time %lld\n", (end - tstart));		
 	return(0);
 }
 
-#ifdef	XXX
-int
-odisk_get_obj_cnt(odisk_state_t *odisk)
-{
-	struct dirent *		cur_ent;
-	int			extlen, flen;
-	char *			poss_ext;
-	DIR *		dir;
-	int		count = 0;
-
-	dir = opendir(odisk->odisk_path);
-	if (dir == NULL) {
-		/* XXX log */
-		printf("failed to open %s \n", odisk->odisk_path);
-		return(0);
-	}
-
-
-	while (1) {
-
-		cur_ent = readdir(dir);
-		/*
-		 * If readdir fails, then we have enumerated all
-		 * the contents.
-		 */
-
-		if (cur_ent == NULL) {
-			closedir(dir);
-			return(count);
-		}
-
-		/*
-	 	 * If this isn't a file then we skip the entry.
-	 	 */
-		if ((cur_ent->d_type != DT_REG) && 
-				(cur_ent->d_type != DT_LNK)) {
-			continue;
-		}
-
-		/*
-	 	 * If this entry ends with the string defined by ATTR_EXT,
-	 	 * then this is not a data file but an attribute file, so
-	 	 * we skip it.
-	 	 */
-		extlen = strlen(ATTR_EXT);
-		flen = strlen(cur_ent->d_name);
-		if (flen > extlen) {
-			poss_ext = &cur_ent->d_name[flen - extlen];
-			if (strcmp(poss_ext, ATTR_EXT) == 0) {
-				continue;
-			}
-		} 
-		/* if we get here, this is a good one */
-		count++;
-	}
-
-	closedir(dir);
-
-}
-#else
 
 int
 odisk_get_obj_cnt(odisk_state_t *odisk)
@@ -190,7 +169,6 @@ odisk_get_obj_cnt(odisk_state_t *odisk)
 	return(count);
 	
 }
-#endif
 
 int
 odisk_save_obj(odisk_state_t *odisk, obj_data_t *obj)
@@ -462,8 +440,20 @@ odisk_read_obj(odisk_state_t *odisk, obj_data_t *obj, int *len,
     return(0);
 }
 
+/* XXX shared state */
+int		search_active = 0;
+int		search_done = 0;
+int		bg_wait_q = 0;
+int		fg_wait = 0;
+obj_data_t	*obj_q = NULL;
+pthread_mutex_t	shared_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t	fg_data_cv = PTHREAD_COND_INITIALIZER;
+pthread_cond_t	bg_active_cv = PTHREAD_COND_INITIALIZER;
+pthread_cond_t	bg_queue_cv = PTHREAD_COND_INITIALIZER;
+
+
 int
-odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
+odisk_read_next(obj_data_t **new_object, odisk_state_t *odisk)
 {
 	char				path_name[NAME_MAX];
 	int				err;
@@ -517,10 +507,87 @@ again:
 
 
 
+
+static void *
+odisk_main(void *arg)
+{
+	odisk_state_t  *	ostate = (odisk_state_t *)arg;
+	obj_data_t*		nobj;
+	int			err;
+
+	while (1) {
+		/* If there is no search don't do anything */
+		pthread_mutex_lock(&shared_mutex);
+		while (search_active == 0) {
+			pthread_cond_wait(&bg_active_cv, &shared_mutex);
+		}
+		pthread_mutex_unlock(&shared_mutex);
+	
+		/* get the next object */
+		err = odisk_read_next(&nobj, ostate);
+	
+		pthread_mutex_lock(&shared_mutex);
+		if (err == ENOENT) {
+			search_active = 0;
+			search_done = 1;
+			if (fg_wait) {
+				fg_wait = 0;
+				pthread_cond_signal(&fg_data_cv);
+			}
+		} else {
+			if (fg_wait) {
+				fg_wait = 0;
+				pthread_cond_signal(&fg_data_cv);
+			}
+			if (obj_q == NULL) {
+				obj_q = nobj;
+			} else {
+				bg_wait_q  = 1;
+				pthread_cond_wait(&bg_queue_cv, &shared_mutex);
+				obj_q = nobj;
+				if (fg_wait) {
+					fg_wait = 0;
+					pthread_cond_signal(&fg_data_cv);
+				}
+			}
+		}
+		pthread_mutex_unlock(&shared_mutex);
+	}
+}
+
+int
+odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
+{
+
+	pthread_mutex_lock(&shared_mutex);
+	while (1) {
+		if (search_done) {
+			pthread_mutex_unlock(&shared_mutex);
+			return(ENOENT);
+		}
+
+		if (obj_q != NULL) {
+			*new_object = obj_q;
+			obj_q = NULL;
+			if (bg_wait_q) {
+				bg_wait_q = 0;
+				pthread_cond_signal(&bg_queue_cv);
+			}
+			pthread_mutex_unlock(&shared_mutex);
+			return(0);
+		} else {
+			fg_wait = 1;
+			pthread_cond_wait(&fg_data_cv, &shared_mutex);
+		}
+	} 
+}
+
+
 int
 odisk_init(odisk_state_t **odisk, char *dir_path)
 {
 	odisk_state_t  *	new_state;
+	int			err;
 
 	if (strlen(dir_path) > (MAX_DIR_PATH-1)) {
 		/* XXX log */
@@ -538,6 +605,8 @@ odisk_init(odisk_state_t **odisk, char *dir_path)
 	/* the length has already been tested above */
 	strcpy(new_state->odisk_path, dir_path);	
 
+	err = pthread_create(&new_state->thread_id, PATTR_DEFAULT, 
+		odisk_main, (void *) new_state);
 
 	*odisk = new_state;
 	return(0);
@@ -575,6 +644,13 @@ odisk_reset(odisk_state_t *odisk)
 	
 	odisk->max_files = odisk->num_gids;
 	odisk->cur_file = 0;
+
+	pthread_mutex_lock(&shared_mutex);
+	search_active = 1;
+	search_done = 0;
+	pthread_cond_signal(&bg_active_cv);
+	pthread_mutex_unlock(&shared_mutex);
+
 	return(0);
 }
 

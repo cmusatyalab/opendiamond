@@ -22,6 +22,7 @@ typedef struct odisk_state {
 	int		num_gids;
 	int		max_files;
 	int		cur_file;
+	pthread_t	thread_id;
 	DIR *		odisk_dir;
 } odisk_state_t;
 

@@ -477,15 +477,17 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 	rsize = recv(cstate->data_fd, data, data_size, 0);
 
 	/* make sure we read the whole message and that it has the right header */
-	if (rsize != data_size) {
-		printf("bad readsize \n");
+	if (rsize == -1) {
+		perror("sstub_read_data:");
+		return;
+	} else if (rsize != data_size) {
+		printf("bad readsize %d \n", rsize, data_size);
 		exit(1);
 	}
 	assert(ntohl(cstate->cc_msg.cc_magic) == CC_MAGIC_HEADER);
 
 	/* update the count */
 	cstate->cc_credits = ntohl(cstate->cc_msg.cc_count);
-
 	return;
 }
 

@@ -1,5 +1,5 @@
 
-CFLAGS += -pg -O2
+CFLAGS += -pg -O2 -ggdb
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
 FLEX = flex

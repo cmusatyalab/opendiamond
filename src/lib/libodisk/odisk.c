@@ -27,24 +27,6 @@
  */
 #define MAX_GID_FILTER  64
 
-
-static int
-odisk_open_dir(odisk_state_t *odisk)
-{
-	DIR *			dir;
-
-	dir = opendir(odisk->odisk_path);
-	if (dir == NULL) {
-		/* XXX log */
-		printf("failed to open %s \n", odisk->odisk_path);
-		return(ENOENT);
-	}
-
-	odisk->odisk_dir = dir;
-	return(0);
-}
-
-
 int
 odisk_load_obj(obj_data_t  **obj_handle, char *name)
 {
@@ -480,115 +462,14 @@ odisk_read_obj(odisk_state_t *odisk, obj_data_t *obj, int *len,
     return(0);
 }
 
-#ifdef	XXX
-static int
-odisk_gid_good(obj_data_t *obj)
-{
-    gid_list_t* glist;
-    off_t       len; 
-    int         i,j, err;
-
-    len = 0;
-    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
-    if (err != ENOMEM) {
-        return(err);
-    }
-
-    glist = (gid_list_t *)malloc(len);
-    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *)glist);
-    assert(err == 0);
-
-    for (i=0; i < glist->num_gids; i++) {
-        for (j=0; j < odisk->num_gids; j++) {
-            if ((glist->gids[i] == gid_list[j])) {
-                free(glist);
-                return(0);
-            }
-        }
-    }
-
-
-    free(glist);
-    return(ENOENT);
-}
-#endif
-
-#ifdef	XXX
 int
 odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
 {
-	struct dirent *		cur_ent;
-	char			path_name[NAME_MAX];
-	int			err;
-	int			extlen, flen;
-	char *			poss_ext;
-
-
-next:
-	cur_ent = readdir(odisk->odisk_dir);
-	if (cur_ent == NULL) {
-		/* printf("no ent !! \n"); */
-		return(ENOENT);
-	}
-
-	/*
-	 * If this isn't a file then we skip the entry.
-	 */
-	if ((cur_ent->d_type != DT_REG) && (cur_ent->d_type != DT_LNK)) {
-		/* printf("not regular file %s \n", cur_ent->d_name); */
-		goto next;
-	}
-
-	/*
-	 * If this entry ends with the string defined by ATTR_EXT,
-	 * then this is not a data file but an attribute file, so
-	 * we skip it.
-	 */
-	extlen = strlen(ATTR_EXT);
-	flen = strlen(cur_ent->d_name);
-	if (flen > extlen) {
-		poss_ext = &cur_ent->d_name[flen - extlen];
-		if (strcmp(poss_ext, ATTR_EXT) == 0) {
-			goto next;
-		}
-	}
-
-	sprintf(path_name, "%s/%s", odisk->odisk_path, cur_ent->d_name);
-
-	err = odisk_load_obj(new_object, path_name);
-	if (err) {
-		/* XXX log */
-		printf("create obj failed %d \n", err);
-		return(err);
-	}
-
-	err = odisk_gid_good(*new_object);
-    	if (err) {
-        	odisk_release_obj(odisk, *new_object);
-        	goto next;
-    	}
-
-	/* XXX */
-	obj_write_attr(&((*new_object)->attr_info),
-		       OBJ_PATH, strlen(path_name)+1, path_name);
-
-
-	return(0);
-}
-
-#else
-
-int
-odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
-{
-	struct dirent *		cur_ent;
-	char			path_name[NAME_MAX];
-	int			err;
-	int			extlen, flen;
-	char *			poss_ext;
+	char				path_name[NAME_MAX];
+	int					err;
 	gid_idx_ent_t		gid_ent;
-	int			i;
-	int			num;
+	int					i;
+	int					num;
 
 
 again:
@@ -634,13 +515,11 @@ again:
 
 }
 
-#endif
 
 
 int
 odisk_init(odisk_state_t **odisk, char *dir_path)
 {
-	int			err;
 	odisk_state_t  *	new_state;
 
 	if (strlen(dir_path) > (MAX_DIR_PATH-1)) {
@@ -665,24 +544,6 @@ odisk_init(odisk_state_t **odisk, char *dir_path)
 }
 
 
-#ifdef	OLD
-int
-odisk_reset(odisk_state_t *odisk)
-{
-	int	err;
-
-	if (odisk->odisk_dir != NULL) {
-		err = closedir(odisk->odisk_dir);
-		assert(err == 0);
-	}
-
-
-	odisk_open_dir(odisk);
-
-
-}
-
-#else
 int
 odisk_reset(odisk_state_t *odisk)
 {
@@ -716,9 +577,6 @@ odisk_reset(odisk_state_t *odisk)
 	odisk->cur_file = 0;
 	return(0);
 }
-
-#endif
-
 
 int
 odisk_term(odisk_state_t *odisk)

@@ -63,6 +63,9 @@ typedef struct odisk_state {
 	DIR *		odisk_dir;
 	void *		dctl_cookie;
 	void *		log_cookie;
+	uint32_t	obj_load;
+	uint32_t	next_blocked;
+	uint32_t	readahead_full;
 } odisk_state_t;
 
 

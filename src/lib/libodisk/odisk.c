@@ -54,6 +54,7 @@
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "lib_dctl.h"
+#include "dctl_common.h"
 #include "odisk_priv.h"
 #include "attr.h"
 #include "rtimer.h"
@@ -74,7 +75,7 @@ static void     delete_object_gids(odisk_state_t * odisk, obj_data_t * obj);
 #define MAX_GID_FILTER  64
 
 int
-odisk_load_obj(obj_data_t ** obj_handle, char *name)
+odisk_load_obj(odisk_state_t *odisk, obj_data_t ** obj_handle, char *name)
 {
     obj_data_t     *new_obj;
     struct stat     stats;
@@ -162,6 +163,8 @@ odisk_load_obj(obj_data_t ** obj_handle, char *name)
     *obj_handle = (obj_data_t *) new_obj;
 
     close(os_file);
+
+	odisk->obj_load++;	
 
     return (0);
 }
@@ -283,7 +286,7 @@ odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
                    oid->local_id);
     assert(len < NAME_MAX);
 
-    err = odisk_load_obj(obj, buf);
+    err = odisk_load_obj(odisk, obj, buf);
     (*obj)->local_id = oid->local_id;
     return (err);
 }
@@ -529,6 +532,7 @@ static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
+
 #define	OBJ_RING_SIZE	64
 
 
@@ -543,7 +547,7 @@ odisk_read_next(obj_data_t ** new_object, odisk_state_t * odisk)
     int             len;
 
 
-  again:
+again:
     for (i = odisk->cur_file; i < odisk->max_files; i++) {
         if (odisk->index_files[i] != NULL) {
             num = fread(&gid_ent, sizeof(gid_ent), 1, odisk->index_files[i]);
@@ -552,7 +556,7 @@ odisk_read_next(obj_data_t ** new_object, odisk_state_t * odisk)
 						odisk->odisk_path, gid_ent.gid_name);
                 assert(len < NAME_MAX);
 
-                err = odisk_load_obj(new_object, path_name);
+                err = odisk_load_obj(odisk, new_object, path_name);
 
                 if (err) {
                     /*
@@ -633,11 +637,14 @@ odisk_main(void *arg)
                 pthread_cond_signal(&fg_data_cv);
             }
             if (!ring_full(obj_ring)) {
-                ring_enq(obj_ring, nobj);
+                err = ring_enq(obj_ring, nobj);
+				assert(err == 0);
             } else {
+				ostate->readahead_full++;
                 bg_wait_q = 1;
                 pthread_cond_wait(&bg_queue_cv, &shared_mutex);
-                ring_enq(obj_ring, nobj);
+                err = ring_enq(obj_ring, nobj);
+				assert(err == 0);
                 if (fg_wait) {
                     fg_wait = 0;
                     pthread_cond_signal(&fg_data_cv);
@@ -654,12 +661,6 @@ odisk_next_obj(obj_data_t ** new_object, odisk_state_t * odisk)
 
     pthread_mutex_lock(&shared_mutex);
     while (1) {
-        if (search_done) {
-            pthread_mutex_unlock(&shared_mutex);
-            return (ENOENT);
-        }
-
-
         if (!ring_empty(obj_ring)) {
             *new_object = ring_deq(obj_ring);
             if (bg_wait_q) {
@@ -669,6 +670,11 @@ odisk_next_obj(obj_data_t ** new_object, odisk_state_t * odisk)
             pthread_mutex_unlock(&shared_mutex);
             return (0);
         } else {
+        	if (search_done) {
+            	pthread_mutex_unlock(&shared_mutex);
+            	return (ENOENT);
+        	}
+			odisk->next_blocked++;
             fg_wait = 1;
             pthread_cond_wait(&fg_data_cv, &shared_mutex);
         }
@@ -711,11 +717,19 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
     new_state->dctl_cookie = dctl_cookie;
     new_state->log_cookie = log_cookie;
 
+
+	dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
+                       dctl_read_uint32, NULL, &new_state->obj_load);
+	dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
+                       dctl_read_uint32, NULL, &new_state->next_blocked);
+	dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", DCTL_DT_UINT32,
+                       dctl_read_uint32, NULL, &new_state->readahead_full);
+
+
     /*
      * the length has already been tested above 
      */
     strcpy(new_state->odisk_path, dir_path);
-
     err = pthread_create(&new_state->thread_id, PATTR_DEFAULT,
                          odisk_main, (void *) new_state);
 
@@ -1085,7 +1099,7 @@ odisk_build_indexes(odisk_state_t * odisk)
                        cur_ent->d_name);
         assert(len < NAME_MAX);
 
-        err = odisk_load_obj(&new_object, max_path);
+        err = odisk_load_obj(odisk, &new_object, max_path);
         if (err) {
             /*
              * XXX log 
@@ -1179,7 +1193,7 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
         len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_path,
                        cur_ent->d_name);
 
-        err = odisk_load_obj(&new_object, max_path);
+        err = odisk_load_obj(odisk, &new_object, max_path);
         if (err) {
             /*
              * XXX log 

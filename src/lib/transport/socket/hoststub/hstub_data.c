@@ -280,7 +280,6 @@ hstub_read_data(sdevice_state_t *dev)
 
 	if ((cinfo->data_rx_obj->data_len == 0) &&
 	    (cinfo->data_rx_obj->attr_info.attr_len == 0)) {
-		printf("XXX search done !!!!!!!!!!!!!!!!!!!! \n");
 		(*dev->hstub_search_done_cb)(dev->hcookie, ver_no);
 		free(cinfo->data_rx_obj);
 	

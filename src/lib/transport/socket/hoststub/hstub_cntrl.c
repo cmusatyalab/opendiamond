@@ -63,7 +63,6 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 	int			offset;
 	int			i;
 
-
 	shead = (dstats_subheader_t *)data_buf;
 
 	num_filt = ntohl(shead->dss_num_filters);
@@ -112,10 +111,8 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 
 		/* XXX byte order !!! */
 		dstats->ds_filter_stats[i].fs_avg_exec_time = 
-				fhead->fss_objs_dropped;
+				fhead->fss_avg_exec_time;
 	}
-
-
 }
 
 static void
@@ -261,6 +258,8 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 	 * command.
 	 */
 	if (data_remain > 0) {
+		assert(data_buf != NULL);
+
 		dsize = recv(cinfo->control_fd, &data_buf[data_offset], 
 				data_remain, 0);
 

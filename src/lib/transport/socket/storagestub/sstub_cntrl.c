@@ -208,6 +208,8 @@ sstub_write_control(listener_state_t *lstate, cstate_t *cstate)
 		free(data);
 	}
 
+
+
 	/*
 	 * We sent the whole message so reset our state machine and
 	 * release the message header.
@@ -307,6 +309,11 @@ process_searchlet_message(listener_state_t *lstate, cstate_t *cstate,
 	filter_offset = ((spec_len + 3) & ~3) + spec_offset;
 
 	wsize = write(spec_fd, &data[spec_offset], (size_t) spec_len);
+	if (wsize != spec_len) {
+		printf("write %d len %d err %d \n", wsize, spec_len,
+				errno);
+		assert(0);
+	}
 	assert(wsize == spec_len);
 	close(spec_fd);
 

@@ -85,7 +85,6 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 	cheader->data_len = htonl(data_size);
 	cheader->spare = (uint32_t)buffer;
 
-
 	/*
 	 * Build the main statistics 
 	 */
@@ -115,8 +114,7 @@ sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
 		fhead->fss_objs_processed = ntohl(fstats->fs_objs_processed);
 		fhead->fss_objs_dropped = ntohl(fstats->fs_objs_dropped);
 		/* XXX 64 bit byte order below */
-		fhead->fss_avg_exec_time = ntohl(fstats->fs_avg_exec_time);
-
+		fhead->fss_avg_exec_time = fstats->fs_avg_exec_time;
 		fhead++;
 	}
 

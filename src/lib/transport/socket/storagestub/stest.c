@@ -136,10 +136,29 @@ terminate(void *cookie, int gen)
 	printf("stest: terminate \n");
 }
 
-int
+void
 get_stats(void *cookie, int gen)
 {
+	int		size;
+	dev_stats_t *	dstats;
 	printf("stest: get stats list \n");
+
+	size = DEV_STATS_SIZE(1);
+
+	dstats = (dev_stats_t *)malloc(sizeof(*dstats));
+	if (dstats == NULL) {
+		exit(1);
+	}
+
+
+	dstats->ds_objs_total = 400;
+	dstats->ds_num_filters = 1;
+
+	dstats->ds_filter_stats[0].fs_avg_exec_time = 0x123;
+	dstats->ds_filter_stats[0].fs_objs_processed = 23;
+	dstats->ds_filter_stats[0].fs_objs_dropped = 40;
+
+	sstub_send_stats(conn_cookie, dstats, size);
 }
 
 int

@@ -481,7 +481,7 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 		perror("sstub_read_data:");
 		return;
 	} else if (rsize != data_size) {
-		printf("bad readsize %d \n", rsize, data_size);
+		printf("bad readsize %d  %d\n", rsize, data_size);
 		exit(1);
 	}
 	assert(ntohl(cstate->cc_msg.cc_magic) == CC_MAGIC_HEADER);

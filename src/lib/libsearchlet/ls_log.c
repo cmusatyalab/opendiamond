@@ -65,6 +65,7 @@
 #include "log_impl.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
+#include "rstat.h"
 
 #define	LOG_RING_SIZE	512
 
@@ -325,6 +326,7 @@ log_main(void *arg)
 	search_context_t *	sc;
 	int			err;
 	int	fd, newsock;
+	char	user_name[MAX_USER_NAME];
 	struct sockaddr_un sa;
 	struct sockaddr_un newaddr;
 	int	slen;
@@ -346,8 +348,8 @@ log_main(void *arg)
 	/* XXX socket error code */
 
 	/* bind the socket to a path name */
-
-	strcpy(sa.sun_path, SOCKET_LOG_NAME);
+	get_user_name(user_name);
+	sprintf(sa.sun_path, "%s.%s", SOCKET_LOG_NAME, user_name);
 	sa.sun_family = AF_UNIX;
 	unlink(sa.sun_path);
 

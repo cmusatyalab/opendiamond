@@ -167,15 +167,22 @@ fexec_get_stats(filter_data_t * fdata, int max, filter_stats_t * fstats)
 }
 
 
-int
+unsigned int
 fexec_hash_prob(filter_id_t cur_filt, int num_prev,
                 const filter_id_t * sorted_list)
 {
-
+	unsigned long v = 0;
+	int		i;
 	/*
 	 * XXX LH XXX 
 	 */
-	return (0);
+	v = (unsigned long) cur_filt;
+	for (i=0; i < num_prev; i++) {
+		v = ((unsigned long)sorted_list[i]) + (v << 6) + (v << 16) - v;
+	}
+
+	v = v % PROB_HASH_BUCKETS;
+	return (v);
 }
 
 

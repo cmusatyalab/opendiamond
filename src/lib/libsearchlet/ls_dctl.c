@@ -63,6 +63,7 @@
 #include "lib_search_priv.h"
 #include "filter_exec.h"
 #include "dctl.h"
+#include "rstat.h"
 
 /* linux specific flag */
 #ifndef MSG_NOSIGNAL
@@ -244,6 +245,7 @@ process_dctl_requests(search_context_t *sc, int conn)
 
 
 
+
 /*
  * The main loop that the background thread runs to process
  * the data coming from the individual devices.
@@ -255,6 +257,7 @@ dctl_main(void *arg)
 	search_context_t *	sc;
 	int			err;
 	int	fd, newsock;
+	char 	user_name[MAX_USER_NAME];
 	struct sockaddr_un sa;
 	struct sockaddr_un newaddr;
 	int	slen;
@@ -269,6 +272,7 @@ dctl_main(void *arg)
 	dctl_thread_register(sc->dctl_cookie);
 	log_thread_register(sc->log_cookie);
 
+
 	/*
 	 * Open the socket for the log information.
 	 */
@@ -276,14 +280,14 @@ dctl_main(void *arg)
 	/* XXX socket error code */
 
 	/* bind the socket to a path name */
-
-	strcpy(sa.sun_path, SOCKET_DCTL_NAME);
+	get_user_name(user_name);
+	sprintf(sa.sun_path, "%s.%s", SOCKET_DCTL_NAME, user_name);
 	sa.sun_family = AF_UNIX;
 	unlink(sa.sun_path);
 
 	err = bind(fd, (struct sockaddr *)&sa, sizeof (sa));
 	if (err < 0) {
-		fprintf(stderr, "binding %s\n", SOCKET_DCTL_NAME);
+		fprintf(stderr, "binding %s\n", sa.sun_path);
 		perror("bind failed ");
 		exit(1);
 	}

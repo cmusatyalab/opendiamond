@@ -638,8 +638,6 @@ create_new_device(search_context_t *sc, uint32_t devid)
 
 	register_remote_dctl(devid, new_dev);
 
-
-
 	return(new_dev);
 }
 

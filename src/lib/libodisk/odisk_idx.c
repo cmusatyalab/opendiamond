@@ -28,7 +28,7 @@ main(int argc, char **argv)
 			path = "/opt/dir1";
 	}
 
-	err = odisk_init(&odisk, path);
+	err = odisk_init(&odisk, path, NULL, NULL);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

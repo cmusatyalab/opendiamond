@@ -22,7 +22,7 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 
-//#define VERBOSE 1
+#define VERBOSE 1
 
 /*
  * Some state to keep track of the active filter. XXX
@@ -58,6 +58,7 @@ static policy_t policy_arr[] = {
   { NULL, NULL, NULL, NULL },
   { hill_climb_new, hill_climb_delete, hill_climb_optimize, NULL },
   { best_first_new, best_first_delete, best_first_optimize, NULL },
+  { indep_new, indep_delete, indep_optimize, NULL },
   { NULL, NULL, NULL, NULL }
 };
 

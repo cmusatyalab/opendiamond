@@ -108,34 +108,38 @@ hill_climb_optimize(void *context, filter_data_t *fdata) {
 }
 
 /* ********************************************************************** */
+/* indep policy */
+/* ********************************************************************** */
+
+#if 0
 
 void *
-best_first_new(const filter_data_t *fdata) {
+indep_new(const filter_data_t *fdata) {
   bf_state_t *bf = (bf_state_t *)malloc(sizeof(bf_state_t));
 
   if(bf) {
-    best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+    indep_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
 		    (evaluation_func_t)fexec_evaluate, fdata);
   }
 #ifdef VERBOSE
   {
     char buf[BUFSIZ];
-    printf("best_first starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
+    printf("indep starts at: %s\n", pmPrint(fdata->fd_perm, buf, BUFSIZ));
   }
 #endif
   return (void *)bf;
 }
 
 void
-best_first_delete(void *context) {
+indep_delete(void *context) {
 	bf_state_t *bf = (bf_state_t *)context;
-	best_first_cleanup(bf);
+	indep_cleanup(bf);
 	free(bf);
 }
 
 
 int
-best_first_optimize(void *context, filter_data_t *fdata) {
+indep_optimize(void *context, filter_data_t *fdata) {
 	int err = 0;
 	bf_state_t *bf = (bf_state_t *)context;
 #ifdef VERBOSE
@@ -150,8 +154,8 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 		/* restart (in case we have better data now */
 		if(!optimizer_done) {
 		  IFVERBOSE printf("--- restarting optimizer ------------------------------\n");
-		  best_first_cleanup(bf);
-		  best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+		  indep_cleanup(bf);
+		  indep_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
 				  (evaluation_func_t)fexec_evaluate, fdata);
 		}
 		return 1;
@@ -159,34 +163,34 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 
 	while(!err) {
 		//printf("bf\n");
-	  err = best_first_step(bf);
+	  err = indep_step(bf);
 	}
 	switch(err) {
 	case RC_ERR_COMPLETE:
 #ifdef VERBOSE
 		printf("optimizer done: %s\n", 
-		       pmPrint(best_first_result(bf), buf, BUFSIZ));
-		fexec_print_cost(fdata, best_first_result(bf)); printf("\n");
+		       pmPrint(indep_result(bf), buf, BUFSIZ));
+		fexec_print_cost(fdata, indep_result(bf)); printf("\n");
 #endif
 		/* update and restart */
-		if(pmEqual(fdata->fd_perm, best_first_result(bf))) {
+		if(pmEqual(fdata->fd_perm, indep_result(bf))) {
 		  IFVERBOSE printf("optimizer didn't find further improvement\n");
 		  optimizer_done = RESTART_INTERVAL;
-		  //best_first_cleanup(bf);
+		  //indep_cleanup(bf);
 		} else {
-		  update_filter_order(fdata, best_first_result(bf));
-		  best_first_cleanup(bf);
-		  best_first_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
+		  update_filter_order(fdata, indep_result(bf));
+		  indep_cleanup(bf);
+		  indep_init(bf, pmLength(fdata->fd_perm), fdata->fd_po, 
 				  (evaluation_func_t)fexec_evaluate, fdata);
 		}
 		break;
 	case RC_ERR_NODATA:
 #ifdef VERBOSE
 		printf("optimizer needs more data for: %s\n", 
-		       pmPrint(best_first_next(bf), buf, BUFSIZ));
-		printf("\t"); fexec_print_cost(fdata, best_first_next(bf)); printf("\n");
+		       pmPrint(indep_next(bf), buf, BUFSIZ));
+		printf("\t"); fexec_print_cost(fdata, indep_next(bf)); printf("\n");
 #endif
-		update_filter_order(fdata, best_first_next(bf));
+		update_filter_order(fdata, indep_next(bf));
 		break;
 	default:
 		break;		
@@ -196,3 +200,6 @@ best_first_optimize(void *context, filter_data_t *fdata) {
 	return (err == RC_ERR_COMPLETE);
 }
 
+
+
+#endif

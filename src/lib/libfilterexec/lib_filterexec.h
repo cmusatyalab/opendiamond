@@ -15,7 +15,8 @@ typedef struct filter_data filter_data_t;
 enum policy_type_t {
   NULL_POLICY=0,
   HILL_CLIMB_POLICY,
-  BEST_FIRST_POLICY
+  BEST_FIRST_POLICY,
+  INDEP_POLICY
 };
 
 struct filter_exec_t {

@@ -22,7 +22,9 @@ void best_first_delete(void *);
 int best_first_optimize(void *context, struct filter_data *fdata);
 
 
-
+void *indep_new(const struct filter_data *fdata);
+void indep_delete(void *);
+int indep_optimize(void *context, struct filter_data *fdata);
 
 /* ********************************************************************** */
 

@@ -168,7 +168,7 @@ fexec_system_init()
 
     dctl_register_leaf(DEV_FEXEC_PATH, "dynamic_method", DCTL_DT_UINT32,
                        dctl_read_uint32, dctl_write_uint32,
-                       &fexec_bypass_type);
+                       &fexec_autopart_type);
 
     dctl_register_leaf(DEV_FEXEC_PATH, "cpu_slowdown", DCTL_DT_UINT32,
                        dctl_read_uint32, fexec_set_slowdown,

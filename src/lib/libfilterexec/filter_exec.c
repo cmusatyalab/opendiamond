@@ -902,7 +902,10 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
          */
         if (force_eval == 0) {
             rv = random();
+			printf("rv %d thresh %d \n",
+				rv, cur_filter->fi_bpthresh);
             if (rv > cur_filter->fi_bpthresh) {
+				printf("bypassing !!! \n");
                 pass = 1;
                 break;
             }

@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include "lib_od.h"
 #include "lib_odisk.h"
+#include "lib_dctl.h"
+#include "lib_log.h"
 #include "odisk_priv.h"
 
 int
@@ -90,6 +92,9 @@ main(int argc, char **argv)
 	int			do_count = 0;
 	int			count = 0;
 	extern char *	optarg;
+	void *		dctl_cookie;
+	void *		log_cookie;
+
 
 	/*
 	 * The command line options.
@@ -132,7 +137,10 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	err = odisk_init(&odisk, path);
+	dctl_init(&dctl_cookie);
+	log_init(&log_cookie);
+
+	err = odisk_init(&odisk, path, dctl_cookie, log_cookie);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

@@ -331,7 +331,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
          * init the filter exec code 
          */
         fexec_init_search(sstate->fdata);
-        ceval_init_search(sstate->fdata, sstate->ostate);
+        //ceval_init_search(sstate->fdata, sstate->ostate);
 	err = ceval_start();
 	if (err) {
 		return;
@@ -359,8 +359,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 
 	/* JIAYING: for now, we calculate the signature for the whole
 		librar and spec file */
-	//sstate->sig = (unsigned char *)malloc(16);
-	//digest_cal(obj_name, spec_name, &sstate->sig);
+        ceval_init_search(sstate->fdata, sstate->ostate);
 
         /*
          * Remove the files that held the data.  If do_cleanup is

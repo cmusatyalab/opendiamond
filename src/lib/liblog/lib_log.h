@@ -13,6 +13,7 @@
 #define	LOGT_DISK	0x00000002	/* from emulated disk */
 #define	LOGT_FILT	0x00000004	/* from filter evaluation */
 #define	LOGT_BG		0x00000008	/* from host background process */
+#define LOGT_UTILITY    0x00000010      /* from generic utility functions */
 #define	LOGT_ALL	0xFFFFFFFF	/* log all types */
 
 /*
@@ -56,6 +57,10 @@ typedef struct log_ent {
 
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void log_init();
 extern void log_setlevel(unsigned int level_mask);
 extern void log_settype(unsigned int type_mask);
@@ -65,6 +70,10 @@ extern int  log_getbuf(char **data);
 extern void  log_advbuf(int len);
 
 
-#endif	/* !defined(_LIB_LOG_H_) */
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif	/* !defined(_LIB_LOG_H_) */
 

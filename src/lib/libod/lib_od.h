@@ -1,11 +1,16 @@
 #ifndef	_LIB_OD_H
 #define	_LIB_OD_H 	    1
 
-#include "diamond_types.h"
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
+
+/* XXX hack */
+#ifdef	RPCGEN
+typedef	uint64_t	groupid_t;
+#endif
+
 
 struct obj_id {
     uint64_t    dev_id;
@@ -16,6 +21,8 @@ typedef struct obj_id obj_id_t;
 
 
 #ifndef RPCGEN
+
+#include "diamond_types.h" 
 
 /*
  * call before calling the other library calls.

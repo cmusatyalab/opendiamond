@@ -12,7 +12,7 @@
 // was inserted, in xx:xx:xx:xx:xx:xx:xx:xx form.
 // This program is used by the perl script "populate-disk.pl"
 
-#define BLOCK_SIZE      4096
+#define BLOCK_SIZE      4096*1024
 
 void
 copy_file(char *fname, obj_id_t *oid)

@@ -385,7 +385,7 @@ device_main(void *arg)
 		 * XXX look for data from device to process.
 		 */
 		if ((sstate->flags & DEV_FLAG_RUNNING) && 
-		    (sstate->pend_objs < sstate->pend_thresh)) { 
+		    (sstate->pend_objs < sstate->pend_thresh)) {
 			err = odisk_next_obj(&new_obj, sstate->ostate);
 			if (err == ENOENT) {
                 		/* XXX fexec_dump_prob(sstate->fdata); */
@@ -419,25 +419,35 @@ device_main(void *arg)
 				continue;
 			} else {
 				any = 1;
-				/* XXX process the object */
-				sstate->obj_processed++;
 
-				err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
-				if (err == 0) {
-					sstate->obj_dropped++;
-					search_free_obj(new_obj);
+				if ((sstate->bp_feedback) && 
+					(sstate->pend_objs < sstate->bp_thresh)){ 
+						sstate->obj_skipped++;
+						err = sstub_send_obj( sstate->comm_cookie, new_obj, 
+							sstate->ver_no);
+
 
 				} else {
-					sstate->obj_passed++;
-					err = sstub_send_obj( sstate->comm_cookie, new_obj, 
-							sstate->ver_no);
-					if (err) {
-						/* XXX overflow gracefully  */
-						/* XXX log */
-		
+					/* XXX process the object */
+					sstate->obj_processed++;
+
+					err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
+					if (err == 0) {
+						sstate->obj_dropped++;
+						search_free_obj(new_obj);
+
 					} else {
-						/* XXX log */
-		    				sstate->pend_objs++;
+						sstate->obj_passed++;
+						err = sstub_send_obj( sstate->comm_cookie, new_obj, 
+							sstate->ver_no);
+						if (err) {
+							/* XXX overflow gracefully  */
+							/* XXX log */
+		
+						} else {
+							/* XXX log */
+		    					sstate->pend_objs++;
+						}
 					}
 				}
 			}
@@ -452,7 +462,6 @@ device_main(void *arg)
 		if (!any) {
 			timeout.tv_sec = 0;
 			timeout.tv_nsec = 10000000; /* XXX 10ms */
-
 			nanosleep(&timeout, NULL);
 		}
 	}
@@ -593,6 +602,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
                     dctl_read_uint32, NULL, &sstate->pend_objs);
     	dctl_register_leaf(DEV_SEARCH_PATH, "pend_thresh", DCTL_DT_UINT32, 
                     dctl_read_uint32, dctl_write_uint32, &sstate->pend_thresh);
+    	dctl_register_leaf(DEV_SEARCH_PATH, "bp_feedback", DCTL_DT_UINT32, 
+                    dctl_read_uint32, dctl_write_uint32, &sstate->bp_feedback);
+    	dctl_register_leaf(DEV_SEARCH_PATH, "bp_thresh", DCTL_DT_UINT32, 
+                    dctl_read_uint32, dctl_write_uint32, &sstate->bp_feedback);
 
 
     	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
@@ -620,6 +633,9 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
 	sstate->pend_thresh = SSTATE_DEFAULT_OBJ_THRESH;
 	sstate->pend_objs = 0;
+	
+	sstate->bp_feedback = 0;
+	sstate->bp_thresh = SSTATE_DEFAULT_BP_THRESH;
 	/*
 	 * Create a new thread that handles the searches for this current
 	 * search.  (We probably want to make this a seperate process ??).
@@ -833,13 +849,13 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 
 	sstate = (search_state_t *)app_cookie;
 
-    len = MAX_DBUF;
-    err = dctl_read_leaf(path, &dtype, &len, data_buf);
-    /* XXX deal with ENOSPC */
+    	len = MAX_DBUF;
+    	err = dctl_read_leaf(path, &dtype, &len, data_buf);
+    	/* XXX deal with ENOSPC */
 
-    if (err) {
-            len = 0;
-    }
+    	if (err) {
+		len = 0;
+    	}
 
 	eno = sstub_rleaf_response(sstate->comm_cookie, err, dtype, len, 
                     data_buf, opid);
@@ -858,15 +874,15 @@ search_write_leaf(void *app_cookie, char *path, int len, char *data,
 	search_state_t * sstate;
 	sstate = (search_state_t *)app_cookie;
 
-    err = dctl_write_leaf(path, len, data);
-    /* XXX deal with ENOSPC */
+	err = dctl_write_leaf(path, len, data);
+	/* XXX deal with ENOSPC */
 
-    if (err) {
+    	if (err) {
             len = 0;
-    }
+    	}
 
 	eno = sstub_wleaf_response(sstate->comm_cookie, err, opid);
-    assert(eno == 0);
+    	assert(eno == 0);
 
 	return (0);
 }
@@ -875,25 +891,25 @@ int
 search_list_leafs(void *app_cookie, char *path, int32_t opid)
 {
 
-    /* XXX hack for now */
+    	/* XXX hack for now */
 	int		        err, eno;
-    dctl_entry_t    ent_data[MAX_ENTS];
-    int             num_ents;
+    	dctl_entry_t    ent_data[MAX_ENTS];
+    	int             num_ents;
 	search_state_t * sstate;
 
 	sstate = (search_state_t *)app_cookie;
 
-    num_ents = MAX_ENTS;
-    err = dctl_list_leafs(path, &num_ents, ent_data);
-    /* XXX deal with ENOSPC */
+    	num_ents = MAX_ENTS;
+    	err = dctl_list_leafs(path, &num_ents, ent_data);
+    	/* XXX deal with ENOSPC */
 
-    if (err) {
+    	if (err) {
             num_ents = 0;
-    }
+    	}
 
 	eno = sstub_lleaf_response(sstate->comm_cookie, err, num_ents, 
                     ent_data, opid);
-    assert(eno == 0);
+    	assert(eno == 0);
 
 	return (0);
 }
@@ -933,8 +949,8 @@ search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 	search_state_t * sstate;
 
 	sstate = (search_state_t *)app_cookie;
-    err = odisk_set_gid(sstate->ostate, gid);
-    assert(err == 0);
+    	err = odisk_set_gid(sstate->ostate, gid);
+    	assert(err == 0);
 	return (0);
 }
 

@@ -373,8 +373,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 
 	/* JIAYING: for now, we calculate the signature for the whole
 		librar and spec file */
-        ceval_init_search(sstate->fdata, sstate->ostate, (void *)sstate, 
-				sstats_drop, sstats_process );
+        ceval_init_search(sstate->fdata, sstate->cstate);
 
         /*
          * Remove the files that held the data.  If do_cleanup is
@@ -944,6 +943,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
         return (err);
     }
 
+    err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
+			sstats_drop, sstats_process );
     return (0);
 }
 

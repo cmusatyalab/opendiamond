@@ -26,7 +26,7 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 #include "lib_ocache.h"
-#include "cache_filter.h"
+//#include "cache_filter.h"
 
 #define	MAX_FILTER_NUM	128
 
@@ -89,13 +89,11 @@ ceval_main(void *arg)
 }
 
 int
-ceval_init_search(filter_data_t * fdata, odisk_state_t *odisk, void *cookie,
-			stats_drop stats_drop_fn, stats_process stats_process_fn)
+ceval_init_search(filter_data_t * fdata, ceval_state_t *cstate)
 {
     filter_id_t     fid;
     filter_info_t  *cur_filt;
     int err;
-    ceval_state_t    *new_state;
     uint64_t tmp;
 
     for (fid = 0; fid < fdata->fd_num_filters; fid++) {
@@ -109,12 +107,24 @@ ceval_init_search(filter_data_t * fdata, odisk_state_t *odisk, void *cookie,
 	printf("filter %s, signature %016llX\n", cur_filt->fi_eval_name, tmp);
     }
 
+    cstate->fdata = fdata;
+
+    return (0);
+}
+
+int
+ceval_init(ceval_state_t **cstate, odisk_state_t *odisk, void *cookie,
+			stats_drop stats_drop_fn, stats_process stats_process_fn)
+{
+    int err;
+    ceval_state_t    *new_state;
+    uint64_t tmp;
+
     new_state = (ceval_state_t *)malloc(sizeof(*new_state));
     if (new_state == NULL) {
 	return(ENOMEM);
     }
     memset(new_state, 0, sizeof(*new_state));
-    new_state->fdata = fdata;
     new_state->odisk = odisk;
     new_state->cookie = cookie;
     new_state->stats_drop_fn = stats_drop_fn;
@@ -123,9 +133,10 @@ ceval_init_search(filter_data_t * fdata, odisk_state_t *odisk, void *cookie,
     err = pthread_create(&new_state->ceval_thread_id, PATTR_DEFAULT, 
 	ceval_main, (void *) new_state);
 
+    *cstate = new_state;
+
     return (0);
 }
-
 int
 ceval_start()
 {

@@ -1,6 +1,6 @@
 #ifndef	_CEVAL_PRIV_H_
 #define	_CEVAL_PRIV_H_ 	1
-
+/*
 struct ceval_state;
 
 typedef struct ceval_state {
@@ -11,7 +11,7 @@ typedef struct ceval_state {
 	stats_drop stats_drop_fn;
 	stats_drop stats_process_fn;
 } ceval_state_t;
-
+*/
 typedef struct obj_eval {
 } obj_eval_t;
 

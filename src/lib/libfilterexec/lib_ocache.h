@@ -37,10 +37,21 @@ struct cache_obj_s {
 	struct cache_obj_s	*next;
 };
 
-typedef struct cache_obj_s cache_obj;
-
 typedef void (*stats_drop)(void *cookie);
 typedef void (*stats_process)(void *cookie);
+
+struct ceval_state;
+
+typedef struct ceval_state {
+        pthread_t       ceval_thread_id;   // thread for cache table
+        filter_data_t * fdata;
+        odisk_state_t * odisk;
+        void * cookie;
+        stats_drop stats_drop_fn;
+        stats_drop stats_process_fn;
+} ceval_state_t;
+
+typedef struct cache_obj_s cache_obj;
 
 #define		INSERT_START	0
 #define		INSERT_IATTR	1
@@ -93,7 +104,9 @@ int ocache_add_start(char *fhandle, uint64_t obj_id, unsigned char *fsig, int lo
 int ocache_add_end(char *fhandle, uint64_t obj_id, int conf);
 int combine_attr_set(cache_attr_set *attr1, cache_attr_set *attr2);
 
-int ceval_init_search(filter_data_t * fdata, odisk_state_t *odisk, void *cookie, stats_drop stats_drop_fn, stats_process stats_process_fn);
+int ceval_init_search(filter_data_t * fdata, struct ceval_state *cstate);
+
+int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk, void *cookie, stats_drop stats_drop_fn, stats_process stats_process_fn);
 
 int ceval_start();
 int ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie, 

@@ -67,6 +67,7 @@ typedef struct search_state {
     pthread_t       thread_id;	
     unsigned int    flags;
     struct odisk_state *ostate;
+    struct ceval_state *cstate;
     int             ver_no;
     ring_data_t    *control_ops;
     pthread_mutex_t log_mutex;

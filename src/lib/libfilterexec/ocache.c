@@ -93,6 +93,8 @@ static pthread_cond_t nem_queue_cv = PTHREAD_COND_INITIALIZER;	/* queue non
 																 * empty */
 static pthread_cond_t oattr_cv = PTHREAD_COND_INITIALIZER;	/* queue non
 															 * empty */
+static pthread_cond_t oattr_bg_cv = PTHREAD_COND_INITIALIZER;  /* queue non
+                                              * empty */
 static pthread_cond_t wait_lookup_cv = PTHREAD_COND_INITIALIZER;	/* queue
 																	 * non
 																	 * empty */
@@ -1124,6 +1126,7 @@ oattr_lookup_next(oattr_ring_entry ** cobj, ocache_state_t * ocache)
 	while (1) {
 		if (!ring_empty(oattr_ring)) {
 			*cobj = ring_deq(oattr_ring);
+			pthread_cond_signal(&oattr_bg_cv);
 			pthread_mutex_unlock(&shared_mutex);
 			return (1);
 		} else {
@@ -1156,7 +1159,6 @@ oattr_ring_insert(oattr_ring_entry * cobj)
 	pthread_mutex_lock(&shared_mutex);
 	/*
 	 * we do not wait if ring full. just drop it 
-	 */
 	if (!ring_full(oattr_ring)) {
 		ring_enq(oattr_ring, cobj);
 	} else {
@@ -1170,6 +1172,16 @@ oattr_ring_insert(oattr_ring_entry * cobj)
 			free(cobj);
 		}
 	}
+	 */
+   while (1) {
+      if (!ring_full(oattr_ring)) {
+         ring_enq(oattr_ring, cobj);
+         break;
+      } else {
+         pthread_cond_wait(&oattr_bg_cv, &shared_mutex);
+      }
+   }
+ 
 	pthread_cond_signal(&oattr_cv);
 	pthread_mutex_unlock(&shared_mutex);
 	return (0);
@@ -1601,6 +1613,7 @@ oattr_main(void *arg)
 	obj_data_t     *ovec[MAX_VEC_SIZE];
 	int             wcount;
 	int             i;
+	int				 flag;
 
 	while (1) {
 		/*
@@ -1669,7 +1682,9 @@ oattr_main(void *arg)
 						err = writev(fd, wvec, wcount);
 						assert(err >= 0);
 						for (i = 0; i < wcount; i++) {
-							odisk_release_obj(ovec[i]);
+							flag = odisk_release_obj(ovec[i]);
+							if( flag == 1)
+								break;
 						}
 					}
 					if (add_iattrsig == 1) {
@@ -1708,7 +1723,9 @@ oattr_main(void *arg)
 					err = writev(fd, wvec, wcount);
 					assert(err >= 0);
 					for (i = 0; i < wcount; i++) {
-						odisk_release_obj(ovec[i]);
+						flag = odisk_release_obj(ovec[i]);
+						if( flag == 1 )
+							break;
 					}
 					wcount = 0;
 				}
@@ -1718,6 +1735,11 @@ oattr_main(void *arg)
 
 			if (correct == 0) {
 				unlink(attrbuf);
+				for (i = 0; i < wcount; i++) {
+					flag = odisk_release_obj(ovec[i]);
+					if( flag == 1 )
+						break;
+				}
 			} else {
 				if (add_iattrsig == 1) {
 					rename(attrbuf, new_attrbuf);

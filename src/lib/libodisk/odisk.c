@@ -320,7 +320,7 @@ odisk_ref_obj(obj_data_t * obj)
 	return;
 }
 
-void
+int
 odisk_release_obj(obj_data_t * obj)
 {
 
@@ -331,7 +331,7 @@ odisk_release_obj(obj_data_t * obj)
 	obj->ref_count--;
 	if (obj->ref_count != 0) {
 		pthread_mutex_unlock(&obj->mutex);
-		return;
+		return(0);
 	}
 
 	/*
@@ -343,7 +343,7 @@ odisk_release_obj(obj_data_t * obj)
 	
 	/* XXX make assert ?? */
 	if (obj == NULL) {
-		return;
+		return(1);
 	}
 
 	if (obj->base != NULL) {
@@ -360,7 +360,7 @@ odisk_release_obj(obj_data_t * obj)
 	
 	pthread_mutex_destroy(&obj->mutex);
 	free(obj);
-	return;
+	return(1);
 }
 
 static int
@@ -737,7 +737,7 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 
 	/* see if we have partials to load */
 	if ((pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || 
-	    (pr_obj->iattrsig==NULL) ) {
+	    (pr_obj->iattrsig==NULL) || (pr_obj->oattr_fnum==0)) {
 		/* load the partial state */
 		return(0);
 	}
@@ -903,7 +903,7 @@ odisk_main(void *arg)
 
 	while (1) {
 		/*
-		 * If there is no search don't do anything 
+		 * XXX??? If there is no search don't do anything 
 		 */
 		while (search_active == 0) {
 			sleep(1);
@@ -928,14 +928,22 @@ odisk_main(void *arg)
 			continue;
 		}
 
+/*
 		pthread_mutex_lock(&shared_mutex);
 		active++;
 		pthread_mutex_unlock(&shared_mutex);
 		
 		err = odisk_pr_load(pobj, &nobj, ostate);
+		odisk_release_pr_obj(pobj);
 
 		pthread_mutex_lock(&shared_mutex);
 		active--;
+		pthread_mutex_unlock(&shared_mutex);
+*/
+
+		pthread_mutex_lock(&shared_mutex);
+		err = odisk_pr_load(pobj, &nobj, ostate);
+		odisk_release_pr_obj(pobj);
 		pthread_mutex_unlock(&shared_mutex);
 
 		pthread_mutex_lock(&shared_mutex);

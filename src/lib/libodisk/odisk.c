@@ -81,6 +81,22 @@ static void     delete_object_gids(odisk_state_t * odisk, obj_data_t * obj);
  */
 #define MAX_GID_FILTER  64
 
+
+static int
+dynamic_load_oattr(int ring_depth)
+{
+	if( dynamic_load == 0 ) {
+		return(1);
+	}
+
+	if( ring_depth < 3 ) {
+		return(0);
+	} else {
+		return(1);
+	}
+
+}
+
 int
 odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 {
@@ -107,8 +123,8 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	assert( new_obj != NULL );
 
 	/* open and read the data file, since we are streaming through
-     * the data we try to use the direct reads to save the memcopy
-     * in the buffer cache.
+	    * the data we try to use the direct reads to save the memcopy
+	    * in the buffer cache.
 	 */
 	/* XXX: add flock ? */
 	os_file = open(name, (O_RDONLY|O_DIRECT));
@@ -335,10 +351,10 @@ odisk_release_obj(obj_data_t * obj)
 	/*
 	 * we can release the lock now because we own the last reference
 	 * (or else someone screwed up).
-	 */	
+	 */
 	pthread_mutex_unlock(&obj->mutex);
 
-	
+
 	/* XXX make assert ?? */
 	if (obj == NULL) {
 		return(1);
@@ -355,7 +371,7 @@ odisk_release_obj(obj_data_t * obj)
 		free(cur);
 		cur = next;
 	}
-	
+
 	pthread_mutex_destroy(&obj->mutex);
 	free(obj);
 	return(1);
@@ -684,7 +700,7 @@ odisk_pr_next(pr_obj_t **new_object)
 	while (1) {
 		if (!ring_empty(obj_pr_ring)) {
 			tmp = ring_deq(obj_pr_ring);
-			
+
 			pthread_cond_signal(&pr_bg_queue_cv);
 			if( tmp->oattr_fnum == -1 ) {
 				free(tmp);
@@ -732,9 +748,9 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 	}
 
 	/* see if we have partials to load */
-	if ((pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || 
+	if ((pr_obj->filters==NULL) || (pr_obj->fsig==NULL) ||
 	    (pr_obj->iattrsig==NULL) || (pr_obj->oattr_fnum==0) ||
-			(dynamic_load_oattr( ring_count(obj_ring) ) == 0) ) {
+	    (dynamic_load_oattr( ring_count(obj_ring) ) == 0) ) {
 		return(0);
 	}
 
@@ -750,8 +766,8 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		rt_start(&rt);
 
 		err = obj_read_oattr(odisk->odisk_path, pr_obj->obj_id,
-			pr_obj->fsig[i], pr_obj->iattrsig[i], 
-			&(*new_object)->attr_info);
+		                     pr_obj->fsig[i], pr_obj->iattrsig[i],
+		                     &(*new_object)->attr_info);
 
 		rt_stop(&rt);
 		time_ns = rt_nanos(&rt);
@@ -933,7 +949,7 @@ odisk_main(void *arg)
 		} else if (err != 0) {
 			printf("ERR IS %d\n", err);
 			assert(0);
-		} 
+		}
 
 
 		pthread_mutex_lock(&odisk_mutex);
@@ -943,7 +959,7 @@ odisk_main(void *arg)
 				break;
 			}
 
-			/* 
+			/*
 			 * try to enqueue the object, if the ring is full we will
 			 * get an error.  If error we sleep until more
 			 * space is available.
@@ -1003,10 +1019,13 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
 		return (EINVAL);
 	}
 
+	/* make sure we have a reasonble umask */
+	umask(0);
+
 	sig_cal_init();
 
 	/* clear umask so we get file permissions we specify */
-	umask(0777);
+	// XXX umask(0777);
 
 	ring_init(&obj_ring, OBJ_RING_SIZE);
 	ring_init(&obj_pr_ring, OBJ_PR_RING_SIZE);
@@ -1021,15 +1040,15 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
 
 	if (dctl_cookie != NULL) {
 		dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &new_state->obj_load);
+		                   dctl_read_uint32, NULL, &new_state->obj_load);
 		dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &new_state->next_blocked);
-		dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", 
-			   DCTL_DT_UINT32, dctl_read_uint32, NULL, 
-			   &new_state->readahead_full);
+		                   dctl_read_uint32, NULL, &new_state->next_blocked);
+		dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked",
+		                   DCTL_DT_UINT32, dctl_read_uint32, NULL,
+		                   &new_state->readahead_full);
 		dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load",
-			DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32,
-			&dynamic_load);
+		                   DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32,
+		                   &dynamic_load);
 	}
 
 	/*
@@ -1039,7 +1058,7 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
 
 	for (i=0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, PATTR_DEFAULT,
-	                     odisk_main, (void *) new_state);
+		                     odisk_main, (void *) new_state);
 	}
 
 	*odisk = new_state;
@@ -1149,10 +1168,10 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	int				skip_copy = 0;
 
 	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", odisk->odisk_path,
-				   GID_IDX, *gid);
+	               GID_IDX, *gid);
 	assert(len < NAME_MAX);
 	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
-				   GID_IDX, *gid);
+	               GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
 
@@ -1168,14 +1187,14 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	old_file = fopen(old_name, "r");
 	if (old_file == NULL) {
 		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
-				old_name);
+		        old_name);
 		skip_copy = 1;
 	}
 
 	new_file = fopen(new_name, "w+");
 	if (new_file == NULL) {
 		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
-				new_name);
+		        new_name);
 		return;
 	}
 
@@ -1504,8 +1523,8 @@ odisk_build_indexes(odisk_state_t * odisk)
 			/*
 			 * XXX log 
 			 */
-			fprintf(stderr, "load obj <%s> failed on %d \n", 
-				max_path, err);
+			fprintf(stderr, "load obj <%s> failed on %d \n",
+			        max_path, err);
 			return (err);
 		}
 
@@ -1619,17 +1638,28 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 	closedir(dir);
 }
 
-static int
-dynamic_load_oattr(int ring_depth)
+/*
+ * Create "special" null object that indicates the end of a data
+ * stream.  This is a bit of a hack, but ...
+ */
+
+obj_data_t     *
+odisk_null_obj()
 {
-	if( dynamic_load == 0 ) {
-		return(1);
-	}
-
-	if( ring_depth < 3 ) {
-		return(0);
-	} else {
-		return(1);
-	}
-
+    obj_data_t     *new_obj;
+                                                                                
+    new_obj = (obj_data_t *) malloc(sizeof(*new_obj));
+    assert(new_obj != NULL);
+                                                                                
+    new_obj->data_len = 0;
+    new_obj->data = NULL;
+    new_obj->base = NULL;
+    new_obj->ref_count = 1;
+    pthread_mutex_init(&new_obj->mutex, NULL);
+                                                                                
+    new_obj->attr_info.attr_ndata = 0;
+    new_obj->attr_info.attr_dlist = NULL;
+                                                                                
+    return (new_obj);
 }
+

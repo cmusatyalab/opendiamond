@@ -55,8 +55,8 @@
 
 int	pr_fetch = 0;
 
-                                                                              
-                                                                               
+
+
 
 static void *
 obj_fetch(void *arg)
@@ -69,7 +69,7 @@ obj_fetch(void *arg)
 	struct timezone tz;
 	double		start, endt, difft;
 	double		rate;
-	
+
 	gettimeofday(&tv, &tz);
 	start = (double)tv.tv_sec + (double)tv.tv_sec/(double)1000000.0;
 	while (1) {
@@ -81,11 +81,11 @@ obj_fetch(void *arg)
 			rate = (double)cnt/difft;
 
 			printf("search done: time %f rate %f fetch %d cnt %d\n",
-				difft, rate, pr_fetch, cnt);
+			       difft, rate, pr_fetch, cnt);
 			exit(0);
 		} else if (err) {
-
-		} else {
+		}
+		else {
 			cnt++;
 			odisk_release_obj(new_obj);
 		}
@@ -96,17 +96,17 @@ obj_fetch(void *arg)
 static void
 mark_end()
 {
-        pr_obj_t * pr_obj;
-                                                                               
-        pr_obj = (pr_obj_t *) malloc( sizeof(*pr_obj) );
-        pr_obj->obj_id = 0;
-        pr_obj->filters = NULL;
-        pr_obj->fsig = NULL;
-        pr_obj->iattrsig = NULL;
-        //pr_obj->oattr_fname = NULL;
-        pr_obj->oattr_fnum = -1;
-        pr_obj->stack_ns = 0;
-        odisk_pr_add(pr_obj);
+	pr_obj_t * pr_obj;
+
+	pr_obj = (pr_obj_t *) malloc( sizeof(*pr_obj) );
+	pr_obj->obj_id = 0;
+	pr_obj->filters = NULL;
+	pr_obj->fsig = NULL;
+	pr_obj->iattrsig = NULL;
+	//pr_obj->oattr_fname = NULL;
+	pr_obj->oattr_fnum = -1;
+	pr_obj->stack_ns = 0;
+	odisk_pr_add(pr_obj);
 }
 
 static void *
@@ -120,20 +120,20 @@ get_oid_loop(void *arg)
 	while (1) {
 		err = odisk_read_next_oid(&oid, odisk);
 		if (err == 0) {
-   			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
-                	pr_obj->obj_id = oid;
-                	pr_obj->filters = NULL;
-                	pr_obj->fsig = NULL;
-                	pr_obj->iattrsig = NULL;
-                	pr_obj->oattr_fnum = 0;
-                	pr_obj->stack_ns = 0;
-                	odisk_pr_add(pr_obj);
+			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
+			pr_obj->obj_id = oid;
+			pr_obj->filters = NULL;
+			pr_obj->fsig = NULL;
+			pr_obj->iattrsig = NULL;
+			pr_obj->oattr_fnum = 0;
+			pr_obj->stack_ns = 0;
+			odisk_pr_add(pr_obj);
 			pr_fetch++;
 		} else if (err == ENOENT) {
 			printf("get oid done \n");
 			mark_end();
 			break;
-		} 
+		}
 	}
 	return(NULL);
 }

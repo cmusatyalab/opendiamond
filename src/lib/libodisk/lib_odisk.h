@@ -146,6 +146,9 @@ int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
 
 int odisk_get_attr_sig(obj_data_t *obj, const char *name, char *data, int len);
 
+                                                                                
+obj_data_t     * odisk_null_obj();
+
 
 /* JIAYING */
 int odisk_read_next_oid(uint64_t *oid, odisk_state_t *odisk);

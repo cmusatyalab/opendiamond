@@ -45,6 +45,8 @@
 #include <dirent.h>
 #include <stdint.h>
 #include "lib_od.h"
+#include "lib_log.h"
+#include "lib_dctl.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 
@@ -54,8 +56,6 @@ remove_some_attr(obj_attr_t *attr, int size, int num)
 	int	i;
 	int	err;
 	char	name_string[128];
-
-
 
 	for (i=0; i < num; i++) {
 		sprintf(name_string, "some_attr_%d_%d", size, i);
@@ -233,7 +233,6 @@ main(int argc, char **argv)
 	void *		dctl_cookie;
 	obj_id_t 	oid;
 	groupid_t 	gid;
-	int			old_size;
 	int		err;
 
 	log_init(&log_cookie);

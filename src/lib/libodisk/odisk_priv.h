@@ -89,6 +89,9 @@ typedef	struct gid_idx_ent {
 #define	ALIGN_VAL(base)	(void*)(((uint32_t)(base)+ OBJ_ALIGN - 1) & ALIGN_MASK)
 #define	ALIGN_ROUND(sz)	(((sz) + OBJ_ALIGN - 1) & ALIGN_MASK)
 
+/* some maintence functions */
+int odisk_write_oids(odisk_state_t * odisk, uint32_t devid);
+
 
 #endif	/* !_ODISK_PRIV_H_ */
 

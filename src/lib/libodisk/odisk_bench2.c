@@ -55,57 +55,7 @@
 
 int	pr_fetch = 0;
 
-                                                                              
 
-static void *
-obj_fetch(void *arg)
-{
-	odisk_state_t *	odisk = (odisk_state_t *)arg;
-	obj_data_t *	new_obj;
-	int		err;
-	int		cnt = 0;
-	struct timeval	tv;
-	struct timezone tz;
-	double		start, endt, difft;
-	double		rate;
-	
-	gettimeofday(&tv, &tz);
-	start = (double)tv.tv_sec + (double)tv.tv_sec/(double)1000000.0;
-	while (1) {
-		err = odisk_next_obj(&new_obj, odisk);
-		if (err == ENOENT) {
-			gettimeofday(&tv, &tz);
-			endt = (double)tv.tv_sec + (double)tv.tv_sec/(double)1000000.0;
-			difft = endt - start;
-			rate = (double)cnt/difft;
-
-			printf("search done: time %f rate %f fetch %d cnt %d\n",
-				difft, rate, pr_fetch, cnt);
-			exit(0);
-		} else if (err) {
-
-		} else {
-			cnt++;
-			odisk_release_obj(new_obj);
-		}
-	}
-}
-
-static void
-mark_end()
-{
-        pr_obj_t * pr_obj;
-                                                                               
-        pr_obj = (pr_obj_t *) malloc( sizeof(*pr_obj) );
-        pr_obj->obj_id = 0;
-        pr_obj->filters = NULL;
-        pr_obj->fsig = NULL;
-        pr_obj->iattrsig = NULL;
-        //pr_obj->oattr_fname = NULL;
-        pr_obj->oattr_fnum = -1;
-        pr_obj->stack_ns = 0;
-        odisk_pr_add(pr_obj);
-}
 
 static void *
 get_oid_loop(void *arg)
@@ -114,26 +64,25 @@ get_oid_loop(void *arg)
 	char path_name[NAME_MAX];
 	int	err;
 	uint64_t	oid;
-	pr_obj_t *	pr_obj;
 	int		cnt = 0;
 	struct timeval	tv;
 	struct timezone tz;
 	double		start, endt, difft;
 	double		rate;
 	obj_data_t *	new_obj;
-	
+
 	gettimeofday(&tv, &tz);
 	start = (double)tv.tv_sec + (double)tv.tv_sec/(double)1000000.0;
 	while (1) {
 		err = odisk_read_next_oid(&oid, odisk);
 		if (err == 0) {
-        		sprintf(path_name, "%s/OBJ%016llX", 
-				odisk->odisk_path, oid);
+			sprintf(path_name, "%s/OBJ%016llX",
+			        odisk->odisk_path, oid);
 			err = odisk_load_obj(odisk, &new_obj, path_name);
-        		if (err) {
-                		printf("load obj <%s> failed %d \n", 
-					path_name, err);
-        		} else {
+			if (err) {
+				printf("load obj <%s> failed %d \n",
+				       path_name, err);
+			} else {
 				cnt++;
 				odisk_release_obj(new_obj);
 			}
@@ -144,11 +93,11 @@ get_oid_loop(void *arg)
 			rate = (double)cnt/difft;
 
 			printf("search done: time %f rate %f cnt %d\n",
-				difft, rate, cnt);
+			       difft, rate, cnt);
 			exit(0);
 		} else {
 			printf("unknown error \n");
-		} 
+		}
 	}
 	return(NULL);
 }
@@ -162,7 +111,6 @@ main(int argc, char **argv)
 	void *		dctl_cookie;
 	gid_t 	gid = 0x040001;
 	int		err;
-	pthread_t 	id;
 
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);

@@ -230,7 +230,6 @@ hstub_read_data(sdevice_state_t *dev)
 		obj->attr_info.attr_len = alen;
 		obj->attr_info.attr_data = adata;
 		obj->remain_compute = (float)ntohl(cinfo->data_rx_header.remain_compute)/1000.0;
-		printf("remain compute= %f \n", obj->remain_compute);
 		cinfo->data_rx_obj = obj;
 
 		attr_offset = 0;

@@ -15,7 +15,39 @@ use File::Temp qw/ tempfile tempdir /;
 # - Original-Ref: attribute exists in reduced resolution image
 #   only, and gives the OID of the original image.
 
-die "Usage $0 directory [machine1 ... machinen]" unless scalar(@ARGV) >= 1;
+my $main_pid = $$;
+my @gids;
+my $insert_parent = 0; # whether to insert parent objects
+
+sub usage {
+    return <<EOT;
+Usage $0 [options] src-dir [dest-machine-list]
+options:
+[-g<gid1>] [-g<gid2>] - gids to be used they should be in the 
+      gid_map file. if gids are specified, machine names will be ignored.
+      gids should be specified as : separated bytes in hex. gids will
+      be padded to 64 bits length (8 bytes).
+-h    - this help text
+-p    - insert parents also
+EOT
+}
+
+
+while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
+    if(/^-g(.*)/) {
+	# this should be a : separated hex string
+	push(@gids, check_gid($1));
+    }
+    if(/^-h/) {
+	die usage();
+    }
+    if(/^-p/) {
+	die $insert_parent = 1;
+    }
+    shift @ARGV;
+}
+
+die usage() unless scalar(@ARGV) >= 1;
 
 # print "$0 ", join(' ', @ARGV), "\n";
 
@@ -34,9 +66,6 @@ my %valid = (
 
 # This will probably change TODO
 my $insert_command = "./apitest";
-
-# whether to insert parent objects
-my $insert_parent = 0;
 
 # don't really do anything (imperfect)
 my $noact;# = 1;
@@ -63,18 +92,26 @@ my $count = 0;	# Number of files inserted so far
 my $nchild = 0;
 my $maxchild = 5;
 
-my $main_pid = $$;
 
 &process_gidmapfile();
 
 # Two unique, unused gids.
-# gid1 is for the originals
-# gid2 is for the reduced-resolution ones
-my $gid1 = &generate_gid;
-my $gid2 = &generate_gid;
-open (GIDMAP, ">>gid_map") or die "Unable to append ./gid_map";
-print GIDMAP "#\n# $root\n$gid1\t$machines\n$gid2\t$machines\n";
-close GIDMAP;
+# gids[2] is for the originals
+# gids[1] is for the reduced-resolution ones
+$#gids  = 1;			#  only need 2
+foreach my $gid (@gids) {# foreach is by ref
+    if(defined $gid) {
+	die("gid $gid not defined in map file") unless $used_gid{$gid};
+    } else {
+	$gid = &generate_gid;
+
+	open (GIDMAP, ">>gid_map") or die "Unable to append ./gid_map";
+	print GIDMAP "#\n# $root\n$gid\t$machines\n";
+	close GIDMAP;
+    }
+}
+
+die;
 
 &process_directory($root);
 
@@ -102,7 +139,7 @@ sub process_gidmapfile {
     chomp;
     next if /^\s*$/ or /^#/;
     my ($g) = /^([:\dabcdefABCDEF]+)/;	# Colon separated hex string
-    $g =~ s/://g;
+    #$g =~ s/://g;
     $g = "\L$g";
     $used_gid{$g}++;
   }
@@ -220,7 +257,7 @@ sub process_image {
   if($insert_parent) {
       # build args
       #args: file gid [attr1 val1] [attr2 val2]
-      @args = ($img, $gid1,
+      @args = ($img, $gids[2],
 	       'Display-Name', $dispname,
 	       'Keywords', $keywords,
 	       'Content-Type', $valid{$ext});
@@ -250,7 +287,7 @@ sub process_image {
       }
   }
 
-  @args = ($tempfile, $gid2,
+  @args = ($tempfile, $gids[1],
 	   'Display-Name', $dispname,
 	   'Keywords', $keywords,
 	   'Content-Type', $valid{$tempext},
@@ -283,4 +320,14 @@ sub process_image {
 my $qseq = 1;
 sub qid {
     return sprintf("%d:%03d ", $$, $qseq++);
+}
+
+sub check_gid {
+    my($gid) = @_;
+    my(@parts) = split(/:/, $gid);
+    while(scalar(@parts) < 8) {
+	unshift(@parts, 0);
+    }
+    $#parts = 7;		# only 8 components
+    return join(':', map { sprintf("%02x", hex $_) } (@parts) );
 }

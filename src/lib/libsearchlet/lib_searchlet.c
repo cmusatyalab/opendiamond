@@ -295,6 +295,8 @@ ls_start_search(ls_search_handle_t handle)
 
 	cur_dev = sc->dev_list;
 	while (cur_dev != NULL) {
+		/* clear the complete flag */
+		cur_dev->flags &= ~DEV_FLAG_COMPLETE;
 		err = device_start(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
 			/*

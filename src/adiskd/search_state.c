@@ -176,8 +176,7 @@ search_term(void *app_cookie, int id)
 int
 search_setlog(void *app_cookie, uint32_t level, uint32_t src)
 {
-	uint32_t        hlevel,
-	hsrc;
+	uint32_t        hlevel, hsrc;
 
 	hlevel = ntohl(level);
 	hsrc = ntohl(src);
@@ -185,7 +184,6 @@ search_setlog(void *app_cookie, uint32_t level, uint32_t src)
 	log_setlevel(hlevel);
 	log_settype(hsrc);
 	return (0);
-
 }
 
 
@@ -206,10 +204,8 @@ search_start(void *app_cookie, int id)
 	if (cmd == NULL) {
 		return (1);
 	}
-
 	cmd->cmd = DEV_START;
 	cmd->id = id;
-
 
 	err = ring_enq(sstate->control_ops, (void *) cmd);
 	if (err) {
@@ -287,7 +283,6 @@ static void
 sstats_process(void *cookie)
 {
 	search_state_t * sstate = (search_state_t *)cookie;
-
 	sstate->obj_processed++;
 }
 
@@ -305,14 +300,11 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 	switch (cmd->cmd) {
 		case DEV_STOP:
 			/*
-			 * Stop the current search by 
-			 *
+			 * Stop the current search 
 			 */
 			sstate->flags &= ~DEV_FLAG_RUNNING;
-
-
 			err = odisk_flush(sstate->ostate);
-			assert( err==0 );
+			assert(err==0);
 
 			ceval_stop(sstate->fdata);
 			/*
@@ -501,7 +493,6 @@ dynamic_update_bypass(search_state_t *sstate)
 	if (sstate->split_ratio > 100) {
 		sstate->split_ratio = 100;
 	}
-
 }
 
 static void
@@ -535,17 +526,6 @@ static int
 continue_fn(void *cookie)
 {
 	search_state_t *sstate = cookie;
-
-#ifdef	XXX_OLD
-	/* XXX include input queue size */
-	if ((sstate->pend_compute < sstate->split_bp_thresh) &&
-	    (odisk_num_waiting(sstate->ostate) > 0)) {
-		return(0);
-	} else {
-		return(1);
-	}
-#else
-
 	float	avg_cost;
 	int	err;
         err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
@@ -560,7 +540,6 @@ continue_fn(void *cookie)
 	} else {
 		return(1);
 	}
-#endif
 
 }
 
@@ -633,8 +612,8 @@ device_main(void *arg)
 			}
 			if (err == ENOENT) {
 				time_t	cur_time;
-      				time(&cur_time);
-        			fprintf(stderr, "last obj at %s", ctime(&cur_time));
+				time(&cur_time);
+				fprintf(stderr, "last obj at %s", ctime(&cur_time));
 				/*
 				 * We have processed all the objects,
 				 * clear the running and set the complete
@@ -698,16 +677,6 @@ device_main(void *arg)
 					force_eval = 1;
 				}
 
-				/*
-						err = ceval_filters1(new_obj, sstate->fdata, force_eval, 
-							sstate, continue_fn, NULL);
-				 
-						if( err ) {
-						    err = ceval_filters2(new_obj, sstate->fdata, force_eval,
-								sstate->ostate->odisk_path, sstate, continue_fn, NULL);
-						}
-				*/
-
 				err = ceval_filters2(new_obj, sstate->fdata, force_eval,
 				                     sstate, continue_fn, NULL);
 
@@ -745,9 +714,6 @@ device_main(void *arg)
 		 * If we didn't have any work to process this time around,
 		 * then we sleep on a cond variable for a small amount
 		 * of time.
-		 */
-		/*
-		 * XXX move mutex's to the state data structure 
 		 */
 		if (!any) {
 			timeout.tv_sec = 0;
@@ -802,7 +768,6 @@ log_main(void *arg)
 
 		len = log_getbuf(&log_buf);
 		if (len > 0) {
-
 			/*
 			 * send the buffer 
 			 */
@@ -828,7 +793,6 @@ log_main(void *arg)
 			 * be re-used.
 			 */
 			log_advbuf(len);
-
 		} else {
 			gettimeofday(&now, &tz);
 			pthread_mutex_lock(&sstate->log_mutex);
@@ -1151,8 +1115,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_processed = sstate->obj_processed;
 	stats->ds_objs_dropped = sstate->obj_dropped;
 	stats->ds_objs_nproc = sstate->obj_skipped;
-	stats->ds_system_load = (int) (fexec_get_load(sstate->fdata) * 100.0);  /* XXX
-	                                                                             */
+	stats->ds_system_load = (int) (fexec_get_load(sstate->fdata) * 100.0); 
 	stats->ds_avg_obj_time = 0;
 	stats->ds_num_filters = num_filt;
 
@@ -1178,9 +1141,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR,
 		            "search_get_stats: failed to send stats");
-		return;
 	}
-
 	return;
 }
 
@@ -1197,8 +1158,7 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 	int             len;
 	char            data_buf[MAX_DBUF];
 	dctl_data_type_t dtype;
-	int             err,
-	eno;
+	int             err, eno;
 	search_state_t *sstate;
 
 	sstate = (search_state_t *) app_cookie;
@@ -1335,7 +1295,6 @@ search_clear_gids(void *app_cookie, int gen_num)
 	/*
 	 * XXX check gen num 
 	 */
-
 	sstate = (search_state_t *) app_cookie;
 	err = odisk_clear_gids(sstate->ostate);
 	assert(err == 0);

@@ -66,7 +66,7 @@ typedef	void *	ls_search_handle_t;
 typedef	void *	ls_obj_handle_t;
 
 /*
- * The handle to a current object. (XXX)
+ * A handle to a device in the search.
  */
 typedef	void *	ls_dev_handle_t;
 
@@ -83,15 +83,13 @@ typedef	void *	ls_dev_handle_t;
  */
 
 typedef struct filter_stats {
-	char		fs_name[MAX_FILTER_NAME];  /* the filter name */
-	int		fs_objs_processed;	   /* objs processed by filter*/
-	int		fs_objs_dropped;	   /* obj dropped by filter */
-/* JIAYING */
-	int		fs_objs_cache_dropped;	   
-	int		fs_objs_cache_passed;	   
-	int		fs_objs_compute;	   
-/* JIAYING */
-	rtime_t		fs_avg_exec_time;	   /* avg time spent in filter*/
+	char		fs_name[MAX_FILTER_NAME];  	/* the filter name */
+	int			fs_objs_processed;	   		/* objs processed by filter*/
+	int			fs_objs_dropped;	   		/* obj dropped by filter */
+	int			fs_objs_cache_dropped;	  	/* objs dropped from cache */ 
+	int			fs_objs_cache_passed;	   	/* cache pass results */
+	int			fs_objs_compute;	  		 
+	rtime_t		fs_avg_exec_time;	  		 /* avg time spent in filter*/
 } filter_stats_t;
 
 
@@ -114,7 +112,6 @@ typedef struct dev_stats {
 	filter_stats_t	ds_filter_stats[0];	/* list of filter */
 } dev_stats_t;
 
-/* copy from lib_log.h */
 #ifndef offsetof
 #define offsetof(type, member) ( (int) & ((type*)0) -> member )
 #endif

@@ -258,6 +258,9 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 
     info = &fdata->fd_filters[pmElt(perm, i)];
     n = info->fi_called;
+	if (n == 0) {
+		n = 1;
+	}
     maxbytes += (double) info->fi_added_bytes / (double) n;
 	this_cost = pass * ((double)info->fi_time_ns / (double) n); /* update cumulative cost */
 	/* we don't want the incremental cost to be zero */
@@ -273,8 +276,7 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
     } else {
       /* really no data, return an error */
       /* XXX */
-      assert(0);
-      return;
+	  p = 1.0;
     }
     
     assert(p >= 0 && p <= 1.0);

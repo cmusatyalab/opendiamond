@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
+#include <dirent.h>
 #include "obj_attr.h"
 
 
@@ -109,7 +110,7 @@ int
 main(int argc , char **argv) 
 {
 	int			i;
-	char			attr_name[MAX_ATTR_NAME];
+	char			attr_name[NAME_MAX];
 	char *			cur_file;
 	char *			poss_ext;
 	int			flen;

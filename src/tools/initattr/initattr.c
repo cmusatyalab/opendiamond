@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <dirent.h>
 #include "attr.h"
 #include "obj_attr.h"
 
@@ -102,8 +103,8 @@ int
 main(int argc , char **argv) 
 {
 	int			i = 1;
-	char			attr_name[MAX_ATTR_NAME];
-	char			base_name[MAX_ATTR_NAME];
+	char			attr_name[NAME_MAX];
+	char			base_name[NAME_MAX];
 	char *			cur_file;
 	char *			poss_ext;
 	int			flen;

@@ -94,7 +94,7 @@ extern int lf_close_lib(lf_fhandle_t *fhandle);
  */
 
 int
-lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, 
+lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name, 
 	     off_t *len, char *data)
 {
 	obj_data_t	*odata;

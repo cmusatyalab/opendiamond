@@ -11,7 +11,7 @@
 #include <dirent.h>
 #include "obj_attr.h"
 #include "lib_odisk.h"
-/* #include "lib_search_priv.h" */
+#include "attr.h"
 
 #define	DIR_PATH_NAME	"/opt/dir1"
 #define	MAX_FNAME	128

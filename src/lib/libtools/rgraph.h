@@ -14,7 +14,7 @@
 struct node_t;
 typedef struct edge_t {
   struct node_t        *eg_v;
-  TAILQ_ENTRY(edge_t)  eg_link;
+//  TAILQ_ENTRY(edge_t)  eg_link;
 
   /* user's data */
   int                  eg_val;

@@ -303,4 +303,11 @@ extern int lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,
 extern int lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...);
 
 
+/*
+ * a hack to dump the attribute names to stdout. Tries to print out
+ * the values as well, if it can locate a print method */
+/* XXX */
+extern int lf_dump_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj);
+
+
 #endif /* _LIB_FILTER_H_  */

@@ -86,6 +86,8 @@ gInitFromList(graph_t *g, graph_t *src) {
   gInit(g);
   GLIST(src, np) {
     node = gNewNode(g, np->label);
+    node->val = np->val;	/* XXX */
+
     if(prev) gAddEdge(g, prev, node);
     prev = node;
   }
@@ -242,7 +244,7 @@ topo_visit(node_t *np, nodelist_t *list) {
   if(np->color == 2) return 0;	/* bottom of recursion */
 
   np->color = 1;
-  //fprintf(stderr, "visiting %s\n", np->label);
+  fprintf(stderr, "visiting %s\n", np->label);
   //TAILQ_FOREACH(ep, &np->edges, eg_link) {
   sort_edgelist(&np->edgelist);	/* XXX */
   VEC_FOREACH(ep, &np->edgelist) {
@@ -252,7 +254,7 @@ topo_visit(node_t *np, nodelist_t *list) {
   if(loop) return loop;
 
   /* finished this node, so all descendants are done. safe to add to done list. */
-  //fprintf(stderr, "added %s\n", np->label);
+  fprintf(stderr, "added %s\n", np->label);
   TAILQ_INSERT_HEAD(list, np, olink);
 
   return 0;

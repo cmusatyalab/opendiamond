@@ -299,6 +299,10 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
          */
         sstate->flags &= ~DEV_FLAG_RUNNING;
 
+	ceval_stop();
+
+	err = odisk_flush(sstate->ostate);
+	assert( err==0 );
         /*
          * clean up the filter exec state 
          */
@@ -310,6 +314,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
         err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
         assert(err == 0);
 
+	//usleep(1000);
         break;
 
     case DEV_TERM:

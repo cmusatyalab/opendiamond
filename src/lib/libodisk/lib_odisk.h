@@ -139,6 +139,7 @@ int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
 /* JIAYING */
 int odisk_read_next_oid(uint64_t *oid, odisk_state_t *odisk);
 int odisk_pr_add(pr_obj_t *pr_obj);
+int odisk_flush(odisk_state_t *odisk);
 
 #ifdef	__cplusplus
 }

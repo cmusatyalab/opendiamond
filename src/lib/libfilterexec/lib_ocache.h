@@ -109,6 +109,8 @@ int ceval_init_search(filter_data_t * fdata, struct ceval_state *cstate);
 int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk, void *cookie, stats_drop stats_drop_fn, stats_process stats_process_fn);
 
 int ceval_start();
+int ceval_stop();
+
 int ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie, 
                          int (*cb_func) (void *cookie, char *name,
                                            int *pass, uint64_t * et));

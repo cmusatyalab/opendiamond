@@ -308,6 +308,18 @@ odisk_release_obj(odisk_state_t * odisk, obj_data_t * obj)
     return (0);
 }
 
+static int
+odisk_release_pr_obj(pr_obj_t * pobj)
+{
+	if( pobj->filters != NULL ) {
+        	free(pobj->filters);
+	}
+	if( pobj->oattr_fname != NULL ) {
+        	free(pobj->oattr_fname);
+	}
+	free(pobj);
+	return (0);
+}
 
 int
 odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
@@ -692,6 +704,11 @@ odisk_pr_add(pr_obj_t *pr_obj)
         } else {
                 pr_bg_wait_q = 1;
                 pthread_cond_wait(&pr_bg_queue_cv, &shared_mutex);
+		if( search_active == 0 ) {
+			odisk_release_pr_obj(pr_obj);
+			pthread_mutex_unlock(&shared_mutex);
+			return(0);
+		}
                 ring_enq(obj_pr_ring, pr_obj);
         }
         if( pr_fg_wait ) {
@@ -722,7 +739,7 @@ again:
                                 }
                                 sscanf(gid_ent.gid_name, "OBJ%016llX", &local_id);
                                 *oid = local_id;
-				//printf("odisk_read_next_oid: %016llX\n", local_id);
+				printf("odisk_read_next_oid: %016llX\n", local_id);
                                 return(0);
                         } else {
                                 fclose(odisk->index_files[i]);
@@ -742,6 +759,51 @@ again:
                 //search_done = 1;
                 return(ENOENT);
         }
+}
+
+int
+odisk_flush(odisk_state_t *odisk)
+{
+   pr_obj_t *	pobj;
+   obj_data_t *	obj;
+   int err;
+
+   printf("odisk_flush\n");
+
+   pthread_mutex_lock(&shared_mutex);
+   search_active = 0;
+   while(1) {
+	if( !ring_empty(obj_pr_ring) ) {
+		pobj = ring_deq(obj_pr_ring);
+		if( pobj != NULL )
+			odisk_release_pr_obj(pobj);
+	} else {
+		break;
+	}
+   }
+   printf("after flushing obj_pr_ring\n");
+   while(!ring_empty(obj_ring)) {
+	if( !ring_empty(obj_ring) ) {
+		obj = ring_deq(obj_ring);
+		if( obj != NULL )
+			odisk_release_obj(odisk, obj);
+	} else {
+		break;
+	}
+   }
+   printf("after flushing obj_ring\n");
+   if (pr_bg_wait_q) {
+	pr_bg_wait_q = 0;
+	pthread_cond_signal(&pr_bg_queue_cv);
+   }
+   if (bg_wait_q) {
+	bg_wait_q = 0;
+	pthread_cond_signal(&bg_queue_cv);
+   }
+   pthread_mutex_unlock(&shared_mutex);
+		
+   printf("odisk_flush done\n");
+  return(0);
 }
 
 static void    *
@@ -782,10 +844,6 @@ odisk_main(void *arg)
                 pthread_cond_signal(&fg_data_cv);
             }
         } else {
-            if (fg_wait) {
-                fg_wait = 0;
-                pthread_cond_signal(&fg_data_cv);
-            }
             if (!ring_full(obj_ring)) {
                 err = ring_enq(obj_ring, nobj);
                 assert(err == 0);
@@ -793,12 +851,17 @@ odisk_main(void *arg)
                 ostate->readahead_full++;
                 bg_wait_q = 1;
                 pthread_cond_wait(&bg_queue_cv, &shared_mutex);
+		if( search_active == 0 ) {
+			odisk_release_obj(ostate, nobj);
+			pthread_mutex_unlock(&shared_mutex);
+			continue;
+		}
                 err = ring_enq(obj_ring, nobj);
                 assert(err == 0);
-                if (fg_wait) {
-                    fg_wait = 0;
-                    pthread_cond_signal(&fg_data_cv);
-                }
+            }
+            if (fg_wait) {
+                fg_wait = 0;
+                pthread_cond_signal(&fg_data_cv);
             }
         }
         pthread_mutex_unlock(&shared_mutex);

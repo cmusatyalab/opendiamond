@@ -149,6 +149,16 @@ ceval_start()
 }
 
 int
+ceval_stop()
+{
+    pthread_mutex_lock(&ceval_mutex);
+    search_active = 0;
+    pthread_mutex_unlock(&ceval_mutex);
+
+    return (0);
+}
+
+int
 ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 			 int (*cb_func) (void *cookie, char *name,
                                            int *pass, uint64_t * et))
@@ -363,7 +373,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
     int miss=0;
     char *fpath;
 
-    //printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
+    printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
     log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
 
     if (fdata->fd_num_filters == 0) {

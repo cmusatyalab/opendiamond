@@ -199,7 +199,7 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 				 */
                 in.s_addr = host_ids[j];
                 name = inet_ntoa(in);
-				printf("Failed to connect to device %s \n", name);
+				printf("Failed to connect to device %s for gid %d\n", name, (int)cur_gid);
                 assert(0);
 				return (EINVAL);
 

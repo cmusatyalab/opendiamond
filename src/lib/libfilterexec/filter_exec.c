@@ -26,6 +26,24 @@
 extern int read_filter_spec(char *spec_name, filter_info_t **finfo,
 			    char **root_name);
 
+/*
+ * Some state to keep track of the active filter.
+ */
+static filter_info_t  		*active_filter = NULL;
+static char			*no_filter = "None";
+
+char *
+fexec_cur_filtname()
+{
+	if (active_filter != NULL) {
+		return(active_filter->fi_name);
+	} else {
+		return(no_filter);
+	}
+}
+		
+
+
 
 static int
 load_filter_lib(char *lib_name, filter_info_t *froot)
@@ -459,6 +477,7 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 	}
 
 	while (cur_filter != NULL) {
+		active_filter = cur_filter;
 
 		/*
 		 * the name used to store execution time,
@@ -539,6 +558,8 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 
 		cur_filter = cur_filter->fi_next;
 	}
+	active_filter = NULL;
+
 	log_message(LOGT_FILT, LOGL_TRACE, 
 	    	"eval_filters:  done - total time is %lld", stack_ns);
 

@@ -13,6 +13,7 @@ extern int fexec_num_filters(struct filter_info *finfo);
 extern int fexec_clear_stats(struct filter_info *finfo);
 extern int fexec_get_stats(struct filter_info *finfo, int max, 
 		filter_stats_t *fstats);
+extern char * fexec_cur_filtname();
 
 
 

@@ -132,6 +132,20 @@ done:
 }
 
 
+static uint32_t		last_level, last_src;
+
+void
+update_device_log_level(search_context_t *sc)
+{
+	device_handle_t	*	cur_dev;
+	int					err;
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+
+		err = device_set_log(cur_dev->dev_handle, last_level, last_src);
+	}
+
+}
+
 
 void
 set_device_log(log_set_level_t *llevel, search_context_t *sc)
@@ -143,14 +157,16 @@ set_device_log(log_set_level_t *llevel, search_context_t *sc)
 	hlevel = ntohl(llevel->log_level);
 	hsrc = ntohl(llevel->log_src);
 
-
 	switch(llevel->log_op) {
 		case LOG_SETLEVEL_ALL: 
-			cur_dev = sc->dev_list;
-			while(cur_dev != NULL) {
+			last_level = llevel->log_level;
+			last_src = llevel->log_src;
+
+			for (cur_dev = sc->dev_list; cur_dev != NULL; 
+							cur_dev = cur_dev->next) {
+
 				err = device_set_log(cur_dev->dev_handle, 
 					llevel->log_level, llevel->log_src);
-				cur_dev = cur_dev->next;
 			}
 
 			log_setlevel(hlevel);
@@ -196,10 +212,31 @@ process_log_data(search_context_t *sc, int conn)
 {
 	log_info_t *linfo;
 	log_set_level_t	llevel;
+	int	next_sec = 0;
+	struct timeval	curtime;
+	struct timezone	tz;
 	int err;
 	int	len;
 
 	while(1) {
+
+		/*
+		 * This code looks at the current time, and if 1 second
+		 * has passed since the last time, it will try to update
+		 * the log levels on each of the storage devices.  This
+		 * deals with the case that we did not have a connection
+		 * with the storage device when the log level was initially
+		 * set.
+		 */
+		err = gettimeofday(&curtime, &tz);
+		assert(err == 0);
+
+		if (curtime.tv_sec >= next_sec) {
+			update_device_log_level(sc);
+			next_sec = curtime.tv_sec + 1;
+		}
+
+
 		/*
 		 * Look to see if there is any control information to
 		 * process.
@@ -259,7 +296,6 @@ log_main(void *arg)
 	 * the socket later.
 	 */
 	umask(0);
-
 
 	sc = (search_context_t *)arg;
 

@@ -415,7 +415,7 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 	filter_info_t  		*cur_filter;
 	int			conf;
 	obj_data_t *		out_list[16];
-	char 			buf[BUFSIZ];
+	char 			timebuf[BUFSIZ];
 	int			err;
 	off_t			asize;
 	int                     pass = 1; /* return value */
@@ -465,10 +465,10 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		 * we use this to see if this function has already
 		 * been executed.
 		 */
-		sprintf(buf, FLTRTIME_FN, cur_filter->fi_name);
+		sprintf(timebuf, FLTRTIME_FN, cur_filter->fi_name);
 
 		asize = sizeof(time_ns);
-		err = obj_read_attr(&obj_handle->attr_info, buf, 
+		err = obj_read_attr(&obj_handle->attr_info, timebuf, 
 				&asize, (void*)&time_ns);
 
 		/*
@@ -493,7 +493,7 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		obj_handle->cur_offset = 0;
 		obj_handle->cur_blocksize = 1024; /* XXX */
 
-		/* XXX save filter name (definite hack) */
+		/* XXX save filter ptr (definite hack) */
 		obj_write_attr(&obj_handle->attr_info,
 			       "_FILTER.ptr",
 			       sizeof(void *), (void*)&cur_filter);
@@ -511,7 +511,7 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		cur_filter->fi_time_ns += time_ns; /* update filter stats */
 		stack_ns += time_ns;
 
-		obj_write_attr(&obj_handle->attr_info, buf, 
+		obj_write_attr(&obj_handle->attr_info, timebuf, 
 				sizeof(time_ns), (void*)&time_ns);
 
 #ifdef PRINT_TIME

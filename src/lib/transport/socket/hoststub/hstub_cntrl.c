@@ -44,6 +44,7 @@ store_dev_char(sdevice_state_t *dev, char *data_buf)
 	/* XXX byte swap when we get it working */
 	dev->dev_char.dc_speed = shead->dcs_isa;
 	dev->dev_char.dc_mem = shead->dcs_mem;
+	dev->dev_char.dc_devid = dev->con_data.dev_id;
 }
 
 

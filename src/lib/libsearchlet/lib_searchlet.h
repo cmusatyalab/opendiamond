@@ -103,6 +103,7 @@ typedef struct device_char {
 	device_isa_t	dc_isa;		/* instruction set of the device    */
 	uint64_t	dc_speed;	/* CPU speed, (some bogomips, etc.) */
 	uint64_t	dc_mem;		/* Available memory for the system  */
+	uint32_t	dc_devid;	/* Available memory for the system  */
 } device_char_t;
 
 /*

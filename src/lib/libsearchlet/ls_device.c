@@ -118,8 +118,8 @@ dev_search_done_cb(void *hcookie, int ver_no)
 {
 
 	device_handle_t *	dev;
-	dev = (device_handle_t *)hcookie;
 	time_t	cur_time;
+	dev = (device_handle_t *)hcookie;
 
 	/*
  	 * If this version number doesn't match this was

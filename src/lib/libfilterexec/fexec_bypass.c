@@ -242,7 +242,7 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
   double this_cost;
   double p, pass = 1;
   double maxbytes = 100.0;
-
+  double ratio;
 	
   hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
   assert(hstate != NULL);
@@ -342,10 +342,15 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
   for(j=0; j<hstate[i].i; j++){
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
   }
+
+  ratio =  (target_ms - hstate[i].c_i) / (hstate[i].c_j - hstate[i].c_i);
+
+  /* cap ratio at 1 */
+  if(ratio>1.0)
+    ratio = 1.0;
+
   (fdata->fd_filters[pmElt(perm, hstate[i].i)]).fi_bpthresh =
-    (int)((float)RAND_MAX *
-	  ((target_ms - hstate[i].c_i) /
-	   (hstate[i].c_j - hstate[i].c_i)));
+    (int)((double)RAND_MAX * ratio);
 
   for(j=hstate[i].i+1; j<hstate[i].j; j++){
     (fdata->fd_filters[pmElt(perm, j)]).fi_bpthresh = RAND_MAX;
@@ -367,6 +372,7 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
     double          avg_cost;
     double          target_cost;
     int             err;
+    int i;
 
     err = fexec_estimate_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 
@@ -404,6 +410,11 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 	
 
     }
+
+    printf("bypass: ");
+    for(i=0; i<pmLength(fdata->fd_perm); i++)
+      printf("%f ", (float)((fdata->fd_filters[pmElt(fdata->fd_perm, i)]).fi_bpthresh)/RAND_MAX);
+    printf("\n");
 
     return (0);
 }

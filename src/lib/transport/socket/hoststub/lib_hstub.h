@@ -29,6 +29,8 @@ extern int device_characteristics(void *handle, device_char_t *dev_chars);
 extern int device_statistics(void *dev, dev_stats_t *dev_stats, 
 		int *stat_len);
 
+extern int device_set_log(void *handle, uint32_t level, uint32_t src);
+
 
 #endif	/* _LIB_HSTUB_H_ */
 

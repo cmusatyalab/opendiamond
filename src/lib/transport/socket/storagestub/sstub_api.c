@@ -32,8 +32,8 @@
 
 
 /*
- * Send the current statistics on a search.
- *
+ * Send the current statistics on a search.  After this is 
+ * called the stat buffer is no longer needed.
  */
 int
 sstub_send_stats(void *cookie, dev_stats_t *stats, int len)
@@ -303,6 +303,7 @@ sstub_init(sstub_cb_args_t *cb_args)
 	list_state->get_char_cb = cb_args->get_char_cb;
 	list_state->get_stats_cb = cb_args->get_stats_cb;
 	list_state->log_done_cb = cb_args->log_done_cb;
+	list_state->setlog_cb = cb_args->setlog_cb;
 
 	/*
 	 * Open the listner sockets for the different types of connections.

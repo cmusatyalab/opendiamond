@@ -14,10 +14,28 @@
 #include "ring.h"
 #include "search_state.h"
 
+/* the default directory that holds our data */
 char *	data_dir = "/opt/dir1/";
 
+
+
+/*
+ * The default behaviors are to create a new daemon at startup time
+ * and to fork whenever a new connection is established.
+ */
 int	do_daemon = 1;
 int	do_fork = 1;
+
+void
+usage()
+{
+	fprintf(stdout, "adiskd [-d] [-n] [-p <pathname>] \n");
+	fprintf(stdout, "\t -d do not run adisk as a daemon \n");
+	fprintf(stdout, "\t -n do not fork for a  new connection \n");
+	fprintf(stdout, "\t -p <pathname>  set alternative data directory \n");
+	fprintf(stdout, "\t -h get this help message \n");
+}
+
 
 int
 main(int argc , char **argv) 
@@ -27,10 +45,12 @@ main(int argc , char **argv)
 	sstub_cb_args_t		cb_args;
 	int			c;
 
-	/* XXX parse arguments for logging, root directory, ... */
+	/*
+	 * Parse any of the command line arguments.
+	 */
 
 	while (1) {
-		c = getopt(argc, argv, "dnp:");
+		c = getopt(argc, argv, "dhnp:");
 		if (c == -1) {
 			break;
 		}
@@ -38,6 +58,11 @@ main(int argc , char **argv)
 
 		case 'd':
 			do_daemon = 0;
+			break;
+
+		case 'h':
+			usage();
+			exit(0);
 			break;
 
 		case 'n':
@@ -48,14 +73,15 @@ main(int argc , char **argv)
 		case 'p':
 			data_dir = optarg;
 			break;
+
 		default:
-			printf("unknown option %c \n", c);
+			usage();
 			exit(1);
+			break;
 		}
 			
 	}
 
-	printf("data dir <%s> \n", data_dir);	
 	
 
 	/* make this a daemon by the appropriate call */
@@ -80,11 +106,13 @@ main(int argc , char **argv)
 	cb_args.get_char_cb = search_get_char;
 	cb_args.get_stats_cb = search_get_stats;
 	cb_args.log_done_cb = search_log_done;
+	cb_args.setlog_cb = search_setlog;
 
 	cookie = sstub_init(&cb_args);
 	if (cookie == NULL) {
 		/* XXX */
-		printf("failed to initialize the stub library \n");
+		fprintf(stderr, 
+			"Unable to initialize the communications library\n");
 		exit(1);
 	}
 

@@ -85,7 +85,7 @@ log_init( )
 	ls->head = 0;
 	ls->tail = 0;
 	ls->drops = 0;
-	ls->level = LOGL_ALL;
+	ls->level = LOGL_ERR;
 	ls->type = LOGT_ALL;
 
 	err = pthread_mutex_init(&log_mutex, NULL);

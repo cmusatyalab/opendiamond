@@ -374,6 +374,16 @@ process_control(listener_state_t *lstate, cstate_t *cstate, char *data)
 			(*lstate->get_char_cb)(cstate->app_cookie, gen);
 			break;
 
+		case CNTL_CMD_SETLOG: {
+			setlog_subheader_t	*sheader;
+			assert(data != NULL);
+			sheader = (setlog_subheader_t *)data;
+			(*lstate->setlog_cb)(cstate->app_cookie, 
+					sheader->log_level, sheader->log_src);
+			free(data);
+			break;
+		}
+
 		default:
 			printf("unknown command: %d \n", cmd);
 			if (data) {

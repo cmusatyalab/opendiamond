@@ -17,6 +17,7 @@
 #define	CNTL_CMD_RET_STATS		8
 #define	CNTL_CMD_GET_CHAR		9
 #define	CNTL_CMD_RET_CHAR		10
+#define	CNTL_CMD_SETLOG			11
 
 
 /*
@@ -84,6 +85,12 @@ typedef struct dstats_subheader {
 	uint64_t	dss_avg_obj_time;
 	uint32_t	dss_num_filters;
 } dstats_subheader_t;
+
+typedef struct {
+	uint32_t	log_level;	/* the level flags */
+	uint32_t	log_src;	/* the source flags */ 
+}  setlog_subheader_t;
+
 
 /*
  * Header that goes on the log buffers that are sent to the host.

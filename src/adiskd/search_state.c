@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <netinet/in.h>
 #include <sys/time.h>
 #include <string.h>
 #include <dirent.h>
@@ -110,6 +111,20 @@ search_term(void *app_cookie, int id)
 	return (0);
 }
 
+int
+search_setlog(void *app_cookie, uint32_t level, uint32_t src)
+{
+	uint32_t		hlevel, hsrc;
+
+	hlevel = ntohl(level);
+	hsrc = ntohl(src);
+
+	log_setlevel(hlevel);
+	log_settype(hsrc);
+
+}
+
+
 
 int
 search_start(void *app_cookie, int id)
@@ -174,15 +189,16 @@ search_set_searchlet(void *app_cookie, int id, char *filter, char *spec)
 }
 
 
+/*
+ * Reset the statistics for the current search.
+ */
 void
 clear_ss_stats(search_state_t *sstate)
 {
-
-	sstate->obj_total = 100;   /* XXX */
+	sstate->obj_total = 0;  
 	sstate->obj_processed = 0;
 	sstate->obj_dropped = 0;
 	sstate->obj_passed = 0;
-
 }
 
 
@@ -226,7 +242,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 			clear_ss_stats(sstate);
 			fexec_clear_stats(sstate->finfo);
 
-			printf("odisk_init: data dir <%s> \n", data_dir);
 			err = odisk_init(&sstate->ostate, data_dir);
 			if (err) {
 				/* XXX log */
@@ -234,7 +249,6 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				return;
 			}
 			sstate->obj_total  = odisk_get_obj_cnt(sstate->ostate);
-			printf("total objs %d \n", sstate->obj_total);
 			sstate->ver_no = cmd->id;
 			sstate->flags |= DEV_FLAG_RUNNING;
 			break;
@@ -263,11 +277,14 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 				perror("failed to unlink");
 				exit(1);
 			}
+			free(obj_name);
+
 			unlink(spec_name);
 			if (err) {
 				perror("failed to unlink");
 				exit(1);
 			}
+			free(spec_name);
 
 
 			break;
@@ -281,7 +298,7 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 
 /* XXX hack */
 obj_data_t *
-get_null_obj()
+create_null_obj()
 {
 	obj_data_t *new_obj;
 
@@ -349,7 +366,7 @@ device_main(void *arg)
 				 * we are done we send object with
 				 * no data or attributes.
 				 */
-				new_obj = get_null_obj();
+				new_obj = create_null_obj();
 				err = sstub_send_obj( sstate->comm_cookie, 
 						new_obj, sstate->ver_no);
 				if (err) {
@@ -410,7 +427,7 @@ device_main(void *arg)
 /*
  * This is called when we have finished sending a log entry.  For the 
  * time being, we ignore the arguments because we only have one
- * request outstanding.  This just flags a CV to wake up
+ * request outstanding.  This sets a condition value to wake up
  * the main thread.
  */
 int
@@ -596,10 +613,11 @@ search_get_char(void *app_cookie, int gen_num)
 	return 0;
 }
 
+
+
 int
 search_close_conn(void *app_cookie)
 {
-	/* printf("close_conn states \n"); */
 	return(0);
 }
 
@@ -680,6 +698,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	 */
 	err = fexec_get_stats(sstate->finfo, num_filt, stats->ds_filter_stats);
 	if (err) {
+		free(stats);
 		log_message(LOGT_DISK, LOGL_ERR, 
 				"search_get_stats: failed to get filter stats");
 		return;
@@ -691,6 +710,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	 * Send the stats.
 	 */
 	err = sstub_send_stats(sstate->comm_cookie, stats, len);
+	free(stats);
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR, 
 				"search_get_stats: failed to send stats");
@@ -703,55 +723,3 @@ search_get_stats(void *app_cookie, int gen_num)
 
 
 
-#ifdef	XXX_LATER
-
-int
-device_statistics(device_state_t *dev,
-		  dev_stats_t *dev_stats, int *stat_len)
-{
-	filter_info_t *cur_filter;
-	filter_stats_t *cur_filter_stats;
-	rtime_t total_obj_time = 0;
-
-	/* check args */
-	if(!dev) return EINVAL;
-	if(!dev_stats) return EINVAL;
-	if(!stat_len) return EINVAL;
-	if(*stat_len < sizeof(dev_stats_t)) return ENOSPC;
-
-	memset(dev_stats, 0, *stat_len);
-	
-	cur_filter = dev->sc->bg_froot;
-	cur_filter_stats = dev_stats->ds_filter_stats;
-	while(cur_filter != NULL) {
-		/* aggregate device stats */
-		dev_stats->ds_num_filters++;
-		/* make sure we have room for this filter */
-		if(*stat_len < DEV_STATS_SIZE(dev_stats->ds_num_filters)) {
-			return ENOSPC;
-		}
-		dev_stats->ds_objs_processed += cur_filter->fi_called;
-		dev_stats->ds_objs_dropped += cur_filter->fi_drop;
-		dev_stats->ds_system_load = 1; /* XXX FIX-RW */
-		total_obj_time += cur_filter->fi_time_ns;
-		
-		/* fill in this filter stats */
-		strncpy(cur_filter_stats->fs_name, cur_filter->fi_name, MAX_FILTER_NAME);
-		cur_filter_stats->fs_name[MAX_FILTER_NAME-1] = '\0';
-		cur_filter_stats->fs_objs_processed = cur_filter->fi_called;
-		cur_filter_stats->fs_objs_dropped = cur_filter->fi_drop;
-		cur_filter_stats->fs_avg_exec_time =  
-			cur_filter->fi_time_ns / cur_filter->fi_called;
-
-		cur_filter_stats++;		
-		cur_filter = cur_filter->fi_next;
-	}
-
-	dev_stats->ds_avg_obj_time = total_obj_time / dev_stats->ds_objs_processed;
-	/* set number of bytes used */
-	*stat_len = DEV_STATS_SIZE(dev_stats->ds_num_filters);
-
-
-	return 0;
-}
-#endif

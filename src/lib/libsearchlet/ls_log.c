@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netinet/in.h>
 #include <assert.h>
 #include <dirent.h>
 #include <stdint.h>
@@ -123,13 +124,96 @@ done:
 
 }
 
+
+
+void
+set_device_log(log_set_level_t *llevel, search_context_t *sc)
+{
+	device_handle_t *cur_dev;
+	uint32_t	hlevel, hsrc;
+	int		err;
+
+	hlevel = ntohl(llevel->log_level);
+	hsrc = ntohl(llevel->log_src);
+
+
+	switch(llevel->log_op) {
+		case LOG_SETLEVEL_ALL: 
+			cur_dev = sc->dev_list;
+			while(cur_dev != NULL) {
+				err = device_set_log(cur_dev->dev_handle, 
+					llevel->log_level, llevel->log_src);
+				cur_dev = cur_dev->next;
+			}
+
+			log_setlevel(hlevel);
+			log_settype(hsrc);
+
+			break;
+
+		case LOG_SETLEVEL_DEVICE: 
+			cur_dev = sc->dev_list;
+			while(cur_dev != NULL) {
+				if (cur_dev->dev_id == llevel->dev_id) {
+					err = device_set_log(
+							cur_dev->dev_handle, 
+							llevel->log_level, 
+							llevel->log_src);
+				}
+				cur_dev = cur_dev->next;
+			}
+			break;
+
+
+		case LOG_SETLEVEL_HOST: 
+			log_setlevel(hlevel);
+			log_settype(hsrc);
+			break;
+
+
+		default:
+			assert(0);
+			break;
+
+	}
+
+
+	/* XXX handle single device set options */
+
+
+}
+
+
 void
 process_log_data(search_context_t *sc, int conn)
 {
 	log_info_t *linfo;
+	log_set_level_t	llevel;
 	int err;
+	int	len;
 
 	while(1) {
+		/*
+		 * Look to see if there is any control information to
+		 * process.
+		 */
+		len = recv(conn, &llevel, sizeof(llevel), MSG_DONTWAIT);
+		if (len == sizeof (llevel) ) {
+			set_device_log(&llevel, sc);
+		} else if (len > 0) {
+			/* if we got something other than an error
+			 * we have a partial we don't handle, so assert.
+			 * XXX should we do something smarter ?? 
+			 */
+			assert(0);
+		} else if ((len == -1) && (errno != EAGAIN)) {
+			return;
+		} else if (len == 0) {
+			return;
+		}
+
+
+
 		/* XXX get local log data also */
 		linfo = (log_info_t *) ring_deq(sc->log_ring);
 		if (linfo == NULL) {

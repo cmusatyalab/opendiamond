@@ -41,6 +41,7 @@ extern void search_get_stats(void *app_cookie, int gen_num);
 extern int search_release_obj(void *app_cookie, obj_data_t *obj);
 extern int search_get_char(void *app_cookie, int gen_num);
 extern int search_log_done(void *app_cookie, char *buf, int len);
+extern int search_setlog(void *app_cookie, uint32_t level, uint32_t src);
 
 
 #endif	/* ifndef _SEARCH_STATE_H_ */

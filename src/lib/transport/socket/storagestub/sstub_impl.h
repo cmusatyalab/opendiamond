@@ -114,6 +114,7 @@ typedef struct listener_state {
 	sstub_release_obj_fn	release_obj_cb;
 	sstub_get_devchar_fn	get_char_cb;
 	sstub_log_done_fn	log_done_cb;
+	sstub_set_log_fn	setlog_cb;
 	cstate_t		conns[MAX_CONNS];
 } listener_state_t;
 

@@ -329,6 +329,57 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 }
 
 
+int
+device_set_log(void *handle, uint32_t level, uint32_t src)
+{
+	int			err;
+	control_header_t *	cheader;
+	sdevice_state_t *dev;
+	setlog_subheader_t *	slheader;
+
+	dev = (sdevice_state_t *)handle;
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+	slheader = (setlog_subheader_t *) malloc(sizeof(*slheader));	
+	if (slheader == NULL) {
+		/* XXX log */
+		free(cheader);
+		return (EAGAIN);
+	}
+
+
+
+	cheader->generation_number = htonl(0);	/* XXX */
+	cheader->command = htonl(CNTL_CMD_SETLOG);
+	cheader->data_len = htonl(sizeof(*slheader));
+	cheader->spare = (uint32_t) slheader;	
+
+	slheader->log_level = level;
+	slheader->log_src = src;
+
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to enq start \n");
+		free(cheader);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+
 /*
  * This is the initialization function that is
  * called by the searchlet library when we startup.

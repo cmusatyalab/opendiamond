@@ -40,6 +40,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 
 	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
+		pthread_mutex_lock(&cstate->cmutex);
 		err = ring_2deq(cstate->obj_ring, (void **)&obj  , 
 				(void **)&vnum);
 
@@ -47,12 +48,11 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		 * if there is no other data, then clear the obj data flag
 		 */
 		if (err) {
-			/* XXX lock */
-			pthread_mutex_lock(&cstate->cmutex);
 			cstate->flags &= ~CSTATE_OBJ_DATA;
 			pthread_mutex_unlock(&cstate->cmutex);
 			return;
 		}
+		pthread_mutex_unlock(&cstate->cmutex);
 
 		cstate->data_tx_obj = obj;
 

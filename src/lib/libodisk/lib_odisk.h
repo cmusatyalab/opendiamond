@@ -3,6 +3,9 @@
 
 #include "obj_attr.h"
 
+#ifdef	__cplusplus
+extern "C" {
+#endif
 
 struct odisk_state;
 
@@ -27,6 +30,10 @@ extern int odisk_term(struct odisk_state *odisk);
 extern int odisk_init(struct odisk_state **odisk, char *path_name);
 extern int odisk_get_obj_cnt(struct odisk_state *odisk);
 extern int odisk_next_obj(obj_data_t **new_obj, struct odisk_state *odisk);
+
+#ifdef	__cplusplus
+}
+#endif
 
 #endif	/* !_LIB_ODISK_H */
 

@@ -37,8 +37,8 @@
 
 /* dctl variables */
 unsigned int if_cache_table = 1;
-unsigned int if_cache_oattr = 1;
-unsigned int count_thresh = 1;
+unsigned int if_cache_oattr = 0;
+unsigned int count_thresh = 2;
 unsigned int stream_write = 1;
 
 static int		search_active = 0;

@@ -54,7 +54,7 @@ typedef struct opt_policy_t {
 } opt_policy_t;
 
 struct filter_exec_t filter_exec = {
-  NULL_POLICY
+  BEST_FIRST_POLICY
 };
 
 // int CURRENT_POLICY = NULL_POLICY;
@@ -567,7 +567,7 @@ resolve_filter_deps(filter_data_t *fdata)
 		}
 		
 	}
-	// XXX gExport(&graph, filename);
+	gExport(&graph, filename);
 
 
 #ifdef VERBOSE
@@ -637,7 +637,7 @@ fexec_load_searchlet(char *lib_name, char *filter_spec, filter_data_t **fdata)
 				filter_spec);
 		return (err);
 	}
-	// XXX print_filter_list("filterexec: init", *fdata);
+	print_filter_list("filterexec: init", *fdata);
 
 	err = resolve_filter_deps(*fdata);
 	if (err) {
@@ -682,12 +682,12 @@ fexec_load_searchlet(char *lib_name, char *filter_spec, filter_data_t **fdata)
 void
 update_filter_order(filter_data_t *fdata, const permutation_t *perm) 
 {
-#if 1 || defined VERBOSE
+#ifdef VERBOSE
   char buf[BUFSIZ];
 #endif
 
 	pmCopy(fdata->fd_perm, perm);
-#if 1|| defined VERBOSE
+#ifdef VERBOSE
 	printf("changed filter order to: %s\n", pmPrint(perm, buf, BUFSIZ));
 #endif
 
@@ -786,12 +786,10 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	/* change the permutation if it's time for a change */
 	optimize_filter_order(fdata, &policy_arr[filter_exec.current_policy]);
    
-#ifdef	XXX 
 	if (++loop_cnt > 20) {
 		fexec_update_bypass(fdata); 
 		loop_cnt = 0; 
 	}
-#endif
 
 	/*
 	 * Get the total time we have execute so far (if we have

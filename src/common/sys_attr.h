@@ -15,6 +15,7 @@
 #define	MTIME		"SYS_MTIME"
 #define	CTIME		"SYS_CTIME"
 
+#define OBJ_NAME        "Display-Name"
 #define OBJ_PATH        "_path.cstring"
 #define FLTRTIME        "_FIL_TIME.time"
 #define FLTRTIME_FN     "_FIL_TIME_%s.time"

@@ -313,7 +313,8 @@ log_main(void *arg)
 
 	err = bind(fd, (struct sockaddr *)&sa, sizeof (sa));
 	if (err < 0) {
-		perror("connect failed ");
+	  fprintf(stderr, "binding %s\n", SOCKET_LOG_NAME);
+		perror("bind failed ");
 		exit(1);
 	}
 

@@ -61,6 +61,7 @@
 #include "ring.h"
 
 
+#define	CACHE_EXT	".CACHEFL"
 /*
  * forward declarations 
  */
@@ -683,32 +684,46 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);
 
+	/*
+	 * Load base object 
+	 */
+
 	sprintf(path_name, "%s/OBJ%016llX", odisk->odisk_path, pr_obj->obj_id);
 	err = odisk_load_obj(odisk, new_object, path_name);
 	if (err) {
 		printf("load obj <%s> failed %d \n", path_name, err);
 		return(err);
 	}
-	if( (pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || (pr_obj->iattrsig==NULL) ) {
-		printf("invalid pr_obj for oid %016llX\n", pr_obj->obj_id);
+
+	/* see if we have partials to load */
+	if ((pr_obj->filters==NULL) || (pr_obj->fsig==NULL) || 
+	    (pr_obj->iattrsig==NULL) ) {
 		return(0);
 	}
+
+	/* load the partial state */
 	for( i=0; i<pr_obj->oattr_fnum; i++) {
-		if( (pr_obj->filters[i] == NULL)
+		if ((pr_obj->filters[i] == NULL)
 		    || (pr_obj->fsig[i] == NULL)
-		    || (pr_obj->iattrsig[i] == NULL) )
+		    || (pr_obj->iattrsig[i] == NULL)) {
 			continue;
+		}
+
 		rt_init(&rt);
 		rt_start(&rt);
-		err = obj_read_oattr(odisk->odisk_path, pr_obj->obj_id, pr_obj->fsig[i], pr_obj->iattrsig[i], &(*new_object)->attr_info );
+
+		err = obj_read_oattr(odisk->odisk_path, pr_obj->obj_id,
+			pr_obj->fsig[i], pr_obj->iattrsig[i], 
+			&(*new_object)->attr_info);
+
 		rt_stop(&rt);
 		time_ns = rt_nanos(&rt);
 
-		if( err == 0 ) {
+		if (err == 0) {
 			sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
 			err = obj_write_attr(&(*new_object)->attr_info, timebuf,
-			                     sizeof(time_ns), (void *) &time_ns);
-			if( err != 0 ) {
+			                     sizeof(time_ns), (void *)&time_ns);
+			if (err != 0) {
 				printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
 			}
 			assert(err==0);
@@ -874,9 +889,7 @@ odisk_main(void *arg)
 				pthread_cond_signal(&fg_data_cv);
 			}
 			continue;
-		}
-
-		if( err ) {
+		} else if (err) {
 			odisk_release_pr_obj(pobj);
 			continue;
 		}
@@ -956,7 +969,6 @@ odisk_num_waiting(odisk_state_t * odisk)
 	return (ring_count(obj_ring));
 }
 
-
 int
 odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
            void *log_cookie)
@@ -987,12 +999,15 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
 	new_state->dctl_cookie = dctl_cookie;
 	new_state->log_cookie = log_cookie;
 
-	dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
+	if (dctl_cookie != NULL) {
+		dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
 	                   dctl_read_uint32, NULL, &new_state->obj_load);
-	dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
+		dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
 	                   dctl_read_uint32, NULL, &new_state->next_blocked);
-	dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &new_state->readahead_full);
+		dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", 
+			   DCTL_DT_UINT32, dctl_read_uint32, NULL, 
+			   &new_state->readahead_full);
+	}
 
 	/*
 	 * the length has already been tested above 
@@ -1063,7 +1078,7 @@ odisk_term(odisk_state_t * odisk)
 	return (err);
 }
 
-#ifdef	XXX
+#ifndef	XXX
 static void
 update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 {
@@ -1415,7 +1430,7 @@ odisk_build_indexes(odisk_state_t * odisk)
 		/*
 		 * If this isn't a file then we skip the entry.
 		 */
-		if ((cur_ent->d_type != DT_REG) && (cur_ent->d_type != DT_LNK)) {
+		if ((cur_ent->d_type != DT_REG)) {
 			continue;
 		}
 
@@ -1442,6 +1457,16 @@ odisk_build_indexes(odisk_state_t * odisk)
 			}
 		}
 
+		extlen = strlen(CACHE_EXT);
+		flen = strlen(cur_ent->d_name);
+		if (flen > extlen) {
+			poss_ext = &cur_ent->d_name[flen - extlen];
+			if (strcmp(poss_ext, CACHE_EXT) == 0) {
+				continue;
+			}
+		}
+
+
 		len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_path,
 		               cur_ent->d_name);
 		assert(len < NAME_MAX);
@@ -1451,17 +1476,16 @@ odisk_build_indexes(odisk_state_t * odisk)
 			/*
 			 * XXX log 
 			 */
-			fprintf(stderr, "create obj failed %d \n", err);
+			fprintf(stderr, "load obj <%s> failed on %d \n", 
+				max_path, err);
 			return (err);
 		}
 
 		/*
 		 * Go through each of the GID's and update the index file.
 		 */
-
 		update_object_gids(odisk, new_object, cur_ent->d_name);
 		odisk_release_obj(odisk, new_object);
-
 	}
 
 	closedir(dir);

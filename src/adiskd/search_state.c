@@ -790,7 +790,6 @@ log_main(void *arg)
  * the data. 
  */
 
-
 int
 search_new_conn(void *comm_cookie, void **app_cookie)
 {
@@ -1280,7 +1279,6 @@ search_clear_gids(void *app_cookie, int gen_num)
 	err = odisk_clear_gids(sstate->ostate);
 	assert(err == 0);
 	return (0);
-
 }
 
 int

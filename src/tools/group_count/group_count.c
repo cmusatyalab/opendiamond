@@ -85,7 +85,7 @@ parse_uint64_string(const char* s)
 void
 usage()
 {
-	fprintf(stdout, "rem_group [-c] -g <gid> [-m <max_objs>] \n");
+	fprintf(stdout, "group_count [-c] -g <gid> [-m <max_objs>] \n");
 	fprintf(stdout, "\t-c show count of objects in the group \n");
 	fprintf(stdout, "\t-g <gid> gid of the group to modify \n");
 	fprintf(stdout, "\t-m <max_objs> keep the first max_objs of the group \n");

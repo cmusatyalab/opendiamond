@@ -127,9 +127,10 @@ ceval_main(void *arg)
 
 		err = odisk_read_next_oid(&oid, cstate->odisk);
 
-		if( err == 0 )
+		if (err == 0) {
 			ceval_filters1(oid, cstate->fdata, cstate, NULL);
-		if( err == ENOENT ) {
+		}
+		if (err == ENOENT) {
 			printf("ceval_main search done\n");
 			mark_end();
 			search_active = 0;
@@ -353,9 +354,9 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 
 	fdata->obj_counter++;
 
-	if( use_cache_table == 0 ) {
+	if (use_cache_table == 0) {
 		//printf("not use cache table\n");
-		pr_obj = (pr_obj_t *) malloc( sizeof(*pr_obj) );
+		pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 		pr_obj->obj_id = oid;
 		pr_obj->filters = NULL;
 		pr_obj->fsig = NULL;
@@ -371,16 +372,16 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 		return 1;
 	}
 
-	filters = malloc( MAX_FILTER_NUM );
-	fsig = malloc( MAX_FILTER_NUM );
-	iattrsig = malloc( MAX_FILTER_NUM );
+	filters = malloc(MAX_FILTER_NUM);
+	fsig = malloc(MAX_FILTER_NUM);
+	iattrsig = malloc(MAX_FILTER_NUM);
 
 	stack_ns = 0;
 
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);
 
-	for( perm_num = 0; perm_num < cached_perm_num; perm_num++ ) {
+	for (perm_num = 0; perm_num < cached_perm_num; perm_num++) {
 		/* if the attr has not been changed, the change_attr is empty initially;
 		 * otherwise, the change_attr includes all attributes read in from
 		 * the attr file. 
@@ -661,10 +662,10 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		}
 
 		/*
-		 * Look at the current filter bypass to see if we should actually
-		 * run it or pass it.  For the non-auto partitioning, we
-		         * we still use the bypass values to determine how much of
-		         * the allocation to run.
+		 * Look at the current filter bypass to see if we should 
+		 * actually run it or pass it.  For the non-auto 
+		 * partitioning, we still use the bypass values
+	         * to determine how much of * the allocation to run.
 		 */
 		if( err == 0 ) {
 			cur_filter->fi_called++;

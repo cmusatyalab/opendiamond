@@ -208,7 +208,8 @@ find_free_record(obj_attr_t *attr, int size)
 
 	cur_offset = 0;
 	while (1) {
-		if (cur_offset >= attr->attr_len) {
+		assert(cur_offset <= attr->attr_len);
+		if (cur_offset == attr->attr_len) {
 			err = extend_attr_store(attr, size);
 			if (err == ENOMEM) {
 				return (NULL);
@@ -308,7 +309,6 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
 	attr_record_t *	data_rec; 
 	int		total_size;
 	int		namelen;
-
 
 	/* XXX validate object ??? */
 	/* XXX make sure we don't have the same name on the list ?? */
@@ -439,8 +439,8 @@ again:
 		goto again;
 	}
 
-	*len = record->name_len + record->data_len + sizeof(struct attr_record);
-	//*len = record->rec_len;
+	//*len = record->name_len + record->data_len + sizeof(struct attr_record);
+	*len = record->rec_len;
 	*buf = (void *)record;
 
 	*cookie = (void *)offset;

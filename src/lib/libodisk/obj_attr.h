@@ -59,7 +59,7 @@ typedef struct attr_record {
     int             name_len;
     int             data_len;
     int             flags;
-    char            data[4];
+    char            data[0];
 } attr_record_t;
 
 #define	ATTR_FLAG_FREE		0x01

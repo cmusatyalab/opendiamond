@@ -1,3 +1,4 @@
+%option nounput
 %{
 #include <pthread.h>
 #include <stdio.h>
@@ -216,8 +217,8 @@ filter_args()
 		return;
 	}
 
-	len = strlen(arg_str);
-	arg_data = (char *)malloc(len+2);
+	len = strlen(arg_str) + 1;
+	arg_data = (char *)malloc(len);
 	if (arg_data == NULL) {
 		fprintf(stderr, "malloc: can't allocate data\n");
 		return;

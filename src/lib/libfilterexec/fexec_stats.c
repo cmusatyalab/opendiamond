@@ -210,7 +210,8 @@ fexec_update_prob(filter_data_t * fdata,  filter_id_t cur_filt,
     if (pass) {
         prob->num_pass++;
     }
-        
+    
+    free(sorted_list);
     return;
 }
 

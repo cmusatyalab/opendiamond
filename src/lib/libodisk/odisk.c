@@ -902,14 +902,14 @@ odisk_main(void *arg)
 
 		pthread_mutex_lock(&shared_mutex);
 		if (err == ENOENT) {
-			odisk_release_obj(ostate, nobj);
+			// XXX lh odisk_release_obj(ostate, nobj);
 
-			search_active = 0;
-			search_done = 1;
-			if (fg_wait) {
-				fg_wait = 0;
-				pthread_cond_signal(&fg_data_cv);
-			}
+			//XXX search_active = 0;
+			// XXX search_done = 1;
+			// XXX if (fg_wait) {
+				// XXX fg_wait = 0;
+				// XXX pthread_cond_signal(&fg_data_cv);
+			// XXX }
 			pthread_mutex_unlock(&shared_mutex);
 			continue;
 		}

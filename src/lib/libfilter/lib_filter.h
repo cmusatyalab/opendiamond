@@ -47,7 +47,8 @@ typedef void * 	lf_fhandle_t;
  */
 
 typedef int (*filter_proto)(lf_obj_handle_t in_handle, int num_outhandle,
-	     lf_obj_handle_t *out_handlev, int num_arg, char **args);
+	     lf_obj_handle_t *out_handlev, int num_arg, char **args,
+		 int blob_len, void *blob_data);
 
 
 /*

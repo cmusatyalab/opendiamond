@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <string.h>
 #include <stdint.h>
 #include <dirent.h>
 
@@ -33,13 +34,17 @@ typedef enum {
 	BG_STOP,
 	BG_START,
 	BG_SEARCHLET,
+	BG_SET_BLOB,
 } bg_op_type_t;
 
+/* XXX huge hack */
 typedef struct {
 	bg_op_type_t	cmd;
 	bg_op_type_t	ver_id;
-	char *		filter_name;
-	char *		spec_name;
+	char *			filter_name;
+	char *			spec_name;
+	void *			blob;
+	int				blob_len;
 } bg_cmd_data_t;
 
 /*
@@ -180,11 +185,18 @@ bg_main(void *arg)
 					assert(!err);
 					break;
 
+				case BG_SET_BLOB:
+					fexec_set_blob(sc->bg_fdata, cmd->filter_name,
+							cmd->blob_len, cmd->blob);	
+					assert(!err);
+					break;
+
 				default:
 					printf("background !! \n");
 					break;
 
 			}
+			free(cmd);
 		}
 
 
@@ -236,6 +248,42 @@ bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 	ring_enq(sc->bg_ops, (void *)cmd);
 	return(0);
 }
+
+int
+bg_set_blob(search_context_t *sc, int id, char *filter_name,
+				int blob_len, void *blob_data)
+{
+	bg_cmd_data_t *		cmd;
+	void *				new_blob;
+
+	/*
+	 * Allocate a command struct to store the new command.
+	 */
+	cmd = (bg_cmd_data_t *)malloc(sizeof(*cmd));
+	if (cmd == NULL) {
+		/* XXX log */
+		/* XXX error ? */
+		return (0);
+	}
+
+	new_blob = malloc(blob_len);
+	assert(new_blob != NULL);
+	memcpy(new_blob, blob_data, blob_len);
+
+
+	cmd->cmd = BG_SET_BLOB;
+	/* XXX local storage for these !!! */
+	cmd->filter_name = strdup(filter_name);
+	assert(cmd->filter_name != NULL);
+
+	cmd->blob_len = blob_len;
+	cmd->blob = new_blob;
+
+	
+	ring_enq(sc->bg_ops, (void *)cmd);
+	return(0);
+}
+
 
 
 /*

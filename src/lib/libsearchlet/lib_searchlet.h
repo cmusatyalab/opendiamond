@@ -123,7 +123,7 @@ typedef struct device_char {
  * 	non-NULL - a handle that can be used for subsequent calls.
  */
 
-extern ls_search_handle_t ls_init_search();
+ls_search_handle_t ls_init_search();
 
 /*
  * This function is called to terminate a search and clean up
@@ -138,7 +138,7 @@ extern ls_search_handle_t ls_init_search();
  * 	EINVAL	  - the handle was not valid.
  */
 
-extern int ls_terminate_search(ls_search_handle_t handle);
+int ls_terminate_search(ls_search_handle_t handle);
 
 
 /*
@@ -159,7 +159,7 @@ extern int ls_terminate_search(ls_search_handle_t handle);
  * 	EINVAL  - the handle or the search list is not valid.
  */
 
-extern int ls_set_searchlist(ls_search_handle_t, int num_groups, 
+int ls_set_searchlist(ls_search_handle_t, int num_groups, 
 			     groupid_t *glist);
 
 
@@ -200,7 +200,7 @@ extern int ls_set_searchlist(ls_search_handle_t, int num_groups,
  *	EBUSY		 - A search was already active.
  */
 
-extern int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
+int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		            char *filter_file_name, char *filter_spec_name);
 
 
@@ -239,12 +239,80 @@ extern int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
  *	EBUSY		 - A search was already active.
  */
 
-extern int ls_set_device_searchlet(ls_search_handle_t handle, 
+int ls_set_device_searchlet(ls_search_handle_t handle, 
 				   ls_dev_handle_t dev_handle,
-				   device_isa_t isa_type,
-		                   char *filter_file_name, 
+				   device_isa_t isa_type, char *filter_file_name, 
 			           char *filter_spec_name);
 
+
+
+/*
+ * This call sets a "blob" of data to be passed to a given
+ * filter.  This is a way to pass a large amount of data.
+ *
+ * This call should be called after the searchlet has been
+ * loaded but before a search has begun.
+ *
+ * NOTE:  It is up to the caller to make sure this data
+ * can be interpreted by at the device (endian issues, etc).
+ *
+ * Args:
+ * 	handle          -	The handle for the search instance.
+ *
+ *  filter_name		- 	The name of the filter to use for the blob.
+ *
+ *  blob_len		- 	The length of the blob data.
+ *
+ *  blob_data		-	A pointer to the blob data.
+ * 
+ *
+ * Returns:
+ * 	0                - The call suceeded.
+ *
+ * 	EINVAL           - One of the file names was invalid or 
+ * 	                   one of the files could not be parsed.
+ *
+ *	EBUSY		 	 - A search was already active.
+ */
+
+int ls_set_blob(ls_search_handle_t handle, char *filter_name,
+                   int  blob_len, void *blob_data);
+
+
+/*
+ * This call sets a "blob" of data to be passed to a given
+ * filter on a specific device.  This is similiar to the above
+ * call but will only affect one device instead of all devices.
+ *
+ * This call should be called after the searchlet has been
+ * loaded but before a search has begun.
+ *
+ * NOTE:  It is up to the caller to make sure this data
+ * can be interpreted by at the device (endian issues, etc).
+ *
+ * Args:
+ * 	handle          -	The handle for the search instance.
+ *
+ *	dev_handle	 - The handle for the device.
+ *
+ *  filter_name		- 	The name of the filter to use for the blob.
+ *
+ *  blob_len		- 	The length of the blob data.
+ *
+ *  blob_data		-	A pointer to the blob data.
+ * 
+ *
+ * Returns:
+ * 	0                - The call suceeded.
+ *
+ * 	EINVAL           - One of the file names was invalid or 
+ * 	                   one of the files could not be parsed.
+ *
+ *	EBUSY		 	 - A search was already active.
+ */
+
+int ls_set_device_blob(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
+				char *filter_name, int  blob_len, void *blob_data);
 
 
 /*
@@ -263,7 +331,7 @@ extern int ls_set_device_searchlet(ls_search_handle_t handle,
  *
  * XXX:  Do we need this, do we just start when the searchlet is set?
  */
-extern int ls_start_search(ls_search_handle_t handle);
+int ls_start_search(ls_search_handle_t handle);
 
 
 /*
@@ -280,7 +348,7 @@ extern int ls_start_search(ls_search_handle_t handle);
  * 	EINVAL     - There was no active search or the handle is invalid.
  */
 
-extern int ls_abort_search(ls_search_handle_t handle);
+int ls_abort_search(ls_search_handle_t handle);
 
 
 /*
@@ -309,7 +377,7 @@ extern int ls_abort_search(ls_search_handle_t handle);
  */
 
 #define	LSEARCH_NO_BLOCK		0x01
-extern int ls_next_object(ls_search_handle_t handle, 
+int ls_next_object(ls_search_handle_t handle, 
 			       ls_obj_handle_t *obj_handle,
 		               int flags);
 
@@ -337,7 +405,7 @@ extern int ls_next_object(ls_search_handle_t handle,
  * 	EINVAL     - one of the handles was invalid. 
  */
 
-extern int ls_release_object(ls_search_handle_t handle, 
+int ls_release_object(ls_search_handle_t handle, 
 		             ls_obj_handle_t obj_handle);
 
 
@@ -367,7 +435,7 @@ extern int ls_release_object(ls_search_handle_t handle,
  * 	EINVAL     - one of the handles was invalid. 
  *
  */
-extern int ls_read_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
+int ls_read_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
 	       		 off_t  start, off_t *len, char **bufp);
 
 /*
@@ -391,7 +459,7 @@ extern int ls_read_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
  *
  * 	EINVAL     - one of the handles was invalid. 
  */
-extern int ls_write_object(ls_search_handle_t handle, 
+int ls_write_object(ls_search_handle_t handle, 
 			   ls_obj_handle_t obj_handle,
 	       		   off_t start, off_t len, char *buf);
 
@@ -413,7 +481,7 @@ extern int ls_write_object(ls_search_handle_t handle,
  *
  * 	EINVAL     - one of the handles was invalid. 
  */
-extern int ls_alloc_buffer(ls_search_handle_t handle, off_t len, char **buf);
+int ls_alloc_buffer(ls_search_handle_t handle, off_t len, char **buf);
 
 /*
  * This frees a buffer that was allocated through a read call or
@@ -431,7 +499,7 @@ extern int ls_alloc_buffer(ls_search_handle_t handle, off_t len, char **buf);
  *
  * 	EINVAL     - one of the handles was invalid. 
  */
-extern int ls_free_buffer(ls_search_handle_t handle, char *buf);
+int ls_free_buffer(ls_search_handle_t handle, char *buf);
 
 
 /*
@@ -450,7 +518,7 @@ extern int ls_free_buffer(ls_search_handle_t handle, char *buf);
  *
  * 	EINVAL     - one of the handles was invalid. 
  */
-extern int ls_create_object(ls_search_handle_t handle, 
+int ls_create_object(ls_search_handle_t handle, 
 			    ls_obj_handle_t *obj_handle);
 
 
@@ -472,7 +540,7 @@ extern int ls_create_object(ls_search_handle_t handle,
  *
  * 	EINVAL     - one of the handles was invalid. 
  */
-extern int ls_copy_object(ls_search_handle_t handle,  ls_obj_handle_t old_obj,
+int ls_copy_object(ls_search_handle_t handle,  ls_obj_handle_t old_obj,
 			    ls_obj_handle_t *new_obj);
 
 
@@ -509,7 +577,7 @@ extern int ls_copy_object(ls_search_handle_t handle,  ls_obj_handle_t old_obj,
  * 		      indicate the amount of space needed.
  *
  */
-extern int ls_get_dev_list(ls_search_handle_t handle, 
+ int ls_get_dev_list(ls_search_handle_t handle, 
 		            ls_dev_handle_t *handle_list,
 			    int *num_handles);
 
@@ -533,7 +601,7 @@ extern int ls_get_dev_list(ls_search_handle_t handle,
  *
  */
 
-extern int ls_dev_characteristics(ls_search_handle_t handle, 
+int ls_dev_characteristics(ls_search_handle_t handle, 
 			          ls_dev_handle_t dev_handle,
 			          device_char_t *dev_chars);
 
@@ -568,7 +636,7 @@ extern int ls_dev_characteristics(ls_search_handle_t handle,
  *
  */
 
-extern int ls_get_dev_stats(ls_search_handle_t handle, 
+int ls_get_dev_stats(ls_search_handle_t handle, 
 		 	     ls_dev_handle_t  dev_handle,
 		             dev_stats_t *dev_stats, int *stat_len);
 

@@ -468,7 +468,27 @@ process_control(listener_state_t *lstate, cstate_t *cstate, char *data)
 			assert(data == NULL);
 			(*lstate->clear_gids_cb)(cstate->app_cookie, gen);
             break;
- 
+
+		case CNTL_CMD_SET_BLOB: {
+            blob_subheader_t *  shead;
+			void *				blob;
+			int					blen;
+			int					nlen;
+			char *				name;
+
+			assert(data != NULL);
+			shead = (blob_subheader_t *)data;
+
+			nlen = ntohl(shead->blob_nlen);
+			blen = ntohl(shead->blob_blen);
+			name = shead->blob_sdata;
+			blob = &shead->blob_sdata[nlen];
+
+			(*lstate->set_blob_cb)(cstate->app_cookie, gen, name, blen, blob);
+            free(data);
+            break;
+        }
+
 
 		default:
 			printf("unknown command: %d \n", cmd);

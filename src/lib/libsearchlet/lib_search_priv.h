@@ -76,23 +76,25 @@ typedef struct search_context {
  * These are the prototypes of the device operations that
  * in the file ls_device.c
  */
-extern int dev_new_obj_cb(void *hcookie, obj_data_t *odata, int vno);
-extern void dev_log_data_cb(void *cookie, char *data, int len, int devid);
-extern int lookup_group_hosts(groupid_t gid, int *num_hosts, 
+int dev_new_obj_cb(void *hcookie, obj_data_t *odata, int vno);
+void dev_log_data_cb(void *cookie, char *data, int len, int devid);
+int lookup_group_hosts(groupid_t gid, int *num_hosts, 
 		uint32_t *hostids);
-extern int device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid);
+int device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid);
 /*
  * These are background processing functions.
  */
-extern int bg_init(search_context_t *sc, int id);
-extern int bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
+int bg_init(search_context_t *sc, int id);
+int bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 			char *spec_name);
+int bg_set_blob(search_context_t *sc, int id, char *filter_name,
+			int blob_len, void *blob_data);
 
 
-extern int log_start(search_context_t *sc);
+int log_start(search_context_t *sc);
 
 
-extern int dctl_start(search_context_t *sc);
+int dctl_start(search_context_t *sc);
 
 gid_map_t *read_gid_map(char *mapfile);
 

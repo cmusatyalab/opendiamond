@@ -311,6 +311,123 @@ ls_set_device_searchlet(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 }
 
 
+
+
+/*
+ * This call sets a "blob" of data to be passed to a given
+ * filter.  This is a way to pass a large amount of data.
+ *
+ * This call should be called after the searchlet has been
+ * loaded but before a search has begun.
+ *
+ * NOTE:  It is up to the caller to make sure this data
+ * can be interpreted by at the device (endian issues, etc).
+ *
+ * Args:
+ * 	handle          -	The handle for the search instance.
+ *
+ *  filter_name		- 	The name of the filter to use for the blob.
+ *
+ *  blob_len		- 	The length of the blob data.
+ *
+ *  blob_data		-	A pointer to the blob data.
+ * 
+ *
+ * Returns:
+ * 	0                - The call suceeded.
+ *
+ * 	EINVAL           - One of the file names was invalid or 
+ * 	                   one of the files could not be parsed.
+ *
+ *	EBUSY		 	 - A search was already active.
+ */
+
+int 
+ls_set_blob(ls_search_handle_t handle, char *filter_name,
+                   int  blob_len, void *blob_data)
+{
+
+	search_context_t	*sc;
+	device_handle_t		*cur_dev;
+	int					err;
+
+	sc = (search_context_t *)handle;
+
+	if (sc->cur_status == SS_ACTIVE) {
+		/* XXX log */
+		fprintf(stderr, " Search is active \n");
+		return (EBUSY);
+	}
+
+	/* we need to verify the searchlet somehow */
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev= cur_dev->next) {
+		err = device_set_blob(cur_dev->dev_handle, 
+			sc->cur_search_id, filter_name, blob_len, blob_data);
+		if (err != 0) {
+			/*
+			 * It isn't obvious what we need to do if we
+			 * get an error here.  This applies to the fault
+			 * tolerance story.  For now we keep trying the
+			 * rest of the device
+			 * XXX figure out what to do here ???
+			 */
+			/* XXX logging */
+			assert(0);
+		}
+	}
+
+	err = bg_set_blob(sc, sc->cur_search_id, filter_name, blob_len, 
+					blob_data);
+	if (err) {
+		/* XXX log */
+	}
+
+	return(0);
+}
+
+
+/*
+ * This call sets a "blob" of data to be passed to a given
+ * filter on a specific device.  This is similiar to the above
+ * call but will only affect one device instead of all devices.
+ *
+ * This call should be called after the searchlet has been
+ * loaded but before a search has begun.
+ *
+ * NOTE:  It is up to the caller to make sure this data
+ * can be interpreted by at the device (endian issues, etc).
+ *
+ * Args:
+ * 	handle          -	The handle for the search instance.
+ *
+ *	dev_handle	 - The handle for the device.
+ *
+ *  filter_name		- 	The name of the filter to use for the blob.
+ *
+ *  blob_len		- 	The length of the blob data.
+ *
+ *  blob_data		-	A pointer to the blob data.
+ * 
+ *
+ * Returns:
+ * 	0                - The call suceeded.
+ *
+ * 	EINVAL           - One of the file names was invalid or 
+ * 	                   one of the files could not be parsed.
+ *
+ *	EBUSY		 	 - A search was already active.
+ */
+
+int ls_set_device_blob(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
+				char *filter_name, int  blob_len, void *blob_data)
+{
+
+	/* XXXX implement */
+	assert(0);
+}
+
+
+
 /*
  * This initites a search on the disk.  For this to work, 
  * we need to make sure that we have searchlets set for all

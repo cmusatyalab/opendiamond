@@ -29,6 +29,8 @@ typedef	int (*sstub_lleaf_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_lnode_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_sgid_fn)(void *app_cookie, int gen_num, groupid_t gid);
 typedef	int (*sstub_clear_gids_fn)(void *app_cookie, int gen_num);
+typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,
+				int blen, void *blob);
 
 
 typedef struct {
@@ -49,23 +51,24 @@ typedef struct {
 	sstub_lleaf_fn	        lleaf_cb;
 	sstub_lnode_fn	        lnode_cb;
 	sstub_sgid_fn	        sgid_cb;
-	sstub_clear_gids_fn	clear_gids_cb;
+	sstub_clear_gids_fn		clear_gids_cb;
+	sstub_set_blob_fn		set_blob_cb;
 } sstub_cb_args_t;
 
 
 
-extern void * sstub_init(sstub_cb_args_t *cb_args);
-extern void  sstub_listen(void * cookie, int fork);
-extern int sstub_send_stats(void *cookie, dev_stats_t *dstats, int len);
-extern int sstub_send_dev_char(void *cookie, device_char_t *dchar);
-extern int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum);
-extern int sstub_send_log(void *cookie, char *buf, int len);
-extern int sstub_wleaf_response(void *cookie, int err, int32_t opid);
-extern int sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
+void * sstub_init(sstub_cb_args_t *cb_args);
+void  sstub_listen(void * cookie, int fork);
+int sstub_send_stats(void *cookie, dev_stats_t *dstats, int len);
+int sstub_send_dev_char(void *cookie, device_char_t *dchar);
+int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum);
+int sstub_send_log(void *cookie, char *buf, int len);
+int sstub_wleaf_response(void *cookie, int err, int32_t opid);
+int sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
                 int len, char *data, int32_t opid);
-extern int sstub_lleaf_response(void *cookie, int err, int num_ents,
+int sstub_lleaf_response(void *cookie, int err, int num_ents,
                 dctl_entry_t *data, int32_t opid);
-extern int sstub_lnode_response(void *cookie, int err, int num_ents,
+int sstub_lnode_response(void *cookie, int err, int num_ents,
                 dctl_entry_t *data, int32_t opid);
 
 #endif /* !_LIB_SSTUB_H_ */

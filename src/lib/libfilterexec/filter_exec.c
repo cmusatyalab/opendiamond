@@ -682,7 +682,8 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		  assert(cur_filter->fi_fp);
 		  /* arg 3 here looks strange -rw */
 		  conf = cur_filter->fi_fp(obj_handle, 1, out_list, 
-					   cur_filter->fi_numargs, cur_filter->fi_args);
+					   cur_filter->fi_numargs, cur_filter->fi_args,
+					   cur_filter->fi_blob_len, cur_filter->fi_blob_data);
 
 		  /* get timing info and update stats */
 		  rt_stop(&rt);

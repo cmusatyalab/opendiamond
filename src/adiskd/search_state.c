@@ -36,7 +36,8 @@ typedef enum {
 	DEV_STOP,
 	DEV_TERM,
 	DEV_START,
-	DEV_SEARCHLET
+	DEV_SEARCHLET,
+	DEV_BLOB
 } dev_op_type_t;
 
 
@@ -45,12 +46,18 @@ typedef struct {
 	char *spec;
 } dev_slet_data_t;
 
+typedef struct {
+	char *fname;
+	void *blob;
+	int	  blen;
+} dev_blob_data_t;
 
 typedef struct {
 	dev_op_type_t	cmd;
 	int		id;
 	union {
 		dev_slet_data_t	sdata;
+		dev_blob_data_t	bdata;
 	} extra_data;
 } dev_cmd_data_t;
 
@@ -293,6 +300,24 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 
 
 			break;
+
+		case DEV_BLOB: {
+			char * 		name;
+			int			blen;
+			void *		blob;
+
+			name = cmd->extra_data.bdata.fname;
+			blen = cmd->extra_data.bdata.blen;
+			blob = cmd->extra_data.bdata.blob;
+
+			err = fexec_set_blob(sstate->fdata, name, blen, blob);
+			assert(err == 0);
+
+			free(name);
+			free(blob);
+			break;
+		}
+
 
 		default:
 			printf("unknown command %d \n", cmd->cmd);
@@ -895,5 +920,42 @@ search_clear_gids(void *app_cookie, int gen_num)
     
 }
 
+int
+search_set_blob(void *app_cookie, int gen_num, char *name,
+				int blob_len, void *blob )
+{
+	dev_cmd_data_t *cmd;
+	int		err;
+	search_state_t * sstate;
+	void* 			new_blob;
+
+	sstate = (search_state_t *)app_cookie;
+
+	cmd = (dev_cmd_data_t *) malloc(sizeof(*cmd));	
+	if (cmd == NULL) {
+		return (1);
+	}
+
+	new_blob = malloc(blob_len);
+	assert(new_blob != NULL);
+	memcpy(new_blob, blob, blob_len);
+
+	cmd->cmd = DEV_BLOB;
+	cmd->id = gen_num;
+	
+	cmd->extra_data.bdata.fname = strdup(name);
+	assert(cmd->extra_data.bdata.fname != NULL);
+	cmd->extra_data.bdata.blen = blob_len;
+	cmd->extra_data.bdata.blob = new_blob;
+	
+
+	err = ring_enq(sstate->control_ops, (void *)cmd);
+	if (err) {
+		free(cmd);
+		assert(0);
+		return (1);
+	}
+	return (0);
+}
 
 

@@ -29,6 +29,7 @@
 #define	CNTL_CMD_LLEAFS_DONE    19
 #define	CNTL_CMD_ADD_GID        20
 #define	CNTL_CMD_CLEAR_GIDS     21
+#define	CNTL_CMD_SET_BLOB 		22
 
 
 /*
@@ -116,6 +117,16 @@ typedef struct {
     uint32_t    dctl_dtype;     /* len of data (include termination) */
 	char	    dctl_data[0];	/* the len of the data */
 } dctl_subheader_t;
+
+
+typedef struct {
+    uint32_t    blob_nlen;      /* len of the name data (including null) */
+    uint32_t    blob_blen;      /* then length of the blob of the name data */
+	char	    blob_sdata[0];	/* the data with the name followed by blob */
+} blob_subheader_t;
+
+
+
 
 /*
  * Header that goes on the log buffers that are sent to the host.

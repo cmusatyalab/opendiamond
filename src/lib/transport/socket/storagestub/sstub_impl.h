@@ -131,7 +131,8 @@ typedef struct listener_state {
 	sstub_lleaf_fn	        lleaf_cb;
 	sstub_lnode_fn	        lnode_cb;
 	sstub_sgid_fn	        sgid_cb;
-	sstub_clear_gids_fn	clear_gids_cb;
+	sstub_clear_gids_fn		clear_gids_cb;
+	sstub_set_blob_fn		set_blob_cb;
 	cstate_t		        conns[MAX_CONNS];
 } listener_state_t;
 
@@ -153,34 +154,34 @@ typedef struct listener_state {
 /*
  * Functions exported by sstub_listen.c
  */
-extern void shutdown_connection(listener_state_t *lstate, cstate_t *cstate);
-extern int sstub_new_sock(int *fd, int port);
+void shutdown_connection(listener_state_t *lstate, cstate_t *cstate);
+int sstub_new_sock(int *fd, int port);
 
 
 /*
  * Functions exported by sstub_cntrl.c
  */
-extern void sstub_write_control(listener_state_t *lstate, cstate_t *cstate);
-extern void sstub_read_control(listener_state_t *lstate, cstate_t *cstate);
-extern void sstub_except_control(listener_state_t *lstate, cstate_t *cstate);
+void sstub_write_control(listener_state_t *lstate, cstate_t *cstate);
+void sstub_read_control(listener_state_t *lstate, cstate_t *cstate);
+void sstub_except_control(listener_state_t *lstate, cstate_t *cstate);
 
 /*
  * Functions exported by sstub_log.c
  */
-extern void sstub_write_log(listener_state_t *lstate, cstate_t *cstate);
-extern void sstub_read_log(listener_state_t *lstate, cstate_t *cstate);
-extern void sstub_except_log(listener_state_t *lstate, cstate_t *cstate);
+void sstub_write_log(listener_state_t *lstate, cstate_t *cstate);
+void sstub_read_log(listener_state_t *lstate, cstate_t *cstate);
+void sstub_except_log(listener_state_t *lstate, cstate_t *cstate);
 
 /*
  * Functions exported by sstub_data.c
  */
-extern void sstub_write_data(listener_state_t *lstate, cstate_t *cstate);
-extern void sstub_read_data(listener_state_t *lstate, cstate_t *cstate);
-extern void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
+void sstub_write_data(listener_state_t *lstate, cstate_t *cstate);
+void sstub_read_data(listener_state_t *lstate, cstate_t *cstate);
+void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
 /* 
  * Functions exported by sstub_conn.c
  */
-extern void * connection_main(listener_state_t *lstate, int conn);
+void * connection_main(listener_state_t *lstate, int conn);
 
 
 

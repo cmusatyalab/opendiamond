@@ -58,7 +58,6 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 	}
 
 
-
 	linfo->data = data;
 	linfo->len = len;
 	linfo->dev = devid;

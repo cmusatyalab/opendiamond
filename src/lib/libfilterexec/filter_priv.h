@@ -61,6 +61,9 @@ typedef struct filter_info {
     filter_id_t             fi_filterid;    /* id of this filter */
 
 
+    int						fi_blob_len;	/* assiated blob len */
+	void *					fi_blob_data;	/* associated blob of data */
+
 	/* dependency info */
 	int                     fi_color; /* used by dfs */
 	int                     fi_depcount;
@@ -126,11 +129,11 @@ struct filter_data {
     permutation_t       *fd_perm;	/* current permutation */
     partial_order_t     *fd_po;	    /* the partial ordering of filters */
 
-  time_t obj_ns[STAT_WINDOW];	/* data */
-  int    obj_ns_valid;		/* number of valid entries */
-  int    obj_ns_pos;		/* current insertion point */
+	time_t obj_ns[STAT_WINDOW];	/* data */
+	int    obj_ns_valid;		/* number of valid entries */
+	int    obj_ns_pos;		/* current insertion point */
 
-  int    obj_counter;		/* used to synchronize monitoring output (filter_exec) */
+	int    obj_counter;		/* used to synchronize monitoring output (filter_exec) */
 
     filter_info_t       fd_filters[0]; /* variable size struct */
 };

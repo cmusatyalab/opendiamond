@@ -732,6 +732,72 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	return (0);
 }
 
+int 
+device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
+{
+	int		        	    err;
+	control_header_t *  	cheader;
+	sdevice_state_t *       dev;
+	blob_subheader_t *      bsub;
+    int                     nlen;
+    int                     tot_len;
+
+	dev = (sdevice_state_t *)handle;
+
+    nlen = strlen(name) + 1;
+    tot_len = nlen + blob_len + sizeof(*bsub);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));	
+	if (cheader == NULL) {
+		/* XXX log */
+		return (EAGAIN);
+	}
+
+    bsub = (blob_subheader_t *) malloc(tot_len);
+	if (bsub == NULL) {
+		/* XXX log */
+        free(cheader);
+		return (EAGAIN);
+	}
+
+
+    /* fill in the data */
+
+	cheader->generation_number = htonl(id);	
+	cheader->command = htonl(CNTL_CMD_SET_BLOB);
+	cheader->data_len = htonl(tot_len);
+	/*
+	 * XXX HACK.  For now we store the pointer to the data
+	 * using the spare field in the header to point to the data.
+	 */
+	cheader->spare = (uint32_t) bsub;	
+
+    /*
+     * Fill in the subheader.
+     */
+    bsub->blob_nlen = htonl(nlen);
+    bsub->blob_blen = htonl(blob_len);
+    memcpy(&bsub->blob_sdata[0], name, nlen);
+    memcpy(&bsub->blob_sdata[nlen], blob, blob_len);
+
+
+	err = ring_enq(dev->device_ops, (void *)cheader);
+	if (err) {
+		/* XXX log */
+		/* XXX should we wait ?? */
+		printf("XXX failed to write leaf \n");
+		free(cheader);
+        free(bsub);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+
 static void
 setup_stats(sdevice_state_t *dev, uint32_t devid)
 {

@@ -108,7 +108,7 @@ typedef struct sdevice_state {
 /*
  * Functions availabe in hstub_main.c
  */
-extern void * hstub_main(void *arg);
+void * hstub_main(void *arg);
 
 /*
  * Functions availabel in hstub_log.c

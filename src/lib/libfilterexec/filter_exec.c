@@ -159,7 +159,7 @@ fexec_system_init()
 	  int fd;
 	  int rbytes;
 
-	  fd = open("/dev/random", O_RDONLY);
+	  fd = open("/dev/urandom", O_RDONLY);
 	  assert(fd != -1);
 	  rbytes = read(fd, (void *)&seed, sizeof(seed));
 	  assert(rbytes == sizeof(seed));

@@ -314,9 +314,17 @@ odisk_release_pr_obj(pr_obj_t * pobj)
 	if( pobj->filters != NULL ) {
         	free(pobj->filters);
 	}
+	if( pobj->fsig != NULL ) {
+        	free(pobj->fsig);
+	}
+	if( pobj->iattrsig != NULL ) {
+        	free(pobj->iattrsig);
+	}
+/*
 	if( pobj->oattr_fname != NULL ) {
         	free(pobj->oattr_fname);
 	}
+*/
 	free(pobj);
 	return (0);
 }
@@ -669,11 +677,15 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
                 return(err);
         }
         for( i=0; i<pr_obj->oattr_fnum; i++) {
-		if( (pr_obj->filters[i] == NULL) || (pr_obj->oattr_fname[i] == NULL) )
+		//if( (pr_obj->filters[i] == NULL) || (pr_obj->oattr_fname[i] == NULL) )
+		if( (pr_obj->filters[i] == NULL) 
+		    || (pr_obj->fsig[i] == NULL) 
+		    || (pr_obj->iattrsig[i] == NULL) )
 			continue;
                 rt_init(&rt);
                 rt_start(&rt);
-                err = obj_read_oattr(odisk->odisk_path, pr_obj->oattr_fname[i], &(*new_object)->attr_info );
+                //err = obj_read_oattr(odisk->odisk_path, pr_obj->oattr_fname[i], &(*new_object)->attr_info );
+                err = obj_read_oattr(odisk->odisk_path, pr_obj->obj_id, pr_obj->fsig[i], pr_obj->iattrsig[i], &(*new_object)->attr_info );
                 rt_stop(&rt);
                 time_ns = rt_nanos(&rt);
 
@@ -682,13 +694,13 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
                         obj_write_attr(&(*new_object)->attr_info, timebuf,
                                 sizeof(time_ns), (void *) &time_ns);
                 } else {
-			printf("obj_read_oattr wrong\n");
+			//printf("obj_read_oattr wrong\n");
                 }
 
                 stack_ns += time_ns;
         }
-	free(pr_obj->filters);
-	free(pr_obj->oattr_fname);
+	//free(pr_obj->filters);
+	//free(pr_obj->oattr_fname);
 
         obj_write_attr(&(*new_object)->attr_info,
                 FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
@@ -739,7 +751,7 @@ again:
                                 }
                                 sscanf(gid_ent.gid_name, "OBJ%016llX", &local_id);
                                 *oid = local_id;
-				printf("odisk_read_next_oid: %016llX\n", local_id);
+				//printf("odisk_read_next_oid: %016llX\n", local_id);
                                 return(0);
                         } else {
                                 fclose(odisk->index_files[i]);
@@ -832,8 +844,10 @@ odisk_main(void *arg)
          */
         //err = odisk_read_next(&nobj, ostate);
 	err = odisk_pr_next(&pobj);
-	if( err == 0 )
+	if( err == 0 ) {
 		err = odisk_pr_load(pobj, &nobj, ostate);
+		odisk_release_pr_obj(pobj);
+	}
 
         pthread_mutex_lock(&shared_mutex);
         if (err == ENOENT) {

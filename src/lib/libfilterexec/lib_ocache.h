@@ -28,10 +28,13 @@ typedef struct {
 
 struct cache_obj_s {
 	uint64_t                oid;
-	char			filter_sig[16];
-	char			*file_name;
+	//char			filter_sig[16];
+	char			iattr_sig[16];
 	int			result;
-	int			eval_count; //how many times this filter is evaluated
+	unsigned int			eval_count; //how many times this filter is evaluated
+	unsigned int			aeval_count; //how many times this filter is evaluated
+	unsigned int			hit_count; //how many times this filter is evaluated
+	unsigned int			ahit_count; //how many times this filter is evaluated
 	cache_attr_set		iattr;
 	cache_attr_set		oattr;
 	struct cache_obj_s	*next;
@@ -53,13 +56,22 @@ typedef struct ceval_state {
 
 typedef struct cache_obj_s cache_obj;
 
+typedef struct {
+	void *cache_table;
+	time_t mtime;
+	char fsig[16];
+	struct timeval atime;
+	int running;
+} fcache_t;
+
 #define		INSERT_START	0
 #define		INSERT_IATTR	1
 #define		INSERT_OATTR	2
 #define		INSERT_END	3
 
 typedef struct {
-	char			filter_sig[16]; 
+	//char			filter_sig[16]; 
+	void *			cache_table;
 	char			*file_name;  /*cached oattr file name*/
 } cache_start_entry;
 
@@ -87,20 +99,23 @@ typedef struct {
 	union {
 		char                    *file_name;     /* the file name to cache oattr */
 		cache_attr_t		oattr;		/*add output attr*/
+		char			iattr_sig[16];
 	} u;
 } oattr_ring_entry;
 
 int digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args, int blob_len, void *blob, unsigned char ** signature);
-int ocache_lookup(uint64_t local_id, char *fsig, cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, char **fpath);
-int ocache_lookup2(uint64_t local_id, char *fsig, cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, char **fpath, int flag);
-int ocache_wait_lookup(obj_data_t *lobj, char *fsig, cache_attr_set *change_attr, cache_attr_set **oattr_set);
+int cache_lookup(uint64_t local_id, char *fsig, void *fcache_table, cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, char **fpath);
+int cache_lookup2(uint64_t local_id, char *fsig, void *fcache_table, cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, char **fpath, int flag);
+int cache_wait_lookup(obj_data_t *lobj, char *fsig, void *fcache_table, cache_attr_set *change_attr, cache_attr_set **oattr_set);
 int ocache_init(char *path_name, void *dctl_cookie, void * log_cookie);
 int ocache_start();
 int ocache_stop(char *path_name);
+int ocache_stop_search(unsigned char *fsig);
 int ocache_wait_finish();
-int ocache_read_file(char *name);
+int ocache_read_file(char *disk_path, unsigned char *fsig, void **fcache_table, struct timeval *atime);
 int sig_cal(void *buf, off_t buflen, unsigned char **signature);
-int ocache_add_start(char *fhandle, uint64_t obj_id, unsigned char *fsig, int lookup, char *fpath);
+int ocache_add_start(char *fhandle, uint64_t obj_id, void *cache_table, int lookup, char *fpath);
+//int ocache_add_start(char *fhandle, uint64_t obj_id, unsigned char *fsig, int lookup, char *fpath);
 int ocache_add_end(char *fhandle, uint64_t obj_id, int conf);
 int combine_attr_set(cache_attr_set *attr1, cache_attr_set *attr2);
 
@@ -108,8 +123,8 @@ int ceval_init_search(filter_data_t * fdata, struct ceval_state *cstate);
 
 int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk, void *cookie, stats_drop stats_drop_fn, stats_process stats_process_fn);
 
-int ceval_start();
-int ceval_stop();
+int ceval_start(filter_data_t * fdata);
+int ceval_stop(filter_data_t * fdata);
 
 int ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie, 
                          int (*cb_func) (void *cookie, char *name,

@@ -116,6 +116,7 @@ int             poIncomparable(const partial_order_t * po, int u, int v);
 
 void            poPrint(partial_order_t * po);
 
+int      poGet(const partial_order_t * po, int u, int v);
 
 /*
  * ---------------------------------------------------------------------- 

@@ -382,7 +382,8 @@ pmPrint(const permutation_t * pm, char *buf, int bufsiz)
  * poset functions 
  */
 
-static int      poGet(const partial_order_t * po, int u, int v);
+//static int      poGet(const partial_order_t * po, int u, int v);
+int      poGet(const partial_order_t * po, int u, int v);
 
 
 partial_order_t *
@@ -470,7 +471,8 @@ poSetOrder(partial_order_t * po, int u, int v, po_relation_t rel)
     po->data[v * po->dim + u] = poInverse(rel);
 }
 
-static int
+//static int
+int
 poGet(const partial_order_t * po, int u, int v)
 {
     assert(u < po->dim);

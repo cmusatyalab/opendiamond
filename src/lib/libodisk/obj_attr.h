@@ -100,6 +100,7 @@ int obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len,
 int obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, 
 	void **cookie, int skip_big);
 
-int obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr);
+//int obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr);
+int obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr);
 
 #endif                          /* ! _OBJ_ATTR_H_ */

@@ -486,7 +486,7 @@ again:
 }
 
 int
-obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr)
+obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr)
 {
         int fd;
         unsigned int name_len;
@@ -495,14 +495,37 @@ obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr)
         char data[TEMP_ATTR_BUF_SIZE];
         char *ldata;
         off_t           size, rsize;
-        int err;
         struct stat     stats;
         char attrbuf[PATH_MAX];
+	uint64_t tmp1, tmp2, tmp3, tmp4;
+	int err;
 
-        sprintf(attrbuf, "%s/%s/%s", disk_path, CACHE_DIR, fname);
+	if( (fsig == NULL) || (iattrsig == NULL) ) {
+		printf("fsig or iattrsig is NULL\n");
+		return (EINVAL);
+	}
+	memcpy( &tmp1, fsig, sizeof(tmp1) );
+	memcpy( &tmp2, fsig+8, sizeof(tmp2) );
+	memcpy( &tmp3, iattrsig, sizeof(tmp3) );
+	memcpy( &tmp4, iattrsig+8, sizeof(tmp4) );
+
+        sprintf(attrbuf, "%s/%s/%016llX%016llX/%016llX.%016llX%016llX\0", disk_path, CACHE_DIR, tmp1, tmp2, oid, tmp3, tmp4);
+
+	err = access(attrbuf, F_OK);
+	if( err != 0 ) {
+		//printf("file %s does not exist\n", attrbuf);
+		return(EINVAL);
+	}
+
         fd = open(attrbuf, O_RDONLY );
         if (fd == -1) {
                 printf("failed to open file %s\n", attrbuf);
+                return (EINVAL);
+        }
+	err = flock(fd, LOCK_EX);
+        if (err != 0) {
+                perror("failed to lock attributes file\n");
+                close(fd);
                 return (EINVAL);
         }
         err = fstat(fd, &stats);

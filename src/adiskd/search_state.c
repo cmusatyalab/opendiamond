@@ -299,7 +299,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
          */
         sstate->flags &= ~DEV_FLAG_RUNNING;
 
-	ceval_stop();
+	ceval_stop(sstate->fdata);
 
 	err = odisk_flush(sstate->ostate);
 	assert( err==0 );
@@ -351,7 +351,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
          */
         fexec_init_search(sstate->fdata);
         //ceval_init_search(sstate->fdata, sstate->ostate);
-	err = ceval_start();
+	err = ceval_start(sstate->fdata);
 	if (err) {
 		return;
 	}

@@ -624,15 +624,12 @@ initialize_policy(filter_data_t *fdata) {
 int
 fexec_load_searchlet(char *lib_name, char *filter_spec, filter_data_t **fdata)
 {
-	int			     err;
+	int	     err;
 
 	log_message(LOGT_FILT, LOGL_TRACE, 
-		"init_filters: lib %s spec %s", lib_name, filter_spec);
+		"fexec_load_searchlet: lib %s spec %s", lib_name, filter_spec);
 
 
-#ifdef	XXX
-	fprintf(stderr, "filterexec: reading filter spec %s...\n", filter_spec);
-#endif
 	err = read_filter_spec(filter_spec, fdata);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR, 

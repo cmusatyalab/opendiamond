@@ -171,6 +171,7 @@ extend_attr_store(obj_attr_t *attr, int new_size)
 		/* XXX log */
 		return(ENOMEM);
 	}
+	memset( new_attr, 0, new_len);
 
 	memcpy(new_attr, attr->attr_data, attr->attr_len);
 	free(attr->attr_data);

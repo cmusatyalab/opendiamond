@@ -613,8 +613,10 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		pass = 0;
             	cur_filter->fi_drop++;
 	   	cur_filter->fi_called++;
-		if( fpath != NULL )
+		if( fpath != NULL ) {
 			free(fpath);
+			fpath = NULL;
+		}
 		break;
 	}
 
@@ -712,8 +714,10 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
                rt_time2secs(cur_filter->fi_time_ns) / cur_filter->fi_called);
 #endif
 
-	if( fpath != NULL )
+	if( fpath != NULL ) {
 		free(fpath);
+		fpath = NULL;
+	}
 
         if (!pass) {
             cur_filter->fi_drop++;

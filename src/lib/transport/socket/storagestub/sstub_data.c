@@ -192,9 +192,9 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 	int		sent;
 	int		vnum;
 	int		err;
-	int		header_remain, header_offset;
-	size_t		attr_remain, attr_offset;
-	int		data_remain, data_offset;
+	int		header_remain=0, header_offset=0;
+	size_t		attr_remain=0, attr_offset=0;
+	int		data_remain=0, data_offset=0;
 	char *		data;
 
 

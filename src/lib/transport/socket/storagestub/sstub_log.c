@@ -70,8 +70,8 @@
 void
 sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 {
-	int			header_remain, header_offset;
-	int			log_remain, log_offset;
+	int			header_remain=0, header_offset=0;
+	int			log_remain=0, log_offset=0;
 	char *			data;
 	int			send_len;
 

@@ -149,6 +149,7 @@ log_init(void **cookie)
 		/* XXX  don't know what to do and who to report it to*/
 		return;	
 	}
+	memset(ls, 0, sizeof(*ls));
 	ls->head = 0;
 	ls->tail = 0;
 	ls->drops = 0;

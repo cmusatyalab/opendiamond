@@ -39,6 +39,7 @@
 #define	_SIG_CALC_H_
 
 int sig_cal(const void *buf, off_t buflen, unsigned char **signature);
+int sig_cal_init();
 
 
 #endif	/* !_SIG_CALC_H_ */

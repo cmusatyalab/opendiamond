@@ -40,21 +40,27 @@
 #include <assert.h>
 
 
+const EVP_MD *md;
+
+int
+sig_cal_init()
+{
+    OpenSSL_add_all_digests();
+    md = EVP_get_digestbyname("md5");
+    if(!md) {
+        perror("Unknown message digest md5");
+        assert( md!= NULL);
+        //exit(1);
+    }
+    return(0);                                                                           
+}
+
 int
 sig_cal(const void *buf, off_t buflen, unsigned char **signature)
 {
     EVP_MD_CTX mdctx;
-    const EVP_MD *md;
     unsigned char *md_value;
     int md_len=0;
-                                                                                
-    OpenSSL_add_all_digests();
-    md = EVP_get_digestbyname("md5");
-    if(!md) {
-        printf("Unknown message digest md5\n");
-        assert( md!= NULL);
-        //exit(1);
-    }
                                                                                 
     md_value = *signature;
                                                                                 
@@ -71,9 +77,6 @@ sig_cal(const void *buf, off_t buflen, unsigned char **signature)
             printf("%x", md_value[i]);
         printf("\n");
     */
-    if( md_len == 16 )
-        return(0);
-    else
-        return(EINVAL);
+    return(0);
 }
 

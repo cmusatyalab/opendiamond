@@ -70,13 +70,12 @@ extern "C"
 
 	struct cache_obj_s {
 		uint64_t                oid;
-		//char			filter_sig[16];
 		char			iattr_sig[16];
 		int			result;
-		unsigned int			eval_count; //how many times this filter is evaluated
-		unsigned int			aeval_count; //how many times this filter is evaluated
-		unsigned int			hit_count; //how many times this filter is evaluated
-		unsigned int			ahit_count; //how many times this filter is evaluated
+		unsigned short			eval_count; //how many times this filter is evaluated
+		unsigned short			aeval_count; //how many times this filter is evaluated
+		unsigned short			hit_count; //how many times this filter is evaluated
+		unsigned short			ahit_count; //how many times this filter is evaluated
 		cache_attr_set		iattr;
 		cache_attr_set		oattr;
 		struct cache_obj_s	*next;
@@ -114,9 +113,7 @@ extern "C"
 #define		INSERT_END	3
 
 	typedef struct {
-		//char			filter_sig[16];
 		void *			cache_table;
-		//char			*file_name;  /*cached oattr file name*/
 	}
 	cache_start_entry;
 

@@ -103,12 +103,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	}
 
 	new_obj = malloc(sizeof(*new_obj));
-	if (new_obj == NULL) {
-		/*
-		 * XXX log error 
-		 */
-		return (ENOMEM);
-	}
+	assert( new_obj != NULL );
 
 	/* open and read the data file, since we are streaming through
      * the data we try to use the direct reads to save the memcopy
@@ -128,6 +123,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	}
 
 	base = (char *) malloc(ALIGN_SIZE(stats.st_size));
+	assert( base != NULL );
 	data = (char *)ALIGN_VAL(base);
 	if (base == NULL) {
 		close(os_file);
@@ -402,6 +398,7 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 		return (err);
 	} else {
 		glist = (gid_list_t *) malloc(len);
+		assert(glist != NULL);
 		err =
 		    obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len,
 		                  (char *) glist);
@@ -455,6 +452,7 @@ odisk_rem_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 	}
 
 	glist = (gid_list_t *) malloc(len);
+	assert(glist != NULL);
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *) glist);
 	assert(err == 0);
 
@@ -1024,12 +1022,7 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
 	ring_init(&obj_pr_ring, OBJ_PR_RING_SIZE);
 
 	new_state = (odisk_state_t *) malloc(sizeof(*new_state));
-	if (new_state == NULL) {
-		/*
-		 * XXX err log 
-		 */
-		return (ENOMEM);
-	}
+	assert( new_state != NULL );
 
 	memset(new_state, 0, sizeof(*new_state));
 
@@ -1316,6 +1309,7 @@ update_object_gids(odisk_state_t * odisk, obj_data_t * obj, char *name)
 	}
 
 	glist = (gid_list_t *) malloc(len);
+	assert( glist != NULL );
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *) glist);
 	assert(err == 0);
 
@@ -1351,6 +1345,7 @@ delete_object_gids(odisk_state_t * odisk, obj_data_t * obj)
 	}
 
 	glist = (gid_list_t *) malloc(len);
+	assert( glist != NULL );
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *) glist);
 	assert(err == 0);
 

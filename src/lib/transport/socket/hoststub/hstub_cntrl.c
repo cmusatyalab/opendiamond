@@ -359,6 +359,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 				 * some un-handled error happened, 
 				 */
 				/* XXX what now */
+			    printf("lost conn with %08x \n", cinfo->dev_id);
 				perror("uknown socket problem:");
 				exit(1);
 				return;

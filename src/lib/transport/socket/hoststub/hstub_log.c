@@ -133,6 +133,7 @@ hstub_read_log(sdevice_state_t  *dev)
 				 * some un-handled error happened, 
 				 */
 				/* XXX what now */
+			    printf("dev %08x \n", cinfo->dev_id);
 				perror("uknown socket problem:");
 				exit(1);
 				return;

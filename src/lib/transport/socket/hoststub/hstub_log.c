@@ -167,6 +167,7 @@ hstub_read_log(sdevice_state_t  *dev)
 			data_buf = (char *) malloc(data_remain);
 			if (data_buf == NULL) {
 				/* XXX crap, how do I get out of this */
+				printf("XXX failed to alloc log buffer \n");
 				exit(1);
 			}
 		}

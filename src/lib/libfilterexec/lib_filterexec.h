@@ -1,7 +1,6 @@
 #ifndef _FILTER_EXEC_H_
 #define _FILTER_EXEC_H_ 1
 
-
 struct filter_data;
 typedef struct filter_data filter_data_t;
 

@@ -295,7 +295,7 @@ fexec_evaluate(filter_data_t *fdata, permutation_t *perm, int *utility) {
   double pass = 1;		/* cumul pass rate */
   double totalcost = 0;		/* = utility */
   filter_info_t *info;
-  char buf[BUFSIZ];
+  //char buf[BUFSIZ];
   int n;
 
   /* NB: this assumes that filter_id_t and pelt_t are the same type XXX */

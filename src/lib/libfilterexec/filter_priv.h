@@ -1,6 +1,8 @@
 #ifndef _FILTER_PRIV_H_
 #define _FILTER_PRIV_H_
 
+#include <stdint.h>
+
 #include "rtimer.h"
 #include "rgraph.h"
 #include "lib_filter.h"		/* for filter_proto */
@@ -117,8 +119,8 @@ struct filter_data {
 };
 
 
-int     read_filter_spec(char *spec_name, filter_data_t **fdp);
-void    fexec_update_prob(filter_data_t *fdata, filter_id_t cur_filt,
+int     read_filter_spec(char *spec_name, struct filter_data **fdp);
+void    fexec_update_prob(struct filter_data *fdata, filter_id_t cur_filt,
 			  const filter_id_t *prev_list, int num_prev, int pass);
 
 

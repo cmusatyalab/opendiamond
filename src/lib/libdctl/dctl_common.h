@@ -13,7 +13,7 @@
 #define	HOST_BACKGROUND			"bg"
 #define	HOST_BACKGROUND_PATH	"host.bg"
 
-#define	NETWORK_NODE			"network"
+#define	HOST_NETWORK_NODE		"network"
 #define	HOST_NETWORK_PATH		"host.network"
 
 
@@ -26,6 +26,8 @@
 #define	DEV_SEARCH_PATH			"cur_search"
 
 
+#define	DEV_NETWORK_NODE		"network"
+#define	DEV_NETWORK_PATH		"network"
 
 
 #endif	/* !defined(_DCTL_COMMON_H_) */

@@ -57,6 +57,8 @@ ls_init_search()
 	err = dctl_register_node(ROOT_PATH, DEVICE_PATH);
 	assert(err == 0);
 
+	err = dctl_register_node(HOST_PATH, HOST_NETWORK_NODE);
+	assert(err == 0);
 
 	log_init();
 	
@@ -168,7 +170,6 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	int			hosts;
 	int			i,j;
 	int			err;
-
 
 
 	sc = (search_context_t *)handle;

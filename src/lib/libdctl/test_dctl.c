@@ -140,6 +140,8 @@ simple_test()
 	err = dctl_register_node("foo", "dir1");
 	assert(err == 0);
 
+	err = dctl_register_node("foo.dir1", "before");
+	assert(err == 0);
 
 	err = dctl_register_leaf("foo.dir1", "var1", DCTL_DT_UINT32, 
 			dctl_read_uint32, dctl_write_uint32, &var);
@@ -160,6 +162,8 @@ simple_test()
         exit(1);
     }
 
+	err = dctl_register_node("foo.dir1", "after");
+	assert(err == 0);
 
 
 	assert(err == 0);

@@ -553,8 +553,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     dctl_register_leaf(DEV_SEARCH_PATH, "obj_dropped", DCTL_DT_UINT32, 
                     dctl_read_uint32, NULL, &sstate->obj_dropped);
     dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32, 
-                    dctl_read_uint32, dctl_write_uint32, &sstate->obj_passed);
+                    dctl_read_uint32, NULL, &sstate->obj_passed);
 
+
+    dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
 
 	/*
 	 * init the ring to hold the queue of pending operations.

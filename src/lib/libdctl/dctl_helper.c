@@ -69,9 +69,8 @@ dctl_read_uint64(void *cookie, int *len, char *data)
 		return(ENOMEM);
 	}
 
-		
 	/* store the data and the data size */
-	*len = sizeof(uint32_t);
+	*len = sizeof(uint64_t);
 	*(uint64_t *)data = *(uint64_t *)cookie;
 	return(0);
 

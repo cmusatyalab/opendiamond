@@ -60,7 +60,6 @@ bg_main(void *arg)
 	uint32_t			loop_count = 0;
 	uint32_t			dummy = 0;
 
-
 	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
 	assert(err == 0);
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count", DCTL_DT_UINT32,

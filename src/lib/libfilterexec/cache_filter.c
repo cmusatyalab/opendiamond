@@ -685,7 +685,6 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	         * to determine how much of * the allocation to run.
 		 */
 		if (err == 0) {
-		    //printf("XXX lame cache update \n");
 			cur_filter->fi_called++;
 			cur_filter->fi_cache_pass++;
 		} else {

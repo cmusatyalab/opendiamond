@@ -752,15 +752,21 @@ int
 ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
 {
 	obj_data_t *	new_obj;
+	obj_adata_t 	*cur, *next;
 
 	new_obj = (obj_data_t *)obj_handle;
 
-	if (new_obj->data != NULL) {
-		free(new_obj->data);
+	if (new_obj->base != NULL) {
+		free(new_obj->base);
 	}
-	if (new_obj->attr_info.attr_data != NULL) {
-		free(new_obj->attr_info.attr_data);
-	}
+
+    cur = new_obj->attr_info.attr_dlist;
+    while (cur != NULL) {
+        next = cur->adata_next;
+        free(cur->adata_base);
+        free(cur);
+        cur = next;
+    }
 	free(new_obj);
 	return(0);
 }

@@ -115,8 +115,6 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 			printf("objects differ \n");
 			exit(1);
 		}
-
-
 	}
 
 	free(base_data);
@@ -273,7 +271,6 @@ main(int argc, char **argv)
 	 */
 	err = odisk_get_obj(odisk, &new_obj, &oid);
 	assert(err == 0);
-	old_size = new_obj->attr_info.attr_len;
 
 	obj_del_attr(&new_obj->attr_info, "test_attr");
 
@@ -287,7 +284,6 @@ main(int argc, char **argv)
 	/* reload and make sure our size is now less than before */
 	err = odisk_get_obj(odisk, &new_obj, &oid);
 	assert(err == 0);
-	assert(old_size >= (new_obj->attr_info.attr_len + 400001));
 
 	/* save the object */
 	exit(0);

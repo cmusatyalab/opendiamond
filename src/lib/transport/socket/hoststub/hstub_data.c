@@ -72,6 +72,7 @@ void
 hstub_read_data(sdevice_state_t *dev)
 {
 	obj_data_t *	obj;
+	obj_adata_t *	attr_data;
 	conn_info_t *	cinfo;
 	int		header_offset, header_remain;
 	int		attr_offset, attr_remain;
@@ -113,7 +114,7 @@ hstub_read_data(sdevice_state_t *dev)
 		header_offset = 0;
 		header_remain = 0;
 		attr_offset = cinfo->data_rx_offset;
-		attr_remain = cinfo->data_rx_obj->attr_info.attr_len -
+		attr_remain = cinfo->data_rx_obj->attr_info.attr_dlist->adata_len -
 		              attr_offset;
 		data_offset = 0;
 		data_remain = cinfo->data_rx_obj->data_len;
@@ -224,11 +225,18 @@ hstub_read_data(sdevice_state_t *dev)
 			printf("XXX crap, no space for object data \n");
 			exit(1);
 		}
-
 		obj->data_len = dlen;
 		obj->data = odata;
-		obj->attr_info.attr_len = alen;
-		obj->attr_info.attr_data = adata;
+		obj->base = odata;
+
+		attr_data = (obj_adata_t *)malloc(sizeof(*attr_data));		
+		attr_data->adata_data = adata;
+		attr_data->adata_base = adata;
+		attr_data->adata_len = alen;
+		attr_data->adata_next = NULL;
+
+		obj->attr_info.attr_ndata = 1;
+		obj->attr_info.attr_dlist = attr_data;
 		obj->remain_compute = (float)ntohl(cinfo->data_rx_header.remain_compute)/1000.0;
 		cinfo->data_rx_obj = obj;
 
@@ -243,7 +251,7 @@ hstub_read_data(sdevice_state_t *dev)
 	 * If there is attribute data, then get it .
 	 */
 	if (attr_remain > 0) {
-		data = cinfo->data_rx_obj->attr_info.attr_data;
+		data = cinfo->data_rx_obj->attr_info.attr_dlist->adata_data;
 
 		rsize = recv(cinfo->data_fd, &data[attr_offset],
 		             attr_remain, 0);
@@ -315,10 +323,10 @@ hstub_read_data(sdevice_state_t *dev)
 	}
 
 	cinfo->stat_obj_rx++;
-	cinfo->stat_obj_attr_byte_rx += cinfo->data_rx_obj->attr_info.attr_len;
+	cinfo->stat_obj_attr_byte_rx += cinfo->data_rx_obj->attr_info.attr_dlist->adata_len;
 	cinfo->stat_obj_hdr_byte_rx += sizeof(obj_header_t);
 	cinfo->stat_obj_data_byte_rx += cinfo->data_rx_obj->data_len;
-	cinfo->stat_obj_total_byte_rx += cinfo->data_rx_obj->attr_info.attr_len +
+	cinfo->stat_obj_total_byte_rx += cinfo->data_rx_obj->attr_info.attr_dlist->adata_len +
 	                                 sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
 
 
@@ -327,7 +335,7 @@ hstub_read_data(sdevice_state_t *dev)
 	ver_no = ntohl(cinfo->data_rx_header.version_num);
 
 	if ((cinfo->data_rx_obj->data_len == 0) &&
-	    (cinfo->data_rx_obj->attr_info.attr_len == 0)) {
+	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0)) {
 		(*dev->hstub_search_done_cb)(dev->hcookie, ver_no);
 		free(cinfo->data_rx_obj);
 

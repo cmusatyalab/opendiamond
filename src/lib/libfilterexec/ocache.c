@@ -1344,11 +1344,12 @@ ocache_add_oattr(char *fhandle, uint64_t obj_id, const char *name, off_t len,
 			}
 			oattr_entry->type = INSERT_OATTR;
 			oattr_entry->oid = obj_id;
-			if( name != NULL )
+			if (name != NULL) {
 				name_len = strlen(name);
-			else
+			} else {
 				name_len = 0;
-			oattr_entry->u.oattr.name_len = name_len;
+			}
+			oattr_entry->u.oattr.name_len = name_len + 1;
 			oattr_entry->u.oattr.name = (char *) malloc( name_len+1 );
 			if( oattr_entry->u.oattr.name == NULL ) {
 				printf("ENOMEM\n");
@@ -1709,8 +1710,7 @@ oattr_main(void *arg)
 			}
 
 			while(1) {
-				err = oattr_lookup_next(&tobj, cstate);
-				if( err != 1 ) {
+				err = oattr_lookup_next(&tobj, cstate); if( err != 1 ) {
 					printf("something wrong from oattr_lookup_next\n");
 					break;
 				}
@@ -1750,9 +1750,16 @@ oattr_main(void *arg)
 					if( err != 1 )
 						break;
 				} else {
-					write(fd, &tobj->u.oattr.name_len, sizeof(unsigned int));
-					write(fd, tobj->u.oattr.name, tobj->u.oattr.name_len+1);
-					write(fd, &tobj->u.oattr.data_len, sizeof(off_t));
+					attr_record_t arec;
+
+					arec.name_len = tobj->u.oattr.name_len;
+					arec.data_len = tobj->u.oattr.data_len;
+					arec.rec_len = arec.name_len + arec.data_len +
+						sizeof(arec);
+					arec.flags = 0;
+
+					write(fd, &arec, sizeof(arec));
+					write(fd, tobj->u.oattr.name, tobj->u.oattr.name_len);
 					write(fd, tobj->u.oattr.data, tobj->u.oattr.data_len);
 				}
 

@@ -76,5 +76,19 @@ typedef	struct gid_idx_ent {
 } gid_idx_ent_t;
 
 
+/*
+ * Some macros for using the O_DIRECT call for aligned buffer
+ * management.
+ */
+
+/* alignment restriction */
+#define	OBJ_ALIGN	4096
+#define	ALIGN_MASK	(~(OBJ_ALIGN -1))
+
+#define	ALIGN_SIZE(sz)	((sz) + (2 * OBJ_ALIGN))
+#define	ALIGN_VAL(base)	(void*)(((uint32_t)(base)+ OBJ_ALIGN - 1) & ALIGN_MASK)
+#define	ALIGN_ROUND(sz)	(((sz) + OBJ_ALIGN - 1) & ALIGN_MASK)
+
+
 #endif	/* !_ODISK_PRIV_H_ */
 

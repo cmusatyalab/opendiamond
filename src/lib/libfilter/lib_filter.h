@@ -325,6 +325,10 @@ int lf_free_buffer(lf_fhandle_t fhandle, char *buf);
 int lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,  
 		    	const char *name, off_t *len, char *data);
 
+/* XXX lh add comments */
+int lf_ref_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,  
+		    	const char *name, off_t *len, char **data);
+
 /*
  * This function sets the some of the object's attributes.
  *

@@ -72,6 +72,7 @@ obj_dump_attr(obj_attr_t *attr)
 		//exit (1);
 	}
 
+#ifdef	XXX
 	cur_offset = 0;
 	while (cur_offset < attr->attr_len) {
 		cur_rec = (attr_record_t *)&attr->attr_data[cur_offset];
@@ -107,4 +108,5 @@ obj_dump_attr(obj_attr_t *attr)
 		/* advance */
 		cur_offset += cur_rec->rec_len;
 	}
+#endif
 }

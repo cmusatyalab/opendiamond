@@ -164,6 +164,26 @@ lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
 }
 
 
+int
+lf_ref_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
+             off_t *len, char **data)
+{
+	obj_data_t	*odata;
+	obj_attr_t	*adata;
+	int		err;
+
+	odata = (obj_data_t *)obj;
+	adata = &odata->attr_info;
+	err = obj_ref_attr(adata, name, len, data);
+	/* add read attrs into cache queue: input attr set */
+	if (!err && (read_attr_fn != NULL)) {
+		(*read_attr_fn)((char *)fhandle, odata->local_id, name, *len, *data);
+	}
+	//if( !err )
+	//	ocache_add_iattr((char *)fhandle, odata->local_id, name, *len, data);
+	return(err);
+}
+
 /* XXX */
 int
 lf_dump_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj)

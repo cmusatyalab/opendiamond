@@ -77,7 +77,7 @@ extern int      do_cleanup;
  */
 #define	CONTROL_RING_SIZE	512
 
-static int      search_free_obj(obj_data_t * obj);
+static int      search_free_obj(search_state_t *sstate, obj_data_t * obj);
 
 typedef enum {
     DEV_STOP,
@@ -452,8 +452,9 @@ create_null_obj()
 
 	new_obj->data_len = 0;
 	new_obj->data = NULL;
-	new_obj->attr_info.attr_len = 0;
-	new_obj->attr_info.attr_data = NULL;
+	new_obj->base = NULL;
+	new_obj->attr_info.attr_ndata = 0;
+	new_obj->attr_info.attr_dlist = NULL;
 
 	return (new_obj);
 }
@@ -465,8 +466,8 @@ dynamic_update_bypass(search_state_t *sstate)
 	int	err;
 	float	avg_cost;
 
-        err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
-		1, 0, &avg_cost);
+	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
+			1, 0, &avg_cost);
 	if (err) {
 		avg_cost = 30000000.0;
 	}
@@ -490,14 +491,13 @@ dynamic_update_bypass(search_state_t *sstate)
 	sstate->split_ratio = (int)((sstate->pend_compute * 
 		(float)sstate->split_mult));
 
-	if (sstate->split_ratio < 5)
+	if (sstate->split_ratio < 5) {
 		sstate->split_ratio = 5;
-	if (sstate->split_ratio > 100)
+	}
+	if (sstate->split_ratio > 100) {
 		sstate->split_ratio = 100;
+	}
 
-	//printf("dynupdate new ratio: %d pend %f mult %d avg %f\n", 
-		//sstate->split_ratio, sstate->pend_compute, sstate->split_mult,
-		//sstate->avg_ratio);
 }
 
 static void
@@ -709,7 +709,7 @@ device_main(void *arg)
 
 				if (err == 0) {
 					sstate->obj_dropped++;
-					search_free_obj(new_obj);
+					search_free_obj(sstate, new_obj);
 				} else {
 					sstate->obj_passed++;
 					if (err == 1) {
@@ -1071,16 +1071,10 @@ search_close_conn(void *app_cookie)
 }
 
 int
-search_free_obj(obj_data_t * obj)
+search_free_obj(search_state_t *sstate, obj_data_t * obj)
 {
-
-	if (obj->data != NULL) {
-		free(obj->base);
-	}
-	if (obj->attr_info.attr_data != NULL) {
-		free(obj->attr_info.attr_base);
-	}
-	free(obj);
+	int 			err;
+	err = odisk_release_obj(sstate->ostate, obj);
 	return (0);
 
 }
@@ -1093,21 +1087,18 @@ int
 search_release_obj(void *app_cookie, obj_data_t * obj)
 {
 	search_state_t *sstate;
+	int 			err;
 	sstate = (search_state_t *) app_cookie;
 
+	if (obj == NULL) {
+		return(0);
+	}
 
 	sstate->pend_objs--;
 	sstate->pend_compute -= obj->remain_compute;
 
-	if (obj->data != NULL) {
-		free(obj->base);
-	}
-	if (obj->attr_info.attr_data != NULL) {
-		free(obj->attr_info.attr_base);
-	}
-	free(obj);
+	err = odisk_release_obj(sstate->ostate, obj);
 	return (0);
-
 }
 
 

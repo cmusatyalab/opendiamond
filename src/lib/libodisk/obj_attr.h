@@ -40,13 +40,20 @@
 
 #include <stdint.h>
 
+typedef struct obj_adata {
+    off_t           	adata_len;
+    char           	*	adata_data;
+    char           	*	adata_base;
+    struct obj_adata *	adata_next;
+} obj_adata_t;
+
+
 /*
  * This is the state associated with the object
  */
 typedef struct {
-    off_t           attr_len;
-    char           *attr_data;
-    char           *attr_base;
+	int				attr_ndata;
+	obj_adata_t *	attr_dlist;	
 } obj_attr_t;
 
 
@@ -61,7 +68,7 @@ typedef struct attr_record {
 	int		name_len;
 	int		data_len;
 	int		flags;
-	char 		data[4];
+	char 	data[0];
 } attr_record_t;
 
 #define	ATTR_FLAG_FREE		0x01
@@ -92,6 +99,9 @@ int obj_write_attr(obj_attr_t *attr, const char *name,
 			  off_t len, const char *data);
 int obj_read_attr(obj_attr_t *attr, const char *name,
 			 off_t *len, char *data);
+
+int obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, char **data);
+
 int obj_del_attr(obj_attr_t *attr, const char *name);
 int obj_read_attr_file(char *attr_fname, obj_attr_t *attr);
 int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);

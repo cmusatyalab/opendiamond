@@ -144,5 +144,15 @@ typedef struct log_header {
 }  log_header_t;
 
 
+/*
+ * credit count state that is passed in the reverse direction
+ * on the credit count channel.
+ */
+#define	CC_MAGIC_HEADER		0x81204570
+typedef struct credit_count_msg {
+	uint32_t	cc_magic;	/* for debugging */
+	uint32_t	cc_count;	/* number of object can send */
+} credit_count_msg_t;
+
 
 #endif /* _SOCKET_TRANS_H_ */

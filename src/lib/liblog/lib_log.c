@@ -117,7 +117,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	/*
 	 * If we aren't loggin this level or type, then just return.
 	 */
-	if (((ls->type & type) == 0) && ((ls->level & level) == 0)) {
+	if (((ls->type & type) == 0) || ((ls->level & level) == 0)) {
 		return;	
 	}
 

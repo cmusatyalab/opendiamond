@@ -62,6 +62,7 @@ typedef struct search_state {
     uint            obj_passed;
     uint            obj_skipped;
     uint            pend_objs;
+	float			pend_compute;
     uint            pend_thresh;
     uint            bp_feedback;
     uint            bp_thresh;

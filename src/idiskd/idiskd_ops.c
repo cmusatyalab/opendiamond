@@ -76,7 +76,7 @@ extern int      do_cleanup;
  */
 #define	CONTROL_RING_SIZE	512
 
-static int      search_free_obj(obj_data_t * obj);
+static int      search_free_obj(search_state_t *sstate, obj_data_t * obj);
 
 typedef enum {
     DEV_STOP,
@@ -408,24 +408,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 
 
 
-/*
- * XXX hack 
- */
-obj_data_t     *
-create_null_obj()
-{
-	obj_data_t     *new_obj;
-
-	new_obj = (obj_data_t *) malloc(sizeof(*new_obj));
-	assert(new_obj != NULL);
-
-	new_obj->data_len = 0;
-	new_obj->data = NULL;
-	new_obj->attr_info.attr_len = 0;
-	new_obj->attr_info.attr_data = NULL;
-
-	return (new_obj);
-}
 
 static int
 continue_fn(void *cookie)
@@ -447,7 +429,9 @@ device_main(void *arg)
 	obj_data_t     *new_obj;
 	int             err;
 	int             any;
+	int				complete; 
 	struct timespec timeout;
+	int		force_eval;
 
 
 	sstate = (search_state_t *) arg;
@@ -474,6 +458,8 @@ device_main(void *arg)
 		 */
 		if ((sstate->flags & DEV_FLAG_RUNNING) &&
 		    (sstate->pend_objs < sstate->pend_thresh)) {
+			force_eval = 0;
+			/* XXXX change this */
 			err = odisk_next_obj(&new_obj, sstate->ostate);
 			if (err == ENOENT) {
 				/*
@@ -492,9 +478,10 @@ device_main(void *arg)
 				 * we are done we send object with
 				 * no data or attributes.
 				 */
-				new_obj = create_null_obj();
+				new_obj = odisk_null_obj();
+				new_obj->remain_compute = 0.0;
 				err = sstub_send_obj(sstate->comm_cookie,
-				                     new_obj, sstate->ver_no);
+				                     new_obj, sstate->ver_no, 1);
 				if (err) {
 					/*
 					 * XXX overflow gracefully 
@@ -520,75 +507,53 @@ device_main(void *arg)
 			} else {
 				any = 1;
 
-				if ((sstate->bp_feedback) &&
-				    (sstate->pend_objs < sstate->bp_thresh)) {
-					sstate->obj_skipped++;
-					err = sstub_send_obj(sstate->comm_cookie, new_obj,
-					                     sstate->ver_no);
-					if (err) {
-						/*
-						 * XXX overflow gracefully 
-						 */
-						/*
-						 * XXX log 
-						 */
+				/* 
+			 	 * set bypass values periodically.
+ 				 */
+                sstate->obj_processed++;
 
-					} else {
-						/*
-						 * XXX log 
-						 */
-						sstate->pend_objs++;
-					}
-				} else if ((cpu_split) && (random() > cpu_split_thresh)) {
-					sstate->obj_skipped++;
-					err = sstub_send_obj(sstate->comm_cookie, new_obj,
-					                     sstate->ver_no);
-					if (err) {
-						/*
-						 * XXX overflow gracefully 
-						 */
-						/*
-						 * XXX log 
-						 */
+                                                                                
+                /*
+                 * We want to process some number of objects
+                 * locally to get the necessary statistics.
+                 * Setting force_eval will make sure process the whole
+                 * object.
+                 */
+                                                                                
+                if ((sstate->obj_processed & 0xf) == 0xf) {
+                    force_eval = 1;
+                }
 
-					} else {
-						/*
-						 * XXX log 
-						 */
-						sstate->pend_objs++;
-					}
-				} else {
-					/*
-					 * XXX process the object 
-					 */
-					sstate->obj_processed++;
-
-					err = eval_filters(new_obj, sstate->fdata, 0, sstate,
-					                   continue_fn, NULL);
-					if (err == 0) {
-						sstate->obj_dropped++;
-						search_free_obj(new_obj);
-
-					} else {
-						sstate->obj_passed++;
-						err = sstub_send_obj(sstate->comm_cookie, new_obj,
-						                     sstate->ver_no);
-						if (err) {
-							/*
-							 * XXX overflow gracefully 
-							 */
-							/*
-							 * XXX log 
-							 */
-
-						} else {
-							/*
-							 * XXX log 
-							 */
-							sstate->pend_objs++;
-						}
-					}
-				}
+                err = eval_filters(new_obj, sstate->fdata, force_eval,
+                                     sstate, continue_fn, NULL);
+                                                                                
+                if (err == 0) {
+                    sstate->obj_dropped++;
+                    search_free_obj(sstate, new_obj);
+                } else {
+                    sstate->obj_passed++;
+                    if (err == 1) {
+                        complete = 0;
+                    } else {
+                        complete = 1;
+                    }
+                                                                                
+                    sstate->pend_objs++;
+                    sstate->pend_compute += new_obj->remain_compute;
+                    //printf("queu %f new %f \n",
+                        //new_obj->remain_compute,
+                        //sstate->pend_compute);
+                                                                                
+                    err = sstub_send_obj(sstate->comm_cookie, new_obj,
+                                         sstate->ver_no, complete);
+                    if (err) {
+                        /*
+                         * XXX overflow gracefully
+                         */
+                        sstate->pend_objs--;
+                        sstate->pend_compute -= new_obj->remain_compute;
+                    }
+                }
 			}
 		}
 
@@ -875,18 +840,10 @@ search_close_conn(void *app_cookie)
 }
 
 int
-search_free_obj(obj_data_t * obj)
+search_free_obj(search_state_t *sstate, obj_data_t * obj)
 {
-
-	if (obj->data != NULL) {
-		free(obj->data);
-	}
-	if (obj->attr_info.attr_data != NULL) {
-		free(obj->attr_info.attr_data);
-	}
-	free(obj);
-	return (0);
-
+	odisk_release_obj(obj);
+	return(0);
 }
 
 /*
@@ -899,16 +856,14 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 	search_state_t *sstate;
 	sstate = (search_state_t *) app_cookie;
 
+	if (obj == NULL) {
+		return(0);
+	}
 
 	sstate->pend_objs--;
+	sstate->pend_compute == obj->remain_compute;
 
-	if (obj->data != NULL) {
-		free(obj->data);
-	}
-	if (obj->attr_info.attr_data != NULL) {
-		free(obj->attr_info.attr_data);
-	}
-	free(obj);
+	odisk_release_obj(obj);
 	return (0);
 
 }

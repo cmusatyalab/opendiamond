@@ -3,12 +3,12 @@
 #define _FILTER_EXEC_H_
 
 
-struct filter_info_t;
+struct filter_info;
 
 extern int init_filters(char*filter_file, char *filter_spce,  
-			struct filter_info_t **finfo);
+			struct filter_info **finfo);
 
-extern int eval_filters(obj_data_t *obj_handle, struct filter_info_t *finfo);
+extern int eval_filters(obj_data_t *obj_handle, struct filter_info *finfo);
 
 
 

@@ -316,7 +316,7 @@ process_searchlet_message(listener_state_t *lstate, cstate_t *cstate,
 
 
 	(*lstate->set_searchlet_cb)(cstate->app_cookie, gen,
-				    spec_name, lib_name);
+				    lib_name, spec_name);
 
 }
 

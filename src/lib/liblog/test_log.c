@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdint.h>
+#include <netinet/in.h>
 #include "lib_log.h"
 
 
@@ -22,6 +23,46 @@ empty_log()
 
 }
 
+void
+string_test()
+{
+	int		i, j, x;
+	int		len;
+	char * 		data;
+	int		cur_off;
+	log_ent_t *	cur_ent;
+
+	empty_log();
+
+	/*
+	 * Set the levels to where we want them to be.
+	 */
+	log_settype(LOGT_APP);
+	log_setlevel(LOGL_INFO);
+
+	/*
+	 * Write a bunch of strings of different lengths and contents
+	 */
+	for (i = 0; i < 1; i++) {
+		log_message(LOGT_APP, LOGL_INFO, "A\n");
+		log_message(LOGT_APP, LOGL_INFO, "BB\n");
+		log_message(LOGT_APP, LOGL_INFO, "CCC\n");
+		log_message(LOGT_APP, LOGL_INFO, "DDD\n");
+		log_message(LOGT_APP, LOGL_INFO, "EEEE\n");
+		log_message(LOGT_APP, LOGL_INFO, "%s %s ", "sldkfj", "abc");
+	}
+
+
+	len = log_getbuf(&data);
+
+	cur_off = 0;
+	while (cur_off < (len)) {
+		cur_ent = (log_ent_t *)&data[cur_off];
+		printf("str_test: <%s> \n", cur_ent->le_data);
+		cur_off += ntohl(cur_ent->le_nextoff);
+	}
+	log_advbuf(len);
+}
 
 void
 test_many_writes()
@@ -59,7 +100,7 @@ test_many_writes()
 					exit(1);
 				}
 				j++;
-				cur_off += cur_ent->le_nextoff;
+				cur_off += ntohl(cur_ent->le_nextoff);
 			}
 			log_advbuf(len);
 		}
@@ -77,6 +118,7 @@ main(int argc, char **argv)
 {
 
 	log_init();
+	string_test();
 	test_many_writes();
 	return(0);
 }

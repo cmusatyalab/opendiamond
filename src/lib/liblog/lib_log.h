@@ -10,8 +10,8 @@
  */
 
 #define	LOGT_APP	0x00000001	/* from application */ 
-#define	LOGT_VDISK	0x00000002	/* from emulated disk */
-#define	LOGT_FILT	0x00000004	/* from filter valuation */
+#define	LOGT_DISK	0x00000002	/* from emulated disk */
+#define	LOGT_FILT	0x00000004	/* from filter evaluation */
 #define	LOGT_BG		0x00000008	/* from host background process */
 #define	LOGT_ALL	0xFFFFFFFF	/* log all types */
 

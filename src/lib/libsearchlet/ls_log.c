@@ -13,23 +13,74 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <assert.h>
+#include <stdint.h>
 #include "ring.h"
 #include "lib_searchlet.h"
 #include "lib_odisk.h"
+#include "lib_log.h"
 #include "lib_search_priv.h"
 #include "filter_exec.h"
 #include "log.h"
 #include "log_impl.h"
 #include "assert.h"
 
+/*
+ * send a specific log entry.
+ */
 
+int
+log_send_local_data(search_context_t *sc, int conn)
+{
+
+	log_msg_t	log_msg;
+	char *		data_buf;
+	int		data_len;
+	int		slen;
+	int		err = 0;
+
+
+	/*
+	 * Get any data, if there isn't any, then return.
+	 */
+	data_len = log_getbuf(&data_buf);
+	if (data_len == 0) {
+		return (0);
+	}
+
+	/*
+	 * Fill in the header.
+	 */
+
+	log_msg.log_len = data_len; 
+	log_msg.log_type = LOG_SOURCE_BACKGROUND;
+	/* XXX should we get our IP?? */
+	log_msg.dev_id = 0;
+
+
+	slen = send(conn, (void *)&log_msg, sizeof(log_msg), MSG_NOSIGNAL);
+	if ((slen < 0) || (slen != sizeof(log_msg))) {
+		err = 1;
+		goto done;
+	}
+
+
+	slen = send(conn, (void *)data_buf, data_len, MSG_NOSIGNAL);
+	if ((slen < 0) || (slen != data_len)) {
+		err = 1;
+		goto done;
+	}
+
+done:
+	log_advbuf(data_len);
+	return(err);
+}
 
 /*
  * send a specific log entry.
  */
 
 int
-log_send_data(search_context_t *sc, log_info_t *log_info, int conn)
+log_send_queued_data(search_context_t *sc, log_info_t *log_info, int conn)
 {
 
 	log_msg_t	log_msg;
@@ -80,10 +131,15 @@ process_log_data(search_context_t *sc, int conn)
 		if (linfo == NULL) {
 			sleep(1);
 		} else {
-			err = log_send_data(sc, linfo, conn);
-			if (err)
+			err = log_send_queued_data(sc, linfo, conn);
+			if (err) {
 				return;
-		} 
+			}
+		}
+		err = log_send_local_data(sc, conn);
+		if (err) {
+			return;
+		}
 	}
 }
 

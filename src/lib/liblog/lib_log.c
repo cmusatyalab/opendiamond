@@ -128,7 +128,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	 */
 
 	/* XXX grab mutux */
-	assert((MAX_LOG_BUFFER - ls->head) > MAX_LOG_ENTRY);
+	assert((MAX_LOG_BUFFER - ls->head) >= MAX_LOG_ENTRY);
 
 	if (ls->head == -1) {
 		if (ls->tail != 0) {
@@ -190,8 +190,6 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	ent->le_nextoff = htonl(total_len);
 
 	/* XXX rel mutux */
-
-
 }
 
 

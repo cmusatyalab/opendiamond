@@ -17,9 +17,10 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "filter_priv.h"	/* to read stats -RW */ 
-#include "search_state.h"
 #include "lib_sstub.h"
 #include "lib_log.h"
+#include "filter_exec.h"
+#include "search_state.h"
 
 
 typedef enum {
@@ -176,6 +177,9 @@ static void
 dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 {
 	int	err;
+	char *	obj_name;
+	char *	spec_name;
+
 
 
 	switch (cmd->cmd) {
@@ -208,6 +212,15 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 		case DEV_SEARCHLET:
 			sstate->ver_no = cmd->id;
 
+			obj_name = cmd->extra_data.sdata.filter;
+			spec_name = cmd->extra_data.sdata.spec;
+
+			err = init_filters(obj_name, spec_name,
+				       	&sstate->finfo);
+			if (err) {
+				/* XXX log */
+				return;
+			}
 
 			break;
 
@@ -250,7 +263,7 @@ device_main(void *arg)
 	
 	while (1) {
 		any = 0;
-		log_message(LOGT_VDISK, LOGL_TRACE, "loop top");
+		log_message(LOGT_DISK, LOGL_TRACE, "loop top");
 		cmd = (dev_cmd_data_t *)ring_deq(sstate->control_ops);
 		if (cmd != NULL) {
 			any = 1;
@@ -279,14 +292,26 @@ device_main(void *arg)
 			} else {
 				any = 1;
 				/* XXX process the object */
+				sstate->obj_processed++;
 
-				/* XXX add vnum !!! */
-				err = sstub_send_obj(sstate->comm_cookie, 
-						new_obj, sstate->ver_no);
-				if (err) {
-					/* XXX handle overflow gracefully !!! */
-					/* XXX log */
-	
+				err = eval_filters(new_obj, sstate->finfo);
+				if (err == 0) {
+					sstate->obj_dropped++;
+					search_release_obj(NULL, new_obj);
+
+				} else {
+					sstate->obj_passed++;
+
+					/* XXX add vnum !!! */
+					err = sstub_send_obj(
+							sstate->comm_cookie, 
+							new_obj, 
+							sstate->ver_no);
+					if (err) {
+						/* XXX overflow gracefully  */
+						/* XXX log */
+		
+					}
 				}
 			}
 

@@ -68,7 +68,7 @@ get_type_string(uint32_t level, char *string, int max)
 			string[max-1] = '\0';
 			break;
 
-		case LOGT_VDISK:
+		case LOGT_DISK:
 			strncpy(string, "Disk", max);
 			string[max-1] = '\0';
 			break;
@@ -124,9 +124,6 @@ display_results(log_msg_t *lheader, char *data)
 	cur_offset = 0;
 
 	while (cur_offset < total_len) {
-		/* XXX */
-		printf("cur_off: %d total %d \n",
-				cur_offset, total_len);
 		log_ent = (log_ent_t *)&data[cur_offset];
 
 
@@ -140,7 +137,7 @@ display_results(log_msg_t *lheader, char *data)
 			       	source, host_id, level_string, type_string, 
 				log_ent->le_data);
 
-		cur_offset += log_ent->le_nextoff;
+		cur_offset += ntohl(log_ent->le_nextoff);
 
 	}
 

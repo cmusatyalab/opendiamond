@@ -59,8 +59,6 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 		 * If we failed to log, then we just fee
 		 * the information and loose this log.
 		 */
-		/* XXX */
-		assert(0);
 		free(data);
 		free(linfo);
 		return;	

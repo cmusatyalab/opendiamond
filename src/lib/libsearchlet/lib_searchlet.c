@@ -39,9 +39,11 @@ ls_init_search()
 		return(NULL);
 	}
 
+	/*
+	 * Initialize the logging on the local host.
+	 */
+	log_init();
 	
-	/* XXX */
-	log_message(1, 1, "012345");
 
 	sc->cur_search_id = 1; /* XXX should we randomize ??? */
 	sc->dev_list = NULL;

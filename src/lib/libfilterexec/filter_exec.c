@@ -7,8 +7,10 @@
 #include <errno.h>
 #include <stddef.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "lib_odisk.h"
+#include "lib_log.h"
 #include "attr.h"
 #include "filter_priv.h"
 #include "rtimer.h"
@@ -32,14 +34,12 @@ load_filter_lib(char *lib_name, filter_info_t *froot)
 	filter_proto	fp;
 	char *		error;
 
-	printf("load_filter_lib: <%s> \n", lib_name);
 	handle = dlopen(lib_name, RTLD_NOW);
 	if (!handle) {
 		/* XXX error log */
 		fputs(dlerror(), stderr);
 		exit (1);
 	}
-	printf("after dl_open: <%p> \n", handle);
 
 	cur_filt = froot;
 
@@ -70,30 +70,53 @@ verify_filters(filter_info_t *froot)
 
 	filter_info_t *	cur_filter;
 
+	log_message(LOGT_FILT, LOGL_TRACE, "verify_filters(): starting");
+
+
+	/*
+	 * Make sure we have at least 1 filter defined.
+	 */
 	if (froot == NULL) {
-		/* XXX log */
-		printf("no defined filters \n");
+		log_message(LOGT_FILT, LOGL_ERR, 
+				"verify_filters(): no filters");
 		return(EINVAL);
 	}
+
+
+
+	/*
+	 * Loop over all the filters and makes sure some minimum requirements
+	 * are checked.
+	 */
 	cur_filter = froot;
 	while (cur_filter != NULL) {
+		/*
+		 * Make sure the filter exisits and it is at least
+		 * 1 character.
+		 */
 		if (strlen(cur_filter->fi_name) == 0) {
-			/* XXX log */
-			printf("invalid filter name \n");
+			log_message(LOGT_FILT, LOGL_ERR, 
+				"verify_filters(): no filter name");
 			return(EINVAL);
 		}
 		if (strlen(cur_filter->fi_fname) == 0) {
-			/* XXX log */
-			printf("filter %s: no function name \n", cur_filter->fi_name);
+			log_message(LOGT_FILT, LOGL_ERR, 
+				"verify_filters(): filter name invalid");
 			return(EINVAL);
 		}
+
+		/*
+		 * Make sure the threshold is defined.
+		 */
 		if (cur_filter->fi_threshold  == -1) {
-			/* XXX log */
-			printf("filter %s: no threshold  \n", cur_filter->fi_name);
+			log_message(LOGT_FILT, LOGL_ERR, 
+				"verify_filters(): no threshold");
 			return(EINVAL);
 		}
 		cur_filter = cur_filter->fi_next;
 	}
+
+	log_message(LOGT_FILT, LOGL_TRACE, "verify_filters(): complete");
 
 	return(0);
 }
@@ -300,36 +323,54 @@ init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
 	int			err;
 	char	  		*troot;
 
-	/* XXX use real name */
+	log_message(LOGT_FILT, LOGL_TRACE, 
+		"init_filters: lib %s spec %s", lib_name, filter_spec);
+
+
+
 	err = read_filter_spec(filter_spec, froot, &troot);
 	if (err) {
-		/* XXX log */
-		printf("failed to read filter spec /n");
+		log_message(LOGT_FILT, LOGL_ERR, 
+				"Failed to read filter spec <%s>", 
+				filter_spec);
 		return (err);
 	}
 	print_filter_list("read filters", *froot);
 
 	*froot = resolve_filter_deps(*froot, troot);
 	if (!*froot) {
-		/* XXX log */
-		printf("failed to resolve dependencies \n");
+		log_message(LOGT_FILT, LOGL_ERR, 
+				"Failed resolving filter dependancies <%s>", 
+				filter_spec);
 		return (1);
 	}
 
 	err = verify_filters(*froot);
 	if (err) {
-		/* XXX log */
-		printf("failed to verify filter \n");
+		log_message(LOGT_FILT, LOGL_ERR, 
+				"Filter verify failed <%s>", 
+				filter_spec);
 		return (err);
 	}
 
+
+	/*
+	 * We have loaded the filter spec, now try to load the library
+	 * and resolve the dependancies against it.
+	 */
+
 	err = load_filter_lib(lib_name, *froot);
 	if (err) {
-		/* XXX log */
-		printf("failed to load filter library ");
+		log_message(LOGT_FILT, LOGL_ERR, 
+				"Failed loading filter library <%s>", 
+				lib_name);
 		return (err);
 	}
-	printf("filter loaded \n");
+
+
+	/* everything was loaded correctly, log it */
+	log_message(LOGT_FILT, LOGL_TRACE, 
+			"init_filters: sucessfully completed");
 
 	return(0);
 }
@@ -354,12 +395,17 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 	filter_info_t  		*cur_filter;
 	int			conf;
 	obj_data_t *		out_list[16];
+	char 			buf[BUFSIZ];
+	int			err;
+	off_t			asize;
 	int                     pass = 1; /* return value */
 
 	/* timer info */
 	rtimer_t                rt;	
 	u_int64_t               time_ns; /* time for one filter */
 	u_int64_t               stack_ns; /* time for whole filter stack */
+
+
 
 	if (froot == NULL) {
 		return 1;
@@ -373,9 +419,46 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 	 * here as well as the time spent in each of the filters.
 	 */ 
 
-	stack_ns = 0;
+
+	/*
+	 * Get the total time we have execute so far (if we have
+	 * any) so we can add to the total.
+	 */
+	/* save the total time info attribute */
+	asize = sizeof(stack_ns);
+	err = obj_read_attr(&obj_handle->attr_info, FLTRTIME,
+		       &asize, (void*)&stack_ns);
+	if (err != 0) {
+		/* 
+		 * If we didn't find it, then set our count to 0.
+		 */
+		stack_ns = 0;
+	}
 
 	while (cur_filter != NULL) {
+
+		/*
+		 * the name used to store execution time,
+		 * we use this to see if this function has already
+		 * been executed.
+		 */
+		sprintf(buf, FLTRTIME_FN, cur_filter->fi_name);
+
+		asize = sizeof(time_ns);
+		err = obj_read_attr(&obj_handle->attr_info, buf, 
+				&asize, (void*)&time_ns);
+
+		/*
+		 * if the read is sucessful, then this stage
+		 * has been run.
+		 */
+		if (err == 0) {
+			printf("Skipping filter %s \n", cur_filter->fi_name);
+			cur_filter = cur_filter->fi_next;
+			continue;
+		}
+
+
 		cur_filter->fi_called++;
 		/* printf("eval_filt: fp %p \n", cur_filter->fi_fp); */
 
@@ -404,14 +487,8 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		cur_filter->fi_time_ns += time_ns; /* update filter stats */
 		stack_ns += time_ns;
 
-		/* save the partial time info attribute */
-		{
-			char buf[BUFSIZ];
-			sprintf(buf, FLTRTIME_FN, cur_filter->fi_name);
-			obj_write_attr(&obj_handle->attr_info,
-				       buf,
-				       sizeof(time_ns), (void*)&time_ns);
-		}
+		obj_write_attr(&obj_handle->attr_info, buf, 
+				sizeof(time_ns), (void*)&time_ns);
 
 #ifdef PRINT_TIME
 		printf("\t\tmeasured: %f secs\n", rt_time2secs(time_ns));
@@ -432,6 +509,7 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 
 		cur_filter = cur_filter->fi_next;
 	}
+	printf("total time %lld \n", stack_ns);
 
 	/* save the total time info attribute */
 	obj_write_attr(&obj_handle->attr_info,

@@ -244,10 +244,28 @@ dev_process_cmd(search_state_t *sstate, dev_cmd_data_t *cmd)
 
 			err = init_filters(obj_name, spec_name,
 				       	&sstate->finfo);
+
 			if (err) {
 				/* XXX log */
+				assert(0);
 				return;
 			}
+
+
+			/*
+			 * Remove the files that held the data.
+			 */
+			err = unlink(obj_name);
+			if (err) {
+				perror("failed to unlink");
+				exit(1);
+			}
+			unlink(spec_name);
+			if (err) {
+				perror("failed to unlink");
+				exit(1);
+			}
+
 
 			break;
 

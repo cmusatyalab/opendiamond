@@ -208,7 +208,7 @@ main(int argc, char **argv)
 
 	lib_cookie = sstub_init(&cb_args);
 
-	sstub_listen(lib_cookie);
+	sstub_listen(lib_cookie, 1);
 
 	exit(0);
 }

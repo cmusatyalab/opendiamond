@@ -39,7 +39,7 @@ typedef struct {
 
 
 extern void * sstub_init(sstub_cb_args_t *cb_args);
-extern void  sstub_listen(void * cookie);
+extern void  sstub_listen(void * cookie, int fork);
 extern int sstub_send_stats(void *cookie, dev_stats_t *dstats, int len);
 extern int sstub_send_dev_char(void *cookie, device_char_t *dchar);
 extern int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum);

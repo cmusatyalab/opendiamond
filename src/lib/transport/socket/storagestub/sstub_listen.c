@@ -24,7 +24,12 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
-
+/*
+ * this is a flag that tells use if we should fork
+ * when we get a new connection.  This isn't very useful
+ * except for some debugging situations.
+ */
+static	int do_fork = 1;
 
 
 
@@ -212,8 +217,11 @@ have_full_conn(listener_state_t *list_state, int conn)
 	 * and handle the new connections.  The parent will clean up
 	 * the local state.
 	 */
-
-	new_proc = fork();
+	if (do_fork) {
+		new_proc = fork();
+	} else {
+		new_proc = 0;
+	}
 
 	if (new_proc == 0) {
 		err = (*list_state->new_conn_cb)((void *)cstate, &new_cookie);
@@ -432,12 +440,16 @@ accept_log_conn(listener_state_t *list_state)
  */
 
 void 
-sstub_listen(void *cookie)
+sstub_listen(void *cookie, int fork)
 {
 	listener_state_t *list_state;
 	struct timeval now;
 	int	err;
 	int	max_fd = 0; 
+
+	/* update the global state about forking */
+	do_fork = fork;
+
 
 	list_state = (listener_state_t *)cookie;
 

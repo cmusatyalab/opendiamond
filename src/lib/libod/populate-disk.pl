@@ -269,7 +269,7 @@ sub process_image {
   if($insert_parent) {
       # build args
       #args: file gid [attr1 val1] [attr2 val2]
-      @args = ($img, $gids[2],
+      @args = ($img, $gids[1],
 	       'Display-Name', $dispname,
 	       'Keywords', $keywords,
 	       'Content-Type', $valid{$ext});
@@ -299,7 +299,7 @@ sub process_image {
       }
   }
 
-  @args = ($tempfile, $gids[1],
+  @args = ($tempfile, $gids[0],
 	   'Display-Name', $dispname,
 	   'Keywords', $keywords,
 	   'Content-Type', $valid{$tempext},

@@ -35,6 +35,9 @@ my %valid = (
 # This will probably change TODO
 my $insert_command = "./apitest";
 
+# whether to insert parent objects
+my $insert_parent = 0;
+
 # don't really do anything (imperfect)
 my $noact;# = 1;
 
@@ -60,6 +63,7 @@ my $count = 0;	# Number of files inserted so far
 my $nchild = 0;
 my $maxchild = 5;
 
+my $main_pid = $$;
 
 &process_gidmapfile();
 
@@ -74,11 +78,16 @@ close GIDMAP;
 
 &process_directory($root);
 
-while(wait() > 0) {
-    print "reaping children...\n";
+END {
+    if($main_pid==$$) {
+	while(wait() > 0) {
+	    print "reaping children...\n";
+	}
+	if($tempdir) {
+	    rmdir $tempdir || warn("$tempdir not cleaned\n");
+	}
+    }
 }
-rmdir $tempdir || warn("$tempdir not cleaned\n");
-
 
 ########################################
 # Subroutines
@@ -159,7 +168,10 @@ sub fork_process_image {
     
     if($maxchild) {
 	if($nchild >= $maxchild) {
-	    wait();		# ignore errors
+	    my $cid = wait();		# ignore errors
+	    if($cid > 0 && $?) {
+		die("\nSUBPROCESS ERROR: $?\n");
+	    }
 	    $nchild--;
 	}
 	$pid = fork();
@@ -200,30 +212,31 @@ sub process_image {
 
   my ($retval);
   my @args;
+  my $exec;			# display version
   my $parent_oid = 0;
 
   my $keywords = &make_keywords($dispname);
 
-  # build args
-  #args: file gid [attr1 val1] [attr2 val2]
-  @args = ($img, $gid1,
-	   'Display-Name', $dispname,
-	   'Keywords', $keywords,
-	   'Content-Type', $valid{$ext});
-  # display version of command:
-  my $exec = "$insert_command " . join(' ', @args);
-  print qid()." $exec\n";
-# $retval = system($exec);
-# die "$insert_command failed with return code of $retval: $!" if $retval;
-  if(!$noact) {
-      open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
-      while (<PROG>) {
-	  chomp;
-	  next unless /OID\s*=\s*(.+)/;
-	  $parent_oid = $1;
-	  print qid()." extracted parent oid: $parent_oid\n";
+  if($insert_parent) {
+      # build args
+      #args: file gid [attr1 val1] [attr2 val2]
+      @args = ($img, $gid1,
+	       'Display-Name', $dispname,
+	       'Keywords', $keywords,
+	       'Content-Type', $valid{$ext});
+      # display version of command:
+      $exec = "$insert_command " . join(' ', @args);
+      print qid()." $exec\n";
+      if(!$noact) {
+	  open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
+	  while (<PROG>) {
+	      chomp;
+	      next unless /OID\s*=\s*(.+)/;
+	      $parent_oid = $1;
+	      print qid()." extracted parent oid: $parent_oid\n";
+	  }
+	  close PROG;
       }
-      close PROG;
   }
 
   my($tempfh, $tempfile) = tempfile("loader-$$-XXXXXX", UNLINK => 0, DIR => $tempdir);
@@ -243,9 +256,10 @@ sub process_image {
   print qid()." $exec\n";
   if(!$noact) {
       open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
+      $SIG{PIPE} = 'IGNORE';
       while (<PROG>) {
       }
-      close(PROG);
+      close PROG || die qid()."cant close $exec: status $?\n";
       #$retval = system($insert_command, @args);
       #die qid()." $insert_command failed with return code of $retval: $!" if $retval;
   }

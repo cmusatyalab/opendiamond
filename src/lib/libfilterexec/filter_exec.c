@@ -61,7 +61,7 @@ typedef struct opt_policy_t {
 } opt_policy_t;
 
 struct filter_exec_t filter_exec = {
-    BEST_FIRST_POLICY
+    NULL_POLICY
 };
 
 // int CURRENT_POLICY = NULL_POLICY;

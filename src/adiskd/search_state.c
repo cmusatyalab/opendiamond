@@ -384,6 +384,8 @@ create_null_obj()
 static void
 dynamic_update_bypass(search_state_t *sstate) 
 {
+	printf("update_bypass: pend %2d old_ratio %02d ", sstate->pend_objs, 
+					sstate->split_ratio);
 	if (sstate->pend_objs < sstate->split_pend_low) {
 		/* XXX do this if the input queue is low */
 		if (sstate->split_ratio < sstate->split_auto_step) {
@@ -391,17 +393,14 @@ dynamic_update_bypass(search_state_t *sstate)
 		} else {
 			sstate->split_ratio -= sstate->split_auto_step;
 		}
-		
-		printf("too slow decrementing ration %d \n", sstate->split_ratio);
-		printf("pend %d split %d \n", sstate->pend_objs, sstate->split_pend_low);
 	} else if (sstate->pend_objs > sstate->split_pend_high) {
 		if (sstate->split_ratio > (100 - sstate->split_auto_step)) {
 			sstate->split_ratio = 100;
 		} else {
 			sstate->split_ratio += sstate->split_auto_step;
 		}
-		printf("too fast increasing ration %d \n", sstate->split_ratio);
 	}
+	printf("new_ratio %2d \n", sstate->split_ratio);
 
 }
 
@@ -513,7 +512,7 @@ device_main(void *arg)
                 continue;
             } else {
                 any = 1;
-
+#ifndef	XXX
                 /*
                  * set the bypass values periodically 
                  */
@@ -547,6 +546,37 @@ device_main(void *arg)
                         sstate->pend_objs++;
                     }
                 }
+
+#else
+			if (sstate->pend_objs < sstate->split_pend_low) {
+				 	err = sstub_send_obj( sstate->comm_cookie, new_obj,
+											sstate->ver_no);
+                        sstate->pend_objs++;
+																							} else {
+                err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
+                if (err == 0) {
+                    sstate->obj_dropped++;
+                    search_free_obj(new_obj);
+
+                } else {
+                    sstate->obj_passed++;
+                    err = sstub_send_obj(sstate->comm_cookie, new_obj,
+                                         sstate->ver_no);
+                    if (err) {
+                        /*
+                         * XXX overflow gracefully 
+                         */
+                    } else {
+                        /*
+                         * XXX log 
+                         */
+                        sstate->pend_objs++;
+                    }
+                }
+			}
+			printf("eval_obj: pend %d \n", sstate->pend_objs);
+
+#endif
             }
         }
 

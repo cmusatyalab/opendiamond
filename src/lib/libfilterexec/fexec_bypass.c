@@ -142,14 +142,8 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
             if (fprob) {
                 p = (double) fprob->num_pass / fprob->num_exec;
             } else {
-                /*
-                 * really no data, return an error 
-                 */
-                /*
-                 * XXX 
-                 */
-                assert(0);
-                return;
+				/* unknown value, assume 1.0 */
+				p = 1.0;
             }
 
             assert(p >= 0 && p <= 1.0);

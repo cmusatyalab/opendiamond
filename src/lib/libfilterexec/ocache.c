@@ -54,6 +54,7 @@
 
 #include "lib_od.h"
 #include "lib_log.h"
+#include "sig_calc.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "ocache_priv.h"
@@ -590,7 +591,6 @@ cache_lookup2(uint64_t local_id, char *fsig, void *fcache_table,
 	unsigned int    index;
 	int             err = ENOENT;
 	unsigned int    oattr_count = 1;
-	char           *fname;
 	cache_obj     **cache_table = (cache_obj **) fcache_table;
 
 	if (cache_table == NULL)
@@ -1801,7 +1801,6 @@ oattr_main(void *arg)
 	obj_data_t     *ovec[MAX_VEC_SIZE];
 	int             wcount;
 	int             i;
-	int				 flag;
 
 	while (1) {
 		/*
@@ -1866,9 +1865,7 @@ oattr_main(void *arg)
 						err = writev(fd, wvec, wcount);
 						assert(err >= 0);
 						for (i = 0; i < wcount; i++) {
-							flag = odisk_release_obj(ovec[i]);
-							if( flag == 1)
-								break;
+							odisk_release_obj(ovec[i]);
 						}
 					}
 					assert(tobj->u.iattr_sig != NULL);
@@ -1896,7 +1893,7 @@ oattr_main(void *arg)
 
 
 				/*
-				 * if the vector is full flush it 
+				 * if the vector is full then flush it 
 				 */
 				if (wcount == MAX_VEC_SIZE) {
 					/*
@@ -1905,9 +1902,7 @@ oattr_main(void *arg)
 					err = writev(fd, wvec, wcount);
 					assert(err >= 0);
 					for (i = 0; i < wcount; i++) {
-						flag = odisk_release_obj(ovec[i]);
-						if( flag == 1 )
-							break;
+						odisk_release_obj(ovec[i]);
 					}
 					wcount = 0;
 				}
@@ -1918,9 +1913,7 @@ oattr_main(void *arg)
 			if (correct == 0) {
 				unlink(attrbuf);
 				for (i = 0; i < wcount; i++) {
-					flag = odisk_release_obj(ovec[i]);
-					if( flag == 1 )
-						break;
+					odisk_release_obj(ovec[i]);
 				}
 			} else {
 				rename(attrbuf, new_attrbuf);

@@ -49,9 +49,9 @@ typedef struct ceval_state {
 	stats_drop stats_process_fn;
 } ceval_state_t;
 */
-typedef struct obj_eval
-	{}
-obj_eval_t;
+
+typedef struct obj_eval {
+} obj_eval_t;
 
 #endif	/* !_CEVAL_PRIV_H_ */
 

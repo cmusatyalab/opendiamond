@@ -70,6 +70,11 @@
 #define CACHE_DIR               "cache"
 #define	MAX_PERM_NUM	5
 
+/* XXX forward reference */
+static void sample_init();
+static int dynamic_use_oattr();
+static void oattr_sample();
+
 static permutation_t *cached_perm[MAX_PERM_NUM];
 static int      cached_perm_num = 0;
 static int      perm_done = 0;
@@ -122,7 +127,6 @@ ceval_main(void *arg)
 	uint64_t        oid;
 	int             err;
 
-	// printf("ceval_main start\n");
 	while (1) {
 		pthread_mutex_lock(&ceval_mutex);
 		while (search_active == 0) {
@@ -137,8 +141,8 @@ ceval_main(void *arg)
 		if (err == 0) {
 			ceval_filters1(oid, cstate->fdata, cstate, NULL);
 		}
+
 		if (err == ENOENT) {
-			printf("ceval_main search done\n");
 			mark_end();
 			search_active = 0;
 		}
@@ -612,7 +616,6 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 		free(fsig);
 		free(iattrsig);
 	}
-
 	return pass;
 }
 
@@ -934,7 +937,8 @@ struct timeval  sample_start_time, sample_end_time;
 int direction=-1;
 int	adjust=5*4;
 
-static void sample_init()
+static 
+void sample_init()
 {
 	oattr_percent = 80;
 	opt_time = 1000000.0; //initialize to an extrme large value
@@ -981,7 +985,8 @@ static void oattr_sample()
 	return;
 }
 
-static int dynamic_use_oattr()
+static 
+int dynamic_use_oattr()
 {
 	unsigned int random;
 

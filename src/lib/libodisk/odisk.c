@@ -111,7 +111,6 @@ int
 odisk_get_obj_cnt(odisk_state_t *odisk)
 {
 	struct dirent *		cur_ent;
-	int			err;
 	int			extlen, flen;
 	char *			poss_ext;
 	DIR *		dir;

@@ -65,6 +65,7 @@
 unsigned int cache_oattr_ratio = 5;
 unsigned int skip_cache_oattr = 1;
 unsigned int last_ring_depth = 0;
+unsigned int dynamic_load = 1;
 
 /*
  * forward declarations 
@@ -709,38 +710,10 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		return(0);
 	}
 
-	if (ring_count(obj_ring) < 3) {
+	if ((dynamic_load) && (ring_count(obj_ring) < 3)) {
 		return(0);
 	}
 
-	/* JIAYING: see if we are IO bound */
-	/*
-	if( odisk->next_blocked > (odisk->obj_load * cache_oattr_ratio / 100) ) {
-	//if( (pr_obj->obj_id % 3) != 0 ) {
-		return(0);
-	}
-	*/
-	//if( ring_empty(obj_ring) ) {
-	//if( (ring_count(obj_ring)<=16) && (skip_cache_oattr==0) ) {
-		//skip_cache_oattr = 1;
-	//}
-	//if( (ring_count(obj_ring)>=32) && (skip_cache_oattr==1) ) {
-		//skip_cache_oattr = 0;
-	//}
-
-	/*
-	if( (pr_obj->obj_id % 5) == 0) {
-		if( ring_empty(obj_ring) || ring_count(obj_ring) < last_ring_depth ) {
-			skip_cache_oattr = 1;
-		} else {
-			skip_cache_oattr = 0;
-		}
-		last_ring_depth = ring_count(obj_ring);
-	}
-	*/
-	//if( skip_cache_oattr == 1 ) {
-		//return(0);
-	//}
 
 	/* load the partial state */
 	for( i=0; i<pr_obj->oattr_fnum; i++) {
@@ -1030,9 +1003,9 @@ odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
 		dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked", 
 			   DCTL_DT_UINT32, dctl_read_uint32, NULL, 
 			   &new_state->readahead_full);
-		dctl_register_leaf(DEV_OBJ_PATH, "cache_oattr_ratio",
+		dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load",
 			DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32,
-			&cache_oattr_ratio);
+			&dynamic_load);
 	}
 
 	/*

@@ -424,11 +424,11 @@ static void
 update_bypass(search_state_t *sstate) 
 {
 	uint 	old_target;
-	double ratio;
+	float ratio;
 
 	switch(sstate->split_type) {
 		case SPLIT_TYPE_FIXED:
-			ratio = ((double)sstate->split_ratio)/100.0;
+			ratio = ((float)sstate->split_ratio)/100.0;
 			fexec_update_bypass(sstate->fdata, ratio);
 			break;
 			
@@ -436,7 +436,7 @@ update_bypass(search_state_t *sstate)
 			old_target = sstate->split_ratio;
 			dynamic_update_bypass(sstate);
 			if (old_target != sstate->split_ratio) {
-				ratio = ((double)sstate->split_ratio)/100.0;
+				ratio = ((float)sstate->split_ratio)/100.0;
 				fexec_update_bypass(sstate->fdata, ratio);
 			}
 			break;	
@@ -458,6 +458,7 @@ device_main(void *arg)
     int             err;
     int             any;
     struct timespec timeout;
+	int				force_eval;
 
 
     sstate = (search_state_t *) arg;
@@ -535,14 +536,21 @@ device_main(void *arg)
 
                 if ((sstate->obj_processed & 0xf) == 0xf) {
                     update_bypass(sstate);
-                }
+                } 
 
                 /*
                  * XXX process the object 
                  */
+
                 sstate->obj_processed++;
 
-                err = eval_filters(new_obj, sstate->fdata, 0, NULL, NULL);
+                if ((sstate->obj_processed & 0xf) == 0xf) {
+					force_eval = 1;
+                }  else {
+					force_eval = 0;
+				}
+
+                err = eval_filters(new_obj, sstate->fdata, force_eval, NULL, NULL);
                 if (err == 0) {
                     sstate->obj_dropped++;
                     search_free_obj(new_obj);

@@ -1,4 +1,10 @@
 
+#define	FSTATS_VALID_NUM		(5)
+#define	FSTATS_UNKNOWN_COST		(100000000)
+#define	FSTATS_UNKNOWN_PROB		(1.0)
+#define	FSTATS_UNKNOWN_NUM		(1)
+
+
 
 /*
  * evaluate a permutation 

@@ -79,6 +79,7 @@ fexec_set_bypass_none(filter_data_t * fdata)
     }
 }
 
+#define SMALL_FRACTION (0.00001)
 
 void
 fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
@@ -86,16 +87,16 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
 {
     int             i;
     filter_prob_t  *fprob;
-    double          pass = 1;   /* cumul pass rate */
-    double          old_cost = 0;   /* cumulitive cost so far */
-    double          new_cost = 0;   /* new cost so far */
-    double          ratio;
+    float          pass = 1.0;   /* cumul pass rate */
+    float          old_cost = 0;   /* cumulitive cost so far */
+    float          new_cost = 0;   /* new cost so far */
+    float          ratio;
     filter_info_t  *info;
     int             n;
 
     for (i = 0; i < pmLength(perm); i++) {
-        double          c;      /* cost of this filter */
-        double          p;      /* pass rate for this filter in this pos */
+        float          c;      /* cost of this filter */
+        float          p;      /* pass rate for this filter in this pos */
 
         info = &fdata->fd_filters[pmElt(perm, i)];
 
@@ -112,6 +113,10 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
             c = info->fi_time_ns;
             n = info->fi_called;
 
+			if (n < FSTATS_VALID_NUM) {
+			 		c = FSTATS_UNKNOWN_COST;
+				 	n = FSTATS_UNKNOWN_NUM;
+			}
             new_cost = old_cost + pass * c / n;
 
             /*
@@ -140,10 +145,14 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
              */
             fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm));
             if (fprob) {
-                p = (double) fprob->num_pass / fprob->num_exec;
+				if (fprob->num_exec < FSTATS_VALID_NUM) {
+                	p = FSTATS_UNKNOWN_PROB;
+				} else {
+                	p = (float) fprob->num_pass / fprob->num_exec;
+				}
             } else {
-				/* unknown value, assume 1.0 */
-				p = 1.0;
+				/* unknown value, use default */
+				p = FSTATS_UNKNOWN_PROB;
             }
 
             assert(p >= 0 && p <= 1.0);
@@ -153,7 +162,6 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
              */
             pass *= p;
 
-#define SMALL_FRACTION (0.00001)
             /*
              * don't let it go to zero XXX 
              */
@@ -161,7 +169,14 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
                 pass = SMALL_FRACTION;
             }
             old_cost = new_cost;
+
+
+			
         }
+#ifdef	XXX
+	  	printf("greedy: after (%d) total %f prob %f \n", i,
+											  old_cost, pass);
+#endif
     }
     return;
 }
@@ -363,9 +378,9 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
 int
 fexec_update_bypass(filter_data_t * fdata, double ratio)
 {
-    double          avg_cost;
-    double          target_cost;
-    int             err;
+    float          avg_cost;
+    float          target_cost;
+    int            err;
 
     err = fexec_estimate_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 

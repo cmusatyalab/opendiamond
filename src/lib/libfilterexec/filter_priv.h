@@ -181,6 +181,11 @@ filter_prob_t  *fexec_lookup_prob(filter_data_t * fdata, filter_id_t cur_filt,
 
 int             fexec_compute_cost(filter_data_t * fdata,
                                    permutation_t * perm, int gen, int indep,
-                                   double *cost);
+                                   float *cost);
+
+int             fexec_estimate_cost(filter_data_t * fdata,
+                                   permutation_t * perm, int gen, int indep,
+                                   float *cost);
+
 
 #endif                          /* ifndef _FILTER_PRIV_H_ */

@@ -27,19 +27,13 @@ options:
 [-g<gid1>] [-g<gid2>] - gids to be used they should be in the 
       gid_map file. if gids are specified, machine names will be ignored.
       gids should be specified as : separated bytes in hex. gids will
-      be padded to 64 bits length (8 bytes) - so -g01 is valid.
+      be padded to 64 bits length (8 bytes).
       gid1 is used for the search images, gid2 for the parent images
 -h    - this help text
 -p    - insert parent images also
--nc   - dont run convert
--n    - dont process files
 EOT
 }
 
-1;
-
-my $no_exec;
-my $no_convert;
 
 while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     if(/^-g(.*)/) {
@@ -51,12 +45,6 @@ while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     }
     if(/^-p/) {
 	die $insert_parent = 1;
-    }
-    if(/^-nc$/) {
-	$no_convert = 1;
-    }
-    if(/^-n$/) {
-	$no_exec = 1;
     }
     shift @ARGV;
 }
@@ -75,7 +63,8 @@ my %valid = (
 	     pgm => 'image/x-portable-graymap',
 	     png => 'image/png',
 	     tif => 'image/tiff',
-	     tiff => 'image/tiff'
+	     tiff => 'image/tiff',
+	     pcd => 'image/pcd'
   );
 
 # This will probably change TODO
@@ -125,11 +114,7 @@ foreach my $gid (@gids) {# foreach is by ref
     }
 }
 
-warn("using gids: ", join(", ", @gids), "\n");
-
-if($no_exec) {
-    exit(0);
-}
+#die;
 
 &process_directory($root);
 
@@ -275,7 +260,7 @@ sub process_image {
   if($insert_parent) {
       # build args
       #args: file gid [attr1 val1] [attr2 val2]
-      @args = ($img, $gids[1],
+      @args = ($img, $gids[2],
 	       'Display-Name', $dispname,
 	       'Keywords', $keywords,
 	       'Content-Type', $valid{$ext});
@@ -297,17 +282,15 @@ sub process_image {
   my($tempfh, $tempfile) = tempfile("loader-$$-XXXXXX", UNLINK => 0, DIR => $tempdir);
   #my $tempfile = "/dev/fd/".fileno($tempfh);
 
-  my($ppmfile) = $img;
-  if(!$noact && !$no_convert) {
+  if(!$noact) {
       $retval = system("convert", $img, '-resize', '400x300', "ppm:$tempfile");
       if($retval) {
 	  warn qid()." convert gave a return code of $retval: $!";
 	  exit(1);
       }
-      $ppmfile = $tempfile;
   }
 
-  @args = ($ppmfile, $gids[0],
+  @args = ($tempfile, $gids[1],
 	   'Display-Name', $dispname,
 	   'Keywords', $keywords,
 	   'Content-Type', $valid{$tempext},

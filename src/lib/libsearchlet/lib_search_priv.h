@@ -64,6 +64,7 @@ struct filter_info;
 typedef struct search_context {
 	int			cur_search_id;	/* ID of current search */
 	device_handle_t *	dev_list;
+	device_handle_t *	last_dev;
 	search_status_t		cur_status;	/* current status of search */
 	ring_data_t *		proc_ring;	/* processed objects */
 	ring_data_t *		bg_ops;	/* unprocessed objects */

@@ -92,14 +92,29 @@ update_rates(search_context_t *sc)
 obj_info_t *
 get_next_object(search_context_t *sc)
 {
-	device_handle_t *cur_dev;
-	obj_info_t	*obj_inf;
+	device_handle_t *	cur_dev;
+	obj_info_t	*		obj_inf;
+	static	int	 		first = 1;
 
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+   	cur_dev = sc->last_dev->next;
+
+redo:
+	while (cur_dev != NULL) {
 		obj_inf = device_next_obj(cur_dev->dev_handle);
-		if (obj_inf != NULL)
+		if (obj_inf != NULL) {
+			sc->last_dev = cur_dev;
 			return(obj_inf);
+		}
+		cur_dev = cur_dev->next;
 	}
+
+	/* if we fall through and it is our first iteration, then retry from the begginning */
+	if (first) {
+		first = 0;
+		cur_dev = sc->dev_list;
+		goto redo;
+	}
+
 	return(NULL);
 }
 

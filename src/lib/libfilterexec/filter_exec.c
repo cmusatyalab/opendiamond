@@ -514,10 +514,12 @@ eval_filters(obj_data_t *obj_handle, filter_info_t *froot)
 		obj_handle->cur_offset = 0;
 		obj_handle->cur_blocksize = 1024; /* XXX */
 
+#if 0
 		/* XXX save filter ptr (definite hack) */
 		obj_write_attr(&obj_handle->attr_info,
 			       "_FILTER.ptr",
 			       sizeof(void *), (void*)&cur_filter);
+#endif
 
 		rt_start(&rt);	/* assume only one thread here */
 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdint.h>
+#include <netinet/in.h>
 #include "lib_log.h"
 
 
@@ -151,9 +152,9 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	num = vsnprintf(&ent->le_data[0], MAX_LOG_STRING, fmt, new_ap);
 	va_end(ap);
 
-	ent->le_dlen = num;
-	ent->le_level = level;
-	ent->le_type = type;
+	ent->le_dlen = htonl(num);
+	ent->le_level = htonl(level);
+	ent->le_type = ntohl(type);
 
 	/*
 	 * Round up the total length to a sizeof an int to make sure
@@ -186,7 +187,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 		total_len = total_len + remain;
 	}
 
-	ent->le_nextoff = total_len;
+	ent->le_nextoff = htonl(total_len);
 
 	/* XXX rel mutux */
 

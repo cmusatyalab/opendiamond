@@ -307,7 +307,7 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 
 /* XXX callback for new packets  */
 void *
-device_init(int id, char * devid, void *hcookie, hstub_new_obj_fn new_obj_cb)
+device_init(int id, char * devid, void *hcookie, hstub_cb_args_t *cb_list)
 {
 	sdevice_state_t *new_dev;
 	int		err;
@@ -345,7 +345,8 @@ device_init(int id, char * devid, void *hcookie, hstub_new_obj_fn new_obj_cb)
 	 * Save the callback and the host cookie.
 	 */
 	new_dev->hcookie = hcookie;
-	new_dev->hstub_new_obj_cb = new_obj_cb;	
+	new_dev->hstub_new_obj_cb = cb_list->new_obj_cb;
+	new_dev->hstub_log_data_cb = cb_list->log_data_cb;
 
 
 	/*

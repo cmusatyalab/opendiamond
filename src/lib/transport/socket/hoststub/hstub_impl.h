@@ -40,6 +40,7 @@ typedef enum {
 
 typedef struct conn_info {
 	int			flags;
+	uint32_t		dev_id;
 	pthread_mutex_t		mutex;
 	uint32_t		con_cookie;
 	int			control_fd;
@@ -82,6 +83,7 @@ typedef struct sdevice_state {
 	void *			hcookie;
 	device_char_t		dev_char;	/* cached device chars */
 	hstub_new_obj_fn	hstub_new_obj_cb;
+	hstub_log_data_fn	hstub_log_data_cb;
 } sdevice_state_t;
 
 

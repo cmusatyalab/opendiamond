@@ -74,6 +74,9 @@ hstub_establish_connection(conn_info_t *cinfo, char *devid)
 		return(ENOENT);
 	}
 
+	/* save the device id for later use */
+	cinfo->dev_id = sa.sin_addr.s_addr;
+
 	err = connect(cinfo->control_fd, (struct sockaddr *)&sa, sizeof(sa));
 	if (err) {
 		/* XXX log error */
@@ -155,6 +158,7 @@ hstub_establish_connection(conn_info_t *cinfo, char *devid)
 	cinfo->control_state = CONTROL_TX_NO_PENDING;
 	cinfo->control_rx_state = CONTROL_RX_NO_PENDING;
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
+	cinfo->log_rx_state = LOG_RX_NO_PENDING;
 
 	return(0);
 }

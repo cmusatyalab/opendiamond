@@ -17,6 +17,57 @@
 #include "lib_search_priv.h"
 #include "filter_priv.h"	/* to read stats -RW */
 #include "consts.h"
+#include "log.h"
+#include "log_impl.h"
+#include "assert.h"
+
+
+/*
+ *  This function intializes the background processing thread that
+ *  is used for taking data ariving from the storage devices
+ *  and completing the processing.  This thread initializes the ring
+ *  that takes incoming data.
+ */
+
+void
+dev_log_data_cb(void *cookie, char *data, int len, int devid)
+{
+
+	log_info_t *		linfo;
+	device_handle_t *	dev;
+
+
+	dev = (device_handle_t *)cookie;
+
+	linfo = (log_info_t *)malloc(sizeof(*linfo));
+	if (linfo == NULL) {
+		/* we failed to allocate the space, we just
+		 * free the log data.
+		 */
+		free(data);
+		return;
+	}
+
+
+
+	linfo->data = data;
+	linfo->len = len;
+	linfo->dev = devid;
+
+	if (ring_enq(dev->sc->log_ring, (void *)linfo)) {
+		/*
+		 * If we failed to log, then we just fee
+		 * the information and loose this log.
+		 */
+		/* XXX */
+		assert(0);
+		free(data);
+		free(linfo);
+		return;	
+	}
+
+	return;
+}
 
 
 /* XXX  ret type??*/
@@ -29,7 +80,6 @@ dev_new_obj_cb(void *hcookie, obj_data_t *odata, int ver_no)
 	obj_info_t *		oinfo;
 	dev = (device_handle_t *)hcookie;
 
-	printf("new_object \n");
 	oinfo = (obj_info_t *)malloc (sizeof(*oinfo));
 	if (oinfo == NULL ) {
 		printf("XXX failed oinfo malloc \n");
@@ -42,6 +92,7 @@ dev_new_obj_cb(void *hcookie, obj_data_t *odata, int ver_no)
 			/* XXX */
 		printf("ring_enq failed \n");
 	}
+	return(0);
 }
 
 
@@ -51,7 +102,6 @@ device_statistics(device_handle_t *dev,
 		  dev_stats_t *dev_stats, int *stat_len)
 {
 
-	printf("dev stats \n");
 	return(ENOENT);
 }
 

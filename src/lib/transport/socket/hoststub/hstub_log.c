@@ -187,7 +187,11 @@ hstub_read_log(sdevice_state_t  *dev)
 	 * the data when done.
 	 */
 
+	/* XXX get the correct devid */
 	/* call callback function for the log */
+	dsize = ntohl(cinfo->log_rx_header.log_len);
+	(*dev->hstub_log_data_cb)(dev->hcookie, data_buf, dsize, cinfo->dev_id);
+
 	cinfo->log_rx_state = LOG_RX_NO_PENDING;
 	return;
 }

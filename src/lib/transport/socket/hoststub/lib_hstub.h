@@ -3,8 +3,13 @@
 
 
 typedef	int (*hstub_new_obj_fn)(void *hcookie, obj_data_t *odata, int vno);
+typedef	void (*hstub_log_data_fn)(void *hcookie, char *data, int len, int dev);
 
 
+typedef struct {
+	hstub_new_obj_fn		new_obj_cb;
+	hstub_log_data_fn		log_data_cb;
+} hstub_cb_args_t;
 
 
 /*
@@ -13,7 +18,7 @@ typedef	int (*hstub_new_obj_fn)(void *hcookie, obj_data_t *odata, int vno);
  */
 
 extern void *	device_init(int id, char *devid, void *hcookie, 
-		hstub_new_obj_fn);
+			hstub_cb_args_t *cbs);
 extern int device_stop(void *dev, int id);
 extern int device_terminate(void *dev, int id);
 extern int device_start(void *dev, int id);

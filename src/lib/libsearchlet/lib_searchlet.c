@@ -58,8 +58,13 @@ ls_init_search()
 		free(sc);
 		return(NULL);
 	}
+
+
+	log_start(sc);
 	
 	bg_init(sc, 1);
+
+
 	return((ls_search_handle_t)sc);
 }
 
@@ -136,6 +141,7 @@ ls_set_searchlist(ls_search_handle_t handle)
 {
 	search_context_t	*sc;
 	device_handle_t *	new_dev;
+	hstub_cb_args_t		cb_data;
 
 	sc = (search_context_t *)handle;
 /*
@@ -152,8 +158,15 @@ XXX do this
 		return(ENOMEM);
 	}
 
+	new_dev->flags = 0;
+	new_dev->sc = sc;
+
+	cb_data.new_obj_cb = dev_new_obj_cb;
+	cb_data.log_data_cb  = dev_log_data_cb;
+
+
 	new_dev->dev_handle = device_init(sc->cur_search_id, 
-			"127.0.0.1", (void *)new_dev, dev_new_obj_cb);
+			"127.0.0.1", (void *)new_dev, &cb_data);
 	if (new_dev->dev_handle == NULL) {
 		/* XXX log */
 		printf("device init failed \n");
@@ -167,7 +180,6 @@ XXX do this
 	 */
 	new_dev->next = sc->dev_list;
 	sc->dev_list = new_dev;
-	new_dev->sc = sc;
 
 	return(0);
 }

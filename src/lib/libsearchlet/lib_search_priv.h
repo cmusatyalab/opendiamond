@@ -52,6 +52,7 @@ typedef struct search_context {
 	ring_data_t *		proc_ring;	/* processed objects */
 	ring_data_t *		unproc_ring;	/* unprocessed objects */
 	ring_data_t *		bg_ops;	/* unprocessed objects */
+	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
 	void *		bg_froot; /* filter_info_t -RW */
 } search_context_t;
@@ -61,6 +62,7 @@ typedef struct search_context {
  * in the file ls_device.c
  */
 extern int dev_new_obj_cb(void *hcookie, obj_data_t *odata, int vno);
+extern void dev_log_data_cb(void *cookie, char *data, int len, int devid);
 
 /*
  * These are background processing functions.
@@ -69,5 +71,7 @@ extern int bg_init(search_context_t *sc, int id);
 extern int bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 			char *spec_name);
 
+
+extern int log_start(search_context_t *sc);
 
 #endif

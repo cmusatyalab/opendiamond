@@ -102,15 +102,21 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 
 
 static int
-extend_attr_store(obj_attr_t *attr, int increment)
+extend_attr_store(obj_attr_t *attr, int new_size)
 {
 
 	char *			new_attr;
 	int			new_len;
 	int			offset;
 	attr_record_t * 	new_record;
+	int			real_increment;
 
-	new_len = attr->attr_len + increment;
+
+	/* we extend the store by multiples of attr_increment */ 
+	real_increment = (new_size + (ATTR_INCREMENT -1)) &
+		~(ATTR_INCREMENT - 1);
+
+	new_len = attr->attr_len + real_increment;
 
 	new_attr = (char *)malloc(new_len);
 	if (new_attr == NULL) {
@@ -130,9 +136,9 @@ extend_attr_store(obj_attr_t *attr, int increment)
 	 * this will be later.  
 	 * XXX coalsce.
 	 */
-	offset = new_len - increment;
+	offset = new_len - real_increment;
 	new_record = (attr_record_t *) &new_attr[offset];
-	new_record->rec_len = increment;
+	new_record->rec_len = real_increment;
 	new_record->flags = ATTR_FLAG_FREE;
 
 	return (0);
@@ -153,12 +159,10 @@ find_free_record(obj_attr_t *attr, int size)
 	int			cur_offset;
 	int			err;
 
-	assert(size < ATTR_INCREMENT);
-
 	cur_offset = 0;
 	while (1) {
 		if (cur_offset >= attr->attr_len) {
-			err = extend_attr_store(attr, ATTR_INCREMENT);
+			err = extend_attr_store(attr, size);
 			if (err == ENOMEM) {
 				return (NULL);
 			}

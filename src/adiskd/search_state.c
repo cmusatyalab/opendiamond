@@ -349,13 +349,7 @@ log_main(void *arg)
 
 	sstate = (search_state_t *)arg;
 
-	/*
-	 * XXX need to open comm channel with device
-	 */
-
-	
 	while (1) {
-
 
 		len = log_getbuf(&log_buf);
 		if (len > 0) {
@@ -394,7 +388,6 @@ log_main(void *arg)
 					&sstate->log_mutex, &timeout);
 			pthread_mutex_unlock(&sstate->log_mutex);
 		}
-
 	}
 }
 

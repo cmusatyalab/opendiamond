@@ -26,14 +26,25 @@ handle_new_obj(void *hcookie, obj_data_t *odata, int vno)
 
 }
 
+void
+handle_log_data(void *hcookie, char *data, int len, int dev)
+{
+	printf("have log data \n");
+
+}
 
 int
 main(int argc, char **argv)
 {
 	int	err;
 	void *	cookie;
+	hstub_cb_args_t		cb_args;
 
-	cookie = device_init(100, "127.0.0.1", 0, handle_new_obj);
+	cb_args.new_obj_cb = handle_new_obj;
+	cb_args.log_data_cb = handle_log_data;
+
+
+	cookie = device_init(100, "127.0.0.1", 0, &cb_args);
 
 
 	err = device_start(cookie, 101);
@@ -53,4 +64,5 @@ main(int argc, char **argv)
 		sleep(10);
 	printf("done sleep \n");
 
+	exit(0);
 }

@@ -180,7 +180,7 @@ ods_allocate_by_gid(groupid_t *gid)
     num_hosts = MAX_HOSTS;
     err = lookup_group_hosts(*gid, &num_hosts, host_list);
     if (err == ENOENT) {
-        fprintf(stderr, "group %lld is not in gid map \n", *gid);
+        fprintf(stderr, "group 0x%llx is not in gid map \n", *gid);
         assert(0);
         return(NULL);
     } else if (err == ENOMEM) {

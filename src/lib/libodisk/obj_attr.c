@@ -112,6 +112,7 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 	return(0);
 }
 
+/*
 int
 obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr)
 {
@@ -210,7 +211,7 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
 	free(base);
 	return (0);
 }
-
+*/
 
 int
 obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
@@ -620,7 +621,6 @@ again:
 	return(0);
 }
 
-/*
 int
 obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr)
 {
@@ -635,6 +635,8 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
 	char attrbuf[PATH_MAX];
 	uint64_t tmp1, tmp2, tmp3, tmp4;
 	int err, len;
+	attr_record_t * data_rec;
+	int             total_size;
 
 	if( (fsig == NULL) || (iattrsig == NULL) ) {
 		printf("fsig or iattrsig is NULL\n");
@@ -689,27 +691,35 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
 			return(EINVAL);
 		}
 		assert( name_len < MAX_ATTR_NAME );
+		name_len = name_len +1;
 		read(fd, name, name_len);
-		name[name_len] = '\0';
 		read(fd, &data_len, sizeof(off_t));
-		if( data_len > TEMP_ATTR_BUF_SIZE ) {
-			ldata = (char *) malloc(data_len);
-			read(fd, ldata, data_len);
-			err = obj_write_attr(attr, name, data_len, ldata);
-			free(ldata);
-		} else {
-			read(fd, data, data_len);
-			err = obj_write_attr(attr, name, data_len, data);
-		}
-		if( err != 0 ) {
-			printf("CHECK OBJECT %016llX ATTR FILE\n", oid);
-		}
-		assert( err == 0 );
+
+		total_size  = sizeof(*data_rec) + name_len + data_len;
+		
+		data_rec = find_record(attr, name);
+        	if (data_rec != NULL) {
+                	if (data_rec->rec_len < total_size) {
+                        	free_record(attr, data_rec);
+                        	data_rec = NULL;
+                	}
+        	}
+                                                                                
+        	if (data_rec == NULL) {
+                	data_rec = find_free_record(attr, total_size);
+                	if (data_rec == NULL) {
+                        	return (ENOMEM);
+                	}
+        	}
+                                                                                
+        	data_rec->name_len = name_len;
+        	data_rec->data_len = data_len;
+        	memcpy(data_rec->data, name, name_len);
+		read(fd, &data_rec->data[name_len], data_len);
+
 		rsize = sizeof(unsigned int) + name_len + sizeof(off_t) + data_len;
 		size -= rsize;
 	}
 	close(fd);
 	return (0);
 }
-*/
-

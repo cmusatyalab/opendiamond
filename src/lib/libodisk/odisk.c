@@ -722,14 +722,6 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		return(0);
 	}
 	*/
-	//if( ring_empty(obj_ring) ) {
-	if( (ring_count(obj_ring)<=16) && (skip_cache_oattr==0) ) {
-		skip_cache_oattr = 1;
-	}
-	if( (ring_count(obj_ring)>=32) && (skip_cache_oattr==1) ) {
-		skip_cache_oattr = 0;
-	}
-
 	/*
 	if( (pr_obj->obj_id % 5) == 0) {
 		if( ring_empty(obj_ring) || ring_count(obj_ring) < last_ring_depth ) {
@@ -740,6 +732,15 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		last_ring_depth = ring_count(obj_ring);
 	}
 	*/
+
+	//if( ring_empty(obj_ring) ) {
+	if( (ring_count(obj_ring)<=16) && (skip_cache_oattr==0) ) {
+		skip_cache_oattr = 1;
+	}
+	if( (ring_count(obj_ring)>=32) && (skip_cache_oattr==1) ) {
+		skip_cache_oattr = 0;
+	}
+
 	if( skip_cache_oattr == 1 ) {
 		return(0);
 	}

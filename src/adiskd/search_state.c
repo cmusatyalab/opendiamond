@@ -380,7 +380,6 @@ device_main(void *arg)
 					/* XXX log */
 	
 				}
-
 			} else if (err) {
 				/* printf("dmain: failed to get obj !! \n"); */
 				/* sleep(1); */
@@ -533,6 +532,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		return (ENOMEM);
 	}
 
+    memset((void *)sstate, 0, sizeof(*sstate));
 	/*
 	 * Set the return values to this "handle".
 	 */

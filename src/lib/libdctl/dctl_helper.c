@@ -71,7 +71,7 @@ dctl_read_uint64(void *cookie, int *len, char *data)
 
 	/* store the data and the data size */
 	*len = sizeof(uint64_t);
-	*(uint64_t *)data = *(uint64_t *)cookie;
+	memcpy(data, cookie, sizeof(uint64_t));
 	return(0);
 
 }

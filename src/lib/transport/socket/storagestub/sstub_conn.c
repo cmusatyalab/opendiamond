@@ -77,7 +77,6 @@ connection_main(listener_state_t *lstate, int conn)
 		FD_SET(cstate->data_fd,  &cstate->read_fds);
 		FD_SET(cstate->log_fd,  &cstate->read_fds);
 
-
 		pthread_mutex_lock(&cstate->cmutex);
 		if (cstate->flags & CSTATE_CONTROL_DATA) {
 			FD_SET(cstate->control_fd,  &cstate->write_fds);
@@ -100,6 +99,7 @@ connection_main(listener_state_t *lstate, int conn)
 		err = select(max_fd, &cstate->read_fds, 
 				&cstate->write_fds, 
 				&cstate->except_fds,  &to);
+
 		if (err == -1) {
 			/* XXX log */
 			perror("XXX select failed ");
@@ -111,6 +111,7 @@ connection_main(listener_state_t *lstate, int conn)
 		 * that have data.
 		 */
 		if (err > 0) {
+            /* handle reads on the sockets */
 			if (FD_ISSET(cstate->control_fd, &cstate->read_fds)) {
 				sstub_read_control(lstate, cstate);
 			}
@@ -121,6 +122,7 @@ connection_main(listener_state_t *lstate, int conn)
 				sstub_read_log(lstate, cstate);
 			}
 
+            /* handle the exception conditions on the socket */
 			if (FD_ISSET(cstate->control_fd, &cstate->except_fds)) {
 				sstub_except_control(lstate, cstate);
 			}
@@ -131,7 +133,7 @@ connection_main(listener_state_t *lstate, int conn)
 				sstub_except_log(lstate, cstate);
 			}
 
-
+            /* handle writes on the sockets */
 			if (FD_ISSET(cstate->control_fd, &cstate->write_fds)) {
 				sstub_write_control(lstate, cstate);
 			}

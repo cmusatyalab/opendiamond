@@ -161,6 +161,9 @@ rt_papi_stop(rtimer_papi_t *rt)
     report_error(__FILE__,__LINE__,"PAPI_read",err);
   }
   rt->cycles = values[1];
+  if( (err = PAPI_stop(rt->EventSet, values)) != PAPI_OK ) {
+    report_error(__FILE__,__LINE__,"PAPI_stop",err);
+  }
 }
 
 

@@ -306,7 +306,6 @@ hstub_read_data(sdevice_state_t *dev)
 		oinfo->obj = cinfo->data_rx_obj;
 	
 		err = ring_enq(dev->obj_ring, oinfo);
-		printf("ring %p io %p \n", dev->obj_ring, oinfo);
 		assert(err == 0);
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}
@@ -318,6 +317,11 @@ hstub_except_data(sdevice_state_t *dev)
 	printf("except_data \n");	
 }
 
+
+/*
+ * This is called when we want to write the credit
+ * count onto the data channel.
+ */
 	
 void
 hstub_write_data(sdevice_state_t * dev)
@@ -346,7 +350,6 @@ hstub_write_data(sdevice_state_t * dev)
 	if (count < 0) {
 		count = 0;
 	}
-	printf("write ccount: count %d \n", count);
 	cinfo->cc_msg.cc_count =  htonl(count);
 
 	/* send the messages */

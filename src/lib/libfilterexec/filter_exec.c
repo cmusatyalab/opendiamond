@@ -25,6 +25,7 @@
 #include "fexec_opt.h"
 
 /* #define VERBOSE 1 */
+#define SIM_REPORT
 
 /*
  * Some state to keep track of the active filter. XXX
@@ -492,12 +493,14 @@ resolve_filter_deps(filter_data_t *fdata)
 	gExport(&graph, filename);
 
 
+#ifdef VERBOSE
 	/* XXX print out the order */
-	printf("filterexec: filter seq ordering");
+	fprintf(stderr, "filterexec: filter seq ordering");
 	for(i=0; i<pmLength(fdata->fd_perm); i++) {
-	  printf(" %s", fdata->fd_filters[pmElt(fdata->fd_perm, i)].fi_name);
+	  fprintf(stderr, " %s", fdata->fd_filters[pmElt(fdata->fd_perm, i)].fi_name);
 	}
-	printf("\n");
+	fprintf(stderr, "\n");
+#endif
 
 	return(0);
 }
@@ -691,108 +694,108 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 
 	for(cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm); cur_fidx++) {
-		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
-		cur_filter = &fdata->fd_filters[cur_fid];	
+	  cur_fid = pmElt(fdata->fd_perm, cur_fidx);
+	  cur_filter = &fdata->fd_filters[cur_fid];	
 
-		active_filter = cur_filter;
+	  active_filter = cur_filter;
 
-		/*
-		 * the name used to store execution time,
-		 * we use this to see if this function has already
-		 * been executed.
-		 */
-		sprintf(timebuf, FLTRTIME_FN, cur_filter->fi_name);
+	  /*
+	   * the name used to store execution time,
+	   * we use this to see if this function has already
+	   * been executed.
+	   */
+	  sprintf(timebuf, FLTRTIME_FN, cur_filter->fi_name);
 
-		asize = sizeof(time_ns);
-		err = obj_read_attr(&obj_handle->attr_info, timebuf, 
-				&asize, (void*)&time_ns);
+	  asize = sizeof(time_ns);
+	  err = obj_read_attr(&obj_handle->attr_info, timebuf, 
+			      &asize, (void*)&time_ns);
 
-		/*
-		 * if the read is sucessful, then this stage
-		 * has been run.
-		 */
-		if (err == 0) {
-			log_message(LOGT_FILT, LOGL_TRACE, 
-				"eval_filters: Filter %s has already been run",
-				cur_filter->fi_name);
-			continue;
-		}
+	  /*
+	   * if the read is sucessful, then this stage
+	   * has been run.
+	   */
+	  if (err == 0) {
+	    log_message(LOGT_FILT, LOGL_TRACE, 
+			"eval_filters: Filter %s has already been run",
+			cur_filter->fi_name);
+	    continue;
+	  }
 
-        /*
-         * Look at the current filter bypass to see if we should actually
-         * run it or pass it.
-         */
-        if (force_eval == 0) {
-			rv = random();
-			if (rv > cur_filter->fi_bpthresh) {
-                pass = 1;
-                break;
+	  /*
+	   * Look at the current filter bypass to see if we should actually
+	   * run it or pass it.
+	   */
+	  if (force_eval == 0) {
+	    rv = random();
+	    if (rv > cur_filter->fi_bpthresh) {
+	      pass = 1;
+	      break;
             }
-        }
+	  }
     
-		cur_filter->fi_called++;
+	  cur_filter->fi_called++;
 
-		/* XXX build the out list appropriately */
-		out_list[0] = obj_handle;
+	  /* XXX build the out list appropriately */
+	  out_list[0] = obj_handle;
 
-		/* initialize obj state for this call */
-		obj_handle->cur_offset = 0;
-		obj_handle->cur_blocksize = 1024; /* XXX */
+	  /* initialize obj state for this call */
+	  obj_handle->cur_offset = 0;
+	  obj_handle->cur_blocksize = 1024; /* XXX */
 
 
-		/* run the filter and update pass */
-		if(cb_func) {
-		  err =  (*cb_func)(cookie, cur_filter->fi_name, &pass, &time_ns);
-		} else {
-		  rt_init(&rt);
-		  rt_start(&rt);	/* assume only one thread here */
+	  /* run the filter and update pass */
+	  if(cb_func) {
+	    err =  (*cb_func)(cookie, cur_filter->fi_name, &pass, &time_ns);
+	  } else {
+	    rt_init(&rt);
+	    rt_start(&rt);	/* assume only one thread here */
 		  
-		  assert(cur_filter->fi_fp);
-		  /* arg 3 here looks strange -rw */
-		  conf = cur_filter->fi_fp(obj_handle, 1, out_list, 
-					   cur_filter->fi_numargs, cur_filter->fi_args,
-					   cur_filter->fi_blob_len, cur_filter->fi_blob_data);
+	    assert(cur_filter->fi_fp);
+	    /* arg 3 here looks strange -rw */
+	    conf = cur_filter->fi_fp(obj_handle, 1, out_list, 
+				     cur_filter->fi_numargs, cur_filter->fi_args,
+				     cur_filter->fi_blob_len, cur_filter->fi_blob_data);
 
-		  /* get timing info and update stats */
-		  rt_stop(&rt);
-		  time_ns = rt_nanos(&rt);
+	    /* get timing info and update stats */
+	    rt_stop(&rt);
+	    time_ns = rt_nanos(&rt);
 
-		  if (conf < cur_filter->fi_threshold) {
-		    pass = 0;
-		  }
-		  log_message(LOGT_FILT, LOGL_TRACE, 
-			      "eval_filters:  filter %s has val (%d) - threshold %d",
-			      cur_filter->fi_name, conf, cur_filter->fi_threshold);
-		}
+	    if (conf < cur_filter->fi_threshold) {
+	      pass = 0;
+	    }
+	    log_message(LOGT_FILT, LOGL_TRACE, 
+			"eval_filters:  filter %s has val (%d) - threshold %d",
+			cur_filter->fi_name, conf, cur_filter->fi_threshold);
+	  }
 
-		cur_filter->fi_time_ns += time_ns; /* update filter stats */
-		stack_ns += time_ns;
-		obj_write_attr(&obj_handle->attr_info, timebuf, 
-				sizeof(time_ns), (void*)&time_ns);
+	  cur_filter->fi_time_ns += time_ns; /* update filter stats */
+	  stack_ns += time_ns;
+	  obj_write_attr(&obj_handle->attr_info, timebuf, 
+			 sizeof(time_ns), (void*)&time_ns);
 
 #ifdef PRINT_TIME
-		printf("\t\tmeasured: %f secs\n", rt_time2secs(time_ns));
-		printf("\t\tfilter %s: %f secs cumulative, %f s avg\n",
-		       cur_filter->fi_name, rt_time2secs(cur_filter->fi_time_ns),
-		       rt_time2secs(cur_filter->fi_time_ns)/cur_filter->fi_called);
+	  printf("\t\tmeasured: %f secs\n", rt_time2secs(time_ns));
+	  printf("\t\tfilter %s: %f secs cumulative, %f s avg\n",
+		 cur_filter->fi_name, rt_time2secs(cur_filter->fi_time_ns),
+		 rt_time2secs(cur_filter->fi_time_ns)/cur_filter->fi_called);
 #endif
 
-		if (!pass) {
-		  /* XXX cache results if appropriate */
-		  cur_filter->fi_drop++;
-		} else {
-		  cur_filter->fi_pass++;
-		}
+	  if (!pass) {
+	    /* XXX cache results if appropriate */
+	    cur_filter->fi_drop++;
+	  } else {
+	    cur_filter->fi_pass++;
+	  }
 
-		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm), cur_fidx, pass);
+	  fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm), cur_fidx, pass);
 
-		/* XXX update the time spent on filter */
+	  /* XXX update the time spent on filter */
                 
 	}
 	active_filter = NULL;
 
 	log_message(LOGT_FILT, LOGL_TRACE, 
-	    	"eval_filters:  done - total time is %lld", stack_ns);
+		    "eval_filters:  done - total time is %lld", stack_ns);
 
 	/* save the total time info attribute */
 	obj_write_attr(&obj_handle->attr_info,
@@ -801,7 +804,7 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	/* track per-object info */
 	fstat_add_obj_info(fdata, pass, stack_ns);
 
-#ifdef VERBOSE	
+#if(defined VERBOSE || defined SIM_REPORT)
 	{
 	  char buf[BUFSIZ];
 	  printf("%d average time/obj = %s (%s)\n",

@@ -39,6 +39,7 @@
 unsigned int if_cache_table = 0;
 unsigned int if_cache_oattr = 0;
 unsigned int count_thresh = 2;
+unsigned int stream_write = 1;
 
 static int		search_active = 0;
 static int		search_done = 0;
@@ -1056,6 +1057,7 @@ oattr_main(void *arg)
 	uint64_t                oid;
 	char *fname;
 	int fd;
+	FILE *file;
 	char attrbuf[PATH_MAX];
 	int err;
 	int correct;
@@ -1094,6 +1096,20 @@ oattr_main(void *arg)
 				fname);
 			free(fname);
 			free(tobj);
+
+if( stream_write == 1 ) {
+			err = access(attrbuf, F_OK);
+			if( err == 0 ) {
+				printf("file already exists\n");
+				continue;
+			}
+			file = fopen(attrbuf, "w+");
+			if( file == NULL ) {
+				printf("failed in open oattr file %s for oid %016llX\n", attrbuf, oid);
+				perror("error");
+				continue;
+			}
+} else {
 			fd = open(attrbuf, O_WRONLY|O_CREAT|O_EXCL, 00777);
 			if( fd < 0 ) {
 				if( errno == EEXIST ) {
@@ -1105,6 +1121,8 @@ oattr_main(void *arg)
 					continue;
 				}
 			}
+}
+
 			while(1) {
 				err = oattr_lookup_next(&tobj, cstate);
 				if( err != 1 ) {
@@ -1126,15 +1144,37 @@ oattr_main(void *arg)
 					free(tobj);
 					break;
 				}
+if( stream_write == 1 ) {
+				err = fwrite(&tobj->u.oattr.name_len, sizeof(unsigned int), 1, file);
+				if( err != 1 )
+					break;
+				err = fwrite(tobj->u.oattr.name, tobj->u.oattr.name_len, 1, file);
+				if( err != 1 )
+					break;
+				err = fwrite(&tobj->u.oattr.data_len, sizeof(off_t), 1, file);
+				if( err != 1 )
+					break;
+				err = fwrite(tobj->u.oattr.data, tobj->u.oattr.data_len, 1, file);
+				if( err != 1 )
+					break;
+} else {
 				write(fd, &tobj->u.oattr.name_len, sizeof(unsigned int));
 				write(fd, tobj->u.oattr.name, tobj->u.oattr.name_len);
 				write(fd, &tobj->u.oattr.data_len, sizeof(off_t));
 				write(fd, tobj->u.oattr.data, tobj->u.oattr.data_len);
+}
+
 				free(tobj->u.oattr.name);
 				free(tobj->u.oattr.data);
 				free(tobj);
 			}
+
+if( stream_write == 1 ) {
+			fclose(file);
+} else {
 			close(fd);
+}
+
 			if( correct == 0 )
 				unlink(attrbuf);
 		}
@@ -1171,6 +1211,10 @@ ocache_init(char *dir_path, void *dctl_cookie, void *log_cookie)
 	dctl_register_leaf(DEV_CACHE_PATH, "cache_thresh_hold", DCTL_DT_UINT32,
 			dctl_read_uint32, dctl_write_uint32,
 			&count_thresh);
+	
+	dctl_register_leaf(DEV_CACHE_PATH, "stream_write", DCTL_DT_UINT32,
+			dctl_read_uint32, dctl_write_uint32,
+			&stream_write);
 	
 	ring_init(&cache_ring, CACHE_RING_SIZE);
 	/* creat output attr ring */

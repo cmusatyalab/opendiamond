@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <unistd.h>
 #include "lib_od.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
@@ -60,6 +61,14 @@ parse_uint64_string(const char* s) {
 }
 
 
+void
+usage()
+{
+	fprintf(stdout, "rem_group [-c] -g <gid> [-m <max_objs>] \n");
+	fprintf(stdout, "\t-c show count of objects in the group \n");
+	fprintf(stdout, "\t-g <gid> gid of the group to modify \n");
+	fprintf(stdout, "\t-m <max_objs> keep the first max_objs of the group \n");
+}
 
 
 
@@ -72,15 +81,56 @@ main(int argc, char **argv)
 	char		path_name[256];
 	char		attr_name[256];
 	char *		path = "/opt/dir1";
+	int			max = 0;
+	int			have_gid = 0;
 	gid_idx_ent_t	gid_ent;
-	uint64_t	gid;
-	int		err, num;
+	uint64_t	gid = 0;
+	int			err, num;
+	int			i,c;
+	int			do_count = 0;
+	int			count = 0;
+	extern char *	optarg;
 
-	if (argc < 2) {
+	/*
+	 * The command line options.
+	 */
+	while (1) {
+		c = getopt(argc, argv, "chg:m:");
+		if (c == -1) {
+			break;
+		}
+
+		switch (c) {
+			case 'c':
+				do_count = 1;
+				break;
+
+			case 'h':
+				usage();
+				exit(0);
+				break;
+
+
+			case 'g':
+				gid = parse_uint64_string(optarg);
+				have_gid = 1;
+				break;
+	
+			case 'm':
+				max = atoi(optarg);
+				break;
+
+
+			default:
+				printf("unknown option %c\n", c);
+				break;
+		}
+	}
+	
+	if (have_gid == 0) {
+		usage();
 		exit(1);
 	}
-
-	gid = parse_uint64_string(argv[1]);
 
 	err = odisk_init(&odisk, path);
 	if (err) {
@@ -88,13 +138,30 @@ main(int argc, char **argv)
 		perror("failed to init odisk");
 		exit(1);
 	}
-	
 
 	sprintf(idx_file, "%s/%s%016llX", path, GID_IDX, gid);
 	cur_file = fopen(idx_file, "r");
 	if (cur_file == NULL) {
 		fprintf(stderr, "unable to open idx %s \n", idx_file);
 	}
+
+	if (do_count) {
+		count = 0;
+		while ((num = fread(&gid_ent, sizeof(gid_ent), 1, cur_file)) == 1) {
+			count++;
+		}
+		fprintf(stdout, "num objects is: %d \n", count);
+		exit(0);
+	}
+
+	for (i=0; i < max; i++) {
+		num = fread(&gid_ent, sizeof(gid_ent), 1, cur_file);
+		if (num != 1) {
+			printf("Max = %d, but only have %d items \n", max, i);
+			goto done;
+		}
+	}
+
 
 	while (cur_file != NULL) {
 		num = fread(&gid_ent, sizeof(gid_ent), 1, cur_file);
@@ -112,11 +179,14 @@ main(int argc, char **argv)
 				exit(1);
 			}
 		} else {
-			cur_file = NULL;
+			goto done;
+
 		}
 	}
 
-
+done:
+	fclose(cur_file);
+	cur_file = NULL;
 	rebuild_idx(odisk);
 
 	exit(0);

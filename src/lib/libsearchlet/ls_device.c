@@ -606,56 +606,6 @@ create_new_device(search_context_t *sc, uint32_t devid)
 
 
 int
-lookup_group_hosts(group_id_t gid, int *num_hosts, uint32_t *hostids)
-{
-	static gid_map_t *	gid_map = NULL;
-	gid_map_t *		cur_map;
-	int			i;
-
-
-	if (gid_map == NULL) {
-		/* XXX */
-		gid_map = read_gid_map("gid_map");
-	}
-
-	if (gid_map == NULL) {
-		*num_hosts = 0;
-		return(ENOENT);
-	}
-
-
-	cur_map = gid_map;
-	while (cur_map != NULL) {
-		if (cur_map->gid == gid) {
-			break;
-		}
-
-		cur_map = cur_map->next;
-	}
-
-
-	if (cur_map == NULL) {
-		*num_hosts = 0;
-		return(ENOENT);
-	}
-
-
-	if (cur_map->num_dev > *num_hosts) {
-		/* XXX log */
-		*num_hosts = cur_map->num_dev;
-		return(ENOMEM);
-	}
-
-	for (i = 0; i < cur_map->num_dev; i++) {
-		hostids[i] = cur_map->devs[i];
-	}
-	*num_hosts = cur_map->num_dev;
-	return(0);
-}
-
-
-
-int
 device_add_gid(search_context_t *sc, group_id_t gid, uint32_t devid)
 {
 

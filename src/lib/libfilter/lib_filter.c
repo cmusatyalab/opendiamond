@@ -370,4 +370,7 @@ lf_free_buffer(lf_fhandle_t fhandle, char *buf)
 
 	/* XXX keep some states and error checking */
 	free(buf);	
+	return 0;
 }
+
+

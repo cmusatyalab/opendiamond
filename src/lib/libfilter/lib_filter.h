@@ -302,4 +302,5 @@ extern int lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj,
 
 extern int lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...);
 
+
 #endif /* _LIB_FILTER_H_  */

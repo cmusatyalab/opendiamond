@@ -1,0 +1,75 @@
+
+
+The key words for each filter spec:
+
+FILTER  <name>
+
+
+THRESHOLD <int>
+	
+	Required
+
+	
+
+
+FUNCTION  <string>
+
+
+DEPENDS_ON <string>
+
+	Optional can have 0, 1, or more
+
+	In	  
+
+ARG  <string>
+
+	Optional, can have 0, 1, or more per filter
+
+	Arguments that are passed to the filters.  If more than
+	one arg is declared for the filter, they are passed in the
+        order that they are declared in the filter spec.
+
+
+IN_OBJECT  <int>
+
+	Required
+
+	The the int specifices the block size for the read requests.
+	The block size is given in bytes.
+
+OUT_OBJECT  <int>  <obj_type>
+
+	Requires at least 1
+
+	The int corresponds to the output block size.  The object types
+	are how the output objects relates to the in_objetc.  The types
+	are defined as the following:
+
+		UNMODIFIED
+		
+			In this case the output object will be
+			the same as the input object.  Any writes
+			to this object hanlde will results in an error.
+			
+			The application is allowed to update the attributes.
+
+		NEW
+
+			In this case the object is a new, empty object.
+			It has none of characteristics from the previous object.
+
+		CLONE
+			For the clone object, it has the original contents
+			of the in_object (including attributes).  The
+			application is allowed to write over the data.
+
+		COPY_ATTR
+
+			This object is a new object with no associated 
+			data, but inherits the attributes of the previous
+			object (ie. it may have the partial classification
+			results from other stages
+
+
+
+

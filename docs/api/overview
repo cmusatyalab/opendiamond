@@ -1,0 +1,13 @@
+This is a brief overview of the APIs for Diamond.  In our
+system the application has two parts.  The first (called the
+applications) runs on the host interacts with the user
+to generate a search, display results, etc.  The application
+interacts with Diamond through the searchlet API.  
+
+The second part of the application is the searchlet.  The searchlet
+is binary code and configuration state that is downloaded to
+the disk to search through the objects. We sarch
+
+
+ 
+

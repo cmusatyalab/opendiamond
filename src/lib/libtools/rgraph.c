@@ -11,6 +11,7 @@
 #include <assert.h>
 #include "rgraph.h"
 
+//#define VERBOSE 1
 
 /* ********************************************************************** */
 
@@ -244,7 +245,9 @@ topo_visit(node_t *np, nodelist_t *list) {
   if(np->color == 2) return 0;	/* bottom of recursion */
 
   np->color = 1;
+#ifdef VERBOSE
   fprintf(stderr, "visiting %s\n", np->label);
+#endif
   //TAILQ_FOREACH(ep, &np->edges, eg_link) {
   sort_edgelist(&np->edgelist);	/* XXX */
   VEC_FOREACH(ep, &np->edgelist) {
@@ -254,7 +257,9 @@ topo_visit(node_t *np, nodelist_t *list) {
   if(loop) return loop;
 
   /* finished this node, so all descendants are done. safe to add to done list. */
+#ifdef VERBOSE
   fprintf(stderr, "added %s\n", np->label);
+#endif
   TAILQ_INSERT_HEAD(list, np, olink);
 
   return 0;

@@ -7,6 +7,10 @@
 #include <unistd.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct rtimer {
   struct rusage ru1, ru2;
 } rtimer_t;
@@ -19,6 +23,12 @@ extern void        rt_stop(rtimer_t *rt);
 extern rtime_t     rt_nanos(rtimer_t *rt);
 
 extern double      rt_time2secs(rtime_t t);
+
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* _RTIMER_H_ */

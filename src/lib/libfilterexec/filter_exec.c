@@ -52,7 +52,8 @@ load_filter_lib(char *lib_name, filter_info_t *froot)
 			return(ENOENT);
 		}
 		cur_filt->fi_fp = fp;
-		
+		fprintf(stderr, "%s: resolved.\n", cur_filt->fi_name);
+
 		cur_filt = cur_filt->fi_next;
 	}
 
@@ -367,10 +368,9 @@ init_filters(char *lib_name, char *filter_spec, filter_info_t **froot)
 		return (err);
 	}
 
-
 	/* everything was loaded correctly, log it */
 	log_message(LOGT_FILT, LOGL_TRACE, 
-			"init_filters: sucessfully completed");
+			"init_filters: loaded %s", filter_spec);
 
 	return(0);
 }

@@ -250,7 +250,7 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
   double dcost = 0;
   double this_cost;
   double p, pass = 1;
-  double maxbytes = 100.0;
+  double maxbytes = 100000000.0;
   double ratio;
 	
   hstate = (bp_hybrid_state_t *) malloc(sizeof(*hstate) * (pmLength(perm)+1));
@@ -261,31 +261,39 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
    */
   for(i=0; i < pmLength(perm); i++) {
     int n;
+    double c;
 
     hstate[i].dcost = dcost;
     hstate[i].greedy_ncost = pass * maxbytes;
 
     info = &fdata->fd_filters[pmElt(perm, i)];
     n = info->fi_called;
-	if (n == 0) {
-		n = 1;
-	}
+    c = info->fi_time_ns;
+    if (n < FSTATS_VALID_NUM) {
+      c = FSTATS_UNKNOWN_COST;
+      n = FSTATS_UNKNOWN_NUM;
+    }
+
     maxbytes += (double) info->fi_added_bytes / (double) n;
-	this_cost = pass * ((double)info->fi_time_ns / (double) n); /* update cumulative cost */
-	/* we don't want the incremental cost to be zero */
-	if (this_cost == 0.0) {
-		this_cost = SMALL_FRACTION;
-	}
+    this_cost = pass * ((double) c / (double) n); /* update cumulative cost */
+
+    /* we don't want the incremental cost to be zero */
+    if (this_cost == 0.0) {
+      this_cost = SMALL_FRACTION;
+    }
     dcost += this_cost;
 
     /* obtain conditional pass rate */
     fprob = fexec_lookup_prob(fdata, pmElt(perm, i), i, pmArr(perm)); 
     if(fprob) {
-      p = (double)fprob->num_pass / fprob->num_exec;
+      if (fprob->num_exec < FSTATS_VALID_NUM) {
+	p = FSTATS_UNKNOWN_PROB;
+      } else {
+	p = (double) fprob->num_pass / fprob->num_exec;
+      }
     } else {
-      /* really no data, return an error */
-      /* XXX */
-	  p = 1.0;
+	  /* unknown value, use default */
+	  p = FSTATS_UNKNOWN_PROB;
     }
     
     assert(p >= 0 && p <= 1.0);
@@ -297,7 +305,6 @@ fexec_set_bypass_hybrid(filter_data_t *fdata, permutation_t *perm, float target_
   }
   hstate[i].dcost = dcost;
   hstate[i].greedy_ncost = pass * maxbytes;
-
   
   /*
    * Identify optimal breakdown into unit subsequences.
@@ -399,6 +406,10 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 
     target_cost = avg_cost * ratio;
 
+#ifdef XXX
+    printf("\ncost: %lf, target: %lf\n", avg_cost, target_cost);
+#endif
+
     switch (fexec_bypass_type) {
 	case  BP_NONE:
        	fexec_set_bypass_none(fdata);
@@ -419,5 +430,16 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 
     }
 
-    return (0);
+#ifdef XXX
+    {
+      int i;
+      printf("bypass: ");
+      for(i=0; i<pmLength(fdata->fd_perm); i++)
+	printf("%lf ", (double)((fdata->fd_filters[pmElt(fdata->fd_perm, i)]).fi_bpthresh) / (double) RAND_MAX);
+
+      printf("\n");
+    }
+#endif
+
+      return (0);
 }

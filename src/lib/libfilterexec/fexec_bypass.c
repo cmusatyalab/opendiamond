@@ -28,7 +28,9 @@
 
 static int  host_cycles = 0;
 
-
+/* XXX */
+extern int fexec_fixed_split;
+extern int fexec_fixed_ratio;
 
 
 float
@@ -37,6 +39,8 @@ get_active_searches()
     /* XXXX fix */
     return(1.0);
 }
+
+
 
 float
 get_disk_cycles()
@@ -52,22 +56,6 @@ get_disk_cycles()
     return(fval);
 }
 
-int
-gcd(int m, int n)
-{
-    int a = m;
-    int b = n;
-
-    int newa;
-                    
-    while (b != 0) { 
-        newa = b;
-        b = a % b;
-        a = newa;
-    }
-    return(a);
-}
-
 
 /*
  * This is called when we get a new request from the host
@@ -80,15 +68,16 @@ fexec_update_hostcyles(int new)
 }
 
 
+/*
+ * This forces all filters to be run at the disk.
+ */
 
 void
 fexec_set_bypass_none(filter_data_t *fdata)
 {
     int     i;
     for (i=0; i < fdata->fd_num_filters; i++) {
-        fdata->fd_filters[i].fi_bpcnt = 0;
-        fdata->fd_filters[i].fi_bprun = 1;
-        fdata->fd_filters[i].fi_bpmax = 1;
+        fdata->fd_filters[i].fi_bpthresh = RAND_MAX;
     }
 }
 
@@ -115,9 +104,7 @@ fexec_set_bypass_target(filter_data_t *fdata, permutation_t *perm, float target)
          * then all of these should be run at the host.
          */
         if (old_cost > target) {
-            info->fi_bpcnt = 0;
-            info->fi_bprun = 0;
-            info->fi_bpmax = 1;
+            info->fi_bpthresh = -1;
         } else {
             /* pass = pass rate of all filters before this one */
             c = info->fi_time_ns;
@@ -131,30 +118,17 @@ fexec_set_bypass_target(filter_data_t *fdata, permutation_t *perm, float target)
              */
 
             if (new_cost > target) {
-                int     num, denum, div;
-                
 
                 ratio = (target - old_cost)/(new_cost - old_cost);
                 assert(ratio >= 0.0 && ratio <= 1.0);
 
-                denum = 1000;
-                num = (int)(ratio * denum);
+                info->fi_bpthresh = (int)((float)RAND_MAX * ratio);
 
-
-                div = gcd(num, denum);
-
-                info->fi_bprun = 0;
-                info->fi_bpcnt = (int)num/div;
-                info->fi_bpmax = (int)denum/div;
-                printf("split:  num %d denum %d, div %d \n", num, denum, div);
-                printf("set split:  %d of %d \n", info->fi_bpcnt, 
-                                info->fi_bpmax);       
-                exit(1); 
+                printf("split:  ratio %f  bp_thresh %d max %d \n",
+					ratio, info->fi_bpthresh, RAND_MAX);
             } else {
                 /* if we are below threshold, run everything. */
-                info->fi_bprun = 0;
-                info->fi_bpcnt = 1;
-                info->fi_bpmax = 1;
+                info->fi_bpthresh = RAND_MAX;
             }
     
             /* lookup this permutation */
@@ -217,18 +191,21 @@ fexec_update_bypass(filter_data_t *fdata)
     disk_cycles /= num_searches;
 
     /*
-     * Get the disk cycles.
-     */
+	 * Compute the target goal for here.
+	 */
+	if (fexec_fixed_split) {
+		target_cost = avg_cost * ((float)fexec_fixed_ratio/100.0);
+		printf("new target cost %f -> %f \n", avg_cost, target_cost);
+  	} else {
+    		target_cost = 
+		((float) (disk_cycles)/(disk_cycles + host_cycles)) * avg_cost;
+    	/* XXX debug */
+    	target_cost = ((float)  avg_cost * 0.70);
+	}
 
-    target_cost = ((float) (disk_cycles)/(disk_cycles + host_cycles)) * 
-            avg_cost;
-
-    /* XXX debug */
-    target_cost = ((float)  avg_cost * 0.70);
     printf("setting target %f of %f \n", target_cost, avg_cost);
     fexec_set_bypass_target(fdata, fdata->fd_perm, target_cost);
 
-    exit(1);
     return(0);
 }
 

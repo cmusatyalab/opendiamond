@@ -11,6 +11,8 @@
 #include <dirent.h>
 
 #include "lib_od.h"
+#include "lib_dctl.h"
+#include "dctl_common.h"
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "lib_log.h"
@@ -22,7 +24,7 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 
-#define VERBOSE 1
+/* #define VERBOSE 1 */
 
 /*
  * Some state to keep track of the active filter. XXX
@@ -63,14 +65,31 @@ static opt_policy_t policy_arr[] = {
 };
 
 
+/*
+ * Global state for the filter init code.
+ */
+int	fexec_fixed_split = 0;	/* we use a fixed partioning if this is 1 */
+int	fexec_fixed_ratio = 0;	/* percentage for a fixed partitioning */
+
+
 
 /* ********************************************************************** */
 
 void
-fexec_system_init() {
-  rtimer_system_init(RTIMER_PAPI); /* it will default to STD if this doesnt work */
+fexec_system_init() 
+{
+	/* it will default to STD if this doesnt work */
+	rtimer_system_init(RTIMER_PAPI); 
+
+	dctl_register_leaf(DEV_FEXEC_PATH, "fixed_split", DCTL_DT_UINT32,
+		dctl_read_uint32, dctl_write_uint32, &fexec_fixed_split);
+
+	dctl_register_leaf(DEV_FEXEC_PATH, "fixed_ratio", DCTL_DT_UINT32,
+		dctl_read_uint32, dctl_write_uint32, &fexec_fixed_ratio);
+
 #ifdef VERBOSE
-  fprintf(stderr, "fexec_system_init: policy = %d\n", filter_exec.current_policy);
+  	fprintf(stderr, "fexec_system_init: policy = %d\n", 
+		filter_exec.current_policy);
 #endif
 }
 
@@ -574,7 +593,9 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	int			        err;
 	off_t			    asize;
 	int                 pass = 1; /* return value */
+	int					rv;
 	int cur_fid, cur_fidx;
+	static int		loop_cnt = 0;
 
 	/* timer info */
 	rtimer_t                rt;	
@@ -593,6 +614,11 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 	/* change the permutation if it's time for a change */
 	optimize_filter_order(fdata, &policy_arr[filter_exec.current_policy]);
+    
+	if (++loop_cnt > 20) {
+		fexec_update_bypass(fdata); 
+		loop_cnt = 0; 
+	}
 
 
 	/*
@@ -642,24 +668,10 @@ eval_filters(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
          * run it or pass it.
          */
         if (force_eval == 0) {
-            if (cur_filter->fi_bpcnt >= cur_filter->fi_bprun) {
+			rv = random();
+			if (rv > cur_filter->fi_bpthresh) {
                 pass = 1;
-
-                printf("skipping : cnt %d max %d run%d \n",
-                                cur_filter->fi_bpcnt, cur_filter->fi_bpmax,
-                                cur_filter->fi_bprun);
-
-                cur_filter->fi_bpcnt++;
-                cur_filter->fi_bypassed++;
-                if (cur_filter->fi_bpcnt >= cur_filter->fi_bpmax) {
-                    cur_filter->fi_bpcnt = 0;
-                }
                 break;
-            } else {
-                cur_filter->fi_bpcnt++;
-                if (cur_filter->fi_bpcnt >= cur_filter->fi_bpmax) {
-                    cur_filter->fi_bpcnt = 0;
-                }
             }
         }
     

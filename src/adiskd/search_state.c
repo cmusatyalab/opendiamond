@@ -585,7 +585,9 @@ search_new_conn(void *comm_cookie, void **app_cookie)
                     dctl_read_uint32, NULL, &sstate->obj_passed);
 
 
-    dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
+    	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
+
+    	dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
 
 
     /* 

@@ -609,8 +609,6 @@ update_gid_idx(odisk_state_t *odisk, char *name, groupid_t gid)
 		return;
 	}
 
-	fprintf(stdout, "adding %s to %s \n", name, idx_name);
-
 	memset(&gid_idx, 0, sizeof(gid_idx));
 	sprintf(gid_idx.gid_name, "%s", name);
 

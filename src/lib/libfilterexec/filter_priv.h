@@ -75,9 +75,7 @@ typedef struct filter_info {
      * of these objects.  
      */
 
-    int                     fi_bpcnt;
-    int                     fi_bprun;
-    int                     fi_bpmax;
+    int                     fi_bpthresh;
 
 	/* input characteristics */
 	int                     fi_blocksize_in;

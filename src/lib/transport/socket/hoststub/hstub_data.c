@@ -45,6 +45,7 @@ hstub_read_data(sdevice_state_t *dev)
 	char *		adata;
 	char *		odata;
 	char *		data;
+	int		err;
 
 	cinfo = &dev->con_data;
 
@@ -303,7 +304,10 @@ hstub_read_data(sdevice_state_t *dev)
 
 		oinfo->ver_num = ver_no;
 		oinfo->obj = cinfo->data_rx_obj;
-
+	
+		err = ring_enq(dev->obj_ring, oinfo);
+		printf("ring %p io %p \n", dev->obj_ring, oinfo);
+		assert(err == 0);
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}
 }
@@ -328,10 +332,10 @@ hstub_write_data(sdevice_state_t * dev)
 
 	/*
 	 * the only data we should every need to write is 
-     * credit count messages.
+     	 * credit count messages.
 	 */  
 
-    if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0) {
+    	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0) {
 		return;
 	}
 
@@ -348,13 +352,13 @@ hstub_write_data(sdevice_state_t * dev)
 	/* send the messages */
    	data = (char *)&cinfo->cc_msg;
 	mcount = sizeof(credit_count_msg_t);
-	send_size = send(cinfo->control_fd, data, mcount, 0);
+	send_size = send(cinfo->data_fd, data, mcount, 0);
 
 	/* XXX we don't handle partials today XXX */
 	assert(send_size == mcount);
 
 	/* if successful, clear the flag */ 
-    cinfo->flags &= ~CINFO_PENDING_CREDIT;
+    	cinfo->flags &= ~CINFO_PENDING_CREDIT;
 	
 }
 

@@ -240,12 +240,14 @@ device_next_obj(void *handle)
 {
 	sdevice_state_t *dev;
 	obj_info_t *	oinfo;
-
 	dev = (sdevice_state_t *)handle;
+
+	printf("device_next_obj ring %p \n", dev->obj_ring);
 
 	oinfo = ring_deq(dev->obj_ring);
 
 	dev->con_data.flags |= CINFO_PENDING_CREDIT;
+	printf("ret %p \n", oinfo);
 	return(oinfo);
 }
 
@@ -255,7 +257,7 @@ device_new_gid(void *handle, int id, groupid_t gid)
 {
 	int			err;
 	control_header_t *	cheader;
-    sgid_subheader_t *  sgid;
+    	sgid_subheader_t *  sgid;
 	sdevice_state_t *dev;
 
 	dev = (sdevice_state_t *)handle;
@@ -267,8 +269,8 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	}
 
 	sgid = (sgid_subheader_t *) malloc(sizeof(*sgid));	
-    assert(sgid != NULL);
-    sgid->sgid_gid = gid;
+    	assert(sgid != NULL);
+    	sgid->sgid_gid = gid;
 
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_ADD_GID);
@@ -853,12 +855,13 @@ int
 device_set_limit(void *handle, int limit)
 {
 	sdevice_state_t *       dev;
+	dev = (sdevice_state_t *)handle;
 
 	printf("setting limit %d \n", limit);
-	dev = (sdevice_state_t *)handle;
+	dev->con_data.flags |= CINFO_PENDING_CREDIT;
+	dev->con_data.flags &= ~CINFO_BLOCK_OBJ;
 	if (dev->con_data.obj_limit != limit) {
 		dev->con_data.obj_limit = limit;
-		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}
 
 	return (0);

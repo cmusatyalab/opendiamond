@@ -173,6 +173,9 @@ hstub_main(void *arg)
 		if (cinfo->flags & CINFO_PENDING_CONTROL) {
 			FD_SET(cinfo->control_fd,  &cinfo->write_fds);
 		}
+		if (cinfo->flags & CINFO_PENDING_CREDIT) {
+			FD_SET(cinfo->data_fd,  &cinfo->write_fds);
+		}
 
 		to.tv_sec = 0;
 		to.tv_usec = 1000;

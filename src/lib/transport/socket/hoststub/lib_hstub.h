@@ -5,7 +5,6 @@
 typedef	int (*hstub_new_obj_fn)(void *hcookie, obj_data_t *odata, int vno);
 typedef	void (*hstub_log_data_fn)(void *hcookie, char *data, int len, int dev);
 typedef	void (*hstub_search_done_fn)(void *hcookie, int ver_num);
-
 typedef	void (*hstub_rleaf_done_fn)(void *hcookie, int err, 
                 dctl_data_type_t dtype, int len, char *data, int32_t opid);
 typedef	void (*hstub_wleaf_done_fn)(void *hcookie, int err, int32_t opid);
@@ -56,6 +55,7 @@ int device_stop_obj(void *handle);
 int device_enable_obj(void *handle);
 int device_set_offload(void *handle, int id, uint64_t offload);
 int device_set_limit(void *handle, int limit);
+obj_info_t * device_next_obj(void *handle);
 
 
 #endif	/* _LIB_HSTUB_H_ */

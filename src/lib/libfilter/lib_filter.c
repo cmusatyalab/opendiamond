@@ -198,6 +198,8 @@ lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
 	 * See if there is any data to read.
 	 */
 	if (odata->data_len <= odata->cur_offset) { 
+		printf("too much dat %0llx  off %d len %d \n",
+			odata->local_id, odata->cur_offset, odata->data_len);
 		*len = 0;
 		return(ENOENT);
 	}

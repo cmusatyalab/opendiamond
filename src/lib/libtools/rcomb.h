@@ -146,6 +146,16 @@ const permutation_t *best_first_next(bf_state_t *hc);
 
 /* ---------------------------------------------------------------------- */
 
+void indep_init(bf_state_t *ptr, int n, const partial_order_t *po,
+		     evaluation_func_t func, const void *context);
+void indep_cleanup(bf_state_t *ptr);
+
+int indep_step(bf_state_t *hc);
+
+
+
+/* ---------------------------------------------------------------------- */
+
 char *format_number(char *buf, double val);
 
 

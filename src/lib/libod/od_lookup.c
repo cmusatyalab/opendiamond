@@ -150,6 +150,7 @@ ods_lookup_by_devid(uint64_t devid)
     assert(done_init);
 
     osrv = ods_dev_lookup(devid);
+	printf("lookup by devid %p \n", osrv);
     if (osrv != NULL) {
         return(osrv);
     }

@@ -206,14 +206,21 @@ find_free_record(obj_attr_t *attr, int size)
 	int			cur_offset;
 	int			err;
 
+    printf("find free record \n\n");
+
 	cur_offset = 0;
 	while (1) {
+		printf("cur_off %d len %d \n", cur_offset, attr->attr_len);
 		assert(cur_offset <= attr->attr_len);
 		if (cur_offset == attr->attr_len) {
+			printf("extending attr store: olen %d off %d size %d \n",
+				attr->attr_len, cur_offset, size);
 			err = extend_attr_store(attr, size);
 			if (err == ENOMEM) {
 				return (NULL);
 			}
+			printf("after extend store: alen %d off %d size %d \n",
+				attr->attr_len, cur_offset, size);
 		}
 
 		cur_rec = (attr_record_t *)&attr->attr_data[cur_offset];

@@ -359,7 +359,7 @@ more_attrs:
 			} else {
 				/* XXX what errors should we handles ?? */
 				perror("send attr ");
-			       	printf("XXX error while sending attr\n");
+				printf("XXX error while sending attr\n");
 				exit(1);
 			}
 

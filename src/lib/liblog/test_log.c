@@ -26,7 +26,7 @@ empty_log()
 void
 string_test()
 {
-	int		i, j, x;
+	int		i;
 	int		len;
 	char * 		data;
 	int		cur_off;

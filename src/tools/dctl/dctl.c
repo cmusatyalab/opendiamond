@@ -18,7 +18,7 @@ int
 sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 {
     int 	rlen;
-    int	dlen;
+    int	    dlen;
     char *	buf;
 
 
@@ -26,13 +26,13 @@ sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
     if (rlen != sizeof(*msg)) {
         printf("XXX failed to rx reply \n");
         return(EINVAL); /* XXX */
-    }	
+    }
 	
 
 	dlen = msg->dctl_dlen;
 	if (dlen == 0) {
 		*len = 0;
-		return(0);
+		return(msg->dctl_err);
 	}
 
 	/*
@@ -46,7 +46,7 @@ sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 		}
 
 		*len = dlen;
-		return(0);	
+		return(msg->dctl_err);
 	} else {
 		/*
 		 * If we get here, the caller didn't provide enough
@@ -55,6 +55,7 @@ sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 		 * out of synce and be in trouble for the next
 		 * call.
 		 */
+        assert(0);
 		buf = (char *)malloc(dlen);
 		assert(buf!=NULL);
 
@@ -227,7 +228,6 @@ sock_write_leaf(int fd, char *path, int len, char *data)
 
 	/*
 	 * Now we need to wait for the response.
-	 *
 	 */
 	data_len = 0;
 	err = sock_read_reply(fd, &msg, &data_len, NULL);

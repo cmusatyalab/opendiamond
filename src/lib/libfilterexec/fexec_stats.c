@@ -332,7 +332,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
 	    return 1;
 	  }
             p = (double)fprob->num_pass / fprob->num_exec;
-#if 1
+#if 0
 	    printf("\t(np=%d, ne=%d)", fprob->num_pass, fprob->num_exec);
             printf("\t(cond p=%f)\n", p);
 #endif
@@ -355,7 +355,7 @@ fexec_compute_cost(filter_data_t *fdata, permutation_t *perm, int gen,
     }
 
     *cost = totalcost;
-#if 1
+#if 0
     printf("fexec_evaluate: ");
     fexec_print_cost(fdata, perm);
     printf(" cost=%s\n", format_number(buf, totalcost));

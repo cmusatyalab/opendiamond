@@ -372,7 +372,6 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
     double          avg_cost;
     double          target_cost;
     int             err;
-    int i;
 
     err = fexec_estimate_cost(fdata, fdata->fd_perm, 1, 0, &avg_cost);
 
@@ -410,11 +409,6 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 	
 
     }
-
-    printf("bypass: ");
-    for(i=0; i<pmLength(fdata->fd_perm); i++)
-      printf("%f ", (float)((fdata->fd_filters[pmElt(fdata->fd_perm, i)]).fi_bpthresh)/RAND_MAX);
-    printf("\n");
 
     return (0);
 }

@@ -32,7 +32,7 @@ static filter_info_t *first_filter = NULL;
 static filter_info_t *cur_filter = NULL;
 %}
 %array
-ID      [a-zA-Z][a-zA-Z0-9_]*
+ID      [a-zA-Z][-a-zA-Z0-9_]*
 %%
 #.*\n
 ARG[ \t]+[[:graph:]]+			{filter_args(); }
@@ -114,7 +114,8 @@ new_filter()
 int filter_error()
 {
 	fprintf(stderr, "unknown text %s\n", yytext);
-	return (0);
+	assert(0);
+	exit(1);
 }
 
 static void

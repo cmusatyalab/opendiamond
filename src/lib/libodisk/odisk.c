@@ -211,14 +211,22 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 
     len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_path,
                    obj->local_id);
-    assert(NAME_MAX);
-    unlink(buf);
+    assert(len < NAME_MAX);
+    err = unlink(buf);
+	if (err == -1) {
+		fprintf(stderr, "failed unlink %s:" , buf);
+		perror("");
+	}
 
     len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX%s", odisk->odisk_path,
                    obj->local_id, ATTR_EXT);
-    assert(NAME_MAX);
+    assert(len < NAME_MAX);
 
-    unlink(buf);
+    err = unlink(buf);
+	if (err == -1) {
+		fprintf(stderr, "failed unlink %s:" , buf);
+		perror("");
+	}
 
     return (0);
 }

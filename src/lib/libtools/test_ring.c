@@ -11,6 +11,7 @@
 #include "ring.h"
 
 
+#define	TEST_RING_SIZE	512
 ring_data_t *	my_ring;
 ring_data_t *	my_2ring;
 
@@ -22,7 +23,7 @@ simple_test()
 	int	err;
 	void *	data;
 
-	for (i = 1; i < RING_DATA_SIZE; i++) {
+	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_enq(my_ring, (void *)i);
 		if (err) {
 			printf("faild to write to ring on iteration %d \n", i);
@@ -38,7 +39,7 @@ simple_test()
 	}
 
 
-	for (i = 1; i < RING_DATA_SIZE; i++) {
+	for (i = 1; i < TEST_RING_SIZE; i++) {
 		data = ring_deq(my_ring);
 		if (data == NULL) {
 			printf("failed to return data on iteration %d \n", i);
@@ -63,6 +64,74 @@ simple_test()
 	}
 }
 
+void
+simple_count_test()
+{
+
+	int 	i;
+	int	err;
+	int	cnt;
+	void *	data;
+
+	for (i = 1; i < TEST_RING_SIZE; i++) {
+		err = ring_enq(my_ring, (void *)i);
+		if (err) {
+			printf("faild to write to ring on iteration %d \n", i);
+			exit(1);
+		}
+		cnt = ring_count(my_ring);
+		if (cnt != i) {
+			printf("failed count: expected %d got %d \n",
+					i, cnt);
+			exit(1);
+		}
+
+	}
+
+	for (i = 1; i < TEST_RING_SIZE; i++) {
+		data = ring_deq(my_ring);
+		if (data == NULL) {
+			printf("failed to return data on iteration %d \n", i);
+			exit(1);
+		}
+		if (i != (int)data) {
+			printf("wanted %d got %d \n", i, (int)data);
+			exit(1);
+		}
+	}
+	/* make sure is empty return 0 */
+	err = ring_empty(my_ring);
+	if (!err) {
+		printf("empty ring returned wrong result \n");
+		exit(1);
+	}
+}
+
+void
+count_test()
+{
+	int 	i;
+	int	err;
+	void *	data;
+
+	for (i = 1; i < TEST_RING_SIZE; i++) {
+		err = ring_enq(my_ring, (void *)i);
+		if (err) {
+			printf("faild to write to ring on iteration %d \n", i);
+			exit(1);
+		}
+		data = ring_deq(my_ring);
+		if (data == NULL) {
+			printf("failed to return data on iteration %d \n", i);
+			exit(1);
+		}
+		simple_count_test();
+
+	}
+}
+
+
+
 
 void
 overflow_test()
@@ -72,7 +141,7 @@ overflow_test()
 	int	err;
 	void *	data;
 
-	for (i = 1; i < (RING_DATA_SIZE); i++) {
+	for (i = 1; i < (TEST_RING_SIZE); i++) {
 		err = ring_enq(my_ring, (void *)i);
 		if (err) {
 			printf("failed to write to ring on iteration %d \n", i);
@@ -97,7 +166,7 @@ overflow_test()
 	}
 
 
-	for (i = 1; i < (RING_DATA_SIZE); i++) {
+	for (i = 1; i < (TEST_RING_SIZE); i++) {
 		data = ring_deq(my_ring);
 		if (data == NULL) {
 			printf("failed to return data on iteration %d \n", i);
@@ -132,7 +201,7 @@ overflow_2test()
 	void *	d2;
 
 	/* First fill up the ring */
-	for (i = 1; i < (RING_DATA_SIZE -1); i+= 2) {
+	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_2enq(my_2ring, (void *)i, (void *)i+1);
 		if (err) {
 			printf("overflow_2test: failed write on %d \n", i);
@@ -157,7 +226,7 @@ overflow_2test()
 
 
 	/* pull all the data off the ring */
-	for (i = 1; i < (RING_DATA_SIZE - 1); i+=2) {
+	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_2deq(my_2ring, &d1, &d2);
 		if (err != 0) {
 			printf("failed to return data on iteration %d \n", i);
@@ -195,7 +264,7 @@ simple_2test()
 	void *	data1;
 	void *	data2;
 
-	for (i = 1; i < (RING_DATA_SIZE - 1); i+= 2) {
+	for (i = 1; i < (TEST_RING_SIZE - 1); i++) {
 		err = ring_2enq(my_2ring, (void *)i, (void *)i+1);
 		if (err) {
 			printf("simple_2test: failed to write on iter %d \n", 
@@ -212,7 +281,7 @@ simple_2test()
 	}
 
 
-	for (i = 1; i < (RING_DATA_SIZE -1); i+= 2) {
+	for (i = 1; i < (TEST_RING_SIZE -1); i++) {
 		err = ring_2deq(my_2ring, &data1, &data2);
 		if (err != 0) {
 			printf("simple_2test: failed return on %d \n", i);
@@ -238,12 +307,77 @@ simple_2test()
 	}
 }
 
+void
+simple_2count_test()
+{
+
+	int 	i;
+	int	err;
+	int	cnt;
+	int	data1, data2;
+
+	for (i = 1; i < TEST_RING_SIZE; i++) {
+		err = ring_2enq(my_2ring, (void *)i, (void *)i+1);
+		if (err) {
+			printf("faild to write to ring on iteration %d \n", i);
+			exit(1);
+		}
+		cnt = ring_2count(my_2ring);
+		if (cnt != i) {
+			printf("failed count: expected %d got %d \n",
+					i, cnt);
+			exit(1);
+		}
+
+	}
+
+	for (i = 1; i < TEST_RING_SIZE; i++) {
+		err = ring_2deq(my_2ring, (void *)&data1, (void *)&data2);
+		if (err != 0) {
+			printf("failed to return data on iteration %d \n", i);
+			exit(1);
+		}
+		if (i != data1) {
+			printf("wanted %d got %d \n", i, data1);
+			exit(1);
+		}
+	}
+	/* make sure is empty return 0 */
+	err = ring_2empty(my_2ring);
+	if (!err) {
+		printf("empty ring returned wrong result \n");
+		exit(1);
+	}
+}
+
+void
+count_2test()
+{
+	int 	i;
+	int	err;
+	int	data1, data2;
+
+	for (i = 1; i < TEST_RING_SIZE; i++) {
+		err = ring_2enq(my_2ring, (void *)i, (void *)i+1);
+		if (err) {
+			printf("faild to write to ring on iteration %d \n", i);
+			exit(1);
+		}
+		err = ring_2deq(my_2ring, (void *)&data1, (void *)&data2);
+		if (err != 0) {
+			printf("failed to return data on iteration %d \n", i);
+			exit(1);
+		}
+		simple_2count_test();
+	}
+}
+
 int
 main(int argc, char ** argv)
 {
 
 	int 	err;
-	err = ring_init(&my_ring);
+	err = ring_init(&my_ring, TEST_RING_SIZE);
 	if (err) {
 		printf("failed to init ring \n");
 		exit(1);
@@ -258,8 +392,10 @@ main(int argc, char ** argv)
 	overflow_test(); 
 	overflow_test(); 
 
+	count_test(); 
 
-	err = ring_2init(&my_2ring);
+
+	err = ring_2init(&my_2ring, TEST_RING_SIZE);
 	if (err) {
 		printf("failed to init double ring \n");
 		exit(1);
@@ -275,6 +411,7 @@ main(int argc, char ** argv)
 	overflow_2test(); 
 	overflow_2test(); 
 	overflow_2test(); 
+	count_2test(); 
 
 	return(0);
 }

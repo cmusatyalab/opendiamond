@@ -14,12 +14,15 @@
 /* XXX locking for multi-threaded apps !! */
 
 int
-ring_init(ring_data_t **ring)
+ring_init(ring_data_t **ring, int num_elems)
 {
 	int 		err;
+	int		size;
 	ring_data_t * 	new_ring;
 
-	new_ring = (ring_data_t *) malloc(sizeof(*new_ring));
+	/* XXX check ring is power of 2 */
+	size = RING_STORAGE_SZ(num_elems);
+	new_ring = (ring_data_t *) malloc(size);
 	if (new_ring == NULL) {
 		*ring = NULL;
 		return(ENOENT);
@@ -34,6 +37,7 @@ ring_init(ring_data_t **ring)
 	new_ring->head = 0;
 	new_ring->tail = 0;
 	new_ring->type = RING_TYPE_SINGLE;
+	new_ring->size = num_elems;
 
 	*ring = new_ring;
 	return(0);
@@ -52,6 +56,26 @@ ring_empty(ring_data_t *ring)
 }
 
 int
+ring_count(ring_data_t *ring)
+{
+	int	diff;
+
+	assert(ring->type == RING_TYPE_SINGLE);
+
+	if (ring->head > ring->tail) {
+		diff = ring->head - ring->tail;
+	} else {
+		diff = (ring->head + ring->size) - ring->tail;
+	}
+
+	assert(diff >= 0);
+	assert(diff <= ring->size);
+
+	return(diff);
+}
+
+
+int
 ring_enq(ring_data_t *ring, void *data)
 {
 	int	new_head;
@@ -60,7 +84,7 @@ ring_enq(ring_data_t *ring, void *data)
 
 	pthread_mutex_lock(&ring->mutex);
 	new_head = ring->head + 1;
-	if (new_head >= RING_DATA_SIZE) {
+	if (new_head >= ring->size) {
 		new_head = 0;
 	}
 
@@ -92,7 +116,7 @@ ring_deq(ring_data_t *ring)
 	
 	data = ring->data[ring->tail];
 	ring->tail++;
-	if (ring->tail >= RING_DATA_SIZE) {
+	if (ring->tail >= ring->size) {
 		ring->tail = 0;
 	}
 	pthread_mutex_unlock(&ring->mutex);
@@ -105,12 +129,17 @@ ring_deq(ring_data_t *ring)
  * we just advance the head/tail by twice as much.
  */
 int
-ring_2init(ring_data_t **ring)
+ring_2init(ring_data_t **ring, int num_elems)
 {
 	int 		err;
 	ring_data_t * 	new_ring;
+	int		total_ents;
+	int		size;
 
-	new_ring = (ring_data_t *) malloc(sizeof(*new_ring));
+	total_ents = num_elems * 2;
+	size = RING_STORAGE_SZ(total_ents);
+
+	new_ring = (ring_data_t *) malloc(size);
 	if (new_ring == NULL) {
 		*ring = NULL;
 		return(ENOENT);
@@ -125,6 +154,7 @@ ring_2init(ring_data_t **ring)
 	new_ring->head = 0;
 	new_ring->tail = 0;
 	new_ring->type = RING_TYPE_DOUBLE;
+	new_ring->size = total_ents;
 
 	*ring = new_ring;
 	return(0);
@@ -147,6 +177,26 @@ ring_2empty(ring_data_t *ring)
 }
 
 int
+ring_2count(ring_data_t *ring)
+{
+	int	diff;
+
+	assert(ring->type == RING_TYPE_DOUBLE);
+
+	if (ring->head > ring->tail) {
+		diff = ring->head - ring->tail;
+	} else {
+		diff = (ring->head + ring->size) - ring->tail;
+	}
+
+	diff = diff/2;
+
+	assert(diff >= 0);
+	assert(diff <= (ring->size/2));
+
+	return(diff);
+}
+int
 ring_2enq(ring_data_t *ring, void *data1, void *data2)
 {
 	int	new_head;
@@ -156,7 +206,7 @@ ring_2enq(ring_data_t *ring, void *data1, void *data2)
 	pthread_mutex_lock(&ring->mutex);
 
 	new_head = ring->head + 2;
-	if (new_head >= RING_DATA_SIZE) {
+	if (new_head >= ring->size) {
 		new_head = 0;
 	}
 
@@ -190,7 +240,7 @@ ring_2deq(ring_data_t *ring, void **data1, void **data2)
 	*data1 = ring->data[ring->tail];
 	*data2 = ring->data[ring->tail + 1];
 	ring->tail += 2;
-	if (ring->tail >= RING_DATA_SIZE) {
+	if (ring->tail >= ring->size) {
 		ring->tail = 0;
 	}
 	pthread_mutex_unlock(&ring->mutex);

@@ -11,7 +11,7 @@
 /* #include "lib_od.h" */
 #include "od.h"
 #include "od_priv.h"    
-#include "gid_map.h"    
+#include "lib_dconfig.h"    
 
 /* number of buckets, must be power of 2 !! */
 #define     DEV_HASH_BUCKETS    64
@@ -178,7 +178,7 @@ ods_allocate_by_gid(groupid_t *gid)
     assert(done_init);
 
     num_hosts = MAX_HOSTS;
-    err = lookup_group_hosts(*gid, &num_hosts, host_list);
+    err = glkup_gid_hosts(*gid, &num_hosts, host_list);
     if (err == ENOENT) {
         fprintf(stderr, "group 0x%llx is not in gid map \n", *gid);
         assert(0);

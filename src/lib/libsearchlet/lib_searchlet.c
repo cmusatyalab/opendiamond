@@ -25,6 +25,7 @@
 #include "lib_log.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
+#include "lib_dconfig.h"
 #include "dctl_common.h"
 
 
@@ -185,7 +186,7 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	for (i=0; i < num_groups; i++) {
 		cur_gid = glist[i];
 		hosts = MAX_HOST_IDS;
-		lookup_group_hosts(cur_gid, &hosts, host_ids);
+		glkup_gid_hosts(cur_gid, &hosts, host_ids);
 		for (j=0; j<hosts; j++) {
 			err = device_add_gid(sc, cur_gid, host_ids[j]);
 			if (err) {

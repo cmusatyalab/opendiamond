@@ -1,0 +1,20 @@
+#ifndef _LIB_DCONFIG_H_
+#define _LIB_DCONFIG_H_
+
+/*
+ * Name lookup functions that map names into a collection of
+ * group ids.
+ */
+
+int nlkup_lookup_collection(char *name, int *num_gids, groupid_t *gids);
+int nlkup_add_entry(char *name, int num_gids, groupid_t *gids);
+int nlkup_first_entry(char **name, void **cookie);
+int nlkup_next_entry(char **name, void **cookie);
+
+/*
+ * Functions that map groups into a set of hosts.
+ */
+
+int glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids);
+
+#endif  /* !_LIB_DCONFIG_H_ */

@@ -178,6 +178,7 @@ search_setlog(void *app_cookie, uint32_t level, uint32_t src)
 
     log_setlevel(hlevel);
     log_settype(hsrc);
+    return (0);
 
 }
 

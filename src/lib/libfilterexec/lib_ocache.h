@@ -113,7 +113,7 @@ int ocache_stop(char *path_name);
 int ocache_stop_search(unsigned char *fsig);
 int ocache_wait_finish();
 int ocache_read_file(char *disk_path, unsigned char *fsig, void **fcache_table, struct timeval *atime);
-int sig_cal(void *buf, off_t buflen, unsigned char **signature);
+int sig_cal(const void *buf, off_t buflen, unsigned char **signature);
 int ocache_add_start(char *fhandle, uint64_t obj_id, void *cache_table, int lookup, char *fpath);
 //int ocache_add_start(char *fhandle, uint64_t obj_id, unsigned char *fsig, int lookup, char *fpath);
 int ocache_add_end(char *fhandle, uint64_t obj_id, int conf);

@@ -578,7 +578,6 @@ create_new_device(search_context_t *sc, uint32_t devid)
 	device_handle_t *   new_dev;
 	hstub_cb_args_t	    cb_data;
     static int          done_init = 0;
-	int					err;
 
     if (!done_init) {
         init_pending();

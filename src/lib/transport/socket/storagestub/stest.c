@@ -138,15 +138,15 @@ handle_new_connection(void *cookie, void **newcookie)
 int
 close_connection(void *cookie)
 {
-
 	printf("stest: closeing conn \n");	
-	
+	return(0);
 }
 
 int
 start(void *cookie, int gen)
 {
 	printf("stest: start \n");
+	return(0);
 }
 
 	
@@ -154,12 +154,14 @@ int
 stop(void *cookie, int gen)
 {
 	printf("stest: stop \n");
+	return(0);
 }
 	
 int
 set_searchlet(void *cookie, int gen, char *spec, char *filter)
 {
 	printf("stest: set searchlet %s %s  \n", spec, filter);
+	return(0);
 }
 	
 
@@ -167,12 +169,14 @@ int
 set_list(void *cookie, int gen)
 {
 	printf("stest: set list \n");
+	return(0);
 }
 
 int
 terminate(void *cookie, int gen)
 {
 	printf("stest: terminate \n");
+	return(0);
 }
 
 void
@@ -208,6 +212,7 @@ release_obj(void *cookie, obj_data_t *obj)
 	free(obj->data);
 	free(obj->attr_info.attr_data);
 	free(obj);
+	return(0);
 }
 
 int

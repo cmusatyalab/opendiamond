@@ -54,6 +54,7 @@ CFLAGS += -O2
 CFLAGS += -ggdb
 CFLAGS += -DDEBUG 
 CFLAGS += -Wall
+#CFLAGS += -Werror
 
 FLEX = flex
 AWK = gawk

@@ -229,7 +229,7 @@ main(int argc, char **argv)
       const char* key = argv[i++];
       const char* val = argv[i++];
       int valsize = strlen(val) + 1; /* include null terminator */
-      err = od_set_attr(&oid, key, valsize, (char *)val);
+      err = od_set_attr(&oid, key, valsize, val);
       assert(err == 0);
     }
 

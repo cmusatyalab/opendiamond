@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <string.h>
 #include "lib_log.h"
 
 

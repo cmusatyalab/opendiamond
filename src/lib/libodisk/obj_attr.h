@@ -38,6 +38,7 @@
 #ifndef _OBJ_ATTR_H_
 #define _OBJ_ATTR_H_	1
 
+#include <stdint.h>
 
 /*
  * This is the state associated with the object

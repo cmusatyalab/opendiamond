@@ -190,7 +190,8 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 {
 	obj_data_t	*obj;
 	int		sent;
-	int		vnum;
+	void *		vnum;
+	void *		junk;
 	int		err;
 	int		header_remain=0, header_offset=0;
 	size_t		attr_remain=0, attr_offset=0;
@@ -200,14 +201,12 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->complete_obj_ring, (void **)&obj  , 
-				(void **)&vnum);
+		err = ring_2deq(cstate->complete_obj_ring, &junk, &vnum);
 		/*
 		 * If we don't get a complete object, look for a partial.
 		 */
 		if (err) {
-			err = ring_2deq(cstate->partial_obj_ring, (void **)&obj  , 
-				(void **)&vnum);
+			err = ring_2deq(cstate->partial_obj_ring, &junk, &vnum);
 		}
 
 		/*
@@ -218,6 +217,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 			pthread_mutex_unlock(&cstate->cmutex);
 			return;
 		}
+		obj = (obj_data_t *)junk;
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/*

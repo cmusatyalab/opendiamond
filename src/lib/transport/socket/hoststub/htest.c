@@ -62,8 +62,7 @@ handle_new_obj(void *hcookie, obj_data_t *odata, int vno)
 {
 
 	printf("new_obj!! - vno  %d \n", vno);
-
-
+	return(0);
 }
 
 void

@@ -234,7 +234,6 @@ generate_new_perm(const partial_order_t *po, permutation_t *copy, int fidx, perm
    int i, j;
    int *list1, *list2;
    int list1_num, list2_num;
-   char            buf[BUFSIZ];
    int index;
 
    //printf("generate_new_perm fidx %d\n", fidx);

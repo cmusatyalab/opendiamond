@@ -171,7 +171,7 @@ lookup_node(char *node_name)
 }
 
 
-
+#ifdef	XXX
 static dctl_leaf_t *
 lookup_leaf(char *leaf_name)
 {
@@ -215,6 +215,8 @@ lookup_leaf(char *leaf_name)
 
 	return(leaf);
 }
+
+#endif
 
 
 static void

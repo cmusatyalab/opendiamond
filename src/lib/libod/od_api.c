@@ -306,7 +306,7 @@ od_get_attr(obj_id_t *oid, char *name, int *len, char *buf)
 
 
 int 
-od_set_attr(obj_id_t *oid, char *name, int len, char *buf)
+od_set_attr(obj_id_t *oid, const char *name, int len, const char *buf)
 {
     od_srv_t *          osrv;
     wattr_args_t        wattr;

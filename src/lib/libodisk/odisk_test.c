@@ -46,6 +46,8 @@
 #include <stdint.h>
 #include "lib_od.h"
 #include "lib_odisk.h"
+#include "lib_dctl.h"
+#include "lib_log.h"
 #include "odisk_priv.h"
 
 void

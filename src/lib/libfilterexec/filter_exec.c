@@ -183,19 +183,6 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 
 }
 
-static void
-fexec_wattr_cb(char *name, off_t len)
-{
-    if( active_filter != NULL )
-    	active_filter->fi_added_bytes += len;
-	printf("fexec_wattr_cb end\n");
-}
-
-static void
-fexec_rattr_cb(char *name, off_t len)
-{
-	printf("fexec_rattr_cb end\n");
-}
 
 void
 fexec_system_init()
@@ -225,9 +212,6 @@ fexec_system_init()
     fprintf(stderr, "fexec_system_init: policy = %d\n",
             filter_exec.current_policy);
 //#endif
-
-    //lf_set_read_cb(fexec_rattr_cb);
-    //lf_set_write_cb(fexec_wattr_cb);
 
 
     /*
@@ -845,7 +829,9 @@ tv_diff(struct timeval *end, struct timeval *start)
 double
 fexec_get_load(filter_data_t * fdata)
 {
+#ifdef	XXX
     double          temp;
+#endif
 
     if ((fdata == NULL) || (fdata->fd_avg_wall == 0)) {
         return (1.0);

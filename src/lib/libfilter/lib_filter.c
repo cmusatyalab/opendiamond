@@ -60,7 +60,6 @@
 #include "obj_attr_dump.h"
 #include "filter_exec.h"
 #include "lib_log.h"
-//#include "lib_ocache.h"
 
 static read_attr_cb 	read_attr_fn = NULL;
 static write_attr_cb 	write_attr_fn = NULL;

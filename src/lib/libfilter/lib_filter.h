@@ -378,10 +378,10 @@ int lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...);
  * Debug function used by the runtime, we probably should move it
  * elsewhere.
  */
-typedef void (*read_attr_cb)(char *fhandle, uint64_t obj_id, char *name, off_t len, char *data);
+typedef void (*read_attr_cb)(char *fhandle, uint64_t obj_id, const char *name, off_t len, const char *data);
 int lf_set_read_cb(read_attr_cb);
 
-typedef void (*write_attr_cb)(char *fhandle, uint64_t obj_id, char *name, off_t len, char *data);
+typedef void (*write_attr_cb)(char *fhandle, uint64_t obj_id, const char *name, off_t len, const char *data);
 int lf_set_write_cb(write_attr_cb);
 
 

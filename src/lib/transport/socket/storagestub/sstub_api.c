@@ -228,7 +228,7 @@ sstub_get_partial(void *cookie, obj_data_t **obj)
 
 	cstate_t *	cstate;
 	int		err;
-	int		vnum;
+	void *		vnum;
 
 	cstate = (cstate_t *)cookie;
 
@@ -249,10 +249,11 @@ int
 sstub_flush_objs(void *cookie, int ver_no)
 {
 
-	cstate_t *		cstate;
-	int				err;
+	cstate_t *	cstate;
+	int		err;
 	obj_data_t *	obj;
-	int				vnum;
+	void *		junk;
+	void *		vnum;
 	listener_state_t *lstate;
 
 	cstate = (cstate_t *)cookie;
@@ -265,26 +266,29 @@ sstub_flush_objs(void *cookie, int ver_no)
 	/* XXX log */
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->complete_obj_ring, (void **)&obj, (void **)&vnum);
+		err = ring_2deq(cstate->complete_obj_ring, 
+			(void **)&junk, (void **)&vnum);
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* we got through them all */
 		if (err) {
 			break;
 		}
+		obj = (obj_data_t *)junk;
 		(*lstate->release_obj_cb)(cstate->app_cookie, obj);
 	}
 
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
 		err = ring_2deq(cstate->partial_obj_ring,
-			(void **)&obj, (void **)&vnum);
+			(void **)&junk, (void **)&vnum);
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* we got through them all */
 		if (err) {
 			return(0);
 		}
+		obj = (obj_data_t *)junk;
 		(*lstate->release_obj_cb)(cstate->app_cookie, obj);
 
 	}

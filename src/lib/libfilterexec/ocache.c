@@ -220,7 +220,7 @@ digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args, int bl
 }
 
 int
-sig_cal(void *buf, off_t buflen, unsigned char **signature)
+sig_cal(const void *buf, off_t buflen, unsigned char **signature)
 {
 	EVP_MD_CTX mdctx;
 	const EVP_MD *md;
@@ -543,13 +543,13 @@ if (if_cache_oattr) {
 			memcpy( &tmp2, fsig+8, sizeof(tmp2) );
 			memcpy( &tmp3, cobj->iattr_sig, sizeof(tmp3) );
 			memcpy( &tmp4, cobj->iattr_sig+8, sizeof(tmp4) );
-			sprintf(fname, "%016llX%016llX/%016llX.%016llX%016llX\0", tmp1, tmp2, local_id, tmp3, tmp4);
+			sprintf(fname, "%016llX%016llX/%016llX.%016llX%016llX", tmp1, tmp2, local_id, tmp3, tmp4);
 		} else {
 			fname = (char *)malloc( 16 + 16 + 16 + 2);
 			assert( fsig != NULL);
 			memcpy( &tmp1, fsig, sizeof(tmp1) );
 			memcpy( &tmp2, fsig+8, sizeof(tmp2) );
-			sprintf(fname, "%016llX%016llX/%016llX\0", tmp1, tmp2, local_id);
+			sprintf(fname, "%016llX%016llX/%016llX", tmp1, tmp2, local_id);
 		}
 		*fpath = fname;
 	}
@@ -1180,7 +1180,8 @@ if (if_cache_oattr) {
 }
 
 static void
-ocache_add_iattr(char *fhandle, uint64_t obj_id, const char *name, off_t len, char *data)
+ocache_add_iattr(char *fhandle, uint64_t obj_id, const char *name, off_t len, 
+	const char *data)
 {
 	cache_ring_entry	*new_entry;
 	unsigned char *sig;
@@ -1237,14 +1238,14 @@ if ( (if_cache_oattr) && (oattr_oid == obj_id) && (iattr_buflen >= 0) ) {
 }
 
 static void
-ocache_add_oattr(char *fhandle, uint64_t obj_id, const char *name, off_t len, char *data)
+ocache_add_oattr(char *fhandle, uint64_t obj_id, const char *name, off_t len, 
+	const char *data)
 {
 	cache_ring_entry	*new_entry;
 	oattr_ring_entry	*oattr_entry;
 	unsigned char *sig;
 	unsigned int name_len;
 
-	//printf("ocache_add_oattr %s\n", name);
 if (if_cache_table) {
 	if( ocache_oid == obj_id ) {
 		new_entry = (cache_ring_entry *) malloc( sizeof( *new_entry) );
@@ -1272,7 +1273,7 @@ if (if_cache_table) {
 			printf("ENOMEM\n");
 			return;
 		}
-		sig_cal( data, len, &sig );
+		sig_cal(data, len, &sig);
 		memcpy(new_entry->u.oattr.attr_sig, sig, 16);
 		free( sig );
 		ocache_ring_insert(new_entry);
@@ -1672,7 +1673,7 @@ if( stream_write == 1 ) {
 						assert( tobj->u.iattr_sig != NULL );
 						memcpy( &tmp1, tobj->u.iattr_sig, sizeof(tmp1) );
 						memcpy( &tmp2, tobj->u.iattr_sig+8, sizeof(tmp2) );
-						sprintf(new_attrbuf, "%s.%016llX%016llX\0", attrbuf, tmp1, tmp2);
+						sprintf(new_attrbuf, "%s.%016llX%016llX", attrbuf, tmp1, tmp2);
 						//printf("new_attrbuf %s\n", new_attrbuf);
 					}
 					free(tobj);

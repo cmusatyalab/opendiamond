@@ -48,6 +48,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/file.h>
 #include "lib_od.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
@@ -212,7 +213,6 @@ find_free_record(obj_attr_t *attr, int size)
 	while (1) {
 		//assert(cur_offset <= attr->attr_len);
 		if( cur_offset > attr->attr_len) {
-			printf("cur_offset %d, attr_len %d, rec_len %d\n", cur_offset, attr->attr_len, cur_rec->rec_len);
 			return (NULL);
 		}
 		if (cur_offset == attr->attr_len) {
@@ -223,7 +223,6 @@ find_free_record(obj_attr_t *attr, int size)
 		}
 
 		if( (cur_offset + sizeof(cur_rec)) > attr->attr_len ) {
-			printf("invalid attr, cur_offset is %d, attr_len is %d, sizeof rec is %d\n", cur_offset, attr->attr_len, sizeof(cur_rec) );
 			return(NULL);
 		}
 
@@ -305,7 +304,6 @@ find_record(obj_attr_t *attr, const char *name)
 	while (cur_offset < attr->attr_len) {
 		//assert( (cur_offset + sizeof(cur_rec)) <= attr->attr_len );
 		if( (cur_offset + sizeof(*cur_rec)) > attr->attr_len ) {
-			printf("invalid attr, cur_offset is %d, attr_len is %d, sizeof rec is %d\n", cur_offset, attr->attr_len, sizeof(cur_rec) );
 			return(NULL);
 		}
 		cur_rec = (attr_record_t *)&attr->attr_data[cur_offset];
@@ -532,7 +530,7 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
         struct stat     stats;
         char attrbuf[PATH_MAX];
 	uint64_t tmp1, tmp2, tmp3, tmp4;
-	int err;
+	int err, len;
 
 	if( (fsig == NULL) || (iattrsig == NULL) ) {
 		printf("fsig or iattrsig is NULL\n");
@@ -543,7 +541,10 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
 	memcpy( &tmp3, iattrsig, sizeof(tmp3) );
 	memcpy( &tmp4, iattrsig+8, sizeof(tmp4) );
 
-        sprintf(attrbuf, "%s/%s/%016llX%016llX/%016llX.%016llX%016llX\0", disk_path, CACHE_DIR, tmp1, tmp2, oid, tmp3, tmp4);
+        len = snprintf(attrbuf, MAX_ATTR_NAME,
+		"%s/%s/%016llX%016llX/%016llX.%016llX%016llX", 
+		disk_path, CACHE_DIR, tmp1, tmp2, oid, tmp3, tmp4);
+	assert(len < (MAX_ATTR_NAME - 1));
 
 	err = access(attrbuf, F_OK);
 	if( err != 0 ) {
@@ -556,6 +557,7 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_at
                 printf("failed to open file %s\n", attrbuf);
                 return (EINVAL);
         }
+
 	err = flock(fd, LOCK_EX);
         if (err != 0) {
                 perror("failed to lock attributes file\n");

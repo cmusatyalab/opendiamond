@@ -121,7 +121,7 @@ int od_get_attr(obj_id_t *oid, char *name, int *len, char *buf);
  */
 
 
-int od_set_attr(obj_id_t *oid, char *name, int len, char *buf);
+int od_set_attr(obj_id_t *oid, const char *name, int len, const char *buf);
 
 /*
  * Delete an attribute on an object.

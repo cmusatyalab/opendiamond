@@ -676,7 +676,6 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
         u_int64_t       time_ns;
         u_int64_t       stack_ns;
         struct timeval  wstart;
-        struct timeval  wstop;
         struct timezone tz;
 
 	assert( pr_obj != NULL );
@@ -800,7 +799,6 @@ odisk_flush(odisk_state_t *odisk)
 {
    pr_obj_t *	pobj;
    obj_data_t *	obj;
-   int err;
 
    printf("odisk_flush\n");
 

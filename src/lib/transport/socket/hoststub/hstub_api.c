@@ -903,7 +903,7 @@ device_set_limit(void *handle, int limit)
 
 
 
-int 
+void 
 device_stop_obj(void *handle)
 {
 	sdevice_state_t *       dev = (sdevice_state_t *)handle;
@@ -911,9 +911,10 @@ device_stop_obj(void *handle)
 	pthread_mutex_lock(&dev->con_data.mutex);
 	dev->con_data.flags |= CINFO_BLOCK_OBJ;
 	pthread_mutex_unlock(&dev->con_data.mutex);
+	
 }
 
-int 
+void 
 device_enable_obj(void *handle)
 {
 	sdevice_state_t *       dev = (sdevice_state_t *)handle;

@@ -40,7 +40,7 @@ my $noact;# = 1;
 
 # Temporary file used for conversion purposes
 my $tempext = 'ppm';
-my $tempdir = tempdir("diamond-temp-XXXX", TMPDIR => 1, CLEANUP => 1 );
+my $tempdir = tempdir("diamond-temp-XXXX", TMPDIR => 1, CLEANUP => 0 );
 #my $tempfile = "/tmp/diamond-ppm-$$.$tempext";
 #die "The tempfile ($tempfile) already exists." if (-e $tempfile);
 
@@ -56,6 +56,11 @@ my $machines = @ARGV ? join(' ', @ARGV) : "localhost";
 
 my $count = 0;	# Number of files inserted so far
 
+# used in forking subprocesses
+my $nchild = 0;
+my $maxchild = 5;
+
+
 &process_gidmapfile();
 
 # Two unique, unused gids.
@@ -69,6 +74,10 @@ close GIDMAP;
 
 &process_directory($root);
 
+while(wait() > 0) {
+    print "reaping children...\n";
+}
+rmdir $tempdir || warn("$tempdir not cleaned\n");
 
 
 ########################################
@@ -138,9 +147,30 @@ sub process_directory {
 #    print "$f\n";
     my $foo = $path ? "$path/$_" : $_;
     if (-d $f) { &process_directory($root, $foo); }
-    else { &process_image($foo, $f); }
+    else { fork_process_image($foo, $f); }
   }
   closedir(DIR);
+}
+
+
+sub fork_process_image {
+    my(@args) = @_;
+    my $pid = 0;
+    
+    if($maxchild) {
+	if($nchild >= $maxchild) {
+	    wait();		# ignore errors
+	    $nchild--;
+	}
+	$pid = fork();
+	die("error forking subprocess") if(!defined $pid);
+    }
+    if($pid) {
+	$nchild++;
+    } else {
+	process_image(@args);
+	exit(0) if($maxchild);
+    }
 }
 
 # Takes a string, splits it on non-word characters, then joins
@@ -161,7 +191,7 @@ sub process_image {
   my ($ext) = ($img =~ /\.(\w+)$/);
   $ext = "\L$ext";	# Canonicalize to lower case
   unless ($valid{$ext}) {
-    print "Skipping $img (unknown type)\n";
+    print qid()." Skipping $img (unknown type)\n";
     return;
   }
 
@@ -182,27 +212,26 @@ sub process_image {
 	   'Content-Type', $valid{$ext});
   # display version of command:
   my $exec = "$insert_command " . join(' ', @args);
-  print "$exec\n";
+  print qid()." $exec\n";
 # $retval = system($exec);
 # die "$insert_command failed with return code of $retval: $!" if $retval;
   if(!$noact) {
-      open(PROG, '-|', $insert_command, @args) or die "Unable to execute: $exec\n";
+      open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
       while (<PROG>) {
 	  chomp;
 	  next unless /OID\s*=\s*(.+)/;
 	  $parent_oid = $1;
-	  print "extracted parent oid: $parent_oid\n";
+	  print qid()." extracted parent oid: $parent_oid\n";
       }
       close PROG;
   }
 
-  my($tempfh, $tempfile) = tempfile("loader-XXXXXX", UNLINK => 0, DIR => $tempdir);
+  my($tempfh, $tempfile) = tempfile("loader-$$-XXXXXX", UNLINK => 0, DIR => $tempdir);
   #my $tempfile = "/dev/fd/".fileno($tempfh);
-  close($tempfh);
 
   if(!$noact) {
       $retval = system("convert", $img, '-resize', '400x300', "ppm:$tempfile");
-      die "convert gave a return code of $retval: $!" if $retval;
+      die qid()." convert gave a return code of $retval: $!" if $retval;
   }
 
   @args = ($tempfile, $gid2,
@@ -211,14 +240,19 @@ sub process_image {
 	   'Content-Type', $valid{$tempext},
 	   'Parent-OID', $parent_oid);
   $exec = "$insert_command " . join(' ', @args);
-  print "$exec\n";
+  print qid()." $exec\n";
   if(!$noact) {
-      $retval = system($insert_command, @args);
-      die "$insert_command failed with return code of $retval: $!" if $retval;
+      open(PROG, '-|', $insert_command, @args) or die qid()." Unable to execute: $exec\n";
+      while (<PROG>) {
+      }
+      close(PROG);
+      #$retval = system($insert_command, @args);
+      #die qid()." $insert_command failed with return code of $retval: $!" if $retval;
   }
 
-  print "---\n";
-  unlink $tempfile or die "Unable to delete $tempfile";
+  print qid()." ---\n";
+  unlink $tempfile or die qid()." Unable to delete $tempfile";
+  close($tempfh);
 }
 
 #  print $count++, ": Insert $img with gid=$gid1 (TODO)\n";
@@ -228,3 +262,8 @@ sub process_image {
 #  print "Insert $tempfile with gid=$gid2 (TODO)\n";
 #  print "Attr: Content-Type => ", $valid{$tempext}, "\n";
 #  print "Attr: Parent-oid => (whatever returned above) (TODO)\n";
+
+my $qseq = 1;
+sub qid {
+    return sprintf("%d:%03d ", $$, $qseq++);
+}

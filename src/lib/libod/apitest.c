@@ -87,7 +87,7 @@ uint64_t parse_uint64_string(const char* s) {
   */
 
   assert(s);
-  fprintf(stderr, "parse_uint64_string s = %s\n", s);
+  //fprintf(stderr, "parse_uint64_string s = %s\n", s);
   for (i=0; i<8; i++) {
     o = 3*i;
     assert(isxdigit(s[o]) && isxdigit(s[o+1]));
@@ -166,7 +166,7 @@ main(int argc, char **argv)
     }
     file = argv[1];
     gid = parse_gid_string(argv[2]);
-    printf("parsed gid as 0x%llx\n", gid);
+    //printf("parsed gid as 0x%llx\n", gid);
 
     err = od_init();
     assert(err == 0);

@@ -54,7 +54,8 @@ ls_init_search()
 	/*
 	 * Initialize the logging on the local host.
 	 */
-	dctl_init();
+	err = dctl_init();
+	assert(err == 0);
 
 	err = dctl_register_node(ROOT_PATH, HOST_PATH);
 	assert(err == 0);

@@ -220,7 +220,7 @@ bg_main(void *arg)
 					cur_dev = cur_dev->next;
 				}
 
-				if (any == 0) {
+				if ((any == 0) && (sc->cur_status == SS_ACTIVE)) {
 					sc->cur_status = SS_DONE;
 				} 
 			}

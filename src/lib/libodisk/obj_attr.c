@@ -66,7 +66,6 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 
 	}
 
-
 	close(attr_fd);
 	return(0);
 }

@@ -56,6 +56,24 @@ ring_empty(ring_data_t *ring)
 }
 
 int
+ring_full(ring_data_t *ring)
+{
+	int	new_head;
+	assert(ring->type == RING_TYPE_SINGLE);
+
+	new_head = ring->head + 1;
+	if (new_head >= ring->size) {
+		new_head = 0;
+	}
+
+	if (new_head == ring->tail) {
+		return (1);
+	} else {
+		return(0);
+	}
+}
+
+int
 ring_count(ring_data_t *ring)
 {
 	int	diff;

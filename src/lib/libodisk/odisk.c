@@ -20,6 +20,7 @@
 #include "odisk_priv.h"
 #include "attr.h"
 #include "rtimer.h"
+#include "ring.h"
 
 #define	MAX_FNAME	128
 
@@ -33,7 +34,7 @@ static void update_gid_idx(odisk_state_t *odisk, char *name, groupid_t *gid);
 #define MAX_GID_FILTER  64
 
 int
-odisk_load_obj(obj_data_t  **obj_handle, char *name)
+old_odisk_load_obj(obj_data_t  **obj_handle, char *name)
 {
 	obj_data_t *	new_obj;
 	struct stat	stats;
@@ -123,6 +124,95 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	return(0);
 }
 
+int
+odisk_load_obj(obj_data_t  **obj_handle, char *name)
+{
+	obj_data_t *	new_obj;
+	struct stat	stats;
+	int	 	os_file;
+	char *		data;
+	int		err;
+	size_t		size;
+	uint64_t	local_id;
+	char *		ptr;
+    	char        	attr_name[MAX_ATTR_NAME];
+	
+
+
+
+	/* XXX printf("load_obj: <%s> \n", name); */
+
+	if (strlen(name) >= MAX_FNAME) {
+		/* XXX log error */
+		return (EINVAL);
+	}
+
+	new_obj = malloc(sizeof(*new_obj));
+	if (new_obj == NULL) {
+		/* XXX log error */
+		return (ENOMEM);
+	}
+
+	/* open the file */
+	os_file  = open(name, O_RDONLY);
+	if (os_file == -1) {
+		free(new_obj);
+		return (ENOENT);
+	}
+
+	err = fstat(os_file, &stats);
+	if (err != 0) {
+		free(new_obj);
+		return(ENOENT);
+	}
+
+
+	data = (char *)malloc(stats.st_size);
+	if (data == NULL) {
+		close(os_file);
+		free(new_obj);
+		return (ENOENT);
+
+	}
+
+    	if (stats.st_size > 0) {
+	    size = read(os_file, data, stats.st_size);
+	    if (size != stats.st_size) {
+		    /* XXX log error */
+		    printf("odisk_load_obj: failed to reading data \n");
+		    free(data);
+		    close(os_file);
+		    free(new_obj);
+		    return (ENOENT);
+	    }
+    	}	 
+	new_obj->data = data;
+	new_obj->data_len = stats.st_size;
+
+	ptr = rindex(name, '/');
+	if (ptr == NULL) {
+		ptr = name;
+	} else {
+		ptr++;
+	}
+	sscanf(ptr, "OBJ%016llX", &local_id);
+	new_obj->local_id = local_id;
+
+    	/*
+     	 * Load the attributes, if any.
+     	 */
+    	/* XXX overflow */
+    	sprintf(attr_name, "%s%s", name, ATTR_EXT);
+
+    	obj_read_attr_file(attr_name , &new_obj->attr_info);
+
+	
+	*obj_handle = (obj_data_t *)new_obj;
+
+	close(os_file);
+
+	return(0);
+}
 
 int
 odisk_get_obj_cnt(odisk_state_t *odisk)
@@ -132,8 +222,6 @@ odisk_get_obj_cnt(odisk_state_t *odisk)
 	FILE *	new_file;
 	gid_idx_ent_t		gid_ent;
 	int	i;
-
-	
 
 	for (i=0; i < odisk->num_gids; i++) {
 		sprintf(idx_file, "%s/%s%016llX", odisk->odisk_path, GID_IDX, 
@@ -382,8 +470,8 @@ odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
 int
 odisk_write_obj(odisk_state_t *odisk, obj_data_t *obj, int len,
                 int offset, char *data)
-{
-    int     total_len;
+{ 
+	int     total_len;
     char *  dbuf;
 
     total_len = offset + len;
@@ -429,15 +517,16 @@ odisk_read_obj(odisk_state_t *odisk, obj_data_t *obj, int *len,
 }
 
 /* XXX shared state */
-int		search_active = 0;
-int		search_done = 0;
-int		bg_wait_q = 0;
-int		fg_wait = 0;
-obj_data_t	*obj_q = NULL;
-pthread_mutex_t	shared_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t	fg_data_cv = PTHREAD_COND_INITIALIZER;
-pthread_cond_t	bg_active_cv = PTHREAD_COND_INITIALIZER;
-pthread_cond_t	bg_queue_cv = PTHREAD_COND_INITIALIZER;
+static int		search_active = 0;
+static int		search_done = 0;
+static int		bg_wait_q = 0;
+static int		fg_wait = 0;
+static ring_data_t *	obj_ring;
+static pthread_mutex_t	shared_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t	fg_data_cv = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t	bg_active_cv = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t	bg_queue_cv = PTHREAD_COND_INITIALIZER;
+#define	OBJ_RING_SIZE	64	
 
 
 int
@@ -490,7 +579,6 @@ again:
 	} else {
 		return(ENOENT);
 	}
-
 }
 
 
@@ -530,12 +618,12 @@ odisk_main(void *arg)
 				fg_wait = 0;
 				pthread_cond_signal(&fg_data_cv);
 			}
-			if (obj_q == NULL) {
-				obj_q = nobj;
+			if (!ring_full(obj_ring)) {
+				ring_enq(obj_ring, nobj);
 			} else {
 				bg_wait_q  = 1;
 				pthread_cond_wait(&bg_queue_cv, &shared_mutex);
-				obj_q = nobj;
+				ring_enq(obj_ring, nobj);
 				if (fg_wait) {
 					fg_wait = 0;
 					pthread_cond_signal(&fg_data_cv);
@@ -557,9 +645,9 @@ odisk_next_obj(obj_data_t **new_object, odisk_state_t *odisk)
 			return(ENOENT);
 		}
 
-		if (obj_q != NULL) {
-			*new_object = obj_q;
-			obj_q = NULL;
+		
+		if (!ring_empty(obj_ring)) {
+			*new_object =  ring_deq(obj_ring);	
 			if (bg_wait_q) {
 				bg_wait_q = 0;
 				pthread_cond_signal(&bg_queue_cv);
@@ -585,6 +673,8 @@ odisk_init(odisk_state_t **odisk, char *dir_path, void *dctl_cookie,
 		/* XXX log */
 		return(EINVAL);
 	}
+
+	ring_init(&obj_ring, OBJ_RING_SIZE);
 
 	new_state = (odisk_state_t *)malloc(sizeof(*new_state));
 	if (new_state == NULL) {

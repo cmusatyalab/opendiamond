@@ -34,20 +34,22 @@ typedef	struct ring_data {
  * These are the function prototypes that are used for
  * single entries.
  */
-extern int	ring_init(ring_data_t **ring, int num_elem);
-extern int	ring_empty(ring_data_t *ring);
-extern int	ring_enq(ring_data_t *ring, void *data);
-extern int	ring_count(ring_data_t *ring);
-extern void *	ring_deq(ring_data_t *ring);
+int	ring_init(ring_data_t **ring, int num_elem);
+int	ring_empty(ring_data_t *ring);
+int	ring_full(ring_data_t *ring);
+int	ring_enq(ring_data_t *ring, void *data);
+int	ring_count(ring_data_t *ring);
+void *	ring_deq(ring_data_t *ring);
 
 /*
  * These are the function prototypes for the double entry functions.
  */
-extern int	ring_2init(ring_data_t **ring, int num_elem);
-extern int	ring_2empty(ring_data_t *ring);
-extern int	ring_2enq(ring_data_t *ring, void *data1, void *data2);
-extern int	ring_2count(ring_data_t *ring);
-extern int 	ring_2deq(ring_data_t *ring, void **data1, void **data2);
+int	ring_2init(ring_data_t **ring, int num_elem);
+int	ring_2empty(ring_data_t *ring);
+int	ring_2full(ring_data_t *ring);
+int	ring_2enq(ring_data_t *ring, void *data1, void *data2);
+int	ring_2count(ring_data_t *ring);
+int 	ring_2deq(ring_data_t *ring, void **data1, void **data2);
 
 #ifdef __cplusplus
 }

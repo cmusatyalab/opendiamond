@@ -63,10 +63,10 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 			perror("failed to read all data \n");
 			exit(1);
 		}
-
 	}
 
-	close(attr_fd); return(0);
+	close(attr_fd);
+	return(0);
 }
 
 
@@ -78,8 +78,8 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 	off_t		wsize;
 	size_t		len;
 	char 	*	buf;
-	void *cookie;
-	int err;
+	int			err;
+	void *		cookie;
 
 	/* clear the umask so we get the permissions we want */
 	/* XXX do we really want to do this ??? */
@@ -103,7 +103,6 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 			exit(1);
 		}	
 		err = obj_get_attr_next(attr, &buf, &len, &cookie, 0);
-
 	}
 
 	close(attr_fd);
@@ -374,9 +373,7 @@ obj_del_attr(obj_attr_t *attr, const char * name)
 		return (ENOENT);
 	}
 
-
 	free_record(attr, record);
-
 	return(0);
 }
 
@@ -392,6 +389,7 @@ obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
 again:
 	/* see if we have gone through all the attributes */
 	if (offset >= attr->attr_len) {
+		printf("first: no data \n");
 		return(ENOENT);
 	}
 
@@ -445,7 +443,6 @@ again:
 	}
 
 	/* XXX see if we should toss this */
-
 	*len = record->name_len + record->data_len + sizeof(struct attr_record);
 	*buf = (void *)record;
 
@@ -453,5 +450,3 @@ again:
 
 	return(0);
 }
-
-

@@ -68,6 +68,9 @@ int odisk_reset(struct odisk_state *odisk);
 
 int odisk_num_waiting(struct odisk_state *odisk);
 
+int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
+
+
 
 #ifdef	__cplusplus
 }

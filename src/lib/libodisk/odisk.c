@@ -26,6 +26,7 @@
 
 /* forward declarations */
 static void update_gid_idx(odisk_state_t *odisk, char *name, groupid_t *gid);
+static void delete_object_gids(odisk_state_t *odisk, obj_data_t *obj);
 
 /*
  * These are the set of group ID's we are using to 
@@ -108,13 +109,13 @@ old_odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	sscanf(ptr, "OBJ%016llX", &local_id);
 	new_obj->local_id = local_id;
 
-    	/*
-     	 * Load the attributes, if any.
-     	 */
-    	/* XXX overflow */
-    	sprintf(attr_name, "%s%s", name, ATTR_EXT);
+	/*
+ 	 * Load the attributes, if any.
+ 	 */
+	/* XXX overlow */
+	sprintf(attr_name, "%s%s", name, ATTR_EXT);
 
-    	obj_read_attr_file(attr_name , &new_obj->attr_info);
+	obj_read_attr_file(attr_name , &new_obj->attr_info);
 
 	
 	*obj_handle = (obj_data_t *)new_obj;
@@ -137,11 +138,6 @@ odisk_load_obj(obj_data_t  **obj_handle, char *name)
 	char *		ptr;
     	char        	attr_name[MAX_ATTR_NAME];
 	
-
-
-
-	/* XXX printf("load_obj: <%s> \n", name); */
-
 	if (strlen(name) >= MAX_FNAME) {
 		/* XXX log error */
 		return (EINVAL);
@@ -276,6 +272,20 @@ odisk_save_obj(odisk_state_t *odisk, obj_data_t *obj)
 	return(0);
 }
 
+int
+odisk_delete_obj(odisk_state_t *odisk, obj_data_t *obj)
+{
+    char        buf[MAX_FNAME];
+
+	delete_object_gids(odisk, obj);
+
+    sprintf(buf, "%s/OBJ%016llX", odisk->odisk_path, obj->local_id);
+	unlink(buf);		
+	return(0);
+}
+
+
+
 
 int
 odisk_get_obj(odisk_state_t *odisk, obj_data_t **obj, obj_id_t *oid)
@@ -404,12 +414,9 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
     local_id = rand();
 
     while (1) {
-
 		/* XXX fix */
         sprintf(buf, "%s/OBJ%016llX", odisk->odisk_path, local_id);
-
         fd = open(buf, O_CREAT|O_EXCL, 0777); 
-
         if (fd == -1) {
             local_id = rand();
         } else {
@@ -419,7 +426,6 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
 
     oid->local_id = local_id;
     close(fd);
-
 
     odisk_get_obj(odisk, &obj, oid);
     odisk_add_gid(odisk, obj, gid);
@@ -433,6 +439,7 @@ odisk_new_obj(odisk_state_t *odisk, obj_id_t*  oid, groupid_t *gid)
 
     return(0);
 }
+
 
 int
 odisk_clear_gids(odisk_state_t *odisk)
@@ -786,6 +793,67 @@ update_gid_idx(odisk_state_t *odisk, char *name, groupid_t *gid)
 }
 
 static void
+remove_gid_from_idx(odisk_state_t *odisk, char *name, groupid_t *gid)
+{
+	char	new_name[256];
+	char	old_name[256];
+	FILE *	old_file;
+	FILE *	new_file;
+	int	num;
+	gid_idx_ent_t	rem_gid_idx;
+	gid_idx_ent_t	cur_gididx;
+	int				err;
+
+	sprintf(old_name, "%s/%s%016llX.old", odisk->odisk_path, GID_IDX, *gid);
+	sprintf(new_name, "%s/%s%016llX", odisk->odisk_path, GID_IDX, *gid);
+
+
+	/* rename the old index file */
+	err = rename(new_name, old_name);
+	if (err) {
+		perror("Failed renaming index file:");
+		return;
+	}
+	
+
+	old_file = fopen(old_name, "r");
+	if (old_file == NULL) {
+		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n", 
+			old_name);
+		return;
+	}
+
+	new_file = fopen(new_name, "w+");
+	if (new_file == NULL) {
+		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n", 
+			new_name);
+		return;
+	}
+
+	err = unlink(old_name);
+	if (err) {
+		perror("removing old file ");	
+		/* XXX what to do .... */
+	}
+
+	memset(&rem_gid_idx, 0, sizeof(rem_gid_idx));
+	sprintf(rem_gid_idx.gid_name, "%s", name);
+
+	while (fread(&cur_gididx, sizeof(cur_gididx), 1, old_file) == 1) {
+		if (memcmp(&cur_gididx, &rem_gid_idx, sizeof(cur_gididx)) == 0) {
+			continue;
+		}
+		num = fwrite(&cur_gididx, sizeof(cur_gididx), 1, new_file);
+		if (num != 1) {
+			perror("Failed writing odisk index: ");
+		}
+	}
+
+	fclose(old_file);
+	fclose(new_file);
+}
+
+static void
 update_object_gids(odisk_state_t *odisk, obj_data_t *obj, char *name)
 {
     gid_list_t* glist;
@@ -812,6 +880,38 @@ update_object_gids(odisk_state_t *odisk, obj_data_t *obj, char *name)
 
     free(glist);
 }
+
+static void
+delete_object_gids(odisk_state_t *odisk, obj_data_t *obj)
+{
+    gid_list_t* glist;
+    off_t       len; 
+    int         i, err;
+	char		buf[MAX_FNAME];
+
+    sprintf(buf, "OBJ%016llX", obj->local_id);
+
+    len = 0;
+    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
+    if (err != ENOMEM) {
+	/* XXX log ?? */
+        return;
+    }
+
+    glist = (gid_list_t *)malloc(len);
+    err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *)glist);
+    assert(err == 0);
+
+    for (i=0; i < glist->num_gids; i++) {
+		if (glist->gids[i] == 0) {
+			continue;
+		}
+		remove_gid_from_idx(odisk, buf, &glist->gids[i]);
+    }
+
+    free(glist);
+}
+
 
 
 /*

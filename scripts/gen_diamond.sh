@@ -22,8 +22,12 @@ cp -r ../src /tmp/"$RELEASE_NAME"/
 # remove the CVS directories
 find /tmp/"$RELEASE_NAME" -name CVS -exec rm -rf {} \;
 
-# generate the tar file
+# remove diretories we don't want to ship
+rm -rf /tmp/"$RELEASE_NAME"/tools/filter_sim 
+rm -rf /tmp/"$RELEASE_NAME"/tools/fiord 
 
+
+# generate the tar file
 pushd /tmp
 tar -cf /tmp/"$RELEASE_NAME".tar "$RELEASE_NAME"
 

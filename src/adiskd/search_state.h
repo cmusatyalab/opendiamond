@@ -3,7 +3,7 @@
 
 
 /* some of the default constants for packet processing */
-#define	SSTATE_DEFAULT_OBJ_THRESH	50
+#define	SSTATE_DEFAULT_OBJ_THRESH	150
 #define	SSTATE_DEFAULT_BP_THRESH	10
 
 
@@ -16,7 +16,7 @@ enum split_types_t {
 #define	SPLIT_DEFAULT_TYPE		(SPLIT_TYPE_DYNAMIC)
 #define	SPLIT_DEFAULT_RATIO		(0)
 #define	SPLIT_DEFAULT_AUTO_STEP		5
-#define	SPLIT_DEFAULT_PEND_LOW		5
+#define	SPLIT_DEFAULT_PEND_LOW		2
 #define	SPLIT_DEFAULT_PEND_HIGH		10
 
 #define DEV_FLAG_RUNNING                0x01

@@ -407,14 +407,11 @@ dynamic_update_bypass(search_state_t *sstate)
 static void
 dynamic_update_bypass(search_state_t *sstate) 
 {
-	printf("update_bypass: pend %2d old_ratio %02d ", sstate->pend_objs, 
-					sstate->split_ratio);
-
 
 	sstate->split_ratio = (sstate->pend_objs * sstate->split_pend_low)/100;
 
 	if (sstate->split_ratio < 5) sstate->split_ratio = 5;
-	if (sstate->split_ratio > 95) sstate->split_ratio = 95;
+	if (sstate->split_ratio > 100) sstate->split_ratio = 100;
 
 	printf("new_ratio %2d \n", sstate->split_ratio);
 

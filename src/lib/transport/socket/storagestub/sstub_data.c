@@ -263,7 +263,6 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		} else {
 			attr_remain = cstate->attr_remain;
 		}
-
 		data_offset = 0;
 		data_remain = obj->data_len;
 		
@@ -290,7 +289,6 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 	} else if (cstate->data_tx_state == DATA_TX_ATTR) {
 		obj = cstate->data_tx_obj;
-
 		header_offset = 0;
 		header_remain = 0;
 		attr_offset = cstate->data_tx_offset;
@@ -355,11 +353,11 @@ more_attrs:
 			if (errno == EAGAIN) {
 				cstate->data_tx_state = DATA_TX_ATTR;
 				cstate->data_tx_offset = attr_offset;
+				cstate->attr_remain = attr_remain;
 				return;
 			} else {
 				/* XXX what errors should we handles ?? */
 				perror("send attr ");
-				printf("XXX error while sending attr\n");
 				exit(1);
 			}
 
@@ -403,7 +401,6 @@ more_attrs:
 			} else {
 				/* XXX what errors should we handles ?? */
 				perror("send data ");
-			       	printf("XXX error while sending data\n");
 				exit(1);
 			}
 

@@ -4,6 +4,7 @@
  */
 #include <pthread.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -31,30 +32,6 @@
  */
 static	int do_fork = 1;
 
-
-
-typedef enum {
-	DEV_STOP,
-	DEV_TERM,
-	DEV_START,
-	DEV_SEARCHLET
-} dev_op_type_t;
-
-
-typedef struct {
-	char *filter;
-	char *spec;
-} dev_slet_data_t;
-
-
-typedef struct {
-	dev_op_type_t	cmd;
-	int		id;
-	union {
-		dev_slet_data_t	sdata;
-	} extra_data;
-
-} dev_cmd_data_t;
 
 
 /* set a socket to non-blocking */
@@ -114,7 +91,10 @@ shutdown_connection(listener_state_t *lstate, cstate_t *cstate)
 
 	/* clear the established flag */
 	cstate->flags &= ~CSTATE_ESTABLISHED;
+	cstate->flags &= ~CSTATE_ALLOCATED;
 
+	/* XXX do we need this ?? */
+	cstate->flags &= ~CSTATE_SHUTTING_DOWN;
 
 	/* XXX we need to clean up other state such as
 	 * queued data ....
@@ -446,6 +426,8 @@ sstub_listen(void *cookie, int fork)
 	struct timeval now;
 	int	err;
 	int	max_fd = 0; 
+	int	wait_status;
+	pid_t	wait_pid;
 
 	/* update the global state about forking */
 	do_fork = fork;
@@ -510,6 +492,20 @@ sstub_listen(void *cookie, int fork)
 				accept_log_conn(list_state);			
 			}
 		}
+
+
+		/*
+		 * We need to do a periodic wait. To get rid
+		 * of all the zombies.  The posix spec appears to
+		 * be fuzzy on the behavior of setting sigchild
+		 * to ignore, so we will do a periodic nonblocking
+		 * wait to clean up the zombies.
+		 */
+		wait_pid = waitpid(-1, &wait_status, WNOHANG|WUNTRACED);
+		if (wait_pid  > 0) {
+			/* XXX nothing to do ?? */
+		}
+		
 	}
 }
 

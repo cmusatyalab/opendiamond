@@ -45,12 +45,13 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 		 * if not, then return.
 		 */
 
+		pthread_mutex_lock(&cstate->cmutex);
 		if (cstate->log_tx_buf == NULL) {
-			pthread_mutex_lock(&cstate->cmutex);
 			cstate->flags &= ~CSTATE_LOG_DATA;
 			pthread_mutex_unlock(&cstate->cmutex);
 			return;
 		}
+		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* setup the header and the offsets */
 		cstate->log_tx_header.log_magic = htonl(LOG_MAGIC_HEADER);

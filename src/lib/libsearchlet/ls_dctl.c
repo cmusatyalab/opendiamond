@@ -63,7 +63,7 @@
 #include "lib_search_priv.h"
 #include "filter_exec.h"
 #include "dctl.h"
-#include "rstat.h"
+#include "lib_tools.h"
 
 /* linux specific flag */
 #ifndef MSG_NOSIGNAL

@@ -65,7 +65,7 @@
 #include "log_impl.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
-#include "rstat.h"
+#include "lib_tools.h"
 
 #define	LOG_RING_SIZE	512
 

@@ -467,9 +467,10 @@ fexec_estimate_cost(filter_data_t * fdata, permutation_t * perm, int gen,
              * not enough data 
              */
             if (fprob->num_exec < SIGNIFICANT_NUMBER(gen)) {
-                return 1;
-            }
-            p = (double) fprob->num_pass / fprob->num_exec;
+               	p = 1.0;
+            } else {
+            	p = (double) fprob->num_pass / fprob->num_exec;
+			}
 #if 0
             printf("\t(np=%d, ne=%d)", fprob->num_pass, fprob->num_exec);
             printf("\t(cond p=%f)\n", p);

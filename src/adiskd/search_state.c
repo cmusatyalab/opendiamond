@@ -310,10 +310,11 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			 */
 			sstate->flags &= ~DEV_FLAG_RUNNING;
 
-			ceval_stop(sstate->fdata);
 
 			err = odisk_flush(sstate->ostate);
 			assert( err==0 );
+
+			ceval_stop(sstate->fdata);
 			/*
 			 * clean up the filter exec state 
 			 */

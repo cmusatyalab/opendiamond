@@ -746,7 +746,7 @@ best_first_step(bf_state_t *bf) {
 	}
 	printf("heap inserting: %s (size=%d)\n", 
 	       pmPrint(bf->next_seq, buf, BUFSIZ), heap_size(bf->pq));
-	score /= pmLength(bf->next_seq); /* XXX average cost */
+	//score /= pmLength(bf->next_seq); /* XXX average cost */
 	heap_insert(bf->pq, score, pmDup(bf->next_seq));
       }
       bf->j++;

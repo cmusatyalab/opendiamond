@@ -1,6 +1,7 @@
-#ifndef	_LIB_ODISK_H
+#ifndef	_LIB_ODISK_H_
 #define	_LIB_ODISK_H_ 	1
 
+#include "obj_attr.h"
 
 typedef struct {
 	void *		iter_cookie;

@@ -53,6 +53,7 @@ typedef struct attr_record {
 #define OBJ_PATH        "_path.cstring"
 #define FLTRTIME        "_FIL_TIME.time"
 #define FLTRTIME_FN     "_FIL_TIME_%s.time"
+#define PERMEABILITY_FN "_FIL_STAT_%s_permeability.float"
 
 
 /*

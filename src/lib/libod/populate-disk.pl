@@ -31,12 +31,15 @@ options:
       gid1 is used for the search images, gid2 for the parent images
 -h    - this help text
 -p    - insert parent images also
+-nc   - dont run convert
+-n    - dont process files
 EOT
 }
 
 1;
 
 my $no_exec;
+my $no_convert;
 
 while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     if(/^-g(.*)/) {
@@ -49,7 +52,10 @@ while(@ARGV && ($_ = $ARGV[0]) =~ /^-/) {
     if(/^-p/) {
 	die $insert_parent = 1;
     }
-    if(/^-n/) {
+    if(/^/-nc$/) {
+	$no_convert = 1;
+    }
+    if(/^-n$/) {
 	$no_exec = 1;
     }
     shift @ARGV;
@@ -291,15 +297,17 @@ sub process_image {
   my($tempfh, $tempfile) = tempfile("loader-$$-XXXXXX", UNLINK => 0, DIR => $tempdir);
   #my $tempfile = "/dev/fd/".fileno($tempfh);
 
-  if(!$noact) {
+  my($ppmfile) = $img;
+  if(!$noact && !$no_convert) {
       $retval = system("convert", $img, '-resize', '400x300', "ppm:$tempfile");
       if($retval) {
 	  warn qid()." convert gave a return code of $retval: $!";
 	  exit(1);
       }
+      $ppmfile = $tempfile;
   }
 
-  @args = ($tempfile, $gids[0],
+  @args = ($ppmfile, $gids[0],
 	   'Display-Name', $dispname,
 	   'Keywords', $keywords,
 	   'Content-Type', $valid{$tempext},

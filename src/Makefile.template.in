@@ -1,3 +1,9 @@
+CFLAGS += -g -p -O2
+CFLAGS += -DDEBUG 
+CFLAGS += -Wall
+FLEX = flex
+
+
 MKDIR = mkdir
 
 

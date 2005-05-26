@@ -85,15 +85,15 @@ extern          "C" {
     extern pthread_attr_t *pattr_default;
 #define PATTR_DEFAULT pattr_default
 
-    extern void     rt_init(rtimer_t * rt);
-    extern void     rt_start(rtimer_t * rt);
-    extern void     rt_stop(rtimer_t * rt);
-    extern rtime_t  rt_nanos(rtimer_t * rt);
+    void     rt_init(rtimer_t * rt);
+    void     rt_start(rtimer_t * rt);
+    void     rt_stop(rtimer_t * rt);
+    rtime_t  rt_nanos(rtimer_t * rt);
 
-    extern double   rt_time2secs(rtime_t t);
+    double   rt_time2secs(rtime_t t);
 
 #ifdef __cplusplus
 }
 #endif
-// #include "rtimer_common.h"
+
 #endif                          /* _RTIMER_H_ */

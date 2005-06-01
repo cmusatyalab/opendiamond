@@ -515,8 +515,8 @@ main(int argc, char **argv)
 		fd = socket(PF_UNIX, SOCK_STREAM, 0);
 
 		/* bind the socket to a path name */
-    	get_user_name(user_name);
-    	sprintf(sa.sun_path, "%s.%s", SOCKET_DCTL_NAME, user_name);
+		get_user_name(user_name);
+		sprintf(sa.sun_path, "%s.%s", SOCKET_DCTL_NAME, user_name);
 
 
 		sa.sun_family = AF_UNIX;

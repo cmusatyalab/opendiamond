@@ -109,8 +109,9 @@ extern "C"
 
 	typedef struct {
 		attr_record_t*	arec;
-		obj_data_t *	obj;	
-	} cache_attr_t;
+		obj_data_t *	obj;
+	}
+	cache_attr_t;
 
 	typedef struct {
 		int				type;
@@ -120,7 +121,8 @@ extern "C"
 			cache_attr_t		oattr;		/*add output attr*/
 			char			iattr_sig[16];
 		} u;
-	} oattr_ring_entry;
+	}
+	oattr_ring_entry;
 
 	int digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args, int blob_len, void *blob, unsigned char ** signature);
 	int cache_lookup0(uint64_t local_id, cache_attr_set * change_attr, obj_attr_t *init_attr);

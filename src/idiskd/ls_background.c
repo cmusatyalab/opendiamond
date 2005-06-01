@@ -107,8 +107,8 @@ update_rates(search_state_t *sc)
 static void
 thread_setup(search_state_t * sc)
 {
-        log_thread_register(sc->log_cookie);
-        dctl_thread_register(sc->dctl_cookie);
+	log_thread_register(sc->log_cookie);
+	dctl_thread_register(sc->dctl_cookie);
 }
 
 void
@@ -132,9 +132,10 @@ update_dev_stats(search_state_t *sc)
 		assert(err == 0);
 
 		remain = dstats->ds_objs_total - dstats->ds_objs_processed;
-		if (remain < 0) remain = 0;
+		if (remain < 0)
+			remain = 0;
 		if (remain == 0) {
-			 continue;
+			continue;
 		}
 		cur_dev->obj_total = dstats->ds_objs_total;
 		cur_dev->remain_old = cur_dev->remain_mid;
@@ -169,13 +170,13 @@ update_total_rate(search_state_t *sc)
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->delta = ((float)cur_dev->done)/
-			(float)min_done;
+		                 (float)min_done;
 		if (cur_dev->delta < 0.0) {
 			cur_dev->delta = 0.0;
 		}
 		if (cur_dev->delta > max_delta) {
 			max_delta = cur_dev->delta;
-		} 
+		}
 	}
 
 	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
@@ -218,25 +219,25 @@ update_delta_rate(search_state_t *sc)
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->delta = ((float)(cur_dev->done - min_done))/
-			(float)min_done;
+		                 (float)min_done;
 		if (cur_dev->delta < 0.0) {
 			cur_dev->delta = 0.0;
 		}
 		if (cur_dev->delta > max_delta) {
 			max_delta = cur_dev->delta;
-		} 
+		}
 	}
 
 	if (max_delta == 0) {
 		max_delta = 1.0;
-	}	
+	}
 
 	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
 
 	/* now adjust all the values */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		target = (int)(cur_dev->delta * scale);
-		if (target > MAX_CREDIT_INCR) { 
+		if (target > MAX_CREDIT_INCR) {
 			target = MAX_CREDIT_INCR;
 		} else if (target < 1) {
 			target = 1;
@@ -255,7 +256,7 @@ update_rail(search_state_t *sc)
 	device_handle_t	*	cur_dev;
 	int			max_done = 0;
 	int			target;
-	
+
 	//printf("update rates: rail \n");
 	update_dev_stats(sc);
 
@@ -294,7 +295,7 @@ update_rates(search_state_t *sc)
 		case	CREDIT_POLICY_PROP_TOTAL:
 			update_total_rate(sc);
 			break;
-			
+
 		case	CREDIT_POLICY_PROP_DELTA:
 			update_delta_rate(sc);
 			break;
@@ -311,7 +312,7 @@ refill_credits(search_state_t *sc)
 {
 	device_handle_t *	cur_dev;
 
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next){
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->cur_credits += (float)cur_dev->credit_incr;
 		if (cur_dev->cur_credits > (float)MAX_CUR_CREDIT) {
 			cur_dev->cur_credits = (float)MAX_CUR_CREDIT;
@@ -450,8 +451,8 @@ bg_main(void *arg)
 		 * This code processes the objects that have not yet
 		 * been fully processed.
 		 */
-        if ((sc->bg_status & BG_STARTED)  &&
-            (ring_count(sc->proc_ring) < sc->pend_lw)) {
+		if ((sc->bg_status & BG_STARTED)  &&
+		    (ring_count(sc->proc_ring) < sc->pend_lw)) {
 			obj_info = get_next_object(sc);
 			if (obj_info != NULL) {
 				sleep = 0;

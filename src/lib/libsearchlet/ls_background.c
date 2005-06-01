@@ -56,14 +56,16 @@ typedef enum {
 } bg_op_type_t;
 
 /* XXX huge hack */
-typedef struct {
+typedef struct
+{
 	bg_op_type_t	cmd;
 	bg_op_type_t	ver_id;
 	char *			filter_name;
 	char *			spec_name;
 	void *			blob;
 	int				blob_len;
-} bg_cmd_data_t;
+}
+bg_cmd_data_t;
 
 
 
@@ -103,8 +105,8 @@ update_rates(search_context_t *sc)
 static void
 thread_setup(search_context_t * sc)
 {
-        log_thread_register(sc->log_cookie);
-        dctl_thread_register(sc->dctl_cookie);
+	log_thread_register(sc->log_cookie);
+	dctl_thread_register(sc->dctl_cookie);
 }
 
 void
@@ -127,9 +129,10 @@ update_dev_stats(search_context_t *sc)
 		assert(err == 0);
 
 		remain = dstats->ds_objs_total - dstats->ds_objs_processed;
-		if (remain < 0) remain = 0;
+		if (remain < 0)
+			remain = 0;
 		if (remain == 0) {
-			 continue;
+			continue;
 		}
 		cur_dev->obj_total = dstats->ds_objs_total;
 		cur_dev->remain_old = cur_dev->remain_mid;
@@ -162,13 +165,13 @@ update_total_rate(search_context_t *sc)
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->delta = ((float)cur_dev->done)/
-			(float)min_done;
+		                 (float)min_done;
 		if (cur_dev->delta < 0.0) {
 			cur_dev->delta = 0.0;
 		}
 		if (cur_dev->delta > max_delta) {
 			max_delta = cur_dev->delta;
-		} 
+		}
 	}
 
 	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
@@ -211,13 +214,13 @@ update_total_rate(search_context_t *sc)
 		}
 		if (cur_dev->delta > max_delta) {
 			max_delta = cur_dev->delta;
-		} 
+		}
 	}
 
 	/* now adjust all the values */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		cur_dev->credit_incr = 
-			(int)((cur_dev->delta/max_delta)*MAX_CREDIT_INCR);
+		cur_dev->credit_incr =
+		    (int)((cur_dev->delta/max_delta)*MAX_CREDIT_INCR);
 		if (cur_dev->credit_incr > MAX_CREDIT_INCR) {
 			cur_dev->credit_incr = MAX_CREDIT_INCR;
 		} else if (cur_dev->credit_incr < 1) {
@@ -251,25 +254,25 @@ update_delta_rate(search_context_t *sc)
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->delta = ((float)(cur_dev->done - min_done))/
-			(float)min_done;
+		                 (float)min_done;
 		if (cur_dev->delta < 0.0) {
 			cur_dev->delta = 0.0;
 		}
 		if (cur_dev->delta > max_delta) {
 			max_delta = cur_dev->delta;
-		} 
+		}
 	}
 
 	if (max_delta == 0) {
 		max_delta = 1.0;
-	}	
+	}
 
 	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
 
 	/* now adjust all the values */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		target = (int)(cur_dev->delta * scale);
-		if (target > MAX_CREDIT_INCR) { 
+		if (target > MAX_CREDIT_INCR) {
 			target = MAX_CREDIT_INCR;
 		} else if (target < 1) {
 			target = 1;
@@ -328,7 +331,7 @@ update_rates(search_context_t *sc)
 		case	CREDIT_POLICY_PROP_TOTAL:
 			update_total_rate(sc);
 			break;
-			
+
 		case	CREDIT_POLICY_PROP_DELTA:
 			update_delta_rate(sc);
 			break;
@@ -345,13 +348,13 @@ refill_credits(search_context_t *sc)
 {
 	device_handle_t *	cur_dev;
 
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next){
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->cur_credits += (float)cur_dev->credit_incr;
 		if (cur_dev->cur_credits > (float)MAX_CUR_CREDIT) {
 			cur_dev->cur_credits = (float)MAX_CUR_CREDIT;
 		}
 		//printf("refil: id=%08x new %f incr %d \n", cur_dev->dev_id,
-				//cur_dev->cur_credits, cur_dev->credit_incr);
+		//cur_dev->cur_credits, cur_dev->credit_incr);
 	}
 }
 
@@ -475,8 +478,8 @@ bg_main(void *arg)
 	                         &sc->bg_credit_policy);
 	assert(err == 0);
 
-						
-	sc->avg_proc_time = 0.01;	
+
+	sc->avg_proc_time = 0.01;
 
 	/*
 	 * There are two main tasks that this thread does. The first
@@ -522,8 +525,8 @@ bg_main(void *arg)
 				 * an evaluate all the filters on the
 				 * object.
 				 */
-				err = eval_filters(new_obj, sc->bg_fdata, 1, 
-					&etime, &sc, bg_val, NULL);
+				err = eval_filters(new_obj, sc->bg_fdata, 1,
+				                   &etime, &sc, bg_val, NULL);
 				sc->avg_proc_time = (0.90 * sc->avg_proc_time) + (0.10 * etime);
 				dec_object_credit(sc, etime);
 				if (err == 0) {

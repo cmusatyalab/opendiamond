@@ -23,45 +23,47 @@
 #define DEV_FLAG_COMPLETE               0x02
 
 
-typedef struct search_state {
-    void           *comm_cookie;
-    pthread_t       thread_id;
-    unsigned int    flags;
-    struct odisk_state *ostate;
-    int             ver_no;
-    ring_data_t    *control_ops;
-    pthread_mutex_t log_mutex;
-    pthread_cond_t  log_cond;
-    pthread_t       log_thread;
-    filter_data_t  *fdata;
-    uint            obj_total;
-    uint            obj_processed;
-    uint            obj_dropped;
-    uint            obj_passed;
-    uint            obj_skipped;
-    uint            pend_objs;
+typedef struct search_state
+{
+	void           *comm_cookie;
+	pthread_t       thread_id;
+	unsigned int    flags;
+	struct odisk_state *ostate;
+	int             ver_no;
+	ring_data_t    *control_ops;
+	pthread_mutex_t log_mutex;
+	pthread_cond_t  log_cond;
+	pthread_t       log_thread;
+	filter_data_t  *fdata;
+	uint            obj_total;
+	uint            obj_processed;
+	uint            obj_dropped;
+	uint            obj_passed;
+	uint            obj_skipped;
+	uint            pend_objs;
 	float			pend_compute;
-    uint            pend_thresh;
-    uint            bp_feedback;
-    uint            bp_thresh;
+	uint            pend_thresh;
+	uint            bp_feedback;
+	uint            bp_thresh;
 	search_status_t	cur_status;
 	int				cur_search_id;
-    void           *dctl_cookie;
-    void           *log_cookie;
+	void           *dctl_cookie;
+	void           *log_cookie;
 	device_handle_t *       dev_list;
- 	ring_data_t *           log_ring;       /* data to log  */
+	ring_data_t *           log_ring;       /* data to log  */
 	ring_data_t *           bg_ops; /* unprocessed objects */
 	ring_data_t *           proc_ring; /* unprocessed objects */
 	struct filter_data  *   bg_fdata;
-    unsigned long       bg_status;
-    int                 bg_credit_policy;
-    int         pend_hw;    /* pending hw mark */
-    int         pend_lw;    /* pending lw mark */
+	unsigned long       bg_status;
+	int                 bg_credit_policy;
+	int         pend_hw;    /* pending hw mark */
+	int         pend_lw;    /* pending lw mark */
 	device_handle_t *   last_dev;
 
 
 
-} search_state_t;
+}
+search_state_t;
 
 
 
@@ -101,17 +103,17 @@ int             search_set_offload(void *app_cookie, int gen, uint64_t data);
  */
 int dev_new_obj_cb(void *hcookie, obj_data_t *odata, int vno);
 void dev_log_data_cb(void *cookie, char *data, int len, int devid);
-int lookup_group_hosts(groupid_t gid, int *num_hosts, 
-		uint32_t *hostids);
+int lookup_group_hosts(groupid_t gid, int *num_hosts,
+                       uint32_t *hostids);
 int device_add_gid(search_state_t *sstate, groupid_t gid, uint32_t devid);
 /*
  * These are background processing functions.
  */
 int bg_init(search_state_t *sc, int id);
 int bg_set_searchlet(search_state_t *sc, int id, char *filter_name,
-			char *spec_name);
+                     char *spec_name);
 int bg_set_blob(search_state_t *sc, int id, char *filter_name,
-			int blob_len, void *blob_data);
+                int blob_len, void *blob_data);
 int bg_start_search(search_state_t *sc, int id);
 int bg_stop_search(search_state_t *sc, int id);
 

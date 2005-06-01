@@ -29,8 +29,8 @@ int             fexec_evaluate_indep(filter_data_t * fdata,
                                      int *utility);
 
 int 		fexec_estimate_remaining( filter_data_t * fdata,
-			permutation_t * perm, int offset, int indep,
-			float *cost);
+                                permutation_t * perm, int offset, int indep,
+                                float *cost);
 
 
 /*

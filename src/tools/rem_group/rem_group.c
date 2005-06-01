@@ -190,13 +190,15 @@ main(int argc, char **argv)
 		num = fread(&gid_ent, sizeof(gid_ent), 1, cur_file);
 		if (num == 1) {
 			sprintf(path_name, "%s/%s", path, gid_ent.gid_name);
-			err = remove(path_name);
+			err = remove
+				      (path_name);
 			if (err != 0) {
 				perror("remove failed \n");
 				exit(1);
 			}
 			sprintf(attr_name, "%s%s", path_name, ATTR_EXT);
-			err = remove(attr_name);
+			err = remove
+				      (attr_name);
 			if (err != 0) {
 				perror("attr remove failed \n");
 				exit(1);

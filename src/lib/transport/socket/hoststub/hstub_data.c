@@ -205,7 +205,7 @@ hstub_read_data(sdevice_state_t *dev)
 		obj->data = odata;
 		obj->base = odata;
 
-		attr_data = (obj_adata_t *)malloc(sizeof(*attr_data));		
+		attr_data = (obj_adata_t *)malloc(sizeof(*attr_data));
 		attr_data->adata_data = adata;
 		attr_data->adata_base = adata;
 		attr_data->adata_len = alen;

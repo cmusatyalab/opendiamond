@@ -1138,7 +1138,7 @@ randomize_permutation(permutation_t * perm, const partial_order_t * po)
 	int             j;
 
 	steps = (10 * N * N * N * log(N));  /* this is almost certainly incorrect
-		                                         * -RW */
+			                                         * -RW */
 
 #ifdef VERBOSE
 

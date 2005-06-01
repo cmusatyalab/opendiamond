@@ -60,8 +60,7 @@ obj_fetch(void *arg)
 			printf("search done: time %f rate %f fetch %d cnt %d\n",
 			       difft, rate, pr_fetch, cnt);
 			exit(0);
-		} else if (err) {
-		}
+		} else if (err) {}
 		else {
 			cnt++;
 			odisk_release_obj(new_obj);

@@ -22,7 +22,7 @@
  * a bitmask so they advance in powers of 2.
  */
 
-#define	LOGT_APP	0x00000001	/* from application */ 
+#define	LOGT_APP	0x00000001	/* from application */
 #define	LOGT_DISK	0x00000002	/* from emulated disk */
 #define	LOGT_FILT	0x00000004	/* from filter evaluation */
 #define	LOGT_BG		0x00000008	/* from host background process */
@@ -40,13 +40,15 @@
 #define	LOGL_ALL	0xFFFFFFFF	/* log all levels */
 
 
-typedef struct log_ent {
+typedef struct log_ent
+{
 	uint32_t 	le_level;	/* the level */
 	uint32_t 	le_type;	/* the type */
 	uint32_t 	le_dlen;	/* length of data */
 	uint32_t 	le_nextoff;	/* off set of the next record */
 	char		le_data[1];	/* where the string is stored */
-} log_ent_t;
+}
+log_ent_t;
 
 
 #ifndef offsetof
@@ -71,17 +73,18 @@ typedef struct log_ent {
 
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void log_init(void **log_cookie);
-void log_thread_register(void *log_cookie);
-void log_setlevel(unsigned int level_mask);
-void log_settype(unsigned int type_mask);
-int  log_getdrops();
-void log_message(unsigned int type, unsigned int level, char *fmt, ...);
-int  log_getbuf(char **data);
-void  log_advbuf(int len);
+	void log_init(void **log_cookie);
+	void log_thread_register(void *log_cookie);
+	void log_setlevel(unsigned int level_mask);
+	void log_settype(unsigned int type_mask);
+	int  log_getdrops();
+	void log_message(unsigned int type, unsigned int level, char *fmt, ...);
+	int  log_getbuf(char **data);
+	void  log_advbuf(int len);
 
 
 

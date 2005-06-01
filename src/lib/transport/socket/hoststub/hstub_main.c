@@ -122,7 +122,9 @@ hstub_main(void *arg)
 	int			err;
 	int			max_fd;
 	struct timeval		this_time;
-	struct timeval		next_time = {0,0 };
+	struct timeval		next_time = {
+		                            0,0
+	                            };
 	struct timezone		tz;
 
 	dev = (sdevice_state_t *)arg;

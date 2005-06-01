@@ -18,101 +18,103 @@
 #include "rcomb.h"
 
 #ifdef __cplusplus
-extern          "C" {
+extern          "C"
+{
 #endif
 
-    struct filter_data;
-    typedef struct filter_data filter_data_t;
+	struct filter_data;
+	typedef struct filter_data filter_data_t;
 
-    /*
-     * optimizer policy setup
-     */
-    enum policy_type_t {
-        NULL_POLICY = 0,
-        HILL_CLIMB_POLICY,
-        BEST_FIRST_POLICY,
-        INDEP_POLICY,
-        RANDOM_POLICY,
-        STATIC_POLICY
-    };
+	/*
+	 * optimizer policy setup
+	 */
+	enum policy_type_t {
+	    NULL_POLICY = 0,
+	    HILL_CLIMB_POLICY,
+	    BEST_FIRST_POLICY,
+	    INDEP_POLICY,
+	    RANDOM_POLICY,
+	    STATIC_POLICY
+	};
 
-    typedef struct opt_policy_t {
-    	enum policy_type_t policy;
-    	void           *(*p_new) (struct filter_data *);
-    	void            (*p_delete) (void *context);
-    	int             (*p_optimize) (void *context, struct filter_data *);
-    	void           *p_context;
-    	int             exploit;    /* if we are in exploit mode */
-    } opt_policy_t;
+	typedef struct opt_policy_t {
+		enum policy_type_t policy;
+		void           *(*p_new) (struct filter_data *);
+		void            (*p_delete) (void *context);
+		int             (*p_optimize) (void *context, struct filter_data *);
+		void           *p_context;
+		int             exploit;    /* if we are in exploit mode */
+	}
+	opt_policy_t;
 
-    enum bypass_type_t {
-        BP_NONE = 0,
-        BP_SIMPLE,
-        BP_GREEDY,
-        BP_HYBRID
-    };
+	enum bypass_type_t {
+	    BP_NONE = 0,
+	    BP_SIMPLE,
+	    BP_GREEDY,
+	    BP_HYBRID
+	};
 
 	enum auto_part_t {
-        AUTO_PART_NONE = 0,
-        AUTO_PART_BYPASS,
-        AUTO_PART_QUEUE
-    };
+	    AUTO_PART_NONE = 0,
+	    AUTO_PART_BYPASS,
+	    AUTO_PART_QUEUE
+	};
 
 
-    extern int             fexec_bypass_type;
-    extern int             fexec_autopart_type;
+	extern int             fexec_bypass_type;
+	extern int             fexec_autopart_type;
 
-    struct filter_exec_t {
-        enum policy_type_t current_policy;
-    };
-    /*
-     * update at your own risk! 
-     */
-    extern struct filter_exec_t filter_exec;
-
-
-    /*
-     * functions
-     */
-
-    void            fexec_system_init();
-
-    int             fexec_load_searchlet(char *filterfile, char *fspec,
-                                         filter_data_t ** fdata);
-    int             fexec_init_search(filter_data_t * fdata);
-    int             fexec_term_search(filter_data_t * fdata);
-    void	    optimize_filter_order(filter_data_t * fdata, opt_policy_t * policy);
-    double	    tv_diff(struct timeval *end, struct timeval *start);
-    int             eval_filters(obj_data_t * obj_handle,
-                                 filter_data_t * fdata, int force_eval,
-								double *elapsed,
-                                 void *cookie,
-								int (*continue_cb)(void* vookie),
-								int (*cb_func) (void *cookie, char *name,
-                                                               int *pass,
-                                                               uint64_t *
-                                                               et));
-    int             fexec_num_filters(filter_data_t * fdata);
-    void            fexec_clear_stats(filter_data_t * fdata);
-    double          fexec_get_load(filter_data_t * fdata);
-    int             fexec_set_blob(filter_data_t * fdata, char *filter_name,
-                                   int blob_len, void *blob_data);
-    int             fexec_get_stats(filter_data_t * fdata, int max,
-                                    filter_stats_t * fstats);
-    char           *fexec_cur_filtname();
+	struct filter_exec_t {
+		enum policy_type_t current_policy;
+	};
+	/*
+	 * update at your own risk! 
+	 */
+	extern struct filter_exec_t filter_exec;
 
 
+	/*
+	 * functions
+	 */
 
-    int             fexec_update_bypass(filter_data_t * fdata, double ratio);
-    int             fexec_update_grouping(filter_data_t * fdata, double ratio);
-    float           fexec_get_prate(filter_data_t *fdata);
+	void            fexec_system_init();
 
-    int             fexec_estimate_cost(filter_data_t * fdata,
-			    permutation_t * perm, int gen, int indep,
-						float *cost);
-    int             fexec_estimate_cur_cost(filter_data_t * fdata, 
-    				float *cost);
-									                                                                                
+	int             fexec_load_searchlet(char *filterfile, char *fspec,
+	                                     filter_data_t ** fdata);
+	int             fexec_init_search(filter_data_t * fdata);
+	int             fexec_term_search(filter_data_t * fdata);
+	void	    optimize_filter_order(filter_data_t * fdata, opt_policy_t * policy);
+	double	    tv_diff(struct timeval *end, struct timeval *start);
+	int             eval_filters(obj_data_t * obj_handle,
+	                             filter_data_t * fdata, int force_eval,
+	                             double *elapsed,
+	                             void *cookie,
+	                             int (*continue_cb)(void* vookie),
+	                             int (*cb_func) (void *cookie, char *name,
+	                                             int *pass,
+	                                             uint64_t *
+	                                             et));
+	int             fexec_num_filters(filter_data_t * fdata);
+	void            fexec_clear_stats(filter_data_t * fdata);
+	double          fexec_get_load(filter_data_t * fdata);
+	int             fexec_set_blob(filter_data_t * fdata, char *filter_name,
+	                               int blob_len, void *blob_data);
+	int             fexec_get_stats(filter_data_t * fdata, int max,
+	                                filter_stats_t * fstats);
+	char           *fexec_cur_filtname();
+
+
+
+	int             fexec_update_bypass(filter_data_t * fdata, double ratio);
+	int             fexec_update_grouping(filter_data_t * fdata, double ratio);
+	float           fexec_get_prate(filter_data_t *fdata);
+
+	int             fexec_estimate_cost(filter_data_t * fdata,
+	                                    permutation_t * perm, int gen, int indep,
+	                                    float *cost);
+	int             fexec_estimate_cur_cost(filter_data_t * fdata,
+	                                        float *cost);
+
 
 
 #ifdef __cplusplus

@@ -21,30 +21,30 @@
  */
 
 typedef enum {
-	CONTROL_TX_NO_PENDING,
-	CONTROL_TX_HEADER,
-	CONTROL_TX_DATA
+    CONTROL_TX_NO_PENDING,
+    CONTROL_TX_HEADER,
+    CONTROL_TX_DATA
 } control_tx_state_t;
 
 
 typedef enum {
-	CONTROL_RX_NO_PENDING,
-	CONTROL_RX_HEADER,
-	CONTROL_RX_DATA
+    CONTROL_RX_NO_PENDING,
+    CONTROL_RX_HEADER,
+    CONTROL_RX_DATA
 } control_rx_state_t;
 
 
 typedef enum {
-	DATA_RX_NO_PENDING,
-	DATA_RX_HEADER,
-	DATA_RX_ATTR,
-	DATA_RX_DATA,
+    DATA_RX_NO_PENDING,
+    DATA_RX_HEADER,
+    DATA_RX_ATTR,
+    DATA_RX_DATA,
 } data_rx_state_t;
 
 typedef enum {
-	LOG_RX_NO_PENDING,
-	LOG_RX_HEADER,
-	LOG_RX_DATA
+    LOG_RX_NO_PENDING,
+    LOG_RX_HEADER,
+    LOG_RX_DATA
 } log_rx_state_t;
 
 
@@ -55,19 +55,20 @@ typedef enum {
 #define	CINFO_BLOCK_OBJ			0x02
 #define	CINFO_PENDING_CREDIT	0x04
 
-typedef struct conn_info {
+typedef struct conn_info
+{
 	int			        flags;
 	uint32_t		    dev_id;
 	pthread_mutex_t		mutex;
 	uint32_t		    con_cookie;
 	int			        control_fd;
 	control_tx_state_t	control_state;
-	control_header_t *	control_header;		
+	control_header_t *	control_header;
 	int			        control_offset;
 	control_header_t	control_rx_header;	/* hdr being recieved */
 	control_rx_state_t	control_rx_state;	/* recieve state */
 	int			        control_rx_offset;	/* current rx offset  */
-	char *			    control_rx_data;	/* rx data buffer */ 
+	char *			    control_rx_data;	/* rx data buffer */
 	int			        data_fd;
 	data_rx_state_t		data_rx_state;
 	obj_header_t		data_rx_header;
@@ -83,18 +84,19 @@ typedef struct conn_info {
 	fd_set			    read_fds;
 	fd_set			    write_fds;
 	fd_set			    except_fds;
-    uint32_t            stat_log_rx;
-    uint64_t            stat_log_byte_rx;
-    uint32_t            stat_control_rx;
-    uint64_t            stat_control_byte_rx;
-    uint32_t            stat_control_tx;
-    uint64_t            stat_control_byte_tx;
-    uint32_t            stat_obj_rx;
-    uint64_t            stat_obj_total_byte_rx;
-    uint64_t            stat_obj_hdr_byte_rx;
-    uint64_t            stat_obj_attr_byte_rx;
-    uint64_t            stat_obj_data_byte_rx;
-} conn_info_t;
+	uint32_t            stat_log_rx;
+	uint64_t            stat_log_byte_rx;
+	uint32_t            stat_control_rx;
+	uint64_t            stat_control_byte_rx;
+	uint32_t            stat_control_tx;
+	uint64_t            stat_control_byte_tx;
+	uint32_t            stat_obj_rx;
+	uint64_t            stat_obj_total_byte_rx;
+	uint64_t            stat_obj_hdr_byte_rx;
+	uint64_t            stat_obj_attr_byte_rx;
+	uint64_t            stat_obj_data_byte_rx;
+}
+conn_info_t;
 
 
 
@@ -103,11 +105,12 @@ typedef struct conn_info {
 #define	CI_GET_DATA	2
 
 
-typedef struct sdevice_state {
+typedef struct sdevice_state
+{
 	struct sdevice_state * 	next;
 	pthread_t		        thread_id;
-	ring_data_t *		    device_ops;	
-	ring_data_t *		    obj_ring;	
+	ring_data_t *		    device_ops;
+	ring_data_t *		    obj_ring;
 	conn_info_t 		    con_data;
 	unsigned int		    flags;
 	int			      ver_no;
@@ -123,7 +126,8 @@ typedef struct sdevice_state {
 	hstub_rleaf_done_fn	    hstub_rleaf_done_cb;
 	hstub_lnodes_done_fn    hstub_lnode_done_cb;
 	hstub_lleafs_done_fn    hstub_lleaf_done_cb;
-} sdevice_state_t;
+}
+sdevice_state_t;
 
 
 /*

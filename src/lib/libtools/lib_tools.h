@@ -24,7 +24,7 @@
 /* max user name we support */
 #define MAX_USER_NAME   64
 
-/* 
+/*
  * fill in string name of the current user (assumes
  * string is MAX_USER_NAME bytes long).
  */

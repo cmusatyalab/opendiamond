@@ -25,8 +25,8 @@ typedef	int (*sstub_new_conn_fn)(void *cookie, void **app_cookie);
 typedef	int (*sstub_close_conn_fn)(void *app_cookie);
 typedef	int (*sstub_start_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_stop_fn)(void *app_cookie, int gen_num);
-typedef	int (*sstub_set_searchlet_fn)(void *app_cookie, int gen_num, 
-		char *spec, char *filter);
+typedef	int (*sstub_set_searchlet_fn)(void *app_cookie, int gen_num,
+                                      char *spec, char *filter);
 typedef	int (*sstub_set_list_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_terminate_fn)(void *app_cookie, int gen_num);
 typedef	void (*sstub_getstats_fn)(void *app_cookie, int gen_num);
@@ -36,19 +36,20 @@ typedef	int (*sstub_log_done_fn)(void *app_cookie, char *buf, int len);
 typedef	int (*sstub_set_log_fn)(void *app_cookie, uint32_t level, uint32_t src);
 
 typedef	int (*sstub_rleaf_fn)(void *app_cookie, char *path, int32_t opid);
-typedef	int (*sstub_wleaf_fn)(void *app_cookie, char *path, int len, 
-                char *data, int32_t opid);
+typedef	int (*sstub_wleaf_fn)(void *app_cookie, char *path, int len,
+                              char *data, int32_t opid);
 typedef	int (*sstub_lleaf_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_lnode_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_sgid_fn)(void *app_cookie, int gen_num, groupid_t gid);
 typedef	int (*sstub_clear_gids_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,
-				int blen, void *blob);
+                                 int blen, void *blob);
 typedef int (*sstub_set_offload_fn)(void *app_cookie, int gen_num,
-                               uint64_t load);
+                                    uint64_t load);
 
 
-typedef struct {
+typedef struct
+{
 	sstub_new_conn_fn 	    new_conn_cb;
 	sstub_close_conn_fn 	close_conn_cb;
 	sstub_start_fn 		    start_cb;
@@ -69,7 +70,8 @@ typedef struct {
 	sstub_clear_gids_fn		clear_gids_cb;
 	sstub_set_blob_fn		set_blob_cb;
 	sstub_set_offload_fn    set_offload_cb;
-} sstub_cb_args_t;
+}
+sstub_cb_args_t;
 
 
 
@@ -83,11 +85,11 @@ int sstub_flush_objs(void *cookie, int vnum);
 int sstub_send_log(void *cookie, char *buf, int len);
 int sstub_wleaf_response(void *cookie, int err, int32_t opid);
 int sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
-                int len, char *data, int32_t opid);
+                         int len, char *data, int32_t opid);
 int sstub_lleaf_response(void *cookie, int err, int num_ents,
-                dctl_entry_t *data, int32_t opid);
+                         dctl_entry_t *data, int32_t opid);
 int sstub_lnode_response(void *cookie, int err, int num_ents,
-                dctl_entry_t *data, int32_t opid);
+                         dctl_entry_t *data, int32_t opid);
 float sstub_get_drate(void *cookie);
 int sstub_queued_objects(void *cookie);
 

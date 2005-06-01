@@ -41,36 +41,36 @@
  */
 
 typedef enum {
-	CONTROL_RX_NO_PENDING,
-	CONTROL_RX_HEADER,
-	CONTROL_RX_DATA
+    CONTROL_RX_NO_PENDING,
+    CONTROL_RX_HEADER,
+    CONTROL_RX_DATA
 } control_rx_state_t;
 
 
 typedef enum {
-	CONTROL_TX_NO_PENDING,
-	CONTROL_TX_HEADER,
-	CONTROL_TX_DATA
+    CONTROL_TX_NO_PENDING,
+    CONTROL_TX_HEADER,
+    CONTROL_TX_DATA
 } control_tx_state_t;
 
 
 typedef enum {
-	DATA_TX_NO_PENDING,
-	DATA_TX_HEADER,
-	DATA_TX_ATTR,
-	DATA_TX_DATA,
+    DATA_TX_NO_PENDING,
+    DATA_TX_HEADER,
+    DATA_TX_ATTR,
+    DATA_TX_DATA,
 } data_tx_state_t;
 
 typedef enum {
-	LOG_TX_NO_PENDING,
-	LOG_TX_HEADER,
-	LOG_TX_DATA,
+    LOG_TX_NO_PENDING,
+    LOG_TX_HEADER,
+    LOG_TX_DATA,
 } log_tx_state_t;
 
 typedef enum {
-	NW_ATTR_POLICY_FIXED = 0,
-	NW_ATTR_POLICY_PROPORTIONAL,
-	NW_ATTR_POLICY_QUEUE
+    NW_ATTR_POLICY_FIXED = 0,
+    NW_ATTR_POLICY_PROPORTIONAL,
+    NW_ATTR_POLICY_QUEUE
 } nw_attr_policy;
 
 
@@ -78,7 +78,7 @@ typedef enum {
 #define DESIRED_MAX_TX_THRESH   10
 #define DESIRED_MAX_CREDITS    	8
 #define DESIRED_CREDIT_THRESH  	6
-                                                                                
+
 #define DEFAULT_NW_ATTR_POLICY  (NW_ATTR_POLICY_FIXED)
 #define DEFAULT_NW_ATTR_RATIO   (100)
 
@@ -86,7 +86,8 @@ typedef enum {
 /* XXX forward ref */
 struct listener_state;
 
-typedef struct cstate {
+typedef struct cstate
+{
 	unsigned int		flags;
 	pthread_t		    thread_id;
 	pthread_mutex_t		cmutex;
@@ -129,17 +130,18 @@ typedef struct cstate {
 	/* number of remaining credits */
 	uint32_t			cc_credits;
 	uint32_t            stats_objs_tx;
-    uint64_t            stats_objs_attr_bytes_tx;
-    uint64_t            stats_objs_data_bytes_tx;
-    uint64_t            stats_objs_hdr_bytes_tx;
-    uint64_t            stats_objs_total_bytes_tx;
-    uint32_t            stats_control_tx;
-    uint64_t            stats_control_bytes_tx;
-    uint32_t            stats_control_rx;
-    uint64_t            stats_control_bytes_rx;
-    uint32_t            stats_log_tx;
-    uint64_t            stats_log_bytes_tx;
-} cstate_t;
+	uint64_t            stats_objs_attr_bytes_tx;
+	uint64_t            stats_objs_data_bytes_tx;
+	uint64_t            stats_objs_hdr_bytes_tx;
+	uint64_t            stats_objs_total_bytes_tx;
+	uint32_t            stats_control_tx;
+	uint64_t            stats_control_bytes_tx;
+	uint32_t            stats_control_rx;
+	uint64_t            stats_control_bytes_rx;
+	uint32_t            stats_log_tx;
+	uint64_t            stats_log_bytes_tx;
+}
+cstate_t;
 
 
 /*
@@ -148,7 +150,8 @@ typedef struct cstate {
  * functions that are invoked messages of a specified type arrive.
  */
 
-typedef struct listener_state {
+typedef struct listener_state
+{
 	pthread_t		        thread_id;
 	int			            control_fd;
 	int			            data_fd;
@@ -178,7 +181,8 @@ typedef struct listener_state {
 	sstub_set_blob_fn		set_blob_cb;
 	sstub_set_offload_fn		set_offload_cb;
 	cstate_t		        conns[MAX_CONNS];
-} listener_state_t;
+}
+listener_state_t;
 
 
 
@@ -222,7 +226,7 @@ void sstub_except_log(listener_state_t *lstate, cstate_t *cstate);
 void sstub_write_data(listener_state_t *lstate, cstate_t *cstate);
 void sstub_read_data(listener_state_t *lstate, cstate_t *cstate);
 void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
-/* 
+/*
  * Functions exported by sstub_conn.c
  */
 void * connection_main(listener_state_t *lstate, int conn);

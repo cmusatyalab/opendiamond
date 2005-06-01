@@ -735,13 +735,13 @@ ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
 		free(new_obj->base);
 	}
 
-    cur = new_obj->attr_info.attr_dlist;
-    while (cur != NULL) {
-        next = cur->adata_next;
-        free(cur->adata_base);
-        free(cur);
-        cur = next;
-    }
+	cur = new_obj->attr_info.attr_dlist;
+	while (cur != NULL) {
+		next = cur->adata_next;
+		free(cur->adata_base);
+		free(cur);
+		cur = next;
+	}
 	free(new_obj);
 	return(0);
 }

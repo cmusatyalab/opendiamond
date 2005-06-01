@@ -489,8 +489,8 @@ fexec_estimate_cur_cost(filter_data_t * fdata, float *cost)
 }
 
 int
-fexec_estimate_remaining( filter_data_t * fdata, permutation_t * perm, 
-		int offset, int indep, float *cost)
+fexec_estimate_remaining( filter_data_t * fdata, permutation_t * perm,
+                          int offset, int indep, float *cost)
 {
 	int             i;
 	filter_prob_t  *fprob;

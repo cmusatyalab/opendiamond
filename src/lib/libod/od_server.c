@@ -61,7 +61,8 @@ rpc_create_obj_1_svc(create_obj_arg_t *arg, struct svc_req *rq)
 	static  obj_id_t            new_oid;
 	int                         err;
 
-	if (odata == NULL) {
+	if (odata == NULL)
+	{
 		init_disk();
 	}
 

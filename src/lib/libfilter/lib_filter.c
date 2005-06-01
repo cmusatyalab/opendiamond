@@ -143,7 +143,7 @@ lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
 
 int
 lf_ref_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
-             off_t *len, char **data)
+            off_t *len, char **data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;

@@ -16,21 +16,23 @@
 
 
 #ifdef	__cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef struct od_srv {
-    LIST_ENTRY(od_srv)  ods_id_link;
-    CLIENT *            ods_client; 
-    uint64_t            ods_id;
-    char *              ods_name;
-} od_srv_t;
+	typedef struct od_srv {
+		LIST_ENTRY(od_srv)  ods_id_link;
+		CLIENT *            ods_client;
+		uint64_t            ods_id;
+		char *              ods_name;
+	}
+	od_srv_t;
 
 
-void       ods_init();
-od_srv_t * ods_allocate_by_gid(groupid_t *gid);
-od_srv_t * ods_lookup_by_oid(obj_id_t *oid);
-od_srv_t * ods_lookup_by_devid(uint64_t id);
+	void       ods_init();
+	od_srv_t * ods_allocate_by_gid(groupid_t *gid);
+	od_srv_t * ods_lookup_by_oid(obj_id_t *oid);
+	od_srv_t * ods_lookup_by_devid(uint64_t id);
 
 
 

@@ -110,8 +110,8 @@ dev_search_done_cb(void *hcookie, int ver_no)
 	dev->flags |= DEV_FLAG_COMPLETE;
 	time(&cur_time);
 	delta = cur_time - dev->start_time;
-	fprintf(stdout, "complete: %08x elapsed time %ld data %s ", 
-		dev->dev_id, delta, ctime(&cur_time));
+	fprintf(stdout, "complete: %08x elapsed time %ld data %s ",
+	        dev->dev_id, delta, ctime(&cur_time));
 	return;
 }
 
@@ -489,19 +489,19 @@ static int
 read_float_as_uint32(void *cookie, int *len, char *data)
 {
 
-    assert(cookie != NULL);
-    assert(data != NULL);
+	assert(cookie != NULL);
+	assert(data != NULL);
 
-    if (*len < sizeof(uint32_t)) {
-        *len = sizeof(uint32_t);
-        return(ENOMEM);
-    }
+	if (*len < sizeof(uint32_t)) {
+		*len = sizeof(uint32_t);
+		return(ENOMEM);
+	}
 
 
-    *len = sizeof(uint32_t);
-    *(uint32_t *)data = (uint32_t)(*(float *)cookie);
+	*len = sizeof(uint32_t);
+	*(uint32_t *)data = (uint32_t)(*(float *)cookie);
 
-    return(0);
+	return(0);
 }
 
 
@@ -564,21 +564,21 @@ register_remote_dctl(uint32_t devid, device_handle_t *dev_handle)
 
 	/* also register a dctl for the credit count */
 	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-				dctl_read_uint32, dctl_write_uint32, 
-				&dev_handle->credit_incr);
+	                         dctl_read_uint32, dctl_write_uint32,
+	                         &dev_handle->credit_incr);
 
 	err = snprintf(cr_name, 128, "%s_%s", "cur_credits", node_name);
 	cr_name[127] = '\0';
 	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-	                         read_float_as_uint32, NULL, 
-							&dev_handle->cur_credits);
+	                         read_float_as_uint32, NULL,
+	                         &dev_handle->cur_credits);
 
 	err = snprintf(cr_name, 128, "%s_%s", "be_serviced", node_name);
 	cr_name[127] = '\0';
 
 	/* also register a dctl for the credit count */
 	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-				dctl_read_uint32, NULL, &dev_handle->serviced);
+	                         dctl_read_uint32, NULL, &dev_handle->serviced);
 
 	printf("register  <%s> \n", cr_name);
 

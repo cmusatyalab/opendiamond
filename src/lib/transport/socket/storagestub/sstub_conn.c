@@ -106,10 +106,10 @@ connection_main(listener_state_t *lstate, int conn)
 		if ((cstate->flags & CSTATE_OBJ_DATA) &&
 		    (cstate->cc_credits > 0)) {
 			FD_SET(cstate->data_fd,  &cstate->write_fds);
-		} 
+		}
 		if (cstate->cc_credits == 0) {
 			// printf("block on no credits \n");
-			// XXX stats 
+			// XXX stats
 		}
 		if (cstate->flags & CSTATE_LOG_DATA) {
 			FD_SET(cstate->log_fd,  &cstate->write_fds);
@@ -179,7 +179,7 @@ connection_main(listener_state_t *lstate, int conn)
 			time_ns = rt_nanos(&rt);
 			if (time_ns > 100000000) {
 				printf("XXXX socket took %lld \n",
-					time_ns);
+				       time_ns);
 			}
 		}
 	}

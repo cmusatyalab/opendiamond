@@ -420,12 +420,12 @@ dynamic_update_bypass(search_state_t *sstate)
 	int	err;
 	float	avg_cost;
 
-	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
-			1, 0, &avg_cost);
+	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm,
+	                          1, 0, &avg_cost);
 	if (err) {
 		avg_cost = 30000000.0;
 	}
-                                                                               
+
 	if (sstate->obj_processed != 0) {
 		float	ratio;
 		float	new_val;
@@ -436,13 +436,13 @@ dynamic_update_bypass(search_state_t *sstate)
 		sstate->avg_ratio = new_val;
 		sstate->avg_int_ratio = (int)new_val;
 		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
-			0.5 * new_val;
+		                         0.5 * new_val;
 		sstate->smoothed_int_ratio = (int)sstate->smoothed_ratio;
 		sstate->old_proc = sstate->obj_processed;
 	}
 
-	sstate->split_ratio = (int)((sstate->pend_compute * 
-		(float)sstate->split_mult));
+	sstate->split_ratio = (int)((sstate->pend_compute *
+	                             (float)sstate->split_mult));
 
 	if (sstate->split_ratio < 5) {
 		sstate->split_ratio = 5;
@@ -474,8 +474,8 @@ enq_beta(float proc_rate, float drate, int pend_objs)
 		return(0.5);
 	}
 
-	target = ((drate * SAMPLE_TIME_FLOAT) + 
-		((float)(20 - pend_objs)))/SAMPLE_TIME_FLOAT;
+	target = ((drate * SAMPLE_TIME_FLOAT) +
+	          ((float)(20 - pend_objs)))/SAMPLE_TIME_FLOAT;
 	if (target < 0.0) {
 		target = 0;
 	}
@@ -500,7 +500,7 @@ dynamic_update_bypass(search_state_t *sstate)
 	if (err) {
 		avg_cost = 30000000.0;
 	}
-                                                                               
+
 	if (sstate->obj_processed != 0) {
 		float	ratio;
 		float	new_val;
@@ -511,7 +511,7 @@ dynamic_update_bypass(search_state_t *sstate)
 		sstate->avg_ratio = new_val;
 		sstate->avg_int_ratio = (int)new_val;
 		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
-			0.5 * new_val;
+		                         0.5 * new_val;
 		sstate->smoothed_int_ratio = (int)sstate->smoothed_ratio;
 		sstate->old_proc = sstate->obj_processed;
 	}
@@ -525,7 +525,7 @@ dynamic_update_bypass(search_state_t *sstate)
 	betaout = enq_beta(proc_rate, drate, sstate->pend_objs);
 
 	//printf("betain %f betaout %f drate %f erate %f prate %f\n", betain, betaout,
-		//drate, erate, proc_rate);
+	//drate, erate, proc_rate);
 	if (betain > betaout) {
 		sstate->split_ratio = (int)(betain * 100.0);
 	} else {
@@ -550,7 +550,7 @@ update_bypass(void *arg)
 	struct timespec ts;
 
 	while (1) {
-    	if (sstate->flags & DEV_FLAG_RUNNING) {
+		if (sstate->flags & DEV_FLAG_RUNNING) {
 			switch(sstate->split_type) {
 				case SPLIT_TYPE_FIXED:
 					ratio = ((float)sstate->split_ratio)/100.0;
@@ -582,14 +582,15 @@ continue_fn(void *cookie)
 {
 	search_state_t *sstate = cookie;
 #ifdef	XXX
+
 	float	avg_cost;
 	int	err;
- 	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm, 
-		1, 0, &avg_cost);
+	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm,
+	                          1, 0, &avg_cost);
 	if (err) {
 		avg_cost = 30000000.0;
 	}
-                                                                               
+
 	/* XXX include input queue size */
 	if ((int)(sstate->pend_compute/avg_cost) < sstate->split_bp_thresh) {
 		return(0);
@@ -597,7 +598,7 @@ continue_fn(void *cookie)
 		return(1);
 	}
 #else
-   	if ((sstate->pend_objs < 4) && (odisk_num_waiting(sstate->ostate) > 4)) {
+	if ((sstate->pend_objs < 4) && (odisk_num_waiting(sstate->ostate) > 4)) {
 		return(0);
 	} else {
 		return(2);
@@ -646,8 +647,7 @@ device_main(void *arg)
 			free(cmd);
 		}
 
-		if (sstate->pend_compute >= sstate->pend_max) {
-		}
+		if (sstate->pend_compute >= sstate->pend_max) {}
 
 		/*
 		 * XXX look for data from device to process.
@@ -719,6 +719,7 @@ device_main(void *arg)
 				 */
 
 #ifdef	XXX
+
 				if ((sstate->obj_processed & 0xf) == 0xf) {
 					update_bypass(sstate);
 				}
@@ -758,8 +759,8 @@ device_main(void *arg)
 					sstate->pend_objs++;
 					sstate->pend_compute += new_obj->remain_compute;
 					//printf("queu %f new %f \n",
-						//new_obj->remain_compute,
-						//sstate->pend_compute);
+					//new_obj->remain_compute,
+					//sstate->pend_compute);
 
 					err = sstub_send_obj(sstate->comm_cookie, new_obj,
 					                     sstate->ver_no, complete);
@@ -1202,7 +1203,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_processed = sstate->obj_processed;
 	stats->ds_objs_dropped = sstate->obj_dropped;
 	stats->ds_objs_nproc = sstate->obj_skipped;
-	stats->ds_system_load = (int) (fexec_get_load(sstate->fdata) * 100.0); 
+	stats->ds_system_load = (int) (fexec_get_load(sstate->fdata) * 100.0);
 	prate = fexec_get_prate(sstate->fdata);
 	stats->ds_avg_obj_time = (long long)(prate * 1000.0);
 	stats->ds_num_filters = num_filt;

@@ -29,8 +29,8 @@
  * This structure keeps track of the state associated with each
  * of the storage devices.
  */
-#define	DEV_FLAG_RUNNING		0x01	
-#define	DEV_FLAG_COMPLETE		0x02	
+#define	DEV_FLAG_RUNNING		0x01
+#define	DEV_FLAG_COMPLETE		0x02
 #define	DEV_FLAG_BLOCKED		0x04
 struct search_state;
 
@@ -42,9 +42,10 @@ struct search_state;
 
 #define	MAX_DEV_GROUPS		64
 
-typedef struct device_handle {
+typedef struct device_handle
+{
 	struct device_handle * 			next;
-	uint32_t				dev_id;	
+	uint32_t				dev_id;
 	groupid_t				dev_groups[MAX_DEV_GROUPS];
 	int					num_groups;
 	unsigned int				flags;
@@ -61,32 +62,35 @@ typedef struct device_handle {
 	int					credit_incr;	/* incremental credits to add */
 	int					serviced;	/* times data removed */
 	struct search_state *	sc;
-} device_handle_t;
+}
+device_handle_t;
 
 
 #define	MAX_DEV_PER_GROUP	64
-typedef struct gid_map {
+typedef struct gid_map
+{
 	struct gid_map *	next;
 	groupid_t		gid;
 	int			num_dev;
 	uint32_t		devs[MAX_DEV_PER_GROUP];
-} gid_map_t;
+}
+gid_map_t;
 
 
 typedef enum {
-	SS_ACTIVE,		/* a search is currently in progress */
-	SS_DONE,		/* search active, all object are processed */
-	SS_EMPTY,
-	SS_SHUTDOWN,	
-	SS_IDLE	
+    SS_ACTIVE,		/* a search is currently in progress */
+    SS_DONE,		/* search active, all object are processed */
+    SS_EMPTY,
+    SS_SHUTDOWN,
+    SS_IDLE
 } search_status_t;
 
 
 typedef enum {
-		CREDIT_POLICY_STATIC = 0,
-		CREDIT_POLICY_RAIL,
-		CREDIT_POLICY_PROP_TOTAL,
-		CREDIT_POLICY_PROP_DELTA
+    CREDIT_POLICY_STATIC = 0,
+    CREDIT_POLICY_RAIL,
+    CREDIT_POLICY_PROP_TOTAL,
+    CREDIT_POLICY_PROP_DELTA
 
 } credit_policies_t;
 
@@ -100,7 +104,8 @@ typedef enum {
 #define	OBJ_QUEUE_SIZE		1024
 struct filter_info;
 #ifdef	XXX
-typedef struct search_context {
+typedef struct search_context
+{
 	int			cur_search_id;	/* ID of current search */
 	device_handle_t *	dev_list;
 	device_handle_t *	last_dev;
@@ -115,7 +120,8 @@ typedef struct search_context {
 	int			pend_lw;	/* pending lw mark */
 	void *			dctl_cookie;	/* cookie for dctl library */
 	void *			log_cookie;	/* cookie for log library */
-} search_context_t;
+}
+search_context_t;
 #endif
 
 #endif

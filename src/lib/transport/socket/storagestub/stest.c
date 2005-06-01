@@ -72,9 +72,11 @@ send_obj(void *ccookie, int vno)
 	foo->data_len = DATA_LEN;
 	foo->data = data;
 #ifdef	XXX
+
 	foo->attr_info.attr_len = ATTR_LEN;
 	foo->attr_info.attr_data = attr;
 #endif
+
 	sstub_send_obj(ccookie, foo, vno, 1);
 
 

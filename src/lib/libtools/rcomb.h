@@ -31,12 +31,14 @@
 
 typedef u_int8_t pelt_t;
 
-typedef struct {
-    int             valid;
-    int             size;
-    int             capacity;
-    pelt_t          elements[0];
-} permutation_t;
+typedef struct
+{
+	int             valid;
+	int             size;
+	int             capacity;
+	pelt_t          elements[0];
+}
+permutation_t;
 
 
 permutation_t  *pmNew(int length);
@@ -67,10 +69,12 @@ typedef enum {
     PO_INCOMPARABLE = 3
 } po_relation_t;
 
-typedef struct partial_order_t {
-    int             dim;
-    char            data[0];
-} partial_order_t;
+typedef struct partial_order_t
+{
+	int             dim;
+	char            data[0];
+}
+partial_order_t;
 
 
 partial_order_t *poNew(int n);
@@ -118,17 +122,19 @@ enum {
  * ---------------------------------------------------------------------- 
  */
 
-typedef struct hc_state_t {
-    permutation_t  *global_best;
-    permutation_t  *best_seq,
-                   *next_seq;
-    int             n,
-                    i,
-                    j;
-    int             improved;
-    int             generation;
-    int             best_err_count;
-} hc_state_t;
+typedef struct hc_state_t
+{
+	permutation_t  *global_best;
+	permutation_t  *best_seq,
+	*next_seq;
+	int             n,
+	i,
+	j;
+	int             improved;
+	int             generation;
+	int             best_err_count;
+}
+hc_state_t;
 
 
 void            hill_climb_init(hc_state_t * ptr, const permutation_t * start,
@@ -158,26 +164,28 @@ typedef enum {
 
 struct heap_t;
 
-typedef struct bf_state_t {
-    bf_dfa_t        state;      /* state machine state */
-    int             n;          /* size of perm */
-    int             i;          /* initialization */
-    int             j;          /* inner loop state */
-    int             improved;
-    const partial_order_t *po;
-    struct heap_t  *pq;
+typedef struct bf_state_t
+{
+	bf_dfa_t        state;      /* state machine state */
+	int             n;          /* size of perm */
+	int             i;          /* initialization */
+	int             j;          /* inner loop state */
+	int             improved;
+	const partial_order_t *po;
+	struct heap_t  *pq;
 
-    /*
-     * common state 
-     */
-    permutation_t  *best_seq;
-    permutation_t  *next_seq;
+	/*
+	 * common state 
+	 */
+	permutation_t  *best_seq;
+	permutation_t  *next_seq;
 
-    evaluation_func_t evfunc;
-    const void     *evcontext;
-    int             generation; /* current generation number (number of times 
-                                 * alg completed) */
-} bf_state_t;
+	evaluation_func_t evfunc;
+	const void     *evcontext;
+	int             generation; /* current generation number (number of times
+	                                 * alg completed) */
+}
+bf_state_t;
 
 
 void            best_first_init(bf_state_t * ptr, int n,
@@ -195,20 +203,22 @@ const permutation_t *best_first_next(bf_state_t * hc);
  * ---------------------------------------------------------------------- 
  */
 
-typedef struct indep_state_t {
+typedef struct indep_state_t
+{
 
-    /*
-     * common state 
-     */
-    permutation_t  *best_seq;
-    permutation_t  *next_seq;
+	/*
+	 * common state 
+	 */
+	permutation_t  *best_seq;
+	permutation_t  *next_seq;
 
-    evaluation_func_t evfunc;
-    const void     *evcontext;
-    int             generation; /* current generation number (number of times 
-                                 * alg completed) */
+	evaluation_func_t evfunc;
+	const void     *evcontext;
+	int             generation; /* current generation number (number of times
+	                                 * alg completed) */
 
-} indep_state_t;
+}
+indep_state_t;
 
 void            indep_init(indep_state_t *, int n, const partial_order_t * po,
                            evaluation_func_t func, const void *context);

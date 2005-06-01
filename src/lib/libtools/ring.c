@@ -34,7 +34,7 @@ tv_to_float(struct timeval *tv)
 	tmp = (double)tv->tv_usec;
 	tmp /= 1000000.0;
 	tmp += ((double) tv->tv_sec);
-// XXX	printf("tvtfloat: %ld.%ld -> %f \n", tv->tv_sec, tv->tv_usec, tmp);
+	// XXX	printf("tvtfloat: %ld.%ld -> %f \n", tv->tv_sec, tv->tv_usec, tmp);
 	return(tmp);
 }
 
@@ -59,7 +59,7 @@ new_rate(double old_rate, double cur_rate)
 	nrate = (((double)(RATE_AVG_WINDOW-1))/((double)(RATE_AVG_WINDOW))*old_rate);
 	nrate += cur_rate/((double)(RATE_AVG_WINDOW));
 
-	return(nrate);	
+	return(nrate);
 }
 
 

@@ -433,8 +433,8 @@ main(int argc, char **argv)
 
 
 		/* bind the socket to a path name */
-    	get_user_name(user_name);
-    	sprintf(sa.sun_path, "%s.%s", SOCKET_LOG_NAME, user_name);
+		get_user_name(user_name);
+		sprintf(sa.sun_path, "%s.%s", SOCKET_LOG_NAME, user_name);
 
 		sa.sun_family = AF_UNIX;
 

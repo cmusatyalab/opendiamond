@@ -47,50 +47,56 @@
  * #endif 
  */
 
-typedef struct rtimer_std_t {
-    struct rusage   ru1,
-                    ru2;
-} rtimer_std_t;
+typedef struct rtimer_std_t
+{
+	struct rusage   ru1,
+				ru2;
+}
+rtimer_std_t;
 
-typedef struct rtimer_papi_t {
-    int             valid;
-    int             EventSet;
-    u_int64_t       cycles;
-} rtimer_papi_t;
+typedef struct rtimer_papi_t
+{
+	int             valid;
+	int             EventSet;
+	u_int64_t       cycles;
+}
+rtimer_papi_t;
 
-struct rtimer_t {
-    union {
-        struct rtimer_std_t std;
-        struct rtimer_papi_t papi;
-    };
+struct rtimer_t
+{
+	union {
+		struct rtimer_std_t std;
+		struct rtimer_papi_t papi;
+	};
 };
 
 
 #ifdef __cplusplus
-extern          "C" {
+extern          "C"
+{
 #endif
 
-    struct rtimer_t;
-    typedef struct rtimer_t rtimer_t;
+	struct rtimer_t;
+	typedef struct rtimer_t rtimer_t;
 
-    typedef u_int64_t rtime_t;
+	typedef u_int64_t rtime_t;
 
-    typedef enum {
-        RTIMER_STD = 1,
-        RTIMER_PAPI
-    } rtimer_mode_t;
+	typedef enum {
+	    RTIMER_STD = 1,
+	    RTIMER_PAPI
+	} rtimer_mode_t;
 
-    void            rtimer_system_init(rtimer_mode_t mode);
+	void            rtimer_system_init(rtimer_mode_t mode);
 
-    extern pthread_attr_t *pattr_default;
+	extern pthread_attr_t *pattr_default;
 #define PATTR_DEFAULT pattr_default
 
-    void     rt_init(rtimer_t * rt);
-    void     rt_start(rtimer_t * rt);
-    void     rt_stop(rtimer_t * rt);
-    rtime_t  rt_nanos(rtimer_t * rt);
+	void     rt_init(rtimer_t * rt);
+	void     rt_start(rtimer_t * rt);
+	void     rt_stop(rtimer_t * rt);
+	rtime_t  rt_nanos(rtimer_t * rt);
 
-    double   rt_time2secs(rtime_t t);
+	double   rt_time2secs(rtime_t t);
 
 #ifdef __cplusplus
 }

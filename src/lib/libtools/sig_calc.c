@@ -27,41 +27,41 @@ sig_cal_init()
 		return(0);
 	}
 
-    OpenSSL_add_all_digests();
-    md = EVP_get_digestbyname("md5");
-    if(!md) {
-        perror("Unknown message digest md5");
-        assert( md!= NULL);
-        //exit(1);
-    }
+	OpenSSL_add_all_digests();
+	md = EVP_get_digestbyname("md5");
+	if(!md) {
+		perror("Unknown message digest md5");
+		assert( md!= NULL);
+		//exit(1);
+	}
 	done_sig_init = 1;
-    return(0);                                                                           
+	return(0);
 }
 
 int
 sig_cal(const void *buf, off_t buflen, unsigned char **signature)
 {
-    EVP_MD_CTX mdctx;
-    unsigned char *md_value;
-    int md_len=0;
-                    
+	EVP_MD_CTX mdctx;
+	unsigned char *md_value;
+	int md_len=0;
+
 	assert(done_sig_init == 1);
 
-    md_value = *signature;
-                                                                                
-    EVP_MD_CTX_init(&mdctx);
-    EVP_DigestInit_ex(&mdctx, md, NULL);
-                                                                                
-    EVP_DigestUpdate(&mdctx, buf, buflen);
-                                                                                
-    EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
-    EVP_MD_CTX_cleanup(&mdctx);
-    /*
-        printf("Digest is: ");
-        for(i = 0; i < md_len; i++)
-            printf("%x", md_value[i]);
-        printf("\n");
-    */
-    return(0);
+	md_value = *signature;
+
+	EVP_MD_CTX_init(&mdctx);
+	EVP_DigestInit_ex(&mdctx, md, NULL);
+
+	EVP_DigestUpdate(&mdctx, buf, buflen);
+
+	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
+	EVP_MD_CTX_cleanup(&mdctx);
+	/*
+	    printf("Digest is: ");
+	    for(i = 0; i < md_len; i++)
+	        printf("%x", md_value[i]);
+	    printf("\n");
+	*/
+	return(0);
 }
 

@@ -77,11 +77,13 @@ typedef struct
 }
 dev_slet_data_t;
 
-typedef struct {
+typedef struct
+{
 	char           *fname;
 	void           *blob;
 	int             blen;
-} dev_blob_data_t;
+}
+dev_blob_data_t;
 
 typedef struct
 {
@@ -108,46 +110,46 @@ int             cpu_split_thresh = RAND_MAX;
 int
 ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
 {
-    obj_data_t *    new_obj;
-    obj_adata_t     *cur, *next;
+	obj_data_t *    new_obj;
+	obj_adata_t     *cur, *next;
 
-    new_obj = (obj_data_t *)obj_handle;
+	new_obj = (obj_data_t *)obj_handle;
 
-    if (new_obj->base != NULL) {
-        free(new_obj->base);
-    }
+	if (new_obj->base != NULL) {
+		free(new_obj->base);
+	}
 
-    cur = new_obj->attr_info.attr_dlist;
-    while (cur != NULL) {
-        next = cur->adata_next;
-        free(cur->adata_base);
-        free(cur);
-        cur = next;
-    }
-    free(new_obj);
-    return(0);
+	cur = new_obj->attr_info.attr_dlist;
+	while (cur != NULL) {
+		next = cur->adata_next;
+		free(cur->adata_base);
+		free(cur);
+		cur = next;
+	}
+	free(new_obj);
+	return(0);
 }
 
 static int
 release_object(ls_obj_handle_t obj_handle)
 {
-    obj_data_t *    new_obj;
-    obj_adata_t     *cur, *next;
+	obj_data_t *    new_obj;
+	obj_adata_t     *cur, *next;
 
-    new_obj = (obj_data_t *)obj_handle;
+	new_obj = (obj_data_t *)obj_handle;
 
-    if (new_obj->base != NULL) {
-        free(new_obj->base);
-    }
+	if (new_obj->base != NULL) {
+		free(new_obj->base);
+	}
 
-    cur = new_obj->attr_info.attr_dlist;
-    while (cur != NULL) {
-        next = cur->adata_next;
-        free(cur->adata_base);
-        free(cur);
-        cur = next;
-    }
-    free(new_obj);
+	cur = new_obj->attr_info.attr_dlist;
+	while (cur != NULL) {
+		next = cur->adata_next;
+		free(cur->adata_base);
+		free(cur);
+		cur = next;
+	}
+	free(new_obj);
 }
 
 /*
@@ -164,8 +166,8 @@ release_object(ls_obj_handle_t obj_handle)
 static void
 thread_setup(search_state_t * sstate)
 {
-    log_thread_register(sstate->log_cookie);
-    dctl_thread_register(sstate->dctl_cookie);
+	log_thread_register(sstate->log_cookie);
+	dctl_thread_register(sstate->dctl_cookie);
 }
 
 int
@@ -446,8 +448,8 @@ id_stop_search(search_state_t *sstate)
 
 
 int
-id_set_searchlet(search_state_t *sstate, char *filter_file_name, 
-	char *filter_spec_name, int vid)
+id_set_searchlet(search_state_t *sstate, char *filter_file_name,
+                 char *filter_spec_name, int vid)
 {
 	device_handle_t		*cur_dev;
 	int			err;
@@ -546,38 +548,38 @@ id_set_blob(search_state_t *sstate, char *filter_name,
 void
 id_set_gid(search_state_t *sstate, groupid_t gid)
 {
-    uint32_t        host_ids[MAX_HOST_IDS];
-    int         hosts;
-    int         j;
-    int         err;
-                                                                                
+	uint32_t        host_ids[MAX_HOST_IDS];
+	int         hosts;
+	int         j;
+	int         err;
 
-    /*
-     * for each of the groups, get the list
-     * of machines that have some of this data.
-     */
-        hosts = MAX_HOST_IDS;
-        glkup_gid_hosts(gid, &hosts, host_ids);
-		printf("gid match %d hosts \n", hosts);
-        for (j=0; j<hosts; j++) {
-            err = device_add_gid(sstate, gid, host_ids[j]);
-            if (err) {
-                struct in_addr in;
-                char *  name;
-                /*
-                 * we failed to add of init with the host,
-                 * just fail this call for now, this
-                 * is basically a bad state
-                 * we can't recover from.
-                 */
-                in.s_addr = host_ids[j];
-                name = inet_ntoa(in);
-                fprintf(stderr, "Failed to connect to device %s for gid %llx\n",                        name, gid);
-            }
-        }
-                                                                                
-    /* XXX push the list of groups to disk */
-                                                                                
+
+	/*
+	 * for each of the groups, get the list
+	 * of machines that have some of this data.
+	 */
+	hosts = MAX_HOST_IDS;
+	glkup_gid_hosts(gid, &hosts, host_ids);
+	printf("gid match %d hosts \n", hosts);
+	for (j=0; j<hosts; j++) {
+		err = device_add_gid(sstate, gid, host_ids[j]);
+		if (err) {
+			struct in_addr in;
+			char *  name;
+			/*
+			 * we failed to add of init with the host,
+			 * just fail this call for now, this
+			 * is basically a bad state
+			 * we can't recover from.
+			 */
+			in.s_addr = host_ids[j];
+			name = inet_ntoa(in);
+			fprintf(stderr, "Failed to connect to device %s for gid %llx\n",                        name, gid);
+		}
+	}
+
+	/* XXX push the list of groups to disk */
+
 
 
 }
@@ -686,10 +688,10 @@ device_main(void *arg)
 	search_state_t *sstate;
 	dev_cmd_data_t *cmd;
 	obj_data_t     *new_obj;
-	obj_info_t *	obj_info;	
+	obj_info_t *	obj_info;
 	int             err;
 	int             any;
-	int				complete; 
+	int				complete;
 	double			time;
 	struct timespec timeout;
 	int		force_eval;
@@ -717,14 +719,14 @@ device_main(void *arg)
 		/*
 		 * XXX look for data from device to process.
 		 */
-		if ((sstate->flags & DEV_FLAG_RUNNING) && 
-			(sstub_queued_objects(sstate->comm_cookie) < 40)) {
+		if ((sstate->flags & DEV_FLAG_RUNNING) &&
+		    (sstub_queued_objects(sstate->comm_cookie) < 40)) {
 			obj_info = (obj_info_t *)ring_deq(sstate->proc_ring);
 			if (obj_info != NULL) {
 				any = 1;
 				new_obj = obj_info->obj;
 				err = sstub_send_obj(sstate->comm_cookie,
-				                     	new_obj, sstate->ver_no, 1);
+				                     new_obj, sstate->ver_no, 1);
 				assert(err == 0);
 				free(obj_info);
 			} else if (sstate->cur_status == SS_DONE) {
@@ -740,115 +742,115 @@ device_main(void *arg)
 		ls_release_object(sc, new_obj);
 
 		cmd = (dev_cmd_data_t *) ring_deq(sstate->control_ops);
-			force_eval = 0;
-			/* XXXX change this */
-			if (err == ENOENT) {
-				/*
-				 * We have processed all the objects,
-				 * clear the running and set the complete
-				 * flags.
-				 */
-				sstate->flags &= ~DEV_FLAG_RUNNING;
-				sstate->flags |= DEV_FLAG_COMPLETE;
+		force_eval = 0;
+		/* XXXX change this */
+		if (err == ENOENT) {
+			/*
+			 * We have processed all the objects,
+			 * clear the running and set the complete
+			 * flags.
+			 */
+			sstate->flags &= ~DEV_FLAG_RUNNING;
+			sstate->flags |= DEV_FLAG_COMPLETE;
 
+			/*
+			 * XXX big hack for now.  To indiate
+			 * we are done we send object with
+			 * no data or attributes.
+			 */
+			new_obj = odisk_null_obj();
+			new_obj->remain_compute = 0.0;
+			err = sstub_send_obj(sstate->comm_cookie,
+			                     new_obj, sstate->ver_no, 1);
+			if (err) {
 				/*
-				 * XXX big hack for now.  To indiate
-				 * we are done we send object with
-				 * no data or attributes.
+				 * XXX overflow gracefully 
 				 */
-				new_obj = odisk_null_obj();
-				new_obj->remain_compute = 0.0;
-				err = sstub_send_obj(sstate->comm_cookie,
-				                     new_obj, sstate->ver_no, 1);
+				/*
+				 * XXX log 
+				 */
+
+			} else {
+				/*
+				 * XXX log 
+				 */
+				sstate->pend_objs++;
+			}
+		} else if (err) {
+			/*
+			 * printf("dmain: failed to get obj !! \n"); 
+			 */
+			/*
+			 * sleep(1); 
+			 */
+			continue;
+		} else {
+			any = 1;
+
+			/*
+				 * set bypass values periodically.
+				 */
+			sstate->obj_processed++;
+
+
+			/*
+			 * We want to process some number of objects
+			 * locally to get the necessary statistics.
+			 * Setting force_eval will make sure process the whole
+			 * object.
+			 */
+
+			if ((sstate->obj_processed & 0xf) == 0xf) {
+				force_eval = 1;
+			}
+
+			err = eval_filters(new_obj, sstate->fdata, force_eval, &time,
+			                   sstate, continue_fn, NULL);
+			if (err == 0) {
+				sstate->obj_dropped++;
+				search_free_obj(sstate, new_obj);
+			} else {
+				sstate->obj_passed++;
+				if (err == 1) {
+					complete = 0;
+				} else {
+					complete = 1;
+				}
+
+				sstate->pend_objs++;
+				sstate->pend_compute += new_obj->remain_compute;
+				//printf("queu %f new %f \n",
+				//new_obj->remain_compute,
+				//sstate->pend_compute);
+
+				err = sstub_send_obj(sstate->comm_cookie, new_obj,
+				                     sstate->ver_no, complete);
 				if (err) {
 					/*
-					 * XXX overflow gracefully 
+					 * XXX overflow gracefully
 					 */
-					/*
-					 * XXX log 
-					 */
-
-				} else {
-					/*
-					 * XXX log 
-					 */
-					sstate->pend_objs++;
+					sstate->pend_objs--;
+					sstate->pend_compute -= new_obj->remain_compute;
 				}
-			} else if (err) {
-				/*
-				 * printf("dmain: failed to get obj !! \n"); 
-				 */
-				/*
-				 * sleep(1); 
-				 */
-				continue;
-			} else {
-				any = 1;
-
-				/* 
-			 	 * set bypass values periodically.
- 				 */
-                sstate->obj_processed++;
-
-                                                                                
-                /*
-                 * We want to process some number of objects
-                 * locally to get the necessary statistics.
-                 * Setting force_eval will make sure process the whole
-                 * object.
-                 */
-                                                                                
-                if ((sstate->obj_processed & 0xf) == 0xf) {
-                    force_eval = 1;
-                }
-
-                err = eval_filters(new_obj, sstate->fdata, force_eval, &time,
-                                     sstate, continue_fn, NULL);
-                if (err == 0) {
-                    sstate->obj_dropped++;
-                    search_free_obj(sstate, new_obj);
-                } else {
-                    sstate->obj_passed++;
-                    if (err == 1) {
-                        complete = 0;
-                    } else {
-                        complete = 1;
-                    }
-                                                                                
-                    sstate->pend_objs++;
-                    sstate->pend_compute += new_obj->remain_compute;
-                    //printf("queu %f new %f \n",
-                        //new_obj->remain_compute,
-                        //sstate->pend_compute);
-                                                                                
-                    err = sstub_send_obj(sstate->comm_cookie, new_obj,
-                                         sstate->ver_no, complete);
-                    if (err) {
-                        /*
-                         * XXX overflow gracefully
-                         */
-                        sstate->pend_objs--;
-                        sstate->pend_compute -= new_obj->remain_compute;
-                    }
-                }
 			}
 		}
+	}
 #endif
 
-		/*
-		 * If we didn't have any work to process this time around,
-		 * then we sleep on a cond variable for a small amount
-		 * of time.
-		 */
-		/*
-		 * XXX move mutex's to the state data structure 
-		 */
-		if (!any) {
-			timeout.tv_sec = 0;
-			timeout.tv_nsec = 100000000; /* XXX 10ms */
-			nanosleep(&timeout, NULL);
-		}
+	/*
+	 * If we didn't have any work to process this time around,
+	 * then we sleep on a cond variable for a small amount
+	 * of time.
+	 */
+	/*
+	 * XXX move mutex's to the state data structure 
+	 */
+	if (!any) {
+		timeout.tv_sec = 0;
+		timeout.tv_nsec = 100000000; /* XXX 10ms */
+		nanosleep(&timeout, NULL);
 	}
+}
 }
 
 
@@ -1001,14 +1003,14 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	                   dctl_read_uint32, dctl_write_uint32,
 	                   &sstate->bp_feedback);
 
- 	err = dctl_register_node(ROOT_PATH, HOST_PATH);
-    assert(err == 0);
-                                                                                
-    err = dctl_register_node(ROOT_PATH, DEVICE_PATH);
-    assert(err == 0);
-                                                                                
-    err = dctl_register_node(HOST_PATH, HOST_NETWORK_NODE);
-    assert(err == 0);
+	err = dctl_register_node(ROOT_PATH, HOST_PATH);
+	assert(err == 0);
+
+	err = dctl_register_node(ROOT_PATH, DEVICE_PATH);
+	assert(err == 0);
+
+	err = dctl_register_node(HOST_PATH, HOST_NETWORK_NODE);
+	assert(err == 0);
 
 
 	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
@@ -1206,7 +1208,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_dropped = sstate->obj_dropped;
 	stats->ds_objs_nproc = sstate->obj_skipped;
 	stats->ds_system_load = (int) (fexec_get_load(sstate->fdata) * 100.0);  /* XXX
-	                                                                             */
+		                                                                             */
 	stats->ds_avg_obj_time = 0;
 	stats->ds_num_filters = num_filt;
 

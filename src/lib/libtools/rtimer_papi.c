@@ -121,9 +121,9 @@ rt_papi_global_init()
 	 */
 
 	pattr_default = (pthread_attr_t *) malloc(sizeof(pthread_attr_t));  /* not
-		                                                                         * free'd 
-		                                                                         * XXX 
-		                                                                         */
+			                                                                         * free'd 
+			                                                                         * XXX 
+			                                                                         */
 	if (!pattr_default) {
 		report_error(__FILE__, __LINE__, "malloc", 0);
 		return 1;

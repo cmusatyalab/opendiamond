@@ -47,9 +47,11 @@ typedef struct odisk_state {
 } odisk_state_t;
 */
 
-typedef	struct gid_idx_ent {
-	char		gid_name[MAX_GID_NAME];
-} gid_idx_ent_t;
+typedef	struct gid_idx_ent
+{
+    char		gid_name[MAX_GID_NAME];
+}
+gid_idx_ent_t;
 
 
 /*

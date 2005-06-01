@@ -221,7 +221,7 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		cstate->data_tx_oheader.data_len  =
 		    htonl((int)obj->data_len);
 		cstate->data_tx_oheader.remain_compute  =
-			 htonl((int)(obj->remain_compute * 1000));
+		    htonl((int)(obj->remain_compute * 1000));
 		cstate->data_tx_oheader.version_num  = htonl((int)vnum);
 
 
@@ -232,9 +232,9 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 		/* setup attr setup */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
-		                        &cstate->attr_buf,
-					&cstate->attr_remain,
-		                        &cstate->attr_cookie,  cstate->drop_attrs);
+		                         &cstate->attr_buf,
+		                         &cstate->attr_remain,
+		                         &cstate->attr_cookie,  cstate->drop_attrs);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -455,7 +455,7 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 	data_size = sizeof(credit_count_msg_t);
 	rsize = recv(cstate->data_fd, data, data_size, 0);
 
-	/* make sure we read the whole message and that it has 
+	/* make sure we read the whole message and that it has
 	 * the right header 
 	 */
 	if (rsize == -1) {

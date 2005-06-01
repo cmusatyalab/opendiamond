@@ -20,8 +20,8 @@
 
 
 enum split_types_t {
-	SPLIT_TYPE_FIXED = 0,	/* Defined fixed ratio of work */
-	SPLIT_TYPE_DYNAMIC	/* use dynamic optimization */
+    SPLIT_TYPE_FIXED = 0,	/* Defined fixed ratio of work */
+    SPLIT_TYPE_DYNAMIC	/* use dynamic optimization */
 };
 
 
@@ -38,44 +38,46 @@ enum split_types_t {
 
 
 
-typedef struct search_state {
-    void           *comm_cookie;	/* cookie from the communication lib */
-    pthread_t       thread_id;	
-    unsigned int    flags;
-    struct odisk_state *ostate;
-    struct ceval_state *cstate;
-    int             ver_no;
-    ring_data_t    *control_ops;
-    pthread_mutex_t log_mutex;
-    pthread_cond_t  log_cond;
-    pthread_t       log_thread;
-    pthread_t       bypass_id;
-    filter_data_t  *fdata;
-    uint            obj_total;
-    uint            obj_processed;
-    uint            obj_dropped;
-    uint            obj_passed;
-    uint            obj_skipped;
-    uint            network_stalls;
-    uint            tx_full_stalls;
-    uint            tx_idles;
-    uint            pend_objs;
-    float	    pend_compute;
-    uint            pend_max;
-    uint            split_type;		/* policy for the splitting */
-    uint            split_ratio;	/* amount of computation to do local */
-    uint            split_mult;		/* multiplier for queue size */
-    uint            split_auto_step;	/* step to increment ration by */
-    uint            split_bp_thresh;	/* below, not enough work for host */
-    uint	    avg_int_ratio;	/* average ratio for this run */
-    uint	    smoothed_int_ratio;	/* integer smoothed ratio */
-    float	    smoothed_ratio;	/* smoothed value */
-    uint	    old_proc;		/* last number run */
-    float	    avg_ratio;	        /* floating point avg ratio */
-    void           *dctl_cookie;
-    void           *log_cookie;
-    unsigned char  *sig;
-} search_state_t;
+typedef struct search_state
+{
+	void           *comm_cookie;	/* cookie from the communication lib */
+	pthread_t       thread_id;
+	unsigned int    flags;
+	struct odisk_state *ostate;
+	struct ceval_state *cstate;
+	int             ver_no;
+	ring_data_t    *control_ops;
+	pthread_mutex_t log_mutex;
+	pthread_cond_t  log_cond;
+	pthread_t       log_thread;
+	pthread_t       bypass_id;
+	filter_data_t  *fdata;
+	uint            obj_total;
+	uint            obj_processed;
+	uint            obj_dropped;
+	uint            obj_passed;
+	uint            obj_skipped;
+	uint            network_stalls;
+	uint            tx_full_stalls;
+	uint            tx_idles;
+	uint            pend_objs;
+	float	    pend_compute;
+	uint            pend_max;
+	uint            split_type;		/* policy for the splitting */
+	uint            split_ratio;	/* amount of computation to do local */
+	uint            split_mult;		/* multiplier for queue size */
+	uint            split_auto_step;	/* step to increment ration by */
+	uint            split_bp_thresh;	/* below, not enough work for host */
+	uint	    avg_int_ratio;	/* average ratio for this run */
+	uint	    smoothed_int_ratio;	/* integer smoothed ratio */
+	float	    smoothed_ratio;	/* smoothed value */
+	uint	    old_proc;		/* last number run */
+	float	    avg_ratio;	        /* floating point avg ratio */
+	void           *dctl_cookie;
+	void           *log_cookie;
+	unsigned char  *sig;
+}
+search_state_t;
 
 
 

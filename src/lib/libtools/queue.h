@@ -489,9 +489,10 @@ struct {								\
  * They bogusly assumes that all queue heads look alike.
  */
 
-struct quehead {
-    struct quehead *qh_link;
-    struct quehead *qh_rlink;
+struct quehead
+{
+	struct quehead *qh_link;
+	struct quehead *qh_rlink;
 };
 
 #ifdef	__GNUC__
@@ -499,23 +500,23 @@ struct quehead {
 static __inline void
 insque(void *a, void *b)
 {
-    struct quehead *element = a,
-        *head = b;
+	struct quehead *element = a,
+				                          *head = b;
 
-    element->qh_link = head->qh_link;
-    element->qh_rlink = head;
-    head->qh_link = element;
-    element->qh_link->qh_rlink = element;
+	element->qh_link = head->qh_link;
+	element->qh_rlink = head;
+	head->qh_link = element;
+	element->qh_link->qh_rlink = element;
 }
 
 static __inline void
 remque(void *a)
 {
-    struct quehead *element = a;
+	struct quehead *element = a;
 
-    element->qh_link->qh_rlink = element->qh_rlink;
-    element->qh_rlink->qh_link = element->qh_link;
-    element->qh_rlink = 0;
+	element->qh_link->qh_rlink = element->qh_rlink;
+	element->qh_rlink->qh_link = element->qh_link;
+	element->qh_rlink = 0;
 }
 
 #else                           /* !__GNUC__ */

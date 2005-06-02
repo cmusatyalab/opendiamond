@@ -1,30 +1,53 @@
+Building the system
+-------------------
 
-- You need to set the environmental variable DIAMOND_ROOT
-  that points to the top level of the tree (it should
-  be the directory this file is in).
+Edit Makefile.template if you want to change any of the default
+values of where applications are installed or how the application is built.
+If you are planning on running the disk daemon (adiskd) on the local 
+machine you can set up DATADIR value in the template file to be
+where the data should be stored.  This will setup a basic configuration
+file for you during the install process.
 
-- Build the support files. Check support/readme for other dependencies.
+Set the environmental value DIAMOND_ROOT to point to the top level of the tree
+(it should be the directory this file is in).  In bash this can be done by:
+	
+	export 	DIAMOND_ROOT=`pwd`
 
-  cd support; make
+Build the system by typing "make" at the top level.  "make depend" will
+setup all the dependancies for you.  Due to the current way the header
+files are copied you will need to perform a "make" before running
+"make depend" or it will not be able to find all the header files.
 
-- Build Diamond.
+Assuming everyhing builds correctly you should have a complete system
+built.  To install the software run "make install".  Assuming you 
+keep the default target directories you will probably need to be
+root to run this.  If you want to install the tools on a remote
+machine you will need to manually copy the binaries in target/bin
+to the remote machines.  Hopefully there will be scripts to do this soon. -:)
 
-  cd diamond; make
+You should be ready to build the applications as well as running adiskd.
+
+Running adisk   
+-------------
+
+To run adiskd you will need a config file that points to where the data
+is stored.  By default this is called "diamond_config".  The system
+will look for the file in 3 locations in this order.  First it looks for
+an environmental varialbe DIAMOND_CONFIG.  If this is set, it will
+use it value as the name of the config file.  If DIAMOND_CONFIG is not
+set it will look for a file called diamond_config in the local directory.  If
+that doesn't exist it will look try to read /usr/local/diamond/etc/diamond_config.
+
+The config file should have a line with the format
+
+   DATADIR <full path of the data directory>
 
 
-These two steps apply to the server:
+Once the config file exists, start the deamon by running 
 
-- Index the data.
+	/usr/local/diamond/bin/adiskd
 
-  Before you start the daemon, you need to run the program "odisk_idx"
-  on the machine with the data.  You can find this in lib/libodisk.
-  This will build the index files.
-
-- Run adiskd.
-
-  After this, the adiskd should work as normal.
+Now you should be able to search the data in the specified data directory.
 
 
-This step applies to the client:
 
-- Update gid_map and name_map to agree with the data on the server(s)

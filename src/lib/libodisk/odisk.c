@@ -28,6 +28,7 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_odisk.h"
+#include "lib_dconfig.h"
 #include "lib_log.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
@@ -989,12 +990,19 @@ odisk_num_waiting(odisk_state_t * odisk)
 }
 
 int
-odisk_init(odisk_state_t ** odisk, char *dir_path, void *dctl_cookie,
+odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
            void *log_cookie)
 {
 	odisk_state_t  *new_state;
 	int             err;
+	char *			dir_path;
 	int			i;
+
+	if (dirp == NULL) {
+		dir_path = dconf_get_datadir();
+	} else {
+		dir_path = dirp;
+	}
 
 	if (strlen(dir_path) > (MAX_DIR_PATH - 1)) {
 		/*

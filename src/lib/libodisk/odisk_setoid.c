@@ -48,7 +48,6 @@ int
 main(int argc, char **argv)
 {
 	odisk_state_t*	odisk;
-	char *			path;
 	int		err;
 	uint32_t	devid;
 	void *		log_cookie;
@@ -58,16 +57,10 @@ main(int argc, char **argv)
 
 	host_addr = argv[1];
 
-	if (argc > 2) {
-		path = argv[2];
-	} else {
-		path = "/opt/dir1";
-	}
-
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);
 
-	err = odisk_init(&odisk, path, dctl_cookie, log_cookie);
+	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

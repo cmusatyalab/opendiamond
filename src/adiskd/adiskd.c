@@ -32,13 +32,6 @@
 #include "search_state.h"
 
 /*
- * the default directory that holds our data 
- */
-char           *data_dir = "/opt/dir1/";
-
-
-
-/*
  * The default behaviors are to create a new daemon at startup time
  * and to fork whenever a new connection is established.
  */
@@ -50,10 +43,9 @@ int             run_silent = 1;
 void
 usage()
 {
-	fprintf(stdout, "adiskd [-d] [-n] [-p <pathname>] \n");
+	fprintf(stdout, "adiskd [-d] [-n] [-s] \n");
 	fprintf(stdout, "\t -d do not run adisk as a daemon \n");
 	fprintf(stdout, "\t -n do not fork for a  new connection \n");
-	fprintf(stdout, "\t -p <pathname>  set alternative data directory \n");
 	fprintf(stdout, "\t -c do not cleanup *.so files from /tmp \n");
 	fprintf(stdout, "\t -s run silently \n");
 	fprintf(stdout, "\t -h get this help message \n");
@@ -73,7 +65,7 @@ main(int argc, char **argv)
 	 */
 
 	while (1) {
-		c = getopt(argc, argv, "cdhnp:s");
+		c = getopt(argc, argv, "cdhns");
 		if (c == -1) {
 			break;
 		}
@@ -97,10 +89,6 @@ main(int argc, char **argv)
 				do_daemon = 0;
 				break;
 
-			case 'p':
-				data_dir = optarg;
-				break;
-
 			case 's':
 				run_silent = 0;
 				break;
@@ -110,7 +98,6 @@ main(int argc, char **argv)
 				exit(1);
 				break;
 		}
-
 	}
 
 

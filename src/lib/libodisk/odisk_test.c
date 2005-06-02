@@ -188,7 +188,7 @@ main(int argc, char **argv)
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);
 
-	err = odisk_init(&odisk, "/opt/dir1", dctl_cookie, log_cookie);
+	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

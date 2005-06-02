@@ -94,8 +94,6 @@ typedef struct
 }
 dev_cmd_data_t;
 
-extern char    *data_dir;
-
 int
 search_stop(void *app_cookie, int gen_num)
 {
@@ -1060,7 +1058,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Initialize our communications with the object
 	 * disk sub-system.
 	 */
-	err = odisk_init(&sstate->ostate, data_dir, sstate->dctl_cookie,
+	err = odisk_init(&sstate->ostate, NULL, sstate->dctl_cookie,
 	                 sstate->log_cookie);
 	if (err) {
 		fprintf(stderr, "Failed to init the object disk \n");
@@ -1069,7 +1067,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	}
 
 	/* JIAYING: add ocache_init */
-	err = ocache_init(data_dir, sstate->dctl_cookie, sstate->log_cookie);
+	err = ocache_init(NULL, sstate->dctl_cookie, sstate->log_cookie);
 	if (err) {
 		fprintf(stderr, "Failed to init the object cache \n");
 		assert(0);
@@ -1117,7 +1115,7 @@ int
 search_close_conn(void *app_cookie)
 {
 	/* JIAYING: may use dctl option later */
-	ocache_stop(data_dir);
+	ocache_stop(NULL);
 	//exit(0);
 	return (0);
 }

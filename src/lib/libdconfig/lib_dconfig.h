@@ -43,10 +43,11 @@ int             glkup_gid_hosts(groupid_t gid, int *num_hosts,
 	                                uint32_t * hostids);
 
 
-char *			dconf_get_datadir();
+char *		dconf_get_datadir();
 
 
 #ifdef __cplusplus
 }
 #endif
 #endif                          /* !_LIB_DCONFIG_H_ */
+

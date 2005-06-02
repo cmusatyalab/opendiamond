@@ -43,6 +43,7 @@
 #include "lib_odisk.h"
 #include "lib_filterexec.h"
 #include "lib_ocache.h"
+#include "lib_dconfig.h"
 
 #define	MAX_FNAME	128
 #define TEMP_ATTR_BUF_SIZE	1024
@@ -271,37 +272,6 @@ sig_iattr(cache_attr_set * iattr, unsigned char **signature)
 		return (EINVAL);
 	}
 }
-
-/* this is ok now because we always start with RGB, but need to fix later
-static int
-compare_attr_set(cache_attr_set * attr1, cache_attr_set * attr2)
-{
-	int             i, j;
-	cache_attr_entry *temp_i, *temp_j;
- 
-	for (i = 0; i < attr1->entry_num; i++) {
-		temp_i = attr1->entry_data[i];
-		if (temp_i == NULL) {
-			printf("null temp_i, something wrong\n");
-			continue;
-		}
-		for (j = 0; j < attr2->entry_num; j++) {
-			temp_j = attr2->entry_data[j];
-			if (temp_j == NULL) {
-				printf("null temp_j, something wrong\n");
-				continue;
-			}
-			if ((temp_i->name_len == temp_j->name_len) &&
-				!strncmp(temp_i->attr_name, temp_j->attr_name,
-						 temp_i->name_len)
-				&& strncmp(temp_i->attr_sig, temp_j->attr_sig, 16)) {
-				return 1;
-			}
-		}
-	}
-	return 0;
-}
-*/
 
 /* we should switch to this. need to build up initial input attr signature */
 static int
@@ -1907,13 +1877,19 @@ oattr_main(void *arg)
 }
 
 int
-ocache_init(char *dir_path, void *dctl_cookie, void *log_cookie)
+ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 {
 	ocache_state_t *new_state;
 	int             err;
 	char            buf[PATH_MAX];
+	char *		dir_path;
 	int             i;
 
+	if (dirp == NULL) {
+		dir_path = dconf_get_datadir();
+	} else {
+		dir_path = dirp;
+	}
 	if (strlen(dir_path) > (MAX_DIR_PATH - 1)) {
 		return (EINVAL);
 	}
@@ -1996,9 +1972,16 @@ ocache_start()
  * called by search_close_conn in adiskd/ 
  */
 int
-ocache_stop(char *dir_path)
+ocache_stop(char *dirp)
 {
 	int             i;
+	char *		dir_path;
+
+	if (dirp == NULL) {
+		dir_path = dconf_get_datadir();
+	} else {
+		dir_path = dirp;
+	}
 
 	// printf("ocache_stop\n");
 	pthread_mutex_lock(&shared_mutex);

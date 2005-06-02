@@ -38,8 +38,7 @@ init_disk()
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);
 
-	/* XXX */
-	err = odisk_init(&odata, "/opt/dir1", dctl_cookie, log_cookie);
+	err = odisk_init(&odata, NULL, dctl_cookie, log_cookie);
 	if (err) {
 		odata = NULL;
 		fprintf(stderr, "unable to initialize odisk \n");

@@ -40,8 +40,7 @@ main(int argc, char **argv)
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);
 
-	// err = ocache_init(&ocache, "/opt/dir1", dctl_cookie, log_cookie);
-	err = ocache_init("/opt/dir1", dctl_cookie, log_cookie);
+	err = ocache_init(NULL, dctl_cookie, log_cookie);
 	if (err) {
 		errno = err;
 		perror("failed to init ocache");

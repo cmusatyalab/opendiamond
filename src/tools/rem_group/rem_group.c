@@ -27,6 +27,7 @@
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_log.h"
+#include "lib_dconfig.h"
 #include "odisk_priv.h"
 
 int
@@ -97,11 +98,11 @@ main(int argc, char **argv)
 	char		idx_file[256];
 	char		path_name[256];
 	char		attr_name[256];
-	char *		path = "/opt/dir1";
 	int			max = 0;
 	int			have_gid = 0;
 	gid_idx_ent_t	gid_ent;
 	uint64_t	gid = 0;
+	char *			path;
 	int			err, num;
 	int			i,c;
 	int			do_count = 0;
@@ -152,6 +153,7 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
+	path = dconf_get_datadir();
 	dctl_init(&dctl_cookie);
 	log_init(&log_cookie);
 

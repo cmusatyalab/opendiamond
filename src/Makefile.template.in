@@ -11,15 +11,41 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+
+############################################################################
+# The following define the main configuration state the can be used
+# for installing and configuring the system.
+############################################################################
+
+ 
+# if you are running the adiskd daemon on the local machine
+# this is where the data should be stored (this is written into a config
+# file that can be changed later
+DATADIR=/home/larry/diamond_data
+
+#
+# Where the headers, libraries, and binaries should be placed during
+# the build process.
+#
 BUILD_LIB_PATH = $(DIAMOND_ROOT)/target/lib
 BUILD_INC_PATH = $(DIAMOND_ROOT)/target/include
 BUILD_BIN_PATH = $(DIAMOND_ROOT)/target/bin
 
-#  Install the directories
+# The installation directories, changes these if you want to
+# have different installation paths.
 INSTALLBASE=/usr/local/diamond
 INSTALLDIR_BIN=${INSTALLBASE}/bin
 INSTALLDIR_LIB=${INSTALLBASE}/lib
 INSTALLDIR_INCLUDE=${INSTALLBASE}/include
+INSTALLDIR_ETC=${INSTALLBASE}/etc
+
+
+############################################################################
+# This is the end of the main configuration section.  Only change the
+# next sections if you want to change the compile options or how
+# components are built.
+############################################################################
+
 
 
 INCDIR += -I${BUILD_INC_PATH}
@@ -106,7 +132,7 @@ endif
 
 
 
-TARGETS += copyheader copybin
+TARGETS += copyheader copybin 
 
 #  Rebuild everything, which is the program "PROG" and its 
 #	subdirectories "SUBDIRS" 
@@ -159,7 +185,6 @@ copybin:
 	done
 
 
-
 # Installs must get done as root, but we don't need to test here since 
 # installdirs will do it.  Note that local Makefiles should also perform
 # this check iff they define their own installdirs target.
@@ -183,6 +208,12 @@ ifneq ($(strip ${INSTALL_BIN}),)
 		${INSTALL} $${entry} ${INSTALLDIR_BIN} ; \
 	done
 endif
+ifneq ($(strip ${INSTALL_ETC}),)	
+	@for entry in ${INSTALL_ETC} ; do \
+		${INSTALL} $${entry} ${INSTALLDIR_ETC} ; \
+	done
+endif
+
 
 
 
@@ -202,7 +233,7 @@ endif
 
 #  Create the directories to install into
 
-ALL_INSTALLDIRS= ${INSTALLBASE} ${INSTALLDIR_BIN} ${INSTALLDIR_LIB} ${INSTALLDIR_INCLUDE}
+ALL_INSTALLDIRS= ${INSTALLBASE} ${INSTALLDIR_BIN} ${INSTALLDIR_LIB} ${INSTALLDIR_INCLUDE} ${INSTALLDIR_ETC}
 installdirs:
 	${TESTROOT}
 	@for entry in ${ALL_INSTALLDIRS} ; do \

@@ -19,9 +19,9 @@
 
  
 # if you are running the adiskd daemon on the local machine
-# this is where the data should be stored (this is written into a config
-# file that can be changed later
-DATADIR=/home/larry/diamond_data
+# set DATADIR to the path where the data should be stored (this is written 
+# into a config file that can be changed later
+DATADIR=
 
 #
 # Where the headers, libraries, and binaries should be placed during

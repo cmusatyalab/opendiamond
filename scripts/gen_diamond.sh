@@ -6,7 +6,7 @@ RELEASE_NAME=diamond-l.0.0
 #
 pushd ../src
 export DIAMOND_ROOT=`pwd`
-make clean
+make distclean
 popd
 
 #
@@ -25,6 +25,7 @@ find /tmp/"$RELEASE_NAME" -name CVS -exec rm -rf {} \;
 # remove diretories we don't want to ship
 rm -rf /tmp/"$RELEASE_NAME"/tools/filter_sim 
 rm -rf /tmp/"$RELEASE_NAME"/tools/fiord 
+rm -rf /tmp/"$RELEASE_NAME"/test
 
 
 # generate the tar file

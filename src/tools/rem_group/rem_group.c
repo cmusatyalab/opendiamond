@@ -100,9 +100,9 @@ main(int argc, char **argv)
 	char		attr_name[256];
 	int			max = 0;
 	int			have_gid = 0;
+	char *		path;
 	gid_idx_ent_t	gid_ent;
 	uint64_t	gid = 0;
-	char *			path;
 	int			err, num;
 	int			i,c;
 	int			do_count = 0;

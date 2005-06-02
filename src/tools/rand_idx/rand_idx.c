@@ -89,10 +89,10 @@ main(int argc, char **argv)
 {
 	FILE * 		cur_file;
 	char		idx_file[256];
-	char *		path = "/opt/dir1";
 	int			have_gid = 0;
 	gid_idx_ent_t	gid_ent;
 	uint64_t	gid = 0;
+	char *			path;
 	int			err, num;
 	int			i,c;
 	struct	stat		my_stat;
@@ -133,6 +133,8 @@ main(int argc, char **argv)
 		usage();
 		exit(1);
 	}
+
+	  path = dconf_get_datadir();
 
 	sprintf(idx_file, "%s/%s%016llX", path, GID_IDX, gid);
 	err = stat(idx_file, &my_stat);

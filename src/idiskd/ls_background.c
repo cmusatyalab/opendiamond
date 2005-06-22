@@ -40,6 +40,9 @@
 #include "filter_exec.h"
 #include "idiskd_ops.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /* XXX put later */
 #define	BG_RING_SIZE	512
 

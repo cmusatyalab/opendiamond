@@ -13,6 +13,9 @@
 
 extern int      read_gid_map(char *file);
 
+
+static char const cvsid[] = "$Header$";
+
 int
 main(int argc, char **argv)
 {

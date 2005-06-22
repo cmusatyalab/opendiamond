@@ -30,6 +30,9 @@
 #include "ring.h"
 #include "idiskd_ops.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /*
  * the default directory that holds our data 
  */

@@ -21,6 +21,10 @@
 #include "lib_log.h"
 
 
+
+static char const cvsid[] = "$Header$";
+
+
 static struct odisk_state * odata = NULL;
 
 

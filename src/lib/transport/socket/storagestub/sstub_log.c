@@ -40,6 +40,8 @@
 #include "sstub_impl.h"
 
 
+static char const cvsid[] = "$Header$";
+
 
 
 

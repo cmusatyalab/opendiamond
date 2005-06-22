@@ -39,6 +39,7 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
+static char const cvsid[] = "$Header$";
 
 int
 sstub_queued_objects(void *cookie)

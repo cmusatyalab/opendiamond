@@ -40,6 +40,9 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /* XXX constant config */
 #define		POLL_SECS	0
 #define		POLL_USECS	200000

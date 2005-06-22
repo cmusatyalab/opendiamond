@@ -30,6 +30,9 @@
 #include "lib_dconfig.h"
 #include "odisk_priv.h"
 
+
+static char const cvsid[] = "$Header$";
+
 int
 rebuild_idx(odisk_state_t *odisk)
 {

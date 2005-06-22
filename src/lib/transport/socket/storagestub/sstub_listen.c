@@ -41,6 +41,9 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /* XXX debug */
 #define OBJ_RING_SIZE		512
 #define CONTROL_RING_SIZE	1024

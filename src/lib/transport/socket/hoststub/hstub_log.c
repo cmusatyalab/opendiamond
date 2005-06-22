@@ -40,6 +40,7 @@
 #include "hstub_impl.h"
 
 
+static char const cvsid[] = "$Header$";
 
 void
 hstub_read_log(sdevice_state_t  *dev)

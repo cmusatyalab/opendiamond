@@ -41,6 +41,8 @@
 #include "hstub_impl.h"
 
 
+static char const cvsid[] = "$Header$";
+
 /*
  * Take the device characteristics we recieved and
  * store them as part of the device state.  We will use

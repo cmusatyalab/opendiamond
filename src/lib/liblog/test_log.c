@@ -20,6 +20,8 @@
 #include "lib_log.h"
 
 
+static char const cvsid[] = "$Header$";
+
 #define	INNER_MAX	500
 #define	OUTER_MAX	10000
 

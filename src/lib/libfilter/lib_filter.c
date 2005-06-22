@@ -30,13 +30,13 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_odisk.h"
-//#include "lib_searchlet.h"
-#//include "lib_search_priv.h"
 #include "lib_filter.h"
 #include "lib_filter_priv.h"
 #include "obj_attr_dump.h"
-//#include "filter_exec.h"
 #include "lib_log.h"
+
+static char const cvsid[] = "$Header$";
+
 
 static read_attr_cb 	read_attr_fn = NULL;
 static write_attr_cb 	write_attr_fn = NULL;

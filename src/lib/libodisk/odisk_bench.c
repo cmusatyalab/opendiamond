@@ -30,6 +30,8 @@
 #include "lib_log.h"
 #include "odisk_priv.h"
 
+static char const cvsid[] = "$Header$";
+
 int	pr_fetch = 0;
 
 

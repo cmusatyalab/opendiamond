@@ -30,6 +30,9 @@
 #include <errno.h>
 #include <assert.h>
 
+
+static char const cvsid[] = "$Header$";
+
 /* call to read the cycle counter */
 #define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
 

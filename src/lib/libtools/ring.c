@@ -24,6 +24,7 @@
 #include "ring.h"
 #include <assert.h>
 
+static char const cvsid[] = "$Header$";
 
 /* XXX move to common library */
 static double

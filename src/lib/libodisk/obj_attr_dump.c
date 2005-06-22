@@ -25,7 +25,7 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 
-
+static char const cvsid[] = "$Header$";
 
 
 typedef void (*sprintf_func_t)(char *, char *);

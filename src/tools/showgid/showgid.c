@@ -30,6 +30,8 @@
 #include "obj_attr.h"
 
 
+static char const cvsid[] = "$Header$";
+
 int
 isstring(char *str, int len)
 {

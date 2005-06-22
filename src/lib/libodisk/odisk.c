@@ -38,6 +38,9 @@
 #include "ring.h"
 #include "sig_calc.h"
 
+
+static char const cvsid[] = "$Header$";
+
 #define	MAX_READ_THREADS	1
 
 #define	CACHE_EXT	".CACHEFL"

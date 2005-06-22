@@ -43,6 +43,10 @@
 #include "lib_tools.h"
 #include "idiskd_ops.h"
 
+
+
+static char const cvsid[] = "$Header$";
+
 #define	LOG_RING_SIZE	512
 
 /* linux specific flag */

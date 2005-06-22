@@ -26,6 +26,8 @@
 #include "obj_attr.h"
 
 
+static char const cvsid[] = "$Header$";
+
 int
 set_defattr(char *attr_name, char *data_name)
 {

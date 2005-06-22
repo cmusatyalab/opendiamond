@@ -24,6 +24,7 @@
 #include "queue.h"
 #include "dctl_impl.h"
 
+static char const cvsid[] = "$Header$";
 
 #define	MAX_TOKEN	128
 

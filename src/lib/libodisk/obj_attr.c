@@ -32,6 +32,8 @@
 #include "odisk_priv.h"
 #include "sig_calc.h"
 
+static char const cvsid[] = "$Header$";
+
 #define CACHE_DIR               "cache"
 
 int

@@ -31,6 +31,8 @@
 #include "filter_priv.h"
 
 
+static char const cvsid[] = "$Header$";
+
 int
 fexec_num_filters(struct filter_data *fdata)
 {

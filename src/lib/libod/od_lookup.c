@@ -25,10 +25,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "queue.h"
-/* #include "lib_od.h" */
 #include "od.h"
 #include "od_priv.h"
 #include "lib_dconfig.h"
+
+
+
+static char const cvsid[] = "$Header$";
+
 
 /* number of buckets, must be power of 2 !! */
 #define     DEV_HASH_BUCKETS    64

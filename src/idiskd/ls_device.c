@@ -34,7 +34,6 @@
 #include "lib_searchlet.h"
 #include "lib_od.h"
 #include "lib_odisk.h"
-// XXX #include "lib_search_priv.h"
 #include "consts.h"
 #include "log.h"
 #include "log_impl.h"
@@ -45,6 +44,8 @@
 #include "filter_exec.h"
 #include "idiskd_ops.h"
 
+
+static char const cvsid[] = "$Header$";
 
 /*
  *  This function intializes the background processing thread that

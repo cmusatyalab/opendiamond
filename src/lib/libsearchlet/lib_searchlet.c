@@ -41,6 +41,8 @@
 #include "dctl_common.h"
 
 
+static char const cvsid[] = "$Header$";
+
 #define	PROC_RING_SIZE		1024
 #define	UNPROC_RING_SIZE	1024
 

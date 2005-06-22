@@ -27,6 +27,9 @@
 #include "lib_log.h"
 #include "odisk_priv.h"
 
+static char const cvsid[] = "$Header$";
+
+
 void
 remove_some_attr(obj_attr_t *attr, int size, int num)
 {

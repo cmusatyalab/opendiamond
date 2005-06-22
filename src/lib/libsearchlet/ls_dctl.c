@@ -40,6 +40,9 @@
 #include "dctl.h"
 #include "lib_tools.h"
 
+static char const cvsid[] = "$Header$";
+
+
 /* linux specific flag */
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
@@ -67,10 +70,8 @@ send_err_response(int conn, int err_code)
 	msg.dctl_dlen = 0;
 	msg.dctl_plen = 0;
 
-
 	err = send(conn, &msg, sizeof(msg), MSG_NOSIGNAL);
 	/* XXX ignore response */
-
 }
 
 

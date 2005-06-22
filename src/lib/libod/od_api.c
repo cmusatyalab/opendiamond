@@ -16,13 +16,13 @@
 #include <errno.h>
 #include <rpc/rpc.h>
 #include <assert.h>
-/* #include "lib_od.h"  */
 #include "queue.h"
 #include "od.h"
 #include "od_priv.h"
 #include "od_priv.h"
 
 
+static char const cvsid[] = "$Header$";
 
 /*
  * call before calling the other library calls.

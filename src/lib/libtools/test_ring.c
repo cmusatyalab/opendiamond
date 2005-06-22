@@ -24,6 +24,8 @@
 #include "ring.h"
 
 
+static char const cvsid[] = "$Header$";
+
 #define	TEST_RING_SIZE	512
 ring_data_t    *my_ring;
 ring_data_t    *my_2ring;

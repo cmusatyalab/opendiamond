@@ -27,6 +27,7 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 
+static char const cvsid[] = "$Header$";
 
 #ifdef	XXX_OLD
 int

@@ -41,6 +41,10 @@
 #include "lib_tools.h"
 #include "idiskd_ops.h"
 
+
+static char const cvsid[] = "$Header$";
+
+
 /* linux specific flag */
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0

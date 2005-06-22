@@ -26,6 +26,9 @@
 #include "log.h"
 #include "lib_tools.h"
 
+
+static char const cvsid[] = "$Header$";
+
 #define	MAX_BUFFER	4096
 
 

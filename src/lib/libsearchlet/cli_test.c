@@ -20,6 +20,7 @@
 #include <errno.h>
 #include "lib_searchlet.h"
 
+static char const cvsid[] = "$Header$";
 
 /* XXX debug */
 #define	TEST_FILTER_NAME	"/home/larry/coda/src/proj/libsearchlet/test.so"

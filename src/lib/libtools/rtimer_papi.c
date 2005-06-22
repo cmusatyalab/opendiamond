@@ -19,16 +19,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
 #include "rtimer_papi.h"
-/*
- * #include "rtimer_common.h" 
- */
 #include "rtimer.h"
-
 #include <pthread.h>
 #include "papiStdEventDefs.h"
 #include "papi.h"
+
+
+static char const cvsid[] = "$Header$";
 
 /*
  * warning: assumes appropriate locks are already held when calling these

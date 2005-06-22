@@ -48,6 +48,8 @@
 #include "lib_dconfig.h"
 
 
+static char const cvsid[] = "$Header$";
+
 /*
  * XXX other place 
  */

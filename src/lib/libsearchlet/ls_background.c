@@ -38,6 +38,9 @@
 #include "lib_search_priv.h"
 #include "lib_filterexec.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /* XXX put later */
 #define	BG_RING_SIZE	512
 

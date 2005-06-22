@@ -20,6 +20,9 @@
 #include <string.h>
 #include "lib_tools.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /* XXXX move this else where */
 void
 get_user_name(char *name)

@@ -42,6 +42,10 @@
 #include "lib_hstub.h"
 #include "lib_tools.h"
 
+
+static char const cvsid[] = "$Header$";
+
+
 #define	LOG_RING_SIZE	512
 
 /* linux specific flag */

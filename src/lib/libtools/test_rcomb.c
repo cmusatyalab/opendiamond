@@ -17,6 +17,10 @@
 #include <assert.h>
 #include "rcomb.h"
 
+
+static char const cvsid[] = "$Header$";
+
+
 int
 evaluate(void *context, permutation_t * perm, int *score)
 {

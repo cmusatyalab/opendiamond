@@ -45,6 +45,9 @@
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
 
+static char const cvsid[] = "$Header$";
+
+
 #define	MAX_FNAME	128
 #define TEMP_ATTR_BUF_SIZE	1024
 

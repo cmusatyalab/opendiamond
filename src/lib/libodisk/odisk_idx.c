@@ -27,6 +27,8 @@
 #include "rtimer.h"
 
 
+static char const cvsid[] = "$Header$";
+
 
 int
 main(int argc, char **argv)

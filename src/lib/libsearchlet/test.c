@@ -18,6 +18,9 @@
 #include "lib_searchlet.h"
 #include "lib_filter.h"
 
+
+static char const cvsid[] = "$Header$";
+
 int
 test(lf_obj_handle_t ohandle, int numarg, char **args)
 {

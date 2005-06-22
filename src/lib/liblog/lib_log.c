@@ -22,6 +22,7 @@
 #include "lib_log.h"
 
 
+static char const cvsid[] = "$Header$";
 
 typedef struct log_state
 {

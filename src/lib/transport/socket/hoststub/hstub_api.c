@@ -42,6 +42,9 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /* XXX move to common header */
 #define	HSTUB_RING_SIZE	512
 #define OBJ_RING_SIZE	512

@@ -23,7 +23,9 @@
 #include "lib_od.h"
 #include "lib_ocache.h"
 #include "ocache_priv.h"
-// #include "obj_attr.h"
+
+
+static char const cvsid[] = "$Header$";
 
 int
 main(int argc, char **argv)

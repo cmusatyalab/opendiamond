@@ -39,6 +39,9 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 
+
+static char const cvsid[] = "$Header$";
+
 /* set a socket to non-blocking */
 static void
 socket_non_block(int fd)

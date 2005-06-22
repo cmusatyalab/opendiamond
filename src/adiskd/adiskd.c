@@ -31,8 +31,7 @@
 #include "ring.h"
 #include "search_state.h"
 
-static char const rcsid[] = "$Header$";
-: f.c,v 5.4 1993/11/09 17:40:15 eggert Exp $";
+static char const rcsid[] = "$Id$";
 
 
 

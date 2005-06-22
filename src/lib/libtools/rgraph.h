@@ -49,23 +49,18 @@ edge_t;
 
 struct node_t;
 
-typedef
-TAILQ_HEAD(nodelist_t, node_t)
-nodelist_t;
+typedef TAILQ_HEAD(nodelist_t, node_t) nodelist_t;
 
 // typedef TAILQ_HEAD(edgelist_t, edge_t) edgelist_t;
-typedef struct edgelist_t
-{
+typedef struct edgelist_t {
 	int             len;
 	int             size;
 	edge_t         *edges;
-}
-edgelist_t;
+} edgelist_t;
 
 
 
-typedef struct node_t
-{
+typedef struct node_t {
 	/*
 	 * temp data used/output by algorithms 
 	 */
@@ -92,20 +87,17 @@ typedef struct node_t
 	 */
 	int             val;
 	void           *data;
-}
-node_t;
+} node_t;
 
 
 
 
-typedef struct graph_t
-{
+typedef struct graph_t {
 	nodelist_t      nodes;
 	nodelist_t      olist;  /* alternate list (output of some funcs) see
 	                                 * GLIST */
 	int             current_id; /* also an upper bound on no. of nodes */
-}
-graph_t;
+} graph_t;
 
 
 /*
@@ -142,12 +134,6 @@ const edgelist_t *gPredecessors(const graph_t * g, node_t * u);
 void            gPrint(graph_t * g);
 void            gPrintNode(node_t * np);
 
-#ifdef	XXX
-/*
- * export in daVinci format to filename 
- */
-void            gExport(graph_t * g, char *filename);
-#endif
 
 /*
  * a macro to visit all nodes. eg: GFOREACH(graph, nodeptr) {

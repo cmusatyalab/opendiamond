@@ -508,7 +508,6 @@ resolve_filter_deps(filter_data_t * fdata)
 	// int lastid;
 	graph_t         graph;
 	node_t         *np;
-	char           *filename = "filters";
 	node_t         *src_node;
 
 	/*
@@ -625,9 +624,6 @@ resolve_filter_deps(filter_data_t * fdata)
 	/*
 	 * export filters 
 	 */
-	// XXX fprintf(stderr, "filterexec: exporting filter graph to %s.*\n",
-	// filename);
-
 	{
 		node_t         *prev = NULL;
 		GLIST(&graph, np) {
@@ -640,7 +636,6 @@ resolve_filter_deps(filter_data_t * fdata)
 		}
 
 	}
-	gExport(&graph, filename);
 
 
 #ifdef	VERBOSE

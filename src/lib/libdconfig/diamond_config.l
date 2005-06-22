@@ -58,7 +58,7 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
                                                                                 
 %%
 #.*\n
-DATADIR[ \t]+[[:alnum:]_\/]+ 	{have_data_dir(eat_token(yytext));}
+DATADIR[ \t]+[[:alnum:]\-_\/]+ 	{have_data_dir(eat_token(yytext));}
 .				{ have_error(); }
 %%
 

@@ -227,15 +227,13 @@ gPredecessors(const graph_t * g, node_t * u)
 
 
 void
-gPrintNode(node_t * np)
-{
+gPrintNode(node_t * np) {
 	edge_t         *ep;
 
 	printf("{<%s>, ", np->label);
 	printf("%d, ", np->val);
 
 	printf("E(");
-	// TAILQ_FOREACH(ep, &np->edges, eg_link) {
 	VEC_FOREACH(ep, &np->successors) {
 		printf(" <%s>", ep->eg_v->label);
 	}
@@ -257,7 +255,6 @@ gPrintNode(node_t * np)
 void
 gPrint(graph_t * g)
 {
-	// printf("nodes:\n");
 	print_nodelist(&g->nodes, link);
 }
 
@@ -639,128 +636,6 @@ dv_export(graph_t * g, char *filename)
 	fclose(fp);
 }
 
-/*
- ********************************************************************** */
-/*
- * graphviz export 
- */
-/*
- ********************************************************************** */
-
-static void
-gviz_export_node(FILE * fp, node_t * np, int printedges, int indent)
-{
-	edge_t         *ep;
-	char           *red = "red";
-	// char *black = "black";
-	char            ind[10] = "\t\t\t\t\t\t\t\t\t";
-
-	assert(indent < 10);
-	ind[indent] = '\0';
-
-	/*
-	 * node already exported 
-	 */
-	if (np->color)
-		return;
-	np->color = 1;
-
-	fprintf(fp, "%s%d [shape=record] [label=\"%s|%d\"];\n",
-	        ind, np->id, np->label, np->val);
-
-	if (printedges) {
-		/*
-		 * export edges 
-		 */
-		VEC_FOREACH(ep, &np->successors) {
-			fprintf(fp, "%s%d -> %d", ind, np->id, ep->eg_v->id);
-			if (ep->eg_color) {
-				fprintf(fp, " [constraint=false, style=bold, color=%s]", red);
-			}
-			fprintf(fp, ";\n");
-		}
-	}
-}
-
-
-
-static void
-gviz_export(graph_t * g, char *filename)
-{
-	node_t         *np;
-	int             indent = 0;
-	FILE           *fp;
-	nodelist_t     *clusters;
-	int             i,
-	n;
-
-	fp = fopen(filename, "w");
-	if (!fp) {
-		perror(filename);
-		exit(1);
-	}
-
-	TAILQ_FOREACH(np, &g->nodes, link) {
-		np->color = 0;
-	}
-
-	fprintf(fp, "digraph G {\n");
-	fprintf(fp, "size=\"7.5,10\";\n");
-	fprintf(fp, "fontname=\"Helvetica\";\n");
-	fprintf(fp, "fontsize=\"10\";\n");
-	fprintf(fp, "rankdir=\"LR\";\n");
-	fprintf(fp, "orientation=\"[1L]*\";\n");
-	fprintf(fp, "edge [style=\"dashed\"];\n");
-
-	gAssignClusters(g, &clusters, &n);
-	for (i = 0; i < n; i++) {
-		if (TAILQ_EMPTY(&clusters[i]))
-			continue;
-
-		fprintf(fp, "\tsubgraph cluster%d {\n", i);
-		fprintf(fp, "\t\tstyle=filled;\n");
-		fprintf(fp, "\t\tcolor=lightgrey;\n");
-		TAILQ_FOREACH(np, &clusters[i], clink) {
-			gviz_export_node(fp, np, 0, indent + 2);
-		}
-		fprintf(fp, "\t}\n");
-	}
-	free(clusters);
-
-	fprintf(stderr, "exporting nodes\n");
-	TAILQ_FOREACH(np, &g->nodes, link) {
-		np->color = 0;
-	}
-	TAILQ_FOREACH(np, &g->nodes, link) {
-		gviz_export_node(fp, np, 1, indent + 1);
-	}
-
-
-	fprintf(fp, "}\n");
-
-	fclose(fp);
-}
-
-
-
-/*
- ********************************************************************** */
-
-#ifdef	XXX
-void
-gExport(graph_t * g, char *filename)
-{
-	char            buf[BUFSIZ];
-
-	if (0) {
-		sprintf(buf, "%s.daVinci", filename);
-		dv_export(g, buf);
-	}
-
-	sprintf(buf, "%s.gviz", filename);
-	gviz_export(g, buf);
-}
-#endif
 
 /*
  ********************************************************************** */

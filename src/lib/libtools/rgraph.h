@@ -142,10 +142,12 @@ const edgelist_t *gPredecessors(const graph_t * g, node_t * u);
 void            gPrint(graph_t * g);
 void            gPrintNode(node_t * np);
 
+#ifdef	XXX
 /*
  * export in daVinci format to filename 
  */
 void            gExport(graph_t * g, char *filename);
+#endif
 
 /*
  * a macro to visit all nodes. eg: GFOREACH(graph, nodeptr) {

@@ -746,7 +746,7 @@ gviz_export(graph_t * g, char *filename)
 /*
  ********************************************************************** */
 
-
+#ifdef	XXX
 void
 gExport(graph_t * g, char *filename)
 {
@@ -760,6 +760,7 @@ gExport(graph_t * g, char *filename)
 	sprintf(buf, "%s.gviz", filename);
 	gviz_export(g, buf);
 }
+#endif
 
 /*
  ********************************************************************** */

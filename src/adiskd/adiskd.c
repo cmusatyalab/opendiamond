@@ -24,14 +24,14 @@
 #include "diamond_types.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
-//XXX#include "lib_searchlet.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "lib_filterexec.h"
 #include "ring.h"
 #include "search_state.h"
 
-static char const cvsid[] = "$Id$";
+static char const cvsid[] = 
+   "$Header$";
 
 
 

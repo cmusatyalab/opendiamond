@@ -31,7 +31,7 @@
 #include "ring.h"
 #include "search_state.h"
 
-static char const rcsid[] = "$Id$";
+static char const cvsid[] = "$Id$";
 
 
 

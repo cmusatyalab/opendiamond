@@ -31,7 +31,8 @@
 #include "search_state.h"
 
 static char const cvsid[] = 
-   "$Header$";
+   "$Name$ $Revision$ $Date$";
+//  # : /home/cvs/diamond_cvs/diamond/src/adiskd/adiskd.c,v 1.27 2005/06/22 16:41:41 larry Exp $";
 
 
 

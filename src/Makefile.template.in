@@ -27,9 +27,9 @@ DATADIR=
 # Where the headers, libraries, and binaries should be placed during
 # the build process.
 #
-BUILD_LIB_PATH = $(ROOTDIR)/target/lib
-BUILD_INC_PATH = $(ROOTDIR)/target/include
-BUILD_BIN_PATH = $(ROOTDIR)/target/bin
+BUILD_LIB_PATH = $(OBJROOT)/target/lib
+BUILD_INC_PATH = $(OBJROOT)/target/include
+BUILD_BIN_PATH = $(OBJROOT)/target/bin
 
 # The installation directories, changes these if you want to
 # have different installation paths.
@@ -45,11 +45,12 @@ INSTALLDIR_ETC=${INSTALLBASE}/etc
 # next sections if you want to change the compile options or how
 # components are built.
 ############################################################################
-
+vpath %.l ${VPATH}
 
 
 INCDIR += -I${BUILD_INC_PATH}
 INCDIR += -I$(ROOTDIR)/common
+INCDIR += -I$(VPATH)
 
 LIBDIR += -L${BUILD_LIB_PATH}
 
@@ -102,6 +103,9 @@ DIST_OBJS += .depend Makefile
 
 %.o: %.c
 	${CC} ${INCDIR} ${CFLAGS} -c $< -o $@
+
+%.c: %.l
+	${FLEX} -o$@ $<
 
 %.o: %.cc
 	${CPLUSPLUS} ${INCDIR} ${CFLAGS} -c $< -o $@
@@ -175,9 +179,10 @@ ifneq ($(strip ${OBJS} ${PROG} $(CLEAN_OTHERS) $(TARGETS) $(DIST_OBJS)),)
 endif
 	${do-subdirs}
 
+
 copyheader:
-	@for entry in ${SHARED_HEADERS} ; do \
-		cp -fuv $${entry} ${BUILD_INC_PATH}; \
+	@for entry in ${SHARED_HEADERS}; do \
+		cp -fuv ${VPATH}/$${entry} ${BUILD_INC_PATH}; \
 	done
 
 copybin:

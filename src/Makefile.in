@@ -11,6 +11,9 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 SUBDIRS = common lib tools adiskd target
 

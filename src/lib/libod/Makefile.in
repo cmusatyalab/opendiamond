@@ -12,6 +12,9 @@
 #
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 SRVOBJS = od_svc.o  od_server.o od_xdr.o
 SRVSRC = od_svc.c  od_server.c od_xdr.c

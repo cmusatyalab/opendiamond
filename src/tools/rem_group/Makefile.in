@@ -12,6 +12,9 @@
 #
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 INCDIR += -I../../lib/libod -I../../lib/libsearchlet
 INCDIR += -I../../lib/libodisk 

@@ -12,6 +12,9 @@
 #
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 
 SUBDIRS = 
@@ -20,7 +23,7 @@ SUBDIRS =
 ALLFILES = $(wildcard *)
 
 # items we know that we don't want to include
-EXCLUDES = CVS Makefile
+EXCLUDES = CVS Makefile Makefile.in
 
 # The reduced set
 INSTALL_BIN = $(filter-out $(EXCLUDES), $(ALLFILES))

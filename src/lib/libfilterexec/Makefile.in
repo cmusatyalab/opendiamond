@@ -12,6 +12,9 @@
 #
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 CFLAGS_SO = $(CFLAGS) -fPIC
 LIBOBJS = filter_exec.o filter_spec.o fexec_stats.o fexec_misc.o 

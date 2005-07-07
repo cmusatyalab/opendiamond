@@ -13,6 +13,9 @@
 
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 LIBSRCS = lib_dctl.c dctl_helper.c
 LIBOBJS = lib_dctl.o dctl_helper.o

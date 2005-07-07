@@ -12,6 +12,9 @@
 #
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 SUBDIRS =  libtools libdconfig libdctl liblog libodisk  libfilter libcache
 SUBDIRS +=  libfilterexec libod transport libsearchlet

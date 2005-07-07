@@ -13,6 +13,9 @@
 
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 TEST_OBJS = odisk_test.o odisk_bench.o odisk_bench2.o
 TEST_SRCS = odisk_test.c odisk_bench.c odisk_bench2.c

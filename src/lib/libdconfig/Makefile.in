@@ -12,6 +12,9 @@
 #
 
 ROOTDIR = @top_srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
 
 LIBOBJS = group_lookup.o name_lookup.o diamond_config.o
 LIBSRCS = group_lookup.c name_lookup.c diamond_config.c

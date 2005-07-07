@@ -58,6 +58,11 @@ AC_CHECK_LIB([trace], [main])
 # FIXME: Replace `main' with a function in `-lxml2':
 AC_CHECK_LIB([xml2], [main])
 
+
+OBJROOT=`pwd`
+AC_SUBST(OBJROOT)
+
+
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC

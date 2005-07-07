@@ -26,7 +26,7 @@ INSTALL_ETC = diamond_config
 include $(ROOTDIR)/Makefile.template
 
 
-diamond_config: ${DIAMOND_ROOT}/Makefile.template
+diamond_config: $(ROOTDIR)/Makefile.template
 ifneq ($(strip ${DATADIR}),)
 	echo "DATADIR" ${DATADIR} > diamond_config
 endif

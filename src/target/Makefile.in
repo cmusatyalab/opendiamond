@@ -16,7 +16,7 @@ ROOTDIR = @top_srcdir@
 
 SUBDIRS = bin include lib etc
 
-include (ROOTDIR)/Makefile.template
+include $(ROOTDIR)/Makefile.template
 
 
 

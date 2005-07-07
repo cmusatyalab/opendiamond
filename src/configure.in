@@ -1,0 +1,132 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.57)
+AC_INIT(FULL-PACKAGE-NAME, VERSION, BUG-REPORT-ADDRESS)
+AC_CONFIG_SRCDIR([tools/slowdown/slowdown.c])
+AC_CONFIG_HEADER([config.h])
+
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_CC
+AC_PROG_LEX
+AC_PROG_LN_S
+
+# Checks for libraries.
+# FIXME: Replace `main' with a function in `-lcrypto':
+AC_CHECK_LIB([crypto], [main])
+# FIXME: Replace `main' with a function in `-lcvaux':
+AC_CHECK_LIB([cvaux], [main])
+# FIXME: Replace `main' with a function in `-ldconfig':
+AC_CHECK_LIB([dconfig], [main])
+# FIXME: Replace `main' with a function in `-ldctl':
+AC_CHECK_LIB([dctl], [main])
+# FIXME: Replace `main' with a function in `-ldl':
+AC_CHECK_LIB([dl], [main])
+# FIXME: Replace `main' with a function in `-lfilter':
+AC_CHECK_LIB([filter], [main])
+# FIXME: Replace `main' with a function in `-lfilterexec':
+AC_CHECK_LIB([filterexec], [main])
+# FIXME: Replace `main' with a function in `-lfl':
+AC_CHECK_LIB([fl], [main])
+# FIXME: Replace `main' with a function in `-lhstub':
+AC_CHECK_LIB([hstub], [main])
+# FIXME: Replace `main' with a function in `-llog':
+AC_CHECK_LIB([log], [main])
+# FIXME: Replace `main' with a function in `-lm':
+AC_CHECK_LIB([m], [main])
+# FIXME: Replace `main' with a function in `-locache':
+AC_CHECK_LIB([ocache], [main])
+# FIXME: Replace `main' with a function in `-lod':
+AC_CHECK_LIB([od], [main])
+# FIXME: Replace `main' with a function in `-lodisk':
+AC_CHECK_LIB([odisk], [main])
+# FIXME: Replace `main' with a function in `-lopencv':
+AC_CHECK_LIB([opencv], [main])
+# FIXME: Replace `main' with a function in `-lpthread':
+AC_CHECK_LIB([pthread], [main])
+# FIXME: Replace `main' with a function in `-lsearchlet':
+AC_CHECK_LIB([searchlet], [main])
+# FIXME: Replace `main' with a function in `-lssl':
+AC_CHECK_LIB([ssl], [main])
+# FIXME: Replace `main' with a function in `-lsstub':
+AC_CHECK_LIB([sstub], [main])
+# FIXME: Replace `main' with a function in `-ltools':
+AC_CHECK_LIB([tools], [main])
+# FIXME: Replace `main' with a function in `-ltrace':
+AC_CHECK_LIB([trace], [main])
+# FIXME: Replace `main' with a function in `-lxml2':
+AC_CHECK_LIB([xml2], [main])
+
+# Checks for header files.
+AC_HEADER_DIRENT
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/file.h sys/socket.h sys/time.h unistd.h values.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_CONST
+AC_TYPE_UID_T
+AC_C_INLINE
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_CHECK_MEMBERS([struct stat.st_blksize])
+AC_HEADER_TIME
+
+# Checks for library functions.
+AC_FUNC_CLOSEDIR_VOID
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_FUNC_REALLOC
+AC_FUNC_SELECT_ARGTYPES
+AC_FUNC_STAT
+AC_FUNC_STRTOD
+AC_CHECK_FUNCS([gethostbyaddr gethostbyname gettimeofday inet_ntoa memset mkdir select socket sqrt strdup strerror strtol])
+
+AC_CONFIG_FILES([Makefile
+                 adiskd/Makefile
+                 common/Makefile
+                 idiskd/Makefile
+                 lib/Makefile
+                 lib/libcache/Makefile
+                 lib/libdconfig/Makefile
+                 lib/libdctl/Makefile
+                 lib/libfilter/Makefile
+                 lib/libfilterexec/Makefile
+                 lib/liblog/Makefile
+                 lib/libod/Makefile
+                 lib/libodisk/Makefile
+                 lib/libsearchlet/Makefile
+                 lib/libtools/Makefile
+                 lib/transport/Makefile
+                 lib/transport/socket/Makefile
+                 lib/transport/socket/hoststub/Makefile
+                 lib/transport/socket/storagestub/Makefile
+                 target/Makefile
+                 target/bin/Makefile
+                 target/etc/Makefile
+                 target/include/Makefile
+                 target/lib/Makefile
+                 tools/Makefile
+                 tools/benchmark/Makefile
+                 tools/cam_upload/Makefile
+                 tools/dctl/Makefile
+                 tools/delattr/Makefile
+                 tools/disk_copy/Makefile
+                 tools/display_win/Makefile
+                 tools/dlog/Makefile
+                 tools/filter_sim/Makefile
+                 tools/group_count/Makefile
+                 tools/image_scan/Makefile
+                 tools/initattr/Makefile
+                 tools/prof_gen/Makefile
+                 tools/rand_idx/Makefile
+                 tools/rem_group/Makefile
+                 tools/setattr/Makefile
+                 tools/showattr/Makefile
+                 tools/showgid/Makefile
+                 tools/slowdown/Makefile])
+AC_OUTPUT

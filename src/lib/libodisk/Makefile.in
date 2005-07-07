@@ -1,0 +1,71 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+
+ROOTDIR = @top_srcdir@
+
+TEST_OBJS = odisk_test.o odisk_bench.o odisk_bench2.o
+TEST_SRCS = odisk_test.c odisk_bench.c odisk_bench2.c
+ATEST_SRCS = attr_test.c
+ATEST_OBJS = attr_test.o
+
+LIBOBJS = odisk.o obj_attr.o obj_lib_priv.o obj_attr_dump.o
+LIBSRCS = odisk.c obj_attr.c obj_lib_priv.c obj_attr_dump.c
+OBJS = $(LIBOBJS) $(TEST_OBJS) $(ATEST_OBJS)  del_obj.o odisk_idx.o odisk_setoid.o
+SRCS = $(LIBSRCS) $(TEST_SRCS) $(ATEST_SRCS)  del_obj.c odisk_idx.o odisk_setoid.o
+
+SHARED_HEADERS = lib_odisk.h obj_attr.h obj_attr_dump.h
+
+SHARED_BIN = odisk_idx odisk_setoid
+
+#LIBS += -ldl -lpthread  -lfl -lodisk -ltools -lfilterexec -llog -lhstub -ldconfig
+LIBS += -ldl -lpthread  -lfl -lodisk -ltools -llog -ldconfig
+LIBS +=  -ldctl  -lssl
+LIBDIR += -L../libfilterexec  -L../libtools -L../liblog -L../libodisk
+LIBDIR += -L../../transport/socket/hoststub -L.
+LIBDIR += -L../libdctl -L../libdconfig
+
+
+TARGETS = libodisk.a odisk_test odisk_idx odisk_setoid attr_test del_obj
+#TARGETS += odisk_bench odisk_bench2
+
+CFLAGS += -D_GNU_SOURCE
+
+include $(ROOTDIR)/Makefile.template 
+
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCDIR) -c -o $*.o $<
+
+
+odisk_test: $(TEST_OBJS) libodisk.a
+	$(CC) $(CFLAGS) -o odisk_test odisk_test.o $(LIBS) $(LIBDIR)
+
+
+odisk_bench: $(TEST_OBJS) libodisk.a
+	$(CC) $(CFLAGS) -o odisk_bench odisk_bench.o $(LIBS) $(LIBDIR)
+
+odisk_bench2: $(TEST_OBJS) libodisk.a
+	$(CC) $(CFLAGS) -o odisk_bench2 odisk_bench2.o $(LIBS) $(LIBDIR)
+
+attr_test: $(ATEST_OBJS) libodisk.a
+	$(CC) $(CFLAGS) -o attr_test $(ATEST_OBJS) $(LIBS) $(LIBDIR)
+
+odisk_idx: odisk_idx.o libodisk.a
+	$(CC) $(CFLAGS) -o odisk_idx odisk_idx.o  $(LIBS) $(LIBDIR)
+
+del_obj: del_obj.o libodisk.a
+	$(CC) $(CFLAGS) -o del_obj del_obj.o  $(LIBS) $(LIBDIR)
+
+odisk_setoid: odisk_setoid.o libodisk.a
+	$(CC) $(CFLAGS) -o odisk_setoid odisk_setoid.o  $(LIBS) $(LIBDIR)

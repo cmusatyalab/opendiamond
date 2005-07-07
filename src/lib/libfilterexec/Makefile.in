@@ -1,0 +1,47 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+CFLAGS_SO = $(CFLAGS) -fPIC
+LIBOBJS = filter_exec.o filter_spec.o fexec_stats.o fexec_misc.o 
+LIBOBJS += fexec_opt.o fexec_bypass.o
+LIBSRCS = filter_exec.c filter_spec.c fexec_stats.c fexec_misc.c 
+LIBSRCS += fexec_opt.c fexec_bypass.c
+LIBS += -ldl -lfl -lpthread -ltools -llog -lodisk
+LIBS +=  -lhstub  
+LIBDIR += -L../libtools -L../libfilter  -L../liblog -L../libodisk
+LIBDIR += -L../../transport/socket/hoststub
+SRCS = $(LIBSRCS)
+OBJS = $(LIBOBJS)
+
+SHARED_HEADERS = lib_filterexec.h
+
+CLEAN_OTHERS += filter_spec.c
+
+CFLAGS += -D_GNU_SOURCE
+CC = gcc
+
+# Compilation Targets
+#
+
+TARGETS = libfilterexec.a
+
+include $(ROOTDIR)/Makefile.template 
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCDIR) -c -o $*.o $<
+
+filter_spec.c: filter_spec.l
+	$(FLEX) -Pfspec -ofilter_spec.c filter_spec.l
+

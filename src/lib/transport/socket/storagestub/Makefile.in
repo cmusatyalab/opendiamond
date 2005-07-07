@@ -1,0 +1,45 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+
+INCDIR += -I../common
+
+LIBDIR += -L.
+LIBS +=  -lsstub -lpthread -ltools -ldctl -lodisk -ltools -lssl
+LIBOBJS = sstub_api.o sstub_cntrl.o sstub_conn.o sstub_data.o
+LIBOBJS += sstub_listen.o sstub_log.o
+STEST_OBJS = stest.o
+
+SRCS = sstub_api.c sstub_cntrl.c sstub_conn.c sstub_data.c
+SRCS += sstub_listen.c sstub_log.c
+
+OBJS = $(LIBOBJS) $(STEST_OBJS)
+
+
+# Compilation Targets
+#
+
+SHARED_HEADERS = lib_sstub.h
+
+TARGETS = libsstub.a stest
+
+include $(ROOTDIR)/Makefile.template 
+
+stest:  $(STEST_OBJS) libsstub.a
+	$(CC) $(CFLAGS) -o stest $(STEST_OBJS) $(LIBDIR) $(LIBS) 
+
+
+
+

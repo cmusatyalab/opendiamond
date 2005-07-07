@@ -1,0 +1,57 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+SRVOBJS = od_svc.o  od_server.o od_xdr.o
+SRVSRC = od_svc.c  od_server.c od_xdr.c
+TEST_OBJS = otest.o od_clnt.o od_xdr.o
+TEST_SRCS = otest.c od_clnt.c od_xdr.c
+APITEST_OBJS = apitest.o 
+APITEST_SRCS = apitest.c 
+LIBOBJS = od_api.o od_clnt.o od_xdr.o od_lookup.o
+LIBSRCS = od_api.c od_clnt.c od_xdr.c od_lookup.c
+OBJS = $(LIBOBJS) $(TEST_OBJS) $(APITEST_OBJS) $(SRVOBJS)
+SRCS = $(LIBSRCS) $(TEST_SRCS) $(APITEST_SRCS) $(SRVSRC)
+
+RPCGEN_SRCS = od.h od_svc.c od_xdr.c od_clnt.c
+
+SHARED_BIN = od_server populate-disk.pl apitest
+
+LIBS += -lodisk  -ltools -ldconfig -lpthread -ldctl -llog -lssl
+LIBDIR += -L../libodisk  -L../libtools -L../libdconfig -L../libdctl -L../liblog
+
+APILIBS += -lod -ltools -ldconfig
+APILIBDIR += -L../libod -L../libtools -L../libdconfig
+
+TARGETS = libod.a od_server otest apitest
+
+CLEAN_OTHERS += $(RPCGEN_SRCS)
+
+include $(ROOTDIR)/Makefile.template 
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCDIR) -c -o $*.o $<
+
+$(RPCGEN_SRCS): od.x
+	rpcgen od.x
+
+od_server: od.h $(SRVOBJS) 
+	$(CC) $(CFLAGS) -o od_server $(SRVOBJS) $(LIBDIR) $(LIBS)
+
+otest: od.h $(TEST_OBJS) 
+	$(CC) $(CFLAGS) -o otest $(TEST_OBJS) 
+
+apitest: $(APITEST_OBJS) 
+	$(CC) $(CFLAGS) -o apitest $(APITEST_OBJS) $(APILIBDIR) $(APILIBS)
+

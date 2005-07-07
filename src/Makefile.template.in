@@ -27,9 +27,9 @@ DATADIR=
 # Where the headers, libraries, and binaries should be placed during
 # the build process.
 #
-BUILD_LIB_PATH = $(DIAMOND_ROOT)/target/lib
-BUILD_INC_PATH = $(DIAMOND_ROOT)/target/include
-BUILD_BIN_PATH = $(DIAMOND_ROOT)/target/bin
+BUILD_LIB_PATH = $(ROOTDIR)/target/lib
+BUILD_INC_PATH = $(ROOTDIR)/target/include
+BUILD_BIN_PATH = $(ROOTDIR)/target/bin
 
 # The installation directories, changes these if you want to
 # have different installation paths.
@@ -49,6 +49,7 @@ INSTALLDIR_ETC=${INSTALLBASE}/etc
 
 
 INCDIR += -I${BUILD_INC_PATH}
+INCDIR += -I$(ROOTDIR)/common
 
 LIBDIR += -L${BUILD_LIB_PATH}
 

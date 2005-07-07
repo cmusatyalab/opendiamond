@@ -1,0 +1,42 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+
+
+INCDIR += -I../../lib/libtools
+INCDIR += -I../../lib/libsearchlet
+INCDIR += -I../../lib/libodisk
+INCDIR += -I../../lib/libod
+LIBDIR += -L../../lib/libodisk -L../../lib/libtools
+LIBDIR += -L../../lib/liblog -L../../lib/libdctl
+LIBS += -lodisk -ltools -lpthread -llog -ldctl -lssl -ldconfig
+
+#
+# Compilation Targets
+#
+
+TARGETS = showgid
+SRCS = showgid.c
+OBJS = showgid.o
+
+include $(ROOTDIR)/Makefile.template
+
+
+
+SHOWGID_OBJS = $(OBJS) 
+showgid: $(SHOWGID_OBJS)
+	$(CC) $(CFLAGS) -o showgid $(SHOWGID_OBJS) $(LIBDIR) $(LIBS)
+
+

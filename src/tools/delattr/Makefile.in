@@ -1,0 +1,44 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+
+ROOTDIR = @top_srcdir@
+
+INCDIR += -I../../lib/libtools
+INCDIR += -I../../lib/libsearchlet
+INCDIR += -I../../lib/libodisk
+LIBDIR += -L../../lib/libodisk -L../../lib/libtools
+LIBS += -lodisk -ltools -lssl
+
+#
+# Compilation Targets
+#
+SRCS = delattr.c
+OBJS = delattr.o 
+PROG = delattr
+
+
+
+include $(ROOTDIR)/Makefile.template
+
+
+
+#
+#
+
+DELATTR_OBJS = ${OBJS} 
+delattr: $(DELATTR_OBJS)
+	$(CC) $(CFLAGS) -o delattr $(DELATTR_OBJS) $(LIBDIR) $(LIBS)
+
+
+

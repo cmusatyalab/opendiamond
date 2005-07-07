@@ -1,0 +1,49 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+LIBOBJS = group_lookup.o name_lookup.o diamond_config.o
+LIBSRCS = group_lookup.c name_lookup.c diamond_config.c
+TESTOBJS = lookup_test.o name_test.o dconf_test.o
+TESTSRCS = lookup_test.c name_test.c dconf_test.c
+
+SHARED_HEADERS = lib_dconfig.h
+
+SRCS = $(LIBSRCS) $(TESTSRCS)
+OBJS = $(LIBOBJS) $(TESTOBJS)
+
+#
+# Compilation Targets
+#
+
+TARGETS = copyheader libdconfig.a name_test dconf_test
+
+include $(ROOTDIR)/Makefile.template
+
+CLEAN_OTHERS += group_lookup.c name_lookup.c
+
+group_lookup.c: group_lookup.l
+	$(FLEX) -Pglkup -ogroup_lookup.c group_lookup.l
+
+name_lookup.c: name_lookup.l
+	$(FLEX) -Pnlkup -oname_lookup.c name_lookup.l
+
+diamond_config.c: diamond_config.l
+	$(FLEX) -Pdconf -odiamond_config.c diamond_config.l
+
+name_test: name_test.o libdconfig.a 
+	$(CC) $(CFLAGS) -o $@ $< -ldconfig -L.
+
+dconf_test: dconf_test.o libdconfig.a 
+	$(CC) $(CFLAGS) -o $@ $< -ldconfig -L.

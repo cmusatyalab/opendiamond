@@ -1,0 +1,43 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+CFLAGS_SO = $(CFLAGS) -fPIC
+FLEX = flex
+LIBSEARCHLET_OBJS = lib_searchlet.o
+LIBSEARCHLET_EMUL_OBJS = $(LIBSEARCHLET_OBJS) filter_lib.o \
+			 filter_spec.o ls_background.o ls_device.o  
+LIBS += -ldl  -lpthread -lfilterexec -lfl -Wl,-whole-archive 
+LIBS += -lfilter -llog -lodisk -locache -Wl,-no-whole-archive
+LIBS += -lsstub -ltools -ldctl -lm -lssl -lcrypto -ldconfig
+LIBDIR += -L/usr/lib -L/usr/local/ssl/lib
+SRCS = adiskd.c search_state.c
+OBJS = adiskd.o search_state.o
+
+#
+# Compilation Targets
+#
+
+TARGETS = adiskd
+
+SHARED_BIN = adiskd
+
+include $(ROOTDIR)/Makefile.template
+
+adiskd:  $(OBJS)
+	$(CC) $(CFLAGS) -o adiskd -rdynamic $(OBJS) $(LIBDIR) $(LIBS)
+
+
+
+

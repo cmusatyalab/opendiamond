@@ -1,0 +1,57 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+
+CFLAGS_SO = $(CFLAGS) -fPIC
+FLEX = flex
+
+LIBSRCS += lib_searchlet.c ls_background.c   
+LIBSRCS += ls_device.c ls_log.c ls_dctl.c
+
+LIBOBJS += lib_searchlet.o ls_background.o   
+LIBOBJS += ls_device.o ls_log.o ls_dctl.o
+
+LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lodisk -ltools -lfilterexec 
+LIBS += -llog -lfilter -lhstub -ldconfig
+LIBS +=  -ldctl  -lm -lssl
+LIBDIR += -L../libfilterexec  -L../libtools -L../liblog -L../libodisk
+LIBDIR += -L../transport/socket/hoststub -L.
+LIBDIR += -L../libdctl -L../libdconfig -L../libfilter
+SRCS = $(LIBOBJS)  cli_test.c test.c
+OBJS = $(LIBOBJS) cli_test.o test.o
+
+SHARED_HEADERS = lib_searchlet.h
+
+# Compilation Targets
+#
+
+
+TARGETS = libsearchlet.a cli_test test.so 
+
+include $(ROOTDIR)/Makefile.template 
+
+
+#
+#
+test.so: test.o
+	$(CC) $(CFLAGS_SO) -o test.so -shared test.o
+
+
+RUNTIME_TARGET_OBJS = cli_test.o lib_searchlet.o  ls_device.o ls_background.o  ls_log.o
+
+cli_test:  $(RUNTIME_TARGET_OBJS)
+	$(CC) $(CFLAGS) -rdynamic -o cli_test $(RUNTIME_TARGET_OBJS) $(LIBDIR) $(LIBS)
+
+

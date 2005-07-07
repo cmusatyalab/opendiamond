@@ -1,0 +1,58 @@
+#
+#      Diamond (Release 1.0)
+#      A system for interactive brute-force search
+#
+#      Copyright (c) 2002-2005, Intel Corporation
+#      All Rights Reserved
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+
+INCDIR += -I../lib/libtools
+INCDIR += -I../lib/libfilter
+INCDIR += -I../lib/liblog
+INCDIR += -I../lib/libodisk
+INCDIR += -I../lib/libcache
+INCDIR += -I../lib/libsearchlet
+INCDIR += -I../lib/libfilterexec
+INCDIR += -I../lib/libdctl
+INCDIR += -I../lib/libod
+INCDIR += -I../lib/libdconfig
+INCDIR += -I../transport/socket/storagestub
+INCDIR += -I../transport/socket/hoststub
+CFLAGS_SO = $(CFLAGS) -fPIC
+FLEX = flex
+LIBSEARCHLET_OBJS = lib_searchlet.o
+LIBSEARCHLET_EMUL_OBJS = $(LIBSEARCHLET_OBJS) filter_lib.o \
+			 filter_spec.o ls_background.o ls_device.o  
+LIBS += -ldl  -lpthread -lfilterexec -lfl -ltools -Wl,-whole-archive 
+LIBS += -lfilter -llog -lodisk -locache -Wl,-no-whole-archive
+LIBS += -lsstub -ltools -ldctl -lm -lssl -lcrypto -lhstub -ldconfig
+LIBDIR += -L/usr/lib -L../lib/libtools -L../lib/libfilter
+LIBDIR += -L../lib/liblog -L../lib/libodisk -L../lib/libcache
+LIBDIR += -L../lib/libfilterexec
+LIBDIR += -L../lib/libdctl -L../lib/libdconfig
+LIBDIR += -L../transport/socket/storagestub -L/usr/local/ssl/lib
+LIBDIR += -L../transport/socket/hoststub -L../lib/libdconfig
+SRCS = idiskd.c idiskd_ops.c ls_background.c ls_device.c ls_log.c ls_dctl.c
+OBJS = idiskd.o idiskd_ops.o ls_background.o ls_device.o ls_log.o ls_dctl.o
+
+#
+# Compilation Targets
+#
+
+TARGETS = idiskd
+
+include $(ROOTDIR)/Makefile.template 
+
+idiskd:  $(OBJS)
+	$(CC) $(CFLAGS) -rdynamic -o idiskd $(OBJS) $(LIBDIR) $(LIBS)
+
+
+
+

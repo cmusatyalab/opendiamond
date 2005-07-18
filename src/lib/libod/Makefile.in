@@ -42,7 +42,7 @@ APILIBDIR += -L../libod -L../libtools -L../libdconfig
 
 TARGETS = od.h libod.a od_server otest apitest
 
-CLEAN_OTHERS += $(RPCGEN_SRCS)
+CLEAN_OTHERS += $(RPCGEN_SRCS) ./od.x ./lib_od.h
 
 include $(ROOTDIR)/Makefile.template 
 

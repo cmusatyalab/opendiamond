@@ -46,14 +46,15 @@ CLEAN_OTHERS += $(RPCGEN_SRCS)
 
 include $(ROOTDIR)/Makefile.template 
 
-.c.o:
-	$(CC) $(CFLAGS) $(INCDIR) -c -o $*.o $<
 
-
-# huge hack for now XXX
-$(RPCGEN_SRCS): od.x
-	cp -fuv $(VPATH)/od.x od.x
-	cp -fuv $(VPATH)/lib_od.h lib_od.h
+#
+# There are some problems with rpcgen that I havn't
+# figured out. if you don't compile in the local directory
+# it adds absolute path names and doesn't find includes.
+# this is a bug hack for now ...
+$(RPCGEN_SRCS): od.x_src
+	cp -fuv $<  od.x
+	cp -fuv $(<D)/lib_od.h lib_od.h
 	rpcgen od.x
 
 

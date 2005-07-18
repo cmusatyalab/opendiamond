@@ -11,8 +11,8 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-#ifndef	_LOG_H_
-#define	_LOG_H_
+#ifndef	_DCTL_COMMON_H_
+#define	_DCTL_COMMON_H_
 
 #define	SOCKET_DCTL_NAME	"/tmp/dctl_socket"
 
@@ -21,7 +21,6 @@
  * This is the message header that is sent to
  * the host stub.
  */
-
 
 typedef	enum {
     DCTL_OP_READ = 1,
@@ -32,17 +31,12 @@ typedef	enum {
 } dctl_op_t;
 
 
-
-typedef struct
-{
+typedef struct {
 	dctl_op_t	        dctl_op;
-	dctl_data_type_t    dctl_dtype;
+	dctl_data_type_t    	dctl_dtype;
 	uint32_t	        dctl_err;
 	uint32_t	        dctl_dlen;
 	uint32_t	        dctl_plen;
-}
-dctl_msg_hdr_t;
+} dctl_msg_hdr_t;
 
-
-
-#endif /* !_LOG_H_ */
+#endif /* !_DCTL_COMMON_H_ */

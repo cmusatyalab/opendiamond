@@ -11,8 +11,8 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-#ifndef	_LOG_H_
-#define	_LOG_H_
+#ifndef	_LOG_SOCKET_H_
+#define	_LOG_SOCKET_H_
 
 #define	SOCKET_LOG_NAME		"/tmp/log_socket"
 
@@ -55,4 +55,4 @@ typedef struct
 log_set_level_t;
 
 
-#endif /* !_LOG_H_ */
+#endif /* !_LOG_SOCKET_H_ */

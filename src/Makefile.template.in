@@ -49,8 +49,8 @@ vpath %.l ${VPATH}
 
 
 INCDIR += -I${BUILD_INC_PATH}
-INCDIR += -I$(ROOTDIR)/common
 INCDIR += -I$(VPATH)
+INCDIR += -I.
 
 LIBDIR += -L${BUILD_LIB_PATH}
 

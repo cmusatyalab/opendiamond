@@ -24,8 +24,6 @@
 #include "rcomb.h"
 
 
-
-
 /*
  * This the the header file used to keep track of the 
  * filter state for each of the filters in the current
@@ -65,8 +63,7 @@ typedef uint8_t filter_id_t;
 #define INVALID_FILTER_ID   0xFF
 
 
-typedef struct filter_info
-{
+typedef struct filter_info {
 	/*
 	 * general filter info (not device-specific)
 	 */
@@ -131,20 +128,17 @@ typedef struct filter_info
 	int		    fi_cache_drop; /* # of objs dropped through cache lookup */
 	int		    fi_cache_pass; /* # of objs skipped by using cache */
 	int		    fi_compute;    /* # of objs computed */
-}
-filter_info_t;
+} filter_info_t;
 
 
-typedef struct filter_prob
-{
+typedef struct filter_prob {
 	LIST_ENTRY(filter_prob) prob_link;
 	int             num_pass;   /* # of times this combination passed */
 	int             num_exec;   /* # of times this combination was run */
 	int             num_prev;   /* # of previus filters run */
 	filter_id_t     cur_fid;    /* current filter id */
 	filter_id_t     prev_id[0]; /* list of previous IDs */
-}
-filter_prob_t;
+} filter_prob_t;
 
 
 #define FILTER_PROB_SIZE(x)     \
@@ -164,8 +158,7 @@ filter_prob_t;
  * This is the structure that holds all the data.
  * initialized in filter_spec.l:read_filter_spec -RW
  */
-struct filter_data
-{
+struct filter_data {
 	int             fd_num_filters;
 	filter_id_t     fd_max_filters;
 	filter_id_t     fd_app_id;
@@ -211,4 +204,4 @@ int             fexec_estimate_cost(filter_data_t * fdata,
                                     float *cost);
 
 
-#endif                          /* ifndef _FILTER_PRIV_H_ */
+#endif                    /* ! _FILTER_PRIV_H_ */

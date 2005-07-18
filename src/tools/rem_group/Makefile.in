@@ -16,24 +16,14 @@ VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
 
-INCDIR += -I../../lib/libod -I../../lib/libsearchlet
-INCDIR += -I../../lib/libodisk 
-INCDIR += -I../../lib/libdctl 
-INCDIR += -I../../lib/liblog 
 OBJS = rem_group.o
 SRCS = rem_group.c
+
 LIBS += -lodisk -ltools -lpthread -llog -ldctl -lssl -ldconfig
-LIBDIR += -L../../lib/libod -L../../lib/libodisk -L../../lib/libtools
-LIBDIR += -L../../lib/liblog -L../../lib/libdctl 
 
 TARGETS = rem_group
 
 include $(ROOTDIR)/Makefile.template 
-
-
-.c.o:
-	$(CC) $(CFLAGS) $(INCDIR) -c -o $*.o $<
-
 
 rem_group: rem_group.o 
 	$(CC) $(CFLAGS) -o rem_group rem_group.o $(LIBDIR) $(LIBS) 

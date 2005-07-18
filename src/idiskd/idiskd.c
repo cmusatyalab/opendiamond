@@ -21,12 +21,13 @@
 #include <stdint.h>
 #include <dirent.h>
 #include "obj_attr.h"
-#include "lib_od.h"
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "lib_odisk.h"
 #include "lib_searchlet.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
-#include "filter_exec.h"
+//#include "filter_exec.h"
 #include "ring.h"
 #include "idiskd_ops.h"
 

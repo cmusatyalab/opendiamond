@@ -24,23 +24,22 @@ ATEST_OBJS = attr_test.o
 
 LIBOBJS = odisk.o obj_attr.o obj_lib_priv.o obj_attr_dump.o
 LIBSRCS = odisk.c obj_attr.c obj_lib_priv.c obj_attr_dump.c
-OBJS = $(LIBOBJS) $(TEST_OBJS) $(ATEST_OBJS)  del_obj.o odisk_idx.o odisk_setoid.o
-SRCS = $(LIBSRCS) $(TEST_SRCS) $(ATEST_SRCS)  del_obj.c odisk_idx.o odisk_setoid.o
+
+OBJS = $(LIBOBJS) $(TEST_OBJS) $(ATEST_OBJS)  
+OBJS += del_obj.o odisk_idx.o odisk_setoid.o
+
+SRCS = $(LIBSRCS) $(TEST_SRCS) $(ATEST_SRCS)  
+SRCS += del_obj.c odisk_idx.o odisk_setoid.o
 
 SHARED_HEADERS = lib_odisk.h obj_attr.h obj_attr_dump.h
 
 SHARED_BIN = odisk_idx odisk_setoid
 
-#LIBS += -ldl -lpthread  -lfl -lodisk -ltools -lfilterexec -llog -lhstub -ldconfig
 LIBS += -ldl -lpthread  -lfl -lodisk -ltools -llog -ldconfig
 LIBS +=  -ldctl  -lssl
-LIBDIR += -L../libfilterexec  -L../libtools -L../liblog -L../libodisk
-LIBDIR += -L../../transport/socket/hoststub -L.
-LIBDIR += -L../libdctl -L../libdconfig
 
 
 TARGETS = libodisk.a odisk_test odisk_idx odisk_setoid attr_test del_obj
-#TARGETS += odisk_bench odisk_bench2
 
 CFLAGS += -D_GNU_SOURCE
 

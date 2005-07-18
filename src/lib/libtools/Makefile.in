@@ -26,7 +26,8 @@ LIBSRCS += rstat.c rgraph.c rcomb.c user.c
 TESTOBJS = test_ring.o
 TESTSRCS = test_ring.c
 
-SHARED_HEADERS = ring.h lib_tools.h queue.h sig_calc.h rtimer.h rcomb.h rgraph.h rstat.h
+SHARED_HEADERS = ring.h lib_tools.h queue.h sig_calc.h 
+SHARED_HEADERS += rtimer.h rcomb.h rgraph.h rstat.h
 
 SRCS = $(LIBSRCS) $(TESTSRCS) 
 OBJS = $(LIBOBJS) $(TESTOBJS) 

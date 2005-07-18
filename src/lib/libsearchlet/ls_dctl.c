@@ -37,7 +37,7 @@
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_filterexec.h"
-#include "dctl.h"
+#include "dctl_socket.h"
 #include "lib_tools.h"
 
 static char const cvsid[] = "$Header$";

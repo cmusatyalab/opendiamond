@@ -19,6 +19,7 @@ OBJROOT = @OBJROOT@
 
 LIBSRCS = lib_dctl.c dctl_helper.c
 LIBOBJS = lib_dctl.o dctl_helper.o
+
 TESTSRCS = test_dctl.c
 TESTOBJS = test_dctl.o
 TESTPROGS = test_dctl 

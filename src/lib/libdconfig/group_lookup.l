@@ -1,3 +1,5 @@
+%option nounput
+%option prefix="glkup"
 %{
 /*
  * 	Diamond (Release 1.0)
@@ -40,7 +42,6 @@ static gid_map_t 	*groot = NULL;
 
 %}
 %array
-%option nounput
 HEX8	[[:xdigit:]][[:xdigit:]]
 HEX16	{HEX8}:{HEX8}
 HEX32	{HEX16}:{HEX16}

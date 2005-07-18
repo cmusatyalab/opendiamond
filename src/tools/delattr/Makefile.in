@@ -16,11 +16,6 @@ ROOTDIR = @top_srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
-INCDIR += -I../../lib/libtools
-INCDIR += -I../../lib/libsearchlet
-INCDIR += -I../../lib/libodisk
-LIBDIR += -L../../lib/libodisk -L../../lib/libtools
 LIBS += -lodisk -ltools -lssl
 
 #

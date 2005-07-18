@@ -15,14 +15,6 @@ ROOTDIR = @top_srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
-
-INCDIR += -I../../lib/libsearchlet
-INCDIR += -I../../lib/libdctl
-INCDIR += -I../../lib/libtools
-
-LIBDIR += -L../../lib/libtools
-
 LIBS += -ltools
 
 OBJS = dctl.o

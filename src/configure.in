@@ -96,7 +96,6 @@ AC_CONFIG_FILES([Makefile
                  common/Makefile
                  idiskd/Makefile
                  lib/Makefile
-                 lib/libcache/Makefile
                  lib/libdconfig/Makefile
                  lib/libdctl/Makefile
                  lib/libfilter/Makefile
@@ -108,6 +107,7 @@ AC_CONFIG_FILES([Makefile
                  lib/libtools/Makefile
                  lib/transport/Makefile
                  lib/transport/socket/Makefile
+                 lib/transport/socket/common/Makefile
                  lib/transport/socket/hoststub/Makefile
                  lib/transport/socket/storagestub/Makefile
                  target/Makefile

@@ -16,7 +16,6 @@ VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
 
-
 SUBDIRS = delattr initattr setattr showattr dlog dctl showgid 
 SUBDIRS += rem_group slowdown rand_idx
 

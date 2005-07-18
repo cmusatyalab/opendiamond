@@ -18,10 +18,6 @@
 struct odisk_state;
 
 
-#define	MAX_GID_NAME	128
-
-#define	GID_IDX		"GIDIDX"
-
 /*
  * XXX we need to clean up this interface so this is not externally 
  * visible.
@@ -46,12 +42,6 @@ typedef struct odisk_state {
 	uint32_t	readahead_full;
 } odisk_state_t;
 */
-
-typedef	struct gid_idx_ent
-{
-    char		gid_name[MAX_GID_NAME];
-}
-gid_idx_ent_t;
 
 
 /*

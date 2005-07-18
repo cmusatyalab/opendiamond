@@ -34,7 +34,7 @@
 #include "lib_searchlet.h"
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
-#include "log.h"
+#include "log_socket.h"
 #include "log_impl.h"
 #include "assert.h"
 #include "lib_dctl.h"

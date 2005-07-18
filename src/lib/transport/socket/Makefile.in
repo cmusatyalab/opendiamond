@@ -15,7 +15,7 @@ VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
 
-SUBDIRS =  hoststub storagestub
+SUBDIRS =  common hoststub storagestub
 
 include $(ROOTDIR)/Makefile.template
 

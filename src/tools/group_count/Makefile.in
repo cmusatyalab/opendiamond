@@ -16,12 +16,9 @@ VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
 
-INCDIR += -I../../lib/libod -I../../lib/libsearchlet
-INCDIR += -I../../lib/libodisk
 OBJS = group_count.o
 SRCS = group_count.c
 LIBS += -lodisk -ltools -lpthread
-LIBDIR += -L../../lib/libod -L../../lib/libodisk -L../../lib/libtools
 
 TARGETS = group_count
 

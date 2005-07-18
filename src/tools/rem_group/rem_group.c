@@ -28,7 +28,6 @@
 #include "lib_dctl.h"
 #include "lib_log.h"
 #include "lib_dconfig.h"
-#include "odisk_priv.h"
 
 
 static char const cvsid[] = "$Header$";

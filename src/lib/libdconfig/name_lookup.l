@@ -1,4 +1,5 @@
 %option nounput
+%option prefix="nlkup"
 %{
 /*
  * 	Diamond (Release 1.0)

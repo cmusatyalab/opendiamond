@@ -15,15 +15,7 @@ ROOTDIR = @top_srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
-INCDIR += -I../../lib/libtools
-INCDIR += -I../../lib/libsearchlet
-INCDIR += -I../../lib/libodisk
-INCDIR += -I../../lib/liblog
-LIBDIR += -L../../lib/libodisk
-LIBDIR += -L../../lib/libtools
 LIBS += -ltools
-
 
 DLOG_OBJS = dlog.o
 DLOG_SRCS = dlog.c

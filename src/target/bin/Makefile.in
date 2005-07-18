@@ -15,8 +15,6 @@ ROOTDIR = @top_srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
-
 SUBDIRS = 
 
 # list of everything in the directory

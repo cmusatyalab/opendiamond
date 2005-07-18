@@ -27,7 +27,7 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_odisk.h"
-#include "odisk_priv.h"
+#include "lib_dconfig.h"
 
 
 static char const cvsid[] = "$Header$";
@@ -137,7 +137,7 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	  path = dconf_get_datadir();
+  	path = dconf_get_datadir();
 
 	sprintf(idx_file, "%s/%s%016llX", path, GID_IDX, gid);
 	err = stat(idx_file, &my_stat);

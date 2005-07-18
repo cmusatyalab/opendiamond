@@ -16,23 +16,11 @@ VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
 
-
-INCDIR += -I../common
-#INCDIR += -I../../../../lib/libtools
-#INCDIR += -I../../../../lib/libodisk
-#INCDIR += -I../../../../lib/libsearchlet
-#INCDIR += -I../../../../lib/libdctl
-#INCDIR += -I../../../../lib/libod
-#INCDIR += -I../../../../lib/liblog
-
 LIBOBJS = hstub_api.o hstub_log.o hstub_cntrl.o hstub_data.o hstub_main.o
 LIBOBJS += hstub_socket.o 
+
 HTEST_OBJS = htest.o
 LIBS += -lhstub -lpthread -ltools -ldctl -llog
-
-LIBDIR += -L.
-LIBDIR += -L../../../../lib/libtools
-LIBDIR += -L../../../../lib/libdctl -L../../../../lib/liblog
 
 SRCS = hstub_api.c  hstub_log.c hstub_cntrl.c hstub_data.c hstub_main.c htest.c
 SRCS += hstub_socket.c

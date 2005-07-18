@@ -16,10 +16,6 @@ VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
 
-INCDIR += -I../../lib/libsearchlet
-INCDIR += -I../../lib/libdctl
-
-
 OBJS = slowdown.o
 SRCS = slowdown.c
 

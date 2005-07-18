@@ -36,7 +36,7 @@
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_filterexec.h"
-#include "log.h"
+#include "log_socket.h"
 #include "log_impl.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"

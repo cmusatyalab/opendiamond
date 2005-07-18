@@ -29,13 +29,12 @@ LIBOBJS += ls_device.o ls_log.o ls_dctl.o
 LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lodisk -ltools -lfilterexec 
 LIBS += -llog -lfilter -lhstub -ldconfig
 LIBS +=  -ldctl  -lm -lssl
-LIBDIR += -L../libfilterexec  -L../libtools -L../liblog -L../libodisk
-LIBDIR += -L../transport/socket/hoststub -L.
-LIBDIR += -L../libdctl -L../libdconfig -L../libfilter
+
+
 SRCS = $(LIBOBJS)  cli_test.c test.c
 OBJS = $(LIBOBJS) cli_test.o test.o
 
-SHARED_HEADERS = lib_searchlet.h
+SHARED_HEADERS = lib_searchlet.h dctl_socket.h log_socket.h
 
 # Compilation Targets
 #

@@ -15,8 +15,6 @@ ROOTDIR = @top_srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
-
 SUBDIRS = 
 
 TARGETS = diamond_config
@@ -24,7 +22,6 @@ TARGETS = diamond_config
 CLEAN_OTHERS += diamond_config
 
 INSTALL_ETC = diamond_config
-
 
 include $(ROOTDIR)/Makefile.template
 

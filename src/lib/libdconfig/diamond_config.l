@@ -1,4 +1,5 @@
 %option nounput
+%option prefix="dconf"
 %{
 /*
  * 	Diamond (Release 1.0)

@@ -1,3 +1,5 @@
+%option nounput
+%option prefix="fspec"
 %{
 /*
  * 	Diamond (Release 1.0)
@@ -53,7 +55,6 @@ filter_data_t   *fdata;
 
 %}
 %array
-%option nounput
 ID      [a-zA-Z][-a-zA-Z0-9_]*
 %%
 #.*\n

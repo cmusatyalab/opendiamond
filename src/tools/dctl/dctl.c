@@ -24,7 +24,7 @@
 #include "lib_dctl.h"
 #include "lib_tools.h"
 #include <assert.h>
-#include "dctl.h"
+#include "dctl_socket.h"
 
 
 static char const cvsid[] = "$Header$";

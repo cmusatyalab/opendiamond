@@ -20,6 +20,7 @@ SHARED_HEADERS = lib_log.h
 
 LIBSRCS = lib_log.c
 LIBOBJS = lib_log.o
+
 TESTSRCS = test_log.c
 TESTOBJS = test_log.o
 TESTPROGS = test_log 

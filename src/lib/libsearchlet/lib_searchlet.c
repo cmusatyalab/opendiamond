@@ -316,6 +316,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 			 * XXX figure out what to do here ???
 			 */
 			/* XXX logging */
+			printf("XXX device start failed \n");
 		} else {
 			started++;
 		}
@@ -324,6 +325,63 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 
 	err = bg_set_searchlet(sc, sc->cur_search_id,
 	                       filter_file_name, filter_spec_name);
+	if (err) {
+		/* XXX log */
+	}
+
+	/* XXXX */
+	sc->cur_status = SS_IDLE;
+
+	return(0);
+}
+
+int
+ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
+                 char *filter_file_name)
+{
+	search_context_t	*sc;
+	device_handle_t		*cur_dev;
+	int			err;
+	int			started = 0;
+	;
+
+	sc = (search_context_t *)handle;
+	thread_setup(sc);
+
+	/* XXX do something with the isa_type !! */
+	/*
+	 * if state is active, we can't change the searchlet.
+	 * XXX what other states are no valid ??
+	 */
+	if (sc->cur_status == SS_ACTIVE) {
+		/* XXX log */
+		printf("still idle \n");
+		return (EINVAL);
+	}
+
+	/* we need to verify the searchlet somehow */
+	cur_dev = sc->dev_list;
+	while (cur_dev != NULL) {
+		err = device_set_searchlet(cur_dev->dev_handle,
+		                           sc->cur_search_id, filter_file_name, NULL);
+		if (err != 0) {
+			/*
+			 * It isn't obvious what we need to do if we
+			 * get an error here.  This applies to the fault
+			 * tolerance story.  For now we keep trying the
+			 * rest of the device
+			 * XXX figure out what to do here ???
+			 */
+			/* XXX logging */
+			printf("XXX device add failed \n");
+		} else {
+			started++;
+		}
+		cur_dev = cur_dev->next;
+	}
+
+	err = bg_set_searchlet(sc, sc->cur_search_id,
+	                       filter_file_name, NULL);
 	if (err) {
 		/* XXX log */
 	}

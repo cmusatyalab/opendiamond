@@ -123,6 +123,9 @@ int ls_set_searchlist(ls_search_handle_t, int num_groups,
 int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
                      char *filter_file_name, char *filter_spec_name);
 
+int ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
+                     char *filter_file_name);
+
 
 /*
  * This call sets the searchlet for for a specific device.  This call can

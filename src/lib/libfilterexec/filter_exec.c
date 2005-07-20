@@ -304,7 +304,7 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
 	filter_id_t     fid;
 	char           *error;
 
-	handle = dlopen(lib_name, RTLD_NOW);
+	handle = dlopen(lib_name, RTLD_LAZY|RTLD_GLOBAL);
 	if (!handle) {
 		/*
 		 * XXX error log 
@@ -312,9 +312,6 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
 		fputs(dlerror(), stderr);
 		exit(1);
 	}
-#ifdef VERBOSE
-	fprintf(stderr, "loaded %s at %p\n", lib_name, handle);
-#endif
 
 	/*
 	 * XXX keep the handle somewhere 
@@ -324,51 +321,35 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
 		if (fid == fdata->fd_app_id) {
 			continue;
 		}
-		fe = dlsym(handle, cur_filt->fi_eval_name);
-		if ((error = dlerror()) != NULL) {
-			/*
-			 * XXX error handling 
-			 */
-			fprintf(stderr, "%s on <%s> \n", error, cur_filt->fi_eval_name);
-			return (ENOENT);
+		if (cur_filt->fi_eval_fp == NULL) {
+			fe = dlsym(handle, cur_filt->fi_eval_name);
+			if ((error = dlerror()) == NULL) {
+				cur_filt->fi_eval_fp = fe;
+			}
 		}
-		cur_filt->fi_eval_fp = fe;
 
 
-
-		fi = dlsym(handle, cur_filt->fi_init_name);
-		if ((error = dlerror()) != NULL) {
-			/*
-			 * XXX error handling 
-			 */
-			fprintf(stderr, "%s on <%s> \n", error, cur_filt->fi_init_name);
-			return (ENOENT);
+		if (cur_filt->fi_init_fp == NULL) {
+			fi = dlsym(handle, cur_filt->fi_init_name);
+			if ((error = dlerror()) == NULL) {
+				cur_filt->fi_init_fp = fi;
+			}
 		}
-		cur_filt->fi_init_fp = fi;
 
-		ff = dlsym(handle, cur_filt->fi_fini_name);
-		if ((error = dlerror()) != NULL) {
-			/*
-			 * XXX error handling 
-			 */
-			fprintf(stderr, "%s on <%s> \n", error, cur_filt->fi_fini_name);
-			return (ENOENT);
+		if (cur_filt->fi_fini_fp == NULL) {
+			ff = dlsym(handle, cur_filt->fi_fini_name);
+			if ((error = dlerror()) == NULL) {
+				cur_filt->fi_fini_fp = ff;
+			}
 		}
-		cur_filt->fi_fini_fp = ff;
 
-		/* JIAYING: temporaryly pass in lib name. we may want to use separate lib for
-		   each filter later */
+		/* JIAYING: temporaryly pass in lib name. 
+		 * we may want to use separate lib for each filter later 
+		 */
 		if( strlen(lib_name) > PATH_MAX ) {
 			return (EINVAL);
 		}
 		memcpy(cur_filt->lib_name, lib_name, strlen(lib_name));
-
-
-#ifdef VERBOSE
-
-		fprintf(stderr, "filter %d (%s): resolved.\n", fid,
-		        cur_filt->fi_name);
-#endif
 
 	}
 
@@ -712,34 +693,36 @@ fexec_load_searchlet(char *lib_name, char *filter_spec,
 	            "fexec_load_searchlet: lib %s spec %s", lib_name,
 	            filter_spec);
 
-
-	err = read_filter_spec(filter_spec, fdata);
-	if (err) {
-		log_message(LOGT_FILT, LOGL_ERR,
+	printf("load searchlet: %p %p \n", lib_name, filter_spec);
+	if (filter_spec != NULL) {
+		err = read_filter_spec(filter_spec, fdata);
+		if (err) {
+			log_message(LOGT_FILT, LOGL_ERR,
 		            "Failed to read filter spec <%s>", filter_spec);
-		return (err);
+			return (err);
+		}
+		print_filter_list("filterexec: init", *fdata);
+
+		err = resolve_filter_deps(*fdata);
+		if (err) {
+			log_message(LOGT_FILT, LOGL_ERR,
+		            	"Failed resolving filter dependancies <%s>", filter_spec);
+			return (1);
+		}
+
+		err = verify_filters(*fdata);
+		if (err) {
+			log_message(LOGT_FILT, LOGL_ERR, "Filter verify failed <%s>",
+		            	filter_spec);
+			return (err);
+		}
+
+		/*
+	 	* this need to be cleaned up somewhere XXX 
+	 	*/
+		initialize_policy(*fdata);
+
 	}
-	print_filter_list("filterexec: init", *fdata);
-
-	err = resolve_filter_deps(*fdata);
-	if (err) {
-		log_message(LOGT_FILT, LOGL_ERR,
-		            "Failed resolving filter dependancies <%s>", filter_spec);
-		return (1);
-	}
-
-	err = verify_filters(*fdata);
-	if (err) {
-		log_message(LOGT_FILT, LOGL_ERR, "Filter verify failed <%s>",
-		            filter_spec);
-		return (err);
-	}
-
-	/*
-	 * this need to be cleaned up somewhere XXX 
-	 */
-	initialize_policy(*fdata);
-
 	/*
 	 * We have loaded the filter spec, now try to load the library
 	 * and resolve the dependancies against it.

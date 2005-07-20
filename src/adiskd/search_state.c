@@ -376,14 +376,18 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 					perror("failed to unlink");
 					exit(1);
 				}
-				unlink(spec_name);
-				if (err) {
-					perror("failed to unlink");
-					exit(1);
+				if (spec_name != NULL) {
+					unlink(spec_name);
+					if (err) {
+						perror("failed to unlink");
+						exit(1);
+					}
 				}
 			}
 			free(obj_name);
-			free(spec_name);
+			if (spec_name != NULL) {
+				free(spec_name);
+			}
 
 			break;
 

@@ -274,11 +274,17 @@ process_searchlet_message(listener_state_t *lstate, cstate_t *cstate,
 	cmd = ntohl(cstate->control_rx_header.command);
 	gen = ntohl(cstate->control_rx_header.generation_number);
 
+	shead = (searchlet_subhead_t *)data;
+	spec_offset = sizeof(*shead);
+	spec_len = ntohl(shead->spec_len);
+	filter_len = ntohl(shead->filter_len);
+	filter_offset = ((spec_len + 3) & ~3) + spec_offset;
+
 	/*
 	 * create a file for storing the searchlet library.
 	 */
 
-	/* sanity check the constands */
+	/* sanity check the constants */
 	assert(MAX_TEMP_NAME > (sizeof(TEMP_DIR_NAME) +
 	                        sizeof(TEMP_OBJ_NAME) + 1));
 
@@ -288,8 +294,6 @@ process_searchlet_message(listener_state_t *lstate, cstate_t *cstate,
 		exit(1);
 	}
 	sprintf(lib_name, "%s%s", TEMP_DIR_NAME, TEMP_OBJ_NAME);
-
-
 	umask(0000);
 
 	lib_fd = mkstemp(lib_name);
@@ -301,48 +305,41 @@ process_searchlet_message(listener_state_t *lstate, cstate_t *cstate,
 		exit(1);
 	}
 
-
-	/*
-	 * Create a file to hold the filter spec.
-	 */
-	assert(MAX_TEMP_NAME > (sizeof(TEMP_DIR_NAME) +
+	if (spec_len > 0) {
+		/*
+	 	 * Create a file to hold the filter spec.
+	 	 */
+		assert(MAX_TEMP_NAME > (sizeof(TEMP_DIR_NAME) +
 	                        sizeof(TEMP_SPEC_NAME) + 1));
 
-	spec_name = (char *)malloc (MAX_TEMP_NAME);
-	if (spec_name == NULL) {
-		printf("specname failed \n");
-		exit(1);
+		spec_name = (char *)malloc (MAX_TEMP_NAME);
+		if (spec_name == NULL) {
+			printf("specname failed \n");
+			exit(1);
+		}
+		sprintf(spec_name, "%s%s", TEMP_DIR_NAME, TEMP_SPEC_NAME);
+
+
+		spec_fd = mkstemp(spec_name);
+		if (spec_fd == -1) {
+			free(spec_name);
+			/* XXX */
+			printf("failed to create spec_fd \n");
+			/* XXX */
+			exit(1);
+		}
+
+		wsize = write(spec_fd, &data[spec_offset], (size_t) spec_len);
+		if (wsize != spec_len) {
+			printf("write %d len %d err %d \n", wsize, spec_len,
+		       		errno);
+			assert(0);
+		}
+		assert(wsize == spec_len);
+		close(spec_fd);
+	} else {
+		spec_name = NULL;
 	}
-	sprintf(spec_name, "%s%s", TEMP_DIR_NAME, TEMP_SPEC_NAME);
-
-
-	spec_fd = mkstemp(spec_name);
-	if (spec_fd == -1) {
-		free(spec_name);
-		/* XXX */
-		printf("failed to create spec_fd \n");
-		/* XXX */
-		exit(1);
-	}
-
-
-
-	shead = (searchlet_subhead_t *)data;
-
-
-	spec_offset = sizeof(*shead);
-	spec_len = ntohl(shead->spec_len);
-	filter_len = ntohl(shead->filter_len);
-	filter_offset = ((spec_len + 3) & ~3) + spec_offset;
-
-	wsize = write(spec_fd, &data[spec_offset], (size_t) spec_len);
-	if (wsize != spec_len) {
-		printf("write %d len %d err %d \n", wsize, spec_len,
-		       errno);
-		assert(0);
-	}
-	assert(wsize == spec_len);
-	close(spec_fd);
 
 	wsize = write(lib_fd, &data[filter_offset], (size_t) filter_len);
 	assert(filter_len == filter_len);
@@ -731,7 +728,6 @@ sstub_read_control(listener_state_t *lstate, cstate_t *cstate)
 
 	/* make sure the state is reset */
 	cstate->control_rx_state = CONTROL_RX_NO_PENDING;
-
 	return;
 }
 

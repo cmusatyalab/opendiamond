@@ -393,12 +393,17 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	}
 	filter_len = stats.st_size;
 
-	err = stat(spec, &stats);
-	if (err) {
-		/* XXX log */
-		return (ENOENT);
+	if (spec != NULL) {
+
+		err = stat(spec, &stats);
+		if (err) {
+			/* XXX log */
+			return (ENOENT);
+		}
+		spec_len = stats.st_size;
+	} else {
+		spec_len = 0;
 	}
-	spec_len = stats.st_size;
 
 
 	total_len = ((spec_len + 3) & ~3) + filter_len + sizeof(*shead);
@@ -420,22 +425,25 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 * currently blocks, we may want to do something else later.
 	 */
 	data = (char *)shead + sizeof(*shead);
-	cur_file = fopen(spec, "r");
-	if (cur_file == NULL) {
-		/* XXX log */
-		free(cheader);
-		free(shead);
-		return (ENOENT);
-	}
-	rsize = fread(data, spec_len, 1, cur_file);
-	if (rsize != 1) {
-		/* XXX log */
-		free(cheader);
-		free(shead);
-		return(EAGAIN);
-	}
 
-	fclose(cur_file);
+	if (spec != NULL) {
+		cur_file = fopen(spec, "r");
+		if (cur_file == NULL) {
+			/* XXX log */
+			free(cheader);
+			free(shead);
+			return (ENOENT);
+		}
+		rsize = fread(data, spec_len, 1, cur_file);
+		if (rsize != 1) {
+			/* XXX log */
+			free(cheader);
+			free(shead);
+			return(EAGAIN);
+		}
+
+		fclose(cur_file);
+	}
 
 
 	/*
@@ -473,6 +481,7 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 		/* XXX log */
 		/* XXX should we wait ?? */
 		free(cheader);
+		printf("failed enq \n");
 		return (EAGAIN);
 	}
 	pthread_mutex_lock(&dev->con_data.mutex);

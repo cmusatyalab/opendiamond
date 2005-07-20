@@ -79,6 +79,38 @@ static pthread_cond_t   pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
  */
 #define MAX_GID_FILTER  64
 
+int
+odisk_next_index_ent(FILE *idx_file, char *file_name)
+{
+	int	offset;
+	int	val;
+
+	offset = 0;
+	while (offset < (NAME_MAX - 1)) {
+		val = fgetc(idx_file);
+		if (val == EOF) {
+			if (offset > 0) {
+				file_name[offset++] = '\0';
+				return(1);
+			} else {
+				return(0);
+			}
+		}
+		if ((val == '\0') || (val == '\n')) {
+			if (offset > 0) {
+				file_name[offset++] = '\0';
+				return(1);
+			}
+		} else {
+			file_name[offset++] = (char)val;
+		}
+	} 
+
+	/* if we get here we have overflowed ... */
+	file_name[offset++] = '\0';
+	return(1);
+}
+
 
 static int
 dynamic_load_oattr(int ring_depth)
@@ -184,15 +216,12 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	len = snprintf(attr_name, NAME_MAX, "%s%s", name, ATTR_EXT);
 	assert(len < NAME_MAX);
 	obj_read_attr_file(attr_name, &new_obj->attr_info);
-
-
 	*obj_handle = (obj_data_t *) new_obj;
-
-
 	odisk->obj_load++;
 
 	return (0);
 }
+
 
 
 float
@@ -206,10 +235,11 @@ odisk_get_obj_cnt(odisk_state_t * odisk)
 {
 	int             count = 0;
 	char            idx_file[NAME_MAX];
+	char            file_name[NAME_MAX];
 	FILE           *new_file;
-	gid_idx_ent_t   gid_ent;
 	int             i;
 	int             len;
+	int             ret;
 
 	for (i = 0; i < odisk->num_gids; i++) {
 		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
@@ -219,7 +249,7 @@ odisk_get_obj_cnt(odisk_state_t * odisk)
 		if (new_file == NULL) {
 			continue;
 		}
-		while (fread(&gid_ent, sizeof(gid_ent), 1, new_file) == 1) {
+		while ((ret = odisk_next_index_ent(new_file, file_name))) {
 			count++;
 		}
 		fclose(new_file);
@@ -619,25 +649,25 @@ odisk_read_obj(odisk_state_t * odisk, obj_data_t * obj, int *len,
 }
 
 
-
 int
 odisk_read_next(obj_data_t ** new_object, odisk_state_t * odisk)
 {
 	char            path_name[NAME_MAX];
+	char            file_name[NAME_MAX];
 	int             err;
-	gid_idx_ent_t   gid_ent;
 	int             i;
-	int             num;
+	int             ret;
 	int             len;
 
 
 again:
 	for (i = odisk->cur_file; i < odisk->max_files; i++) {
 		if (odisk->index_files[i] != NULL) {
-			num = fread(&gid_ent, sizeof(gid_ent), 1, odisk->index_files[i]);
-			if (num == 1) {
+			ret = odisk_next_index_ent(odisk->index_files[i],
+				file_name);
+			if (ret == 1) {
 				len = snprintf(path_name, NAME_MAX, "%s/%s",
-				               odisk->odisk_path, gid_ent.gid_name);
+				               odisk->odisk_path, file_name);
 				assert(len < NAME_MAX);
 
 				err = odisk_load_obj(odisk, new_object, path_name);

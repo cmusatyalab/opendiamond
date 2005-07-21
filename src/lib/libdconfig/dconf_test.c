@@ -32,9 +32,14 @@ main(int argc, char **argv)
 {
 	char *	dir;
 
-	dir = dconf_get_datadir();
+	dir = dconf_get_dataroot();
+	printf("data_root <%s> \n", dir);
 
-	printf("<%s> \n", dir);
+	dir = dconf_get_cachedir();
+	printf("cachedir <%s> \n", dir);
+
+	dir = dconf_get_indexdir();
+	printf("indexdir <%s> \n", dir);
 
 	exit(0);
 }

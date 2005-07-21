@@ -326,19 +326,17 @@ rpc_read_gididx_1_svc(rgid_idx_arg_t *arg, struct svc_req *rq)
 	int                     len;
 	static char *           buf = NULL;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
-	if (buf != NULL)
-	{
+	if (buf != NULL) {
 		free(buf);
 		buf = NULL;
 	}
 
-	len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", odata->odisk_path,
-	               "GIDIDX", arg->gid);
+	len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", 
+		odata->odisk_indexdir, "GIDIDX", arg->gid);
 	assert(len < NAME_MAX);
 	new_file = fopen(idx_file, "r");
 	if (new_file == NULL)

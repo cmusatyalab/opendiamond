@@ -19,7 +19,7 @@
 struct ocache_state;
 
 
-#define	MAX_DIR_PATH	128
+#define	MAX_DIR_PATH	512
 #define	MAX_GID_NAME	128
 
 #define	CACHE_EXT		"CACHEFL"

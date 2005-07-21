@@ -57,7 +57,7 @@ get_oid_loop(void *arg)
 		err = odisk_read_next_oid(&oid, odisk);
 		if (err == 0) {
 			sprintf(path_name, "%s/OBJ%016llX",
-			        odisk->odisk_path, oid);
+			        odisk->odisk_dataroot, oid);
 			err = odisk_load_obj(odisk, &new_obj, path_name);
 			if (err) {
 				printf("load obj <%s> failed %d \n",

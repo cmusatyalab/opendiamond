@@ -34,11 +34,12 @@ typedef struct gid_idx_ent {
 struct odisk_state;
 
 	/* maybe we need to remove this later */
-#define MAX_DIR_PATH    128
+#define MAX_DIR_PATH    512
 #define MAX_GID_FILTER  64
 
 typedef struct odisk_state {
-	char            odisk_path[MAX_DIR_PATH];
+	char            odisk_dataroot[MAX_DIR_PATH];
+	char            odisk_indexdir[MAX_DIR_PATH];
 	groupid_t       gid_list[MAX_GID_FILTER];
 	FILE *          index_files[MAX_GID_FILTER];
 	int             num_gids;
@@ -87,6 +88,7 @@ typedef struct {
 	uint64_t obj_id;
 	char **filters;
 	char **fsig;
+	char *obj_name;
 	char **iattrsig;
 	int oattr_fnum;
 	u_int64_t       stack_ns;
@@ -137,8 +139,8 @@ float odisk_get_erate(struct odisk_state *odisk);
 obj_data_t     * odisk_null_obj();
 
 
-/* JIAYING */
-int odisk_read_next_oid(uint64_t *oid, odisk_state_t *odisk);
+// XXX int odisk_read_next_oid(uint64_t *oid, odisk_state_t *odisk);
+char * odisk_next_obj_name(odisk_state_t *odisk);
 int odisk_pr_add(pr_obj_t *pr_obj);
 int odisk_flush(odisk_state_t *odisk);
 

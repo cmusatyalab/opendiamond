@@ -30,14 +30,20 @@
 #include "lib_dconfig.h"
 
 static int  have_error();
-static int  have_data_dir(char *name);
+static int  set_data_root(char *name);
+static int  set_cache_dir(char *name);
+static int  set_index_dir(char *name);
+static int  set_data_type(data_type_t type);
 
 static char * eat_token(char *str);
 static void do_init();
 
 typedef struct	dconfig_info {
-	char *	dconf_name;
-	char *	dconf_datadir;
+	char *		dconf_name;
+	char *		dconf_dataroot;
+	char *		dconf_cachedir;
+	char *		dconf_indexdir;
+	data_type_t	dconf_dtype;
 } dconf_info_t;
 
 
@@ -59,8 +65,12 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
                                                                                 
 %%
 #.*\n
-DATADIR[ \t]+[[:alnum:]\-_\/]+ 	{have_data_dir(eat_token(yytext));}
-.				{ have_error(); }
+DATAROOT[ \t]+[[:alnum:]\-_\/]+	{set_data_root(eat_token(yytext));}
+CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yytext));}
+INDEXDIR[ \t]+[[:alnum:]\-_\/]+	{set_index_dir(eat_token(yytext));}
+DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
+DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
+.				{have_error(); }
 %%
 
 
@@ -98,21 +108,68 @@ have_error()
  
 
 static int
-have_data_dir(char *dir)
+set_data_root(char *dir)
 {
-	dinfo->dconf_datadir = strdup(dir);
-	printf("data dir %s \n", dinfo->dconf_datadir); 	
+	dinfo->dconf_dataroot = strdup(dir);
 	return(0);
 }
 
 char *
-dconf_get_datadir()
+dconf_get_dataroot()
 {
 	char *dir;
 	do_init();
-	dir = strdup(dinfo->dconf_datadir);
+	dir = strdup(dinfo->dconf_dataroot);
 	return(dir);
 }
+
+static int
+set_cache_dir(char *dir)
+{
+	dinfo->dconf_cachedir = strdup(dir);
+	return(0);
+}
+
+char *
+dconf_get_cachedir()
+{
+	char *dir;
+	do_init();
+	dir = strdup(dinfo->dconf_cachedir);
+	return(dir);
+}
+
+static int
+set_index_dir(char *dir)
+{
+	dinfo->dconf_indexdir = strdup(dir);
+	return(0);
+}
+
+char *
+dconf_get_indexdir()
+{
+	char *dir;
+	do_init();
+	dir = strdup(dinfo->dconf_indexdir);
+	return(dir);
+}
+
+
+static int
+set_data_type(data_type_t type)
+{
+	dinfo->dconf_dtype = type;
+	return(0);
+}
+
+data_type_t
+dconf_get_datatype()
+{
+	do_init();
+	return(dinfo->dconf_dtype);
+}
+
 
 
 #define	MAX_PATH				256

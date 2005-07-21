@@ -109,6 +109,7 @@ main(int argc, char **argv)
 	int			i,c;
 	int			do_count = 0;
 	int			count = 0;
+	data_type_t		dtype;
 	extern char *	optarg;
 	void *		dctl_cookie;
 	void *		log_cookie;
@@ -145,7 +146,7 @@ main(int argc, char **argv)
 
 
 			default:
-				printf("unknown option %c\n", c);
+				fprintf(stderr, "unknown option %c\n", c);
 				break;
 		}
 	}
@@ -155,11 +156,16 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	path = dconf_get_datadir();
+	dtype = dconf_get_datatype();
+	if (dtype != DATA_TYPE_OBJECT) {
+		fprintf(stderr, "This utility only works on object based systems\n");
+		exit(1);
+	}
+	path = dconf_get_indexdir();
 	dctl_init(&dctl_cookie);
 	log_init(&log_cookie);
 
-	err = odisk_init(&odisk, path, dctl_cookie, log_cookie);
+	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

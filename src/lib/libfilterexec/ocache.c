@@ -795,7 +795,6 @@ ocache_write_file(char *disk_path, fcache_t * fcache)
 	assert(fcache->fsig != NULL);
 	memcpy(&tmp1, fcache->fsig, sizeof(tmp1));
 	memcpy(&tmp2, fcache->fsig + 8, sizeof(tmp2));
-	// printf("ocache_write_file for filter %016llX%016llX\n", tmp1, tmp2);
 	sprintf(fpath, "%s/%016llX%016llX.%s", disk_path, tmp1, tmp2, CACHE_EXT);
 
 	fd = open(fpath, O_CREAT | O_RDWR, 00777);
@@ -1884,22 +1883,21 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 {
 	ocache_state_t *new_state;
 	int             err;
-	char            buf[PATH_MAX];
 	char *		dir_path;
 	int             i;
 
 	if (dirp == NULL) {
-		dir_path = dconf_get_datadir();
+		dir_path = dconf_get_cachedir();
 	} else {
 		dir_path = dirp;
 	}
 	if (strlen(dir_path) > (MAX_DIR_PATH - 1)) {
 		return (EINVAL);
 	}
-	sprintf(buf, "%s/%s", dir_path, CACHE_DIR);
-	err = mkdir(buf, 0x777);
+	err = mkdir(dir_path, 0x777);
 	if (err && errno != EEXIST) {
-		printf("fail to creat cache dir, err %d\n", err);
+		printf("fail to creat cache dir (%s), err %d\n", 
+			dir_path, errno);
 		return (EPERM);
 	}
 
@@ -1981,7 +1979,7 @@ ocache_stop(char *dirp)
 	char *		dir_path;
 
 	if (dirp == NULL) {
-		dir_path = dconf_get_datadir();
+		dir_path = dconf_get_cachedir();
 	} else {
 		dir_path = dirp;
 	}

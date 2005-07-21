@@ -102,6 +102,7 @@ main(int argc, char **argv)
 	int			j,k;
 	int			ssize;
 	int			nstat;
+	data_type_t		dtype;
 	gid_idx_ent_t *		stat_buffer;
 	extern char *	optarg;
 
@@ -127,7 +128,7 @@ main(int argc, char **argv)
 				break;
 
 			default:
-				printf("unknown option %c\n", c);
+				fprintf(stderr, "unknown option %c\n", c);
 				break;
 		}
 	}
@@ -137,7 +138,12 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-  	path = dconf_get_datadir();
+	dtype = dconf_get_datatype();
+	if (dtype != DATA_TYPE_OBJECT) {
+		fprintf(stderr, "This utility only works for object stores\n");
+		exit(1);
+	}
+  	path = dconf_get_indexdir();
 
 	sprintf(idx_file, "%s/%s%016llX", path, GID_IDX, gid);
 	err = stat(idx_file, &my_stat);

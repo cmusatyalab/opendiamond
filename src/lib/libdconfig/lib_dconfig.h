@@ -15,6 +15,10 @@
 #ifndef _LIB_DCONFIG_H_
 #define _LIB_DCONFIG_H_
 
+typedef enum {
+	DATA_TYPE_OBJECT = 1,
+	DATA_TYPE_NATIVE
+} data_type_t;
 
 #ifdef __cplusplus
 extern          "C"
@@ -43,7 +47,10 @@ int             glkup_gid_hosts(groupid_t gid, int *num_hosts,
 	                                uint32_t * hostids);
 
 
-char *		dconf_get_datadir();
+char *		dconf_get_dataroot();
+char *		dconf_get_indexdir();
+char *		dconf_get_cachedir();
+data_type_t	dconf_get_datatype();
 
 
 #ifdef __cplusplus

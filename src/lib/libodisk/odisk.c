@@ -242,8 +242,8 @@ odisk_get_obj_cnt(odisk_state_t * odisk)
 	int             ret;
 
 	for (i = 0; i < odisk->num_gids; i++) {
-		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
-		               GID_IDX, odisk->gid_list[i]);
+		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", 
+			odisk->odisk_indexdir, GID_IDX, odisk->gid_list[i]);
 		assert(len < NAME_MAX);
 		new_file = fopen(idx_file, "r");
 		if (new_file == NULL) {
@@ -266,7 +266,7 @@ odisk_save_obj(odisk_state_t * odisk, obj_data_t * obj)
 	int             size;
 	int             len;
 
-	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_path,
+	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
 	               obj->local_id);
 	assert(len < NAME_MAX);
 
@@ -310,7 +310,7 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 
 	delete_object_gids(odisk, obj);
 
-	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_path,
+	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
 	               obj->local_id);
 	assert(len < NAME_MAX);
 	err = unlink(buf);
@@ -319,7 +319,7 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 		perror("");
 	}
 
-	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX%s", odisk->odisk_path,
+	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX%s", odisk->odisk_dataroot,
 	               obj->local_id, ATTR_EXT);
 	assert(len < NAME_MAX);
 
@@ -343,7 +343,7 @@ odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
 	int             len;
 
 
-	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_path,
+	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
 	               oid->local_id);
 
 	assert(len < NAME_MAX);
@@ -534,7 +534,7 @@ odisk_new_obj(odisk_state_t * odisk, obj_id_t * oid, groupid_t * gid)
 	local_id = rand();
 
 	while (1) {
-		len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_path,
+		len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
 		               local_id);
 		assert(len < NAME_MAX);
 		fd = open(buf, O_CREAT | O_EXCL, 0777);
@@ -667,7 +667,7 @@ again:
 				file_name);
 			if (ret == 1) {
 				len = snprintf(path_name, NAME_MAX, "%s/%s",
-				               odisk->odisk_path, file_name);
+				               odisk->odisk_dataroot, file_name);
 				assert(len < NAME_MAX);
 
 				err = odisk_load_obj(odisk, new_object, path_name);
@@ -743,7 +743,6 @@ odisk_pr_next(pr_obj_t **new_object)
 static int
 odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 {
-	char path_name[NAME_MAX];
 	int err;
 	int i;
 	char            timebuf[BUFSIZ];
@@ -758,10 +757,9 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 	 * Load base object 
 	 */
 
-	sprintf(path_name, "%s/OBJ%016llX", odisk->odisk_path, pr_obj->obj_id);
-	err = odisk_load_obj(odisk, new_object, path_name);
+	err = odisk_load_obj(odisk, new_object, pr_obj->obj_name);
 	if (err) {
-		printf("load obj <%s> failed %d \n", path_name, err);
+		printf("load obj <%s> failed %d \n", pr_obj->obj_name, err);
 		return(err);
 	}
 
@@ -783,7 +781,7 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		rt_init(&rt);
 		rt_start(&rt);
 
-		err = obj_read_oattr(odisk->odisk_path, pr_obj->obj_id,
+		err = obj_read_oattr(odisk->odisk_dataroot, pr_obj->obj_id,
 		                     pr_obj->fsig[i], pr_obj->iattrsig[i],
 		                     &(*new_object)->attr_info);
 
@@ -807,7 +805,7 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 
 	err = obj_write_attr(&(*new_object)->attr_info,
 	                     FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
-	if( err != 0 ) {
+	if (err != 0) {
 		printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
 	}
 
@@ -842,6 +840,7 @@ odisk_pr_add(pr_obj_t *pr_obj)
 	}
 }
 
+#ifdef	XXX
 int
 odisk_read_next_oid(uint64_t *oid, odisk_state_t *odisk)
 {
@@ -864,6 +863,51 @@ again:
 				*oid = local_id;
 				//printf("odisk_read_next_oid: %016llX\n", local_id);
 				return(0);
+			} else {
+				fclose(odisk->index_files[i]);
+				odisk->index_files[i] = NULL;
+			}
+		}
+	}
+
+	/*
+	 * if we get here, either we need to start at the begining,
+	 * or there is no more data.
+	 */
+	if (odisk->cur_file != 0) {
+		odisk->cur_file = 0;
+		goto again;
+	} else {
+		//search_done = 1;
+		return(ENOENT);
+	}
+}
+#endif
+
+char *
+odisk_next_obj_name(odisk_state_t *odisk)
+{
+	char            file_name[NAME_MAX];
+	char            path_name[NAME_MAX];
+	char *			ncopy;
+	gid_idx_ent_t                   gid_ent;
+	int                             i;
+	int                             ret;
+	uint64_t        local_id;
+
+again:
+	for (i = odisk->cur_file; i < odisk->max_files; i++) {
+		if (odisk->index_files[i] != NULL) {
+			/* XXX overflow !!! */
+			ret = odisk_next_index_ent(odisk->index_files[i], 
+				file_name);
+			if (ret == 1) {
+				sprintf(path_name, "%s/%s", 
+					odisk->odisk_dataroot, 
+					file_name);
+				ncopy = strdup(path_name);
+				odisk->cur_file = i;
+				return(ncopy);
 			} else {
 				fclose(odisk->index_files[i]);
 				odisk->index_files[i] = NULL;
@@ -1028,22 +1072,29 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 {
 	odisk_state_t  *new_state;
 	int             err;
-	char *			dir_path;
+	char *			dataroot;
+	char *			indexdir;
 	int			i;
 
 	if (dirp == NULL) {
-		dir_path = dconf_get_datadir();
+		dataroot = dconf_get_dataroot();
 	} else {
-		dir_path = dirp;
+		dataroot = dirp;
 	}
 
-	if (strlen(dir_path) > (MAX_DIR_PATH - 1)) {
+	if (strlen(dataroot) > (MAX_DIR_PATH - 1)) {
 		/*
 		 * XXX log 
 		 */
 		return (EINVAL);
 	}
 
+	indexdir = dconf_get_indexdir();
+	if (strlen(indexdir) > (MAX_DIR_PATH - 1)) {
+		/* XXX log  */
+		return (EINVAL);
+	}
+	
 	/* make sure we have a reasonble umask */
 	umask(0);
 
@@ -1079,7 +1130,10 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	/*
 	 * the length has already been tested above 
 	 */
-	strcpy(new_state->odisk_path, dir_path);
+	strcpy(new_state->odisk_dataroot, dataroot);
+	strcpy(new_state->odisk_indexdir, indexdir);
+
+
 
 	for (i=0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, PATTR_DEFAULT,
@@ -1110,8 +1164,8 @@ odisk_reset(odisk_state_t * odisk)
 	}
 
 	for (i = 0; i < odisk->num_gids; i++) {
-		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
-		               GID_IDX, odisk->gid_list[i]);
+		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", 
+					odisk->odisk_indexdir, GID_IDX, odisk->gid_list[i]);
 		assert(len < NAME_MAX);
 		new_file = fopen(idx_file, "r");
 		if (new_file == NULL) {
@@ -1158,7 +1212,7 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	int             len;
 	gid_idx_ent_t   gid_idx;
 
-	len = snprintf(idx_name, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
+	len = snprintf(idx_name, NAME_MAX, "%s/%s%016llX", odisk->odisk_indexdir,
 	               GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
@@ -1192,11 +1246,11 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	int             len;
 	int				skip_copy = 0;
 
-	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", odisk->odisk_path,
-	               GID_IDX, *gid);
+	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", 
+		odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
-	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
-	               GID_IDX, *gid);
+	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", 
+		odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
 
@@ -1268,11 +1322,11 @@ remove_gid_from_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	int             err;
 	int             len;
 
-	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", odisk->odisk_path,
-	               GID_IDX, *gid);
+	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", 
+			odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
-	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", odisk->odisk_path,
-	               GID_IDX, *gid);
+	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", 
+			odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
 
@@ -1409,12 +1463,12 @@ odisk_clear_indexes(odisk_state_t * odisk)
 	int             count = 0;
 	int             err, len;
 
-	dir = opendir(odisk->odisk_path);
+	dir = opendir(odisk->odisk_indexdir);
 	if (dir == NULL) {
 		/*
 		 * XXX log 
 		 */
-		printf("failed to open %s \n", odisk->odisk_path);
+		printf("failed to open %s \n", odisk->odisk_indexdir);
 		return (0);
 	}
 
@@ -1449,8 +1503,8 @@ odisk_clear_indexes(odisk_state_t * odisk)
 		if (flen > extlen) {
 			poss_ext = &cur_ent->d_name[flen - extlen];
 			if (strncmp(cur_ent->d_name, GID_IDX, extlen) == 0) {
-				len = snprintf(idx_name, NAME_MAX, "%s/%s", odisk->odisk_path,
-				               cur_ent->d_name);
+				len = snprintf(idx_name, NAME_MAX, "%s/%s", 
+					odisk->odisk_indexdir, cur_ent->d_name);
 				assert(len < NAME_MAX);
 				err = remove
 					      (idx_name);
@@ -1476,12 +1530,12 @@ odisk_build_indexes(odisk_state_t * odisk)
 	int             err, len;
 	obj_data_t     *new_object;
 
-	dir = opendir(odisk->odisk_path);
+	dir = opendir(odisk->odisk_dataroot);
 	if (dir == NULL) {
 		/*
 		 * XXX log 
 		 */
-		printf("failed to open %s \n", odisk->odisk_path);
+		printf("failed to open %s \n", odisk->odisk_dataroot);
 		return (0);
 	}
 
@@ -1539,7 +1593,7 @@ odisk_build_indexes(odisk_state_t * odisk)
 		}
 
 
-		len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_path,
+		len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_dataroot,
 		               cur_ent->d_name);
 		assert(len < NAME_MAX);
 
@@ -1580,12 +1634,12 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 
 	obj_id.dev_id = (uint64_t) devid;
 
-	dir = opendir(odisk->odisk_path);
+	dir = opendir(odisk->odisk_dataroot);
 	if (dir == NULL) {
 		/*
 		 * XXX log 
 		 */
-		printf("failed to open %s \n", odisk->odisk_path);
+		printf("failed to open %s \n", odisk->odisk_dataroot);
 		return (0);
 	}
 
@@ -1633,7 +1687,7 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 			}
 		}
 
-		len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_path,
+		len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_dataroot,
 		               cur_ent->d_name);
 
 		err = odisk_load_obj(odisk, &new_object, max_path);

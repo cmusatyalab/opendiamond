@@ -147,7 +147,7 @@ extern "C"
 	int ceval_start(filter_data_t * fdata);
 	int ceval_stop(filter_data_t * fdata);
 
-	int ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
+	int ceval_filters1(char * obj_name, filter_data_t * fdata, void *cookie,
 	                   int (*cb_func) (void *cookie, char *name,
 	                                   int *pass, uint64_t * et));
 	int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,

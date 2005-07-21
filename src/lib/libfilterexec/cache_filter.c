@@ -78,8 +78,8 @@ static opt_policy_t policy_arr[] = {
                                        {NULL_POLICY, NULL, NULL, NULL, NULL}
                                    };
 
-unsigned int    use_cache_table = 1;
-unsigned int    use_cache_oattr = 1;
+unsigned int    use_cache_table = 0;
+unsigned int    use_cache_oattr = 0;
 unsigned int    cache_oattr_thresh = 10000;
 unsigned int	 mdynamic_load = 1;
 
@@ -103,8 +103,8 @@ static void    *
 ceval_main(void *arg)
 {
 	ceval_state_t  *cstate = (ceval_state_t *) arg;
-	uint64_t        oid;
 	int             err;
+	char *		new_name;
 
 	while (1) {
 		pthread_mutex_lock(&ceval_mutex);
@@ -115,10 +115,10 @@ ceval_main(void *arg)
 		ceval_blocked = 0;
 		pthread_mutex_unlock(&ceval_mutex);
 
-		err = odisk_read_next_oid(&oid, cstate->odisk);
+		new_name = odisk_next_obj_name(cstate->odisk);
 
 		if (err == 0) {
-			ceval_filters1(oid, cstate->fdata, cstate, NULL);
+			ceval_filters1(new_name, cstate->fdata, cstate, NULL);
 		}
 
 		if (err == ENOENT) {
@@ -163,14 +163,17 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 		memcpy(&tmp2, cur_filt->fi_sig + 8, sizeof(tmp2));
 		// printf("filter %d, %s, signature %016llX%016llX\n", fid,
 		// cur_filt->fi_eval_name, tmp1, tmp2);
-		sprintf(buf, "%s/%s/%016llX%016llX", cstate->odisk->odisk_path,
+		/* XXX should be in cache !!! */
+		sprintf(buf, "%s/%s/%016llX%016llX", 
+			cstate->odisk->odisk_dataroot,
 		        CACHE_DIR, tmp1, tmp2);
 		err = mkdir(buf, 0x777);
 		if (err && errno != EEXIST) {
 			printf("fail to creat dir %s, err %d\n", buf, err);
 		}
-		ocache_read_file(cstate->odisk->odisk_path, cur_filt->fi_sig,
-		                 &cur_filt->cache_table, &atime);
+		/* XXX should be in cache !!! */
+		ocache_read_file(cstate->odisk->odisk_dataroot, 
+			cur_filt->fi_sig, &cur_filt->cache_table, &atime);
 	}
 
 	cstate->fdata = fdata;
@@ -331,7 +334,7 @@ generate_new_perm(const partial_order_t * po, permutation_t * copy, int fidx,
 }
 
 int
-ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
+ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
                int (*cb_func) (void *cookie, char *name,
                                int *pass, uint64_t * et))
 {
@@ -361,6 +364,11 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 	permutation_t  *cur_perm, *new_perm;
 	char            buf[BUFSIZ];
 
+	/* XXX this used to be passed in and need to change before
+	 * caching is re-enabled.
+	 */
+	uint64_t	oid = 1;
+
 	// printf("ceval_filters1: obj %016llX\n",oid);
 
 	fdata->obj_counter++;
@@ -369,6 +377,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 		pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 		assert( pr_obj != NULL);
 		pr_obj->obj_id = oid;
+		pr_obj->obj_name = objname;
 		pr_obj->filters = NULL;
 		pr_obj->fsig = NULL;
 		pr_obj->iattrsig = NULL;
@@ -573,6 +582,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 			assert( pr_obj != NULL);
 			pr_obj->obj_id = oid;
+			pr_obj->obj_name = objname;
 			pr_obj->filters = filters;
 			pr_obj->fsig = fsig;
 			pr_obj->iattrsig = iattrsig;
@@ -583,6 +593,7 @@ ceval_filters1(uint64_t oid, filter_data_t * fdata, void *cookie,
 			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 			assert( pr_obj != NULL);
 			pr_obj->obj_id = oid;
+			pr_obj->obj_name = objname;
 			pr_obj->filters = filters;
 			pr_obj->fsig = fsig;
 			pr_obj->iattrsig = iattrsig;

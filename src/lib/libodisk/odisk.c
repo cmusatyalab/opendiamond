@@ -924,7 +924,7 @@ again:
 		goto again;
 	} else {
 		//search_done = 1;
-		return(ENOENT);
+		return(NULL);
 	}
 }
 

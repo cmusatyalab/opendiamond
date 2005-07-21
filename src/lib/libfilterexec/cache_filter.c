@@ -92,6 +92,7 @@ mark_end()
 	assert( pr_obj != NULL );
 	pr_obj->obj_id = 0;
 	pr_obj->filters = NULL;
+	pr_obj->obj_name = NULL;
 	pr_obj->fsig = NULL;
 	pr_obj->iattrsig = NULL;
 	pr_obj->oattr_fnum = -1;
@@ -103,8 +104,8 @@ static void    *
 ceval_main(void *arg)
 {
 	ceval_state_t  *cstate = (ceval_state_t *) arg;
-	int             err;
 	char *		new_name;
+	int		err;
 
 	while (1) {
 		pthread_mutex_lock(&ceval_mutex);
@@ -117,11 +118,9 @@ ceval_main(void *arg)
 
 		new_name = odisk_next_obj_name(cstate->odisk);
 
-		if (err == 0) {
+		if (new_name != NULL) {
 			ceval_filters1(new_name, cstate->fdata, cstate, NULL);
-		}
-
-		if (err == ENOENT) {
+		} else {
 			mark_end();
 			search_active = 0;
 		}

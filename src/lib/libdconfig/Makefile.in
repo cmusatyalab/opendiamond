@@ -35,7 +35,7 @@ TARGETS = copyheader libdconfig.a name_test dconf_test
 
 include $(ROOTDIR)/Makefile.template
 
-CLEAN_OTHERS += group_lookup.c name_lookup.c
+CLEAN_OTHERS += group_lookup.c name_lookup.c diamond_config.c
 
 name_test: name_test.o libdconfig.a 
 	$(CC) $(CFLAGS) -o $@ $< -ldconfig -L.

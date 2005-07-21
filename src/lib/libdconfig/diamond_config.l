@@ -174,6 +174,7 @@ dconf_get_datatype()
 
 #define	MAX_PATH				256
 #define DIAMOND_CONFIG_ENV_NAME			"DIAMOND_CONFIG"
+#define DIAMOND_CONFIG_DIR_NAME			".diamond"
 #define DIAMOND_CONFIG_FILE_NAME		"diamond_config"
 #define DIAMOND_DEFAULT_PATH			"/usr/local/diamond/etc"
 
@@ -196,37 +197,44 @@ open_config_file()
 	lkup = getenv(DIAMOND_CONFIG_ENV_NAME);
 	if (lkup != NULL) {
 		/* XXX deal with overflow */
-		snprintf(fname, MAX_PATH, "%s", lkup);
+		snprintf(fname, MAX_PATH, "%s/%s", lkup,
+			DIAMOND_CONFIG_FILE_NAME);
 		fname[MAX_PATH - 1] = '\0';
 		new_file = fopen(fname, "r");
 		if (new_file != NULL) {
-            	dinfo->dconf_name = strdup(fname);
-            	assert(dinfo->dconf_name != NULL);
-				return(new_file);
+            		dinfo->dconf_name = strdup(fname);
+            		assert(dinfo->dconf_name != NULL);
+			return(new_file);
 		}
 	}
 
 		
-	/* try the local directory */
-	new_file = fopen(DIAMOND_CONFIG_FILE_NAME, "r");
-	if (new_file != NULL) {
-        dinfo->dconf_name = strdup(DIAMOND_CONFIG_FILE_NAME);
-        assert(dinfo->dconf_name != NULL);
-		return(new_file);
-	}
-
-	/* try the default absolute path */
-	/* XXX deal with overflow */
-	snprintf(fname, MAX_PATH, "%s/%s", DIAMOND_DEFAULT_PATH,
+	/* look in the local directory for the config directory */
+	snprintf(fname, MAX_PATH, "./%s/%s", DIAMOND_CONFIG_DIR_NAME,
 		DIAMOND_CONFIG_FILE_NAME);
 	fname[MAX_PATH - 1] = '\0';
 	new_file = fopen(fname, "r");
 	if (new_file != NULL) {
-        dinfo->dconf_name = strdup(fname);
-        assert(dinfo->dconf_name != NULL);
+    		dinfo->dconf_name = strdup(DIAMOND_CONFIG_FILE_NAME);
+        	assert(dinfo->dconf_name != NULL);
 		return(new_file);
 	}
 
+	/* try the user's home directory */
+	lkup = getenv("HOME");
+	if (lkup != NULL) {
+		/* XXX deal with overflow */
+		snprintf(fname, MAX_PATH, "%s/%s/%s", lkup,
+			DIAMOND_CONFIG_DIR_NAME,
+			DIAMOND_CONFIG_FILE_NAME);
+		fname[MAX_PATH - 1] = '\0';
+		new_file = fopen(fname, "r");
+		if (new_file != NULL) {
+        	dinfo->dconf_name = strdup(fname);
+        	assert(dinfo->dconf_name != NULL);
+			return(new_file);
+		}
+	}
 	/* didn't find a file, return NULL */
 	return(NULL);
 }
@@ -259,8 +267,7 @@ do_init()
 
 	ret = dconflex();
 	if (ret) {
-		/* printf("error from yylex\n"); */
-        free(dinfo->dconf_name);
+        	free(dinfo->dconf_name);
 		free(dinfo);
 		dinfo = NULL;
 		exit(1);

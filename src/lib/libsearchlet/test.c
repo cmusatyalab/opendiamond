@@ -28,26 +28,7 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 	int		bar = 2;
 	off_t		size;
 	off_t		err;
-	char *		data;
-	lf_fhandle_t	fhandle;
 
-	/* try to map data into memory */
-	/* XXXX 4096 */
-#ifdef	XXX
-
-	size = 4096;
-	err = lf_read_object(fhandle, ohandle, 0, &size, &data);
-	if (err) {
-		printf("failed to map data \n");
-		exit (1);
-	}
-
-	err = lf_free_buffer(data);
-	if (err) {
-		printf("failed to unmap data \n");
-		exit (1);
-	}
-#endif
 	printf("num args %d \n", numarg);
 	{
 		int i;
@@ -57,10 +38,10 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 
 	}
 
-	lf_write_attr(fhandle, ohandle, "test", sizeof(foo), (char *)&foo);
+	lf_write_attr(ohandle, "test", sizeof(foo), (char *)&foo);
 
 	size = sizeof(bar);
-	err = lf_read_attr(fhandle, ohandle,  "test", &size, (char *)&bar);
+	err = lf_read_attr(ohandle,  "test", &size, (char *)&bar);
 	if (err != 0) {
 		/* XXX error handler  */
 		exit(1);
@@ -70,9 +51,9 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 	}
 
 	foo = 45;
-	lf_write_attr(fhandle, ohandle, "test", sizeof(foo), (char *)&foo);
+	lf_write_attr(ohandle, "test", sizeof(foo), (char *)&foo);
 	size = sizeof(bar);
-	err = lf_read_attr(fhandle, ohandle,  "test", &size, (char *)&bar);
+	err = lf_read_attr(ohandle,  "test", &size, (char *)&bar);
 	if (err != 0) {
 		/* XXX error handler  */
 		exit(1);

@@ -834,7 +834,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 {
 	filter_info_t  *cur_filter;
 	int             conf;
-	lf_obj_handle_t out_list[16];
 	char            timebuf[BUFSIZ];
 	int             err;
 	off_t           asize;
@@ -946,10 +945,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 		cur_filter->fi_called++;
 
-		/*
-		 * XXX build the out list appropriately 
-		 */
-		out_list[0] = obj_handle;
 
 		/*
 		 * initialize obj state for this call 
@@ -974,7 +969,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			/*
 			 * arg 3 here looks strange -rw 
 			 */
-			conf = cur_filter->fi_eval_fp(obj_handle, 1, out_list,
+			conf = cur_filter->fi_eval_fp(obj_handle,
 			                              cur_filter->fi_filt_arg);
 
 			/*

@@ -41,72 +41,7 @@ static char const cvsid[] = "$Header$";
 static read_attr_cb 	read_attr_fn = NULL;
 static write_attr_cb 	write_attr_fn = NULL;
 
-/*
- * This is called to initialize an instance of the filter library.  It
- * returns a handle that will be used for subsequent calls to the library.
- *
- * Args:
- * 	major_version -	The major version of the library that the application
- * 			wishes to use. 
- *
- * 	minor_version -	The minor version of the library that the application
- * 			wishes to use.  
- *
- * Return:
- * 	NULL	      - Unable to initialize the library.  This will be caused
- * 			when the supported version is not available.
- *
- *   non-NULL	      - This will be the handle used for subsequent library
- *   			calls.
- *
- */
 
-lf_fhandle_t
-lf_init_lib(int major_version, int minor_version)
-{
-
-	filter_lib_handle_t *	fdata;
-	/*
-	 * We currently only support the latest version.  If the
-	 * callers isn't requesting this version, then we fail.
-	 */
-	if ((major_version != LF_LATEST_MAJOR_VERSION) &&
-	    (minor_version != LF_LATEST_MINOR_VERSION)) {
-		return(NULL);
-	}
-
-
-	fdata = (filter_lib_handle_t *)malloc(sizeof(*fdata));
-	if (fdata == NULL) {
-		/* XXX log */
-		return(NULL);
-	}
-
-	fdata->min_ver = LF_LATEST_MINOR_VERSION;
-	fdata->maj_ver = LF_LATEST_MAJOR_VERSION;
-	fdata->num_free = 0;
-	fdata->num_malloc = 0;
-
-
-	return((lf_fhandle_t)fdata);
-
-}
-
-
-/*
- * This is called to initialize closes a version of the library
- * that was being mananged.  
- *
- * Args:
- * 	fhandle       - a open handle to the library.
- *
- * Return:
- * 	0	      - The call was successful.
- *	EINVAL	      - The handle was not valid.
- *
- */
-
-extern int lf_close_lib(lf_fhandle_t *fhandle);
 
 int
 lf_set_read_cb(read_attr_cb cb_fn)
@@ -121,8 +56,7 @@ lf_set_read_cb(read_attr_cb cb_fn)
  */
 /* need to pass in fhandle as the filter name */
 int
-lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
-             off_t *len, char *data)
+lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, char *data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -132,18 +66,15 @@ lf_read_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
 	adata = &odata->attr_info;
 	err = obj_read_attr(adata, name, len, data);
 	/* add read attrs into cache queue: input attr set */
-	if ( !err && (read_attr_fn != NULL) ) {
-		(*read_attr_fn)((char *)fhandle, obj, name, *len, data);
+	if (!err && (read_attr_fn != NULL)) {
+		(*read_attr_fn)(obj, name, *len, data);
 	}
-	//if( !err )
-	//	ocache_add_iattr((char *)fhandle, odata->local_id, name, *len, data);
 	return(err);
 }
 
 
 int
-lf_ref_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
-            off_t *len, char **data)
+lf_ref_attr(lf_obj_handle_t obj, const char *name, off_t *len, char **data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -154,16 +85,14 @@ lf_ref_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, const char *name,
 	err = obj_ref_attr(adata, name, len, data);
 	/* add read attrs into cache queue: input attr set */
 	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn)((char *)fhandle, obj, name, *len, *data);
+		(*read_attr_fn)(obj, name, *len, *data);
 	}
-	//if( !err )
-	//	ocache_add_iattr((char *)fhandle, odata->local_id, name, *len, data);
 	return(err);
 }
 
 /* XXX */
 int
-lf_dump_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj)
+lf_dump_attr(lf_obj_handle_t obj)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -188,8 +117,7 @@ lf_set_write_cb(write_attr_cb cb_fn)
  * XXX
  */
 int
-lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
-              char *data)
+lf_write_attr(lf_obj_handle_t obj, char *name, off_t len, char *data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -200,10 +128,8 @@ lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
 	err = obj_write_attr(adata, name, len, data);
 	/* add writen attrs into cache queue: output attr set */
 	if ( !err && (write_attr_fn != NULL) ) {
-		(*write_attr_fn)((char *)fhandle, obj, name, len, data);
+		(*write_attr_fn)(obj, name, len, data);
 	}
-	//if( !err )
-	//	ocache_add_oattr((char *)fhandle, odata->local_id, name, len, data);
 	return(err);
 }
 
@@ -213,8 +139,6 @@ lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
  *
  *
  * Args:
- * 	fhandle    - a handle to the instance of the library.
- *
  * 	obj_handle - the object handle.
  *
  * 	num_blocks - the number of blocks to read.
@@ -238,7 +162,7 @@ lf_write_attr(lf_fhandle_t fhandle, lf_obj_handle_t obj, char *name, off_t len,
  */
 
 int
-lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
+lf_next_block(lf_obj_handle_t obj_handle,
               int num_blocks,  off_t *len, char **bufp)
 {
 	obj_data_t *	odata;
@@ -267,7 +191,7 @@ lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
 		length = remain;
 	}
 
-	err = lf_alloc_buffer(fhandle, length, &buf);
+	err = lf_alloc_buffer(length, &buf);
 	if (err) {
 		printf("failed to allocate block \n");
 		assert(0);
@@ -293,8 +217,6 @@ lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  *
  *
  * Args:
- * 	fhandle    - a handle to the instance of the library.
- *
  * 	obj_handle - the object handle.
  *
  * 	num_blocks - the number of blocks to read.
@@ -309,7 +231,7 @@ lf_next_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  */
 
 int
-lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, int num_blocks)
+lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
 {
 	obj_data_t *	odata;
 	off_t		length;
@@ -342,8 +264,6 @@ lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, int num_blocks)
  * any further acceses to the buffer or free the buffer.
  *
  * Args:
- * 	fhandle    - a handle to the instance of the library.
- *
  * 	obj_handle - the object handle.
  *
  * 	flags 	   - Specifies specific behavior of the write.
@@ -366,7 +286,7 @@ lf_skip_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle, int num_blocks)
 
 #define	LF_WRITE_BLOCK_PAD	0x01
 int
-lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
+lf_write_block(lf_obj_handle_t obj_handle,
                int flags, off_t len, char *buf)
 {
 
@@ -380,8 +300,6 @@ lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  * user data that is typically called through malloc.
  *
  * Args:
- * 	fhandle    - a handle to the instance of the library.
- *
  * 	len	   - the number of bytes to write.
  *
  * 	bufp	   - The pointer where the buffer will be stored.
@@ -395,7 +313,7 @@ lf_write_block(lf_fhandle_t fhandle, lf_obj_handle_t obj_handle,
  *
  */
 int
-lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf)
+lf_alloc_buffer(off_t len, char **buf)
 {
 
 	char * new_buf;
@@ -419,8 +337,6 @@ lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf)
  * or lf_alloc_buffer().
  *
  * Args:
- * 	fhandle    - a handle to the instance of the library.
- *
  * 	buf	   - The buffer to release.
  *
  * Return:
@@ -431,7 +347,7 @@ lf_alloc_buffer(lf_fhandle_t fhandle, off_t len, char **buf)
  * 	EINVAL     - one of the handles was invalid. 
  */
 int
-lf_free_buffer(lf_fhandle_t fhandle, char *buf)
+lf_free_buffer(char *buf)
 {
 
 	/* XXX keep some states and error checking */
@@ -447,8 +363,6 @@ lf_free_buffer(lf_fhandle_t fhandle, char *buf)
  * can be retrieved from the host system.
  *
  * Args:  
- * 	fhandle    - a handle to the instance of the library.
- *
  * 	level 	   - The log level associated with the command.  This
  * 		     used to limit the amount of information being passed.
  *
@@ -466,7 +380,7 @@ lf_free_buffer(lf_fhandle_t fhandle, char *buf)
 char * fexec_cur_filtname();
 
 int
-lf_log(lf_fhandle_t fhandle, int level, char *fmt, ...)
+lf_log(int level, char *fmt, ...)
 {
 	va_list	ap;
 	va_list	new_ap;

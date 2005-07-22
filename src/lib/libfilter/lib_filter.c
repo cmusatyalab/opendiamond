@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <assert.h>
+#include <limits.h>
 #include "ring.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
@@ -169,7 +170,7 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	char	*	buf;
 	off_t		length;
 	off_t		remain;
-	int		err;
+	int		max_blocks;
 
 	odata = (obj_data_t *)obj_handle;
 
@@ -177,15 +178,23 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	 * See if there is any data to read.
 	 */
 	if (odata->data_len <= odata->cur_offset) {
-		printf("too much dat %016llX  off %lx len %lx \n",
+		printf("Beyond file len: off %lx len %lx \n",
 		       odata->local_id, odata->cur_offset, odata->data_len);
 		*len = 0;
 		assert(0);
 		return(ENOENT);
 	}
 
-	/* XXX check for off by 1 errors here */
-	length = num_blocks * odata->cur_blocksize;
+	/* 
+	 * We need to make sure that the product will not overflow
+	 * the off_t.
+	 */
+	max_blocks = INT_MAX/odata->cur_blocksize;
+	if (num_blocks >= max_blocks) {
+		length = INT_MAX;
+	} else {
+		length = num_blocks * odata->cur_blocksize;
+	}
 	remain = odata->data_len - odata->cur_offset;
 	if (length > remain) {
 		length = remain;

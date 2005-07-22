@@ -844,13 +844,11 @@ odisk_pr_add(pr_obj_t *pr_obj)
 char *
 odisk_next_obj_name(odisk_state_t *odisk)
 {
-	char            file_name[NAME_MAX];
-	char            path_name[NAME_MAX];
+	char            	file_name[NAME_MAX];
+	char            	path_name[NAME_MAX];
 	char *			ncopy;
-	gid_idx_ent_t                   gid_ent;
-	int                             i;
-	int                             ret;
-	uint64_t        local_id;
+	int                     i;
+	int                     ret;
 
 again:
 	for (i = odisk->cur_file; i < odisk->max_files; i++) {

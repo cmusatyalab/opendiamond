@@ -191,12 +191,12 @@ lf_next_block(lf_obj_handle_t obj_handle,
 		length = remain;
 	}
 
-	err = lf_alloc_buffer(length, &buf);
-	if (err) {
+	buf = (char *) malloc(length);
+	if (buf == NULL) {
 		printf("failed to allocate block \n");
 		assert(0);
 		*len = 0;
-		return(err);
+		return(ENOSPC);
 	}
 
 	memcpy(buf, &odata->data[odata->cur_offset], length);
@@ -293,6 +293,7 @@ lf_write_block(lf_obj_handle_t obj_handle,
 	return(EINVAL);
 }
 
+#ifdef	XXX
 
 /*
  * This allocated a range of memory for the application to use.  This should be
@@ -355,7 +356,7 @@ lf_free_buffer(char *buf)
 	return 0;
 }
 
-
+#endif
 
 
 /*

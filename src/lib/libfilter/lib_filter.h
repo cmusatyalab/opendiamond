@@ -168,6 +168,7 @@ int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
 #define	LF_WRITE_BLOCK_PAD	0x01
 int lf_write_block(lf_obj_handle_t obj_handle, int flags, off_t len, char *buf);
 
+#ifdef	XXX
 
 /*
  * This allocates memory for the application to use.  This should be
@@ -206,6 +207,7 @@ int lf_alloc_buffer(off_t len, char **buf);
  */
 int lf_free_buffer(char *buf);
 
+#endif
 /*
  * This function reads the some of the object's attributes.
  *

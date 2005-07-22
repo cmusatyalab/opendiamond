@@ -168,46 +168,6 @@ int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
 #define	LF_WRITE_BLOCK_PAD	0x01
 int lf_write_block(lf_obj_handle_t obj_handle, int flags, off_t len, char *buf);
 
-#ifdef	XXX
-
-/*
- * This allocates memory for the application to use.  This should be
- * used for allocating buffers to hold object data as well as other 
- * user data that is typically called through malloc.
- *
-* Args:
- * 	len	   - the number of bytes to write.
- *
- * 	bufp	   - The pointer where the buffer will be stored.
- *
- * Return:
- * 	0	   - the write was successful. 
- * 
- * 	ENOSPC	   - insufficient resources were available to complete the call.
- *
- * 	EINVAL     - one of the handles was invalid. 
- *
- */
-int lf_alloc_buffer(off_t len, char **buf);
-
-
-/*
- * This frees a buffer that was allocated through a read call or
- * or lf_alloc_buffer().
- *
- * Args:
- * 	buf	   - The buffer to release.
- *
- * Return:
- * 	0	   - the write was successful. 
- * 
- * 	ENOSPC	   - insufficient resources were available to complete the call.
- *
- * 	EINVAL     - one of the handles was invalid. 
- */
-int lf_free_buffer(char *buf);
-
-#endif
 /*
  * This function reads the some of the object's attributes.
  *

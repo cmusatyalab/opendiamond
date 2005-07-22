@@ -42,12 +42,6 @@ obj_dump_attr(obj_attr_t *attr)
 	sprintf_func_t func;
 	void *handle;
 
-	handle = dlopen("./fdebug.so", RTLD_NOW);
-	if (!handle) {
-		/* XXX error log */
-		//fputs(dlerror(), stderr);
-		//exit (1);
-	}
 
 #ifdef	XXX
 	cur_offset = 0;

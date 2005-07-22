@@ -840,49 +840,6 @@ odisk_pr_add(pr_obj_t *pr_obj)
 	}
 }
 
-#ifdef	XXX
-int
-odisk_read_next_oid(uint64_t *oid, odisk_state_t *odisk)
-{
-	gid_idx_ent_t                   gid_ent;
-	int                             i;
-	int                             num;
-	uint64_t        local_id;
-
-again:
-	for (i = odisk->cur_file; i < odisk->max_files; i++) {
-		if (odisk->index_files[i] != NULL) {
-			num = fread(&gid_ent, sizeof(gid_ent), 1,
-			            odisk->index_files[i]);
-			if (num == 1) {
-				odisk->cur_file = i + 1;
-				if (odisk->cur_file >= odisk->max_files) {
-					odisk->cur_file = 0;
-				}
-				sscanf(gid_ent.gid_name, "OBJ%016llX", &local_id);
-				*oid = local_id;
-				//printf("odisk_read_next_oid: %016llX\n", local_id);
-				return(0);
-			} else {
-				fclose(odisk->index_files[i]);
-				odisk->index_files[i] = NULL;
-			}
-		}
-	}
-
-	/*
-	 * if we get here, either we need to start at the begining,
-	 * or there is no more data.
-	 */
-	if (odisk->cur_file != 0) {
-		odisk->cur_file = 0;
-		goto again;
-	} else {
-		//search_done = 1;
-		return(ENOENT);
-	}
-}
-#endif
 
 char *
 odisk_next_obj_name(odisk_state_t *odisk)

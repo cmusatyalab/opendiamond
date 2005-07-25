@@ -12,6 +12,7 @@
 #
 
 ROOTDIR = @top_srcdir@
+SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 

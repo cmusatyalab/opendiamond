@@ -49,7 +49,7 @@ vpath %.l ${VPATH}
 
 
 INCDIR += -I${BUILD_INC_PATH}
-INCDIR += -I$(VPATH)
+INCDIR += -I$(SRCDIR)
 INCDIR += -I.
 
 LIBDIR += -L${BUILD_LIB_PATH}
@@ -181,7 +181,7 @@ endif
 
 copyheader:
 	@for entry in ${SHARED_HEADERS}; do \
-		cp -fuv ${VPATH}/$${entry} ${BUILD_INC_PATH}; \
+		cp -fuv ${SRCDIR}/$${entry} ${BUILD_INC_PATH}; \
 	done
 
 copybin:

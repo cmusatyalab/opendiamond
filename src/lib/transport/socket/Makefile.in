@@ -11,6 +11,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 ROOTDIR = @top_srcdir@
+SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 

@@ -19,7 +19,6 @@ OBJROOT = @OBJROOT@
 
 
 CFLAGS_SO = $(CFLAGS) -fPIC
-FLEX = flex
 
 LIBSRCS += lib_searchlet.c ls_background.c   
 LIBSRCS += ls_device.c ls_log.c ls_dctl.c

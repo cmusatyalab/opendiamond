@@ -34,8 +34,6 @@ SHARED_BIN = dlog
 
 include $(ROOTDIR)/Makefile.template
 
-
-
 #
 #
 

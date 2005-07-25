@@ -16,7 +16,6 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
 SHARED_HEADERS = lib_log.h
 
 LIBSRCS = lib_log.c

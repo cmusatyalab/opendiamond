@@ -16,16 +16,9 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-CFLAGS_SO = $(CFLAGS) -fPIC
-FLEX = flex
-LIBSEARCHLET_OBJS = lib_searchlet.o
-LIBSEARCHLET_EMUL_OBJS = $(LIBSEARCHLET_OBJS) filter_lib.o \
-			 filter_spec.o ls_background.o ls_device.o  
 LIBS += -ldl  -lpthread -lfilterexec -lfl -Wl,-whole-archive 
 LIBS += -lfilter -llog -lodisk -Wl,-no-whole-archive
 LIBS += -lsstub -ltools -ldctl -lm -lssl -lcrypto -ldconfig
-
-LIBDIR += -L/usr/lib -L/usr/local/ssl/lib
 
 SRCS = adiskd.c search_state.c
 OBJS = adiskd.o search_state.o

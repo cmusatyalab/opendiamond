@@ -47,10 +47,6 @@ CFLAGS += -D_GNU_SOURCE
 include $(ROOTDIR)/Makefile.template 
 
 
-.c.o:
-	$(CC) $(CFLAGS) $(INCDIR) -c -o $*.o $<
-
-
 odisk_test: $(TEST_OBJS) libodisk.a
 	$(CC) $(CFLAGS) -o odisk_test odisk_test.o $(LIBS) $(LIBDIR)
 

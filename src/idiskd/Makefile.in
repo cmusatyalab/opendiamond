@@ -16,14 +16,6 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
-CFLAGS_SO = $(CFLAGS) -fPIC
-FLEX = flex
-
-LIBSEARCHLET_OBJS = lib_searchlet.o
-LIBSEARCHLET_EMUL_OBJS = $(LIBSEARCHLET_OBJS) filter_lib.o \
-			 filter_spec.o ls_background.o ls_device.o  
-
 LIBS += -ldl  -lpthread -lfilterexec -lfl -ltools -Wl,-whole-archive 
 LIBS += -lfilter -llog -lodisk -locache -Wl,-no-whole-archive
 LIBS += -lsstub -ltools -ldctl -lm -lssl -lcrypto -lhstub -ldconfig

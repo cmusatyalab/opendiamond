@@ -23,6 +23,6 @@ CLEAN_OTHERS += *.a
 
 INSTALL_LIBS = $(wildcard *.a)
 
--include $(ROOTDIR)/Makefile.template
+include $(ROOTDIR)/Makefile.template
 
 

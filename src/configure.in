@@ -9,58 +9,40 @@ AC_CONFIG_HEADER([config.h])
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
+AC_PROG_AWK
 AC_PROG_LEX
-AC_PROG_LN_S
+
+# Add some cflags of our choosing
+CFLAGS="${CFLAGS} -Wall -D_REENTRANT -D_THREAD_SAFE -ffast-math"
+
 
 # Checks for libraries.
-# FIXME: Replace `main' with a function in `-lcrypto':
-AC_CHECK_LIB([crypto], [main])
-# FIXME: Replace `main' with a function in `-lcvaux':
-AC_CHECK_LIB([cvaux], [main])
-# FIXME: Replace `main' with a function in `-ldconfig':
-AC_CHECK_LIB([dconfig], [main])
-# FIXME: Replace `main' with a function in `-ldctl':
-AC_CHECK_LIB([dctl], [main])
-# FIXME: Replace `main' with a function in `-ldl':
-AC_CHECK_LIB([dl], [main])
-# FIXME: Replace `main' with a function in `-lfilter':
-AC_CHECK_LIB([filter], [main])
-# FIXME: Replace `main' with a function in `-lfilterexec':
-AC_CHECK_LIB([filterexec], [main])
-# FIXME: Replace `main' with a function in `-lfl':
-AC_CHECK_LIB([fl], [main])
-# FIXME: Replace `main' with a function in `-lhstub':
-AC_CHECK_LIB([hstub], [main])
-# FIXME: Replace `main' with a function in `-llog':
-AC_CHECK_LIB([log], [main])
-# FIXME: Replace `main' with a function in `-lm':
-AC_CHECK_LIB([m], [main])
-# FIXME: Replace `main' with a function in `-locache':
-AC_CHECK_LIB([ocache], [main])
-# FIXME: Replace `main' with a function in `-lod':
-AC_CHECK_LIB([od], [main])
-# FIXME: Replace `main' with a function in `-lodisk':
-AC_CHECK_LIB([odisk], [main])
-# FIXME: Replace `main' with a function in `-lopencv':
-AC_CHECK_LIB([opencv], [main])
-# FIXME: Replace `main' with a function in `-lpthread':
-AC_CHECK_LIB([pthread], [main])
-# FIXME: Replace `main' with a function in `-lsearchlet':
-AC_CHECK_LIB([searchlet], [main])
-# FIXME: Replace `main' with a function in `-lssl':
-AC_CHECK_LIB([ssl], [main])
-# FIXME: Replace `main' with a function in `-lsstub':
-AC_CHECK_LIB([sstub], [main])
-# FIXME: Replace `main' with a function in `-ltools':
-AC_CHECK_LIB([tools], [main])
-# FIXME: Replace `main' with a function in `-ltrace':
-AC_CHECK_LIB([trace], [main])
-# FIXME: Replace `main' with a function in `-lxml2':
-AC_CHECK_LIB([xml2], [main])
+AC_CHECK_LIB([crypto], [main], , 
+	[AC_MSG_ERROR(Unable to find libcrypto)])
+AC_CHECK_LIB([dl], [main], , 
+	[AC_MSG_ERROR(Unable to find libdl)])
+AC_CHECK_LIB([fl], [main], ,
+	[AC_MSG_ERROR(Unable to find libfl)])
+AC_CHECK_LIB([m], [main], ,
+	[AC_MSG_ERROR(Unable to find libm)])
+AC_CHECK_LIB([pthread], [main], ,
+	[AC_MSG_ERROR(Unable to find libpthread)])
+AC_CHECK_LIB([ssl], [main], ,
+	[AC_MSG_ERROR(Unable to find libssl)])
 
 
 OBJROOT=`pwd`
 AC_SUBST(OBJROOT)
+
+
+AC_SUBST(BUILDROOT)
+AC_ARG_WITH(buildroot, [--with-buildroot=DIR set target build hierarchy to DIR],
+    [ BUILDROOT="`(cd ${withval} ; pwd)`"],
+    [ BUILDROOT=${OBJROOT}/target]
+    )
+                                                                                
+                                                                                
+
 
 
 # Checks for header files.
@@ -92,6 +74,7 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gethostbyaddr gethostbyname gettimeofday inet_ntoa memset mkdir select socket sqrt strdup strerror strtol])
 
 AC_CONFIG_FILES([Makefile
+		 Makefile.template
                  adiskd/Makefile
                  common/Makefile
                  idiskd/Makefile

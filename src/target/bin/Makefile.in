@@ -22,7 +22,7 @@ SUBDIRS =
 ALLFILES = $(wildcard *)
 
 # items we know that we don't want to include
-EXCLUDES = CVS Makefile Makefile.in
+EXCLUDES = CVS Makefile Makefile.in dsetup remote.config
 
 # The reduced set
 INSTALL_BIN = $(filter-out $(EXCLUDES), $(ALLFILES))

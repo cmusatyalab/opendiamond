@@ -1,12 +1,12 @@
 #!/bin/sh
 
-RELEASE_NAME=diamond-l.0.0
+RELEASE_NAME=diamond-1.1.0-rc1
 #
 # Make sure we have cleaned the source tree
 #
 pushd ../src
-export DIAMOND_ROOT=`pwd`
 make distclean
+autoconf
 popd
 
 #
@@ -23,16 +23,15 @@ cp -r ../src /tmp/"$RELEASE_NAME"/
 find /tmp/"$RELEASE_NAME" -name CVS -exec rm -rf {} \;
 
 # remove diretories we don't want to ship
-rm -rf /tmp/"$RELEASE_NAME"/tools/filter_sim 
-rm -rf /tmp/"$RELEASE_NAME"/tools/fiord 
-rm -rf /tmp/"$RELEASE_NAME"/test
+
+# remove autoconf side effects
+rm -rf autom4te.cache
 
 
 # generate the tar file
 pushd /tmp
-tar -cf /tmp/"$RELEASE_NAME".tar "$RELEASE_NAME"
+tar -czf /tmp/"$RELEASE_NAME".tgz "$RELEASE_NAME"
 
 popd
-cp /tmp/"$RELEASE_NAME".tar .
+cp /tmp/"$RELEASE_NAME".tgz .
 
-gzip "$RELEASE_NAME".tar 

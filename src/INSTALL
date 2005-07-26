@@ -78,11 +78,11 @@ Data in diamond is organized into groups.  Each group contains files
 that are related to each other.  For examples, one group can be images,
 another group can be sounds, etc.   Each group is assigned a 64-bit
 number that is used to identify the collection.  (In many config
-files we write the number as 8 8-bit values seperate by colons:
+files we write the number as 8 8-bit values separate by colons:
 group 1 -> 00:00:00:00:00:00:00:01, etc.)  Each group has
 an index file that is a list of the files belonging to that group,
 for the NATIVE file system this index file is a text file where each
-line is a file.   The index files are stored in INDEXDIR with a namd
+line is a file.   The index files are stored in INDEXDIR with a name
 GIDIDX????????????????, where the ? are the hex values of the 64-bit
 number.  A simple way to generate an index file is using find.  For
 example to generate a index of all ppm files into group 1 run

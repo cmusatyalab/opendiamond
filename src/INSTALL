@@ -1,29 +1,56 @@
 Building the system
 -------------------
 
-Edit Makefile.template if you want to change any of the default
-values of where applications are installed or how the application is built.
-If you are planning on running the disk daemon (adiskd) on the local 
-machine you can set up DATADIR value in the template file to be
-where the data should be stored.  This will setup a basic configuration
-file for you during the install process.
+To build the Diamond system you must first run the "configure" script
+to generate the make files (if your are building from the CVS tree
+instead of a tar file, then you must run 'autoconf' first).  You
+have the option of running configure at the base directory
+or the build environment supports VPATHs if you wish to keep
+a seperate build hierarchy.
 
-Set the environmental value DIAMOND_ROOT to point to the top level of the tree
-(it should be the directory this file is in).  In bash this can be done by:
-	
-	export 	DIAMOND_ROOT=`pwd`
+Once "configure" has completed, build the system
+by typing makes.  As the system builds, all of the important header
+files, libraries and binaries will be put in target/{include, lib, bin}.
 
-Build the system by typing "make" at the top level.  "make depend" will
-setup all the dependancies for you.  Due to the current way the header
-files are copied you will need to perform a "make" before running
-"make depend" or it will not be able to find all the header files.
+One make has completed, you can either run diamond out of the 
+build directory or you can install it in the system.  Running
+"make install" will install all the files in 
+/usr/local/diamond/{include,lib,bin}  (this requires root access).  Options
+to make install allow data to be install into other locations.
 
-Assuming everyhing builds correctly you should have a complete system
-built.  To install the software run "make install".  Assuming you 
-keep the default target directories you will probably need to be
-root to run this.  If you want to install the tools on a remote
-machine you will need to manually copy the binaries in target/bin
-to the remote machines.  Hopefully there will be scripts to do this soon. -:)
+Diamond Configuration
+---------------------
+
+Diamond has two components.  The first runs on the backend
+where the data is stored and the other is the runtime running
+on the host where the application is executed.  Both
+require special configuration files that describe
+how the system is configured and where data is located.
+
+On the back-end the daemon `adiskd` needs to be running.  This
+handles incoming requests and creates new search contexts by forking
+off new processes.  To simplify deployment, we current run this
+as a specific user instead of as a services.  Any files that
+are to be processed during the search, need to be read-accessible
+to the user starts the daemon.
+
+The front-end software is included in the diamond applications
+through the libraries. 
+
+In both cases, the necessary configuration files live
+in configuration directory.  The system will search the following
+locations for the configurations files in this order.  First
+it looks for an envirnmental variable "DIAMOND_CONFIG"  if
+this is set, it uses the value as the potential directory
+for the configuration files.  Next is searches for a directory
+called ".diamond" in the current working directory.  The last
+location is "${HOME}/.diamond".  
+
+
+
+
+
+
 
 You should be ready to build the applications as well as running adiskd.
 

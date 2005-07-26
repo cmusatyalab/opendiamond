@@ -28,6 +28,7 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_dconfig.h"
+#include "dconfig_priv.h"
 
 static int  have_error();
 static int  set_data_root(char *name);
@@ -172,72 +173,6 @@ dconf_get_datatype()
 
 
 
-#define	MAX_PATH				256
-#define DIAMOND_CONFIG_ENV_NAME			"DIAMOND_CONFIG"
-#define DIAMOND_CONFIG_DIR_NAME			".diamond"
-#define DIAMOND_CONFIG_FILE_NAME		"diamond_config"
-#define DIAMOND_DEFAULT_PATH			"/usr/local/diamond/etc"
-
-/*
- * This looks for the config file in a couple of places.
- * the first place is in $DIAMOND_CONFIG.  Next it looks in
- * the local directory, and third it looks in the system defined
- * location.
- */
-
-static FILE *
-open_config_file()
-{
-	FILE *  new_file;
-	char *  lkup;
-	char	fname[MAX_PATH];
-
-
-	/* try the environment variable */
-	lkup = getenv(DIAMOND_CONFIG_ENV_NAME);
-	if (lkup != NULL) {
-		/* XXX deal with overflow */
-		snprintf(fname, MAX_PATH, "%s/%s", lkup,
-			DIAMOND_CONFIG_FILE_NAME);
-		fname[MAX_PATH - 1] = '\0';
-		new_file = fopen(fname, "r");
-		if (new_file != NULL) {
-            		dinfo->dconf_name = strdup(fname);
-            		assert(dinfo->dconf_name != NULL);
-			return(new_file);
-		}
-	}
-
-		
-	/* look in the local directory for the config directory */
-	snprintf(fname, MAX_PATH, "./%s/%s", DIAMOND_CONFIG_DIR_NAME,
-		DIAMOND_CONFIG_FILE_NAME);
-	fname[MAX_PATH - 1] = '\0';
-	new_file = fopen(fname, "r");
-	if (new_file != NULL) {
-    		dinfo->dconf_name = strdup(DIAMOND_CONFIG_FILE_NAME);
-        	assert(dinfo->dconf_name != NULL);
-		return(new_file);
-	}
-
-	/* try the user's home directory */
-	lkup = getenv("HOME");
-	if (lkup != NULL) {
-		/* XXX deal with overflow */
-		snprintf(fname, MAX_PATH, "%s/%s/%s", lkup,
-			DIAMOND_CONFIG_DIR_NAME,
-			DIAMOND_CONFIG_FILE_NAME);
-		fname[MAX_PATH - 1] = '\0';
-		new_file = fopen(fname, "r");
-		if (new_file != NULL) {
-        	dinfo->dconf_name = strdup(fname);
-        	assert(dinfo->dconf_name != NULL);
-			return(new_file);
-		}
-	}
-	/* didn't find a file, return NULL */
-	return(NULL);
-}
 
 
 int
@@ -258,7 +193,7 @@ do_init()
 	dinfo = malloc(sizeof(*dinfo));
 	assert(dinfo != NULL);
 
-	yyin = open_config_file();
+	yyin = dconfig_open_config_file(DIAMOND_CONFIG_FILE_NAME);
 	if (yyin == NULL) {
 		/* XXX log */
 		fprintf(stderr, "failed to open diamond config file \n");
@@ -267,7 +202,7 @@ do_init()
 
 	ret = dconflex();
 	if (ret) {
-        	free(dinfo->dconf_name);
+        	// XXX free(dinfo->dconf_name);
 		free(dinfo);
 		dinfo = NULL;
 		exit(1);

@@ -17,8 +17,8 @@ VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
 
-LIBOBJS = group_lookup.o name_lookup.o diamond_config.o
-LIBSRCS = group_lookup.c name_lookup.c diamond_config.c
+LIBOBJS = group_lookup.o name_lookup.o diamond_config.o dconfig_tools.o
+LIBSRCS = group_lookup.c name_lookup.c diamond_config.c dconfig_tools.c
 
 TESTOBJS = lookup_test.o name_test.o dconf_test.o
 TESTSRCS = lookup_test.c name_test.c dconf_test.c

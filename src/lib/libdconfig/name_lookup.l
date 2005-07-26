@@ -29,6 +29,7 @@
 #include "diamond_types.h"
 #include "name_map.h"
 #include "lib_dconfig.h"
+#include "dconfig_priv.h"
 
 static void have_gid();
 static void have_cont();
@@ -371,7 +372,7 @@ read_name_map(char *map_file)
 {
 	int ret;
 
-	yyin = open_map_file(map_file);
+	yyin = dconfig_open_config_file(map_file);
 	if (yyin == NULL) {
 		/* XXX log */
 		fprintf(stderr, "failed to open map file \n");

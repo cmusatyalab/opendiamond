@@ -25,4 +25,10 @@
 #define	MAX_NUM_DEPS		20
 
 
+/* default path names for the different configurations files */
+#define DIAMOND_CONFIG_ENV_NAME                 "DIAMOND_CONFIG"
+#define DIAMOND_CONFIG_DIR_NAME                 ".diamond"
+#define DIAMOND_CONFIG_FILE_NAME                "diamond_config"
+
+
 #endif                          /* _CONSTS_H_ */

@@ -6,7 +6,7 @@ to generate the make files (if your are building from the CVS tree
 instead of a tar file, then you must run 'autoconf' first).  You
 have the option of running configure at the base directory
 or the build environment supports VPATHs if you wish to keep
-a seperate build hierarchy.
+a separate build hierarchy.
 
 Once "configure" has completed, build the system
 by typing makes.  As the system builds, all of the important header
@@ -21,7 +21,7 @@ to make install allow data to be install into other locations.
 Diamond Configuration
 ---------------------
 
-Diamond has two components.  The first runs on the backend
+Diamond has two components.  The first runs on the back end
 where the data is stored and the other is the runtime running
 on the host where the application is executed.  Both
 require special configuration files that describe
@@ -40,41 +40,104 @@ through the libraries.
 In both cases, the necessary configuration files live
 in configuration directory.  The system will search the following
 locations for the configurations files in this order.  First
-it looks for an envirnmental variable "DIAMOND_CONFIG"  if
+it looks for an environmental variable "DIAMOND_CONFIG"  if
 this is set, it uses the value as the potential directory
 for the configuration files.  Next is searches for a directory
 called ".diamond" in the current working directory.  The last
 location is "${HOME}/.diamond".  
 
 
+Back-end configuration
+---------------------
+
+On each of the back-ends there should be a config file
+called "diamond_config".  This is a text file
+with lines that describe where the data is stored.  Currently
+there are two types of storage available.  The first uses
+the native file-system, the second uses an object store
+built on the native file system.  We will only consider
+the native file system for now.   The text of 
+the file should be something like
+
+	DATAROOT /dataroot_directory
+	INDEXDIR /index_file_directory
+	CACHEDIR /cache_storage
+	DATATYPE NATIVE
+
+The line DATAROOT gives a prefix relative
+to all the files.  Each file being searched be opened
+with the concatenation of the DATAROOT and the local file
+name.  The INDEXDIR gives the absolute pathname to a directory
+where index files are stored (see below for more on index
+files).  CACHEDIR give a directory that the system can
+use to store cached state.  Some place in /tmp is usually
+a good location.  DATATYPE NATIVE, tells the system to use
+the native files instead of the object store.
+
+Data in diamond is organized into groups.  Each group contains files
+that are related to each other.  For examples, one group can be images,
+another group can be sounds, etc.   Each group is assigned a 64-bit
+number that is used to identify the collection.  (In many config
+files we write the number as 8 8-bit values seperate by colons:
+group 1 -> 00:00:00:00:00:00:00:01, etc.)  Each group has
+an index file that is a list of the files belonging to that group,
+for the NATIVE file system this index file is a text file where each
+line is a file.   The index files are stored in INDEXDIR with a namd
+GIDIDX????????????????, where the ? are the hex values of the 64-bit
+number.  A simple way to generate an index file is using find.  For
+example to generate a index of all ppm files into group 1 run
+
+	find . -name \*.ppm > indexdir/GIDIDX0000000000000001
+
+
+Front-end configuration
+-----------------------
+
+On the front-end there are several configuration files that describe 
+where the data resides.  The first is the gid_map file
+that maps groups to one or more machines that holds data in that
+group.  The lines in this file a gid (colon seperated) followed by a list
+of machines that have data for that group.  The other file is
+name_map that takes a symbolic name (e.g.  "photos" and maps it
+to one or more groups).  
+
+Running adisk
+------------
+
+To start the adiskd, just run it without any arguments.  This will
+create a daemon that runs in the background.  Running adiskd -h
+will show other arguments.
+
+Remote setup
+------------
+
+Manging several machines can be a challenge, to simplify the task
+we provide a shell scripts in the target/bin directory.  This
+shell script assumes the use of ssh and that the user the ability
+to login into the other machines.  This works better when
+ssh-agent is used to avoid many login prompts.
+
+First edit the file remote.config to match the system configuration.
+Also edit the diamond_config.sample file to match the desired
+configuration.  
+
+Then you can perform tasks by running dsetup.  
+
+	./dsetup install 
+Will shutdown the remote servers and load the new diamond_config and binaries
+onto them.
+
+	./dsetup start
+
+will start the daemons on the remote machines.
+
+	./dsetup stop
+
+will stop the daemons on the remote machine's.
 
 
 
 
-
-You should be ready to build the applications as well as running adiskd.
-
-Running adisk   
--------------
-
-To run adiskd you will need a config file that points to where the data
-is stored.  By default this is called "diamond_config".  The system
-will look for the file in 3 locations in this order.  First it looks for
-an environmental varialbe DIAMOND_CONFIG.  If this is set, it will
-use it value as the name of the config file.  If DIAMOND_CONFIG is not
-set it will look for a file called diamond_config in the local directory.  If
-that doesn't exist it will look try to read /usr/local/diamond/etc/diamond_config.
-
-The config file should have a line with the format
-
-   DATADIR <full path of the data directory>
-
-
-Once the config file exists, start the deamon by running 
-
-	/usr/local/diamond/bin/adiskd
-
-Now you should be able to search the data in the specified data directory.
 
 
 

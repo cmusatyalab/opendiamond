@@ -1,0 +1,4 @@
+DATAROOT /home/larry/
+INDEXDIR /home/larry/diamond_idx
+CACHEDIR /tmp/diamond_cache
+DATATYPE NATIVE

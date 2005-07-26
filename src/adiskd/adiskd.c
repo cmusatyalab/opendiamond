@@ -41,7 +41,7 @@ static char const cvsid[] = "$Header$";
 int             do_daemon = 1;
 int             do_fork = 1;
 int             do_cleanup = 1;
-int             run_silent = 1;
+int             not_silent = 1;
 
 void
 usage()
@@ -50,7 +50,7 @@ usage()
 	fprintf(stdout, "\t -d do not run adisk as a daemon \n");
 	fprintf(stdout, "\t -n do not fork for a  new connection \n");
 	fprintf(stdout, "\t -c do not cleanup *.so files from /tmp \n");
-	fprintf(stdout, "\t -s run silently \n");
+	fprintf(stdout, "\t -s do not close stderr on fork \n");
 	fprintf(stdout, "\t -h get this help message \n");
 }
 
@@ -93,7 +93,7 @@ main(int argc, char **argv)
 				break;
 
 			case 's':
-				run_silent = 0;
+				not_silent = 1;
 				break;
 
 			default:
@@ -109,7 +109,7 @@ main(int argc, char **argv)
 	 * make this a daemon by the appropriate call 
 	 */
 	if (do_daemon) {
-		err = daemon(1, run_silent);
+		err = daemon(1, not_silent);
 		if (err != 0) {
 			perror("daemon call failed !! \n");
 			exit(1);

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE_NAME=diamond-1.1.0-rc1
+RELEASE_NAME=diamond-1.1.0-rc2
 #
 # Make sure we have cleaned the source tree
 #
@@ -25,7 +25,9 @@ find /tmp/"$RELEASE_NAME" -name CVS -exec rm -rf {} \;
 # remove diretories we don't want to ship
 
 # remove autoconf side effects
+pushd /tmp/"$RELEASE_NAME"
 rm -rf autom4te.cache
+popd
 
 
 # generate the tar file

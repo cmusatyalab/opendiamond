@@ -5,19 +5,22 @@
 
 BINFILES="adiskd"
 
-copybin()
-{
+copybin() {
 	for disk in $DISKLIST; do
 		for bin in $BINFILES; do
 			scp $bin ${REMOTEUSER}@${disk}:${BINPATH}/
 		done
+		scp diamond_config.sample ${REMOTEUSER}@${disk}~${REMOTEUSER}/.diamond/diamond_config
 	done
 }
 
 remotesetup()
 {
 	for disk in $DISKLIST; do
+                ssh -x ${REMOTEUSER}@${disk} "mkdir -p ~${REMOTEUSER}/.diamond"
       		ssh -x ${REMOTEUSER}@${disk} "mkdir -p ${BINPATH}"
+                ssh -x ${REMOTEUSER}@${disk} "mkdir -p ${IDX_PATH}"
+                ssh -x ${REMOTEUSER}@${disk} "mkdir -p ${CACHE_DIR}"
 	done
 }
 
@@ -40,11 +43,20 @@ start()
 {
 	shutdown
 	for disk in $DISKLIST; do
-		ssh -x ${REMOTEUSER}@${disk} "${BINPATH}/adiskd -s"
+		ssh -x ${REMOTEUSER}@${disk} "${BINPATH}/adiskd"
 	done
 }
 
 
+gen_index()
+{
+
+	for disk in $DISKLIST; do
+	ssh -x ${REMOTEUSER}@${disk} "find ${DATA_ROOT} -name \*.ppm > ${IDX_PATH}/GIDIDX0000000000000001"
+	done
+
+
+}
 
 #
 # Parse the commands to see what we should do.
@@ -65,8 +77,16 @@ case "$1" in
   install)
     echo -n "Installing ... "
     shutdown
+    install
     echo "done."
     ;;
+  
+  genindex)
+    echo -n "Index ... "
+    gen_index
+    echo "done."
+    ;;
+  
                                                                                 
   *)
     echo "Usage: dsetup {start|stop|install}"

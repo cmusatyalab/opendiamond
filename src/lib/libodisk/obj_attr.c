@@ -49,16 +49,18 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 	/*
 	 * Open the file or create it.
 	 */
-	attr_fd = open(attr_fname, O_CREAT|O_RDONLY|O_DIRECT, 00777);
+	attr_fd = open(attr_fname, O_RDONLY|O_DIRECT, 00777);
 	if (attr_fd == -1) {
-		perror("failed to open attr file");
-		exit(1);
+		attr->attr_ndata = 0;
+		attr->attr_dlist = NULL;
+		return(0);	
 	}
 
 	err = fstat(attr_fd, &stats);
 	if (err != 0) {
-		perror("failed to stat attributes\n");
-		exit(1);
+		attr->attr_ndata = 0;
+		attr->attr_dlist = NULL;
+		return(0);	
 	}
 
 	size = stats.st_size;
@@ -82,7 +84,11 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 		rsize = read(attr_fd, adata->adata_data, ALIGN_ROUND(size));
 		if (rsize != size) {
 			perror("Reading attribute file:");
-			exit(1);
+			free(adata->adata_base);
+			attr->attr_ndata = 0;
+			attr->attr_dlist = NULL;
+			close(attr_fd);
+			return(0);
 		}
 	}
 

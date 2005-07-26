@@ -9,7 +9,7 @@ or the build environment supports VPATHs if you wish to keep
 a separate build hierarchy.
 
 Once "configure" has completed, build the system
-by typing makes.  As the system builds, all of the important header
+by typing "make".  As the system builds, all of the important header
 files, libraries and binaries will be put in target/{include, lib, bin}.
 
 One make has completed, you can either run diamond out of the 

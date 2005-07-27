@@ -693,7 +693,6 @@ fexec_load_searchlet(char *lib_name, char *filter_spec,
 	            "fexec_load_searchlet: lib %s spec %s", lib_name,
 	            filter_spec);
 
-	printf("load searchlet: %p %p \n", lib_name, filter_spec);
 	if (filter_spec != NULL) {
 		err = read_filter_spec(filter_spec, fdata);
 		if (err) {

@@ -41,7 +41,7 @@ static char const cvsid[] = "$Header$";
 int             do_daemon = 1;
 int             do_fork = 1;
 int             do_cleanup = 1;
-int             not_silent = 1;
+int             not_silent = 0;
 
 void
 usage()

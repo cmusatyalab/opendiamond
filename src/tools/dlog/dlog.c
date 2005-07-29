@@ -447,7 +447,6 @@ main(int argc, char **argv)
 			 * running, so we sleep for a while
 			 * and retry later.
 			 */
-			printf("failed to open socket \n");
 			sleep(1);
 		} else {
 			/*

@@ -415,18 +415,21 @@ odisk_release_obj(obj_data_t * obj)
 static int
 odisk_release_pr_obj(pr_obj_t * pobj)
 {
-	if( pobj == NULL ) {
+	if (pobj == NULL ) {
 		return (0);
 	}
 
-	if( pobj->filters != NULL ) {
+	if (pobj->filters != NULL ) {
 		free(pobj->filters);
 	}
-	if( pobj->fsig != NULL ) {
+	if (pobj->fsig != NULL ) {
 		free(pobj->fsig);
 	}
-	if( pobj->iattrsig != NULL ) {
+	if (pobj->iattrsig != NULL ) {
 		free(pobj->iattrsig);
+	}
+	if (pobj->obj_name != NULL ) {
+		free(pobj->obj_name);
 	}
 
 	free(pobj);

@@ -58,8 +58,6 @@ static permutation_t *cached_perm[MAX_PERM_NUM];
 static int      cached_perm_num = 0;
 static int      perm_done = 0;
 
-static filter_info_t *active_filter = NULL;
-
 static int      search_active = 0;
 static int      ceval_blocked = 0;
 static pthread_mutex_t ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -138,6 +136,7 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 	int             err;
 	uint64_t        tmp1, tmp2;
 	char            buf[PATH_MAX];
+	char	*	cdir;
 	struct timeval  atime;
 	struct timezone tz;
 
@@ -160,12 +159,10 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 		assert(cur_filt->fi_sig != NULL);
 		memcpy(&tmp1, cur_filt->fi_sig, sizeof(tmp1));
 		memcpy(&tmp2, cur_filt->fi_sig + 8, sizeof(tmp2));
-		// printf("filter %d, %s, signature %016llX%016llX\n", fid,
-		// cur_filt->fi_eval_name, tmp1, tmp2);
-		/* XXX should be in cache !!! */
-		sprintf(buf, "%s/%s/%016llX%016llX", 
-			cstate->odisk->odisk_dataroot,
-		        CACHE_DIR, tmp1, tmp2);
+
+		cdir = dconf_get_cachedir();
+		sprintf(buf, "%s/%016llX%016llX", cdir, tmp1, tmp2);
+		free(cdir);
 		err = mkdir(buf, 0x777);
 		if (err && errno != EEXIST) {
 			printf("fail to creat dir %s, err %d\n", buf, err);
@@ -471,9 +468,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 					}
 					rt_stop(&rt);
 					time_ns = rt_nanos(&rt);
-					// printf("ceval_filters1: hit, time_ns %lld for filter
-					// %s\n", time_ns, cur_filter->fi_name);
-
 					log_message(LOGT_FILT, LOGL_TRACE,
 					            "eval_filters:  filter %s has val (%d) - threshold %d",
 					            cur_filter->fi_name, conf,
@@ -483,8 +477,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 					hit = 0;
 					rt_stop(&rt);
 					time_ns = rt_nanos(&rt);
-					// printf("ceval_filters1: miss, time_ns %lld for filter
-					// %s\n", time_ns, cur_filter->fi_name);
 				}
 
 			}
@@ -492,7 +484,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 			stack_ns += time_ns;
 			if (!pass) {
 				cur_filter->fi_drop++;
-				// printf("ceval_filters1: drop obj %016llX\n", oid);
 			} else {
 				cur_filter->fi_pass++;
 			}
@@ -612,8 +603,8 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 void
 ceval_wattr_stats(off_t len)
 {
-	if (active_filter != NULL) {
-		active_filter->fi_added_bytes += len;
+	if (fexec_active_filter != NULL) {
+		fexec_active_filter->fi_added_bytes += len;
 	}
 }
 
@@ -678,7 +669,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	     cur_fidx++) {
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
-		active_filter = cur_filter;
+		fexec_active_filter = cur_filter;
 
 		oattr_set = NULL;
 
@@ -861,7 +852,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 	oattr_sample();
 
-	active_filter = NULL;
+	fexec_active_filter = NULL;
 	log_message(LOGT_FILT, LOGL_TRACE,
 	            "eval_filters:  done - total time is %lld", stack_ns);
 

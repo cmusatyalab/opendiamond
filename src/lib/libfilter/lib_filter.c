@@ -179,10 +179,10 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	 */
 	if (odata->data_len <= odata->cur_offset) {
 		printf("Beyond file len: off %lx len %lx \n",
-		       odata->local_id, odata->cur_offset, odata->data_len);
+		       odata->cur_offset, odata->data_len);
 		*len = 0;
 		assert(0);
-		return(ENOENT);
+		return(EINVAL);
 	}
 
 	/* 
@@ -200,6 +200,7 @@ lf_next_block(lf_obj_handle_t obj_handle,
 		length = remain;
 	}
 
+#ifdef	DEBUG_COPY
 	buf = (char *) malloc(length);
 	if (buf == NULL) {
 		printf("failed to allocate block \n");
@@ -209,7 +210,9 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	}
 
 	memcpy(buf, &odata->data[odata->cur_offset], length);
-
+#else
+	buf = &odata->data[odata->cur_offset];
+#endif
 	odata->cur_offset += length;
 	*len = length;
 	*bufp = buf;

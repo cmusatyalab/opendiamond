@@ -204,4 +204,7 @@ int             fexec_estimate_cost(filter_data_t * fdata,
                                     float *cost);
 
 
+extern filter_info_t *fexec_active_filter;
+
+
 #endif                    /* ! _FILTER_PRIV_H_ */

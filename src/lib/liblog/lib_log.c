@@ -24,8 +24,7 @@
 
 static char const cvsid[] = "$Header$";
 
-typedef struct log_state
-{
+typedef struct log_state {
 	int		head;
 	int		tail;
 	int		drops;
@@ -33,8 +32,7 @@ typedef struct log_state
 	unsigned int	type;
 	pthread_mutex_t	log_mutex;
 	char 		buffer[MAX_LOG_BUFFER];
-}
-log_state_t;
+} log_state_t;
 
 /* some state for handling our multiple instantiations */
 static  pthread_key_t   log_state_key;

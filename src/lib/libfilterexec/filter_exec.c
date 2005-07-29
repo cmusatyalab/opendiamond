@@ -53,7 +53,7 @@ static char const cvsid[] = "$Header$";
 /*
  * Some state to keep track of the active filter. XXX
  */
-static filter_info_t *active_filter = NULL;
+filter_info_t *fexec_active_filter = NULL;
 static char    *no_filter = "None";
 
 
@@ -210,8 +210,8 @@ fexec_system_init()
 char           *
 fexec_cur_filtname()
 {
-	if (active_filter != NULL) {
-		return (active_filter->fi_name);
+	if (fexec_active_filter != NULL) {
+		return (fexec_active_filter->fi_name);
 	} else {
 		return (no_filter);
 	}
@@ -894,7 +894,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
 
-		active_filter = cur_filter;
+		fexec_active_filter = cur_filter;
 
 		/*
 		 * the name used to store execution time,
@@ -1021,7 +1021,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		pass = 2;
 	}
 
-	active_filter = NULL;
+	fexec_active_filter = NULL;
 
 	log_message(LOGT_FILT, LOGL_TRACE,
 	            "eval_filters:  done - total time is %lld", stack_ns);

@@ -1707,8 +1707,6 @@ ocache_main(void *arg)
 				cobj->next = NULL;
 				index = cobj->oid % CACHE_ENTRY_NUM;
 
-				// printf("insert cache entry: oid %016llX\n", cobj->oid);
-
 				pthread_mutex_lock(&shared_mutex);
 				if (cache_table[index] == NULL) {
 					cache_table[index] = cobj;

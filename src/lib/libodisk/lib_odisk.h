@@ -45,6 +45,7 @@ typedef struct odisk_state {
 	int             num_gids;
 	int             max_files;
 	int             cur_file;
+	int             open_flags;
 	pthread_t       thread_id;
 	DIR *           odisk_dir;
 	void *          dctl_cookie;

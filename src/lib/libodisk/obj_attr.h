@@ -18,26 +18,23 @@
 
 
 struct obj_data;
+struct odisk_state;
 
-typedef struct obj_adata
-{
+typedef struct obj_adata {
 	off_t           	adata_len;
 	char           	*	adata_data;
 	char           	*	adata_base;
 	struct obj_adata *	adata_next;
-}
-obj_adata_t;
+} obj_adata_t;
 
 
 /*
  * This is the state associated with the object
  */
-typedef struct
-{
+typedef struct {
 	int				attr_ndata;
 	obj_adata_t *	attr_dlist;
-}
-obj_attr_t;
+} obj_attr_t;
 
 
 /*
@@ -49,16 +46,14 @@ obj_attr_t;
 /* maximum signature size we support */
 #define	ATTR_MAX_SIG		20
 
-typedef struct attr_record
-{
+typedef struct attr_record {
 	int				rec_len;
 	int				name_len;
 	int				data_len;
-	unsigned char	attr_sig[ATTR_MAX_SIG];
+	unsigned char			attr_sig[ATTR_MAX_SIG];
 	int				flags;
-	char 			data[0];
-}
-attr_record_t;
+	char 				data[0];
+} attr_record_t;
 
 
 
@@ -93,7 +88,8 @@ int obj_read_attr(obj_attr_t *attr, const char *name,
 int obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, char **data);
 
 int obj_del_attr(obj_attr_t *attr, const char *name);
-int obj_read_attr_file(char *attr_fname, obj_attr_t *attr);
+int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname, 
+		obj_attr_t *attr);
 int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
 
 int obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len,
@@ -103,7 +99,8 @@ int obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len,
                       void **cookie, int skip_big);
 
 //int obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr);
-int obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr);
+int obj_read_oattr(struct odisk_state *odisk, char *disk_path, 
+	uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr);
 
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
 

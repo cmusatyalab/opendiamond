@@ -210,7 +210,6 @@ read_log(int fd, unsigned int level_flags, unsigned int src_flags)
 	char 	*data;
 
 	while (1) {
-		printf("calling read \n");
 		len = recv(fd, &lheader, sizeof(lheader), MSG_WAITALL);
 		if (len != sizeof(lheader)) {
 			return;

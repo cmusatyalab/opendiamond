@@ -37,7 +37,8 @@ static char const cvsid[] = "$Header$";
 #define CACHE_DIR               "cache"
 
 int
-obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
+obj_read_attr_file(odisk_state_t *odisk, char *attr_fname, 
+	obj_attr_t *attr)
 {
 	int		attr_fd;
 	struct stat	stats;
@@ -49,7 +50,7 @@ obj_read_attr_file(char *attr_fname, obj_attr_t *attr)
 	/*
 	 * Open the file or create it.
 	 */
-	attr_fd = open(attr_fname, O_RDONLY|O_DIRECT, 00777);
+	attr_fd = open(attr_fname, odisk->open_flags, 00777);
 	if (attr_fd == -1) {
 		attr->attr_ndata = 0;
 		attr->attr_dlist = NULL;
@@ -543,8 +544,8 @@ obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
 
 
 int
-obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig,
-               obj_attr_t *attr)
+obj_read_oattr(odisk_state_t *odisk, char *disk_path, uint64_t oid, 
+	char *fsig, char *iattrsig, obj_attr_t *attr)
 {
 	int fd;
 	off_t           rsize;
@@ -568,18 +569,10 @@ obj_read_oattr(char *disk_path, uint64_t oid, char *fsig, char *iattrsig,
 	               disk_path, CACHE_DIR, tmp1, tmp2, oid, tmp3, tmp4);
 	assert(len < (MAX_ATTR_NAME - 1));
 
-	fd = open(attrbuf, (O_RDONLY|O_DIRECT));
+	fd = open(attrbuf, odisk->open_flags);
 	if (fd == -1) {
 		return (EINVAL);
 	}
-
-	/* XX LH hmm, do we really nead this?  */
-	//err = flock(fd, LOCK_EX);
-	//if (err != 0) {
-	//perror("failed to lock attributes file\n");
-	//close(fd);
-	//return (EINVAL);
-	//}
 
 	err = fstat(fd, &stats);
 	if (err != 0) {

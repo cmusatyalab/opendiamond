@@ -157,7 +157,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	    * in the buffer cache.
 	 */
 	/* XXX: add flock ? */
-	os_file = open(name, (O_RDONLY|O_DIRECT));
+	os_file = open(name, odisk->open_flags);
 	if (os_file == -1) {
 		printf("XXXX open failed \n");
 		free(new_obj);
@@ -215,7 +215,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	 */
 	len = snprintf(attr_name, NAME_MAX, "%s%s", name, ATTR_EXT);
 	assert(len < NAME_MAX);
-	obj_read_attr_file(attr_name, &new_obj->attr_info);
+	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
 	*obj_handle = (obj_data_t *) new_obj;
 	odisk->obj_load++;
 
@@ -506,7 +506,8 @@ odisk_rem_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 
 	glist = (gid_list_t *) malloc(len);
 	assert(glist != NULL);
-	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *) glist);
+	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, 
+		&len, (char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
@@ -781,7 +782,8 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		rt_init(&rt);
 		rt_start(&rt);
 
-		err = obj_read_oattr(odisk->odisk_dataroot, pr_obj->obj_id,
+		/* XXX */
+		err = obj_read_oattr(odisk, odisk->odisk_dataroot, pr_obj->obj_id,
 		                     pr_obj->fsig[i], pr_obj->iattrsig[i],
 		                     &(*new_object)->attr_info);
 
@@ -1015,11 +1017,82 @@ odisk_next_obj(obj_data_t ** new_object, odisk_state_t * odisk)
 	}
 }
 
+
 int
 odisk_num_waiting(odisk_state_t * odisk)
 {
 	return (ring_count(obj_ring));
 }
+
+
+
+#define MAX_TEMP_NAME   64
+#define TEST_BUF_SIZE   8192
+
+/*
+ * we want to test the open flags, there has been some problems
+ * using  O_DIRECT on some platforms.
+ */
+void
+odisk_setup_open_flags(odisk_state_t * odisk)
+{
+	char *      test_name;
+	char *      buf;
+	int  		test_fd;
+	ssize_t		wsize;
+	char * 	base;
+	char *	data;
+
+	test_name = (char *)malloc (MAX_TEMP_NAME);
+	if (test_name == NULL) {
+		printf("filename failed \n");
+		assert(0);
+	}
+	sprintf(test_name, "/tmp/%s", "testfileXXXXXX");
+
+	test_fd = mkstemp(test_name);
+	if (test_fd == -1) {
+		free(test_name);
+	}
+
+
+	buf = (char *)malloc(TEST_BUF_SIZE);
+	wsize = write(test_fd, buf, TEST_BUF_SIZE);
+	assert(wsize == TEST_BUF_SIZE);
+	close(test_fd);
+	free(buf);
+
+
+	/* now test the file with direct flag */
+	odisk->open_flags = (O_RDONLY|O_DIRECT);
+
+
+	test_fd = open(test_name, odisk->open_flags);
+	assert(test_fd != -1);
+
+
+
+    	base = (char *) malloc(ALIGN_SIZE(TEST_BUF_SIZE));
+    	assert( base != NULL );
+    	data = (char *)ALIGN_VAL(base);
+
+	wsize = read(test_fd, data, ALIGN_ROUND(TEST_BUF_SIZE));
+	if (wsize != TEST_BUF_SIZE) {
+		close(test_fd);
+		test_fd = odisk->open_flags = O_RDONLY;
+		assert(test_fd != -1);
+
+		wsize = read(test_fd, data, ALIGN_ROUND(TEST_BUF_SIZE));
+		assert(wsize != TEST_BUF_SIZE);
+    	}
+
+	free(base);
+    	close(test_fd);
+    	unlink(test_name);
+    	free(test_name);
+}
+
+
 
 int
 odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
@@ -1089,6 +1162,7 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	strcpy(new_state->odisk_indexdir, indexdir);
 
 
+    	odisk_setup_open_flags(new_state);
 
 	for (i=0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, PATTR_DEFAULT,
@@ -1352,7 +1426,8 @@ update_object_gids(odisk_state_t * odisk, obj_data_t * obj, char *name)
 
 	glist = (gid_list_t *) malloc(len);
 	assert( glist != NULL );
-	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *) glist);
+	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, 
+		(char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
@@ -1388,7 +1463,8 @@ delete_object_gids(odisk_state_t * odisk, obj_data_t * obj)
 
 	glist = (gid_list_t *) malloc(len);
 	assert( glist != NULL );
-	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, (char *) glist);
+	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, 
+		&len, (char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {

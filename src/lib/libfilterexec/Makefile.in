@@ -35,11 +35,6 @@ SHARED_HEADERS = lib_filterexec.h lib_ocache.h
 
 CLEAN_OTHERS += filter_spec.c
 
-CFLAGS += -D_GNU_SOURCE
-
-# Compilation Targets
-#
-
 TARGETS = libfilterexec.a
 
 include $(ROOTDIR)/Makefile.template 

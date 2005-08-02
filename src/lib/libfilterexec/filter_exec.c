@@ -243,7 +243,8 @@ fexec_init_search(filter_data_t * fdata)
 		err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
 		                           cur_filt->fi_arglist,
 		                           cur_filt->fi_blob_len,
-		                           cur_filt->fi_blob_data, &data);
+		                           cur_filt->fi_blob_data, 
+					   cur_filt->fi_name, &data);
 
 		if (err != 0) {
 			/*

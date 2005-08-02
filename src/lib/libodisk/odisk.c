@@ -1165,7 +1165,7 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	strcpy(new_state->odisk_indexdir, indexdir);
 
 
-    	odisk_setup_open_flags(new_state);
+	odisk_setup_open_flags(new_state);
 
 	for (i=0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, PATTR_DEFAULT,

@@ -24,6 +24,12 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <dirent.h>
+#include "diamond_consts.h"
+#include "diamond_types.h"
+#include "lib_odisk.h"
+#include "lib_dctl.h"
+#include "lib_log.h"
+#include "lib_dconfig.h"
 #include "obj_attr.h"
 
 
@@ -91,7 +97,7 @@ print_attr(attr_record_t *arec)
 
 
 int
-show_attr(char *attr_name)
+show_attr(odisk_state_t *odisk, char *attr_name)
 {
 	int		err;
 	obj_attr_t 	attr;
@@ -99,7 +105,7 @@ show_attr(char *attr_name)
 	obj_adata_t *		adata;
 	int		cur_offset;
 
-	err = obj_read_attr_file(attr_name, &attr);
+	err = obj_read_attr_file(odisk, attr_name, &attr);
 	if (err != 0) {
 		printf("XXX failed to init attr \n");
 		exit(1);
@@ -134,6 +140,22 @@ main(int argc , char **argv)
 	int			flen;
 	int			extlen;
 	int			is_attr = 0;
+	void *          dctl_cookie;
+        void *          log_cookie;
+	odisk_state_t *	odisk;
+	int		err;
+
+	dctl_init(&dctl_cookie);
+        log_init(&log_cookie);
+
+        err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
+        if (err) {
+                errno = err;
+                perror("failed to init odisk");
+                exit(1);
+        }
+
+
 
 	while (argc != i) {
 		cur_file = argv[i];
@@ -161,7 +183,7 @@ main(int argc , char **argv)
 			sprintf(attr_name, "%s%s", cur_file, ATTR_EXT);
 		}
 
-		show_attr(attr_name);
+		show_attr(odisk, attr_name);
 	}
 
 	return (0);

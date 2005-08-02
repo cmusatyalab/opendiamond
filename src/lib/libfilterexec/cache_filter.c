@@ -40,6 +40,7 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 #include "lib_ocache.h"
+#include "lib_dconfig.h"
 
 
 static char const cvsid[] = "$Header$";

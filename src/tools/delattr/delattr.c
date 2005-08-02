@@ -23,7 +23,12 @@
 #include <string.h>
 #include <ctype.h>
 #include <dirent.h>
+#include "diamond_consts.h"
+#include "diamond_types.h"
 #include "obj_attr.h"
+#include "lib_odisk.h"
+#include "lib_log.h"
+#include "lib_dctl.h"
 
 
 static char const cvsid[] = "$Header$";
@@ -88,17 +93,16 @@ print_attr(attr_record_t *arec)
 
 
 int
-del_attr(char *attr_fname, char *aname)
+del_attr(odisk_state_t *odisk, char *attr_fname, char *aname)
 {
 	int		err;
 	obj_attr_t 	attr;
 
-	err = obj_read_attr_file(attr_fname, &attr);
+	err = obj_read_attr_file(odisk, attr_fname, &attr);
 	if (err != 0) {
 		printf("XXX failed to init attr \n");
 		exit(1);
 	}
-
 
 	err = obj_del_attr(&attr, aname);
 	if (err != 0) {
@@ -132,9 +136,22 @@ main(int argc , char **argv)
 	int			extlen;
 	int			is_attr = 0;
 	char *			aname;
-
+	odisk_state_t *		odisk;
+	void *			dctl_cookie;
+	void *			log_cookie;
+	int			err;
 
 	aname = argv[1];
+
+	dctl_init(&dctl_cookie);
+        log_init(&log_cookie);
+
+        err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
+        if (err) {
+                errno = err;
+                perror("failed to init odisk");
+                exit(1);
+        }
 
 	i = 2;
 	while (argc != i) {
@@ -164,7 +181,7 @@ main(int argc , char **argv)
 			sprintf(attr_name, "%s%s", cur_file, ATTR_EXT);
 		}
 
-		del_attr(attr_name, aname);
+		del_attr(odisk, attr_name, aname);
 	}
 
 	return (0);

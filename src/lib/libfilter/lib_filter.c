@@ -32,6 +32,7 @@
 #include "diamond_types.h"
 #include "lib_odisk.h"
 #include "lib_filter.h"
+#include "lib_filter_sys.h"
 #include "lib_filter_priv.h"
 #include "obj_attr_dump.h"
 #include "lib_log.h"
@@ -57,7 +58,7 @@ lf_set_read_cb(read_attr_cb cb_fn)
  */
 /* need to pass in fhandle as the filter name */
 int
-lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, char *data)
+lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, void *data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -75,7 +76,7 @@ lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, char *data)
 
 
 int
-lf_ref_attr(lf_obj_handle_t obj, const char *name, off_t *len, char **data)
+lf_ref_attr(lf_obj_handle_t obj, const char *name, off_t *len, void **data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -327,7 +328,7 @@ lf_write_block(lf_obj_handle_t obj_handle,
 
 char * fexec_cur_filtname();
 
-int
+void
 lf_log(int level, char *fmt, ...)
 {
 	va_list	ap;
@@ -352,5 +353,4 @@ lf_log(int level, char *fmt, ...)
 
 	log_message(LOGT_APP, level, "%s", log_buffer);
 
-	return(0);
 }

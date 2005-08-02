@@ -14,35 +14,29 @@
 #ifndef _LIB_FILTER_H_
 #define	_LIB_FILTER_H_
 
-/*
- * These are the set of functions available to to filters running
- * on the system.
+/*!
+ * \file lib_filter.h
+ * The API for the functions that are available to filters running on
+ * diamond system.
  */
+
 
 
 #include <sys/types.h>		/* for off_t */
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 
-/*
- * The handle to a an object.
+/*!
+ * A handle to an object.
  */
 typedef	void *	lf_obj_handle_t;
 
 
-/*
- * Some constants to define the latest/greatest API version.
- */
-#define	LF_LATEST_MAJOR_VERSION		1
-#define	LF_LATEST_MINOR_VERSION		0
-
-
-/*
- * This is the prototype for a filter init function.
+/*!
+ * Prototype for the filter init function.
  *
  * This function takes a list of filter arguments as well as
  * a blob of data.  The init function then allocates any data structures
@@ -50,217 +44,293 @@ typedef	void *	lf_obj_handle_t;
  *
  * The init function should return 0 if it initialized correction.  Any
  * other value is treated as a fatal condition.
+ *
+ * \param num_arg
+ *		number of arguments
+ *
+ * \param args
+ *		An array of num_arg arguments
+ *
+ * \param bloblen
+ * 		The length of a blob of memory from the applicatoin program.
+ *
+ * \param blob_data
+ *		An opaque blob of data from the application.
+ *
+ * \param filt_name
+ *		The name of the filter being initialized.
+ *
+ * \param filter_args
+ *		Location to store a pointer to the filters private data.
+ * 
+ * \return 0
+ *		Initialization was sucessful.
+ *
+ * \return Non-zero
+ *		Fatal condition
  */
 
 typedef int (*filter_init_proto)(int num_arg, char **args, int bloblen,
-				 void *blob_data, void **filter_args);
+				 void *blob_data, const char * filt_name,
+				 void **filter_args);
 
 
-/*
- * This is the prototype for a filter function.
- *
- * This function is a varargs function that takes an object
- * handle a set of configured arguments (through the filter
- * specification).
+/*!
+ * This is the prototype for a filter evaluation function.
  *
  * The return value is an integer that represents a confidence.  As
  * part of the filter specification the user will indicate which
  * the threshold for the filter.  Value above the threshold will
  * be passed, values below the threshold will be dropped.
+ *
+ * \param ohandle
+ * 		An object handle for the object to process.
+ *
+ * \param filter_args
+ * 		The data structure that was returned from the filter
+ *		initialization function.
+ *
  */
+typedef int (*filter_eval_proto)(lf_obj_handle_t ohandle, void *filter_args);
 
-typedef int (*filter_eval_proto)(lf_obj_handle_t in_handle, void *filter_args);
 
 
-/*
+/*!
  * This is the prototype for a filter init function.
  *
- * This function should the filter arguments allocated in the
+ * This function should take the filter arguments allocated in the
  * filter_init_proto() and free them.  
  *
- * The fini function should return 0 if it initialized correction.  Any
+ * The fini function should return 0 if it cleaned up correctly.  Any
  * other value is treated as a fatal condition.
+ *
+ * \param filter_args
+ * 		The data structure that was returned from the filter
+ *		initialization function.
  */
 
 typedef int (*filter_fini_proto)(void *filter_args);
 
 
-/*
+/*!
  * This gets the next blocks of data in an object.  The block size is
  * specified by the filter specification.  
  *
  *
- * Args:
- * 	obj_handle - the object handle.
+ * \param obj_handle
+ *		the object handle.
  *
- * 	num_blocks - the number of blocks to read.
+ * \param num_blocks
+ *		the number of blocks to read.
  *
- * 	lenp	   - This is a pointer to the number of bytes to read.  On
- *  	     	     return this location will hold the number of bytes that
- *		     were actually read.
+ * \param lenp
+ *		This is a pointer to the number of bytes to read.  On
+ *		return this location will hold the number of bytes that
+ *		were actually read.
  *
- * 	bufp	   - a pointer to the location where the buffer pointer
- * 		     will be stored.
+ * \param bufp
+ *		A pointer to the location where the buffer pointer
+ * 		will be stored.
  *
- * Return:
- * 	0	   - the read was successful. 
+ * \return 0
+ *		the read was successful. 
  *
- * 	ENOSPC	   - insufficient resources were available to complete the call.
+ * \return ENOSPC
+ *		Insufficient resources were available to complete the call.
  * 
- * 	ENOENT	   - insufficient resources were available to complete the call.
- * 
- * 	EINVAL     - one of the handles was invalid. 
+ * \return ENOENT
+ *		No more data is available.
+ *
+ * \return EINVAL
+ *		One of the parameters was invalid. 
  *
  */
 
 int lf_next_block(lf_obj_handle_t obj_handle, int num_blocks,  
 			off_t *lenp, char **bufp);
 
-/*
+/*!
  * This skips the next N blocks of the specified object.  For an input
  * object, this will effect the data retrieved the next time lf_next_block()
  * is called.  XXX specify what happens on output objects if we aren't
  * currently aligned on the block boundary.
  *
  *
- * Args:
- * 	obj_handle - the object handle.
+ * \param obj_handle
+ *		The object handle 
  *
- * 	num_blocks - the number of blocks to read.
+ * \param num_blocks
+ *		the number of blocks to skip.
  *
- * Return:
- * 	0	   - the read was successful. 
+ * \return 0
+ *		the skip was successful. 
  *
- * 	ENOSPC	   - insufficient resources were available to complete the call.
+ * \return ENOSPC
+ *		insufficient resources were available to complete the call.
  * 
- * 	EINVAL     - one of the handles was invalid. 
- *
+ * \return EINVAL
+ *		one of the handles was invalid. 
  */
 
 int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
 
-/*
+/*! 
+ * Flags for  lf_write_block()
+ */
+#define	LF_WRITE_BLOCK_PAD	0x01
+
+/*!
  * This writes a range of data to an object.  After this call, the
  * library takes possession of the buffer, the caller should not attempt
  * any further accesses to the buffer or free the buffer.
  *
- * Args:
- * 	obj_handle - the object handle.
+ * \param obj_handle
+the object handle.
  *
- * 	flags 	   - Specifies specific behavior of the write.
- * 		     If the flag LF_WRITE_BLOCK_PAD is set, then
- * 		     the write is padded out to the next block
- * 		     size specified for the object in the filter spec.
+ * \param flags
+ *		Specifies specific behavior of the write.
+ * 		If the flag LF_WRITE_BLOCK_PAD is set, then
+ * 		the write is padded out to the next block
+ * 		size specified for the object in the filter spec.
  *
- * 	len	   - the number of bytes to write.
+ * \param len
+ *		the number of bytes to write.
  *
- * 	buf	   - The buffer to write.
+ * \param buf
+ *		The buffer to write.
  *
- * Return:
- * 	0	   - the write was successful. 
+ * \return 0
+ *		the write was successful. 
  *
- * 	EINVAL     - one of the handles was invalid. 
+ * \return EINVAL
+ *		one of the handles was invalid. 
  *
- * 	EPERM      - The filter does not have ability to write to the data
- *		     (may be object, etc).
+ * \return EPERM
+ *		The filter does not have ability to write to the data
+ *		(may be object, etc).
  */
 
-#define	LF_WRITE_BLOCK_PAD	0x01
 int lf_write_block(lf_obj_handle_t obj_handle, int flags, off_t len, char *buf);
 
-/*
- * This function reads the some of the object's attributes.
+/*!
+ * Read an attribute from the object into the buffer space provided
+ * by the caller.  This does invoke a copy and for large structures
+ * it is preferable to use lf_ref_attr() if the caller will not
+ * be modifying the attribute.
  *
- * Args:
- * 	obj_handle - the object handle.
+ * \param ohandle
+ * 		the object handle.
  *
- * 	name       - The name of the attribute to read.
+ * \param name
+ *		The name of the attribute to read.
  *
- * 	len 	   - A pointer to the location where the length
- * 		     of the data storage is stored.  The caller
- * 		     sets this to the amount of space allocated.
- * 		     Upon return this is set to the size of
- * 		     data actually read.  If there is not enough
- * 		     space then ENOSPC is returned and the value is
- * 		     updated to the size needed to successfully complete
- * 		     the call.
+ * \param len
+ *		A pointer to the location where the length
+ * 		of the data storage is stored.  The caller
+ * 		sets this to the amount of space allocated.
+ *		Upon return this is set to the size of
+ * 		data actually read.  If there is not enough
+ * 		space then ENOSPC is returned and the value is
+ * 		updated to the size needed to successfully complete
+ * 		the call.
  *
- * 	data 	   - The location where the results should be stored.
+ * \param data
+ *		The location where the results should be stored.
  *
- * Return:
- *	0	   - Attributes were read successfully.
+ * \return 0
+ *		Attributes were read successfully.
  *
- * 	ENOSPC	   - data was not large enough to complete the write.  
- * 		     length should be set to the size need to complete
- * 		     the read.     
+ * \return ENOSPC
+ *		The provided buffer was not large enough to hold
+ *		the attribute.
  *
- *	EPERM	   - Filter does not have permission to write these
- *		     attributes.
- *
- *	EINVAL     - One or more of the arguments was invalid.
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
  */
 
-int lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, char *data);
+int lf_read_attr(lf_obj_handle_t ohandle, const char *name, off_t *len, 
+		void *data);
 
-/* XXX lh add comments */
-int lf_ref_attr(lf_obj_handle_t obj, const char *name, off_t *len, char **data);
+/*!
+ * Get pointer to attribute data in an object.  The returned pointer should
+ * be treated read-only, and is only valid in the current instance of the
+ * filter.  
 
-/*
+ * \param ohandle
+ * 		the object handle.
+ *
+ * \param name
+ *		The name of the attribute to read.
+ *
+ * \param len
+ *		A pointer to the location where the length
+ * 		attribute data will be stored.
+ *
+ * \param data
+ *		A pointer to where the data pointer will be stored.
+ *
+ * \return 0
+ *		Attributes were read successfully.
+ *
+ * \return ENOSPC
+ *		The provided buffer was not large enough to hold
+ *
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
+ */
+
+int lf_ref_attr(lf_obj_handle_t ohandle, const char *name, 
+		off_t *len, void **data);
+
+
+/*!
  * This function sets the some of the object's attributes.
  *
- * Args:  
- * 	obj_handle - the object handle.
+ * \param ohandle
+ *		the object handle.
  *
- * 	name       - The name of the attribute to write.
+ * \param name
+ *		The name of the attribute to write.
  *
- * 	len 	   - The length of the attribute to write.
+ * \param len
+ *		The length of the attribute to write.
  *
- * 	data 	   - A pointer of the data associated with the data.
+ * \param data
+ *		A pointer of the data associated with the data.
  *
- * Return:
- *	0	   - Attributes were written successfully.
+ * \return 0
+ *		Attributes were written successfully.
  *
- *	EPERM	   - Filter does not have permission to write these
- *		     attributes.
+ * \return EPERM
+ * 		Filter does not have permission to write these
+ *		attributes.
  *
- *	EINVAL     - One or more of the arguments was invalid.
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
  */
 
-int lf_write_attr(lf_obj_handle_t obj, char *name, off_t len, char *data);
+int lf_write_attr(lf_obj_handle_t ohandle, char *name, off_t len, char *data);
 
 
-/*
+/*!
  * This function allows the programmer to log some data that
  * can be retrieved from the host system.
  *
- * Args:  
- * 	level 	   - The log level associated with the command.  This
- * 		     used to limit the amount of information being passed.
+ * \param level
+ *		The log level associated with the command.  This
+ * 		used to limit the amount of information being passed.
  *
- * 	name       - The name of the attribute to write.
+ * \param fmt
+ *		format string used for parsing the data.  This uses
+ * 		printf syntax
  *
- * 	fmt	   - format string used for parsing the data.  This uses
- * 		     printf syntax
- *
- * 	... 	   - the arguments for the format.
+ * \param ...
+ *		the arguments for the format.
  *
  */
 
-int lf_log(int level, char *fmt, ...);
+void lf_log(int level, char *fmt, ...);
 
-
-/*
- * Debug function used by the runtime, we probably should move it
- * elsewhere.
- */
-typedef void (*read_attr_cb)(lf_obj_handle_t ohandle,
-			     const char *name, off_t len, const char *data);
-int lf_set_read_cb(read_attr_cb);
-
-typedef void (*write_attr_cb)(lf_obj_handle_t ohandle, const char *name, 
-		off_t len, const char *data);
-
-int lf_set_write_cb(write_attr_cb);
 
 
 #ifdef __cplusplus

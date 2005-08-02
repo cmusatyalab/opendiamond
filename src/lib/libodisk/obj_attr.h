@@ -83,9 +83,9 @@ typedef struct attr_record {
 int obj_write_attr(obj_attr_t *attr, const char *name,
                    off_t len, const char *data);
 int obj_read_attr(obj_attr_t *attr, const char *name,
-                  off_t *len, char *data);
+                  off_t *len, void *data);
 
-int obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, char **data);
+int obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, void **data);
 
 int obj_del_attr(obj_attr_t *attr, const char *name);
 int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname, 

@@ -1,6 +1,6 @@
 /*
  * 	Diamond (Release 1.0)
- *      A system for interactive brute-force search
+ *      A system for interactive brute-orce search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
  *      All Rights Reserved
@@ -41,12 +41,10 @@ extern "C"
  * This function is called to initialize search state.  This returns
  * a handle that is used for all other calls. 
  *
- * \param
- *
- * \return NULL - 
+ * \return NULL
  *   		The init failed
  *
- * \return non-NULL -
+ * \return non-NULL
  *		A handle that can be used in subsequent calls.
  */
 
@@ -57,13 +55,13 @@ ls_search_handle_t ls_init_search();
  * any state associated with the search.  After this call completes
  * the search handle is released and is no-longer valid.  
  *
- * \param handle -
+ * \param handle
  *		the search handle to close.
  *
- * \return 0 -
+ * \return 0
  *		the call succeeded and the handle is no longer valid.
  *
- * \return EINVAL -
+ * \return EINVAL
  *		the handle was not valid.
  */
 
@@ -75,27 +73,27 @@ int ls_terminate_search(ls_search_handle_t handle);
  * a list of group ID's that contain the set of objects we are going
  * to search.
  *
- * \param handle -
+ * \param handle
  *		the search handle returned by ls_init_search().
  *
- * \param num_groups -
+ * \param num_groups
  * 		the number of groups in the list.
  *
- * \param glist -
+ * \param glist
  *		An array of groups with num_groups elements.
  *
- * \return 0 -
+ * \return 0
  *		the call was successful.
  *
- * \return EBUSY -
+ * \return EBUSY
  *		a search is currently active.
  *
- * \return EINVAL -
+ * \return EINVAL
  *		the handle or the search list is not valid.
  *
  */
 
-int ls_set_searchlist(ls_search_handle_t, int num_groups,
+int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
                       groupid_t *glist);
 
 
@@ -109,35 +107,35 @@ int ls_set_searchlist(ls_search_handle_t, int num_groups,
  * ls_set_device_searchlet().
  *
  *
- * \param	handle -
+ * \param	handle
  *		The handle for the search instance.
  *
- * \param isa_type -
+ * \param isa_type
  *		this is the instruction set used in the filter
  * 		file.  If the devices are non-homogeneous, then
  *              the application will need to call this once for
  *              every device type.
  *
- * \param	filter_file_name - 
+ * \param	filter_file_name
  *		this is the name of the file where the filter
  * 		files are stored.  This should be a shared library
  * 		file where each filters is a different function as
  * 		specified in the filter specification
  *
- * \param filter_spec_name - 
+ * \param filter_spec_name
  *		The name of the filter specification file.  This is
  * 		read by system to parse the library file as well
  * 		as describing attributes of each of the filters
  * 		(dependencies, ...).
  *
- * \return 0 -
+ * \return 0
  * 		The searchlet was set appropriately.
  *
- * \return EINVAL -
+ * \return EINVAL
  *		One of the file names was invalid or one of the files 
  *		could not be parsed.
  *
- * \return EBUSY -
+ * \return EBUSY
  *		A search was already active.
  */
 
@@ -149,29 +147,29 @@ int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
  * This call adds another filter file to the searchlet.  This can only
  * be called after one sucessful call to ls_set_searchlet().
  *
- * \param	handle - 
+ * \param	handle
  *		The handle for the search instance.
  *
- * \param isa_type -
+ * \param isa_type
  *		this is the instruction set used in the filter
  * 		file.  If the devices are non-homogeneous, then
  * 		the application will need to call this once for
  * 		every device type.
  * 
- * \param	filter_file_name -
+ * \param	filter_file_name
  *		this is the name of the file where the filter
  * 		files are stored.  This should be a shared library
  * 		file where each filters is a different function as
  * 		 specified in the filter specification
  *
- * \return 0 -
+ * \return 0
  * 		The searchlet was set appropriately.
  *
- * \return EINVAL -
+ * \return EINVAL
  *		One of the file names was invalid or one of the files 
  *		could not be parsed.
  *
- * \return EBUSY -
+ * \return EBUSY
  *		A search was already active.
  */
 int ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
@@ -184,37 +182,37 @@ int ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
  * In this case the appliatoin must make this call for each of the devices
  * involved in the search.
  *
- * \param	handle -
+ * \param	handle
  * 		The handle for the search instance.
  *
- * \param dev_handle -
+ * \param dev_handle
  *		The handle for the device.
  *
  *  
- * \param isa_type -
+ * \param isa_type
  *		this is the instruction set used in the filter file.  If the 
  * 		devices are non-homogeneous, the application will need to call 
  *  	this once for every device type.
  *
- * \param	filter_file_name  -
+ * \param	filter_file_name
  *		this name of the file that contains the filter code.  This 
  *		should be a shared library file where each filters is a 
  *		different function as specified in the filter specification
  *
- * \param filter_spec_name -
+ * \param filter_spec_name
  *		The name of the filter specification file.  This is
  * 	 	read by system to parse the library file as well
  * 	 	as describing attributes of each of the filters
  * 	  	(dependencies, ...).
  *
- * \return 0 -
+ * \return 0
  *		The searchlet was set appropriately.
  *
- * \return EINVAL -
+ * \return EINVAL
  *		One of the file names was invalid or one of the files 
  *		could not be parsed.
  *
- * \return EBUSY -
+ * \return EBUSY
  *		A search was already active.
  */
 
@@ -350,9 +348,12 @@ int ls_abort_search(ls_search_handle_t handle);
  * \param handle
  *		the search handle returned by init_libsearchlet().
  *
- * \param	obj_handle
+ * \param obj_handle
  *		a pointer to the location where the new object handle will
  *		stored upon succesful completion of the call.
+ *
+ * \param flags
+ *		Flags to control the behavior.
  *
  * \return 0
  *		Sucessful, obj_handle containes pointer to new object.
@@ -372,8 +373,12 @@ int ls_abort_search(ls_search_handle_t handle);
 int ls_next_object(ls_search_handle_t handle,
                    ls_obj_handle_t *obj_handle,
                    int flags);
-#define	LSEARCH_NO_BLOCK		0x01 	/** Do not block */
 
+
+/*!
+ * Flags  for ls_next_object()
+ */
+#define	LSEARCH_NO_BLOCK		0x01 	/** Do not block */
 
 
 /*!
@@ -452,7 +457,7 @@ int ls_get_dev_list(ls_search_handle_t handle,
  * \param dev_handle
  *		the handle for the device being queried.
  *
- * \param dev_char
+ * \param dev_chars
  *		A pointer to the location where the device 
  *		charactersitics should be stored.
  *

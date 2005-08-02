@@ -373,7 +373,7 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
  */
 
 int
-obj_read_attr(obj_attr_t *attr, const char * name, off_t *len, char *data)
+obj_read_attr(obj_attr_t *attr, const char * name, off_t *len, void *data)
 {
 	attr_record_t *		record;
 	char *			dptr;
@@ -413,7 +413,7 @@ obj_read_attr(obj_attr_t *attr, const char * name, off_t *len, char *data)
  * the real data.  The caller may not modify it.
  */
 int
-obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, char **data)
+obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, void **data)
 {
 	attr_record_t *		record;
 
@@ -423,7 +423,7 @@ obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, char **data)
 	}
 
 	*len = record->data_len;
-	*data = &record->data[record->name_len];
+	*data = (void *)&record->data[record->name_len];
 
 	return(0);
 }

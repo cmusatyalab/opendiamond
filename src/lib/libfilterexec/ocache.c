@@ -40,6 +40,7 @@
 #include "obj_attr.h"
 #include "obj_attr.h"
 #include "lib_filter.h"
+#include "lib_filter_sys.h"
 #include "lib_odisk.h"
 #include "lib_filterexec.h"
 #include "lib_ocache.h"
@@ -54,8 +55,8 @@ static char const cvsid[] = "$Header$";
 /*
  * dctl variables 
  */
-unsigned int    if_cache_table = 1;
-unsigned int    if_cache_oattr = 1;
+unsigned int    if_cache_table = 0;
+unsigned int    if_cache_oattr = 0;
 unsigned int    count_thresh = 5;
 
 static int      search_active = 0;
@@ -1390,7 +1391,7 @@ ocache_add_start(char *fhandle, uint64_t obj_id, void *cache_table,
 }
 
 static void
-ocache_add_iattr(char *fhandle, lf_obj_handle_t ohandle,
+ocache_add_iattr(lf_obj_handle_t ohandle,
                  const char *name, off_t len, const char *data)
 {
 	cache_ring_entry *new_entry;
@@ -1437,7 +1438,7 @@ ocache_add_iattr(char *fhandle, lf_obj_handle_t ohandle,
 }
 
 static void
-ocache_add_oattr(char *fhandle, lf_obj_handle_t ohandle, const char *name,
+ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
                  off_t len, const char *data)
 {
 	cache_ring_entry *new_entry;

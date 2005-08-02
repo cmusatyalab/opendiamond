@@ -423,7 +423,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  =  ../../src/lib/libsearchlet/lib_searchlet.h ../../src/lib/libfilter/lib_filter.h
+INPUT                  = title.c  ../../src/lib/libsearchlet/lib_searchlet.h ../../src/lib/libfilter/lib_filter.h
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 

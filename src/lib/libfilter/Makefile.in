@@ -29,5 +29,5 @@ SHARED_HEADERS = lib_filter.h lib_filter_sys.h
 
 TARGETS = libfilter.a
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 

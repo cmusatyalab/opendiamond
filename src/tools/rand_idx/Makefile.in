@@ -25,7 +25,7 @@ SHARED_BIN = rand_idx
 
 TARGETS = rand_idx
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 
 .c.o:

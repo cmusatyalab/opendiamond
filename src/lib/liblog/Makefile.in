@@ -34,7 +34,7 @@ OBJS = $(LIBOBJS) $(TESTOBJS)
 
 TARGETS = liblog.a $(TESTPROGS)
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 test_log: liblog.a $(TESTOBJS)
 	$(CC) $(CFLAGS) -o test_log $(TESTOBJS) -L. -llog -lpthread

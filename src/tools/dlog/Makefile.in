@@ -32,7 +32,7 @@ TARGETS = dlog test
 SHARED_BIN = dlog 
 
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 #
 #

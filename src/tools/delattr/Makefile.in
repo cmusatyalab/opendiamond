@@ -28,7 +28,7 @@ PROG = delattr
 
 
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 
 

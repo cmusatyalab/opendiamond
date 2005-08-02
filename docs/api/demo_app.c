@@ -44,10 +44,10 @@
  */
 #define	DISPLAY_NAME "Display-Name"
 /*
- * this need to be global because we share it with the main
- * GUI.  XXX hack, do it right later.
+ * this need to be global to make our life easier
  */
 ls_search_handle_t shandle;
+
 
 /*!
  * Convert a colon seperated string into a 64-bit value.
@@ -148,6 +148,7 @@ load_searchlet(char *obj_file, char *spec_file)
 	return (0);
 }
 
+
 #define	MAX_DEVS	24
 #define	MAX_FILTS	24
 
@@ -181,14 +182,11 @@ dump_dev_stats(dev_stats_t * dev_stats, int stat_len)
 		        dev_stats->ds_filter_stats[i].fs_avg_exec_time);
 
 	}
-
-
-
 }
 
 
 void
-dump_state()
+dump_stats()
 {
 	int             err,
 	i;
@@ -221,15 +219,6 @@ dump_state()
 	free(dev_stats);
 
 	fflush(stdout);
-	sleep(1);
-	/*
-	 * Dump the dclt state.  XXX assumes this is in the local path */
-	err = system("./dctl -r");
-	if (err == -1) {
-		fprintf(stderr, "Failed to execute dctl \n");
-		exit(1);
-	}
-
 }
 
 void
@@ -476,7 +465,7 @@ main(int argc, char **argv)
 	fprintf(stdout, " Found %d items in %d.%d  \n", count, secs, usec);
 	fflush(stdout);
 	sleep(1);
-	dump_state();
+	dump_stats();
 
 	exit(0);
 }

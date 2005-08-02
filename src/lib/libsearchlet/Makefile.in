@@ -42,7 +42,7 @@ SHARED_HEADERS = lib_searchlet.h dctl_socket.h log_socket.h
 
 TARGETS = libsearchlet.a cli_test test.so 
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 
 #

@@ -28,7 +28,7 @@ SRCS = setattr.c
 OBJS = setattr.o
 
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 
 

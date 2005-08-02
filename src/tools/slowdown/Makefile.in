@@ -23,7 +23,7 @@ SRCS = slowdown.c
 TARGETS = slowdown 
 
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 #
 #

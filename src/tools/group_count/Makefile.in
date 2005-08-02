@@ -23,7 +23,7 @@ LIBS += -lodisk -ltools -lpthread
 
 TARGETS = group_count
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 
 .c.o:

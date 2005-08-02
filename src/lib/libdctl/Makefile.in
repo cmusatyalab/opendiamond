@@ -36,7 +36,7 @@ OBJS = $(LIBOBJS) $(TESTOBJS)
 
 TARGETS = libdctl.a $(TESTPROGS)
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 test_dctl: libdctl.a $(TESTOBJS)
 	$(CC) $(CFLAGS) -o test_dctl $(TESTOBJS) -L. -ldctl -lpthread

@@ -34,7 +34,7 @@ OBJS = $(LIBOBJS) $(TESTOBJS)
 
 TARGETS = copyheader libdconfig.a name_test dconf_test
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 CLEAN_OTHERS += group_lookup.c name_lookup.c diamond_config.c
 

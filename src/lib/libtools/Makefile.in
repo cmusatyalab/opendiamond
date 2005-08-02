@@ -40,7 +40,7 @@ OBJS = $(LIBOBJS) $(TESTOBJS)
 
 TARGETS = libtools.a test_ring 
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 test_ring: $(TESTOBJS) libtools.a
 	$(CC) $(CFLAGS) -o test_ring $(TESTOBJS) libtools.a

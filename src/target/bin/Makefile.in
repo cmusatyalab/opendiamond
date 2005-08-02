@@ -29,6 +29,6 @@ INSTALL_BIN = $(filter-out $(EXCLUDES), $(ALLFILES))
                                                                                 
 CLEAN_OTHERS += ${INSTALL_BIN}
                                                                                 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 

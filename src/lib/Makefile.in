@@ -20,5 +20,5 @@ OBJROOT = @OBJROOT@
 SUBDIRS =  libtools libdconfig libdctl liblog libodisk libfilter 
 SUBDIRS +=  libfilterexec libod transport libsearchlet
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 

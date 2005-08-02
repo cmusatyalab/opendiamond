@@ -19,7 +19,7 @@ OBJROOT = @OBJROOT@
 
 SUBDIRS = bin include lib etc
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 
 

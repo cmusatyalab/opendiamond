@@ -36,7 +36,7 @@ SHARED_HEADERS = lib_sstub.h
 
 TARGETS = libsstub.a stest
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 stest:  $(STEST_OBJS) libsstub.a
 	$(CC) $(CFLAGS) -o stest $(STEST_OBJS) $(LIBDIR) $(LIBS) 

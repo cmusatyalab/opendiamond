@@ -14,6 +14,17 @@
 #ifndef _LIB_SEARCHLET_H_
 #define	_LIB_SEARCHLET_H_
 
+/*!  
+ * \defgroup searchlet  Searchlet API
+ * The searchlet API is the programming interface between the Diamond and
+ * the Diamond applications running on the host.   All communications with
+ * Diamond are performed through this interface.  The programming interface
+ * is defined in lib_searchlet.h.
+ *
+ * */
+
+
+
 /*!
  * \file lib_searchlet.h
  * \ingroup searchlet

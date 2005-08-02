@@ -37,7 +37,7 @@ CLEAN_OTHERS += filter_spec.c
 
 TARGETS = libfilterexec.a
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 
 

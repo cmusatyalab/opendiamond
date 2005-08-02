@@ -18,5 +18,5 @@ OBJROOT = @OBJROOT@
 
 SHARED_HEADERS = socket_trans.h
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 

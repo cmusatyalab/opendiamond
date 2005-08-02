@@ -18,6 +18,6 @@ OBJROOT = @OBJROOT@
 SUBDIRS = common lib tools adiskd target
 
 
-include ${ROOTDIR}/Makefile.template
+include ${OBJROOT}/Makefile.template
 
 

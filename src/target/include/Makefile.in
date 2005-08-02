@@ -23,6 +23,6 @@ CLEAN_OTHERS += *.h
 
 INSTALL_HEADERS = $(wildcard *.h)
 
--include $(ROOTDIR)/Makefile.template
+-include $(OBJROOT)/Makefile.template
 
 

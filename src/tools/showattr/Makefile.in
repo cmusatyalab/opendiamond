@@ -26,7 +26,7 @@ TARGETS = showattr
 SRCS = showattr.c
 OBJS = showattr.o
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 
 

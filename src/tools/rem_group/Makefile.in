@@ -24,7 +24,7 @@ LIBS += -lodisk -ltools -lpthread -llog -ldctl -lssl -ldconfig
 
 TARGETS = rem_group
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 rem_group: rem_group.o 
 	$(CC) $(CFLAGS) -o rem_group rem_group.o $(LIBDIR) $(LIBS) 

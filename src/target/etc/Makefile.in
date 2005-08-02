@@ -24,7 +24,7 @@ CLEAN_OTHERS += diamond_config
 
 INSTALL_ETC = diamond_config
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 
 diamond_config: $(ROOTDIR)/Makefile.template

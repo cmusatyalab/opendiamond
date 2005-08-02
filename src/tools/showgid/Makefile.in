@@ -26,7 +26,7 @@ TARGETS = showgid
 SRCS = showgid.c
 OBJS = showgid.o
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 
 

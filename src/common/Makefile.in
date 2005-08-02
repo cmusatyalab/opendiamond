@@ -20,6 +20,6 @@ SUBDIRS =
 
 SHARED_HEADERS = diamond_consts.h  diamond_types.h  sys_attr.h
 
-include ${ROOTDIR}/Makefile.template
+include ${OBJROOT}/Makefile.template
 
 

@@ -18,5 +18,5 @@ OBJROOT = @OBJROOT@
 
 SUBDIRS =  common hoststub storagestub
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 

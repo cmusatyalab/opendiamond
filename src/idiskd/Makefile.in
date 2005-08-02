@@ -29,7 +29,7 @@ OBJS = idiskd.o idiskd_ops.o ls_background.o ls_device.o ls_log.o ls_dctl.o
 
 TARGETS = idiskd
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 idiskd:  $(OBJS)
 	$(CC) $(CFLAGS) -rdynamic -o idiskd $(OBJS) $(LIBDIR) $(LIBS)

@@ -44,7 +44,7 @@ TARGETS = libodisk.a odisk_test odisk_idx odisk_setoid attr_test del_obj
 
 CFLAGS += -D_GNU_SOURCE
 
-include $(ROOTDIR)/Makefile.template 
+include $(OBJROOT)/Makefile.template 
 
 
 odisk_test: $(TEST_OBJS) libodisk.a

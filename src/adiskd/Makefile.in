@@ -31,7 +31,7 @@ TARGETS = adiskd
 
 SHARED_BIN = adiskd
 
-include $(ROOTDIR)/Makefile.template
+include $(OBJROOT)/Makefile.template
 
 adiskd:  $(OBJS)
 	$(CC) $(CFLAGS) -o adiskd -rdynamic $(OBJS) $(LIBDIR) $(LIBS)

@@ -16,6 +16,7 @@
 
 /*!
  * \file lib_searchlet.h
+ * \ingroup searchlet
  * This defines the API that applications use to talk to the rest
  * of the diamond system.
  */
@@ -145,7 +146,7 @@ int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 
 /*!
  * This call adds another filter file to the searchlet.  This can only
- * be called after one sucessful call to ls_set_searchlet().
+ * be called after one successful call to ls_set_searchlet().
  *
  * \param	handle
  *		The handle for the search instance.
@@ -179,7 +180,7 @@ int ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 /*!
  * This call sets the searchlet for for a specific device.  This call can
  * be used if the application wishes to set filters for different devices.
- * In this case the appliatoin must make this call for each of the devices
+ * In this case the application must make this call for each of the devices
  * involved in the search.
  *
  * \param	handle
@@ -247,7 +248,7 @@ int ls_set_device_searchlet(ls_search_handle_t handle,
  * 
  *
  * \return 0
- *		The call suceeded.
+ *		The call succeeded.
  *
  * \return EINVAL
  *		One of the file names was invalid or 
@@ -263,7 +264,7 @@ int ls_set_blob(ls_search_handle_t handle, char *filter_name,
 
 /*!
  * This call sets a "blob" of data to be passed to a given
- * filter on a specific device.  This is similiar to the above
+ * filter on a specific device.  This is similar to the above
  * call but will only affect one device instead of all devices.
  *
  * This call should be called after the searchlet has been
@@ -288,7 +289,7 @@ int ls_set_blob(ls_search_handle_t handle, char *filter_name,
  *		A pointer to the blob data.
  * 
  * \return 0
- *		The call suceeded.
+ *		The call succeeded.
  *
  * \return EINVAL
  *		One of the file names was invalid or 
@@ -350,13 +351,13 @@ int ls_abort_search(ls_search_handle_t handle);
  *
  * \param obj_handle
  *		a pointer to the location where the new object handle will
- *		stored upon succesful completion of the call.
+ *		stored upon successful completion of the call.
  *
  * \param flags
  *		Flags to control the behavior.
  *
  * \return 0
- *		Sucessful, obj_handle containes pointer to new object.
+ *		Successful, obj_handle contains pointer to new object.
  *
  * \return EINVAL
  *		There was no active search or the handle is invalid.
@@ -384,10 +385,9 @@ int ls_next_object(ls_search_handle_t handle,
 /*!
  * This call is performed by the application to release object it obtained 
  * through ls_next_object.  This will causes all object storage and 
- * assocaited  state to be freed.  It will also invalidate any data to
+ * associated  state to be freed.  It will also invalidate any data to
  * the object obtained through the filter API.
  *
- * Args:
  * \param handle
  *		the search handle returned by init_libsearchlet().
  *
@@ -395,7 +395,7 @@ int ls_next_object(ls_search_handle_t handle,
  * 		The handle for the object to release.
  *
  * \return 0
- *		The release was suecessfull.
+ *		The release was successfully.
  *
  * \return EINVAL
  *		Either the object or the search handle was invalid.
@@ -426,7 +426,7 @@ int ls_release_object(ls_search_handle_t handle,
  *		A pointer to an integer.  The caller sets this value to
  *       	indicate the space allocated in handle list.  On return,
  * 		this value will hold the number of handles filled in.  
- *		If thecaller did not allocate sufficient space, then 
+ *		If the caller did not allocate sufficient space, then 
  *		ENOSPC will be returned and the num_handles will 
  *		indicate the space necessary for the call to succeed.
  *
@@ -459,7 +459,7 @@ int ls_get_dev_list(ls_search_handle_t handle,
  *
  * \param dev_chars
  *		A pointer to the location where the device 
- *		charactersitics should be stored.
+ *		characteristics should be stored.
  *
  * \return 0
  *		Call succeeded.
@@ -514,8 +514,8 @@ int ls_get_dev_stats(ls_search_handle_t handle,
 
 
 /*!
- * This call gets total number of objets in the current search.  Because
- * connections are setup asynchonously, there is a time lag between when
+ * This call gets total number of objects in the current search.  Because
+ * connections are setup asynchronously, there is a time lag between when
  * a search is started and when this reaches its true value.
  * 
  * \param handle

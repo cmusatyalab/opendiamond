@@ -16,6 +16,7 @@
 
 /*!
  * \file lib_filter.h
+ * \ingroup filter
  * The API for the functions that are available to filters running on
  * diamond system.
  */
@@ -52,7 +53,7 @@ typedef	void *	lf_obj_handle_t;
  *		An array of num_arg arguments
  *
  * \param bloblen
- * 		The length of a blob of memory from the applicatoin program.
+ * 		The length of a blob of memory from the application program.
  *
  * \param blob_data
  *		An opaque blob of data from the application.
@@ -64,7 +65,7 @@ typedef	void *	lf_obj_handle_t;
  *		Location to store a pointer to the filters private data.
  * 
  * \return 0
- *		Initialization was sucessful.
+ *		Initialization was successful.
  *
  * \return Non-zero
  *		Fatal condition

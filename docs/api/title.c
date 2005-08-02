@@ -1,11 +1,20 @@
 
 
-/*! 
- * \defgroup searchlet  Searchlet API
- */
+/*!  \defgroup searchlet  Searchlet API
+The searchlet API is the programming interface between the Diamond and
+the Diamond applications running on the host.   All communications with
+Diamond are performed through this interface.  The programming interface
+is defined in lib_searchlet.h.
 
-/*! 
- * \defgroup Filter  Filter API
+*/
+
+/*!  \defgroup Filter  Filter API
+The filter API is the API used by the searchlets to interact with
+the Diamond run-time when evaluting objects.  It provides interfaces
+to read/write object data as well as reading and writing object 
+attributes.  This API can also be used by the host application
+to manipulate data objects.  The programming interface is defined
+in lib_filter.h
  */
 
 /*!
@@ -56,6 +65,10 @@ API is documented in lib_filter.h.
 
 \section app_sec	Application Programming
 
+*/
+
+/*!
+\include demo_app.c
 
 \section searchlet_sec	Searchlet Programming
 

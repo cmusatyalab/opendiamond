@@ -14,6 +14,15 @@
 #ifndef _LIB_FILTER_H_
 #define	_LIB_FILTER_H_
 
+/*!  \defgroup Filter  Filter API
+ * The filter API is the API used by the searchlets to interact with
+ * the Diamond run-time when evaluating objects.  It provides interfaces
+ * to read/write object data as well as reading and writing object
+ * attributes.  This API can also be used by the host application
+ * to manipulate data objects.  The programming interface is defined
+ * in lib_filter.h
+ *  */
+
 /*!
  * \file lib_filter.h
  * \ingroup filter

@@ -336,7 +336,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			 * init the filter exec code 
 			 */
 			fexec_init_search(sstate->fdata);
-			//ceval_init_search(sstate->fdata, sstate->ostate);
 			err = ceval_start(sstate->fdata);
 			if (err) {
 				return;

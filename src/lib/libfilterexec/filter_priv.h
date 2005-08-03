@@ -116,9 +116,10 @@ typedef struct filter_info {
 	 * statistics. these should be local to each device.
 	 */
 	int             fi_called;  /* # of times called */
-	int             fi_bypassed;    /* # of times we would have run */
+	int             fi_bypassed;/* # of times we would have run */
 	int             fi_drop;    /* # times below threshold */
 	int             fi_pass;    /* # times above threshold */
+	int             fi_error;   /* # errors running filter */
 	rtime_t         fi_time_ns; /* total time used */
 	int64_t         fi_added_bytes; /* XXX debug */
 	/* JIAYING */

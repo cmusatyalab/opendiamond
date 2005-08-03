@@ -379,9 +379,10 @@ ocache_entry_free(cache_obj * cobj)
 			free(cobj->iattr.entry_data[i]);
 		}
 	}
+
 	if (cobj->iattr.entry_data != NULL)
 		free(cobj->iattr.entry_data);
-	for (i = 0; i < cobj->oattr.entry_num; i++) {
+		for (i = 0; i < cobj->oattr.entry_num; i++) {
 		if (cobj->oattr.entry_data[i] != NULL) {
 			if (cobj->oattr.entry_data[i]->attr_name != NULL)
 				free(cobj->oattr.entry_data[i]->attr_name);

@@ -81,6 +81,7 @@ fexec_clear_stats(filter_data_t * fdata)
 		fdata->fd_filters[i].fi_called = 0;
 		fdata->fd_filters[i].fi_drop = 0;
 		fdata->fd_filters[i].fi_pass = 0;
+		fdata->fd_filters[i].fi_error = 0;
 		fdata->fd_filters[i].fi_time_ns = 0;
 		fdata->fd_filters[i].fi_cache_drop = 0;
 		fdata->fd_filters[i].fi_cache_pass = 0;

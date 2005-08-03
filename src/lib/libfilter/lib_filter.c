@@ -52,11 +52,6 @@ lf_set_read_cb(read_attr_cb cb_fn)
 	return(0);
 }
 
-/*
- * Quick hacks for now.  Fix this later.
- * XXX
- */
-/* need to pass in fhandle as the filter name */
 int
 lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, void *data)
 {
@@ -67,7 +62,8 @@ lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, void *data)
 	odata = (obj_data_t *)obj;
 	adata = &odata->attr_info;
 	err = obj_read_attr(adata, name, len, data);
-	/* add read attrs into cache queue: input attr set */
+
+	/* pass information about the read to the cache function */
 	if (!err && (read_attr_fn != NULL)) {
 		(*read_attr_fn)(obj, name, *len, data);
 	}
@@ -269,41 +265,6 @@ lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
 
 	odata->cur_offset += length;
 	return (0);
-}
-
-/*
- * This writes a range of data to an object.  After this call, the
- * library takes possesion of the buffer, the caller should not attempt
- * any further acceses to the buffer or free the buffer.
- *
- * Args:
- * 	obj_handle - the object handle.
- *
- * 	flags 	   - Specifies specific behavior of the write.
- * 		     If the flag LF_WRITE_BLOCK_PAD is set, then
- * 		     the write is padded out to the next block
- * 		     size specified for the object in the filter spec.
- *
- * 	len	   - the number of bytes to write.
- *
- * 	buf	   - The buffer to write.
- *
- * Return:
- * 	0	   - the write was successful. 
- *
- * 	EINVAL     - one of the handles was invalid. 
- *
- * 	EPERM      - The filter does not have ability to write to the data
- *		     (may be object, etc).
- */
-
-#define	LF_WRITE_BLOCK_PAD	0x01
-int
-lf_write_block(lf_obj_handle_t obj_handle,
-               int flags, off_t len, char *buf)
-{
-
-	return(EINVAL);
 }
 
 

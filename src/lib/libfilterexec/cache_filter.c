@@ -152,8 +152,7 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 		}
 		cur_filt->fi_sig = (unsigned char *) malloc(16);
 		assert(cur_filt->fi_sig != NULL);
-		err =
-		    digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name,
+		err = digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name,
 		               cur_filt->fi_numargs, cur_filt->fi_arglist,
 		               cur_filt->fi_blob_len, cur_filt->fi_blob_data,
 		               &cur_filt->fi_sig);
@@ -192,13 +191,13 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	new_state = (ceval_state_t *) malloc(sizeof(*new_state));
 	assert(new_state != NULL);
 	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_table", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32, &use_cache_table);
+			   dctl_read_uint32, dctl_write_uint32, &use_cache_table);
 	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_oattr", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32, &use_cache_oattr);
+			   dctl_read_uint32, dctl_write_uint32, &use_cache_oattr);
 	dctl_register_leaf(DEV_CACHE_PATH, "cache_oattr_thresh", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32, &cache_oattr_thresh);
+			   dctl_read_uint32, dctl_write_uint32, &cache_oattr_thresh);
 	dctl_register_leaf(DEV_CACHE_PATH, "mdynamic_load", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32, &mdynamic_load);
+			   dctl_read_uint32, dctl_write_uint32, &mdynamic_load);
 
 	memset(new_state, 0, sizeof(*new_state));
 	new_state->odisk = odisk;
@@ -207,7 +206,7 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	new_state->stats_process_fn = stats_process_fn;
 
 	err = pthread_create(&new_state->ceval_thread_id, PATTR_DEFAULT,
-	                     ceval_main, (void *) new_state);
+				 ceval_main, (void *) new_state);
 
 	*cstate = new_state;
 
@@ -470,9 +469,9 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 					rt_stop(&rt);
 					time_ns = rt_nanos(&rt);
 					log_message(LOGT_FILT, LOGL_TRACE,
-					            "eval_filters:  filter %s has val (%d) - threshold %d",
-					            cur_filter->fi_name, conf,
-					            cur_filter->fi_threshold);
+						"eval_filters:  filter %s has val (%d) - threshold %d",
+						cur_filter->fi_name, conf,
+						cur_filter->fi_threshold);
 
 				} else {
 					hit = 0;
@@ -635,7 +634,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	cache_attr_set *oattr_set;
 	int             lookup;
 	int             miss = 0;
-	int				 oattr_flag=0;
+	int				oattr_flag=0;
 
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
 	// printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
@@ -667,7 +666,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	cache_lookup0(obj_handle->local_id, &change_attr, &obj_handle->attr_info);
 
 	for (cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm);
-	     cur_fidx++) {
+	    cur_fidx++) {
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
 		fexec_active_filter = cur_filter;
@@ -749,31 +748,21 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				rt_start(&rt);	/* assume only one thread here */
 
 				assert(cur_filter->fi_eval_fp);
-				/*
-				 * write the evaluation start message into the cache ring 
-				 */
-				//if( (oattr_flag != 0) && ((cur_filter->fi_time_ns/1000) <= (cur_filter->fi_compute * cache_oattr_thresh)) ) {
-				if( (oattr_flag != 0) && (cur_filter->fi_time_ns <= (cur_filter->fi_added_bytes*cache_oattr_thresh)) ) {
+
+				/* mark beginning of filter eval into cache ring */
+				if( (oattr_flag != 0) && (cur_filter->fi_time_ns <= 
+					(cur_filter->fi_added_bytes*cache_oattr_thresh)) ) {
 					oattr_flag = 0;
 				}
-				/*
-								 else {
-									int com_rate;
-									if(cur_filter->fi_added_bytes != 0 )
-										com_rate = cur_filter->fi_time_ns/cur_filter->fi_added_bytes;
-									else
-										com_rate = 0;
-									printf("filter %s com_rate %d\n", cur_filter->fi_name, com_rate);
-								}
-				*/
+
 				ocache_add_start(cur_filter->fi_name, obj_handle->local_id,
-				                 cur_filter->cache_table, lookup, oattr_flag, cur_filter->fi_sig);
+				                 cur_filter->cache_table, lookup, oattr_flag,
+								 cur_filter->fi_sig);
 
 				conf = cur_filter->fi_eval_fp(obj_handle, 
 						cur_filter->fi_filt_arg);
-				/*
-				 * write the evaluation end message into the cache ring 
-				 */
+
+				/* mark end of filter eval into cache ring */
 				ocache_add_end(cur_filter->fi_name, obj_handle->local_id,
 				               conf);
 
@@ -784,15 +773,16 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				rt_stop(&rt);
 				time_ns = rt_nanos(&rt);
 
-				if (conf < cur_filter->fi_threshold) {
+					
+				if (conf == -1) {
+					cur_filter->fi_error++;
+					pass = 0;
+				} else if (conf < cur_filter->fi_threshold) {
 					pass = 0;
 				}
-				// printf("eval_filters: filter %s has val (%d) - threshold
-				// %d\n", cur_filter->fi_name, conf,
-				// cur_filter->fi_threshold);
 
 				log_message(LOGT_FILT, LOGL_TRACE,
-				            "eval_filters:  filter %s has val (%d) - threshold %d",
+				            "eval_filters: filter %s: ret (%d)- threshold %d",
 				            cur_filter->fi_name, conf,
 				            cur_filter->fi_threshold);
 			}
@@ -800,23 +790,11 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			stack_ns += time_ns;
 			err = obj_write_attr(&obj_handle->attr_info, timebuf,
 			                     sizeof(time_ns), (void *) &time_ns);
-			if (err != 0) {
-				printf("CHECK OBJECT %016llX ATTR FILE\n",
-				       obj_handle->local_id);
-			}
 			assert(err == 0);
 		}
 
-#ifdef PRINT_TIME
-		printf("\t\tmeasured: %f secs\n", rt_time2secs(time_ns));
-		printf("\t\tfilter %s: %f secs cumulative, %f s avg\n",
-		       cur_filter->fi_name, rt_time2secs(cur_filter->fi_time_ns),
-		       rt_time2secs(cur_filter->fi_time_ns) / cur_filter->fi_called);
-#endif
-
-		// XXX printf("ceval2: update prob, pass %d \n", pass);
 		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm),
-		                  cur_fidx, pass);
+		                 cur_fidx, pass);
 
 		if (!pass) {
 			cur_filter->fi_drop++;
@@ -885,22 +863,11 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	temp = rt_time2secs(stack_ns);
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
-#if(defined VERBOSE || defined SIM_REPORT)
-	{
-		char            buf[BUFSIZ];
-		printf("%d average time/obj = %s (%s)\n",
-		       fdata->obj_counter,
-		       fstat_sprint(buf, fdata),
-		       policy_arr[filter_exec.current_policy].
-		       exploit ? "EXPLOIT" : "EXPLORE");
-
-	}
-#endif
-
 	free(change_attr.entry_data);
 
 	return pass;
 }
+
 
 #define SAMPLE_NUM		100
 //#define AJUST_RATE		5
@@ -937,7 +904,6 @@ static void oattr_sample()
 		err = gettimeofday(&sample_end_time, &st_tz);
 		assert(err == 0);
 		temp = tv_diff(&sample_end_time, &sample_start_time);
-		//printf("oattr_percent is %u, adjust is %u, temp %f, opt_time %f\n", oattr_percent, adjust, temp, opt_time);
 		if( temp > opt_time ) {
 			oattr_percent -= (adjust*direction); //first getting back
 			direction = direction * (-1);

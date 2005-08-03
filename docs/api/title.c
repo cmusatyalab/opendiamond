@@ -53,7 +53,20 @@ API is documented in lib_filter.h.
  * \example demo_app.c
  */
 
+/*!
 \section searchlet_sec	Searchlet Programming
 
  
+*/
+
+/*!
+
+\section searchlet_sec	Searchlet Programming
+FILTER  <unique name for the filter>  
+THRESHOLD <drop of return value is below> 
+MERIT <relative cost for initial ordering - optional> 
+EVAL_FUNCTION <eval function name in *.so>
+INIT_FUNCTION <init function name in *.so>
+FINI_FUNCTION <fini functio nname in the *.so>
+REQUIRES  <optional - list of prerequisites>
 */

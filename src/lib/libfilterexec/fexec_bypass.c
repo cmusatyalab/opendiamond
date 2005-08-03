@@ -208,10 +208,6 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
 
 
 		}
-#ifdef	XXX
-		printf("greedy: after (%d) total %f prob %f \n", i,
-		       old_cost, pass);
-#endif
 
 	}
 	return;
@@ -608,11 +604,6 @@ fexec_update_bypass(filter_data_t * fdata, double ratio)
 	}
 
 	target_cost = avg_cost * ratio;
-
-#ifdef XXX
-
-	printf("\ncost: %lf, target: %lf\n", avg_cost, target_cost);
-#endif
 
 	switch (fexec_bypass_type) {
 		case  BP_NONE:

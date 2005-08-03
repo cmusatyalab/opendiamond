@@ -184,44 +184,6 @@ int lf_next_block(lf_obj_handle_t obj_handle, int num_blocks,
 
 int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
 
-/*! 
- * Flags for  lf_write_block()
- */
-#define	LF_WRITE_BLOCK_PAD	0x01
-
-/*!
- * This writes a range of data to an object.  After this call, the
- * library takes possession of the buffer, the caller should not attempt
- * any further accesses to the buffer or free the buffer.
- *
- * \param obj_handle
-the object handle.
- *
- * \param flags
- *		Specifies specific behavior of the write.
- * 		If the flag LF_WRITE_BLOCK_PAD is set, then
- * 		the write is padded out to the next block
- * 		size specified for the object in the filter spec.
- *
- * \param len
- *		the number of bytes to write.
- *
- * \param buf
- *		The buffer to write.
- *
- * \return 0
- *		the write was successful. 
- *
- * \return EINVAL
- *		one of the handles was invalid. 
- *
- * \return EPERM
- *		The filter does not have ability to write to the data
- *		(may be object, etc).
- */
-
-int lf_write_block(lf_obj_handle_t obj_handle, int flags, off_t len, char *buf);
-
 /*!
  * Read an attribute from the object into the buffer space provided
  * by the caller.  This does invoke a copy and for large structures

@@ -547,10 +547,6 @@ resolve_filter_deps(filter_data_t * fdata)
 				        cur_filter->fi_deps[i].name, cur_filter->fi_name);
 				return (EINVAL);
 			}
-#ifdef	XXX
-			free(cur_filter->fi_deps[i].name);
-			cur_filter->fi_deps[i].name = NULL; /* XXX */
-#endif
 			// cur_filter->fi_deps[i].filter = tmp;
 			gAddEdge(&graph, fdata->fd_filters[tempid].fi_gnode,
 			         cur_filter->fi_gnode);
@@ -912,7 +908,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 * if the read is sucessful, then this stage
 		 * has been run.
 		 */
-		//printf("eval_filters filter %s, err %d, obj %016llX\n", cur_filter->fi_name, err, obj_handle->local_id);
 		if (err == 0) {
 			log_message(LOGT_FILT, LOGL_TRACE,
 			            "eval_filters: Filter %s has already been run",
@@ -979,6 +974,9 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			time_ns = rt_nanos(&rt);
 
 			if (conf < cur_filter->fi_threshold) {
+				cur_filter->fi_error++;
+				pass = 0;
+			} else if (conf < cur_filter->fi_threshold) {
 				pass = 0;
 			}
 			log_message(LOGT_FILT, LOGL_TRACE,
@@ -991,19 +989,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		stack_ns += time_ns;
 		obj_write_attr(&obj_handle->attr_info, timebuf,
 		               sizeof(time_ns), (void *) &time_ns);
-
-#ifdef PRINT_TIME
-
-		printf("\t\tmeasured: %f secs\n", rt_time2secs(time_ns));
-		printf("\t\tfilter %s: %f secs cumulative, %f s avg\n",
-		       cur_filter->fi_name, rt_time2secs(cur_filter->fi_time_ns),
-		       rt_time2secs(cur_filter->fi_time_ns) / cur_filter->fi_called);
-#endif
-
 		if (!pass) {
-			/*
-			 * XXX cache results if appropriate 
-			 */
 			cur_filter->fi_drop++;
 		} else {
 			cur_filter->fi_pass++;

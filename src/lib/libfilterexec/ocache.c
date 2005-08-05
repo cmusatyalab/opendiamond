@@ -1005,9 +1005,9 @@ static int
 ocache_init_write(char *disk_path)
 {
 	char					fpath[PATH_MAX];
-	cache_init_obj		*cobj, *tmp;
-	int             	fd;
-	int             	i, j, err;
+	cache_init_obj			*cobj, *tmp;
+	int             		fd;
+	int             		i, j, err;
 
 	if( init_table == NULL ) {
 		return(0);

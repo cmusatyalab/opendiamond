@@ -365,8 +365,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 	 */
 	uint64_t	oid = 1;
 
-	// printf("ceval_filters1: obj %016llX\n",oid);
-
 	fdata->obj_counter++;
 
 	if (use_cache_table == 0) {

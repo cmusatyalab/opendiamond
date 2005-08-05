@@ -387,7 +387,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			if (spec_name != NULL) {
 				free(spec_name);
 			}
-
 			break;
 
 		case DEV_BLOB: {

@@ -60,27 +60,12 @@ static char    *no_filter = "None";
 
 
 /*
- ********************************************************************** */
-/*
  * filter optimization policy defs 
  */
-/*
- ********************************************************************** */
-/*
-typedef struct opt_policy_t {
-    enum policy_type_t policy;
-    void           *(*p_new) (struct filter_data *);
-    void            (*p_delete) (void *context);
-    int             (*p_optimize) (void *context, struct filter_data *);
-    void           *p_context;
-    int             exploit;    
-} opt_policy_t;
-*/
 
-struct filter_exec_t filter_exec =
-    {
+struct filter_exec_t filter_exec = {
 	    NULL_POLICY
-    };
+};
 
 // int CURRENT_POLICY = NULL_POLICY;
 // int CURRENT_POLICY = HILL_CLIMB_POLICY;
@@ -90,17 +75,16 @@ struct filter_exec_t filter_exec =
  * order here should match enum policy_type_t 
  */
 static opt_policy_t policy_arr[] = {
-                                       {NULL_POLICY, NULL, NULL, NULL, NULL},
-                                       {HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
-                                        hill_climb_optimize, NULL},
-                                       {BEST_FIRST_POLICY, best_first_new, best_first_delete,
-                                        best_first_optimize, NULL},
-                                       // { INDEP_POLICY, indep_new, indep_delete, indep_optimize, NULL },
-                                       {INDEP_POLICY, indep_new, best_first_delete, best_first_optimize, NULL},
-                                       {RANDOM_POLICY, random_new, NULL, NULL, NULL},
-                                       {STATIC_POLICY, static_new, NULL, NULL, NULL},
-                                       {NULL_POLICY, NULL, NULL, NULL, NULL}
-                                   };
+					   {NULL_POLICY, NULL, NULL, NULL, NULL},
+					   {HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
+							hill_climb_optimize, NULL},
+					   {BEST_FIRST_POLICY, best_first_new, best_first_delete,
+							best_first_optimize, NULL},
+				   	   {INDEP_POLICY, indep_new, best_first_delete, best_first_optimize, NULL},
+					   {RANDOM_POLICY, random_new, NULL, NULL, NULL},
+					   {STATIC_POLICY, static_new, NULL, NULL, NULL},
+					   {NULL_POLICY, NULL, NULL, NULL, NULL}
+};
 
 
 /*
@@ -829,7 +813,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
                              int *pass, uint64_t * et))
 {
 	filter_info_t  *cur_filter;
-	int             conf;
+	int             val;
 	char            timebuf[BUFSIZ];
 	int             err;
 	off_t           asize;
@@ -964,7 +948,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			/*
 			 * arg 3 here looks strange -rw 
 			 */
-			conf = cur_filter->fi_eval_fp(obj_handle,
+			val = cur_filter->fi_eval_fp(obj_handle,
 			                              cur_filter->fi_filt_arg);
 
 			/*
@@ -973,15 +957,15 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			rt_stop(&rt);
 			time_ns = rt_nanos(&rt);
 
-			if (conf < cur_filter->fi_threshold) {
+			if (val == -1) {
 				cur_filter->fi_error++;
 				pass = 0;
-			} else if (conf < cur_filter->fi_threshold) {
+			} else if (val < cur_filter->fi_threshold) {
 				pass = 0;
 			}
 			log_message(LOGT_FILT, LOGL_TRACE,
 			            "eval_filters:  filter %s has val (%d) - threshold %d",
-			            cur_filter->fi_name, conf, cur_filter->fi_threshold);
+			            cur_filter->fi_name, val, cur_filter->fi_threshold);
 		}
 
 		cur_filter->fi_time_ns += time_ns;  /* update filter stats */

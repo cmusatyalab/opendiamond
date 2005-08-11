@@ -29,6 +29,10 @@
 #define	CTIME		"SYS_CTIME"
 
 #define OBJ_NAME        "Display-Name"
+#define DISPLAY_NAME	OBJ_NAME
+
+#define DEVICE_NAME     "Device-Name"
+
 #define OBJ_PATH        "_path.cstring"
 #define FLTRTIME        "_FIL_TIME.time"
 #define FLTRTIME_FN     "_FIL_TIME_%s.time"

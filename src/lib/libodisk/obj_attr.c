@@ -43,8 +43,8 @@ obj_read_attr_file(odisk_state_t *odisk, char *attr_fname,
 	int		attr_fd;
 	struct stat	stats;
 	int		err;
-	off_t		size;
-	off_t		rsize;
+	size_t		size;
+	size_t		rsize;
 	obj_adata_t *	adata;
 
 	/*
@@ -307,7 +307,7 @@ odisk_get_attr_sig(obj_data_t *obj, const char *name, char *data, int len)
  */
 
 int
-obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
+obj_write_attr(obj_attr_t *attr, const char * name, size_t len, const char *data)
 {
 	attr_record_t *	data_rec;
 	int		total_size;
@@ -373,7 +373,7 @@ obj_write_attr(obj_attr_t *attr, const char * name, off_t len, const char *data)
  */
 
 int
-obj_read_attr(obj_attr_t *attr, const char * name, off_t *len, void *data)
+obj_read_attr(obj_attr_t *attr, const char * name, size_t *len, void *data)
 {
 	attr_record_t *		record;
 	char *			dptr;
@@ -413,7 +413,7 @@ obj_read_attr(obj_attr_t *attr, const char * name, off_t *len, void *data)
  * the real data.  The caller may not modify it.
  */
 int
-obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, void **data)
+obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, void **data)
 {
 	attr_record_t *		record;
 

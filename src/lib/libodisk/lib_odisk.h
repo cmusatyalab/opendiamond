@@ -15,6 +15,7 @@
 #define	_LIB_ODISK_H_ 	1
 
 #include <dirent.h>
+#include <unistd.h>
 #include "obj_attr.h"
 
 #ifdef	__cplusplus
@@ -36,12 +37,14 @@ struct odisk_state;
 	/* maybe we need to remove this later */
 #define MAX_DIR_PATH    512
 #define MAX_GID_FILTER  64
+#define MAX_HOST_NAME	255
 
 typedef struct odisk_state {
 	char            odisk_dataroot[MAX_DIR_PATH];
 	char            odisk_indexdir[MAX_DIR_PATH];
 	groupid_t       gid_list[MAX_GID_FILTER];
 	FILE *          index_files[MAX_GID_FILTER];
+	char		odisk_name[MAX_HOST_NAME];
 	int             num_gids;
 	int             max_files;
 	int             cur_file;

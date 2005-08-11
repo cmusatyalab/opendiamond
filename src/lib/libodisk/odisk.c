@@ -127,6 +127,42 @@ dynamic_load_oattr(int ring_depth)
 
 }
 
+/* Set an attribute if it is not defined to the name value passed in */
+static void
+obj_set_notdef(obj_data_t *obj, char *attr_name, void *val, size_t len)
+{
+	int	err;
+	size_t	rlen;
+
+	rlen = 0;
+
+	err = obj_read_attr(&obj->attr_info, attr_name, &rlen, NULL);
+	if (err == ENOENT) {
+		err = obj_write_attr(&obj->attr_info, attr_name, len, val);
+	}
+
+}
+
+/*
+ * Set some system defined attributes if they are not already defined on
+ * the object.
+ */
+static void
+obj_set_sysattr(odisk_state_t *odisk, obj_data_t *obj, char * name)
+{
+	size_t	len;
+
+	/* set the object name */
+	len = strlen(name) + 1;
+    	obj_set_notdef(obj, DISPLAY_NAME, name, len);
+
+	/* set the object name */
+	len = strlen(odisk->odisk_name) + 1;
+    	obj_set_notdef(obj, DEVICE_NAME, odisk->odisk_name, len);
+	
+
+}
+
 int
 odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 {
@@ -218,6 +254,9 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
 	*obj_handle = (obj_data_t *) new_obj;
 	odisk->obj_load++;
+
+
+	obj_set_sysattr(odisk, new_obj, name);
 
 	return (0);
 }
@@ -440,7 +479,7 @@ int
 odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 {
 	gid_list_t     *glist;
-	off_t           len;
+	size_t           len;
 	int             i, err;
 	int             space;
 
@@ -498,7 +537,7 @@ int
 odisk_rem_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 {
 	gid_list_t     *glist;
-	off_t           len;
+	size_t           len;
 	int             i, err;
 
 	len = 0;
@@ -1126,7 +1165,7 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 		return (EINVAL);
 	}
 	
-	/* make sure we have a reasonble umask */
+	/* make sure we have a reasonable umask */
 	umask(0);
 
 	sig_cal_init();
@@ -1164,6 +1203,12 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	strcpy(new_state->odisk_dataroot, dataroot);
 	strcpy(new_state->odisk_indexdir, indexdir);
 
+	/* get the host name */
+	err = gethostname(new_state->odisk_name, MAX_HOST_NAME);
+	if (err) {
+		sprintf(new_state->odisk_name, "Unknown");
+	}
+	new_state->odisk_name[MAX_HOST_NAME - 1] = '0';
 
 	odisk_setup_open_flags(new_state);
 
@@ -1415,7 +1460,7 @@ static void
 update_object_gids(odisk_state_t * odisk, obj_data_t * obj, char *name)
 {
 	gid_list_t     *glist;
-	off_t           len;
+	size_t           len;
 	int             i, err;
 
 	len = 0;
@@ -1447,7 +1492,7 @@ static void
 delete_object_gids(odisk_state_t * odisk, obj_data_t * obj)
 {
 	gid_list_t     *glist;
-	off_t           len;
+	size_t          len;
 	int             i, err;
 	char            buf[NAME_MAX];
 	int             slen;

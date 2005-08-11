@@ -59,7 +59,7 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 	int	diff;
 	int	err;
 	char	name_string[128];
-	off_t	attr_size;
+	size_t	attr_size;
 
 	base_data = malloc(size);
 	if (base_data == NULL) {

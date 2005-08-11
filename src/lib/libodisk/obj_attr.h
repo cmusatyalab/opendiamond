@@ -11,7 +11,7 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-#ifndef _OBJ_ATTR_H_
+#ifndef _OBJ_ATTR_H_ 
 #define _OBJ_ATTR_H_	1
 
 #include <stdint.h>
@@ -21,7 +21,7 @@ struct obj_data;
 struct odisk_state;
 
 typedef struct obj_adata {
-	off_t           	adata_len;
+	size_t           	adata_len;
 	char           	*	adata_data;
 	char           	*	adata_base;
 	struct obj_adata *	adata_next;
@@ -81,11 +81,11 @@ typedef struct attr_record {
  * These are the object attribute managment calls.
  */
 int obj_write_attr(obj_attr_t *attr, const char *name,
-                   off_t len, const char *data);
+                   size_t len, const char *data);
 int obj_read_attr(obj_attr_t *attr, const char *name,
-                  off_t *len, void *data);
+                  size_t *len, void *data);
 
-int obj_ref_attr(obj_attr_t *attr, const char * name, off_t *len, void **data);
+int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, void **data);
 
 int obj_del_attr(obj_attr_t *attr, const char *name);
 int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname, 

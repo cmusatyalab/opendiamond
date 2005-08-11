@@ -248,10 +248,7 @@ lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
 
 	odata = (obj_data_t *)obj_handle;
 
-	/*
-	 * See if there is any data to read.  XXX for write, see
-	 * if we should do something different !!!
-	 */
+	/* See if there is any data to skip past.  */
 	if (odata->data_len <= odata->cur_offset) {
 		return(ENOENT);
 	}

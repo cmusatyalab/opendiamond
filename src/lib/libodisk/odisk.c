@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1104,9 +1105,13 @@ odisk_setup_open_flags(odisk_state_t * odisk)
 	close(test_fd);
 	free(buf);
 
-
+#ifdef	SUPPORT_O_DIRECT
 	/* now test the file with direct flag */
 	odisk->open_flags = (O_RDONLY|O_DIRECT);
+#else
+	/* now test the file with direct flag */
+	odisk->open_flags = (O_RDONLY);
+#endif
 
 
 	test_fd = open(test_name, odisk->open_flags);

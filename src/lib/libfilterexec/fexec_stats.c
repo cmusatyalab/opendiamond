@@ -21,7 +21,7 @@
 #include <stddef.h>
 #include <assert.h>
 #include <stdint.h>
-#include <values.h>
+#include <limits.h>
 
 #include "diamond_consts.h"
 #include "diamond_types.h"

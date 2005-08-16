@@ -26,6 +26,7 @@
 #include <dirent.h>
 #include <assert.h>
 #include <sys/uio.h>
+#include <limits.h>
 #include <openssl/evp.h>
 
 #include "diamond_consts.h"

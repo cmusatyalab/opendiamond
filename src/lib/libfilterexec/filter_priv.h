@@ -15,6 +15,7 @@
 #define _FILTER_PRIV_H_
 
 #include <stdint.h>
+#include <limits.h>
 
 #include "rtimer.h"
 #include "rgraph.h"

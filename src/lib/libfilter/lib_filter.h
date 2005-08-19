@@ -33,6 +33,7 @@
 
 
 #include <sys/types.h>		/* for off_t */
+#include "lib_log.h"		/* for log levels */
 
 #ifdef __cplusplus
 extern "C" {

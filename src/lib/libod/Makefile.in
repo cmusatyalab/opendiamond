@@ -36,7 +36,7 @@ RPCGEN_SRCS = od.h od_svc.c od_xdr.c od_clnt.c
 
 SHARED_BIN = od_server populate-disk.pl apitest
 
-LIBS += -lodisk  -ltools -ldconfig -lpthread -ldctl -llog -lssl
+LIBS += -lodisk  -ltools -ldconfig -lpthread -ldctl -llog -lssl -lcrypto
 
 APILIBS += -lod -ltools -ldconfig
 APILIBDIR += -L../libod -L../libtools -L../libdconfig

@@ -79,7 +79,7 @@ main(int argc , char **argv)
 	int             err;
 	gid_list_t  *       glist;
 	odisk_state_t *		odisk;
-	off_t           len;
+	size_t           len;
 	obj_data_t  *ohandle;
 
 	odisk_init(&odisk, ".", NULL, NULL);

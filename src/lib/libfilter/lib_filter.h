@@ -32,7 +32,7 @@
 
 
 
-#include <sys/types.h>		/* for off_t */
+#include <sys/types.h>		/* for size_t */
 #include "lib_log.h"		/* for log levels */
 
 #ifdef __cplusplus
@@ -158,7 +158,7 @@ typedef int (*filter_fini_proto)(void *filter_args);
  */
 
 int lf_next_block(lf_obj_handle_t obj_handle, int num_blocks,  
-			off_t *lenp, char **bufp);
+			size_t *lenp, char **bufp);
 
 /*!
  * This skips the next N blocks of the specified object.  For an input
@@ -221,7 +221,7 @@ int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
  *		One or more of the arguments was invalid.
  */
 
-int lf_read_attr(lf_obj_handle_t ohandle, const char *name, off_t *len, 
+int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len, 
 		void *data);
 
 /*!
@@ -253,7 +253,7 @@ int lf_read_attr(lf_obj_handle_t ohandle, const char *name, off_t *len,
  */
 
 int lf_ref_attr(lf_obj_handle_t ohandle, const char *name, 
-		off_t *len, void **data);
+		size_t *len, void **data);
 
 
 /*!
@@ -282,7 +282,7 @@ int lf_ref_attr(lf_obj_handle_t ohandle, const char *name,
  *		One or more of the arguments was invalid.
  */
 
-int lf_write_attr(lf_obj_handle_t ohandle, char *name, off_t len, char *data);
+int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len, char *data);
 
 
 /*!

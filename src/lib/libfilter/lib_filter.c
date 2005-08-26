@@ -53,7 +53,7 @@ lf_set_read_cb(read_attr_cb cb_fn)
 }
 
 int
-lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, void *data)
+lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len, void *data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -72,7 +72,7 @@ lf_read_attr(lf_obj_handle_t obj, const char *name, off_t *len, void *data)
 
 
 int
-lf_ref_attr(lf_obj_handle_t obj, const char *name, off_t *len, void **data)
+lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len, void **data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -115,7 +115,7 @@ lf_set_write_cb(write_attr_cb cb_fn)
  * XXX
  */
 int
-lf_write_attr(lf_obj_handle_t obj, char *name, off_t len, char *data)
+lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, char *data)
 {
 	obj_data_t	*odata;
 	obj_attr_t	*adata;
@@ -161,12 +161,12 @@ lf_write_attr(lf_obj_handle_t obj, char *name, off_t len, char *data)
 
 int
 lf_next_block(lf_obj_handle_t obj_handle,
-              int num_blocks,  off_t *len, char **bufp)
+              int num_blocks,  size_t *len, char **bufp)
 {
 	obj_data_t *	odata;
 	char	*	buf;
-	off_t		length;
-	off_t		remain;
+	size_t		length;
+	size_t		remain;
 	int		max_blocks;
 
 	odata = (obj_data_t *)obj_handle;
@@ -243,8 +243,8 @@ int
 lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
 {
 	obj_data_t *	odata;
-	off_t		length;
-	off_t		remain;
+	size_t		length;
+	size_t		remain;
 
 	odata = (obj_data_t *)obj_handle;
 

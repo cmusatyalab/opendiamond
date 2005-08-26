@@ -26,8 +26,8 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 {
 	int		foo = 1;
 	int		bar = 2;
-	off_t		size;
-	off_t		err;
+	size_t		size;
+	int		err;
 
 	printf("num args %d \n", numarg);
 	{

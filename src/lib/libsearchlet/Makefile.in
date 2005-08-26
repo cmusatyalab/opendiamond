@@ -28,7 +28,7 @@ LIBOBJS += ls_device.o ls_log.o ls_dctl.o
 
 LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lodisk -ltools -lfilterexec 
 LIBS += -llog -lfilter -lhstub -ldconfig
-LIBS +=  -ldctl  -lm -lssl
+LIBS +=  -ldctl  -lm -lssl -lcrypto
 
 
 SRCS = $(LIBOBJS)  cli_test.c test.c

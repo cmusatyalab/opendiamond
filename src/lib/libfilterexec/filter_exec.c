@@ -816,7 +816,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	int             val;
 	char            timebuf[BUFSIZ];
 	int             err;
-	off_t           asize;
+	size_t          asize;
 	int             pass = 1;   /* return value */
 	int             rv;
 	int             cur_fid,

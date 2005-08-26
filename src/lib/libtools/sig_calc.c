@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <openssl/evp.h>
 #include <assert.h>
+#include <unistd.h>
 
 
 static char const cvsid[] = "$Header$";

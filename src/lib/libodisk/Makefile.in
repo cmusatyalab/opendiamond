@@ -37,7 +37,7 @@ SHARED_HEADERS = lib_odisk.h obj_attr.h obj_attr_dump.h
 SHARED_BIN = odisk_idx odisk_setoid
 
 LIBS += -ldl -lpthread  -lfl -lodisk -ltools -llog -ldconfig
-LIBS +=  -ldctl  -lssl
+LIBS +=  -ldctl  -lssl -lcrypto
 
 
 TARGETS = libodisk.a odisk_test odisk_idx odisk_setoid attr_test del_obj

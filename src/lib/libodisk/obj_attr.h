@@ -68,10 +68,6 @@ typedef struct attr_record {
 
 
 /*
- * The extension on a file that shows it is an attribute.
- */
-#define	ATTR_EXT	".attr"
-/*
  * The maximum lenght of the name string for an attribute.
  */
 #define	MAX_ATTR_NAME	1024

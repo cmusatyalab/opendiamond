@@ -30,5 +30,8 @@
 #define DIAMOND_CONFIG_DIR_NAME                 ".diamond"
 #define DIAMOND_CONFIG_FILE_NAME                "diamond_config"
 
+/* file extension for the text attributes and binary attributes */
+#define	BIN_ATTR_EXT				".attr"
+#define	TEXT_ATTR_EXT				".text_attr"
 
 #endif                          /* _CONSTS_H_ */

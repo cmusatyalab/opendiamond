@@ -248,17 +248,25 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	new_obj->local_id = local_id;
 
 	/*
-	 * Load the attributes, if any.
+	 * Load the binary attributes, if any.
 	 */
-	len = snprintf(attr_name, NAME_MAX, "%s%s", name, ATTR_EXT);
+	len = snprintf(attr_name, NAME_MAX, "%s%s", name, BIN_ATTR_EXT);
 	assert(len < NAME_MAX);
 	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
-	*obj_handle = (obj_data_t *) new_obj;
-	odisk->obj_load++;
+
+	/*
+	 * Load the attributes, if any.
+	 */
+	len = snprintf(attr_name, NAME_MAX, "%s%s", name, TEXT_ATTR_EXT);
+	assert(len < NAME_MAX);
+	obj_load_text_attr(odisk, attr_name, new_obj);
 
 
+	/* set any system specific attributes for the object */
 	obj_set_sysattr(odisk, new_obj, name);
 
+	*obj_handle = (obj_data_t *) new_obj;
+	odisk->obj_load++;
 	return (0);
 }
 
@@ -331,8 +339,8 @@ odisk_save_obj(odisk_state_t * odisk, obj_data_t * obj)
 		}
 	}
 
-
-	len = snprintf(attrbuf, NAME_MAX, "%s%s", buf, ATTR_EXT);
+	/* save the attributes associated with the file */
+	len = snprintf(attrbuf, NAME_MAX, "%s%s", buf, BIN_ATTR_EXT);
 	assert(len < NAME_MAX);
 	obj_write_attr_file(attrbuf, &obj->attr_info);
 
@@ -359,8 +367,9 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 		perror("");
 	}
 
+	/* find the attributes and destroy if they exist */
 	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX%s", odisk->odisk_dataroot,
-	               obj->local_id, ATTR_EXT);
+	               obj->local_id, BIN_ATTR_EXT);
 	assert(len < NAME_MAX);
 
 	err = unlink(buf);
@@ -1658,11 +1667,11 @@ odisk_build_indexes(odisk_state_t * odisk)
 		/*
 		 * see if this is an attribute file 
 		 */
-		extlen = strlen(ATTR_EXT);
+		extlen = strlen(BIN_ATTR_EXT);
 		flen = strlen(cur_ent->d_name);
 		if (flen > extlen) {
 			poss_ext = &cur_ent->d_name[flen - extlen];
-			if (strcmp(poss_ext, ATTR_EXT) == 0) {
+			if (strcmp(poss_ext, BIN_ATTR_EXT) == 0) {
 				continue;
 			}
 		}
@@ -1762,11 +1771,11 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 		/*
 		 * see if this is an attribute file 
 		 */
-		extlen = strlen(ATTR_EXT);
+		extlen = strlen(BIN_ATTR_EXT);
 		flen = strlen(cur_ent->d_name);
 		if (flen > extlen) {
 			poss_ext = &cur_ent->d_name[flen - extlen];
-			if (strcmp(poss_ext, ATTR_EXT) == 0) {
+			if (strcmp(poss_ext, BIN_ATTR_EXT) == 0) {
 				continue;
 			}
 		}

@@ -23,7 +23,7 @@ TEST_SRCS = odisk_test.c
 ATEST_SRCS = attr_test.c
 ATEST_OBJS = attr_test.o
 
-LIBOBJS = odisk.o obj_attr.o obj_lib_priv.o obj_attr_dump.o
+LIBOBJS = odisk.o obj_attr.o obj_lib_priv.o obj_attr_dump.o read_text_attr.o
 LIBSRCS = odisk.c obj_attr.c obj_lib_priv.c obj_attr_dump.c
 
 OBJS = $(LIBOBJS) $(TEST_OBJS) $(ATEST_OBJS)  

@@ -259,7 +259,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	 */
 	len = snprintf(attr_name, NAME_MAX, "%s%s", name, TEXT_ATTR_EXT);
 	assert(len < NAME_MAX);
-	obj_load_text_attr(odisk, attr_name, new_obj);
+	obj_load_text_attr(odisk, name, new_obj);
 
 
 	/* set any system specific attributes for the object */

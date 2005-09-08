@@ -206,7 +206,7 @@ main(int argc, char **argv)
 				perror("remove failed \n");
 				exit(1);
 			}
-			sprintf(attr_name, "%s%s", path_name, ATTR_EXT);
+			sprintf(attr_name, "%s%s", path_name, BIN_ATTR_EXT);
 			err = remove
 				      (attr_name);
 			if (err != 0) {

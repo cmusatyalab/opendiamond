@@ -144,7 +144,7 @@ main(int argc, char **argv)
 			data_size += sbuf.st_size;
 			total_size += sbuf.st_size;
 
-			sprintf(attr_name, "%s%s", path_name, ATTR_EXT);
+			sprintf(attr_name, "%s%s", path_name, BIN_ATTR_EXT);
 			err = stat(attr_name, &sbuf);
 			assert(err == 0);
 			attr_size += sbuf.st_size;

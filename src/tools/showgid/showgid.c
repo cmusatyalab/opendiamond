@@ -94,13 +94,13 @@ main(int argc , char **argv)
 		 * the attribute file and we need to determine the real
 		 * file name.
 		 */
-		extlen = strlen(ATTR_EXT);
+		extlen = strlen(BIN_ATTR_EXT);
 		flen = strlen(cur_file);
 
 		/* XXX check maxlen !! */
 		if (flen > extlen) {
 			poss_ext = &cur_file[flen - extlen];
-			if (strcmp(poss_ext, ATTR_EXT) == 0) {
+			if (strcmp(poss_ext, BIN_ATTR_EXT) == 0) {
 				printf("please use base file !! \n");
 				exit(1);
 			}

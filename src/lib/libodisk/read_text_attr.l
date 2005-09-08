@@ -1,5 +1,5 @@
 %option nounput
-%option prefix="glkup"
+%option prefix="textattr"
 %{
 /*
  * 	Diamond (Release 1.0)
@@ -13,6 +13,12 @@
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 
 #include <pthread.h>
 #include <stdio.h>
@@ -32,117 +38,264 @@
 #include "obj_attr.h"
 
 
-static void have_value();
-static void have_cont();
+static void have_value(char *input);
+static void have_ref(char *input);
 static void have_error();
-static void have_newline();
-static void have_indirect_value();
 
 
-static int cont = 0;
-static int err = 0;
+static char  attr_name[MAX_ATTR_NAME];
+static char  attr_value[MAX_ATTR_NAME];
+
+
+static obj_data_t *cur_obj;
+static char *cur_base;
+static odisk_state_t *cur_odisk;
+
 
 %}
 %array
-HEX8	[[:xdigit:]][[:xdigit:]]
+NAME	\"[^\"]+\"
+VALUE	\"[^\"]*\"
+WS	[ \t]*
 HEX16	{HEX8}:{HEX8}
 HEX32	{HEX16}:{HEX16}
 HEX64	{HEX32}:{HEX32}
-NAME	[a-zA-Z0-9._][a-zA-Z0-9._]*[[:blank:]]*
 
 %%
-#.*\n
-{NAME}={NAME}				{ have_value(); }
-\\					{ have_cont(); }
-.					{ have_error(); }
-\n					{ have_newline(); }
+^#.*\n						{printf("comment\n"); }
+\n					
+{WS}{NAME}{WS}={WS}{VALUE}.*\n			{ have_value(yytext);   }
+{WS}{NAME}{WS}@{WS}{VALUE}.*\n			{ have_ref(yytext);   }
+.						{ have_error(); }
 %%
-
-
-
-
 
 
 static void 
 have_error()
 {
 	fprintf(stderr, "unknown text %s\n", yytext);
-	err = 1;
-}
-
-static void 
-have_newline()
-{
-	if (cont == 2) {
-		cont = 1;
-	} else { 
-		cont = 0;
-	}
-}
-
-
-
-
-
-static void
-have_cont()
-{
-	cont = 2;
-	return;
-}
-
-
-static void
-have_value()
-{
-#ifdef	XXX
-	char *		names;
-	char *		cur_name;
-	uint32_t	dev_id;
-	gid_map_t *	gmap;
-
-
-	if (cont != 1) {
-		/* XXX log */
-		err = 1;
-		return(1);
-	}
-
-
-	gmap = groot;
-	names = yytext;
-
-	while (names != NULL) {
-		cur_name = eat_name(&names);
-		dev_id = lookup_devname(cur_name);
-
-		if (gmap->num_dev >= MAX_DEV_PER_GROUP) {
-			/* XXX log */
-			err = 1;
-			return(1);
-		}
-		gmap->devs[gmap->num_dev].dev_name = strdup(cur_name);
-		gmap->devs[gmap->num_dev].dev_id = dev_id;
-		gmap->num_dev++;
-	}
-
-	cont = 0;
-#endif
 }
 
 
 int
-glkupwrap()
+extract_name_value(char *input, char *name, char *value)
 {
+	int	inlen = strlen(input);
+	int	offset = 0;
+	int	soffset = 0;
+
+	/* remove leading data before the " */
+	while(input[offset] != '"') {
+		offset++;
+		if (offset >= inlen) return(1);
+	}
+
+	/* skip the " */
+	offset++;
+
+	/* get the rest of the string */
+	soffset = 0;
+	while (input[offset] != '"') {
+		name[soffset++] = input[offset++];
+		if (offset >= inlen) return(1);
+		if (soffset >= MAX_ATTR_NAME) {
+			/* XXX log */
+			printf("Data too large for storage \n");
+			return(1);
+		}
+	}
+	name[soffset] = '\0';
+
+	/* skip the " */
+	offset++;
+	
+	/* look for = or @ */
+	while ((input[offset] != '=') && (input[offset] != '@')) {
+		offset++;
+		if (offset >= inlen) return(1);
+	}
+	/* skip the key value */
+	offset++;
+	
+	/* remove leading data before the " */
+	while(input[offset] != '"') {
+		offset++;
+		if (offset >= inlen) return(1);
+	}
+
+	/* skip the " */
+	offset++;
+	
+	/* get the rest of the string */
+	soffset = 0;
+	while (input[offset] != '"') {
+		value[soffset++] = input[offset++];
+		if (offset >= inlen) return(1);
+		if (soffset >= MAX_ATTR_NAME) {
+			/* XXX log */
+			printf("Data too large for storage \n");
+			return(1);
+		}
+	}
+	value[soffset] = '\0';
+	return(0);
+}
+
+
+
+static void
+have_value(char *input)
+{
+	int		err;
+	int		dlen;
+
+	err = extract_name_value(input, attr_name, attr_value);
+	if (err) {
+		fprintf(stderr, "Failed to parse string <%s> \n", input);
+	}
+
+	dlen = strlen(attr_value) +1;
+	err = obj_write_attr(&cur_obj->attr_info, attr_name, dlen, 
+		attr_value);
+	if (err) {
+		fprintf(stderr, "Failed writing attribute \n");
+		
+	}
+}
+
+static int
+load_ref_file(char *afile, size_t *dlen, char **dref)
+{
+	struct stat     stats;
+	char            attr_name[NAME_MAX];
+	int		len;
+	int		os_file;
+	char *		data;
+	size_t		size;
+	int		err;
+		
+
+	/* if leading / then this is absolute path */
+	if (afile[0] == '/') {
+		len = snprintf(attr_name, NAME_MAX, "%s", afile);
+		if (len >= NAME_MAX) {
+			fprintf(stderr, "load_ref_file: File too long \n");
+			return(1);
+		}
+	} else {
+		char *	offset;
+		int	remain_len;
+
+		len = snprintf(attr_name, NAME_MAX, "%s", cur_base);
+		if (len >= NAME_MAX) {
+			fprintf(stderr, "load_ref_file: File too long \n");
+			return(1);
+		}
+		offset = rindex(attr_name, '/');
+		if (offset == NULL) {
+			fprintf(stderr, "load_ref_file: can't find prefix \n");
+			return(1);
+		}
+	
+		remain_len = NAME_MAX - (int)(offset + 1 - attr_name);
+		len = snprintf(offset+1, remain_len, "%s", afile);
+		if (len >= remain_len) {
+			fprintf(stderr, "load_ref_file: complete file long\n");
+			return(1);
+		}
+	}
+
+	/* attr name now holds the name of the file we want */
+	printf("attr file <%s> \n", attr_name);
+
+
+	/* try to open the file */
+        os_file = open(attr_name, cur_odisk->open_flags);
+        if (os_file == -1) {
+                fprintf(stderr, "load_ref_file: can't open file \n");
+                return (1);
+        }
+
+	err = fstat(os_file, &stats);
+        if (err != 0) {
+                fprintf(stderr, "load_ref_file: can't stat file \n");
+                return (1);
+        }
+        
+	data = (char *)malloc(stats.st_size);
+	if (data == NULL) {
+                fprintf(stderr, "load_ref_file: can't alloc mem \n");
+                return (1);
+	} 
+
+	size = read(os_file, data, stats.st_size);
+	if (size != stats.st_size) {
+	    	fprintf(stderr, "load_ref_file: failed read \n");
+		free(data);
+		close(os_file);
+		return (1);
+	}
+        close(os_file);
+
+	*dlen = stats.st_size;
+	*dref = data;
+
+	return(0);
+}
+
+
+static void
+have_ref(char *input)
+{
+	int		err;
+	size_t		dlen;
+	char *		data;
+
+
+	printf("have_ref\n");
+	err = extract_name_value(input, attr_name, attr_value);
+	if (err) {
+		fprintf(stderr, "have_ref: Failed to parse string <%s> \n", 	
+			input);
+	}
+
+	err = load_ref_file(attr_value, &dlen, &data);
+	if (err) {
+		fprintf(stderr, "have_ref: can't load file %s \n", attr_value);
+	}
+
+	/* attr value is the file name to load the data */
+
+	err = obj_write_attr(&cur_obj->attr_info, attr_name, dlen, 
+		data);
+	if (err) {
+		fprintf(stderr, "have_ref: Failed writing attribute \n");
+	}
+	free(data);
+
+
+}
+
+int textattrwrap() {
 	return(1);
 }
 
 static FILE *
-open_map_file(char *aname)
+open_attr_file(char *base_name)
 {
-	FILE *new_file;
+	FILE *		new_file;
+	char            attr_name[NAME_MAX];
+	int		len;
+
+
+	/* 
+	 * Load attributes if any.
+	 */
+	len = snprintf(attr_name, NAME_MAX, "%s%s", base_name, TEXT_ATTR_EXT);
+      	assert(len < NAME_MAX);
+
 	/* try the local directory */
-	new_file = fopen(aname, "r");
+	new_file = fopen(attr_name, "r");
 	if (new_file != NULL) {
 		/* printf("XXX local %s \n", map_name); */
 		return(new_file);
@@ -155,30 +308,27 @@ open_map_file(char *aname)
 
 
 void
-obj_load_text_attr(odisk_state_t *odisk, char *attr_name, obj_data_t *new_obj)
+obj_load_text_attr(odisk_state_t *odisk, char *file_name, obj_data_t *new_obj)
 {
 	int ret;
 
-	yyin = dconfig_open_config_file(attr_name);
+	yyin = open_attr_file(file_name);
 
 	/* if no file then exit */
 	if (yyin == NULL) {
 		return;
 	}
-#ifdef	XXX
+	/* set visible pointer to the object */
+	cur_obj = new_obj;
+	cur_base = file_name;
+	cur_odisk = odisk;
+		
+
 	ret = yylex();
 	if (ret) {
-		/* printf("error from yylex\n"); */
-		exit(1);
+		/* XXX log message */
 	}
 
-
-	if (err) {
-		/* XXX clean up list */
-		return(NULL);
-	}	
-
-#endif
 	fclose(yyin);
 
 }

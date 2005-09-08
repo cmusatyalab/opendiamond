@@ -157,13 +157,13 @@ main(int argc , char **argv)
 		 * the attribute file and we need to determine the real
 		 * file name.
 		 */
-		extlen = strlen(ATTR_EXT);
+		extlen = strlen(BIN_ATTR_EXT);
 		flen = strlen(cur_file);
 
 		/* XXX check maxlen !! */
 		if (flen > extlen) {
 			poss_ext = &cur_file[flen - extlen];
-			if (strcmp(poss_ext, ATTR_EXT) == 0) {
+			if (strcmp(poss_ext, BIN_ATTR_EXT) == 0) {
 				is_attr = 1;
 			}
 		}
@@ -174,7 +174,7 @@ main(int argc , char **argv)
 			strcpy(attr_name, cur_file);
 
 		} else {
-			sprintf(attr_name, "%s%s", cur_file, ATTR_EXT);
+			sprintf(attr_name, "%s%s", cur_file, BIN_ATTR_EXT);
 			strcpy(base_name, cur_file);
 		}
 

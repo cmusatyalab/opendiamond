@@ -294,6 +294,8 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
 		/*
 		 * XXX error log 
 		 */
+		 printf("XXX oepn <%s> failed \n", lib_name);
+
 		fputs(dlerror(), stderr);
 		exit(1);
 	}

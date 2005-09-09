@@ -694,11 +694,17 @@ bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
 	}
 
 	cmd->cmd = BG_SEARCHLET;
-	/* XXX local storage for these !!! */
-	cmd->filter_name = filter_name;
+	if (filter_name != NULL) {
+		cmd->filter_name = strdup(filter_name);
+	} else {
+		cmd->filter_name = NULL;
+	}
 	cmd->ver_id = (bg_op_type_t)id;
-	cmd->spec_name = spec_name;
-
+	if (spec_name != NULL) {
+		cmd->spec_name = strdup(spec_name);
+	} else {
+		cmd->spec_name = NULL;
+	}
 	ring_enq(sc->bg_ops, (void *)cmd);
 	return(0);
 }

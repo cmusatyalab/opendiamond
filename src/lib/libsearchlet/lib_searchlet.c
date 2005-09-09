@@ -214,13 +214,13 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 
 	/*
 	 * we have two steps.  One is to clear the current
-	  	 * searchlist on all the devices that
+	 * searchlist on all the devices that
 	 * we are currently connected to.  The to add the gid
-	    	 * to each of the devices.
-	    	 */
+	 * to each of the devices.
+	 */
 	/* XXX todo, clean up connection not involved in search
-	    * after this call.
-	    */
+	 * after this call.
+	 */
 
 	/* clear the state */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {

@@ -1910,7 +1910,7 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	if (strlen(dir_path) > (MAX_DIR_PATH - 1)) {
 		return (EINVAL);
 	}
-	err = mkdir(dir_path, 0x777);
+	err = mkdir(dir_path, 0777);
 	if (err && errno != EEXIST) {
 		printf("fail to creat cache dir (%s), err %d\n", 
 			dir_path, errno);

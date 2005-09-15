@@ -158,7 +158,7 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 		cdir = dconf_get_cachedir();
 		sprintf(buf, "%s/%016llX%016llX", cdir, tmp1, tmp2);
 		free(cdir);
-		err = mkdir(buf, 0x777);
+		err = mkdir(buf, 0777);
 		if (err && errno != EEXIST) {
 			printf("fail to creat dir %s, err %d\n", buf, err);
 		}

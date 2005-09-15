@@ -21,6 +21,7 @@
 
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "sig_calc.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
@@ -34,6 +35,7 @@ typedef void (*sprintf_func_t)(char *, char *);
 void
 obj_dump_attr(obj_attr_t *attr)
 {
+#ifdef	XXX
 	int			cur_offset;
 	attr_record_t *		cur_rec = NULL;
 	char *name;
@@ -43,7 +45,6 @@ obj_dump_attr(obj_attr_t *attr)
 	void *handle;
 
 
-#ifdef	XXX
 	cur_offset = 0;
 	while (cur_offset < attr->attr_len) {
 		cur_rec = (attr_record_t *)&attr->attr_data[cur_offset];

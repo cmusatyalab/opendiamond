@@ -60,6 +60,9 @@ typedef struct odisk_state {
 /* some maintence functions */
 int odisk_write_oids(odisk_state_t * odisk, uint32_t devid);
 
+void obj_load_text_attr(odisk_state_t *odisk, char *file_name, 
+	obj_data_t *new_obj);
+
 
 #endif	/* !_ODISK_PRIV_H_ */
 

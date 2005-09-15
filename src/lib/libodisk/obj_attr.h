@@ -50,7 +50,7 @@ typedef struct attr_record {
 	int				rec_len;
 	int				name_len;
 	int				data_len;
-	unsigned char			attr_sig[ATTR_MAX_SIG];
+	sig_val_t			attr_sig;
 	int				flags;
 	char 				data[0];
 } attr_record_t;

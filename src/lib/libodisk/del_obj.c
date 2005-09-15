@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "sig_calc.h"
 #include "lib_dctl.h"
 #include "lib_log.h"
 #include "lib_odisk.h"

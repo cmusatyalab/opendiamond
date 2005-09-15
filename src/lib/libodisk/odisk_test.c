@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "sig_calc.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_log.h"
@@ -61,7 +62,7 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 	int	diff;
 	int	err;
 	char	name_string[128];
-	off_t	attr_size;
+	size_t	attr_size;
 
 	base_data = malloc(size);
 	if (base_data == NULL) {
@@ -87,8 +88,8 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 		}
 
 		if (attr_size != size) {
-			printf("wrong size on <%s> got %ld want %d \n",
-			       name_string, attr_size, size);
+			printf("wrong size on <%s> got %d want %d \n",
+			       name_string, (int)attr_size, size);
 			exit(1);
 		}
 

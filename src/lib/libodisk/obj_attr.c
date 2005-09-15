@@ -27,10 +27,10 @@
 #include <sys/file.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "sig_calc.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
-#include "sig_calc.h"
 
 static char const cvsid[] = "$Header$";
 
@@ -287,7 +287,7 @@ find_record(obj_attr_t *attr, const char *name)
 }
 
 int
-odisk_get_attr_sig(obj_data_t *obj, const char *name, char *data, int len)
+odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t *sig)
 {
 	attr_record_t *	arec;
 
@@ -297,7 +297,7 @@ odisk_get_attr_sig(obj_data_t *obj, const char *name, char *data, int len)
 		return(ENOENT);
 	}
 
-	memcpy(data, arec->attr_sig, len);
+	memcpy(&sig, &arec->attr_sig, sizeof(sig_val_t));
 	return(0);
 }
 
@@ -312,7 +312,6 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len, const char *data
 	attr_record_t *	data_rec;
 	int		total_size;
 	int		namelen;
-	unsigned char *sig_ptr;
 	static int	done_init = 0;
 
 	if (!done_init) {
@@ -360,10 +359,8 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len, const char *data
 	memcpy(data_rec->data, name, namelen);
 	memcpy(&data_rec->data[namelen], data, len);
 
-	/* compute the attribute signature and save it */
-	sig_ptr = &data_rec->attr_sig[0];
-	memset(sig_ptr, 0, ATTR_MAX_SIG);
-	sig_cal(data, len, &sig_ptr);
+	/* compute the attribute signature */
+	sig_cal(data, len, &data_rec->attr_sig);
 
 	return(0);
 }

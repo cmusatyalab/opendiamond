@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "sig_calc.h"
 #include "lib_log.h"
 #include "lib_dctl.h"
 #include "lib_odisk.h"
@@ -77,7 +78,7 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 	for (i=0; i < num; i++) {
 		memset(base_data, i, size);
 		sprintf(name_string, "some_attr_%d_%d", size, i);
-		attr_size = (off_t)(2 * size);
+		attr_size = (size_t)(2 * size);
 		err = obj_read_attr(attr, name_string, &attr_size, ret_data);
 		if (err) {
 			printf("failed to read attr <%s>\n", name_string);
@@ -85,8 +86,8 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 		}
 
 		if (attr_size != size) {
-			printf("wrong size on <%s> got %ld want %d \n",
-			       name_string, attr_size, size);
+			printf("wrong read size <%s>: wanted  %d got %d \n",
+				name_string, size, (int)attr_size);
 			exit(1);
 		}
 

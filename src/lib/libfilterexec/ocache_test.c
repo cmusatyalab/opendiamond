@@ -20,6 +20,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <stdint.h>
+#include "lib_tools.h"
 #include "lib_od.h"
 #include "lib_ocache.h"
 #include "ocache_priv.h"

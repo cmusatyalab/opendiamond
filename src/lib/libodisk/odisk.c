@@ -25,9 +25,10 @@
 #include <stdint.h>
 #include <dirent.h>
 #include <assert.h>
+
 #include "diamond_consts.h"
 #include "diamond_types.h"
-#include "sig_calc.h"
+#include "lib_tools.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_dconfig.h"
@@ -36,8 +37,6 @@
 #include "dctl_common.h"
 #include "odisk_priv.h"
 #include "sys_attr.h"
-#include "rtimer.h"
-#include "ring.h"
 
 
 static char const cvsid[] = "$Header$";

@@ -11,6 +11,8 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,11 +23,11 @@
 #include <dirent.h>
 #include <stdint.h>
 #include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
+
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "lib_tools.h"
 #include "lib_odisk.h"
 #include "lib_dconfig.h"
 

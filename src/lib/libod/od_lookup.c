@@ -24,7 +24,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "queue.h"
+#include "lib_tools.h"
 #include "od.h"
 #include "od_priv.h"
 #include "lib_dconfig.h"

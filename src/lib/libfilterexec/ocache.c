@@ -31,13 +31,11 @@
 
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "lib_tools.h"
 #include "lib_log.h"
-#include "sig_calc.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "ocache_priv.h"
-#include "rtimer.h"
-#include "ring.h"
 #include "obj_attr.h"
 #include "obj_attr.h"
 #include "lib_filter.h"
@@ -264,7 +262,8 @@ sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 	for (i = 0; i < iattr->entry_num; i++) {
 		EVP_DigestUpdate(&mdctx, iattr->entry_data[i]->attr_name,
 		                 iattr->entry_data[i]->name_len);
-		EVP_DigestUpdate(&mdctx, iattr->entry_data[i]->attr_sig, 16);
+		EVP_DigestUpdate(&mdctx, &iattr->entry_data[i]->attr_sig,
+			sizeof(sig_val_t));
 		buflen += iattr->entry_data[i]->name_len + 16;
 	}
 
@@ -302,7 +301,8 @@ compare_attr_set(cache_attr_set * attr1, cache_attr_set * attr2)
 			if ((temp_i->name_len == temp_j->name_len) &&
 			    !strncmp(temp_i->attr_name, temp_j->attr_name,
 			             temp_i->name_len)
-			    && !strncmp(temp_i->attr_sig, temp_j->attr_sig, 16)) {
+			    && !memcmp(&temp_i->attr_sig, &temp_j->attr_sig, 
+			    		sizeof(sig_val_t))) {
 				found = 1;
 				break;
 			}
@@ -439,7 +439,8 @@ cache_lookup0(uint64_t local_id, cache_attr_set * change_attr, obj_attr_t *init_
 			attr_entry->attr_name = malloc(arec->name_len);
 			assert(attr_entry->attr_name != NULL);
 			memcpy(attr_entry->attr_name, arec->data, arec->name_len);
-			memcpy(attr_entry->attr_sig, arec->attr_sig, 16);
+			memcpy(&attr_entry->attr_sig, &arec->attr_sig,
+				sizeof(sig_val_t));
 			change_attr->entry_data[change_attr->entry_num] = attr_entry;
 			change_attr->entry_num++;
 			if ((change_attr->entry_num % ATTR_ENTRY_NUM) == 0) {
@@ -706,7 +707,8 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 			     cobj->iattr.entry_data[i]->name_len);
 			cobj->iattr.entry_data[i]->attr_name[cobj->iattr.entry_data[i]->
 			                                     name_len] = '\0';
-			read(fd, cobj->iattr.entry_data[i]->attr_sig, 16);
+			read(fd, &cobj->iattr.entry_data[i]->attr_sig, 
+				sizeof(sig_val_t));
 			rsize +=
 			    (sizeof(unsigned int) + cobj->iattr.entry_data[i]->name_len +
 			     16);
@@ -729,7 +731,8 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 			     cobj->oattr.entry_data[i]->name_len);
 			cobj->oattr.entry_data[i]->attr_name[cobj->oattr.entry_data[i]->
 			                                     name_len] = '\0';
-			read(fd, cobj->oattr.entry_data[i]->attr_sig, 16);
+			read(fd, &cobj->oattr.entry_data[i]->attr_sig, 
+				sizeof(sig_val_t));
 			rsize +=
 			    (sizeof(unsigned int) + cobj->oattr.entry_data[i]->name_len +
 			     16);
@@ -1043,7 +1046,8 @@ ocache_init_write(char *disk_path)
 				      sizeof(unsigned int));
 				write(fd, cobj->attr.entry_data[i]->attr_name,
 				      cobj->attr.entry_data[i]->name_len);
-				write(fd, cobj->attr.entry_data[i]->attr_sig, 16);
+				write(fd, &cobj->attr.entry_data[i]->attr_sig, 
+					sizeof(sig_val_t));
 			}
 			tmp = cobj;
 			cobj = cobj->next;
@@ -1434,7 +1438,8 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 			memcpy(new_entry->u.iattr.attr_name, name, name_len);
 		new_entry->u.iattr.attr_name[name_len] = '\0';
 
-		err = odisk_get_attr_sig(obj, name, new_entry->u.iattr.attr_sig, 16);
+		err = odisk_get_attr_sig(obj, name, 
+				&new_entry->u.iattr.attr_sig);
 
 		if ((if_cache_oattr) && (iattr_buflen >= 0)) {
 			if ((iattr_buflen + name_len + sizeof(sig_val_t)) <= MAX_IATTR_SIZE) {
@@ -1489,7 +1494,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 				memcpy(new_entry->u.oattr.attr_name, name, name_len);
 			new_entry->u.oattr.attr_name[name_len] = '\0';
 			err = odisk_get_attr_sig(obj, name,
-			                         new_entry->u.oattr.attr_sig, sizeof(sig_val_t));
+					 &new_entry->u.oattr.attr_sig);
 			ocache_ring_insert(new_entry);
 		}
 	}
@@ -1633,7 +1638,6 @@ ocache_main(void *arg)
 					assert(attr_entry != NULL);
 					attr_entry->name_len = tobj->u.iattr.name_len;
 					attr_entry->attr_name = tobj->u.iattr.attr_name;
-					assert(tobj->u.iattr.attr_sig != NULL);
 					memcpy(&attr_entry->attr_sig, &tobj->u.iattr.attr_sig, sizeof(sig_val_t));
 					iattr[cobj->iattr.entry_num] = attr_entry;
 					cobj->iattr.entry_num++;
@@ -1662,8 +1666,7 @@ ocache_main(void *arg)
 					assert(attr_entry != NULL);
 					attr_entry->name_len = tobj->u.oattr.name_len;
 					attr_entry->attr_name = tobj->u.oattr.attr_name;
-					assert(tobj->u.oattr.attr_sig != NULL);
-					memcpy(attr_entry->attr_sig, 
+					memcpy(&attr_entry->attr_sig, 
 						&tobj->u.oattr.attr_sig, 
 						sizeof(sig_val_t));
 					oattr[cobj->oattr.entry_num] = attr_entry;

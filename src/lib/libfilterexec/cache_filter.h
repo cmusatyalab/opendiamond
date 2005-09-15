@@ -26,9 +26,6 @@ typedef struct ceval_state {
 } ceval_state_t;
 */
 
-typedef struct obj_eval
-	{}
-obj_eval_t;
 
 #endif	/* !_CEVAL_PRIV_H_ */
 

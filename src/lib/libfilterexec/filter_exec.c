@@ -26,9 +26,9 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-#include "sig_calc.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "lib_tools.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "lib_odisk.h"
@@ -36,8 +36,6 @@
 #include "sys_attr.h"
 #include "lib_filterexec.h"
 #include "filter_priv.h"
-#include "rtimer.h"
-#include "rgraph.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 

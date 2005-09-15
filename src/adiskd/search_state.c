@@ -27,6 +27,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <assert.h>
+#include "sig_calc.h"
 #include "ring.h"
 #include "rstat.h"
 #include "diamond_consts.h"

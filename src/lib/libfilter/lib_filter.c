@@ -27,9 +27,10 @@
 #include <stdint.h>
 #include <assert.h>
 #include <limits.h>
-#include "ring.h"
+
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "lib_tools.h"
 #include "lib_odisk.h"
 #include "lib_filter.h"
 #include "lib_filter_sys.h"

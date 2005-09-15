@@ -22,12 +22,12 @@
 #include <dirent.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "lib_tools.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "lib_filterexec.h"
-#include "ring.h"
 #include "search_state.h"
 
 

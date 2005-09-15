@@ -23,8 +23,8 @@
 #include <string.h>
 #include <lib_log.h>
 #include <assert.h>
-#include "log_socket.h"
 #include "lib_tools.h"
+#include "log_socket.h"
 
 
 static char const cvsid[] = "$Header$";

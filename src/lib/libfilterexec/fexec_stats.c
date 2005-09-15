@@ -25,16 +25,12 @@
 
 #include "diamond_consts.h"
 #include "diamond_types.h"
-#include "sig_calc.h"
+#include "lib_tools.h"
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "sys_attr.h"
-#include "queue.h"
 #include "lib_filterexec.h"
 #include "filter_priv.h"
-#include "rtimer.h"
-#include "rgraph.h"
-#include "rcomb.h"
 #include "fexec_stats.h"
 
 static char const cvsid[] = "$Header$";

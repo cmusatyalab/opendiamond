@@ -29,9 +29,9 @@
 #include <netdb.h>
 #include <string.h>
 #include <assert.h>
-#include "ring.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "lib_tools.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "socket_trans.h"

@@ -15,8 +15,15 @@
 #ifndef _LIB_TOOLS_H_
 #define _LIB_TOOLS_H_
 
+/* pull in all the headers that make up the library */
 #include "rstat.h"
-
+#include "ring.h"
+#include "queue.h"
+#include "sig_calc.h"
+#include "rtimer.h"
+#include "rcomb.h"
+#include "rgraph.h"
+#include "rstat.h"
 
 
 /* external functions defined in user.c */

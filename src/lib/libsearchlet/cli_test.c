@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include "lib_tools.h"
 #include "lib_searchlet.h"
 
 static char const cvsid[] = "$Header$";

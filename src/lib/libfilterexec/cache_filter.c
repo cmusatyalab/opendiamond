@@ -28,7 +28,7 @@
 
 #include "diamond_consts.h"
 #include "diamond_types.h"
-#include "sig_calc.h"
+#include "lib_tools.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "lib_odisk.h"
@@ -36,17 +36,13 @@
 #include "sys_attr.h"
 #include "lib_filterexec.h"
 #include "filter_priv.h"
-#include "rtimer.h"
-#include "rgraph.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
-#include "sig_calc.h"
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
 
 
 static char const cvsid[] = "$Header$";
-
 
 #define	MAX_FILTER_NUM	128
 #define CACHE_DIR               "cache"
@@ -67,17 +63,17 @@ static pthread_mutex_t ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t active_cv = PTHREAD_COND_INITIALIZER;	/* active */
 
 static opt_policy_t policy_arr[] = {
-                                       {NULL_POLICY, NULL, NULL, NULL, NULL},
-                                       {HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
-                                        hill_climb_optimize, NULL},
-                                       {BEST_FIRST_POLICY, best_first_new, best_first_delete,
-                                        best_first_optimize, NULL},
-                                       // { INDEP_POLICY, indep_new, indep_delete, indep_optimize, NULL },
-                                       {INDEP_POLICY, indep_new, best_first_delete, best_first_optimize, NULL},
-                                       {RANDOM_POLICY, random_new, NULL, NULL, NULL},
-                                       {STATIC_POLICY, static_new, NULL, NULL, NULL},
-                                       {NULL_POLICY, NULL, NULL, NULL, NULL}
-                                   };
+					   {NULL_POLICY, NULL, NULL, NULL, NULL},
+					   {HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
+							hill_climb_optimize, NULL},
+					   {BEST_FIRST_POLICY, best_first_new, best_first_delete,
+							best_first_optimize, NULL},
+					   {INDEP_POLICY, indep_new, best_first_delete, 
+					   		best_first_optimize, NULL},
+					   {RANDOM_POLICY, random_new, NULL, NULL, NULL},
+					   {STATIC_POLICY, static_new, NULL, NULL, NULL},
+					   {NULL_POLICY, NULL, NULL, NULL, NULL}
+};
 
 unsigned int    use_cache_table = 0;
 unsigned int    use_cache_oattr = 0;

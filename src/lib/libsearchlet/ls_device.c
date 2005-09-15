@@ -29,8 +29,8 @@
 #include <stdint.h>
 #include <dirent.h>
 #include <netdb.h>
-#include "ring.h"
-#include "rstat.h"
+
+#include "lib_tools.h"
 #include "lib_searchlet.h"
 #include "lib_odisk.h"
 #include "lib_search_priv.h"

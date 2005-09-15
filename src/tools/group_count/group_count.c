@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <unistd.h>
+#include "lib_tools.h"
 #include "lib_od.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"

@@ -24,109 +24,105 @@ extern "C"
 
 #define ATTR_ENTRY_NUM  50
 
-	struct ocache_state;
+struct ocache_state;
 
-	typedef struct {
-		unsigned int  name_len;
-		char *attr_name;
-		char attr_sig[16];
-	}
-	cache_attr_entry;
+typedef struct {
+	unsigned int  name_len;
+	char *attr_name;
+	sig_val_t  attr_sig;
+}
+cache_attr_entry;
 
-	typedef struct {
-		unsigned int entry_num;
-		cache_attr_entry **entry_data;
-	}
-	cache_attr_set;
+typedef struct {
+	unsigned int entry_num;
+	cache_attr_entry **entry_data;
+}
+cache_attr_set;
 
-	struct cache_obj_s {
-		uint64_t                oid;
-		sig_val_t		iattr_sig;
-		int			result;
-		unsigned short		eval_count; //how many times this filter is evaluated
-		unsigned short		aeval_count; //how many times this filter is evaluated
-		unsigned short		hit_count; //how many times this filter is evaluated
-		unsigned short		ahit_count; //how many times this filter is evaluated
-		cache_attr_set		iattr;
-		cache_attr_set		oattr;
-		struct cache_obj_s	*next;
-	};
+struct cache_obj_s {
+	uint64_t                oid;
+	sig_val_t		iattr_sig;
+	int			result;
+	unsigned short		eval_count; //how many times this filter is evaluated
+	unsigned short		aeval_count; //how many times this filter is evaluated
+	unsigned short		hit_count; //how many times this filter is evaluated
+	unsigned short		ahit_count; //how many times this filter is evaluated
+	cache_attr_set		iattr;
+	cache_attr_set		oattr;
+	struct cache_obj_s	*next;
+};
 
-	struct cache_init_obj_s {
-		uint64_t                oid;
-		cache_attr_set    		attr;
-		struct cache_init_obj_s	*next;
-	};
+struct cache_init_obj_s {
+	uint64_t                oid;
+	cache_attr_set    		attr;
+	struct cache_init_obj_s	*next;
+};
 
-	typedef void (*stats_drop)(void *cookie);
-	typedef void (*stats_process)(void *cookie);
+typedef void (*stats_drop)(void *cookie);
+typedef void (*stats_process)(void *cookie);
 
-	struct ceval_state;
+struct ceval_state;
 
-	typedef struct ceval_state {
-		pthread_t       ceval_thread_id;   // thread for cache table
-		filter_data_t * fdata;
-		odisk_state_t * odisk;
-		void * cookie;
-		stats_drop stats_drop_fn;
-		stats_drop stats_process_fn;
-	}
-	ceval_state_t;
+typedef struct ceval_state {
+	pthread_t       ceval_thread_id;   // thread for cache table
+	filter_data_t * fdata;
+	odisk_state_t * odisk;
+	void * cookie;
+	stats_drop stats_drop_fn;
+	stats_drop stats_process_fn;
+} ceval_state_t;
 
-	typedef struct cache_obj_s cache_obj;
-	typedef struct cache_init_obj_s cache_init_obj;
+typedef struct cache_obj_s cache_obj;
+typedef struct cache_init_obj_s cache_init_obj;
 
-	typedef struct {
-		void *cache_table;
-		time_t mtime;
-		char fsig[16];
-		struct timeval atime;
-		int running;
-	}
-	fcache_t;
+typedef struct {
+	void *cache_table;
+	time_t mtime;
+	char fsig[16];
+	struct timeval atime;
+	int running;
+} fcache_t;
 
 #define		INSERT_START	0
 #define		INSERT_IATTR	1
 #define		INSERT_OATTR	2
 #define		INSERT_END	3
 
-	typedef struct {
-		void *			cache_table;
-	}
-	cache_start_entry;
+typedef struct {
+	void *			cache_table;
+} cache_start_entry;
 
-	typedef struct {
-		int			type;
-		uint64_t                oid;
-		union {
-			cache_start_entry	start;
-			cache_attr_entry	iattr;		/*add input attr*/
-			cache_attr_entry	oattr;		/*add output attr*/
-			int			result;		/*end*/
-		} u;
-	}
-	cache_ring_entry;
+typedef struct {
+	int			type;
+	uint64_t                oid;
+	union {
+		cache_start_entry	start;
+		cache_attr_entry	iattr;		/*add input attr*/
+		cache_attr_entry	oattr;		/*add output attr*/
+		int			result;		/*end*/
+	} u;
+} cache_ring_entry;
 
-	typedef struct {
-		attr_record_t*	arec;
-		obj_data_t *	obj;
-	}
-	cache_attr_t;
+typedef struct {
+	attr_record_t*	arec;
+	obj_data_t *	obj;
+}
+cache_attr_t;
 
-	typedef struct {
-		int				type;
-		uint64_t    	oid;
-		union {
-			char            *file_name;     /* the file name to cache oattr */
-			cache_attr_t		oattr;		/*add output attr*/
-			sig_val_t		iattr_sig;
-		} u;
-	}
-	oattr_ring_entry;
+typedef struct {
+	int				type;
+	uint64_t    	oid;
+	union {
+		char            *file_name;     /* the file name to cache oattr */
+		cache_attr_t		oattr;		/*add output attr*/
+		sig_val_t		iattr_sig;
+	} u;
+}
+oattr_ring_entry;
 
 int digest_cal(char *lib_name, char *filt_name, int numarg, 
-	char **filt_args, int blob_len, void *blob, 
-	sig_val_t * signature);
+char **filt_args, int blob_len, void *blob, 
+sig_val_t * signature);
 
 int cache_lookup0(uint64_t local_id, cache_attr_set * change_attr, 
 	obj_attr_t *init_attr);

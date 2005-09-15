@@ -30,7 +30,8 @@
 #include <assert.h>
 #include <dirent.h>
 #include <stdint.h>
-#include "ring.h"
+
+#include "lib_tools.h"
 #include "lib_searchlet.h"
 #include "lib_dctl.h"
 #include "lib_log.h"

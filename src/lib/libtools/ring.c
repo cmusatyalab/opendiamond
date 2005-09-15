@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/time.h>
-#include "ring.h"
 #include <assert.h>
+#include "ring.h"
 
 static char const cvsid[] = "$Header$";
 

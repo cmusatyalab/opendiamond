@@ -29,7 +29,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "ring.h"
+#include "lib_tools.h"
 #include "lib_searchlet.h"
 #include "sys_attr.h"
 #include "lib_odisk.h"

@@ -21,9 +21,9 @@
 #include <arpa/inet.h>
 #include <sys/un.h>
 #include <string.h>
-#include "lib_dctl.h"
-#include "lib_tools.h"
 #include <assert.h>
+#include "lib_tools.h"
+#include "lib_dctl.h"
 #include "dctl_socket.h"
 
 

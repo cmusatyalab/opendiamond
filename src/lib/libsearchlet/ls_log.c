@@ -30,7 +30,8 @@
 #include <assert.h>
 #include <dirent.h>
 #include <stdint.h>
-#include "ring.h"
+
+#include "lib_tools.h"
 #include "lib_searchlet.h"
 #include "lib_log.h"
 #include "lib_odisk.h"
@@ -40,7 +41,6 @@
 #include "log_impl.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
-#include "lib_tools.h"
 
 
 static char const cvsid[] = "$Header$";

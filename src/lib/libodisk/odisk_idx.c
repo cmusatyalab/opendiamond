@@ -22,10 +22,9 @@
 #include <stdint.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
-#include "sig_calc.h"
+#include "lib_tools.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
-#include "rtimer.h"
 
 
 static char const cvsid[] = "$Header$";

@@ -124,12 +124,12 @@ typedef struct filter_info {
 	rtime_t         fi_time_ns; /* total time used */
 	int64_t         fi_added_bytes; /* XXX debug */
 	/* JIAYING */
-	char	    lib_name[PATH_MAX];
-	unsigned char * fi_sig;
-	void	*   cache_table;
-	int		    fi_cache_drop; /* # of objs dropped through cache lookup */
-	int		    fi_cache_pass; /* # of objs skipped by using cache */
-	int		    fi_compute;    /* # of objs computed */
+	char	    	lib_name[PATH_MAX];
+	sig_val_t	fi_sig;
+	void	*   	cache_table;
+	int	    	fi_cache_drop; /* # of objs dropped through cache lookup */
+	int		fi_cache_pass; /* # of objs skipped by using cache */
+	int		fi_compute;    /* # of objs computed */
 } filter_info_t;
 
 

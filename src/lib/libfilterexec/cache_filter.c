@@ -28,6 +28,7 @@
 
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "sig_calc.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "lib_odisk.h"
@@ -39,6 +40,7 @@
 #include "rgraph.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
+#include "sig_calc.h"
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
 
@@ -150,15 +152,12 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 		if (fid == fdata->fd_app_id) {
 			continue;
 		}
-		cur_filt->fi_sig = (unsigned char *) malloc(16);
-		assert(cur_filt->fi_sig != NULL);
 		err = digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name,
 		               cur_filt->fi_numargs, cur_filt->fi_arglist,
 		               cur_filt->fi_blob_len, cur_filt->fi_blob_data,
 		               &cur_filt->fi_sig);
-		assert(cur_filt->fi_sig != NULL);
-		memcpy(&tmp1, cur_filt->fi_sig, sizeof(tmp1));
-		memcpy(&tmp2, cur_filt->fi_sig + 8, sizeof(tmp2));
+		memcpy(&tmp1, cur_filt->fi_sig.sig, sizeof(tmp1));
+		memcpy(&tmp2, cur_filt->fi_sig.sig + 8, sizeof(tmp2));
 
 		cdir = dconf_get_cachedir();
 		sprintf(buf, "%s/%016llX%016llX", cdir, tmp1, tmp2);
@@ -169,7 +168,7 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 		}
 		/* XXX should be in cache !!! */
 		ocache_read_file(cstate->odisk->odisk_dataroot, 
-			cur_filt->fi_sig, &cur_filt->cache_table, &atime);
+			&cur_filt->fi_sig, &cur_filt->cache_table, &atime);
 	}
 
 	cstate->fdata = fdata;
@@ -266,7 +265,7 @@ ceval_stop(filter_data_t * fdata)
 		if (fid == fdata->fd_app_id) {
 			continue;
 		}
-		ocache_stop_search(cur_filt->fi_sig);
+		ocache_stop_search(&cur_filt->fi_sig);
 	}
 
 	pthread_mutex_unlock(&ceval_mutex);
@@ -353,7 +352,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 	int             hit = 1;
 	char          **filters, **fsig, **iattrsig;
 	int             oattr_fnum = 0;
-	char           *isig;
+	sig_val_t		isig;
 	pr_obj_t       *pr_obj;
 	int             i, j;
 	int             perm_num;
@@ -428,7 +427,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 				rt_init(&rt);
 				rt_start(&rt);
 
-				found = cache_lookup(oid, cur_filter->fi_sig,
+				found = cache_lookup(oid, &cur_filter->fi_sig,
 				                     cur_filter->cache_table, &change_attr,
 				                     &conf, &oattr_set, &isig);
 
@@ -456,11 +455,12 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 					if (pass) {
 						if (oattr_set != NULL)
 							combine_attr_set(&change_attr, oattr_set);
-						if (isig != NULL && oattr_fnum < MAX_FILTER_NUM
-						    && perm_num == 0) {
+						if (oattr_fnum < MAX_FILTER_NUM && perm_num == 0) {
 							filters[oattr_fnum] = cur_filter->fi_name;
+#ifdef	XXX_XX
 							fsig[oattr_fnum] = cur_filter->fi_sig;
 							iattrsig[oattr_fnum] = isig;
+#endif
 							oattr_fnum++;
 						}
 					}
@@ -617,7 +617,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	int             conf;
 	char            timebuf[BUFSIZ];
 	int             err;
-	off_t           asize;
+	size_t           asize;
 	int             pass = 1;	/* return value */
 	long int        rv;
 	int             cur_fid, cur_fidx;
@@ -682,7 +682,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 */
 		if ((miss == 0) && (use_cache_table)) {
 			lookup = cache_lookup2(obj_handle->local_id,
-			                       cur_filter->fi_sig,
+			                       &cur_filter->fi_sig,
 			                       cur_filter->cache_table, &change_attr,
 			                       &conf, &oattr_set, &oattr_flag, err);
 		} else {
@@ -753,9 +753,10 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 					oattr_flag = 0;
 				}
 
-				ocache_add_start(cur_filter->fi_name, obj_handle->local_id,
-				                 cur_filter->cache_table, lookup, oattr_flag,
-								 cur_filter->fi_sig);
+				ocache_add_start(cur_filter->fi_name, 
+					obj_handle->local_id,
+					cur_filter->cache_table, lookup, 
+					oattr_flag, &cur_filter->fi_sig);
 
 				conf = cur_filter->fi_eval_fp(obj_handle, 
 						cur_filter->fi_filt_arg);
@@ -803,7 +804,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 		if ((lookup == ENOENT) && (miss == 0)) {
 			lookup = cache_wait_lookup(obj_handle,
-			                           cur_filter->fi_sig,
+			                           &cur_filter->fi_sig,
 			                           cur_filter->cache_table, &change_attr,
 			                           &oattr_set);
 		}

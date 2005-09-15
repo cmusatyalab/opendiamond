@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 
+#include "sig_calc.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_dctl.h"

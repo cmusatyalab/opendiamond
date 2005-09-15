@@ -16,6 +16,8 @@
 #include <assert.h>
 #include <unistd.h>
 
+#include "sig_calc.h"
+
 
 static char const cvsid[] = "$Header$";
 
@@ -42,7 +44,7 @@ sig_cal_init()
 }
 
 int
-sig_cal(const void *buf, off_t buflen, unsigned char **signature)
+sig_cal(const void *buf, off_t buflen, sig_val_t *sig_val)
 {
 	EVP_MD_CTX mdctx;
 	unsigned char *md_value;
@@ -50,7 +52,7 @@ sig_cal(const void *buf, off_t buflen, unsigned char **signature)
 
 	assert(done_sig_init == 1);
 
-	md_value = *signature;
+	md_value = sig_val->sig;
 
 	EVP_MD_CTX_init(&mdctx);
 	EVP_DigestInit_ex(&mdctx, md, NULL);

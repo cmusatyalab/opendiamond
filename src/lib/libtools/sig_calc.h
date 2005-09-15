@@ -14,7 +14,14 @@
 #ifndef	_SIG_CALC_H_
 #define	_SIG_CALC_H_
 
-int sig_cal(const void *buf, off_t buflen, unsigned char **signature);
+#define	SIG_SIZE	16
+
+typedef	struct sig_val {
+	unsigned char 	sig[SIG_SIZE];
+} sig_val_t;
+
+
+int sig_cal(const void *buf, off_t buflen, sig_val_t * sig);
 int sig_cal_init();
 
 

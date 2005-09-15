@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include "ring.h"
+#include "sig_calc.h"
 #include "sys_attr.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"

@@ -721,7 +721,7 @@ fexec_load_searchlet(char *lib_name, char *filter_spec,
 		 * everything was loaded correctly, log it 
 		 */
 		log_message(LOGT_FILT, LOGL_TRACE,
-		            "init_filters: loaded %s", filter_spec);
+		            "init_filters: loaded %s", lib_name);
 	}
 
 	return (0);

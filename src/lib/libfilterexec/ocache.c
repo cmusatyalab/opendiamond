@@ -56,27 +56,30 @@ static char const cvsid[] = "$Header$";
  */
 unsigned int    if_cache_table = 0;
 unsigned int    if_cache_oattr = 0;
-unsigned int    count_thresh = 5;
+unsigned int    count_thresh = 0;
 
 static int      search_active = 0;
 static int      search_done = 0;
 static ring_data_t *cache_ring;
 static ring_data_t *oattr_ring;
+
+
 static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;	/* queue
-																 * empty */
-static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;	/* active */
-static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;	/* queue full
-																 */
-static pthread_cond_t nem_queue_cv = PTHREAD_COND_INITIALIZER;	/* queue non
-																 * empty */
-static pthread_cond_t oattr_cv = PTHREAD_COND_INITIALIZER;	/* queue non
-															 * empty */
-static pthread_cond_t oattr_bg_cv = PTHREAD_COND_INITIALIZER;  /* queue non
-                                              * empty */
-static pthread_cond_t wait_lookup_cv = PTHREAD_COND_INITIALIZER;	/* queue
-																	 * non
-																	 * empty */
+/* queue empty */
+static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
+/* active */
+static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
+/* queue full */
+static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
+
+/* queue non-empty */
+static pthread_cond_t nem_queue_cv = PTHREAD_COND_INITIALIZER;	
+/* queue non empty */
+static pthread_cond_t oattr_cv = PTHREAD_COND_INITIALIZER;	
+/* queue non empty */
+static pthread_cond_t oattr_bg_cv = PTHREAD_COND_INITIALIZER;
+/* queue non empty */
+static pthread_cond_t wait_lookup_cv = PTHREAD_COND_INITIALIZER;
 
 #define	CACHE_RING_SIZE	128
 #define	OATTR_RING_SIZE	128
@@ -172,7 +175,6 @@ digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args,
 		assert(md != NULL);
 	}
 
-	md_value = signature->sig;
 
 	if (lib_name == NULL)
 		printf("null lib_name\n");
@@ -223,6 +225,7 @@ digest_cal(char *lib_name, char *filt_name, int numarg, char **filt_args,
 	if (blob_len > 0)
 		EVP_DigestUpdate(&mdctx, blob, blob_len);
 
+	md_value = signature->sig;
 	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
 	EVP_MD_CTX_cleanup(&mdctx);
 
@@ -798,16 +801,18 @@ ocache_write_file(char *disk_path, fcache_t * fcache)
 	int             fd;
 	int             err;
 	cache_obj     **cache_table;
-	uint64_t        tmp1, tmp2;
 	unsigned int    count;
 	struct stat     stats;
+	char *		s_str;
 
 	assert(fcache != NULL);
 	cache_table = (cache_obj **) fcache->cache_table;
-	assert(fcache->fsig != NULL);
-	memcpy(&tmp1, fcache->fsig, sizeof(tmp1));
-	memcpy(&tmp2, fcache->fsig + 8, sizeof(tmp2));
-	sprintf(fpath, "%s/%016llX%016llX.%s", disk_path, tmp1, tmp2, CACHE_EXT);
+	s_str = sig_string(&fcache->fsig);
+	if (s_str == NULL) {
+		return(0);
+	}
+	sprintf(fpath, "%s/%s.%s", disk_path, s_str, CACHE_EXT);
+	free(s_str);
 
 	fd = open(fpath, O_CREAT | O_RDWR, 00777);
 	if (fd < 0) {
@@ -1081,9 +1086,10 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	struct stat     stats;
 	cache_obj      *p, *q;
 	unsigned int    index;
+	fcache_t *	fcache;
 	int             err;
+	char *		sig_str;
 	int             duplicate;
-	uint64_t        tmp1, tmp2;
 	cache_obj     **cache_table;
 	int             filter_cache_table_num = -1;
 
@@ -1092,13 +1098,13 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	/*
 	 * lookup the filter in cached filter array 
 	 */
-	for (i = 0; i < FCACHE_NUM; i++)
-	{
+	for (i = 0; i < FCACHE_NUM; i++) {
 		if (filter_cache_table[i] == NULL)
 			continue;
-		if (!memcpy(&filter_cache_table[i]->fsig, &fsig, 
+
+		if (!memcmp(&filter_cache_table[i]->fsig, fsig, 
 			sizeof(sig_val_t))) {
-			printf("find maching entry %d\n", i);
+			printf("found maching entry %d\n", i);
 			*fcache_table = filter_cache_table[i]->cache_table;
 			memcpy(&filter_cache_table[i]->atime, atime,
 			       sizeof(struct timeval));
@@ -1106,24 +1112,25 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 			return (0);
 		}
 	}
-	/*
-	 * if not found, try to get a free entry for this filter 
-	 */
-	assert(fsig != NULL);
-	memcpy(&tmp1, fsig, sizeof(tmp1));
-	memcpy(&tmp2, fsig + 8, sizeof(tmp2));
-	sprintf(fpath, "%s/%016llX%016llX.%s", disk_path, tmp1, tmp2, CACHE_EXT);
 
-	for (i = 0; i < FCACHE_NUM; i++)
-	{
+	/* if not found, try to get a free entry for this filter */
+	sig_str = sig_string(fsig);
+	if (sig_str == NULL) {
+		return(ENOENT);
+	}
+	/* XXX overflow on buffer*/
+	sprintf(fpath, "%s/%s.%s", disk_path, sig_str, CACHE_EXT);
+	free(sig_str);
+
+	for (i = 0; i < FCACHE_NUM; i++) {
 		if (filter_cache_table[i] == NULL) {
 			filter_cache_table_num = i;
 			break;
 		}
 	}
+
 	if ((cache_entry_num > MAX_CACHE_ENTRY_NUM)
-	    || (filter_cache_table_num == -1))
-	{
+	    || (filter_cache_table_num == -1)) {
 		err = free_fcache_entry(disk_path);
 		if (err < 0) {
 			printf("can not find free fcache entry\n");
@@ -1135,50 +1142,42 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	cache_table = (cache_obj **) malloc(sizeof(char *) * CACHE_ENTRY_NUM);
 	assert(cache_table != NULL);
 
-	for (i = 0; i < CACHE_ENTRY_NUM; i++)
-	{
+	for (i = 0; i < CACHE_ENTRY_NUM; i++) {
 		cache_table[i] = NULL;
 	}
 
-	filter_cache_table[filter_cache_table_num] =
-	    (fcache_t *) malloc(sizeof(fcache_t));
-	assert(filter_cache_table[filter_cache_table_num] != NULL);
-	filter_cache_table[filter_cache_table_num]->cache_table =
-	    (void *) cache_table;
-	memcpy(&filter_cache_table[filter_cache_table_num]->fsig, &fsig, 
-		sizeof(sig_val_t));
+	fcache = (fcache_t *) malloc(sizeof(fcache_t));
+	assert(fcache != NULL);
+
+	filter_cache_table[filter_cache_table_num] = fcache;
+	fcache->cache_table = (void *) cache_table;
+	memcpy(&fcache->fsig, fsig, sizeof(sig_val_t));
+
 	assert(atime != NULL);
-	memcpy(&filter_cache_table[filter_cache_table_num]->atime, atime,
-	       sizeof(struct timeval));
-	filter_cache_table[filter_cache_table_num]->running = 1;
+	memcpy(&fcache->atime, atime, sizeof(struct timeval));
+	fcache->running = 1;
 	*fcache_table = (void *) cache_table;
 
 	fd = open(fpath, O_RDONLY, 00777);
-	if (fd < 0)
-	{
-		// printf("cache file does not exist\n");
-		memset(&filter_cache_table[filter_cache_table_num]->mtime, 0,
-		       sizeof(time_t));
+	if (fd < 0) { printf("cache file not found: <%s> \n", fpath);
+		memset(&fcache->mtime, 0, sizeof(time_t));
 		return (0);
 	}
 	err = flock(fd, LOCK_EX);
-	if (err != 0)
-	{
+	if (err != 0) {
 		perror("failed to lock cache file\n");
 		close(fd);
 		return (0);
 	}
 	err = fstat(fd, &stats);
-	if (err != 0)
-	{
+	if (err != 0) {
 		perror("failed to stat cache file\n");
 		close(fd);
 		return (EINVAL);
 	}
 	size = stats.st_size;
 	// printf("ocache_read_file size %ld\n", size);
-	memcpy(&filter_cache_table[filter_cache_table_num]->mtime,
-	       &stats.st_mtime, sizeof(time_t));
+	memcpy(&fcache->mtime, &stats.st_mtime, sizeof(time_t));
 	rsize = 0;
 
 	pthread_mutex_lock(&shared_mutex);
@@ -1279,7 +1278,6 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 				cache_entry_num++;
 			}
 		}
-		// printf("cache_entry_num %d\n", cache_entry_num);
 	}
 	pthread_mutex_unlock(&shared_mutex);
 	close(fd);
@@ -1400,9 +1398,7 @@ ocache_add_start(char *fhandle, uint64_t obj_id, void *cache_table,
 			assert(oattr_entry != NULL);
 			oattr_entry->type = INSERT_START;
 			oattr_entry->oid = obj_id;
-#ifdef	XXX_CACHE
-			oattr_entry->u.file_name = fsig;
-#endif
+			memcpy(&oattr_entry->u.fsig, fsig, sizeof(sig_val_t));
 			iattr_buflen = 0;
 			oattr_ring_insert(oattr_entry);
 		}
@@ -1762,13 +1758,12 @@ oattr_main(void *arg)
 	ocache_state_t *cstate = (ocache_state_t *) arg;
 	oattr_ring_entry *tobj;
 	uint64_t        oid;
-	char           *fsig;
 	int             fd;
 	char            attrbuf[PATH_MAX];
 	char            new_attrbuf[PATH_MAX];
 	int             err;
 	int             correct;
-	uint64_t        tmp1, tmp2;
+	char *		s_str;
 
 	struct iovec    wvec[MAX_VEC_SIZE];
 	obj_data_t     *ovec[MAX_VEC_SIZE];
@@ -1794,11 +1789,14 @@ oattr_main(void *arg)
 		if (tobj->type == INSERT_START) {
 			correct = 0;
 			oid = tobj->oid;
-			fsig = tobj->u.file_name;
-			memcpy( &tmp1, fsig, sizeof(tmp1) );
-			memcpy( &tmp2, fsig+8, sizeof(tmp2) );
-			sprintf(attrbuf, "%s/%s/%016llX%016llX/%016llX",
-			        cstate->ocache_path, CACHE_DIR, tmp1, tmp2, oid);
+			s_str = sig_string(&tobj->u.fsig);
+			if (s_str == NULL) {
+				continue;
+			}
+			sprintf(attrbuf, "%s/%s/%s/%016llX",
+			        cstate->ocache_path, CACHE_DIR, s_str, oid);
+			free(s_str);
+
 			free(tobj);
 
 			fd = open(attrbuf, O_WRONLY | O_CREAT | O_EXCL, 00777);
@@ -1841,10 +1839,15 @@ oattr_main(void *arg)
 							odisk_release_obj(ovec[i]);
 						}
 					}
-					memcpy(&tmp1, tobj->u.iattr_sig.sig, sizeof(tmp1));
-					memcpy(&tmp2, tobj->u.iattr_sig.sig + 8, sizeof(tmp2));
-					sprintf(new_attrbuf, "%s.%016llX%016llX", attrbuf,
-					        tmp1, tmp2);
+			
+					s_str = sig_string(&tobj->u.iattr_sig);
+					if (s_str == NULL) {
+						free(tobj);
+						break;
+					}
+					sprintf(new_attrbuf, "%s.%s", attrbuf,
+						s_str);
+					free(s_str);
 					free(tobj);
 					correct = 1;
 					break;
@@ -1921,18 +1924,15 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	 * dctl control 
 	 */
 	dctl_register_leaf(DEV_CACHE_PATH, "cache_table", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32, &if_cache_table);
-
+		      	dctl_read_uint32, dctl_write_uint32, &if_cache_table);
 	dctl_register_leaf(DEV_CACHE_PATH, "cache_oattr", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32, &if_cache_oattr);
-
+	               	dctl_read_uint32, dctl_write_uint32, &if_cache_oattr);
 	dctl_register_leaf(DEV_CACHE_PATH, "cache_thresh_hold", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32, &count_thresh);
-
+			dctl_read_uint32, dctl_write_uint32, &count_thresh);
 	ring_init(&cache_ring, CACHE_RING_SIZE);
-	/*
-	 * creat output attr ring 
-	 */
+
+
+	/* creat output attr ring */
 	ring_init(&oattr_ring, OATTR_RING_SIZE);
 
 	new_state = (ocache_state_t *) malloc(sizeof(*new_state));
@@ -1943,19 +1943,21 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	new_state->dctl_cookie = dctl_cookie;
 	new_state->log_cookie = log_cookie;
 
+	/*
+	 * set callback functions so we get notifice on read/and writes
+	 * to object attributes.
+	 */
+
 	lf_set_read_cb(ocache_add_iattr);
 	lf_set_write_cb(ocache_add_oattr);
 
-	/*
-	 * the length has already been tested above 
-	 */
+	/* the length has already been tested above */
 	strcpy(new_state->ocache_path, dir_path);
 
-	/*
-	 * read in cache_table 
-	 */
-	for (i = 0; i < FCACHE_NUM; i++)
+	/* initialized the  cache_table */
+	for (i = 0; i < FCACHE_NUM; i++) {
 		filter_cache_table[i] = NULL;
+	}
 
 	sig_cal_init();
 	ocache_init_read(dir_path);

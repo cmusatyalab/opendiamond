@@ -20,9 +20,21 @@ typedef	struct sig_val {
 	unsigned char 	sig[SIG_SIZE];
 } sig_val_t;
 
-
-int sig_cal(const void *buf, off_t buflen, sig_val_t * sig);
+/*
+ * Must be called once before using the library.
+ */
 int sig_cal_init();
+
+/*
+ * Compute the signature of a single range of bytes.
+ */
+int sig_cal(const void *buf, off_t buflen, sig_val_t * sig);
+
+/* 
+ * return string holding ascii value of the signature,
+ * This memory is malloc'ed so called needs to free when they are don.
+ */
+char * sig_string(sig_val_t *sig);
 
 
 #endif	/* !_SIG_CALC_H_ */

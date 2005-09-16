@@ -318,6 +318,11 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			 */
 			clear_ss_stats(sstate);
 
+			/* JIAYING: for now, we calculate the signature 
+			 * for the whole library and spec file 
+			 */
+			ceval_init_search(sstate->fdata, sstate->cstate);
+
 			err = odisk_reset(sstate->ostate);
 			if (err) {
 				/*
@@ -361,14 +366,18 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 				assert(0);
 				return;
 			}
-
-			/* JIAYING: for now, we calculate the signature for the whole
-				librar and spec file */
+#ifdef XXX
+			/* JIAYING: for now, we calculate the signature 
+			 * for the whole library and spec file 
+			 */
 			ceval_init_search(sstate->fdata, sstate->cstate);
+#endif
+			do_cleanup = 0;
 
 			/*
-			 * Remove the files that held the data.  If do_cleanup is
-			 * not set then we keep the files so we can do debugging.
+			 * Remove the files that held the data.  If do_cleanup 
+			 * is * not set then we keep the files so we can 
+			 * do debugging.
 			 */
 			if (do_cleanup) {
 				err = unlink(obj_name);
@@ -746,7 +755,7 @@ device_main(void *arg)
 				}
 
 				err = ceval_filters2(new_obj, sstate->fdata, force_eval,
-				                     sstate, continue_fn, NULL);
+				                     sstate, continue_fn);
 
 				if (err == 0) {
 					sstate->obj_dropped++;

@@ -31,15 +31,13 @@ struct ocache_state;
  * XXX we need to clean up this interface so this is not externally 
  * visible.
  */
-typedef struct ocache_state
-{
+typedef struct ocache_state {
 	char		ocache_path[MAX_DIR_PATH];
 	pthread_t	c_thread_id;   // thread for cache table
 	pthread_t	o_thread_id;   // thread for output attrs
 	void *		dctl_cookie;
 	void *		log_cookie;
-}
-ocache_state_t;
+} ocache_state_t;
 
 void ceval_wattr_stats(off_t len);
 

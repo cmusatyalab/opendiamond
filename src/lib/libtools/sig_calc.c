@@ -70,3 +70,26 @@ sig_cal(const void *buf, off_t buflen, sig_val_t *sig_val)
 	return(0);
 }
 
+char *
+sig_string(sig_val_t *sig_val)
+{
+	char *	new_str;
+	char *	cp;
+	int 	i;
+
+	new_str = (char *)malloc(2 * SIG_SIZE + 1);
+	if (new_str == NULL) {
+		/* XXX log?? */
+		return(NULL);
+	}
+	cp = new_str;
+	for (i=0; i < SIG_SIZE; i++) {
+		sprintf(cp, "%02X", sig_val->sig[i]);
+		cp += 2;
+	}
+
+	/* terminate the string */
+	*cp = '\0';
+
+	return(new_str);
+}

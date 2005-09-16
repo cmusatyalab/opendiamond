@@ -307,7 +307,8 @@ odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t *sig)
  */
 
 int
-obj_write_attr(obj_attr_t *attr, const char * name, size_t len, const char *data)
+obj_write_attr(obj_attr_t *attr, const char * name, size_t len, 
+			const char *data)
 {
 	attr_record_t *	data_rec;
 	int		total_size;

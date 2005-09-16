@@ -76,11 +76,11 @@ typedef struct cache_obj_s cache_obj;
 typedef struct cache_init_obj_s cache_init_obj;
 
 typedef struct {
-	void *cache_table;
-	time_t mtime;
-	char fsig[16];
-	struct timeval atime;
-	int running;
+	void *		cache_table;
+	time_t 		mtime;
+	sig_val_t 	fsig;
+	struct timeval 	atime;
+	int 		running;
 } fcache_t;
 
 #define		INSERT_START	0
@@ -116,6 +116,7 @@ typedef struct {
 		char            *file_name;     /* the file name to cache oattr */
 		cache_attr_t		oattr;		/*add output attr*/
 		sig_val_t		iattr_sig;
+		sig_val_t 		fsig; /* filter signature */
 	} u;
 }
 oattr_ring_entry;
@@ -161,13 +162,9 @@ int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk,
 int ceval_start(filter_data_t * fdata);
 int ceval_stop(filter_data_t * fdata);
 
-int ceval_filters1(char * obj_name, filter_data_t * fdata, void *cookie,
-		   int (*cb_func) (void *cookie, char *name,
-				   int *pass, uint64_t * et));
+int ceval_filters1(char * obj_name, filter_data_t * fdata, void *cookie);
 int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, 
-		int force_eval, void *cookie, int (*continue_cb)(void *cookie),
-		   int (*cb_func) (void *cookie, char *name,
-				   int *pass, uint64_t * et));
+		int force_eval, void *cookie, int (*continue_cb)(void *cookie));
 
 
 #ifdef	__cplusplus

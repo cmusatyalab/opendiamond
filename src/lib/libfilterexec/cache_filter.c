@@ -116,7 +116,7 @@ ceval_main(void *arg)
 		new_name = odisk_next_obj_name(cstate->odisk);
 
 		if (new_name != NULL) {
-			ceval_filters1(new_name, cstate->fdata, cstate, NULL);
+			ceval_filters1(new_name, cstate->fdata, cstate);
 		} else {
 			mark_end();
 			search_active = 0;
@@ -133,9 +133,9 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 	filter_id_t     fid;
 	filter_info_t  *cur_filt;
 	int             err;
-	uint64_t        tmp1, tmp2;
 	char            buf[PATH_MAX];
 	char	*	cdir;
+	char	*	sig_str;
 	struct timeval  atime;
 	struct timezone tz;
 
@@ -152,19 +152,21 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 		               cur_filt->fi_numargs, cur_filt->fi_arglist,
 		               cur_filt->fi_blob_len, cur_filt->fi_blob_data,
 		               &cur_filt->fi_sig);
-		memcpy(&tmp1, cur_filt->fi_sig.sig, sizeof(tmp1));
-		memcpy(&tmp2, cur_filt->fi_sig.sig + 8, sizeof(tmp2));
 
+		sig_str = sig_string(&cur_filt->fi_sig);
+		if (sig_str == NULL) {
+			continue;	
+		}
 		cdir = dconf_get_cachedir();
-		sprintf(buf, "%s/%016llX%016llX", cdir, tmp1, tmp2);
-		free(cdir);
+		sprintf(buf, "%s/%s", cdir, sig_str);
+		free(sig_str);
 		err = mkdir(buf, 0777);
 		if (err && errno != EEXIST) {
 			printf("fail to creat dir %s, err %d\n", buf, err);
 		}
-		/* XXX should be in cache !!! */
-		ocache_read_file(cstate->odisk->odisk_dataroot, 
-			&cur_filt->fi_sig, &cur_filt->cache_table, &atime);
+		ocache_read_file(cdir, &cur_filt->fi_sig, 
+				&cur_filt->cache_table, &atime);
+		free(cdir);
 	}
 
 	cstate->fdata = fdata;
@@ -325,9 +327,7 @@ generate_new_perm(const partial_order_t * po, permutation_t * copy, int fidx,
 }
 
 int
-ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
-               int (*cb_func) (void *cookie, char *name,
-                               int *pass, uint64_t * et))
+ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 {
 	ceval_state_t  *cstate = (ceval_state_t *) cookie;
 	filter_info_t  *cur_filter;
@@ -382,11 +382,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 	}
 
 	filters = malloc(MAX_FILTER_NUM);
-	assert( filters != NULL);
+	assert(filters != NULL);
 	fsig = malloc(MAX_FILTER_NUM);
-	assert (fsig != NULL);
+	assert(fsig != NULL);
 	iattrsig = malloc(MAX_FILTER_NUM);
-	assert( iattrsig != NULL);
+	assert(iattrsig != NULL);
 
 	stack_ns = 0;
 
@@ -406,74 +406,66 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie,
 		// printf("use perm %s\n", buf);
 		hit = 1;
 		/*
-		 * here we do cache lookup based on object_id, filter signature and
-		 * changed_attr_set. stop when we get a cache miss or object drop 
+		 * here we do cache lookup based on object_id, filter 
+		 * signature and changed_attr_set. stop when we get a cache 
+		 * miss or object drop 
 		 */
 		for (cur_fidx = 0; pass && cur_fidx < pmLength(cur_perm); cur_fidx++) {
 			cur_fid = pmElt(cur_perm, cur_fidx);
 			cur_filter = &fdata->fd_filters[cur_fid];
 
-			if (cb_func) {
-				err =
-				    (*cb_func) (cookie, cur_filter->fi_name, &pass, &time_ns);
-#define SANITY_NS_PER_FILTER (2 * 1000000000)
+			rt_init(&rt);
+			rt_start(&rt);
 
-				assert(time_ns < SANITY_NS_PER_FILTER);
-			} else {
-				rt_init(&rt);
-				rt_start(&rt);
+			found = cache_lookup(oid, &cur_filter->fi_sig, 
+					cur_filter->cache_table, &change_attr, &conf, 
+					&oattr_set, &isig);
 
-				found = cache_lookup(oid, &cur_filter->fi_sig,
-				                     cur_filter->cache_table, &change_attr,
-				                     &conf, &oattr_set, &isig);
-
-				if (found) {
-					/*
-					 * get the cached output attr set and 
-					 * modify changed attr set 
-					 */
-					if (conf < cur_filter->fi_threshold) {
-						pass = 0;
-						cstate->stats_drop_fn(cstate->cookie);
-						cstate->stats_process_fn(cstate->cookie);
-						for (i = 0; i < cur_fidx; i++) {
-							j = pmElt(cur_perm, i);
-							fdata->fd_filters[j].fi_called++;
-							fdata->fd_filters[j].fi_cache_pass++;
-						}
-						cur_filter->fi_called++;
-						cur_filter->fi_cache_drop++;
+			if (found) {
+				/*
+				 * get the cached output attr set and 
+				 * modify changed attr set 
+				 */
+				if (conf < cur_filter->fi_threshold) {
+					pass = 0;
+					cstate->stats_drop_fn(cstate->cookie);
+					cstate->stats_process_fn(cstate->cookie);
+					for (i = 0; i < cur_fidx; i++) {
+						j = pmElt(cur_perm, i);
+						fdata->fd_filters[j].fi_called++;
+						fdata->fd_filters[j].fi_cache_pass++;
 					}
-
-					/*
-					 * modify change attr set 
-					 */
-					if (pass) {
-						if (oattr_set != NULL)
-							combine_attr_set(&change_attr, oattr_set);
-						if (oattr_fnum < MAX_FILTER_NUM && perm_num == 0) {
-							filters[oattr_fnum] = cur_filter->fi_name;
-#ifdef	XXX_XX
-							fsig[oattr_fnum] = cur_filter->fi_sig;
-							iattrsig[oattr_fnum] = isig;
-#endif
-							oattr_fnum++;
-						}
-					}
-					rt_stop(&rt);
-					time_ns = rt_nanos(&rt);
-					log_message(LOGT_FILT, LOGL_TRACE,
-						"eval_filters:  filter %s has val (%d) - threshold %d",
-						cur_filter->fi_name, conf,
-						cur_filter->fi_threshold);
-
-				} else {
-					hit = 0;
-					rt_stop(&rt);
-					time_ns = rt_nanos(&rt);
+					cur_filter->fi_called++;
+					cur_filter->fi_cache_drop++;
 				}
 
+				/*
+				 * modify change attr set 
+				 */
+				if (pass) {
+					if (oattr_set != NULL)
+						combine_attr_set(&change_attr, oattr_set);
+					if (oattr_fnum < MAX_FILTER_NUM && perm_num == 0) {
+						filters[oattr_fnum] = cur_filter->fi_name;
+#ifdef	XXX_XX
+						fsig[oattr_fnum] = cur_filter->fi_sig;
+						iattrsig[oattr_fnum] = isig;
+#endif
+						oattr_fnum++;
+					}
+				}
+				rt_stop(&rt);
+				time_ns = rt_nanos(&rt);
+				log_message(LOGT_FILT, LOGL_TRACE,
+					"eval_filters:  filter %s has val (%d) - threshold %d",
+					cur_filter->fi_name, conf, cur_filter->fi_threshold);
+
+			} else {
+				hit = 0;
+				rt_stop(&rt);
+				time_ns = rt_nanos(&rt);
 			}
+
 			cur_filter->fi_time_ns += time_ns;	/* update filter stats */
 			stack_ns += time_ns;
 			if (!pass) {
@@ -605,9 +597,7 @@ ceval_wattr_stats(off_t len)
 
 int
 ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
-               void *cookie, int (*continue_cb) (void *cookie),
-               int (*cb_func) (void *cookie, char *name,
-                               int *pass, uint64_t * et))
+               void *cookie, int (*continue_cb) (void *cookie))
 {
 	filter_info_t  *cur_filter;
 	int             conf;
@@ -659,8 +649,8 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 	cache_lookup0(obj_handle->local_id, &change_attr, &obj_handle->attr_info);
 
-	for (cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm);
-	    cur_fidx++) {
+	for (cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm); 
+		cur_fidx++) {
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
 		fexec_active_filter = cur_filter;
@@ -731,62 +721,53 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			/*
 			 * run the filter and update pass
 			 */
-			if (cb_func) {
-				err =
-				    (*cb_func) (cookie, cur_filter->fi_name, &pass, &time_ns);
-#define SANITY_NS_PER_FILTER (2 * 1000000000)
+			rt_init(&rt);
+			rt_start(&rt);	/* assume only one thread here */
 
-				assert(time_ns < SANITY_NS_PER_FILTER);
-			} else {
-				rt_init(&rt);
-				rt_start(&rt);	/* assume only one thread here */
+			assert(cur_filter->fi_eval_fp);
 
-				assert(cur_filter->fi_eval_fp);
-
-				/* mark beginning of filter eval into cache ring */
-				if( (oattr_flag != 0) && (cur_filter->fi_time_ns <= 
-					(cur_filter->fi_added_bytes*cache_oattr_thresh)) ) {
-					oattr_flag = 0;
-				}
-
-				ocache_add_start(cur_filter->fi_name, 
-					obj_handle->local_id,
-					cur_filter->cache_table, lookup, 
-					oattr_flag, &cur_filter->fi_sig);
-
-				conf = cur_filter->fi_eval_fp(obj_handle, 
-						cur_filter->fi_filt_arg);
-
-				/* mark end of filter eval into cache ring */
-				ocache_add_end(cur_filter->fi_name, obj_handle->local_id,
-				               conf);
-
-				cur_filter->fi_compute++;
-				/*
-				 * get timing info and update stats
-				 */
-				rt_stop(&rt);
-				time_ns = rt_nanos(&rt);
-
-					
-				if (conf == -1) {
-					cur_filter->fi_error++;
-					pass = 0;
-				} else if (conf < cur_filter->fi_threshold) {
-					pass = 0;
-				}
-
-				log_message(LOGT_FILT, LOGL_TRACE,
-				            "eval_filters: filter %s: ret (%d)- threshold %d",
-				            cur_filter->fi_name, conf,
-				            cur_filter->fi_threshold);
+			/* mark beginning of filter eval into cache ring */
+			if( (oattr_flag != 0) && (cur_filter->fi_time_ns <= 
+				(cur_filter->fi_added_bytes*cache_oattr_thresh)) ) {
+				oattr_flag = 0;
 			}
-			cur_filter->fi_time_ns += time_ns;	/* update filter stats */
-			stack_ns += time_ns;
-			err = obj_write_attr(&obj_handle->attr_info, timebuf,
+
+			ocache_add_start(cur_filter->fi_name, obj_handle->local_id,
+				cur_filter->cache_table, lookup, oattr_flag, 
+				&cur_filter->fi_sig);
+
+			conf = cur_filter->fi_eval_fp(obj_handle, 
+					cur_filter->fi_filt_arg);
+
+			/* mark end of filter eval into cache ring */
+			ocache_add_end(cur_filter->fi_name, obj_handle->local_id,
+						   conf);
+
+			cur_filter->fi_compute++;
+			/*
+			 * get timing info and update stats
+			 */
+			rt_stop(&rt);
+			time_ns = rt_nanos(&rt);
+
+				
+			if (conf == -1) {
+				cur_filter->fi_error++;
+				pass = 0;
+			} else if (conf < cur_filter->fi_threshold) {
+				pass = 0;
+			}
+
+			log_message(LOGT_FILT, LOGL_TRACE,
+						"eval_filters: filter %s: ret (%d)- threshold %d",
+						cur_filter->fi_name, conf,
+						cur_filter->fi_threshold);
+		}
+		cur_filter->fi_time_ns += time_ns;	/* update filter stats */
+		stack_ns += time_ns;
+		err = obj_write_attr(&obj_handle->attr_info, timebuf,
 			                     sizeof(time_ns), (void *) &time_ns);
 			assert(err == 0);
-		}
 
 		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm),
 		                 cur_fidx, pass);

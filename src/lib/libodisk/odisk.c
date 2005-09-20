@@ -1030,8 +1030,8 @@ odisk_main(void *arg)
 			}
 
 			/*
-			 * try to enqueue the object, if the ring is full we will
-			 * get an error.  If error we sleep until more
+			 * try to enqueue the object, if the ring is full we
+			 * will get an error.  If error we sleep until more
 			 * space is available.
 			 */
 			err = ring_enq(obj_ring, nobj);

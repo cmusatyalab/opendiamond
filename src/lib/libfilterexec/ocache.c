@@ -616,13 +616,14 @@ cache_wait_lookup(obj_data_t * lobj, sig_val_t *fsig, void *fcache_table,
 			index = lobj->local_id % CACHE_ENTRY_NUM;
 			cobj = cache_table[index];
 			/*
-			 * cache hit if there is a (oid, filter sig, input attr sig)
-			 * match 
+			 * cache hit if there is a (oid, filter sig, 
+			 * input attr sig) match 
 			 */
 			while (cobj != NULL) {
 				if (cobj->oid == lobj->local_id) {
 					/*
-					 * compare change_attr set with input attr set 
+					 * compare change_attr set with input 
+					 * attr set 
 					 */
 					if (!compare_attr_set(&cobj->iattr, change_attr)) {
 						*oattr_set = &cobj->oattr;
@@ -632,12 +633,17 @@ cache_wait_lookup(obj_data_t * lobj, sig_val_t *fsig, void *fcache_table,
 				cobj = cobj->next;
 			}
 			if (*oattr_set == NULL) {
+#ifdef	XXX
 				if (cache_entry_num < MAX_ENTRY_NUM) {
 					pthread_cond_wait(&wait_lookup_cv, &shared_mutex);
 				} else {
 					pthread_mutex_unlock(&shared_mutex);
 					return (ENOENT);
 				}
+#else
+				pthread_mutex_unlock(&shared_mutex);
+				return (ENOENT);
+#endif
 			}
 			pthread_mutex_unlock(&shared_mutex);
 		}
@@ -1547,7 +1553,6 @@ ocache_add_end(char *fhandle, uint64_t obj_id, int conf)
 			sig_cal(iattr_buf, iattr_buflen, &sig);
 			memcpy(&oattr_entry->u.iattr_sig, &sig, 
 				sizeof(sig_val_t));
-
 			iattr_buflen = -1;
 		}
 		oattr_ring_insert(oattr_entry);
@@ -1561,10 +1566,10 @@ ocache_main(void *arg)
 	ocache_state_t 	*cstate = (ocache_state_t *) arg;
 	int             	err;
 	cache_ring_entry 	*tobj;
-	cache_obj      	*cobj;
-	cache_obj      	*p, *q;
-	unsigned int   	index;
-	int            	correct;
+	cache_obj      		*cobj;
+	cache_obj      		*p, *q;
+	unsigned int   		index;
+	int            		correct;
 	sig_val_t		sig;
 	cache_obj     		**cache_table;
 	cache_attr_entry	**iattr, **oattr, **tmp;
@@ -1589,9 +1594,7 @@ ocache_main(void *arg)
 		}
 		pthread_mutex_unlock(&shared_mutex);
 
-		/*
-		 * get the next lookup object
-		 */
+		/* get the next lookup object */
 		cache_table = NULL;
 		err = ocache_lookup_next(&tobj, cstate);
 

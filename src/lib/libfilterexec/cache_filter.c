@@ -63,16 +63,16 @@ static pthread_mutex_t ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t active_cv = PTHREAD_COND_INITIALIZER;	/* active */
 
 static opt_policy_t policy_arr[] = {
-					   {NULL_POLICY, NULL, NULL, NULL, NULL},
-					   {HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
-							hill_climb_optimize, NULL},
-					   {BEST_FIRST_POLICY, best_first_new, best_first_delete,
-							best_first_optimize, NULL},
-					   {INDEP_POLICY, indep_new, best_first_delete, 
-					   		best_first_optimize, NULL},
-					   {RANDOM_POLICY, random_new, NULL, NULL, NULL},
-					   {STATIC_POLICY, static_new, NULL, NULL, NULL},
-					   {NULL_POLICY, NULL, NULL, NULL, NULL}
+		   {NULL_POLICY, NULL, NULL, NULL, NULL},
+		   {HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
+				hill_climb_optimize, NULL},
+		   {BEST_FIRST_POLICY, best_first_new, best_first_delete,
+				best_first_optimize, NULL},
+		   {INDEP_POLICY, indep_new, best_first_delete, 
+				best_first_optimize, NULL},
+		   {RANDOM_POLICY, random_new, NULL, NULL, NULL},
+		   {STATIC_POLICY, static_new, NULL, NULL, NULL},
+		   {NULL_POLICY, NULL, NULL, NULL, NULL}
 };
 
 unsigned int    use_cache_table = 0;
@@ -349,6 +349,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	char          **filters, **fsig, **iattrsig;
 	int             oattr_fnum = 0;
 	sig_val_t		isig;
+	uint64_t	oid = 1; /* XXX */
 	pr_obj_t       *pr_obj;
 	int             i, j;
 	int             perm_num;
@@ -358,9 +359,14 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	/* XXX this used to be passed in and need to change before
 	 * caching is re-enabled.
 	 */
-	uint64_t	oid = 1;
 
 	fdata->obj_counter++;
+
+	/* we are going to needs this in most cases, so allocate now */
+	pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
+	assert( pr_obj != NULL);
+
+	
 
 	if (use_cache_table == 0) {
 		pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
@@ -566,8 +572,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 			pr_obj->stack_ns = stack_ns;
 			odisk_pr_add(pr_obj);
 		} else {
-			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
-			assert( pr_obj != NULL);
 			pr_obj->obj_id = oid;
 			pr_obj->obj_name = objname;
 			pr_obj->filters = filters;

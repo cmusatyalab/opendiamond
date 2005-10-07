@@ -235,6 +235,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	new_obj->base = base;
 	new_obj->data_len = stats.st_size;
 	new_obj->ref_count = 1;
+	sig_cal_str(name, &new_obj->id_sig);
 	pthread_mutex_init(&new_obj->mutex, NULL);
 
 	ptr = rindex(name, '/');

@@ -75,7 +75,7 @@ static opt_policy_t policy_arr[] = {
 		   {NULL_POLICY, NULL, NULL, NULL, NULL}
 };
 
-unsigned int    use_cache_table = 0;
+unsigned int    use_cache_table = 1;
 unsigned int    use_cache_oattr = 0;
 unsigned int    cache_oattr_thresh = 10000;
 unsigned int	 mdynamic_load = 1;
@@ -349,29 +349,35 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	char          **filters, **fsig, **iattrsig;
 	int             oattr_fnum = 0;
 	sig_val_t		isig;
-	uint64_t	oid = 1; /* XXX */
+	sig_val_t	id_sig;
 	pr_obj_t       *pr_obj;
 	int             i, j;
 	int             perm_num;
 	permutation_t  *cur_perm, *new_perm;
 	char            buf[BUFSIZ];
+	char *		sig_str;
 
 	/* XXX this used to be passed in and need to change before
 	 * caching is re-enabled.
 	 */
 
+	sig_cal_str(objname, &id_sig);
+
+
+	sig_str = sig_string(&id_sig);
+	printf("ceval: filters1 on %s \n", sig_str);
+	free(sig_str);
+
 	fdata->obj_counter++;
 
 	/* we are going to needs this in most cases, so allocate now */
 	pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
-	assert( pr_obj != NULL);
+	assert(pr_obj != NULL);
 
 	
 
 	if (use_cache_table == 0) {
-		pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
-		assert( pr_obj != NULL);
-		pr_obj->obj_id = oid;
+		printf("XXX no cache table \n");
 		pr_obj->obj_name = objname;
 		pr_obj->filters = NULL;
 		pr_obj->fsig = NULL;
@@ -404,12 +410,10 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 		change_attr.entry_data = malloc(ATTR_ENTRY_NUM * sizeof(char *));
 		assert(change_attr.entry_data != NULL);
 
-		cache_lookup0(oid, &change_attr, NULL);
+		cache_lookup0(&id_sig, &change_attr, NULL);
 
 		cur_perm = cached_perm[perm_num];
 		assert(cur_perm != NULL);
-		// pmPrint(cur_perm, buf, BUFSIZ);
-		// printf("use perm %s\n", buf);
 		hit = 1;
 		/*
 		 * here we do cache lookup based on object_id, filter 
@@ -423,10 +427,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 			rt_init(&rt);
 			rt_start(&rt);
 
-			found = cache_lookup(oid, &cur_filter->fi_sig, 
-					cur_filter->cache_table, &change_attr, &conf, 
-					&oattr_set, &isig);
+			found = cache_lookup(&id_sig, &cur_filter->fi_sig, 
+					cur_filter->cache_table, &change_attr, 
+					&conf, &oattr_set, &isig);
 
+			printf("cur_id lookup: found=%d \n", found);
 			if (found) {
 				/*
 				 * get the cached output attr set and 
@@ -453,8 +458,8 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 						combine_attr_set(&change_attr, oattr_set);
 					if (oattr_fnum < MAX_FILTER_NUM && perm_num == 0) {
 						filters[oattr_fnum] = cur_filter->fi_name;
-#ifdef	XXX_XX
-						fsig[oattr_fnum] = cur_filter->fi_sig;
+						fsig[oattr_fnum] = &cur_filter->fi_sig;
+#ifdef	XXX
 						iattrsig[oattr_fnum] = isig;
 #endif
 						oattr_fnum++;
@@ -495,6 +500,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	}
 	if (hit) {
 		// cached_perm[perm_num]->drop_rate++; /*XXX add later? */
+		printf("XXX have hit: pass %d \n", pass);
 	} else {
 		/*
 		 * XXX assume no overlapping among gid objects 
@@ -544,44 +550,24 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	temp = rt_time2secs(stack_ns);
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
-#if(defined VERBOSE || defined SIM_REPORT)
-	{
-		char            buf[BUFSIZ];
-		printf("%d average time/obj = %s (%s)\n",
-		       fdata->obj_counter,
-		       fstat_sprint(buf, fdata),
-		       policy_arr[filter_exec.current_policy].
-		       exploit ? "EXPLOIT" : "EXPLORE");
-
-	}
-#endif
 
 	/*
 	 * if pass, add the obj & oattr_fname list into the odisk queue 
 	 */
 	if (pass) {
-		if ( use_cache_oattr && dynamic_use_oattr() ) {
-			pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
-			assert( pr_obj != NULL);
-			pr_obj->obj_id = oid;
-			pr_obj->obj_name = objname;
-			pr_obj->filters = filters;
-			pr_obj->fsig = fsig;
-			pr_obj->iattrsig = iattrsig;
+		pr_obj->obj_name = objname;
+		pr_obj->filters = filters;
+		pr_obj->fsig = fsig;
+		pr_obj->iattrsig = iattrsig;
+		pr_obj->stack_ns = stack_ns;
+		if (use_cache_oattr && dynamic_use_oattr()) {
 			pr_obj->oattr_fnum = oattr_fnum;
-			pr_obj->stack_ns = stack_ns;
-			odisk_pr_add(pr_obj);
 		} else {
-			pr_obj->obj_id = oid;
-			pr_obj->obj_name = objname;
-			pr_obj->filters = filters;
-			pr_obj->fsig = fsig;
-			pr_obj->iattrsig = iattrsig;
 			pr_obj->oattr_fnum = 0;
-			pr_obj->stack_ns = stack_ns;
-			odisk_pr_add(pr_obj);
 		}
+		odisk_pr_add(pr_obj);
 	} else {
+		free(pr_obj);
 		free(filters);
 		free(fsig);
 		free(iattrsig);
@@ -625,7 +611,6 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	int				oattr_flag=0;
 
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
-	// printf("ceval_filters2: obj %016llX\n",obj_handle->local_id);
 
 	if (fdata->fd_num_filters == 0) {
 		log_message(LOGT_FILT, LOGL_ERR, "eval_filters: no filters");
@@ -651,7 +636,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	change_attr.entry_data = malloc(ATTR_ENTRY_NUM * sizeof(char *));
 	assert(change_attr.entry_data != NULL);
 
-	cache_lookup0(obj_handle->local_id, &change_attr, &obj_handle->attr_info);
+	cache_lookup0(&obj_handle->id_sig, &change_attr, &obj_handle->attr_info);
 
 	for (cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm); 
 		cur_fidx++) {
@@ -671,9 +656,10 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 * missing point at which we stopped in ceval_filters1, if we can 
 		 */
 		if ((miss == 0) && (use_cache_table)) {
-			lookup = cache_lookup2(obj_handle->local_id,
+			lookup = cache_lookup2(&obj_handle->id_sig,
 			                       &cur_filter->fi_sig,
-			                       cur_filter->cache_table, &change_attr,
+			                       cur_filter->cache_table, 
+					&change_attr,
 			                       &conf, &oattr_set, &oattr_flag, err);
 		} else {
 			lookup = ENOENT;
@@ -736,7 +722,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				oattr_flag = 0;
 			}
 
-			ocache_add_start(cur_filter->fi_name, obj_handle->local_id,
+			ocache_add_start(cur_filter->fi_name, &obj_handle->id_sig,
 				cur_filter->cache_table, lookup, oattr_flag, 
 				&cur_filter->fi_sig);
 
@@ -744,7 +730,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 					cur_filter->fi_filt_arg);
 
 			/* mark end of filter eval into cache ring */
-			ocache_add_end(cur_filter->fi_name, obj_handle->local_id,
+			ocache_add_end(cur_filter->fi_name, &obj_handle->id_sig,
 						   conf);
 
 			cur_filter->fi_compute++;

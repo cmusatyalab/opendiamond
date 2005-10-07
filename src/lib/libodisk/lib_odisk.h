@@ -74,6 +74,7 @@ typedef struct obj_data {
 	off_t			data_len;
 	off_t			cur_offset;
 	uint64_t       		local_id;
+	sig_val_t      		id_sig;
 	int		    	cur_blocksize;
 	int		    	ref_count;
 	pthread_mutex_t	mutex;

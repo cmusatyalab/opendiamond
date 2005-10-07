@@ -30,8 +30,7 @@ typedef struct {
 	unsigned int  name_len;
 	char *attr_name;
 	sig_val_t  attr_sig;
-}
-cache_attr_entry;
+} cache_attr_entry;
 
 typedef struct {
 	unsigned int entry_num;
@@ -40,7 +39,7 @@ typedef struct {
 cache_attr_set;
 
 struct cache_obj_s {
-	uint64_t                oid;
+	sig_val_t		id_sig;
 	sig_val_t		iattr_sig;
 	int			result;
 	unsigned short		eval_count; //how many times this filter is evaluated
@@ -53,7 +52,7 @@ struct cache_obj_s {
 };
 
 struct cache_init_obj_s {
-	uint64_t                oid;
+	sig_val_t		id_sig;
 	cache_attr_set    		attr;
 	struct cache_init_obj_s	*next;
 };
@@ -94,7 +93,7 @@ typedef struct {
 
 typedef struct {
 	int			type;
-	uint64_t                oid;
+	sig_val_t		id_sig;
 	union {
 		cache_start_entry	start;
 		cache_attr_entry	iattr;		/*add input attr*/
@@ -111,7 +110,7 @@ cache_attr_t;
 
 typedef struct {
 	int				type;
-	uint64_t    	oid;
+	sig_val_t			id_sig;
 	union {
 		char            *file_name;     /* the file name to cache oattr */
 		cache_attr_t		oattr;		/*add output attr*/
@@ -125,14 +124,14 @@ int digest_cal(char *lib_name, char *filt_name, int numarg,
 char **filt_args, int blob_len, void *blob, 
 sig_val_t * signature);
 
-int cache_lookup0(uint64_t local_id, cache_attr_set * change_attr, 
+int cache_lookup0(sig_val_t * id_sig, cache_attr_set * change_attr, 
 	obj_attr_t *init_attr);
 
-int cache_lookup(uint64_t local_id, sig_val_t *fsig, void *fcache_table, 
+int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
 	cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, 
 	sig_val_t *iattr_sig);
 
-int cache_lookup2(uint64_t local_id, sig_val_t *fsig, void *fcache_table, 
+int cache_lookup2(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
 	cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, 
 	int *oattr_flag, int flag);
 
@@ -146,10 +145,10 @@ int ocache_stop_search(sig_val_t *fsig);
 int ocache_wait_finish();
 int ocache_read_file(char *disk_path, sig_val_t *fsig, 
 	void **fcache_table, struct timeval *atime);
-int ocache_add_start(char *fhandle, uint64_t obj_id, void *cache_table, 
+int ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table, 
 	int lookup, int oattr_flag, sig_val_t *fsig);
 
-int ocache_add_end(char *fhandle, uint64_t obj_id, int conf);
+int ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf);
 
 int combine_attr_set(cache_attr_set *attr1, cache_attr_set *attr2);
 

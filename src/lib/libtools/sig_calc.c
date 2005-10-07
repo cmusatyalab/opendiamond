@@ -15,6 +15,7 @@
 #include <openssl/evp.h>
 #include <assert.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "sig_calc.h"
 
@@ -70,6 +71,17 @@ sig_cal(const void *buf, off_t buflen, sig_val_t *sig_val)
 	return(0);
 }
 
+
+int
+sig_cal_str(const char *buf, sig_val_t *sig_val)
+{
+	off_t	len = strlen(buf);
+	int	err;
+
+	err = sig_cal(buf, len, sig_val);
+	return(err);
+}
+
 char *
 sig_string(sig_val_t *sig_val)
 {
@@ -93,3 +105,35 @@ sig_string(sig_val_t *sig_val)
 
 	return(new_str);
 }
+
+unsigned long 
+sig_hash(sig_val_t *sig)
+{
+	int 	i;
+	unsigned long	v = 0;
+
+	for (i=0; i < SIG_SIZE; i++) {
+		v = ((unsigned long)sig->sig[i]) + (v << 6) + (v << 16) - v;
+	}
+
+	return(v);
+}
+
+
+int 
+sig_match(sig_val_t *sig1, sig_val_t *sig2)
+{
+	if (memcmp(sig1, sig2, sizeof(sig_val_t)) == 0) {
+		return(1);
+	} else {
+		return(0);
+	}
+}
+
+void sig_clear(sig_val_t *sig)
+{
+	memset(sig, 0, sizeof(sig_val_t));
+
+}
+
+

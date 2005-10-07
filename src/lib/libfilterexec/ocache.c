@@ -280,47 +280,52 @@ sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 	}
 }
 
-/* we should switch to this. need to build up initial input attr signature */
+
+static int
+attr_in_set(cache_attr_entry *inattr, cache_attr_set * set)
+{
+	int	j;
+	cache_attr_entry *tattr;
+
+	for (j = 0; j < set->entry_num; j++) {
+		tattr = set->entry_data[j];
+		if (tattr == NULL) {
+			printf("null temp_j, something wrong\n");
+			continue;
+		}
+		if ((tattr->name_len == inattr->name_len) &&
+			!strncmp(tattr->attr_name, inattr->attr_name, tattr->name_len)
+			&& sig_match(&tattr->attr_sig, &inattr->attr_sig)){
+				return(1);
+		}
+	}
+	return(0);	
+
+}
+
+/*
+ * This to see if attr1 is a strict subset of attr2, if not, then we
+ * return 1, otherwise return 0.
+ */
+
 static int
 compare_attr_set(cache_attr_set * attr1, cache_attr_set * attr2)
 {
-	int             i, j;
-	cache_attr_entry *temp_i, *temp_j;
-	int found=0;
+	int             i;
+	cache_attr_entry *temp_i;
 
+	/*
+	 * for each item in attr1, see if it exists in attr2.
+	 */
 	for (i = 0; i < attr1->entry_num; i++) {
 		temp_i = attr1->entry_data[i];
 		if (temp_i == NULL) {
 			printf("null temp_i, something wrong\n");
 			continue;
 		}
-		found = 0;
-		for (j = 0; j < attr2->entry_num; j++) {
-			temp_j = attr2->entry_data[j];
-			if (temp_j == NULL) {
-				printf("null temp_j, something wrong\n");
-				continue;
-			}
-			if ((temp_i->name_len == temp_j->name_len) &&
-			    !strncmp(temp_i->attr_name, temp_j->attr_name,
-			             temp_i->name_len)
-			    && sig_match(&temp_i->attr_sig, &temp_j->attr_sig)){
-				printf("compare attr match \n");
-				found = 1;
-				break;
-			} else {
-				char *sstr = sig_string(&temp_i->attr_sig);
-				printf("compare fail: ai nl=%d name=<%s> sig=%s \n",
-				temp_i->name_len, temp_i->attr_name, sstr);
-				free(sstr);
-			
-				sstr = sig_string(&temp_j->attr_sig);
-				printf("compare fail: aj nl=%d name=<%s> sig=%s \n",
-					temp_j->name_len, temp_j->attr_name, sstr);
-				free(sstr);
-			}
-		}
-		if (!found ) {
+
+		/* if this item isn't in the set then return 1 */
+		if (attr_in_set(temp_i, attr2) == 0) {
 			return 1;
 		}
 	}
@@ -904,7 +909,6 @@ ocache_write_file(char *disk_path, fcache_t * fcache)
 	}
 	pthread_mutex_unlock(&shared_mutex);
 	close(fd);
-	// printf("cache_entry_num %d\n", cache_entry_num);
 	return (0);
 }
 

@@ -346,7 +346,8 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	cache_attr_set *oattr_set;
 	int             found;
 	int             hit = 1;
-	char          **filters, **fsig, **iattrsig;
+	char          **filters, **iattrsig;
+	sig_val_t **	fsig;
 	int             oattr_fnum = 0;
 	sig_val_t		isig;
 	sig_val_t	id_sig;
@@ -393,11 +394,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 		return 1;
 	}
 
-	filters = malloc(MAX_FILTER_NUM);
+	filters = malloc(MAX_FILTER_NUM *sizeof(char *));
 	assert(filters != NULL);
-	fsig = malloc(MAX_FILTER_NUM);
+	fsig = malloc(MAX_FILTER_NUM *sizeof(sig_val_t *));
 	assert(fsig != NULL);
-	iattrsig = malloc(MAX_FILTER_NUM);
+	iattrsig = malloc(MAX_FILTER_NUM *sizeof(char *));
 	assert(iattrsig != NULL);
 
 	stack_ns = 0;

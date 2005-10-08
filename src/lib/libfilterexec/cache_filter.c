@@ -224,7 +224,6 @@ ceval_start(filter_data_t * fdata)
 	cached_perm[0] = fdata->fd_perm;
 	cached_perm_num = 1;
 	pmPrint(fdata->fd_perm, buf, BUFSIZ);
-	// printf("generate_new_perm %s\n", buf);
 	search_active = 1;
 	sample_init();
 	pthread_cond_signal(&active_cv);
@@ -284,7 +283,6 @@ generate_new_perm(const partial_order_t * po, permutation_t * copy, int fidx,
 	int             list1_num, list2_num;
 	int             index;
 
-	// printf("generate_new_perm fidx %d\n", fidx);
 	if (copy == NULL)
 		return (EINVAL);
 	ptr = pmDup(copy);
@@ -366,7 +364,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 
 
 	sig_str = sig_string(&id_sig);
-	printf("ceval: filters1 on %s \n", sig_str);
 	free(sig_str);
 
 	fdata->obj_counter++;
@@ -378,7 +375,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	
 
 	if (use_cache_table == 0) {
-		printf("XXX no cache table \n");
 		pr_obj->obj_name = objname;
 		pr_obj->filters = NULL;
 		pr_obj->fsig = NULL;
@@ -432,7 +428,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 					cur_filter->cache_table, &change_attr, 
 					&conf, &oattr_set, &isig);
 
-			printf("cur_id lookup: found=%d \n", found);
 			if (found) {
 				/*
 				 * get the cached output attr set and 
@@ -501,7 +496,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	}
 	if (hit) {
 		// cached_perm[perm_num]->drop_rate++; /*XXX add later? */
-		printf("XXX have hit: pass %d \n", pass);
 	} else {
 		/*
 		 * XXX assume no overlapping among gid objects 
@@ -512,14 +506,12 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 			for (i = 0; i < cached_perm_num; i++) {
 				if (pmEqual(new_perm, cached_perm[i])) {
 					perm_done = 1;
-					printf("no new perm\n");
 					pmDelete(new_perm);
 					break;
 				}
 			}
 			if (perm_done == 0) {
 				pmPrint(new_perm, buf, BUFSIZ);
-				printf("generate perm %s\n", buf);
 				cached_perm[cached_perm_num] = new_perm;
 				cached_perm_num++;
 			}

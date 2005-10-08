@@ -297,7 +297,7 @@ odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t *sig)
 		return(ENOENT);
 	}
 
-	memcpy(&sig, &arec->attr_sig, sizeof(sig_val_t));
+	memcpy(sig, &arec->attr_sig, sizeof(sig_val_t));
 	return(0);
 }
 

@@ -54,7 +54,7 @@ static char const cvsid[] = "$Header$";
 /*
  * dctl variables 
  */
-unsigned int    if_cache_table = 0;
+unsigned int    if_cache_table = 1;
 unsigned int    if_cache_oattr = 0;
 unsigned int    count_thresh = 0;
 
@@ -537,13 +537,6 @@ cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table,
 				 */
 				*oattr_set = &cobj->oattr;
 				break;
-			} else {
-				printf("sig match, but not iattr \n");
-				/*
-				 * printf("INPUT ATTR SET : \n");
-				 * dump_attr_set(&cobj->iattr); printf("CHANGE ATTR SET :
-				 * \n"); dump_attr_set(change_attr); 
-				 */
 			}
 		}
 		cobj = cobj->next;
@@ -692,7 +685,6 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 		return (EINVAL);
 	}
 	size = stats->st_size;
-	// printf("ocache_update size %ld\n", size);
 	rsize = 0;
 
 	pthread_mutex_lock(&shared_mutex);
@@ -768,7 +760,6 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 			 * for debug purpose 
 			 */
 			cache_entry_num++;
-			printf("ocache_update cache_entry_num %d\n", cache_entry_num);
 		} else {
 			p = cache_table[index];
 			q = p;
@@ -796,14 +787,10 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 				 * for debug purpose 
 				 */
 				cache_entry_num++;
-				printf("ocache_update cache_entry_num %d\n", cache_entry_num);
 			}
 		}
 	}
 	pthread_mutex_unlock(&shared_mutex);
-
-	// printf("cache_entry_num %d\n", cache_entry_num);
-
 	return (0);
 }
 
@@ -922,7 +909,6 @@ free_fcache_entry(char *disk_path)
 	fcache_t       *oldest = NULL;
 	int             found = -1;
 
-	// printf("free_fcache_entry\n");
 	while (cache_entry_num >= MAX_CACHE_ENTRY_NUM) {
 		for (i = 0; i < FCACHE_NUM; i++) {
 			if (filter_cache_table[i] == NULL)
@@ -974,7 +960,6 @@ ocache_init_read(char *disk_path)
 
 	fd = open(fpath, O_RDONLY, 00777);
 	if (fd < 0) {
-		printf("init cache file does not exist\n");
 		return (0);
 	}
 
@@ -1173,7 +1158,7 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	*fcache_table = (void *) cache_table;
 
 	fd = open(fpath, O_RDONLY, 00777);
-	if (fd < 0) { printf("cache file not found: <%s> \n", fpath);
+	if (fd < 0) { 
 		memset(&fcache->mtime, 0, sizeof(time_t));
 		return (0);
 	}
@@ -1190,7 +1175,6 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 		return (EINVAL);
 	}
 	size = stats.st_size;
-	// printf("ocache_read_file size %ld\n", size);
 	memcpy(&fcache->mtime, &stats.st_mtime, sizeof(time_t));
 	rsize = 0;
 
@@ -1293,9 +1277,6 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	}
 	pthread_mutex_unlock(&shared_mutex);
 	close(fd);
-
-	printf("cache_entry_num %d\n", cache_entry_num);
-
 	return (0);
 }
 
@@ -1449,13 +1430,6 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 				&new_entry->u.iattr.attr_sig);
 		if (err) {
 			printf("\t\t XXXXXXXXXXXx failed get_attr_size \n");
-		}
-
-		{	
-			char *sstr;
-			sstr = sig_string(&new_entry->u.iattr.attr_sig);
-			printf("add : name %s sig %s \n", name, sstr);
-			free(sstr);
 		}
 
 		if ((if_cache_oattr) && (iattr_buflen >= 0)) {
@@ -1726,7 +1700,6 @@ ocache_main(void *arg)
 
 			if ((correct == 1) && (cache_entry_num < MAX_ENTRY_NUM)) {
 				if (cache_table == NULL) {
-					printf("invalid entry\n");
 					ocache_entry_free(cobj);
 					continue;
 				}
@@ -1992,7 +1965,6 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 int
 ocache_start()
 {
-	// printf("ocache_start\n");
 	pthread_mutex_lock(&shared_mutex);
 	search_active = 1;
 	search_done = 0;
@@ -2016,7 +1988,6 @@ ocache_stop(char *dirp)
 		dir_path = dirp;
 	}
 
-	// printf("ocache_stop\n");
 	pthread_mutex_lock(&shared_mutex);
 	search_active = 0;
 	search_done = 1;

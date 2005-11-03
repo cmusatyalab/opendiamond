@@ -26,8 +26,8 @@ LIBSRCS += ls_device.c ls_log.c ls_dctl.c
 LIBOBJS += lib_searchlet.o ls_background.o   
 LIBOBJS += ls_device.o ls_log.o ls_dctl.o
 
-LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lodisk -ltools -lfilterexec 
-LIBS += -llog -lfilter -lhstub -ldconfig
+LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lfilter -lodisk -ltools 
+LIBS += -lfilterexec -llog -lhstub -ldconfig
 LIBS +=  -ldctl  -lm -lssl -lcrypto
 
 

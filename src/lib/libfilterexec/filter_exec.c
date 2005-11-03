@@ -334,7 +334,7 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
 		if( strlen(lib_name) > PATH_MAX ) {
 			return (EINVAL);
 		}
-		memcpy(cur_filt->lib_name, lib_name, strlen(lib_name));
+		memcpy(cur_filt->lib_name, lib_name, strlen(lib_name)+1);
 
 	}
 

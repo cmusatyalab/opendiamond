@@ -16,7 +16,8 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-LIBS +=  -lsstub -lpthread -ltools -ldctl -lodisk -ltools -lssl -lcrypto
+LIBS += -lsstub -lpthread -ltools -ldctl -lodisk -ldconfig 
+LIBS += -ltools -lssl -lcrypto
 
 LIBOBJS = sstub_api.o sstub_cntrl.o sstub_conn.o sstub_data.o
 LIBOBJS += sstub_listen.o sstub_log.o

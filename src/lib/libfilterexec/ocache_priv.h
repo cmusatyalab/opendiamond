@@ -23,7 +23,6 @@ struct ocache_state;
 #define	MAX_GID_NAME	128
 
 #define	CACHE_EXT		"CACHEFL"
-#define CACHE_DIR		"cache"
 #define CACHE_OATTR_EXT		"OATTR"
 
 #define	MAX_GID_FILTER	64

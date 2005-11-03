@@ -67,11 +67,6 @@ typedef struct attr_record {
 #define	ATTR_BIG_THRESH	1000
 
 
-/*
- * The maximum lenght of the name string for an attribute.
- */
-#define	MAX_ATTR_NAME	1024
-
 
 /*
  * These are the object attribute managment calls.
@@ -94,9 +89,9 @@ int obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len,
 int obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len,
                       void **cookie, int skip_big);
 
-//int obj_read_oattr(char *disk_path, char *fname, obj_attr_t *attr);
 int obj_read_oattr(struct odisk_state *odisk, char *disk_path, 
-	uint64_t oid, char *fsig, char *iattrsig, obj_attr_t *attr);
+	sig_val_t *id_sig, sig_val_t *fsig, sig_val_t *iattrsig, 
+	obj_attr_t *attr);
 
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
 

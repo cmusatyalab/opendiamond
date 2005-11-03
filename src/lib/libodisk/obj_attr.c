@@ -34,7 +34,6 @@
 
 static char const cvsid[] = "$Header$";
 
-#define CACHE_DIR               "cache"
 
 int
 obj_read_attr_file(odisk_state_t *odisk, char *attr_fname, 
@@ -291,12 +290,10 @@ odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t *sig)
 {
 	attr_record_t *	arec;
 
-
 	arec = find_record(&obj->attr_info, name);
 	if (arec == NULL) {
 		return(ENOENT);
 	}
-
 	memcpy(sig, &arec->attr_sig, sizeof(sig_val_t));
 	return(0);
 }
@@ -327,6 +324,9 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len,
 	}
 	namelen = strlen(name) + 1;
 
+	if (namelen > MAX_ATTR_NAME) {
+		return (EINVAL);
+	}	
 
 	/* XXX round to word boundary ?? */
 	total_size  = sizeof(*data_rec) + namelen + len;
@@ -347,7 +347,6 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len,
 		data_rec = find_free_record(attr, total_size);
 		if (data_rec == NULL) {
 			/* XXX log */
-			printf("XXXXXXXX obj_write_attr find free failed\n");
 			return (ENOMEM);
 		}
 	}
@@ -376,11 +375,15 @@ obj_read_attr(obj_attr_t *attr, const char * name, size_t *len, void *data)
 	attr_record_t *		record;
 	char *			dptr;
 
+	if ((strlen(name) + 1) > MAX_ATTR_NAME) {
+		return(EINVAL);
+	}
 
 	record = find_record(attr, name);
 	if (record == NULL) {
 		return (ENOENT);
 	}
+
 
 
 	/*
@@ -542,30 +545,33 @@ obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
 
 
 int
-obj_read_oattr(odisk_state_t *odisk, char *disk_path, uint64_t oid, 
-	char *fsig, char *iattrsig, obj_attr_t *attr)
+obj_read_oattr(odisk_state_t *odisk, char *disk_path, sig_val_t *id_sig,
+	sig_val_t *fsig, sig_val_t *iattrsig, obj_attr_t *attr)
 {
 	int fd;
 	off_t           rsize;
 	struct stat     stats;
-	char attrbuf[MAX_ATTR_NAME];
-	uint64_t tmp1, tmp2, tmp3, tmp4;
+	char attrbuf[MAX_ATTR_CACHE_NAME];
+	char *filt_str;
+	char *id_str;
+	char *iattr_str;
 	obj_adata_t *	adata;
 	int err, len;
+	char *dirp;
 
-	if( (fsig == NULL) || (iattrsig == NULL) ) {
-		printf("fsig or iattrsig is NULL\n");
-		return (EINVAL);
-	}
-	memcpy(&tmp1, fsig, sizeof(tmp1) );
-	memcpy(&tmp2, fsig+8, sizeof(tmp2) );
-	memcpy(&tmp3, iattrsig, sizeof(tmp3) );
-	memcpy(&tmp4, iattrsig+8, sizeof(tmp4) );
+	filt_str = sig_string(fsig);
+	iattr_str = sig_string(iattrsig);
+	id_str = sig_string(id_sig);
+	dirp = dconf_get_cachedir();
 
-	len = snprintf(attrbuf, MAX_ATTR_NAME,
-	               "%s/%s/%016llX%016llX/%016llX.%016llX%016llX",
-	               disk_path, CACHE_DIR, tmp1, tmp2, oid, tmp3, tmp4);
-	assert(len < (MAX_ATTR_NAME - 1));
+	len = snprintf(attrbuf, MAX_ATTR_CACHE_NAME, "%s/%s/%s.%s", 
+		dirp, filt_str, id_str, iattr_str);
+
+	free(filt_str);
+	free(iattr_str);
+	free(id_str);
+
+	assert(len < (MAX_ATTR_CACHE_NAME - 1));
 
 	fd = open(attrbuf, odisk->open_flags);
 	if (fd == -1) {
@@ -578,30 +584,31 @@ obj_read_oattr(odisk_state_t *odisk, char *disk_path, uint64_t oid,
 		close(fd);
 		return (EINVAL);
 	}
+
 	if (stats.st_size == 0) {
 		close(fd);
 		return (0);
-	} else  {
-		adata = (obj_adata_t *)malloc(sizeof(*adata));
-		assert(adata != NULL);
+	} 
 
-		adata->adata_len = stats.st_size;
-		adata->adata_base = (char *)malloc(ALIGN_SIZE(stats.st_size));
-		assert(adata->adata_base != NULL);
-		adata->adata_data = (char *)ALIGN_VAL(adata->adata_base);
+	adata = (obj_adata_t *)malloc(sizeof(*adata));
+	assert(adata != NULL);
+
+	adata->adata_len = stats.st_size;
+	adata->adata_base = (char *)malloc(ALIGN_SIZE(stats.st_size));
+	assert(adata->adata_base != NULL);
+	adata->adata_data = (char *)ALIGN_VAL(adata->adata_base);
 
 
-		rsize = read(fd, adata->adata_data, ALIGN_ROUND(stats.st_size));
-		assert(rsize == stats.st_size);
+	rsize = read(fd, adata->adata_data, ALIGN_ROUND(stats.st_size));
+	assert(rsize == stats.st_size);
 
-		/* put it on the list of attrs for the object */
-		attr->attr_ndata++;
-		adata->adata_next = attr->attr_dlist;
-		attr->attr_dlist = adata;
+	/* put this attribute at the head of the object attributes */
+	attr->attr_ndata++;
+	adata->adata_next = attr->attr_dlist;
+	attr->attr_dlist = adata;
 
-		close(fd);
-		return(0);
-	}
+	close(fd);
+	return(0);
 }
 
 

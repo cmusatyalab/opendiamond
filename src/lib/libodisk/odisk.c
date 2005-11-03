@@ -115,6 +115,8 @@ odisk_next_index_ent(FILE *idx_file, char *file_name)
 static int
 dynamic_load_oattr(int ring_depth)
 {
+	/* XXX fix this */
+	return(1);
 	if( dynamic_load == 0 ) {
 		return(1);
 	}
@@ -468,15 +470,6 @@ odisk_release_pr_obj(pr_obj_t * pobj)
 		return (0);
 	}
 
-	if (pobj->filters != NULL ) {
-		free(pobj->filters);
-	}
-	if (pobj->fsig != NULL ) {
-		free(pobj->fsig);
-	}
-	if (pobj->iattrsig != NULL ) {
-		free(pobj->iattrsig);
-	}
 	if (pobj->obj_name != NULL ) {
 		free(pobj->obj_name);
 	}
@@ -718,35 +711,33 @@ again:
 		if (odisk->index_files[i] != NULL) {
 			ret = odisk_next_index_ent(odisk->index_files[i],
 				file_name);
-			if (ret == 1) {
-				len = snprintf(path_name, NAME_MAX, "%s/%s",
-				               odisk->odisk_dataroot, file_name);
-				assert(len < NAME_MAX);
-
-				err = odisk_load_obj(odisk, new_object, path_name);
-
-				if (err) {
-					/*
-					 * if we can't load the object it probably go deleted
-					 * between the time the search started (and we got the
-					 * gidindex file and the time we tried to open it.  We
-					 * just continue on. 
-					 */
-					continue;
-				} else {
-					odisk->cur_file = i + 1;
-					if (odisk->cur_file >= odisk->max_files) {
-						odisk->cur_file = 0;
-					}
-					return (0);
-				}
-			} else {
-				/*
-				 * This file failed, close it and continue.
-				 */
+			if (ret == 0) {
+				/* This file done, close it and continue.  */
 				fclose(odisk->index_files[i]);
 				odisk->index_files[i] = NULL;
+				continue;
 			}
+			len = snprintf(path_name, NAME_MAX, "%s/%s",
+				       odisk->odisk_dataroot, file_name);
+			assert(len < NAME_MAX);
+
+			err = odisk_load_obj(odisk, new_object, path_name);
+
+
+			/*
+			 * if we can't load the object it probably go 
+			 * deleted between the time the search started 
+			 * (and we got the gidindex file and the time 
+			 * we tried to open it.  We just continue on. 
+			 */
+			if (err) {
+				continue;
+			}
+			odisk->cur_file = i + 1;
+			if (odisk->cur_file >= odisk->max_files) {
+				odisk->cur_file = 0;
+			}
+			return(0);
 		}
 	}
 
@@ -773,7 +764,7 @@ odisk_pr_next(pr_obj_t **new_object)
 			tmp = ring_deq(obj_pr_ring);
 
 			pthread_cond_signal(&pr_bg_queue_cv);
-			if( tmp->oattr_fnum == -1 ) {
+			if (tmp->oattr_fnum == -1 ) {
 				free(tmp);
 				search_done = 1;
 				printf("odisk_pr_next: search_done\n");
@@ -817,17 +808,15 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 	}
 
 	/* see if we have partials to load */
-	if ((pr_obj->filters==NULL) || (pr_obj->fsig==NULL) ||
-	    (pr_obj->iattrsig==NULL) || (pr_obj->oattr_fnum==0) ||
+	if ((pr_obj->oattr_fnum==0) ||
 	    (dynamic_load_oattr( ring_count(obj_ring) ) == 0) ) {
 		return(0);
 	}
 
 	/* load the partial state */
 	for( i=0; i<pr_obj->oattr_fnum; i++) {
-		if ((pr_obj->filters[i] == NULL)
-		    || (pr_obj->fsig[i] == NULL)
-		    || (pr_obj->iattrsig[i] == NULL)) {
+
+		if (pr_obj->filters[i] == NULL) {
 			continue;
 		}
 
@@ -835,26 +824,25 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		rt_start(&rt);
 
 		/* XXX */
-		err = obj_read_oattr(odisk, odisk->odisk_dataroot, pr_obj->obj_id,
-		                     pr_obj->fsig[i], pr_obj->iattrsig[i],
-		                     &(*new_object)->attr_info);
+		err = obj_read_oattr(odisk, odisk->odisk_dataroot, 
+			&(*new_object)->id_sig, &pr_obj->fsig[i], 
+			&pr_obj->iattrsig[i], &(*new_object)->attr_info);
 
 		rt_stop(&rt);
 		time_ns = rt_nanos(&rt);
+		stack_ns += time_ns;
 
-		if (err == 0) {
-			sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
-			err = obj_write_attr(&(*new_object)->attr_info, timebuf,
-			                     sizeof(time_ns), (void *)&time_ns);
-			if (err != 0) {
-				printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
-			}
-			assert(err==0);
-		} else {
-			//printf("obj_read_oattr wrong\n");
+		/* if we didn't read the cached attributes dont' read further*/
+		if (err != 0) {
+			break;
 		}
 
-		stack_ns += time_ns;
+		sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
+		err = obj_write_attr(&(*new_object)->attr_info, timebuf,
+				     sizeof(time_ns), (void *)&time_ns);
+		if (err != 0) {
+			printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
+		}
 	}
 
 	err = obj_write_attr(&(*new_object)->attr_info,
@@ -1108,7 +1096,7 @@ odisk_setup_open_flags(odisk_state_t * odisk)
 	}
 
 
-	buf = (char *)malloc(TEST_BUF_SIZE);
+	buf = (char *)calloc(1, TEST_BUF_SIZE);
 	wsize = write(test_fd, buf, TEST_BUF_SIZE);
 	assert(wsize == TEST_BUF_SIZE);
 	close(test_fd);
@@ -1303,8 +1291,8 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	int             len;
 	gid_idx_ent_t   gid_idx;
 
-	len = snprintf(idx_name, NAME_MAX, "%s/%s%016llX", odisk->odisk_indexdir,
-	               GID_IDX, *gid);
+	len = snprintf(idx_name, NAME_MAX, "%s/%s%016llX", 
+		odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
 	idx_file = fopen(idx_name, "a");

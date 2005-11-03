@@ -238,10 +238,11 @@ fexec_init_search(filter_data_t * fdata)
 
 		cur_filt->fi_filt_arg = data;
 
-		/* JIAYING: calculate the signature for this filter
-		cur_filt->fi_sig = (unsigned char *)malloc(16);
-		err = digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name, cur_filt->fi_numargs, cur_filt->fi_arglist, cur_filt->fi_blob_len, cur_filt->fi_blob_data, &cur_filt->fi_sig);
-		*/
+		/* XXX this need some works */
+		err = digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name, 
+			cur_filt->fi_numargs, cur_filt->fi_arglist, 
+			cur_filt->fi_blob_len, cur_filt->fi_blob_data, 
+			&cur_filt->fi_sig);
 	}
 	return (0);
 }
@@ -271,8 +272,6 @@ fexec_term_search(filter_data_t * fdata)
 			 */
 			assert(0);
 		}
-		/* JIAYING */
-		//free(cur_filt->fi_sig);
 	}
 	return (0);
 }

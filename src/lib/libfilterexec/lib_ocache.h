@@ -27,16 +27,15 @@ extern "C"
 struct ocache_state;
 
 typedef struct {
-	unsigned int  name_len;
-	char *attr_name;
-	sig_val_t  attr_sig;
+	unsigned int  	name_len;
+	char		the_attr_name[MAX_ATTR_NAME];
+	sig_val_t  	attr_sig;
 } cache_attr_entry;
 
 typedef struct {
 	unsigned int entry_num;
 	cache_attr_entry **entry_data;
-}
-cache_attr_set;
+} cache_attr_set;
 
 struct cache_obj_s {
 	sig_val_t		id_sig;
@@ -105,8 +104,7 @@ typedef struct {
 typedef struct {
 	attr_record_t*	arec;
 	obj_data_t *	obj;
-}
-cache_attr_t;
+} cache_attr_t;
 
 typedef struct {
 	int				type;
@@ -117,8 +115,7 @@ typedef struct {
 		sig_val_t		iattr_sig;
 		sig_val_t 		fsig; /* filter signature */
 	} u;
-}
-oattr_ring_entry;
+} oattr_ring_entry;
 
 int digest_cal(char *lib_name, char *filt_name, int numarg, 
 char **filt_args, int blob_len, void *blob, 

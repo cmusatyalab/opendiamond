@@ -89,13 +89,14 @@ typedef struct {
 	int                 ver_num;
 } obj_info_t;
 
+
 typedef struct {
-	uint64_t obj_id;
-	char **filters;
-	char **fsig;
-	char *obj_name;
-	char **iattrsig;
-	int oattr_fnum;
+	uint64_t 	obj_id;
+	char *		obj_name;
+	int 		oattr_fnum;
+	char *		filters[MAX_FILTERS];
+	sig_val_t	fsig[MAX_FILTERS];
+	sig_val_t	iattrsig[MAX_FILTERS];
 	u_int64_t       stack_ns;
 } pr_obj_t;
 

@@ -15,9 +15,12 @@
 #ifndef _CONSTS_H_
 #define _CONSTS_H_
 
-
-#define	MAX_FILTER_NAME			128
+/* some constants pertaining to the maximum filter values */ 
+#define	MAX_FILTER_NAME		128
 #define	MAX_FILTER_FUNC_NAME	64
+
+/* maximum number of filters we support */
+#define	MAX_FILTERS		64
 
 /*
  * XXX this is getting pretty big. there should be a better way? 
@@ -33,5 +36,11 @@
 /* file extension for the text attributes and binary attributes */
 #define	BIN_ATTR_EXT				".attr"
 #define	TEXT_ATTR_EXT				".text_attr"
+
+/* maximum attribute name we allow */
+#define	MAX_ATTR_NAME		128
+
+/* maximum name of an attribute file in the cache*/
+#define	MAX_ATTR_CACHE_NAME		512
 
 #endif                          /* _CONSTS_H_ */

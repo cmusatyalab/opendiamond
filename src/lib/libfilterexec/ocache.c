@@ -55,7 +55,7 @@ static char const cvsid[] = "$Header$";
  * dctl variables 
  */
 unsigned int    if_cache_table = 1;
-unsigned int    if_cache_oattr = 0;
+unsigned int    if_cache_oattr = 1;
 unsigned int    count_thresh = 0;
 
 static int      search_active = 0;
@@ -248,7 +248,6 @@ sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 	const EVP_MD   *md;
 	unsigned char  *md_value;
 	int             md_len = 0, i;
-	off_t           buflen = 0;
 
 	OpenSSL_add_all_digests();
 	md = EVP_get_digestbyname("md5");
@@ -263,11 +262,8 @@ sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 	EVP_DigestInit_ex(&mdctx, md, NULL);
 
 	for (i = 0; i < iattr->entry_num; i++) {
-		EVP_DigestUpdate(&mdctx, iattr->entry_data[i]->attr_name,
-		                 iattr->entry_data[i]->name_len);
-		EVP_DigestUpdate(&mdctx, &iattr->entry_data[i]->attr_sig,
-			sizeof(sig_val_t));
-		buflen += iattr->entry_data[i]->name_len + 16;
+		EVP_DigestUpdate(&mdctx, iattr->entry_data[i],
+				sizeof(cache_attr_entry));
 	}
 
 	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
@@ -293,10 +289,8 @@ attr_in_set(cache_attr_entry *inattr, cache_attr_set * set)
 			printf("null temp_j, something wrong\n");
 			continue;
 		}
-		if ((tattr->name_len == inattr->name_len) &&
-			!strncmp(tattr->attr_name, inattr->attr_name, tattr->name_len)
-			&& sig_match(&tattr->attr_sig, &inattr->attr_sig)){
-				return(1);
+		if (memcmp(inattr, tattr, sizeof(*tattr)) == 0) {
+			return(1);
 		}
 	}
 	return(0);	
@@ -353,9 +347,7 @@ combine_attr_set(cache_attr_set * attr1, cache_attr_set * attr2)
 				printf("null temp_j, something wrong\n");
 				break;
 			}
-			if ((temp_i->name_len == temp_j->name_len) &&
-			    !strncmp(temp_i->attr_name, temp_j->attr_name,
-			             temp_i->name_len)) {
+			if (memcmp(temp_i, temp_j, sizeof(*temp_j)) == 0) {
 				attr1->entry_data[j] = temp_i;
 				found = 1;
 				break;
@@ -368,7 +360,7 @@ combine_attr_set(cache_attr_set * attr1, cache_attr_set * attr2)
 			attr1->entry_data[attr1->entry_num] = temp_i;
 			attr1->entry_num++;
 			if ((attr1->entry_num % ATTR_ENTRY_NUM) == 0) {
-				tmp = malloc((attr1->entry_num +
+				tmp = calloc(1, (attr1->entry_num +
 				            ATTR_ENTRY_NUM) * sizeof(char *));
 				assert(tmp != NULL);
 				memcpy(tmp, attr1->entry_data,
@@ -392,23 +384,21 @@ ocache_entry_free(cache_obj * cobj)
 
 	for (i = 0; i < cobj->iattr.entry_num; i++) {
 		if (cobj->iattr.entry_data[i] != NULL) {
-			if (cobj->iattr.entry_data[i]->attr_name != NULL)
-				free(cobj->iattr.entry_data[i]->attr_name);
 			free(cobj->iattr.entry_data[i]);
 		}
 	}
 
-	if (cobj->iattr.entry_data != NULL)
+	if (cobj->iattr.entry_data != NULL) {
 		free(cobj->iattr.entry_data);
-		for (i = 0; i < cobj->oattr.entry_num; i++) {
+	}	
+	for (i = 0; i < cobj->oattr.entry_num; i++) {
 		if (cobj->oattr.entry_data[i] != NULL) {
-			if (cobj->oattr.entry_data[i]->attr_name != NULL)
-				free(cobj->oattr.entry_data[i]->attr_name);
 			free(cobj->oattr.entry_data[i]);
 		}
 	}
-	if (cobj->oattr.entry_data != NULL)
+	if (cobj->oattr.entry_data != NULL) {
 		free(cobj->oattr.entry_data);
+	}
 	free(cobj);
 	return (0);
 }
@@ -434,7 +424,7 @@ cache_lookup0(sig_val_t *id_sig, cache_attr_set * change_attr, obj_attr_t *init_
 		cobj = cobj->next;
 	}
 	/* if not found, insert entry */
-	if( (found == 0 ) && (init_attr != NULL) ) {
+	if((found == 0 ) && (init_attr != NULL) ) {
 		attr_record_t *arec;
 		char *buf;
 		size_t len;
@@ -450,12 +440,14 @@ cache_lookup0(sig_val_t *id_sig, cache_attr_set * change_attr, obj_attr_t *init_
 				break;
 			}
 			arec = (attr_record_t *) buf;
-			attr_entry = (cache_attr_entry *) malloc(sizeof(cache_attr_entry));
+			attr_entry = (cache_attr_entry *) 
+				calloc(1, sizeof(cache_attr_entry));
 			assert(attr_entry != NULL);
+
 			attr_entry->name_len = arec->name_len;
-			attr_entry->attr_name = malloc(arec->name_len);
-			assert(attr_entry->attr_name != NULL);
-			memcpy(attr_entry->attr_name, arec->data, arec->name_len);
+
+			memcpy(attr_entry->the_attr_name, arec->data, 
+				arec->name_len);
 			memcpy(&attr_entry->attr_sig, &arec->attr_sig,
 				sizeof(sig_val_t));
 			change_attr->entry_data[change_attr->entry_num] = attr_entry;
@@ -463,7 +455,7 @@ cache_lookup0(sig_val_t *id_sig, cache_attr_set * change_attr, obj_attr_t *init_
 			if ((change_attr->entry_num % ATTR_ENTRY_NUM) == 0) {
 				cache_attr_entry **tmp;
 
-				tmp = malloc((change_attr->entry_num +
+				tmp = calloc(1, (change_attr->entry_num +
 				              ATTR_ENTRY_NUM) * sizeof(char *));
 				assert(tmp != NULL);
 				memcpy(tmp, change_attr->entry_data,
@@ -474,10 +466,10 @@ cache_lookup0(sig_val_t *id_sig, cache_attr_set * change_attr, obj_attr_t *init_
 			err = obj_get_attr_next(init_attr, &buf, &len, &cookie, 0);
 		}
 
-		cobj = (cache_init_obj *) malloc( sizeof(*cobj) );
+		cobj = (cache_init_obj *) calloc(1, sizeof(*cobj) );
 		memcpy(&cobj->id_sig, id_sig, sizeof(sig_val_t));
 		cobj->attr.entry_num = change_attr->entry_num;
-		cobj->attr.entry_data = malloc(cobj->attr.entry_num * sizeof(char *));
+		cobj->attr.entry_data = calloc(1, cobj->attr.entry_num * sizeof(char *));
 		memcpy(cobj->attr.entry_data, change_attr->entry_data, cobj->attr.entry_num * sizeof(char *) );
 		cobj->next = NULL;
 		if( init_table[index] == NULL ) {
@@ -639,7 +631,7 @@ cache_wait_lookup(obj_data_t * lobj, sig_val_t *fsig, void *fcache_table,
 				cobj = cobj->next;
 			}
 			if (*oattr_set == NULL) {
-#ifdef	XXX
+#ifndef	XXX
 				if (cache_entry_num < MAX_ENTRY_NUM) {
 					pthread_cond_wait(&wait_lookup_cv, &shared_mutex);
 				} else {
@@ -690,7 +682,7 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 	pthread_mutex_lock(&shared_mutex);
 	while (rsize < size)
 	{
-		cobj = (cache_obj *) malloc(sizeof(*cobj));
+		cobj = (cache_obj *) calloc(1, sizeof(*cobj));
 		assert(cobj != NULL);
 		read(fd, &cobj->id_sig, sizeof(sig_val_t));
 		read(fd, &cobj->iattr_sig, sizeof(sig_val_t));
@@ -706,48 +698,24 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 		read(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
 		rsize += sizeof(unsigned int);
 		cobj->iattr.entry_data =
-		    malloc(cobj->iattr.entry_num * sizeof(char *));
+		    calloc(1, cobj->iattr.entry_num * sizeof(char *));
 		assert(cobj->iattr.entry_data != NULL);
 		for (i = 0; i < cobj->iattr.entry_num; i++) {
-			cobj->iattr.entry_data[i] = malloc(sizeof(cache_attr_entry));
+			cobj->iattr.entry_data[i] = calloc(1, sizeof(cache_attr_entry));
 			assert(cobj->iattr.entry_data[i] != NULL);
-			read(fd, &cobj->iattr.entry_data[i]->name_len,
-			     sizeof(unsigned int));
-			cobj->iattr.entry_data[i]->attr_name =
-			    malloc(cobj->iattr.entry_data[i]->name_len + 1);
-			assert((cobj->iattr.entry_data[i]->attr_name) != NULL);
-			read(fd, cobj->iattr.entry_data[i]->attr_name,
-			     cobj->iattr.entry_data[i]->name_len);
-			cobj->iattr.entry_data[i]->attr_name[cobj->iattr.entry_data[i]->name_len] = '\0';
-			read(fd, &cobj->iattr.entry_data[i]->attr_sig, 
-				sizeof(sig_val_t));
-			rsize +=
-			    (sizeof(unsigned int) + cobj->iattr.entry_data[i]->name_len +
-			     sizeof(sig_val_t));
+			rsize += read(fd, cobj->iattr.entry_data[i],
+				sizeof(cache_attr_entry));
 		}
 
 		read(fd, &cobj->oattr.entry_num, sizeof(unsigned int));
 		rsize += sizeof(unsigned int);
 		cobj->oattr.entry_data =
-		    malloc(cobj->oattr.entry_num * sizeof(char *));
+		    calloc(1, cobj->oattr.entry_num * sizeof(char *));
 		assert(cobj->oattr.entry_data != NULL);
 		for (i = 0; i < cobj->oattr.entry_num; i++) {
-			cobj->oattr.entry_data[i] = malloc(sizeof(cache_attr_entry));
-			assert(cobj->oattr.entry_data[i] != NULL);
-			read(fd, &cobj->oattr.entry_data[i]->name_len,
-			     sizeof(unsigned int));
-			cobj->oattr.entry_data[i]->attr_name =
-			    malloc(cobj->oattr.entry_data[i]->name_len + 1);
-			assert(cobj->oattr.entry_data[i]->attr_name != NULL);
-			read(fd, cobj->oattr.entry_data[i]->attr_name,
-			     cobj->oattr.entry_data[i]->name_len);
-			cobj->oattr.entry_data[i]->attr_name[cobj->oattr.entry_data[i]->
-			                                     name_len] = '\0';
-			read(fd, &cobj->oattr.entry_data[i]->attr_sig, 
-				sizeof(sig_val_t));
-			rsize +=
-			    (sizeof(unsigned int) + cobj->oattr.entry_data[i]->name_len +
-			     sizeof(sig_val_t));
+			cobj->oattr.entry_data[i] = calloc(1, sizeof(cache_attr_entry));
+			rsize += read(fd, cobj->oattr.entry_data[i],
+				sizeof(cache_attr_entry));
 		}
 		cobj->next = NULL;
 		/*
@@ -863,23 +831,15 @@ ocache_write_file(char *disk_path, fcache_t * fcache)
 
 			write(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
 			for (i = 0; i < cobj->iattr.entry_num; i++) {
-				write(fd, &cobj->iattr.entry_data[i]->name_len,
-				      sizeof(unsigned int));
-				write(fd, cobj->iattr.entry_data[i]->attr_name,
-				      cobj->iattr.entry_data[i]->name_len);
-				write(fd, &cobj->iattr.entry_data[i]->attr_sig,
-					 sizeof(sig_val_t));
+				write(fd, cobj->iattr.entry_data[i],
+				      sizeof(cache_attr_entry));
 			}
 
 			write(fd, &cobj->oattr.entry_num, sizeof(unsigned int));
 
 			for (i = 0; i < cobj->oattr.entry_num; i++) {
-				write(fd, &cobj->oattr.entry_data[i]->name_len,
-				      sizeof(unsigned int));
-				write(fd, cobj->oattr.entry_data[i]->attr_name,
-				      cobj->oattr.entry_data[i]->name_len);
-				write(fd, &cobj->oattr.entry_data[i]->attr_sig,
-					sizeof(sig_val_t));
+				write(fd, cobj->oattr.entry_data[i],
+				      sizeof(cache_attr_entry));
 			}
 
 			tmp = cobj;
@@ -952,7 +912,7 @@ ocache_init_read(char *disk_path)
 
 	sprintf(fpath, "%s/ATTRSIG", disk_path);
 
-	init_table = (cache_init_obj **) malloc(sizeof(char *) * CACHE_ENTRY_NUM);
+	init_table = (cache_init_obj **) calloc(1, sizeof(char *) * CACHE_ENTRY_NUM);
 	assert(init_table != NULL );
 	for (i = 0; i < CACHE_ENTRY_NUM; i++) {
 		init_table[i] = NULL;
@@ -980,30 +940,24 @@ ocache_init_read(char *disk_path)
 	rsize = 0;
 	pthread_mutex_lock(&shared_mutex);
 	while (rsize < size) {
-		cobj = (cache_init_obj *) malloc(sizeof(*cobj));
+		cobj = (cache_init_obj *) calloc(1, sizeof(*cobj));
 		assert(cobj != NULL);
 		read(fd, &cobj->id_sig, sizeof(sig_val_t));
 		read(fd, &cobj->attr.entry_num, sizeof(unsigned int));
 		rsize += (sizeof(sig_val_t) + sizeof(unsigned int));
 		cobj->attr.entry_data =
-		    malloc(cobj->attr.entry_num * sizeof(char *));
+		    calloc(1, cobj->attr.entry_num * sizeof(char *));
 		assert(cobj->attr.entry_data != NULL);
+
+
 		for (i = 0; i < cobj->attr.entry_num; i++) {
 			cobj->attr.entry_data[i] = 
-				malloc(sizeof(cache_attr_entry));
+				calloc(1, sizeof(cache_attr_entry));
 			assert(cobj->attr.entry_data[i] != NULL);
-			read(fd, &cobj->attr.entry_data[i]->name_len, 	
-				sizeof(unsigned int));
-			cobj->attr.entry_data[i]->attr_name =
-			    malloc(cobj->attr.entry_data[i]->name_len);
-			read(fd, cobj->attr.entry_data[i]->attr_name, 
-				cobj->attr.entry_data[i]->name_len);
-			read(fd, &cobj->attr.entry_data[i]->attr_sig, 
-				sizeof(sig_val_t));
-			rsize += (sizeof(unsigned int) + 
-				cobj->attr.entry_data[i]->name_len + 
-				sizeof(sig_val_t));
+			rsize += read(fd, cobj->attr.entry_data[i], 	
+				sizeof(cache_attr_entry));
 		}
+
 		cobj->next = NULL;
 		index = sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
 		if( init_table[index] == NULL ) {
@@ -1048,20 +1002,14 @@ ocache_init_write(char *disk_path)
 			write(fd, &cobj->id_sig, sizeof(sig_val_t));
 			write(fd, &cobj->attr.entry_num, sizeof(unsigned int));
 			for (i = 0; i < cobj->attr.entry_num; i++) {
-				write(fd, &cobj->attr.entry_data[i]->name_len,
-				      sizeof(unsigned int));
-				write(fd, cobj->attr.entry_data[i]->attr_name,
-				      cobj->attr.entry_data[i]->name_len);
-				write(fd, &cobj->attr.entry_data[i]->attr_sig, 
-					sizeof(sig_val_t));
+				write(fd, cobj->attr.entry_data[i],
+				      sizeof(cache_attr_entry));
 			}
 			tmp = cobj;
 			cobj = cobj->next;
 
 			for (i = 0; i < tmp->attr.entry_num; i++) {
 				if (tmp->attr.entry_data[i] != NULL) {
-					if (tmp->attr.entry_data[i]->attr_name != NULL)
-						free(tmp->attr.entry_data[i]->attr_name);
 					free(tmp->attr.entry_data[i]);
 				}
 			}
@@ -1082,7 +1030,7 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	char            fpath[PATH_MAX];
 	cache_obj      *cobj;
 	int             i;
-	off_t           size, rsize;
+	off_t           size;
 	int             fd;
 	struct stat     stats;
 	cache_obj      *p, *q;
@@ -1093,6 +1041,7 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	int             duplicate;
 	cache_obj     **cache_table;
 	int             filter_cache_table_num = -1;
+	int		rc;
 
 	*fcache_table = NULL;
 
@@ -1138,14 +1087,14 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 		filter_cache_table_num = err;
 	}
 
-	cache_table = (cache_obj **) malloc(sizeof(char *) * CACHE_ENTRY_NUM);
+	cache_table = (cache_obj **) calloc(1, sizeof(char *) * CACHE_ENTRY_NUM);
 	assert(cache_table != NULL);
 
 	for (i = 0; i < CACHE_ENTRY_NUM; i++) {
 		cache_table[i] = NULL;
 	}
 
-	fcache = (fcache_t *) malloc(sizeof(fcache_t));
+	fcache = (fcache_t *) calloc(1, sizeof(fcache_t));
 	assert(fcache != NULL);
 
 	filter_cache_table[filter_cache_table_num] = fcache;
@@ -1176,71 +1125,64 @@ ocache_read_file(char *disk_path, sig_val_t *fsig, void **fcache_table,
 	}
 	size = stats.st_size;
 	memcpy(&fcache->mtime, &stats.st_mtime, sizeof(time_t));
-	rsize = 0;
 
 	pthread_mutex_lock(&shared_mutex);
-	while (rsize < size) {
-		cobj = (cache_obj *) malloc(sizeof(*cobj));
+	while (1) {
+		cobj = (cache_obj *) calloc(1, sizeof(*cobj));
 		assert(cobj != NULL);
-		read(fd, &cobj->id_sig, sizeof(sig_val_t));
-		read(fd, &cobj->iattr_sig, sizeof(sig_val_t));
-		read(fd, &cobj->result, sizeof(int));
+		rc = read(fd, &cobj->id_sig, sizeof(sig_val_t));
+		if (rc == 0) {
+			break;
+		} else if (rc < 0) {
+			printf("read error \n");
+			break;
+		}
+		rc = read(fd, &cobj->iattr_sig, sizeof(sig_val_t));
+		assert(rc == sizeof(sig_val_t));
+		rc = read(fd, &cobj->result, sizeof(int));
+		assert(rc == sizeof(int));
 
-		read(fd, &cobj->eval_count, sizeof(unsigned short));
+		rc = read(fd, &cobj->eval_count, sizeof(unsigned short));
+		assert(rc == sizeof(unsigned short));
 		cobj->aeval_count = 0;
-		read(fd, &cobj->hit_count, sizeof(unsigned short));
+		rc = read(fd, &cobj->hit_count, sizeof(unsigned short));
+		assert(rc == sizeof(unsigned short));
 		cobj->ahit_count = 0;
-		rsize +=
-		    (sizeof(sig_val_t) + sizeof(sig_val_t) + 
-			sizeof(int) + 2*sizeof(unsigned short) );
 
-		read(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
-		rsize += sizeof(unsigned int);
+		rc = read(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
+		assert(rc == sizeof(unsigned int));
 		cobj->iattr.entry_data =
-		    malloc(cobj->iattr.entry_num * sizeof(char *));
+		    calloc(1, cobj->iattr.entry_num * sizeof(char *));
 		assert(cobj->iattr.entry_data != NULL);
 		for (i = 0; i < cobj->iattr.entry_num; i++) {
-			cobj->iattr.entry_data[i] = malloc(sizeof(cache_attr_entry));
+			cobj->iattr.entry_data[i] = calloc(1, sizeof(cache_attr_entry));
 			assert(cobj->iattr.entry_data[i] != NULL);
-			read(fd, &cobj->iattr.entry_data[i]->name_len,
-			     sizeof(unsigned int));
-			cobj->iattr.entry_data[i]->attr_name =
-			    malloc(cobj->iattr.entry_data[i]->name_len + 1);
-			assert((cobj->iattr.entry_data[i]->attr_name) != NULL);
-			read(fd, cobj->iattr.entry_data[i]->attr_name,
-			     cobj->iattr.entry_data[i]->name_len);
-			cobj->iattr.entry_data[i]->attr_name[cobj->iattr.entry_data[i]->name_len] = '\0';
-			read(fd, &cobj->iattr.entry_data[i]->attr_sig, 
-				sizeof(sig_val_t));
-			rsize +=
-			    (sizeof(unsigned int) + cobj->iattr.entry_data[i]->name_len +
-			     sizeof(sig_val_t));
+
+			rc =  read(fd, cobj->iattr.entry_data[i],
+			     sizeof(cache_attr_entry));
+			assert(rc == sizeof(cache_attr_entry));
+			
 		}
 
-		read(fd, &cobj->oattr.entry_num, sizeof(unsigned int));
-		rsize += sizeof(unsigned int);
+		rc = read(fd, &cobj->oattr.entry_num, sizeof(unsigned int));
+		assert(rc == sizeof(unsigned int));
+
 		cobj->oattr.entry_data =
-		    malloc(cobj->oattr.entry_num * sizeof(char *));
+		    calloc(1, cobj->oattr.entry_num * sizeof(char *));
 		assert(cobj->oattr.entry_data != NULL);
+
 		for (i = 0; i < cobj->oattr.entry_num; i++) {
-			cobj->oattr.entry_data[i] = malloc(sizeof(cache_attr_entry));
+			cobj->oattr.entry_data[i] = 
+			    calloc(1, sizeof(cache_attr_entry));
 			assert(cobj->oattr.entry_data[i] != NULL);
-			read(fd, &cobj->oattr.entry_data[i]->name_len,
-			     sizeof(unsigned int));
-			cobj->oattr.entry_data[i]->attr_name =
-			    malloc(cobj->oattr.entry_data[i]->name_len + 1);
-			assert(cobj->oattr.entry_data[i]->attr_name != NULL);
-			read(fd, cobj->oattr.entry_data[i]->attr_name,
-			     cobj->oattr.entry_data[i]->name_len);
-			cobj->oattr.entry_data[i]->attr_name[cobj->oattr.entry_data[i]->
-			                                     name_len] = '\0';
-			read(fd, &cobj->oattr.entry_data[i]->attr_sig, 
-				sizeof(sig_val_t));
-			rsize +=
-			    (sizeof(unsigned int) + cobj->oattr.entry_data[i]->name_len +
-			     sizeof(sig_val_t));
+
+			rc = read(fd, cobj->oattr.entry_data[i],
+			     sizeof(cache_attr_entry));
+			assert(rc == sizeof(cache_attr_entry));
 		}
 		cobj->next = NULL;
+
+
 		/*
 		 * insert it into the cache_table array 
 		 */
@@ -1375,7 +1317,7 @@ ocache_add_start(char *fhandle, sig_val_t *id_sig, void *cache_table,
 	if (if_cache_table) {
 		if ((lookup == ENOENT) && (cache_table != NULL)) {
 		    	memcpy(&ocache_sig, id_sig, sizeof(sig_val_t));
-			new_entry = (cache_ring_entry *) malloc(sizeof(*new_entry));
+			new_entry = (cache_ring_entry *) calloc(1, sizeof(*new_entry));
 			assert(new_entry != NULL);
 			new_entry->type = INSERT_START;
 		    	memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
@@ -1387,7 +1329,7 @@ ocache_add_start(char *fhandle, sig_val_t *id_sig, void *cache_table,
 	if (if_cache_oattr) {
 		if (oattr_flag) {
 			memcpy(&oattr_sig, id_sig, sizeof(sig_val_t));
-			oattr_entry = (oattr_ring_entry *) malloc(sizeof(*oattr_entry));
+			oattr_entry = (oattr_ring_entry *) calloc(1, sizeof(*oattr_entry));
 			assert(oattr_entry != NULL);
 			oattr_entry->type = INSERT_START;
 		    	memcpy(&oattr_entry->id_sig, id_sig, sizeof(sig_val_t));
@@ -1406,41 +1348,31 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 {
 	cache_ring_entry *new_entry;
 	unsigned int    name_len;
-	int             err;
+	unsigned int    new_len;
 	obj_data_t     *obj = (obj_data_t *) ohandle;
 
 	if ((if_cache_table) && sig_match(&ocache_sig, &obj->id_sig)) {
-		new_entry = (cache_ring_entry *) malloc(sizeof(*new_entry));
+		new_entry = (cache_ring_entry *) calloc(1, sizeof(*new_entry));
 		assert(new_entry != NULL);
 		new_entry->type = INSERT_IATTR;
 		memcpy(&new_entry->id_sig, &obj->id_sig, sizeof(sig_val_t));
 		if (name != NULL) {
-			name_len = strlen(name);
+			name_len = strlen(name) + 1;
 		} else {
 			name_len = 0;
 		}
 		new_entry->u.iattr.name_len = name_len;
-		new_entry->u.iattr.attr_name = malloc(name_len + 1);
-		assert(new_entry->u.iattr.attr_name != NULL);
-		if (name_len > 0)
-			memcpy(new_entry->u.iattr.attr_name, name, name_len);
-		new_entry->u.iattr.attr_name[name_len] = '\0';
+		strncpy(new_entry->u.iattr.the_attr_name, name, MAX_ATTR_NAME);
 
-		err = odisk_get_attr_sig(obj, name, 
-				&new_entry->u.iattr.attr_sig);
-		if (err) {
-			printf("\t\t XXXXXXXXXXXx failed get_attr_size \n");
-		}
+		odisk_get_attr_sig(obj, name, &new_entry->u.iattr.attr_sig);
 
 		if ((if_cache_oattr) && (iattr_buflen >= 0)) {
-			if ((iattr_buflen + name_len + sizeof(sig_val_t)) <= MAX_IATTR_SIZE) {
-				if (name != NULL)
-					memcpy(iattr_buf + iattr_buflen, name, name_len);
-				iattr_buflen += name_len;
-				memcpy(iattr_buf + iattr_buflen,
-				    &new_entry->u.iattr.attr_sig, 
-				    sizeof(sig_val_t));
-				iattr_buflen += sizeof(sig_val_t);
+			new_len = iattr_buflen + sizeof(cache_attr_entry);
+			if (new_len <= MAX_IATTR_SIZE) {
+				memcpy(iattr_buf + iattr_buflen, 
+					&new_entry->u.iattr, 
+					sizeof(cache_attr_entry));
+				iattr_buflen = new_len;
 			} else {
 				sig_clear(&oattr_sig);
 			}
@@ -1469,21 +1401,21 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 
 	if (if_cache_table) {
 		if (sig_match(&ocache_sig, &obj->id_sig)) {
-			new_entry = (cache_ring_entry *) malloc(sizeof(*new_entry));
+			new_entry = (cache_ring_entry *) 	
+			    calloc(1, sizeof(*new_entry));
+
 			assert(new_entry != NULL);
 			new_entry->type = INSERT_OATTR;
 			memcpy(&new_entry->id_sig, &obj->id_sig, sizeof(sig_val_t));
 			if (name != NULL) {
-				name_len = strlen(name);
+				name_len = strlen(name) + 1;
 			} else {
 				name_len = 0;
 			}
 			new_entry->u.oattr.name_len = name_len;
-			new_entry->u.oattr.attr_name = malloc(name_len + 1);
-			assert(new_entry->u.oattr.attr_name != NULL);
-			if (name_len > 0)
-				memcpy(new_entry->u.oattr.attr_name, name, name_len);
-			new_entry->u.oattr.attr_name[name_len] = '\0';
+			strncpy(new_entry->u.oattr.the_attr_name, name, 
+				MAX_ATTR_NAME);
+
 			err = odisk_get_attr_sig(obj, name,
 					 &new_entry->u.oattr.attr_sig);
 			ocache_ring_insert(new_entry);
@@ -1497,7 +1429,8 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 			return;
 		}
 
-		oattr_entry = (oattr_ring_entry *) malloc(sizeof(*oattr_entry));
+		oattr_entry = (oattr_ring_entry *) 
+			calloc(1, sizeof(*oattr_entry));
 		assert(oattr_entry != NULL);
 
 		oattr_entry->type = INSERT_OATTR;
@@ -1520,21 +1453,21 @@ ocache_add_end(char *fhandle, sig_val_t *id_sig, int conf)
 	oattr_ring_entry *oattr_entry;
 	sig_val_t	sig;
 
-	if (if_cache_table) {
-	    if (sig_match(&ocache_sig, id_sig)) {
-			new_entry = (cache_ring_entry *) malloc(sizeof(*new_entry));
-			assert(new_entry != NULL);
-			new_entry->type = INSERT_END;
-			memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
-			new_entry->u.result = conf;
-			ocache_ring_insert(new_entry);
-			sig_clear(&ocache_sig);
-		}
+	if ((if_cache_table) && (sig_match(&ocache_sig, id_sig))) {
+		new_entry = (cache_ring_entry *) 
+			calloc(1, sizeof(*new_entry));
+		assert(new_entry != NULL);
+		new_entry->type = INSERT_END;
+		memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
+		new_entry->u.result = conf;
+		ocache_ring_insert(new_entry);
+		sig_clear(&ocache_sig);
 	}
 
 	if ((if_cache_oattr) && sig_match(&oattr_sig, id_sig)) {
 		sig_clear(&oattr_sig);
-		oattr_entry = (oattr_ring_entry *) malloc(sizeof(*oattr_entry));
+		oattr_entry = (oattr_ring_entry *) 
+			calloc(1, sizeof(*oattr_entry));
 		assert(oattr_entry != NULL);
 		oattr_entry->type = INSERT_END;
 	    	memcpy(&oattr_entry->id_sig, id_sig, sizeof(sig_val_t));
@@ -1568,9 +1501,9 @@ ocache_main(void *arg)
 	log_thread_register(cstate->log_cookie);
 
 
-	iattr = malloc(ATTR_ENTRY_NUM * sizeof(char *));
+	iattr = calloc(1, ATTR_ENTRY_NUM * sizeof(char *));
 	assert(iattr!=NULL);
-	oattr = malloc(ATTR_ENTRY_NUM * sizeof(char *));
+	oattr = calloc(1, ATTR_ENTRY_NUM * sizeof(char *));
 	assert(oattr!=NULL);
 
 	while (1) {
@@ -1601,7 +1534,7 @@ ocache_main(void *arg)
 		 */
 		if (tobj->type == INSERT_START) {
 			correct = 0;
-			cobj = (cache_obj *) malloc(sizeof(*cobj));
+			cobj = (cache_obj *) calloc(1, sizeof(*cobj));
 			assert(cobj != NULL);
 			memcpy(&cobj->id_sig, &tobj->id_sig, sizeof(sig_val_t));
 			cobj->eval_count = 0;
@@ -1617,21 +1550,19 @@ ocache_main(void *arg)
 				err = ocache_lookup_next(&tobj, cstate);
 				if (tobj->type == INSERT_IATTR) {
 					if (!sig_match(&cobj->id_sig, &tobj->id_sig)) {
-						if (tobj->u.iattr.attr_name)
-							free(tobj->u.iattr.attr_name);
 						free(tobj);
 						break;
 					}
-					attr_entry = (cache_attr_entry *) malloc(sizeof(cache_attr_entry));
+					attr_entry = (cache_attr_entry *) 
+						calloc(1, sizeof(cache_attr_entry));
 					assert(attr_entry != NULL);
-					attr_entry->name_len = tobj->u.iattr.name_len;
-					attr_entry->attr_name = tobj->u.iattr.attr_name;
-					memcpy(&attr_entry->attr_sig, &tobj->u.iattr.attr_sig, 
-						sizeof(sig_val_t));
+					memcpy(attr_entry, &tobj->u.iattr, 
+						sizeof(cache_attr_entry));
+
 					iattr[cobj->iattr.entry_num] = attr_entry;
 					cobj->iattr.entry_num++;
 					if ((cobj->iattr.entry_num % ATTR_ENTRY_NUM) == 0) {
-						tmp =malloc((cobj->iattr.entry_num +
+						tmp =calloc(1, (cobj->iattr.entry_num +
 						             ATTR_ENTRY_NUM) * sizeof(char *));
 						assert(tmp!=NULL);
 						memcpy(tmp, iattr,
@@ -1644,21 +1575,20 @@ ocache_main(void *arg)
 				}
 				if (tobj->type == INSERT_OATTR) {
 					if (!sig_match(&cobj->id_sig, &tobj->id_sig)) {
-						if (tobj->u.oattr.attr_name)
-							free(tobj->u.oattr.attr_name);
 						free(tobj);
 						break;
 					}
-					attr_entry = (cache_attr_entry *) malloc(sizeof(cache_attr_entry));
+					attr_entry = (cache_attr_entry *) 
+						calloc(1, sizeof(cache_attr_entry));
 					assert(attr_entry != NULL);
-					attr_entry->name_len = tobj->u.oattr.name_len;
-					attr_entry->attr_name = tobj->u.oattr.attr_name;
-					memcpy(&attr_entry->attr_sig, &tobj->u.oattr.attr_sig, 
-						sizeof(sig_val_t));
+
+					memcpy(attr_entry, &tobj->u.oattr, 
+						sizeof(cache_attr_entry));
 					oattr[cobj->oattr.entry_num] = attr_entry;
 					cobj->oattr.entry_num++;
+
 					if ((cobj->oattr.entry_num % ATTR_ENTRY_NUM) == 0) {
-						tmp =malloc((cobj->oattr.entry_num +
+						tmp =calloc(1, (cobj->oattr.entry_num +
 						             ATTR_ENTRY_NUM) * sizeof(char *));
 						assert(tmp!=NULL);
 						memcpy(tmp, oattr,
@@ -1684,14 +1614,14 @@ ocache_main(void *arg)
 			 * insert into cache table 
 			 */
 			if( cobj->iattr.entry_num > 0 ) {
-				cobj->iattr.entry_data = malloc(cobj->iattr.entry_num * sizeof(char *));
+				cobj->iattr.entry_data = calloc(1, cobj->iattr.entry_num * sizeof(char *));
 				assert(cobj->iattr.entry_data != NULL);
 				memcpy(cobj->iattr.entry_data, iattr, cobj->iattr.entry_num*sizeof(char *));
 			} else {
 				cobj->iattr.entry_data = NULL;
 			}
 			if (cobj->oattr.entry_num > 0) {
-				cobj->oattr.entry_data = malloc(cobj->oattr.entry_num * sizeof(char *));
+				cobj->oattr.entry_data = calloc(1,cobj->oattr.entry_num * sizeof(char *));
 				assert(cobj->oattr.entry_data != NULL);
 				memcpy(cobj->oattr.entry_data, oattr, cobj->oattr.entry_num*sizeof(char *));
 			} else {
@@ -1766,120 +1696,119 @@ oattr_main(void *arg)
 			continue;
 
 		if (tobj->type != INSERT_START) {
+			printf("LH not start \n");
 			if (tobj->type == INSERT_OATTR) {
 				odisk_release_obj(tobj->u.oattr.obj);
 			}
 			free(tobj);
 			continue;
 		}
+		correct = 0;
+		memcpy(&id_sig, &tobj->id_sig, sizeof(sig_val_t));
+		s_str = sig_string(&tobj->u.fsig);
+		i_str = sig_string(&id_sig);
+		if (s_str == NULL) {
+			continue;
+		}
+		sprintf(attrbuf, "%s/%s/%s",
+			cstate->ocache_path, s_str, i_str);
+		free(s_str);
+		free(i_str);
+		free(tobj);
 
-		if (tobj->type == INSERT_START) {
-			correct = 0;
-			memcpy(&id_sig, &tobj->id_sig, sizeof(sig_val_t));
-			s_str = sig_string(&tobj->u.fsig);
-			i_str = sig_string(&id_sig);
-			if (s_str == NULL) {
+		fd = open(attrbuf, O_WRONLY | O_CREAT | O_EXCL, 00777);
+		if (fd < 0) {
+			if (errno == EEXIST) {
+				continue;
+			} else {
+				printf("failed to open %s \n", attrbuf);
 				continue;
 			}
-			sprintf(attrbuf, "%s/%s/%s/%s",
-			        cstate->ocache_path, CACHE_DIR, s_str, i_str);
-			free(s_str);
-			free(i_str);
+		}
+		err = flock(fd, LOCK_EX);
+		if (err) {
+			perror("error when locking oattr file\n");
+			close(fd);
+			continue;
+		}
 
-			free(tobj);
-
-			fd = open(attrbuf, O_WRONLY | O_CREAT | O_EXCL, 00777);
-			if (fd < 0) {
-				if (errno == EEXIST) {
-					continue;
-				} else {
-					perror("error");
-					continue;
-				}
+		wcount = 0;
+		while (1) {
+			err = oattr_lookup_next(&tobj, cstate);
+			if (err != 1) {
+				printf("something wrong from oattr_lookup_next\n");
+				break;
 			}
-			err = flock(fd, LOCK_EX);
-			if (err) {
-				perror("error when locking oattr file\n");
-				close(fd);
-				continue;
-			}
-
-			wcount = 0;
-			while (1) {
-				err = oattr_lookup_next(&tobj, cstate);
-				if (err != 1) {
-					printf("something wrong from oattr_lookup_next\n");
-					break;
-				}
-				if (!sig_match(&id_sig, &tobj->id_sig)) {
-					free(tobj);
-					break;
-				}
-				if (tobj->type == INSERT_END) {
-					/*
-					 * write out existing data 
-					 */
-					if (wcount > 0) {
-						err = writev(fd, wvec, wcount);
-						assert(err >= 0);
-						for (i = 0; i < wcount; i++) {
-							odisk_release_obj(ovec[i]);
-						}
-					}
-			
-					s_str = sig_string(&tobj->u.iattr_sig);
-					if (s_str == NULL) {
-						free(tobj);
-						break;
-					}
-					sprintf(new_attrbuf, "%s.%s", attrbuf,
-						s_str);
-					free(s_str);
-					free(tobj);
-					correct = 1;
-					break;
-				}
-				if (tobj->type != INSERT_OATTR) {
-					printf("something wrong in oattr\n");
-					free(tobj);
-					break;
-				}
-				/*
-				 * put this record on the list to process 
-				 */
-				wvec[wcount].iov_base = tobj->u.oattr.arec;
-				wvec[wcount].iov_len = tobj->u.oattr.arec->rec_len;
-				ovec[wcount] = tobj->u.oattr.obj;
-				wcount++;
+			if (!sig_match(&id_sig, &tobj->id_sig)) {
 				free(tobj);
-
-
+				break;
+			}
+			if (tobj->type == INSERT_END) {
 				/*
-				 * if the vector is full then flush it 
+				 * write out existing data 
 				 */
-				if (wcount == MAX_VEC_SIZE) {
-					/*
-					 * XXX err ?
-					 */
+				if (wcount > 0) {
 					err = writev(fd, wvec, wcount);
 					assert(err >= 0);
 					for (i = 0; i < wcount; i++) {
 						odisk_release_obj(ovec[i]);
 					}
-					wcount = 0;
 				}
+		
+				s_str = sig_string(&tobj->u.iattr_sig);
+				if (s_str == NULL) {
+					free(tobj);
+					break;
+				}
+				sprintf(new_attrbuf, "%s.%s", attrbuf,
+					s_str);
+				free(s_str);
+				free(tobj);
+				correct = 1;
+				break;
 			}
+			if (tobj->type != INSERT_OATTR) {
+				printf("something wrong in oattr\n");
+				free(tobj);
+				break;
+			}
+			/*
+			 * put this record on the list to process 
+			 */
+			wvec[wcount].iov_base = tobj->u.oattr.arec;
+			wvec[wcount].iov_len = tobj->u.oattr.arec->rec_len;
+			ovec[wcount] = tobj->u.oattr.obj;
+			wcount++;
+			free(tobj);
 
-			close(fd);
 
-			if (correct == 0) {
-				unlink(attrbuf);
+			/*
+			 * if the vector is full then flush it 
+			 */
+			if (wcount == MAX_VEC_SIZE) {
+				/*
+				 * XXX err ?
+				 */
+				err = writev(fd, wvec, wcount);
+				assert(err >= 0);
 				for (i = 0; i < wcount; i++) {
 					odisk_release_obj(ovec[i]);
 				}
-			} else {
-				rename(attrbuf, new_attrbuf);
+				wcount = 0;
 			}
+		}
+
+		close(fd);
+
+		if (correct == 0) {
+			printf("failed write to %s \n", attrbuf);
+			unlink(attrbuf);
+			for (i = 0; i < wcount; i++) {
+				odisk_release_obj(ovec[i]);
+			}
+		} else {
+			printf("rename write to %s \n", new_attrbuf);
+			rename(attrbuf, new_attrbuf);
 		}
 	}
 }
@@ -1922,7 +1851,7 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	/* creat output attr ring */
 	ring_init(&oattr_ring, OATTR_RING_SIZE);
 
-	new_state = (ocache_state_t *) malloc(sizeof(*new_state));
+	new_state = (ocache_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
 
 	memset(new_state, 0, sizeof(*new_state));
@@ -2002,7 +1931,7 @@ ocache_stop(char *dirp)
 		filter_cache_table[i] = NULL;
 	}
 
-	//ocache_init_write(dir_path);
+	ocache_init_write(dir_path);
 	return (0);
 }
 

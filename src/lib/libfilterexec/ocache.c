@@ -1807,7 +1807,6 @@ oattr_main(void *arg)
 				odisk_release_obj(ovec[i]);
 			}
 		} else {
-			printf("rename write to %s \n", new_attrbuf);
 			rename(attrbuf, new_attrbuf);
 		}
 	}

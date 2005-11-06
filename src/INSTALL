@@ -1,22 +1,42 @@
+Welcome
+-------------------
+
+In this file, ">>" indicates a line to execute. The intent is that reading through this file while executing these lines provides a reasonable way to install and build Diamond.
+
+Notes
+-------------------
+-- Diamond does NOT work with the latest version of gcc. Downgrade gcc until you stop getting "can't compile with both -static and -shared".
+-- adiskd can't find data -> check the number of zeros in GIDIDX0000...000...
+
+
 Building the system
 -------------------
 
-To build the Diamond system you must first run the "configure" script
-to generate the make files (if your are building from the CVS tree
-instead of a tar file, then you must run 'autoconf' first).  You
-have the option of running configure at the base directory
-or the build environment supports VPATHs if you wish to keep
-a separate build hierarchy.
+If you are building from CVS, run autoconf to generate the configure script:
+>>(1) cd diamond/src; autoconf
 
-Once "configure" has completed, build the system
-by typing "make".  As the system builds, all of the important header
-files, libraries and binaries will be put in target/{include, lib, bin}.
+Now run the configure script. The Diamond source trees allows compilation output to be in a separate tree, so the sources can be read-only. Here the tree starts in a separate directory named diamond-OBJS.
+
+Thus either do:
+>>(2a) cd diamond/src; ./configure
+
+OR
+
+>>(2b) mkdir diamond-OBJS; cd diamond-OBJS/
+>>(2b) /fullpath..../diamond/src/configure
+
+Then build Diamond. As the system builds, all of the important header files,
+libraries and binaries will be put in target/{include, lib, bin}.
+
+>>(3) make
 
 One make has completed, you can either run diamond out of the 
 build directory or you can install it in the system.  Running
 "make install" will install all the files in 
 /usr/local/diamond/{include,lib,bin}  (this requires root access).  Options
 to make install allow data to be install into other locations.
+
+>>(4 - optional) make install
 
 Diamond Configuration
 ---------------------
@@ -29,16 +49,16 @@ how the system is configured and where data is located.
 
 On the back-end the daemon `adiskd` needs to be running.  This
 handles incoming requests and creates new search contexts by forking
-off new processes.  To simplify deployment, we current run this
-as a specific user instead of as a services.  Any files that
+off new processes.  To simplify deployment, we currently run this
+as a specific user instead of as a service.  Any files that
 are to be processed during the search, need to be read-accessible
-to the user starts the daemon.
+to the user starting the daemon.
 
 The front-end software is included in the diamond applications
 through the libraries. 
 
-In both cases, the necessary configuration files live
-in configuration directory.  The system will search the following
+In both cases (the front and back end), the necessary configuration files live
+in a configuration directory.  The system will search the following
 locations for the configurations files in this order.  First
 it looks for an environmental variable "DIAMOND_CONFIG"  if
 this is set, it uses the value as the potential directory
@@ -65,7 +85,7 @@ the file should be something like
 	DATATYPE NATIVE
 
 The line DATAROOT gives a prefix relative
-to all the files.  Each file being searched be opened
+to all the files.  Each file being searched is opened
 with the concatenation of the DATAROOT and the local file
 name.  The INDEXDIR gives the absolute pathname to a directory
 where index files are stored (see below for more on index
@@ -90,16 +110,45 @@ example to generate a index of all ppm files into group 1 run
 	find . -name \*.ppm > indexdir/GIDIDX0000000000000001
 
 
+
+Here is a reasonable way execute all this. Assume your data, .ppm images, are in the directory /home/you/diamond/data. We will create a diamond_idx directory in your home directory.
+
+Create the index file:
+>>(5) cd ~; mkdir diamond_idx
+>>(6) cd ~/diamond/data; find . -name \*.ppm > ~/diamond_idx/GIDIDX0000000000000001
+
+And a location for cached data:
+>>(7) mkdir /tmp/cachejunk
+
+>>(8) cd ~; mkdir .diamond
+
+Put all the pieces together:
+>>(9) Create the file diamond_config in .diamond/
+DATAROOT        /home/you/diamond/data
+INDEXDIR        /home/you/diamond_idx
+DATATYPE        NATIVE
+CACHEDIR        /tmp/cachejunk
+
+
 Front-end configuration
 -----------------------
 
 On the front-end there are several configuration files that describe 
 where the data resides.  The first is the gid_map file
 that maps groups to one or more machines that holds data in that
-group.  The lines in this file a gid (colon seperated) followed by a list
-of machines that have data for that group.  The other file is
-name_map that takes a symbolic name (e.g.  "photos" and maps it
-to one or more groups).  
+group.  The lines in this file are composed of a gid (colon seperated) 
+followed by a list of machines that have data for that group.  
+The other file is name_map that takes a symbolic name 
+(e.g.  "photos" and maps it to one or more groups).  
+
+Name the group, e.g. search1
+>>(10) In .diamond/, create the file name_map
+search1 00:00:00:00:00:00:00:01
+
+We have to map the GID to its location on the network. E.g. for localhost:
+>>(11) In .diamond/, create the file gid_map
+00:00:00:00:00:00:00:01 127.0.0.1
+
 
 Running adisk
 ------------
@@ -107,6 +156,12 @@ Running adisk
 To start the adiskd, just run it without any arguments.  This will
 create a daemon that runs in the background.  Running adiskd -h
 will show other arguments.
+
+
+Run adiskd in debug mode:
+>>(12a) diamond/src/target/bin/adiskd -d -n
+OR
+>>(13a) diamond-OBJS/target/bin/adiskd -d -n
 
 Remote setup
 ------------

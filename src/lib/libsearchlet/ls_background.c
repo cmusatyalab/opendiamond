@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -17,9 +17,11 @@
  */
 #include <pthread.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <assert.h>
@@ -38,71 +40,43 @@
 #include "lib_filterexec.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
-/* XXX put later */
+/*
+ * XXX put later 
+ */
 #define	BG_RING_SIZE	512
 
 
 #define	BG_STARTED	0x01
 #define	BG_SET_SEARCHLET	0x02
 
-/* XXX debug for now, enables cpu based load splitting */
-uint32_t	do_cpu_update	=  0;
+/*
+ * XXX debug for now, enables cpu based load splitting 
+ */
+uint32_t        do_cpu_update = 0;
 
 typedef enum {
-    BG_STOP,
-    BG_START,
-    BG_SEARCHLET,
-    BG_SET_BLOB,
+	BG_STOP,
+	BG_START,
+	BG_SEARCHLET,
+	BG_SET_BLOB,
 } bg_op_type_t;
 
-/* XXX huge hack */
-typedef struct
-{
-	bg_op_type_t	cmd;
-	bg_op_type_t	ver_id;
-	char *			filter_name;
-	char *			spec_name;
-	void *			blob;
-	int				blob_len;
-}
-bg_cmd_data_t;
+/*
+ * XXX huge hack 
+ */
+typedef struct {
+	bg_op_type_t    cmd;
+	bg_op_type_t    ver_id;
+	sig_val_t       filt_sig;
+	char           *filter_name;
+	char           *spec_name;
+	void           *blob;
+	int             blob_len;
+} bg_cmd_data_t;
 
-
-
-#ifdef	XXX
-void
-update_rates(search_context_t *sc)
-{
-	double	load;
-	device_handle_t	*	cur_dev;
-	int			dev_cnt = 0;
-	uint64_t		val;
-	uint64_t		target;
-	int			err;
-
-	if (do_cpu_update == 0) {
-		return;
-	}
-	load = fexec_get_load(sc->bg_fdata);
-
-	r_cpu_freq(&val);
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		dev_cnt++;
-	}
-
-	target = (uint64_t)((double)val * load/(double)dev_cnt);
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		dev_cnt++;
-		err = device_set_offload(cur_dev->dev_handle,
-		                         sc->cur_search_id, target);
-		assert(err == 0);
-	}
-}
-#else
 
 static void
 thread_setup(search_context_t * sc)
@@ -112,17 +86,17 @@ thread_setup(search_context_t * sc)
 }
 
 void
-update_dev_stats(search_context_t *sc)
+update_dev_stats(search_context_t * sc)
 {
-	device_handle_t	*	cur_dev;
-	int			err;
-	dev_stats_t *		dstats;
-	int			size;
-	int			remain;
+	device_handle_t *cur_dev;
+	int             err;
+	dev_stats_t    *dstats;
+	int             size;
+	int             remain;
 
 	thread_setup(sc);
 
-	dstats = (dev_stats_t *)malloc(DEV_STATS_SIZE(20));
+	dstats = (dev_stats_t *) malloc(DEV_STATS_SIZE(20));
 	assert(dstats != NULL);
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
@@ -140,66 +114,20 @@ update_dev_stats(search_context_t *sc)
 		cur_dev->remain_old = cur_dev->remain_mid;
 		cur_dev->remain_mid = cur_dev->remain_new;
 		cur_dev->remain_new = remain;
-		cur_dev->prate = ((float)dstats->ds_avg_obj_time)/1000.0;
-		cur_dev->done = ((float)cur_dev->remain_new)/cur_dev->prate;
+		cur_dev->prate = ((float) dstats->ds_avg_obj_time) / 1000.0;
+		cur_dev->done =
+		    ((float) cur_dev->remain_new) / cur_dev->prate;
 
 	}
 	free(dstats);
 }
 
-#ifdef	XXX
 void
-update_total_rate(search_context_t *sc)
+update_total_rate(search_context_t * sc)
 {
-	device_handle_t	*	cur_dev;
-	int			min_done = 1000000;
-	float			max_delta = 0;
-	int			target;
-	float			scale;
-
-	update_dev_stats(sc);
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->done < min_done) {
-			min_done = cur_dev->done;
-		}
-	}
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		cur_dev->delta = ((float)cur_dev->done)/
-		                 (float)min_done;
-		if (cur_dev->delta < 0.0) {
-			cur_dev->delta = 0.0;
-		}
-		if (cur_dev->delta > max_delta) {
-			max_delta = cur_dev->delta;
-		}
-	}
-
-	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
-
-	/* now adjust all the values */
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		target = (int)(cur_dev->delta * scale);
-		if (target > MAX_CREDIT_INCR) {
-			target = MAX_CREDIT_INCR;
-		} else if (target < 1) {
-			target = 1;
-		}
-		if (target > cur_dev->credit_incr) {
-			cur_dev->credit_incr++;
-		} else if (target < cur_dev->credit_incr) {
-			cur_dev->credit_incr--;
-		}
-	}
-}
-#else
-void
-update_total_rate(search_context_t *sc)
-{
-	device_handle_t	*	cur_dev;
-	float			min_done = 1000000.0;
-	float			max_delta = 0;
+	device_handle_t *cur_dev;
+	float           min_done = 1000000.0;
+	float           max_delta = 0;
 
 	update_dev_stats(sc);
 
@@ -219,10 +147,12 @@ update_total_rate(search_context_t *sc)
 		}
 	}
 
-	/* now adjust all the values */
+	/*
+	 * now adjust all the values 
+	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->credit_incr =
-		    (int)((cur_dev->delta/max_delta)*MAX_CREDIT_INCR);
+		    (int) ((cur_dev->delta / max_delta) * MAX_CREDIT_INCR);
 		if (cur_dev->credit_incr > MAX_CREDIT_INCR) {
 			cur_dev->credit_incr = MAX_CREDIT_INCR;
 		} else if (cur_dev->credit_incr < 1) {
@@ -232,16 +162,14 @@ update_total_rate(search_context_t *sc)
 }
 
 
-#endif
-
 void
-update_delta_rate(search_context_t *sc)
+update_delta_rate(search_context_t * sc)
 {
-	device_handle_t	*	cur_dev;
-	float			min_done = 1000000.0;
-	float			max_delta = 0;
-	int			target;
-	float			scale;
+	device_handle_t *cur_dev;
+	float           min_done = 1000000.0;
+	float           max_delta = 0;
+	int             target;
+	float           scale;
 
 	update_dev_stats(sc);
 
@@ -255,8 +183,8 @@ update_delta_rate(search_context_t *sc)
 	}
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		cur_dev->delta = ((float)(cur_dev->done - min_done))/
-		                 (float)min_done;
+		cur_dev->delta = ((float) (cur_dev->done - min_done)) /
+		    (float) min_done;
 		if (cur_dev->delta < 0.0) {
 			cur_dev->delta = 0.0;
 		}
@@ -269,11 +197,13 @@ update_delta_rate(search_context_t *sc)
 		max_delta = 1.0;
 	}
 
-	scale = (float)MAX_CREDIT_INCR/(float)max_delta;
+	scale = (float) MAX_CREDIT_INCR / (float) max_delta;
 
-	/* now adjust all the values */
+	/*
+	 * now adjust all the values 
+	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		target = (int)(cur_dev->delta * scale);
+		target = (int) (cur_dev->delta * scale);
 		if (target > MAX_CREDIT_INCR) {
 			target = MAX_CREDIT_INCR;
 		} else if (target < 1) {
@@ -288,16 +218,18 @@ update_delta_rate(search_context_t *sc)
 }
 
 void
-update_rail(search_context_t *sc)
+update_rail(search_context_t * sc)
 {
-	device_handle_t	*	cur_dev;
-	float		max_done = 0.0;
-	float		target;
+	device_handle_t *cur_dev;
+	float           max_done = 0.0;
+	float           target;
 
-	//printf("update rates: rail \n");
+	// printf("update rates: rail \n");
 	update_dev_stats(sc);
 
-	/* find the one that will finish the latest */
+	/*
+	 * find the one that will finish the latest 
+	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		if (cur_dev->done > max_done) {
 			max_done = cur_dev->done;
@@ -305,72 +237,76 @@ update_rail(search_context_t *sc)
 	}
 	// XXX printf("max done %f \n", max_done);
 
-	/* now adjust all the values */
+	/*
+	 * now adjust all the values 
+	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		if (cur_dev->done == max_done) {
 			target = MAX_CREDIT_INCR;
 		} else {
 			target = 1.0;
 		}
-		if (target > (float)cur_dev->credit_incr) {
+		if (target > (float) cur_dev->credit_incr) {
 			cur_dev->credit_incr++;
-		} else if (target < (float)cur_dev->credit_incr) {
+		} else if (target < (float) cur_dev->credit_incr) {
 			cur_dev->credit_incr--;
 		}
 	}
 }
 
 void
-update_rates(search_context_t *sc)
+update_rates(search_context_t * sc)
 {
-	//printf("update rates \n");
+	// printf("update rates \n");
 
 	switch (sc->bg_credit_policy) {
-		case	CREDIT_POLICY_RAIL:
-			update_rail(sc);
-			break;
+	case CREDIT_POLICY_RAIL:
+		update_rail(sc);
+		break;
 
-		case	CREDIT_POLICY_PROP_TOTAL:
-			update_total_rate(sc);
-			break;
+	case CREDIT_POLICY_PROP_TOTAL:
+		update_total_rate(sc);
+		break;
 
-		case	CREDIT_POLICY_PROP_DELTA:
-			update_delta_rate(sc);
-			break;
+	case CREDIT_POLICY_PROP_DELTA:
+		update_delta_rate(sc);
+		break;
 
-		case	CREDIT_POLICY_STATIC:
-		default:
-			break;
+	case CREDIT_POLICY_STATIC:
+	default:
+		break;
 	}
 }
-#endif
 
 static void
-refill_credits(search_context_t *sc)
+refill_credits(search_context_t * sc)
 {
-	device_handle_t *	cur_dev;
+	device_handle_t *cur_dev;
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		cur_dev->cur_credits += (float)cur_dev->credit_incr;
-		if (cur_dev->cur_credits > (float)MAX_CUR_CREDIT) {
-			cur_dev->cur_credits = (float)MAX_CUR_CREDIT;
+		cur_dev->cur_credits += (float) cur_dev->credit_incr;
+		if (cur_dev->cur_credits > (float) MAX_CUR_CREDIT) {
+			cur_dev->cur_credits = (float) MAX_CUR_CREDIT;
 		}
-		//printf("refil: id=%08x new %f incr %d \n", cur_dev->dev_id,
-		//cur_dev->cur_credits, cur_dev->credit_incr);
+		// printf("refil: id=%08x new %f incr %d \n",
+		// cur_dev->dev_id,
+		// cur_dev->cur_credits, cur_dev->credit_incr);
 	}
 }
 
-/* XXX constant config */
+/*
+ * XXX constant config 
+ */
 #define         POLL_SECS       1
 #define         POLL_USECS      0
 
 
-obj_info_t *
-get_next_object(search_context_t *sc)
+obj_info_t     *
+get_next_object(search_context_t * sc)
 {
-	device_handle_t *	cur_dev;
-	obj_info_t	*		obj_inf;
-	int	 				loop = 0;
+	device_handle_t *cur_dev;
+	obj_info_t     *obj_inf;
+	int             loop = 0;
 
 	if (sc->last_dev == NULL) {
 		cur_dev = sc->dev_list;
@@ -378,24 +314,23 @@ get_next_object(search_context_t *sc)
 		cur_dev = sc->last_dev->next;
 	}
 
-redo:
+      redo:
 	while (cur_dev != NULL) {
 		if (cur_dev->cur_credits > 0.0) {
 			obj_inf = device_next_obj(cur_dev->dev_handle);
 			if (obj_inf != NULL) {
-				// XXX cur_dev->cur_credits -= obj_inf->obj->remain_compute;
-				// XXX cur_dev->cur_credits --;
 				cur_dev->serviced++;
 				sc->last_dev = cur_dev;
-				return(obj_inf);
+				return (obj_inf);
 			}
 		}
 		cur_dev = cur_dev->next;
 	}
 
-	/* if we fall through and it is our first iteration
-	 * then retry from the begining.  On the second interation we
-	 * decide there isn't any data.
+	/*
+	 * if we fall through and it is our first iteration then retry from
+	 * the begining.  On the second interation we decide there isn't any
+	 * data. 
 	 */
 	if (loop == 0) {
 		loop = 1;
@@ -407,17 +342,18 @@ redo:
 		refill_credits(sc);
 		goto redo;
 	}
-	return(NULL);
+	return (NULL);
 }
 
 void
-dec_object_credit(search_context_t *sc, double etime)
+dec_object_credit(search_context_t * sc, double etime)
 {
-	double	credit = etime/sc->avg_proc_time;
+	double          credit = etime / sc->avg_proc_time;
 	if (sc->last_dev != NULL) {
 		sc->last_dev->cur_credits -= credit;
-		//printf("dec_credits: id=%08x new %f delta %f \n", sc->last_dev->dev_id,
-		//	sc->last_dev->cur_credits, credit);
+		// printf("dec_credits: id=%08x new %f delta %f \n",
+		// sc->last_dev->dev_id,
+		// sc->last_dev->cur_credits, credit);
 	}
 }
 
@@ -426,7 +362,7 @@ dec_object_credit(search_context_t *sc, double etime)
 int
 bg_val(void *cookie)
 {
-	return(1);
+	return (1);
 }
 
 /*
@@ -434,50 +370,52 @@ bg_val(void *cookie)
  * the data coming from the individual devices.
  */
 
-static void *
+static void    *
 bg_main(void *arg)
 {
-	obj_data_t *		new_obj;
-	obj_info_t *		obj_info;
-	search_context_t *	sc;
-	int					err;
-	bg_cmd_data_t *		cmd;
-	int					any;
-	device_handle_t *	cur_dev;
-	double				etime;
-	struct timeval		this_time;
-	struct timeval		next_time = {
-		                            0,0
-	                            };
-	struct timezone		tz;
-	struct timespec 	timeout;
-	uint32_t			loop_count = 0;
-	uint32_t			dummy = 0;
+	obj_data_t     *new_obj;
+	obj_info_t     *obj_info;
+	search_context_t *sc;
+	int             err;
+	bg_cmd_data_t  *cmd;
+	int             any;
+	device_handle_t *cur_dev;
+	double          etime;
+	struct timeval  this_time;
+	struct timeval  next_time = {
+		0, 0
+	};
+	struct timezone tz;
+	struct timespec timeout;
+	uint32_t        loop_count = 0;
+	uint32_t        dummy = 0;
 
-	sc = (search_context_t *)arg;
+	sc = (search_context_t *) arg;
 
 	dctl_thread_register(sc->dctl_cookie);
 	log_thread_register(sc->log_cookie);
 
 	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
 	assert(err == 0);
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count", DCTL_DT_UINT32,
-	                         dctl_read_uint32, dctl_write_uint32, &loop_count);
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count",
+				 DCTL_DT_UINT32, dctl_read_uint32,
+				 dctl_write_uint32, &loop_count);
 	assert(err == 0);
 
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "cpu_split",
-	                         DCTL_DT_UINT32, dctl_read_uint32,
-	                         dctl_write_uint32, &do_cpu_update);
+				 DCTL_DT_UINT32, dctl_read_uint32,
+				 dctl_write_uint32, &do_cpu_update);
 	assert(err == 0);
 
 
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "dummy", DCTL_DT_UINT32,
-	                         dctl_read_uint32, dctl_write_uint32, &dummy);
+	err =
+	    dctl_register_leaf(HOST_BACKGROUND_PATH, "dummy", DCTL_DT_UINT32,
+			       dctl_read_uint32, dctl_write_uint32, &dummy);
 	assert(err == 0);
 
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "credit_policy",
-	                         DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32,
-	                         &sc->bg_credit_policy);
+				 DCTL_DT_UINT32, dctl_read_uint32,
+				 dctl_write_uint32, &sc->bg_credit_policy);
 	assert(err == 0);
 
 
@@ -503,7 +441,7 @@ bg_main(void *arg)
 		 * This code processes the objects that have not yet
 		 * been fully processed.
 		 */
-		if ((sc->bg_status & BG_STARTED)  &&
+		if ((sc->bg_status & BG_STARTED) &&
 		    (ring_count(sc->proc_ring) < sc->pend_lw)) {
 			obj_info = get_next_object(sc);
 			if (obj_info != NULL) {
@@ -528,17 +466,26 @@ bg_main(void *arg)
 				 * object.
 				 */
 				err = eval_filters(new_obj, sc->bg_fdata, 1,
-				                   &etime, &sc, bg_val, NULL);
-				sc->avg_proc_time = (0.90 * sc->avg_proc_time) + (0.10 * etime);
+						   &etime, &sc, bg_val, NULL);
+				sc->avg_proc_time =
+				    (0.90 * sc->avg_proc_time) +
+				    (0.10 * etime);
 				dec_object_credit(sc, etime);
 				if (err == 0) {
 					ls_release_object(sc, new_obj);
 					free(obj_info);
 				} else {
-					err = ring_enq(sc->proc_ring, (void *)obj_info);
+					err =
+					    ring_enq(sc->proc_ring,
+						     (void *) obj_info);
 					if (err) {
-						/* XXX handle overflow gracefully !!! */
-						/* XXX log */
+						/*
+						 * XXX handle overflow
+						 * gracefully !!! 
+						 */
+						/*
+						 * XXX log 
+						 */
 						assert(0);
 					}
 				}
@@ -551,14 +498,17 @@ bg_main(void *arg)
 				any = 0;
 				cur_dev = sc->dev_list;
 				while (cur_dev != NULL) {
-					if ((cur_dev->flags & DEV_FLAG_COMPLETE) == 0) {
+					if ((cur_dev->
+					     flags & DEV_FLAG_COMPLETE) ==
+					    0) {
 						any = 1;
 						break;
 					}
 					cur_dev = cur_dev->next;
 				}
 
-				if ((any == 0) && (sc->cur_status == SS_ACTIVE)) {
+				if ((any == 0)
+				    && (sc->cur_status == SS_ACTIVE)) {
 					sc->cur_status = SS_DONE;
 				}
 			}
@@ -572,7 +522,9 @@ bg_main(void *arg)
 
 		}
 
-		/* timeout look that runs once a second */
+		/*
+		 * timeout look that runs once a second 
+		 */
 		gettimeofday(&this_time, &tz);
 
 		if (((this_time.tv_sec == next_time.tv_sec) &&
@@ -598,57 +550,70 @@ bg_main(void *arg)
 		cmd = (bg_cmd_data_t *) ring_deq(sc->bg_ops);
 		if (cmd != NULL) {
 			any = 1;
-			switch(cmd->cmd) {
-				case BG_SEARCHLET:
-					sc->bg_status |= BG_SET_SEARCHLET;
-					err = fexec_load_searchlet(cmd->filter_name,
-					                           cmd->spec_name,
-					                           &sc->bg_fdata);
-					assert(!err);
-					break;
+			switch (cmd->cmd) {
+			case BG_SEARCHLET:
+				sc->bg_status |= BG_SET_SEARCHLET;
+				err = fexec_load_searchlet(cmd->filter_name,
+							   cmd->spec_name,
+							   &sc->bg_fdata,
+							   &cmd->filt_sig);
+				assert(!err);
+				break;
 
-				case BG_SET_BLOB:
-					fexec_set_blob(sc->bg_fdata, cmd->filter_name,
-					               cmd->blob_len, cmd->blob);
-					assert(!err);
-					break;
+			case BG_SET_BLOB:
+				fexec_set_blob(sc->bg_fdata, cmd->filter_name,
+					       cmd->blob_len, cmd->blob);
+				assert(!err);
+				break;
 
-				case BG_START:
-					/* XXX reinit filter is not new one */
-					if (!(sc->bg_status & BG_SET_SEARCHLET)) {
-						printf("start: no searchlet\n");
-						break;
+			case BG_START:
+				/*
+				 * XXX reinit filter is not new one 
+				 */
+				if (!(sc->bg_status & BG_SET_SEARCHLET)) {
+					printf("start: no searchlet\n");
+					break;
+				}
+				/*
+				 * XXX clear out the proc ring 
+				 */
+				{
+					obj_data_t     *new_obj;
+					obj_info_t     *obj_info;
+
+					while (!ring_empty(sc->proc_ring)) {
+						/*
+						 * XXX lock 
+						 */
+						obj_info =
+						    (obj_info_t *)
+						    ring_deq(sc->proc_ring);
+						new_obj = obj_info->obj;
+						ls_release_object(sc,
+								  new_obj);
+						free(obj_info);
 					}
-					/* XXX clear out the proc ring */
-					{
-						obj_data_t *		new_obj;
-						obj_info_t *		obj_info;
+				}
 
-						while(!ring_empty(sc->proc_ring))
-						{
-							/* XXX lock */
-							obj_info = (obj_info_t *)ring_deq(sc->proc_ring);
-							new_obj = obj_info->obj;
-							ls_release_object(sc, new_obj);
-							free(obj_info);
-						}
-					}
+				/*
+				 * XXX clean up any stats ?? 
+				 */
 
-					/* XXX clean up any stats ?? */
+				fexec_init_search(sc->bg_fdata);
+				sc->bg_status |= BG_STARTED;
+				break;
 
-					fexec_init_search(sc->bg_fdata);
-					sc->bg_status |= BG_STARTED;
-					break;
+			case BG_STOP:
+				sc->bg_status &= ~BG_STARTED;
+				/*
+				 * XXX toher state ?? 
+				 */
+				fexec_term_search(sc->bg_fdata);
+				break;
 
-				case BG_STOP:
-					sc->bg_status &= ~BG_STARTED;
-					/* XXX toher state ?? */
-					fexec_term_search(sc->bg_fdata);
-					break;
-
-				default:
-					printf("background !! \n");
-					break;
+			default:
+				printf("background !! \n");
+				break;
 
 			}
 			free(cmd);
@@ -656,10 +621,53 @@ bg_main(void *arg)
 
 		if (any == 0) {
 			timeout.tv_sec = 0;
-			timeout.tv_nsec = 10000000; /* 10 ms */
+			timeout.tv_nsec = 10000000;	/* 10 ms */
 			nanosleep(&timeout, NULL);
 		}
 	}
+}
+
+
+static int
+bg_filt_sig(char *fname, sig_val_t * sig)
+{
+
+	int             fd;
+	int             err;
+	char           *buf;
+	struct stat     stats;
+	size_t          rsize;
+
+
+	fd = open(fname, O_RDONLY);
+	if (fd < 0) {
+		return (EINVAL);
+	}
+
+	err = fstat(fd, &stats);
+
+	if (err < 0) {
+		close(fd);
+		return (EINVAL);
+	}
+
+	buf = (char *) malloc(stats.st_size);
+	assert(buf != NULL);
+
+	rsize = read(fd, buf, stats.st_size);
+	if (rsize < stats.st_size) {
+		err = EINVAL;
+		goto done;
+	}
+
+	sig_cal(buf, stats.st_size, sig);
+
+	err = 0;
+
+      done:
+	free(buf);
+	close(fd);
+	return (err);
 }
 
 
@@ -673,96 +681,113 @@ bg_main(void *arg)
  * any ordering/deadlock/etc. problems that may arise. 
  *
  * XXX TODO:  we need to copy the thread into local memory.
- * 	      we need to test the searchlet so we can fail synchronously. 
+ *            we need to test the searchlet so we can fail synchronously. 
  */
 
 int
-bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
-                 char *spec_name)
+bg_set_searchlet(search_context_t * sc, int id, char *filter_name,
+		 char *spec_name)
 {
-	bg_cmd_data_t *		cmd;
+	bg_cmd_data_t  *cmd;
+	int             err;
 
 	/*
 	 * Allocate a command struct to store the new command.
 	 */
-	cmd = (bg_cmd_data_t *)malloc(sizeof(*cmd));
-	if (cmd == NULL) {
-		/* XXX log */
-		/* XXX error ? */
-		return (0);
-	}
+	cmd = (bg_cmd_data_t *) malloc(sizeof(*cmd));
+	assert(cmd != NULL);
 
 	cmd->cmd = BG_SEARCHLET;
+	cmd->ver_id = (bg_op_type_t) id;
+
 	if (filter_name != NULL) {
 		cmd->filter_name = strdup(filter_name);
+		assert(cmd->filter_name);
+		err = bg_filt_sig(filter_name, &cmd->filt_sig);
+		if (err) {
+			free(cmd->filter_name);
+			free(cmd);
+			return (EINVAL);
+		}
 	} else {
 		cmd->filter_name = NULL;
 	}
-	cmd->ver_id = (bg_op_type_t)id;
+
 	if (spec_name != NULL) {
 		cmd->spec_name = strdup(spec_name);
 	} else {
 		cmd->spec_name = NULL;
 	}
-	ring_enq(sc->bg_ops, (void *)cmd);
-	return(0);
+	ring_enq(sc->bg_ops, (void *) cmd);
+	return (0);
 }
 
 
 int
-bg_start_search(search_context_t *sc, int id)
+bg_start_search(search_context_t * sc, int id)
 {
-	bg_cmd_data_t *		cmd;
+	bg_cmd_data_t  *cmd;
 
 	/*
 	 * Allocate a command struct to store the new command.
 	 */
-	cmd = (bg_cmd_data_t *)malloc(sizeof(*cmd));
+	cmd = (bg_cmd_data_t *) malloc(sizeof(*cmd));
 	if (cmd == NULL) {
-		/* XXX log */
-		/* XXX error ? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX error ? 
+		 */
 		return (0);
 	}
 
 	cmd->cmd = BG_START;
-	ring_enq(sc->bg_ops, (void *)cmd);
-	return(0);
+	ring_enq(sc->bg_ops, (void *) cmd);
+	return (0);
 }
 
 int
-bg_stop_search(search_context_t *sc, int id)
+bg_stop_search(search_context_t * sc, int id)
 {
-	bg_cmd_data_t *		cmd;
+	bg_cmd_data_t  *cmd;
 
 	/*
 	 * Allocate a command struct to store the new command.
 	 */
-	cmd = (bg_cmd_data_t *)malloc(sizeof(*cmd));
+	cmd = (bg_cmd_data_t *) malloc(sizeof(*cmd));
 	if (cmd == NULL) {
-		/* XXX log */
-		/* XXX error ? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX error ? 
+		 */
 		return (0);
 	}
-
 	cmd->cmd = BG_START;
-	ring_enq(sc->bg_ops, (void *)cmd);
-	return(0);
+	ring_enq(sc->bg_ops, (void *) cmd);
+	return (0);
 }
 
 int
-bg_set_blob(search_context_t *sc, int id, char *filter_name,
-            int blob_len, void *blob_data)
+bg_set_blob(search_context_t * sc, int id, char *filter_name,
+	    int blob_len, void *blob_data)
 {
-	bg_cmd_data_t *		cmd;
-	void *				new_blob;
+	bg_cmd_data_t  *cmd;
+	void           *new_blob;
 
 	/*
 	 * Allocate a command struct to store the new command.
 	 */
-	cmd = (bg_cmd_data_t *)malloc(sizeof(*cmd));
+	cmd = (bg_cmd_data_t *) malloc(sizeof(*cmd));
 	if (cmd == NULL) {
-		/* XXX log */
-		/* XXX error ? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX error ? 
+		 */
 		return (0);
 	}
 
@@ -772,7 +797,9 @@ bg_set_blob(search_context_t *sc, int id, char *filter_name,
 
 
 	cmd->cmd = BG_SET_BLOB;
-	/* XXX local storage for these !!! */
+	/*
+	 * XXX local storage for these !!! 
+	 */
 	cmd->filter_name = strdup(filter_name);
 	assert(cmd->filter_name != NULL);
 
@@ -780,8 +807,8 @@ bg_set_blob(search_context_t *sc, int id, char *filter_name,
 	cmd->blob = new_blob;
 
 
-	ring_enq(sc->bg_ops, (void *)cmd);
-	return(0);
+	ring_enq(sc->bg_ops, (void *) cmd);
+	return (0);
 }
 
 
@@ -794,29 +821,32 @@ bg_set_blob(search_context_t *sc, int id, char *filter_name,
  */
 
 int
-bg_init(search_context_t *sc, int id)
+bg_init(search_context_t * sc, int id)
 {
-	int		err;
-	pthread_t	thread_id;
+	int             err;
+	pthread_t       thread_id;
 
 	/*
 	 * Initialize the ring of commands for the thread.
 	 */
 	err = ring_init(&sc->bg_ops, BG_RING_SIZE);
 	if (err) {
-		/* XXX err log */
-		return(err);
+		/*
+		 * XXX err log 
+		 */
+		return (err);
 	}
 
 	/*
 	 * Create a thread to handle background processing.
 	 */
-	err = pthread_create(&thread_id, PATTR_DEFAULT, bg_main, (void *)sc);
+	err = pthread_create(&thread_id, PATTR_DEFAULT, bg_main, (void *) sc);
 	if (err) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		printf("failed to create background thread \n");
-		return(ENOENT);
+		return (ENOENT);
 	}
-	return(0);
+	return (0);
 }
-

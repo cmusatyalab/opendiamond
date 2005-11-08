@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -41,7 +41,8 @@
 #include "hstub_impl.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * Take the device characteristics we recieved and
@@ -51,14 +52,16 @@ static char const cvsid[] = "$Header$";
  */
 
 static void
-store_dev_char(sdevice_state_t *dev, char *data_buf)
+store_dev_char(sdevice_state_t * dev, char *data_buf)
 {
-	devchar_subhead_t *	shead;
+	devchar_subhead_t *shead;
 
-	shead = (devchar_subhead_t *)data_buf;
+	shead = (devchar_subhead_t *) data_buf;
 
 	dev->dev_char.dc_isa = ntohl(shead->dcs_isa);
-	/* XXX byte swap when we get it working */
+	/*
+	 * XXX byte swap when we get it working 
+	 */
 	dev->dev_char.dc_speed = shead->dcs_isa;
 	dev->dev_char.dc_mem = shead->dcs_mem;
 	dev->dev_char.dc_devid = dev->con_data.dev_id;
@@ -71,17 +74,17 @@ store_dev_char(sdevice_state_t *dev, char *data_buf)
  * from users.
  */
 static void
-store_dev_stats(sdevice_state_t *dev, char *data_buf)
+store_dev_stats(sdevice_state_t * dev, char *data_buf)
 {
-	dstats_subheader_t *	shead;
-	fstats_subheader_t *	fhead;
-	dev_stats_t *		dstats;
-	int			len;
-	int			num_filt;
-	int			offset;
-	int			i;
+	dstats_subheader_t *shead;
+	fstats_subheader_t *fhead;
+	dev_stats_t    *dstats;
+	int             len;
+	int             num_filt;
+	int             offset;
+	int             i;
 
-	shead = (dstats_subheader_t *)data_buf;
+	shead = (dstats_subheader_t *) data_buf;
 
 	num_filt = ntohl(shead->dss_num_filters);
 	len = DEV_STATS_SIZE(num_filt);
@@ -97,28 +100,31 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 		dev->stat_size = len;
 	} else {
 		dstats = dev->dstats;
-		dev->stat_size  = len;
+		dev->stat_size = len;
 	}
 
 
 	dstats->ds_objs_total = ntohl(shead->dss_total_objs);
 	dstats->ds_objs_processed = ntohl(shead->dss_objs_proc);
 	dstats->ds_objs_dropped = ntohl(shead->dss_objs_drop);
-	//printf("update stats: proc %d drop %d \n", dstats->ds_objs_processed,
-	//dstats->ds_objs_dropped);
+	// printf("update stats: proc %d drop %d \n",
+	// dstats->ds_objs_processed,
+	// dstats->ds_objs_dropped);
 	dstats->ds_objs_nproc = ntohl(shead->dss_objs_bp);
 	dstats->ds_system_load = ntohl(shead->dss_system_load);
-	/* XXX 64 bit ntohl */
+	/*
+	 * XXX 64 bit ntohl 
+	 */
 	dstats->ds_avg_obj_time = shead->dss_avg_obj_time;
 	dstats->ds_num_filters = ntohl(shead->dss_num_filters);
 
-	for (i = 0; i < num_filt; i ++) {
+	for (i = 0; i < num_filt; i++) {
 		offset = sizeof(*shead) + (i * sizeof(*fhead));
-		fhead = (fstats_subheader_t *)&data_buf[offset];
+		fhead = (fstats_subheader_t *) & data_buf[offset];
 
 		strncpy(dstats->ds_filter_stats[i].fs_name,
-		        fhead->fss_name, MAX_FILTER_NAME);
-		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME-1] =
+			fhead->fss_name, MAX_FILTER_NAME);
+		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME - 1] =
 		    '\0';
 
 		dstats->ds_filter_stats[i].fs_objs_processed =
@@ -127,7 +133,9 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 		dstats->ds_filter_stats[i].fs_objs_dropped =
 		    ntohl(fhead->fss_objs_dropped);
 
-		/* JIAYING */
+		/*
+		 * JIAYING 
+		 */
 		dstats->ds_filter_stats[i].fs_objs_cache_dropped =
 		    ntohl(fhead->fss_objs_cache_dropped);
 		dstats->ds_filter_stats[i].fs_objs_cache_passed =
@@ -135,138 +143,139 @@ store_dev_stats(sdevice_state_t *dev, char *data_buf)
 		dstats->ds_filter_stats[i].fs_objs_compute =
 		    ntohl(fhead->fss_objs_compute);
 
-		/* XXX byte order !!! */
+		/*
+		 * XXX byte order !!! 
+		 */
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
 		    fhead->fss_avg_exec_time;
 	}
 }
 
 static void
-write_leaf_done(sdevice_state_t *dev, char *data)
+write_leaf_done(sdevice_state_t * dev, char *data)
 {
-	dctl_subheader_t    *dsub;
-	int                  err;
-	int32_t             opid;
+	dctl_subheader_t *dsub;
+	int             err;
+	int32_t         opid;
 
 
-	dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *) data;
 
 	err = htonl(dsub->dctl_err);
 	opid = htonl(dsub->dctl_opid);
 
-	(*dev->hstub_wleaf_done_cb)(dev->hcookie, err, opid);
+	(*dev->hstub_wleaf_done_cb) (dev->hcookie, err, opid);
 
 
 }
 
 
 static void
-read_leaf_done(sdevice_state_t *dev, char *data)
+read_leaf_done(sdevice_state_t * dev, char *data)
 {
-	dctl_subheader_t *  dsub;
-	int                 err;
-	int32_t             opid;
-	int                 dlen;
-	dctl_data_type_t    dtype;
+	dctl_subheader_t *dsub;
+	int             err;
+	int32_t         opid;
+	int             dlen;
+	dctl_data_type_t dtype;
 
-	dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *) data;
 
 	err = htonl(dsub->dctl_err);
 	opid = htonl(dsub->dctl_opid);
 	dlen = htonl(dsub->dctl_dlen);
 	dtype = htonl(dsub->dctl_dtype);
 
-	(*dev->hstub_rleaf_done_cb)(dev->hcookie, err, dtype, dlen,
-	                            dsub->dctl_data, opid);
+	(*dev->hstub_rleaf_done_cb) (dev->hcookie, err, dtype, dlen,
+				     dsub->dctl_data, opid);
 }
 
 static void
-list_nodes_done(sdevice_state_t *dev, char *data)
+list_nodes_done(sdevice_state_t * dev, char *data)
 {
-	dctl_subheader_t *  dsub;
-	int                 err;
-	int32_t             opid;
-	int                 dlen;
-	int                 ents;
+	dctl_subheader_t *dsub;
+	int             err;
+	int32_t         opid;
+	int             dlen;
+	int             ents;
 
-	dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *) data;
 
 	err = htonl(dsub->dctl_err);
 	opid = htonl(dsub->dctl_opid);
 	dlen = htonl(dsub->dctl_dlen);
 
-	ents = dlen /(sizeof(dctl_entry_t));
+	ents = dlen / (sizeof(dctl_entry_t));
 
-	(*dev->hstub_lnode_done_cb)(dev->hcookie, err, ents,
-	                            (dctl_entry_t *)dsub->dctl_data, opid);
+	(*dev->hstub_lnode_done_cb) (dev->hcookie, err, ents,
+				     (dctl_entry_t *) dsub->dctl_data, opid);
 }
 
 static void
-list_leafs_done(sdevice_state_t *dev, char *data)
+list_leafs_done(sdevice_state_t * dev, char *data)
 {
-	dctl_subheader_t *  dsub;
-	int                 err;
-	int32_t             opid;
-	int                 dlen;
-	int                 ents;
+	dctl_subheader_t *dsub;
+	int             err;
+	int32_t         opid;
+	int             dlen;
+	int             ents;
 
-	dsub = (dctl_subheader_t *)data;
+	dsub = (dctl_subheader_t *) data;
 
 	err = htonl(dsub->dctl_err);
 	opid = htonl(dsub->dctl_opid);
 	dlen = htonl(dsub->dctl_dlen);
 
-	ents = dlen /(sizeof(dctl_entry_t));
+	ents = dlen / (sizeof(dctl_entry_t));
 
-	(*dev->hstub_lleaf_done_cb)(dev->hcookie, err, ents,
-	                            (dctl_entry_t *)dsub->dctl_data, opid);
+	(*dev->hstub_lleaf_done_cb) (dev->hcookie, err, ents,
+				     (dctl_entry_t *) dsub->dctl_data, opid);
 }
 
 
 
 static void
-process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
+process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 {
 
-	uint32_t	cmd = ntohl(cinfo->control_rx_header.command);
+	uint32_t        cmd = ntohl(cinfo->control_rx_header.command);
 
-	switch(cmd) {
+	switch (cmd) {
 
-		case CNTL_CMD_RET_STATS:
-			store_dev_stats(dev, data_buf);
-			free(data_buf);
-			break;
+	case CNTL_CMD_RET_STATS:
+		store_dev_stats(dev, data_buf);
+		free(data_buf);
+		break;
 
 
-		case CNTL_CMD_RET_CHAR:
-			store_dev_char(dev, data_buf);
-			free(data_buf);
-			break;
+	case CNTL_CMD_RET_CHAR:
+		store_dev_char(dev, data_buf);
+		free(data_buf);
+		break;
 
-		case CNTL_CMD_WLEAF_DONE:
-			write_leaf_done(dev, data_buf);
-			free(data_buf);
-			break;
+	case CNTL_CMD_WLEAF_DONE:
+		write_leaf_done(dev, data_buf);
+		free(data_buf);
+		break;
 
-		case CNTL_CMD_RLEAF_DONE:
-			read_leaf_done(dev, data_buf);
-			free(data_buf);
-			break;
+	case CNTL_CMD_RLEAF_DONE:
+		read_leaf_done(dev, data_buf);
+		free(data_buf);
+		break;
 
-		case CNTL_CMD_LNODES_DONE:
-			list_nodes_done(dev, data_buf);
-			free(data_buf);
-			break;
+	case CNTL_CMD_LNODES_DONE:
+		list_nodes_done(dev, data_buf);
+		free(data_buf);
+		break;
 
-		case CNTL_CMD_LLEAFS_DONE:
-			list_leafs_done(dev, data_buf);
-			free(data_buf);
-			break;
+	case CNTL_CMD_LLEAFS_DONE:
+		list_leafs_done(dev, data_buf);
+		free(data_buf);
+		break;
 
-		default:
-			printf("XXX process control: unknown command %d \n",
-			       cmd);
-			exit(1);
+	default:
+		printf("XXX process control: unknown command %d \n", cmd);
+		exit(1);
 
 	}
 
@@ -277,14 +286,16 @@ process_control(sdevice_state_t *dev, conn_info_t *cinfo, char *data_buf)
 
 
 void
-hstub_read_cntrl(sdevice_state_t  *dev)
+hstub_read_cntrl(sdevice_state_t * dev)
 {
-	conn_info_t *	cinfo;
-	int		header_offset, header_remain;
-	int		data_offset, data_remain;
-	int		dsize;
-	char *		data;
-	char *		data_buf = NULL;
+	conn_info_t    *cinfo;
+	int             header_offset,
+	                header_remain;
+	int             data_offset,
+	                data_remain;
+	int             dsize;
+	char           *data;
+	char           *data_buf = NULL;
 
 	cinfo = &dev->con_data;
 
@@ -304,7 +315,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 
 		header_offset = cinfo->control_rx_offset;
 		header_remain = sizeof(cinfo->control_rx_header) -
-		                header_offset;
+		    header_offset;
 		data_remain = 0;
 		data_offset = 0;
 	} else {
@@ -313,20 +324,20 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 		header_offset = 0;
 		data_offset = cinfo->control_rx_offset;
 		data_remain = ntohl(cinfo->control_rx_header.data_len) -
-		              data_offset;
+		    data_offset;
 		data_buf = cinfo->control_rx_data;
 	}
 
 
 
 	if (header_remain > 0) {
-		data = (char *)&cinfo->control_rx_header;
-		dsize = recv(cinfo->control_fd, (char *)&data[header_offset],
-		             header_remain, 0);
+		data = (char *) &cinfo->control_rx_header;
+		dsize = recv(cinfo->control_fd, (char *) &data[header_offset],
+			     header_remain, 0);
 
 		/*
-			 * Handle some of the different error cases.
-			 */
+		 * Handle some of the different error cases.
+		 */
 		if (dsize < 0) {
 			/*
 			 * The call failed, the only possibility is that
@@ -343,8 +354,11 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 				/*
 				 * some un-handled error happened, 
 				 */
-				/* XXX what now */
-				printf("lost conn with %08x \n", cinfo->dev_id);
+				/*
+				 * XXX what now 
+				 */
+				printf("lost conn with %08x \n",
+				       cinfo->dev_id);
 				perror("uknown socket problem:");
 				exit(1);
 				return;
@@ -372,11 +386,15 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 		data_offset = 0;
 		data_remain = ntohl(cinfo->control_rx_header.data_len);
 
-		/* get a buffer to store the data if appropriate */
+		/*
+		 * get a buffer to store the data if appropriate 
+		 */
 		if (data_remain > 0) {
 			data_buf = (char *) malloc(data_remain);
 			if (data_buf == NULL) {
-				/* XXX crap, how do I get out of this */
+				/*
+				 * XXX crap, how do I get out of this 
+				 */
 				exit(1);
 			}
 		}
@@ -391,7 +409,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 		assert(data_buf != NULL);
 
 		dsize = recv(cinfo->control_fd, &data_buf[data_offset],
-		             data_remain, 0);
+			     data_remain, 0);
 
 		if (dsize < 0) {
 
@@ -410,7 +428,9 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 				 * some un-handled error happened, we
 				 * just shutdown the connection.
 				 */
-				/* XXX log */
+				/*
+				 * XXX log 
+				 */
 				perror("process_control");
 				exit(1);
 			}
@@ -434,7 +454,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 
 	cinfo->stat_control_rx++;
 	cinfo->stat_control_byte_rx += sizeof(cinfo->control_rx_header) +
-	                               ntohl(cinfo->control_rx_header.data_len);
+	    ntohl(cinfo->control_rx_header.data_len);
 
 
 	/*
@@ -450,7 +470,7 @@ hstub_read_cntrl(sdevice_state_t  *dev)
 }
 
 void
-hstub_except_cntrl(sdevice_state_t *dev)
+hstub_except_cntrl(sdevice_state_t * dev)
 {
 	printf("hstub_except_control \n");
 }
@@ -460,16 +480,16 @@ hstub_except_cntrl(sdevice_state_t *dev)
  * Send a control command.
  */
 void
-hstub_write_cntrl(sdevice_state_t *dev)
+hstub_write_cntrl(sdevice_state_t * dev)
 {
-	char *			data;
-	size_t			send_len;
-	conn_info_t *		cinfo;
-	control_header_t *	cheader;
-	int			remain_header;
-	int			header_offset;
-	int			remain_data;
-	int			data_offset;
+	char           *data;
+	size_t          send_len;
+	conn_info_t    *cinfo;
+	control_header_t *cheader;
+	int             remain_header;
+	int             header_offset;
+	int             remain_data;
+	int             data_offset;
 
 
 	cinfo = &dev->con_data;
@@ -480,7 +500,7 @@ hstub_write_cntrl(sdevice_state_t *dev)
 		/*
 		 * See if there is a control message to process.
 		 */
-		cheader = (control_header_t *)ring_deq(dev->device_ops);
+		cheader = (control_header_t *) ring_deq(dev->device_ops);
 		if (cheader == NULL) {
 			pthread_mutex_lock(&cinfo->mutex);
 			cinfo->flags &= ~CINFO_PENDING_CONTROL;
@@ -512,10 +532,10 @@ hstub_write_cntrl(sdevice_state_t *dev)
 	}
 
 	if (remain_header != 0) {
-		data = (char *)cheader;
+		data = (char *) cheader;
 
 		send_len = send(cinfo->control_fd, &data[header_offset],
-		                remain_header, 0);
+				remain_header, 0);
 		if (send_len < 0) {
 			if (errno == EAGAIN) {
 				cinfo->control_header = cheader;
@@ -523,7 +543,9 @@ hstub_write_cntrl(sdevice_state_t *dev)
 				cinfo->control_state = CONTROL_TX_HEADER;
 				return;
 			} else {
-				/* XXX log, what else do we do ?? */
+				/*
+				 * XXX log, what else do we do ?? 
+				 */
 				assert(0);
 				return;
 			}
@@ -538,9 +560,9 @@ hstub_write_cntrl(sdevice_state_t *dev)
 	}
 
 	if (remain_data != 0) {
-		data = (char *)cheader->spare;
+		data = (char *) cheader->spare;
 		send_len = send(dev->con_data.control_fd, &data[data_offset],
-		                remain_data, 0);
+				remain_data, 0);
 
 		if (send_len < 0) {
 			if (errno == EAGAIN) {
@@ -549,7 +571,9 @@ hstub_write_cntrl(sdevice_state_t *dev)
 				cinfo->control_state = CONTROL_TX_DATA;
 				return;
 			} else {
-				/* XXX log, what else do we do ?? */
+				/*
+				 * XXX log, what else do we do ?? 
+				 */
 				assert(0);
 				return;
 			}
@@ -565,10 +589,10 @@ hstub_write_cntrl(sdevice_state_t *dev)
 	}
 
 	cinfo->stat_control_tx++;
-	cinfo->stat_control_byte_tx += sizeof(*cheader) + ntohl(cheader->data_len);
+	cinfo->stat_control_byte_tx +=
+	    sizeof(*cheader) + ntohl(cheader->data_len);
 
 	cinfo->control_state = CONTROL_TX_NO_PENDING;
 	free(cheader);
 	return;
 }
-

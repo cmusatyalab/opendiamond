@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -27,14 +27,15 @@
 #include "odisk_priv.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 int
 main(int argc, char **argv)
 {
-	odisk_state_t*	odisk;
-	int		err;
+	odisk_state_t  *odisk;
+	int             err;
 
 	err = odisk_init(&odisk, NULL, NULL, NULL);
 	if (err) {

@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -40,21 +40,26 @@
 #include "sstub_impl.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 
 
 void
-sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
+sstub_write_log(listener_state_t * lstate, cstate_t * cstate)
 {
-	int			header_remain=0, header_offset=0;
-	int			log_remain=0, log_offset=0;
-	char *			data;
-	int			send_len;
+	int             header_remain = 0,
+	    header_offset = 0;
+	int             log_remain = 0,
+	    log_offset = 0;
+	char           *data;
+	int             send_len;
 
 
-	/* clear the flags for now, there is no more data */
+	/*
+	 * clear the flags for now, there is no more data 
+	 */
 
 	if (cstate->log_tx_state == LOG_TX_NO_PENDING) {
 		/*
@@ -70,7 +75,9 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 		}
 		pthread_mutex_unlock(&cstate->cmutex);
 
-		/* setup the header and the offsets */
+		/*
+		 * setup the header and the offsets 
+		 */
 		cstate->log_tx_header.log_magic = htonl(LOG_MAGIC_HEADER);
 		cstate->log_tx_header.log_len = htonl(cstate->log_tx_len);
 
@@ -95,7 +102,7 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 		log_offset = 0;
 
 
-	} else  {
+	} else {
 		/*
 		 * If we get here, then we are in the middle of transmitting
 		 * the data associated with the command.  Setup the data
@@ -114,9 +121,9 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 	 * If we have any header data remaining, then go ahead and send it.
 	 */
 	if (header_remain != 0) {
-		data = (char *)&cstate->log_tx_header;
+		data = (char *) &cstate->log_tx_header;
 		send_len = send(cstate->log_fd, &data[header_offset],
-		                header_remain, 0);
+				header_remain, 0);
 
 		if (send_len < 1) {
 
@@ -171,9 +178,9 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 
 
 	if (log_remain != 0) {
-		data = (char *)cstate->log_tx_buf;
+		data = (char *) cstate->log_tx_buf;
 		send_len = send(cstate->log_fd, &data[log_offset],
-		                log_remain, 0);
+				log_remain, 0);
 
 		if (send_len < 1) {
 			/*
@@ -222,17 +229,18 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 
 	cstate->stats_log_tx++;
 	cstate->stats_log_bytes_tx += cstate->log_tx_len +
-	                              sizeof(cstate->log_tx_header);
+	    sizeof(cstate->log_tx_header);
 
 	/*
 	 * All the data has been sent, so we update of state machine and
 	 * call the callback.
 	 */
 
-	/* note that we need to call clear of the values in
-	 * cstate because once we call the callback, the caller
-	 * can add another entry.  We avoid the race condition by
-	 * clearing initializing the state before we call the cb.
+	/*
+	 * note that we need to call clear of the values in cstate because
+	 * once we call the callback, the caller can add another entry.  We
+	 * avoid the race condition by clearing initializing the state before 
+	 * we call the cb. 
 	 */
 
 	cstate->log_tx_state = LOG_TX_NO_PENDING;
@@ -247,17 +255,19 @@ sstub_write_log(listener_state_t *lstate, cstate_t *cstate)
 
 
 
-	(*lstate->log_done_cb)(cstate->app_cookie, data, log_remain);
+	(*lstate->log_done_cb) (cstate->app_cookie, data, log_remain);
 	return;
 }
 
 
 
 void
-sstub_except_log(listener_state_t *lstate, cstate_t *cstate)
+sstub_except_log(listener_state_t * lstate, cstate_t * cstate)
 {
 	printf("XXX except_log \n");
-	/* Handle the case where we are shutting down */
+	/*
+	 * Handle the case where we are shutting down 
+	 */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;
 	}
@@ -268,13 +278,14 @@ sstub_except_log(listener_state_t *lstate, cstate_t *cstate)
 
 
 void
-sstub_read_log(listener_state_t *lstate, cstate_t *cstate)
+sstub_read_log(listener_state_t * lstate, cstate_t * cstate)
 {
-	/* Handle the case where we are shutting down */
+	/*
+	 * Handle the case where we are shutting down 
+	 */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;
 	}
 
 	return;
 }
-

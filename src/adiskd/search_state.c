@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -43,12 +43,13 @@
 #include "dctl_common.h"
 #include "lib_ocache.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 #define	SAMPLE_TIME_FLOAT	0.2
 #define	SAMPLE_TIME_NANO	200000000
 
-static void *update_bypass(void *arg);
+static void    *update_bypass(void *arg);
 
 /*
  * XXX other place 
@@ -60,42 +61,37 @@ extern int      do_cleanup;
  */
 #define	CONTROL_RING_SIZE	512
 
-static int      search_free_obj(search_state_t *sstate, obj_data_t * obj);
+static int      search_free_obj(search_state_t * sstate, obj_data_t * obj);
 
 typedef enum {
-    DEV_STOP,
-    DEV_TERM,
-    DEV_START,
-    DEV_SEARCHLET,
-    DEV_BLOB
+	DEV_STOP,
+	DEV_TERM,
+	DEV_START,
+	DEV_SEARCHLET,
+	DEV_BLOB
 } dev_op_type_t;
 
 
-typedef struct
-{
+typedef struct {
 	char           *filter;
 	char           *spec;
-}
-dev_slet_data_t;
+	sig_val_t       sig;
+} dev_slet_data_t;
 
-typedef struct
-{
+typedef struct {
 	char           *fname;
 	void           *blob;
 	int             blen;
-}
-dev_blob_data_t;
+} dev_blob_data_t;
 
-typedef struct
-{
+typedef struct {
 	dev_op_type_t   cmd;
 	int             id;
 	union {
 		dev_slet_data_t sdata;
 		dev_blob_data_t bdata;
 	} extra_data;
-}
-dev_cmd_data_t;
+} dev_cmd_data_t;
 
 int
 search_stop(void *app_cookie, int gen_num)
@@ -157,7 +153,8 @@ search_term(void *app_cookie, int id)
 int
 search_setlog(void *app_cookie, uint32_t level, uint32_t src)
 {
-	uint32_t        hlevel, hsrc;
+	uint32_t        hlevel,
+	                hsrc;
 
 	hlevel = ntohl(level);
 	hsrc = ntohl(src);
@@ -204,7 +201,8 @@ search_start(void *app_cookie, int id)
  */
 
 int
-search_set_searchlet(void *app_cookie, int id, char *filter, char *spec)
+search_set_searchlet(void *app_cookie, int id, char *filter, char *spec,
+		     sig_val_t * sig)
 {
 	dev_cmd_data_t *cmd;
 	int             err;
@@ -222,6 +220,7 @@ search_set_searchlet(void *app_cookie, int id, char *filter, char *spec)
 
 	cmd->extra_data.sdata.filter = filter;
 	cmd->extra_data.sdata.spec = spec;
+	memcpy(&cmd->extra_data.sdata.sig, sig, sizeof(*sig));
 
 	err = ring_enq(sstate->control_ops, (void *) cmd);
 	if (err) {
@@ -256,7 +255,7 @@ clear_ss_stats(search_state_t * sstate)
 static void
 sstats_drop(void *cookie)
 {
-	search_state_t * sstate = (search_state_t *)cookie;
+	search_state_t *sstate = (search_state_t *) cookie;
 
 	sstate->obj_dropped++;
 }
@@ -265,7 +264,7 @@ sstats_drop(void *cookie)
 static void
 sstats_process(void *cookie)
 {
-	search_state_t * sstate = (search_state_t *)cookie;
+	search_state_t *sstate = (search_state_t *) cookie;
 	sstate->obj_processed++;
 }
 
@@ -281,145 +280,145 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 	char           *spec_name;
 
 	switch (cmd->cmd) {
-		case DEV_STOP:
+	case DEV_STOP:
+		/*
+		 * Stop the current search 
+		 */
+		sstate->flags &= ~DEV_FLAG_RUNNING;
+		err = odisk_flush(sstate->ostate);
+		assert(err == 0);
+
+		ceval_stop(sstate->fdata);
+		/*
+		 * clean up the filter exec state 
+		 */
+		fexec_term_search(sstate->fdata);
+
+		/*
+		 * flush objects in the transmit queue 
+		 */
+		err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
+		assert(err == 0);
+
+		// usleep(1000);
+		break;
+
+	case DEV_TERM:
+		break;
+
+	case DEV_START:
+		/*
+		 * Start the emulated device for now.
+		 * XXX do this for real later.
+		 */
+
+		/*
+		 * Clear the stats.
+		 */
+		clear_ss_stats(sstate);
+
+		/*
+		 * JIAYING: for now, we calculate the signature for the
+		 * whole library and spec file 
+		 */
+		ceval_init_search(sstate->fdata, sstate->cstate);
+
+		err = odisk_reset(sstate->ostate);
+		if (err) {
 			/*
-			 * Stop the current search 
+			 * XXX log 
 			 */
-			sstate->flags &= ~DEV_FLAG_RUNNING;
-			err = odisk_flush(sstate->ostate);
-			assert(err==0);
-
-			ceval_stop(sstate->fdata);
 			/*
-			 * clean up the filter exec state 
+			 * XXX crap !! 
 			 */
-			fexec_term_search(sstate->fdata);
+			return;
+		}
+		err = ocache_start();
+		if (err) {
+			return;
+		}
 
+		/*
+		 * init the filter exec code 
+		 */
+		fexec_init_search(sstate->fdata);
+		err = ceval_start(sstate->fdata);
+		if (err) {
+			return;
+		}
+
+		sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
+		sstate->ver_no = cmd->id;
+		sstate->flags |= DEV_FLAG_RUNNING;
+		break;
+
+	case DEV_SEARCHLET:
+		sstate->ver_no = cmd->id;
+
+		obj_name = cmd->extra_data.sdata.filter;
+		spec_name = cmd->extra_data.sdata.spec;
+
+		err = fexec_load_searchlet(obj_name, spec_name,
+					   &sstate->fdata,
+					   &cmd->extra_data.sdata.sig);
+		if (err) {
 			/*
-			 * flush objects in the transmit queue 
+			 * XXX log 
 			 */
-			err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
-			assert(err == 0);
+			assert(0);
+			return;
+		}
+		/*
+		 * XXX fix this 
+		 */
+		do_cleanup = 0;
 
-			//usleep(1000);
-			break;
-
-		case DEV_TERM:
-			break;
-
-		case DEV_START:
-			/*
-			 * Start the emulated device for now.
-			 * XXX do this for real later.
-			 */
-
-			/*
-			 * Clear the stats.
-			 */
-			clear_ss_stats(sstate);
-
-			/* JIAYING: for now, we calculate the signature 
-			 * for the whole library and spec file 
-			 */
-			ceval_init_search(sstate->fdata, sstate->cstate);
-
-			err = odisk_reset(sstate->ostate);
+		/*
+		 * Remove the files that held the data.  If do_cleanup 
+		 * is * not set then we keep the files so we can 
+		 * do debugging.
+		 */
+		if (do_cleanup) {
+			err = unlink(obj_name);
 			if (err) {
-				/*
-				 * XXX log 
-				 */
-				/*
-				 * XXX crap !! 
-				 */
-				return;
+				perror("failed to unlink");
+				exit(1);
 			}
-			err = ocache_start();
-			if (err) {
-				return;
-			}
-
-			/*
-			 * init the filter exec code 
-			 */
-			fexec_init_search(sstate->fdata);
-			err = ceval_start(sstate->fdata);
-			if (err) {
-				return;
-			}
-
-			sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
-			sstate->ver_no = cmd->id;
-			sstate->flags |= DEV_FLAG_RUNNING;
-			break;
-
-		case DEV_SEARCHLET:
-			sstate->ver_no = cmd->id;
-
-			obj_name = cmd->extra_data.sdata.filter;
-			spec_name = cmd->extra_data.sdata.spec;
-
-			err = fexec_load_searchlet(obj_name, spec_name, &sstate->fdata);
-			if (err) {
-				/*
-				 * XXX log 
-				 */
-				assert(0);
-				return;
-			}
-#ifdef XXX
-			/* JIAYING: for now, we calculate the signature 
-			 * for the whole library and spec file 
-			 */
-			ceval_init_search(sstate->fdata, sstate->cstate);
-#endif
-			do_cleanup = 0;
-
-			/*
-			 * Remove the files that held the data.  If do_cleanup 
-			 * is * not set then we keep the files so we can 
-			 * do debugging.
-			 */
-			if (do_cleanup) {
-				err = unlink(obj_name);
+			if (spec_name != NULL) {
+				unlink(spec_name);
 				if (err) {
 					perror("failed to unlink");
 					exit(1);
 				}
-				if (spec_name != NULL) {
-					unlink(spec_name);
-					if (err) {
-						perror("failed to unlink");
-						exit(1);
-					}
-				}
 			}
-			free(obj_name);
-			if (spec_name != NULL) {
-				free(spec_name);
-			}
+		}
+		free(obj_name);
+		if (spec_name != NULL) {
+			free(spec_name);
+		}
+		break;
+
+	case DEV_BLOB:{
+			char           *name;
+			int             blen;
+			void           *blob;
+
+			name = cmd->extra_data.bdata.fname;
+			blen = cmd->extra_data.bdata.blen;
+			blob = cmd->extra_data.bdata.blob;
+
+			err = fexec_set_blob(sstate->fdata, name, blen, blob);
+			assert(err == 0);
+
+			free(name);
+			free(blob);
 			break;
-
-		case DEV_BLOB: {
-				char           *name;
-				int             blen;
-				void           *blob;
-
-				name = cmd->extra_data.bdata.fname;
-				blen = cmd->extra_data.bdata.blen;
-				blob = cmd->extra_data.bdata.blob;
-
-				err = fexec_set_blob(sstate->fdata, name, blen, blob);
-				assert(err == 0);
-
-				free(name);
-				free(blob);
-				break;
-			}
+		}
 
 
-		default:
-			printf("unknown command %d \n", cmd->cmd);
-			break;
+	default:
+		printf("unknown command %d \n", cmd->cmd);
+		break;
 
 	}
 }
@@ -427,34 +426,35 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 
 #ifdef	XXX
 static void
-dynamic_update_bypass(search_state_t *sstate)
+dynamic_update_bypass(search_state_t * sstate)
 {
-	int	err;
-	float	avg_cost;
+	int             err;
+	float           avg_cost;
 
 	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm,
-	                          1, 0, &avg_cost);
+				  1, 0, &avg_cost);
 	if (err) {
 		avg_cost = 30000000.0;
 	}
 
 	if (sstate->obj_processed != 0) {
-		float	ratio;
-		float	new_val;
+		float           ratio;
+		float           new_val;
 
-		ratio = (float)sstate->old_proc/(float)sstate->obj_processed;
+		ratio =
+		    (float) sstate->old_proc / (float) sstate->obj_processed;
 		new_val = sstate->avg_ratio * ratio;
 		new_val += sstate->split_ratio * (1 - ratio);
 		sstate->avg_ratio = new_val;
-		sstate->avg_int_ratio = (int)new_val;
+		sstate->avg_int_ratio = (int) new_val;
 		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
-		                         0.5 * new_val;
-		sstate->smoothed_int_ratio = (int)sstate->smoothed_ratio;
+		    0.5 * new_val;
+		sstate->smoothed_int_ratio = (int) sstate->smoothed_ratio;
 		sstate->old_proc = sstate->obj_processed;
 	}
 
-	sstate->split_ratio = (int)((sstate->pend_compute *
-	                             (float)sstate->split_mult));
+	sstate->split_ratio = (int) ((sstate->pend_compute *
+				      (float) sstate->split_mult));
 
 	if (sstate->split_ratio < 5) {
 		sstate->split_ratio = 5;
@@ -468,45 +468,45 @@ dynamic_update_bypass(search_state_t *sstate)
 static float
 deq_beta(float proc_rate, float erate)
 {
-	float	beta;
-	if ((proc_rate == 0.0) ||  (erate < 0.00001)) {
-		return(0.5);
+	float           beta;
+	if ((proc_rate == 0.0) || (erate < 0.00001)) {
+		return (0.5);
 	}
-	beta = proc_rate/erate;
-	return(beta);
+	beta = proc_rate / erate;
+	return (beta);
 }
 
 static float
 enq_beta(float proc_rate, float drate, int pend_objs)
 {
-	float	beta;
-	float	target;
+	float           beta;
+	float           target;
 
-	if ((proc_rate == 0.0) ||  (drate < 0.00001)) {
-		return(0.5);
+	if ((proc_rate == 0.0) || (drate < 0.00001)) {
+		return (0.5);
 	}
 
 	target = ((drate * SAMPLE_TIME_FLOAT) +
-	          ((float)(20 - pend_objs)))/SAMPLE_TIME_FLOAT;
+		  ((float) (20 - pend_objs))) / SAMPLE_TIME_FLOAT;
 	if (target < 0.0) {
 		target = 0;
 	}
-	beta = 1.0/((target/proc_rate) + 1);
+	beta = 1.0 / ((target / proc_rate) + 1);
 
-	return(beta);
+	return (beta);
 }
 
 
 static void
-dynamic_update_bypass(search_state_t *sstate)
+dynamic_update_bypass(search_state_t * sstate)
 {
-	int	err;
-	float	avg_cost;
-	float	betain;
-	float	betaout;
-	float	proc_rate;
-	float	erate;
-	float	drate;
+	int             err;
+	float           avg_cost;
+	float           betain;
+	float           betaout;
+	float           proc_rate;
+	float           erate;
+	float           drate;
 
 	err = fexec_estimate_cur_cost(sstate->fdata, &avg_cost);
 	if (err) {
@@ -514,34 +514,36 @@ dynamic_update_bypass(search_state_t *sstate)
 	}
 
 	if (sstate->obj_processed != 0) {
-		float	ratio;
-		float	new_val;
+		float           ratio;
+		float           new_val;
 
-		ratio = (float)sstate->old_proc/(float)sstate->obj_processed;
+		ratio =
+		    (float) sstate->old_proc / (float) sstate->obj_processed;
 		new_val = sstate->avg_ratio * ratio;
 		new_val += sstate->split_ratio * (1 - ratio);
 		sstate->avg_ratio = new_val;
-		sstate->avg_int_ratio = (int)new_val;
+		sstate->avg_int_ratio = (int) new_val;
 		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
-		                         0.5 * new_val;
-		sstate->smoothed_int_ratio = (int)sstate->smoothed_ratio;
+		    0.5 * new_val;
+		sstate->smoothed_int_ratio = (int) sstate->smoothed_ratio;
 		sstate->old_proc = sstate->obj_processed;
 	}
 
 	drate = sstub_get_drate(sstate->comm_cookie);
 	erate = odisk_get_erate(sstate->ostate);
-	proc_rate =  fexec_get_prate(sstate->fdata);
+	proc_rate = fexec_get_prate(sstate->fdata);
 
 
 	betain = deq_beta(proc_rate, erate);
 	betaout = enq_beta(proc_rate, drate, sstate->pend_objs);
 
-	//printf("betain %f betaout %f drate %f erate %f prate %f\n", betain, betaout,
-	//drate, erate, proc_rate);
+	// printf("betain %f betaout %f drate %f erate %f prate %f\n",
+	// betain, betaout,
+	// drate, erate, proc_rate);
 	if (betain > betaout) {
-		sstate->split_ratio = (int)(betain * 100.0);
+		sstate->split_ratio = (int) (betain * 100.0);
 	} else {
-		sstate->split_ratio = (int)(betaout * 100.0);
+		sstate->split_ratio = (int) (betaout * 100.0);
 	}
 
 	if (sstate->split_ratio < 5) {
@@ -553,30 +555,30 @@ dynamic_update_bypass(search_state_t *sstate)
 }
 #endif
 
-static void *
+static void    *
 update_bypass(void *arg)
 {
-	search_state_t *sstate = (search_state_t *)arg;
-	uint 	old_target;
-	float ratio;
+	search_state_t *sstate = (search_state_t *) arg;
+	uint            old_target;
+	float           ratio;
 	struct timespec ts;
 
 	while (1) {
 		if (sstate->flags & DEV_FLAG_RUNNING) {
-			switch(sstate->split_type) {
-				case SPLIT_TYPE_FIXED:
-					ratio = ((float)sstate->split_ratio)/100.0;
-					fexec_update_bypass(sstate->fdata, ratio);
-					fexec_update_grouping(sstate->fdata, ratio);
-					break;
+			switch (sstate->split_type) {
+			case SPLIT_TYPE_FIXED:
+				ratio = ((float) sstate->split_ratio) / 100.0;
+				fexec_update_bypass(sstate->fdata, ratio);
+				fexec_update_grouping(sstate->fdata, ratio);
+				break;
 
-				case SPLIT_TYPE_DYNAMIC:
-					old_target = sstate->split_ratio;
-					dynamic_update_bypass(sstate);
-					ratio = ((float)sstate->split_ratio)/100.0;
-					fexec_update_bypass(sstate->fdata, ratio);
-					fexec_update_grouping(sstate->fdata, ratio);
-					break;
+			case SPLIT_TYPE_DYNAMIC:
+				old_target = sstate->split_ratio;
+				dynamic_update_bypass(sstate);
+				ratio = ((float) sstate->split_ratio) / 100.0;
+				fexec_update_bypass(sstate->fdata, ratio);
+				fexec_update_grouping(sstate->fdata, ratio);
+				break;
 			}
 		}
 		ts.tv_sec = 0;
@@ -595,25 +597,28 @@ continue_fn(void *cookie)
 	search_state_t *sstate = cookie;
 #ifdef	XXX
 
-	float	avg_cost;
-	int	err;
+	float           avg_cost;
+	int             err;
 	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm,
-	                          1, 0, &avg_cost);
+				  1, 0, &avg_cost);
 	if (err) {
 		avg_cost = 30000000.0;
 	}
 
-	/* XXX include input queue size */
-	if ((int)(sstate->pend_compute/avg_cost) < sstate->split_bp_thresh) {
-		return(0);
+	/*
+	 * XXX include input queue size 
+	 */
+	if ((int) (sstate->pend_compute / avg_cost) < sstate->split_bp_thresh) {
+		return (0);
 	} else {
-		return(1);
+		return (1);
 	}
 #else
-	if ((sstate->pend_objs < 4) && (odisk_num_waiting(sstate->ostate) > 4)) {
-		return(0);
+	if ((sstate->pend_objs < 4)
+	    && (odisk_num_waiting(sstate->ostate) > 4)) {
+		return (0);
 	} else {
-		return(2);
+		return (2);
 	}
 #endif
 }
@@ -632,9 +637,9 @@ device_main(void *arg)
 	obj_data_t     *new_obj;
 	int             err;
 	int             any;
-	int				complete;
+	int             complete;
 	struct timespec timeout;
-	int				force_eval;
+	int             force_eval;
 
 
 	sstate = (search_state_t *) arg;
@@ -659,7 +664,8 @@ device_main(void *arg)
 			free(cmd);
 		}
 
-		if (sstate->pend_compute >= sstate->pend_max) {}
+		if (sstate->pend_compute >= sstate->pend_max) {
+		}
 
 		/*
 		 * XXX look for data from device to process.
@@ -675,19 +681,19 @@ device_main(void *arg)
 			 * the partial queue.
 			 */
 			if (err == ENOENT) {
-				err = sstub_get_partial(sstate->comm_cookie, &new_obj);
+				err =
+				    sstub_get_partial(sstate->comm_cookie,
+						      &new_obj);
 				if (err == 0) {
 					force_eval = 1;
 					sstate->pend_objs--;
-					sstate->pend_compute -= new_obj->remain_compute;
+					sstate->pend_compute -=
+					    new_obj->remain_compute;
 				} else {
 					err = ENOENT;
 				}
 			}
 			if (err == ENOENT) {
-				time_t	cur_time;
-				time(&cur_time);
-				fprintf(stderr, "last obj at %s", ctime(&cur_time));
 				/*
 				 * We have processed all the objects,
 				 * clear the running and set the complete
@@ -704,7 +710,8 @@ device_main(void *arg)
 				new_obj = odisk_null_obj();
 				new_obj->remain_compute = 0.0;
 				err = sstub_send_obj(sstate->comm_cookie,
-				                     new_obj, sstate->ver_no, 1);
+						     new_obj, sstate->ver_no,
+						     1);
 				if (err) {
 					/*
 					 * XXX overflow gracefully  and log
@@ -754,8 +761,10 @@ device_main(void *arg)
 					force_eval = 1;
 				}
 
-				err = ceval_filters2(new_obj, sstate->fdata, force_eval,
-				                     sstate, continue_fn);
+				err =
+				    ceval_filters2(new_obj, sstate->fdata,
+						   force_eval, sstate,
+						   continue_fn);
 
 				if (err == 0) {
 					sstate->obj_dropped++;
@@ -769,19 +778,25 @@ device_main(void *arg)
 					}
 
 					sstate->pend_objs++;
-					sstate->pend_compute += new_obj->remain_compute;
-					//printf("queu %f new %f \n",
-					//new_obj->remain_compute,
-					//sstate->pend_compute);
+					sstate->pend_compute +=
+					    new_obj->remain_compute;
+					// printf("queu %f new %f \n",
+					// new_obj->remain_compute,
+					// sstate->pend_compute);
 
-					err = sstub_send_obj(sstate->comm_cookie, new_obj,
-					                     sstate->ver_no, complete);
+					err =
+					    sstub_send_obj(sstate->
+							   comm_cookie,
+							   new_obj,
+							   sstate->ver_no,
+							   complete);
 					if (err) {
 						/*
 						 * XXX overflow gracefully 
 						 */
 						sstate->pend_objs--;
-						sstate->pend_compute -= new_obj->remain_compute;
+						sstate->pend_compute -=
+						    new_obj->remain_compute;
 					}
 				}
 			}
@@ -796,7 +811,7 @@ device_main(void *arg)
 		 */
 		if (!any) {
 			timeout.tv_sec = 0;
-			timeout.tv_nsec = 10000000; /* XXX 10ms */
+			timeout.tv_nsec = 10000000;	/* XXX 10ms */
 			nanosleep(&timeout, NULL);
 		}
 	}
@@ -850,7 +865,8 @@ log_main(void *arg)
 			/*
 			 * send the buffer 
 			 */
-			err = sstub_send_log(sstate->comm_cookie, log_buf, len);
+			err =
+			    sstub_send_log(sstate->comm_cookie, log_buf, len);
 			if (err) {
 				/*
 				 * probably shouldn't happen
@@ -864,7 +880,8 @@ log_main(void *arg)
 			 * wait on cv for the send to complete 
 			 */
 			pthread_mutex_lock(&sstate->log_mutex);
-			pthread_cond_wait(&sstate->log_cond, &sstate->log_mutex);
+			pthread_cond_wait(&sstate->log_cond,
+					  &sstate->log_mutex);
 			pthread_mutex_unlock(&sstate->log_mutex);
 
 			/*
@@ -879,7 +896,7 @@ log_main(void *arg)
 			timeout.tv_nsec = now.tv_usec * 1000;
 
 			pthread_cond_timedwait(&sstate->log_cond,
-			                       &sstate->log_mutex, &timeout);
+					       &sstate->log_mutex, &timeout);
 			pthread_mutex_unlock(&sstate->log_mutex);
 		}
 	}
@@ -925,54 +942,53 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
 
 	dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
-	                   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-	                   &sstate->ver_no);
+			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
+			   &sstate->ver_no);
 	dctl_register_leaf(DEV_SEARCH_PATH, "obj_total", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->obj_total);
+			   dctl_read_uint32, NULL, &sstate->obj_total);
 	dctl_register_leaf(DEV_SEARCH_PATH, "obj_processed", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->obj_processed);
+			   dctl_read_uint32, NULL, &sstate->obj_processed);
 	dctl_register_leaf(DEV_SEARCH_PATH, "obj_dropped", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->obj_dropped);
+			   dctl_read_uint32, NULL, &sstate->obj_dropped);
 	dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->obj_passed);
+			   dctl_read_uint32, NULL, &sstate->obj_passed);
 	dctl_register_leaf(DEV_SEARCH_PATH, "obj_skipped", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->obj_skipped);
+			   dctl_read_uint32, NULL, &sstate->obj_skipped);
 
 	dctl_register_leaf(DEV_SEARCH_PATH, "nw_stalls", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->network_stalls);
+			   dctl_read_uint32, NULL, &sstate->network_stalls);
 
 	dctl_register_leaf(DEV_SEARCH_PATH, "tx_full_stalls", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->tx_full_stalls);
+			   dctl_read_uint32, NULL, &sstate->tx_full_stalls);
 
 	dctl_register_leaf(DEV_SEARCH_PATH, "tx_idles", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->tx_idles);
+			   dctl_read_uint32, NULL, &sstate->tx_idles);
 
 	dctl_register_leaf(DEV_SEARCH_PATH, "pend_objs", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &sstate->pend_objs);
+			   dctl_read_uint32, NULL, &sstate->pend_objs);
 	dctl_register_leaf(DEV_SEARCH_PATH, "pend_maximum", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &sstate->pend_max);
+			   dctl_read_uint32, dctl_write_uint32,
+			   &sstate->pend_max);
 	dctl_register_leaf(DEV_SEARCH_PATH, "split_type", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &sstate->split_type);
+			   dctl_read_uint32, dctl_write_uint32,
+			   &sstate->split_type);
 	dctl_register_leaf(DEV_SEARCH_PATH, "split_ratio", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &sstate->split_ratio);
+			   dctl_read_uint32, dctl_write_uint32,
+			   &sstate->split_ratio);
 	dctl_register_leaf(DEV_SEARCH_PATH, "split_auto_step", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &sstate->split_auto_step);
+			   dctl_read_uint32, dctl_write_uint32,
+			   &sstate->split_auto_step);
 	dctl_register_leaf(DEV_SEARCH_PATH, "split_bp_thresh", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &sstate->split_bp_thresh);
-	dctl_register_leaf(DEV_SEARCH_PATH, "split_multiplier", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &sstate->split_mult);
+			   dctl_read_uint32, dctl_write_uint32,
+			   &sstate->split_bp_thresh);
+	dctl_register_leaf(DEV_SEARCH_PATH, "split_multiplier",
+			   DCTL_DT_UINT32, dctl_read_uint32,
+			   dctl_write_uint32, &sstate->split_mult);
 	dctl_register_leaf(DEV_SEARCH_PATH, "average_ratio", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL,
-	                   &sstate->avg_int_ratio);
+			   dctl_read_uint32, NULL, &sstate->avg_int_ratio);
 	dctl_register_leaf(DEV_SEARCH_PATH, "smoothed_beta", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL,
-	                   &sstate->smoothed_int_ratio);
+			   dctl_read_uint32, NULL,
+			   &sstate->smoothed_int_ratio);
 
 
 
@@ -1028,7 +1044,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 */
 
 	err = pthread_create(&sstate->thread_id, PATTR_DEFAULT, device_main,
-	                     (void *) sstate);
+			     (void *) sstate);
 	if (err) {
 		/*
 		 * XXX log 
@@ -1045,7 +1061,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	pthread_cond_init(&sstate->log_cond, NULL);
 	pthread_mutex_init(&sstate->log_mutex, NULL);
 	err = pthread_create(&sstate->log_thread, PATTR_DEFAULT, log_main,
-	                     (void *) sstate);
+			     (void *) sstate);
 	if (err) {
 		/*
 		 * XXX log 
@@ -1057,9 +1073,11 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		return (ENOENT);
 	}
 
-	/* thread to update the ration */
+	/*
+	 * thread to update the ration 
+	 */
 	err = pthread_create(&sstate->bypass_id, PATTR_DEFAULT, update_bypass,
-	                     (void *) sstate);
+			     (void *) sstate);
 	if (err) {
 		/*
 		 * XXX log 
@@ -1073,14 +1091,16 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * disk sub-system.
 	 */
 	err = odisk_init(&sstate->ostate, NULL, sstate->dctl_cookie,
-	                 sstate->log_cookie);
+			 sstate->log_cookie);
 	if (err) {
 		fprintf(stderr, "Failed to init the object disk \n");
 		assert(0);
 		return (err);
 	}
 
-	/* JIAYING: add ocache_init */
+	/*
+	 * JIAYING: add ocache_init 
+	 */
 	err = ocache_init(NULL, sstate->dctl_cookie, sstate->log_cookie);
 	if (err) {
 		fprintf(stderr, "Failed to init the object cache \n");
@@ -1089,7 +1109,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	}
 
 	err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
-	                 sstats_drop, sstats_process );
+			 sstats_drop, sstats_process);
 	return (0);
 }
 
@@ -1128,14 +1148,16 @@ search_get_char(void *app_cookie, int gen_num)
 int
 search_close_conn(void *app_cookie)
 {
-	/* JIAYING: may use dctl option later */
+	/*
+	 * JIAYING: may use dctl option later 
+	 */
 	ocache_stop(NULL);
-	//exit(0);
+	// exit(0);
 	return (0);
 }
 
 int
-search_free_obj(search_state_t *sstate, obj_data_t * obj)
+search_free_obj(search_state_t * sstate, obj_data_t * obj)
 {
 	odisk_release_obj(obj);
 	return (0);
@@ -1152,7 +1174,7 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 	sstate = (search_state_t *) app_cookie;
 
 	if (obj == NULL) {
-		return(0);
+		return (0);
 	}
 
 	sstate->pend_objs--;
@@ -1187,7 +1209,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	int             err;
 	int             num_filt;
 	int             len;
-	float			prate;
+	float           prate;
 
 	sstate = (search_state_t *) app_cookie;
 
@@ -1217,18 +1239,19 @@ search_get_stats(void *app_cookie, int gen_num)
 	stats->ds_objs_nproc = sstate->obj_skipped;
 	stats->ds_system_load = (int) (fexec_get_load(sstate->fdata) * 100.0);
 	prate = fexec_get_prate(sstate->fdata);
-	stats->ds_avg_obj_time = (long long)(prate * 1000.0);
+	stats->ds_avg_obj_time = (long long) (prate * 1000.0);
 	stats->ds_num_filters = num_filt;
 
 
 	/*
 	 * Get the stats for each filter.
 	 */
-	err = fexec_get_stats(sstate->fdata, num_filt, stats->ds_filter_stats);
+	err =
+	    fexec_get_stats(sstate->fdata, num_filt, stats->ds_filter_stats);
 	if (err) {
 		free(stats);
 		log_message(LOGT_DISK, LOGL_ERR,
-		            "search_get_stats: failed to get filter stats");
+			    "search_get_stats: failed to get filter stats");
 		return;
 	}
 
@@ -1241,7 +1264,7 @@ search_get_stats(void *app_cookie, int gen_num)
 	free(stats);
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR,
-		            "search_get_stats: failed to send stats");
+			    "search_get_stats: failed to send stats");
 	}
 	return;
 }
@@ -1259,7 +1282,8 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 	int             len;
 	char            data_buf[MAX_DBUF];
 	dctl_data_type_t dtype;
-	int             err, eno;
+	int             err,
+	                eno;
 	search_state_t *sstate;
 
 	sstate = (search_state_t *) app_cookie;
@@ -1275,7 +1299,7 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 	}
 
 	eno = sstub_rleaf_response(sstate->comm_cookie, err, dtype, len,
-	                           data_buf, opid);
+				   data_buf, opid);
 	assert(eno == 0);
 
 	return (0);
@@ -1284,13 +1308,13 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 
 int
 search_write_leaf(void *app_cookie, char *path, int len, char *data,
-                  int32_t opid)
+		  int32_t opid)
 {
 	/*
 	 * XXX hack for now 
 	 */
 	int             err,
-	eno;
+	                eno;
 	search_state_t *sstate;
 	sstate = (search_state_t *) app_cookie;
 
@@ -1317,7 +1341,7 @@ search_list_leafs(void *app_cookie, char *path, int32_t opid)
 	 * XXX hack for now 
 	 */
 	int             err,
-	eno;
+	                eno;
 	dctl_entry_t    ent_data[MAX_ENTS];
 	int             num_ents;
 	search_state_t *sstate;
@@ -1335,7 +1359,7 @@ search_list_leafs(void *app_cookie, char *path, int32_t opid)
 	}
 
 	eno = sstub_lleaf_response(sstate->comm_cookie, err, num_ents,
-	                           ent_data, opid);
+				   ent_data, opid);
 	assert(eno == 0);
 
 	return (0);
@@ -1350,7 +1374,7 @@ search_list_nodes(void *app_cookie, char *path, int32_t opid)
 	 * XXX hack for now 
 	 */
 	int             err,
-	eno;
+	                eno;
 	dctl_entry_t    ent_data[MAX_ENTS];
 	int             num_ents;
 	search_state_t *sstate;
@@ -1368,7 +1392,7 @@ search_list_nodes(void *app_cookie, char *path, int32_t opid)
 	}
 
 	eno = sstub_lnode_response(sstate->comm_cookie, err, num_ents,
-	                           ent_data, opid);
+				   ent_data, opid);
 	assert(eno == 0);
 
 	return (0);
@@ -1404,7 +1428,7 @@ search_clear_gids(void *app_cookie, int gen_num)
 
 int
 search_set_blob(void *app_cookie, int gen_num, char *name,
-                int blob_len, void *blob)
+		int blob_len, void *blob)
 {
 	dev_cmd_data_t *cmd;
 	int             err;
@@ -1450,4 +1474,3 @@ search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 {
 	return (0);
 }
-

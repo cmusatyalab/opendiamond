@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -38,9 +38,11 @@
 #include "filter_priv.h"
 #include "fexec_stats.h"
 #include "fexec_opt.h"
+#include "lib_ocache.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * #define VERBOSE 1 
@@ -52,7 +54,7 @@ static char const cvsid[] = "$Header$";
 /*
  * Some state to keep track of the active filter. XXX
  */
-filter_info_t *fexec_active_filter = NULL;
+filter_info_t  *fexec_active_filter = NULL;
 static char    *no_filter = "None";
 
 
@@ -63,7 +65,7 @@ static char    *no_filter = "None";
  */
 
 struct filter_exec_t filter_exec = {
-	    NULL_POLICY
+	NULL_POLICY
 };
 
 // int CURRENT_POLICY = NULL_POLICY;
@@ -74,15 +76,16 @@ struct filter_exec_t filter_exec = {
  * order here should match enum policy_type_t 
  */
 static opt_policy_t policy_arr[] = {
-					   {NULL_POLICY, NULL, NULL, NULL, NULL},
-					   {HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
-							hill_climb_optimize, NULL},
-					   {BEST_FIRST_POLICY, best_first_new, best_first_delete,
-							best_first_optimize, NULL},
-				   	   {INDEP_POLICY, indep_new, best_first_delete, best_first_optimize, NULL},
-					   {RANDOM_POLICY, random_new, NULL, NULL, NULL},
-					   {STATIC_POLICY, static_new, NULL, NULL, NULL},
-					   {NULL_POLICY, NULL, NULL, NULL, NULL}
+	{NULL_POLICY, NULL, NULL, NULL, NULL},
+	{HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
+	 hill_climb_optimize, NULL},
+	{BEST_FIRST_POLICY, best_first_new, best_first_delete,
+	 best_first_optimize, NULL},
+	{INDEP_POLICY, indep_new, best_first_delete, best_first_optimize,
+	 NULL},
+	{RANDOM_POLICY, random_new, NULL, NULL, NULL},
+	{STATIC_POLICY, static_new, NULL, NULL, NULL},
+	{NULL_POLICY, NULL, NULL, NULL, NULL}
 };
 
 
@@ -91,7 +94,7 @@ static opt_policy_t policy_arr[] = {
  */
 int             fexec_bypass_type = BP_NONE;
 int             fexec_autopart_type = AUTO_PART_NONE;
-int             fexec_cpu_slowdown = 0; /* percentage slowdown for CPU */
+int             fexec_cpu_slowdown = 0;	/* percentage slowdown for CPU */
 
 char            ratio[40];
 char            pid_str[40];
@@ -133,8 +136,9 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 	if (new_pid == 0) {
 		sprintf(ratio, "%d", data);
 		sprintf(pid_str, "%d", my_pid);
-		err = execlp("/home/diamond/bin/slowdown", "slowdown", "-r", ratio,
-		             "-p", pid_str, NULL);
+		err =
+		    execlp("/home/diamond/bin/slowdown", "slowdown", "-r",
+			   ratio, "-p", pid_str, NULL);
 		if (err) {
 			perror("exec failed:");
 		}
@@ -159,21 +163,21 @@ fexec_system_init()
 	rtimer_system_init(RTIMER_PAPI);
 
 	dctl_register_leaf(DEV_FEXEC_PATH, "split_policy", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &fexec_bypass_type);
+			   dctl_read_uint32, dctl_write_uint32,
+			   &fexec_bypass_type);
 
 	dctl_register_leaf(DEV_FEXEC_PATH, "dynamic_method", DCTL_DT_UINT32,
-	                   dctl_read_uint32, dctl_write_uint32,
-	                   &fexec_autopart_type);
+			   dctl_read_uint32, dctl_write_uint32,
+			   &fexec_autopart_type);
 
 	dctl_register_leaf(DEV_FEXEC_PATH, "cpu_slowdown", DCTL_DT_UINT32,
-	                   dctl_read_uint32, fexec_set_slowdown,
-	                   &fexec_cpu_slowdown);
+			   dctl_read_uint32, fexec_set_slowdown,
+			   &fexec_cpu_slowdown);
 
-	//#ifdef VERBOSE
+	// #ifdef VERBOSE
 	fprintf(stderr, "fexec_system_init: policy = %d\n",
-	        filter_exec.current_policy);
-	//#endif
+		filter_exec.current_policy);
+	// #endif
 
 
 	/*
@@ -224,9 +228,9 @@ fexec_init_search(filter_data_t * fdata)
 		}
 
 		err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
-		                           cur_filt->fi_arglist,
-		                           cur_filt->fi_blob_len,
-		                           cur_filt->fi_blob_data, 
+					   cur_filt->fi_arglist,
+					   cur_filt->fi_blob_len,
+					   cur_filt->fi_blob_data,
 					   cur_filt->fi_name, &data);
 
 		if (err != 0) {
@@ -238,11 +242,13 @@ fexec_init_search(filter_data_t * fdata)
 
 		cur_filt->fi_filt_arg = data;
 
-		/* XXX this need some works */
-		err = digest_cal(cur_filt->lib_name, cur_filt->fi_eval_name, 
-			cur_filt->fi_numargs, cur_filt->fi_arglist, 
-			cur_filt->fi_blob_len, cur_filt->fi_blob_data, 
-			&cur_filt->fi_sig);
+		/*
+		 * XXX this need some works 
+		 */
+		err = digest_cal(fdata, cur_filt->fi_eval_name,
+				 cur_filt->fi_numargs, cur_filt->fi_arglist,
+				 cur_filt->fi_blob_len,
+				 cur_filt->fi_blob_data, &cur_filt->fi_sig);
 	}
 	return (0);
 }
@@ -277,7 +283,7 @@ fexec_term_search(filter_data_t * fdata)
 }
 
 static int
-load_filter_lib(char *lib_name, filter_data_t * fdata)
+load_filter_lib(char *lib_name, filter_data_t * fdata, sig_val_t * sig)
 {
 	void           *handle;
 	filter_info_t  *cur_filt;
@@ -287,16 +293,36 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
 	filter_id_t     fid;
 	char           *error;
 
-	handle = dlopen(lib_name, RTLD_LAZY|RTLD_GLOBAL);
+	handle = dlopen(lib_name, RTLD_LAZY | RTLD_GLOBAL);
 	if (!handle) {
 		/*
 		 * XXX error log 
 		 */
-		 printf("XXX oepn <%s> failed \n", lib_name);
-
+		fprintf(stderr, "failed to open lib <%s> \n", lib_name);
 		fputs(dlerror(), stderr);
 		exit(1);
 	}
+
+	/*
+	 * Store information about this lib.
+	 */
+	if (fdata->num_libs >= fdata->max_libs) {
+		flib_info_t    *new;
+
+		new = realloc(fdata->lib_info, (sizeof(flib_info_t) *
+						(fdata->max_libs +
+						 FLIB_INCREMENT)));
+		assert(new != NULL);
+
+		fdata->lib_info = new;
+		fdata->max_libs += FLIB_INCREMENT;
+	}
+
+	fdata->lib_info[fdata->num_libs].dl_handle = handle;
+	fdata->lib_info[fdata->num_libs].lib_name = strdup(lib_name);
+	assert(fdata->lib_info[fdata->num_libs].lib_name != NULL);
+
+	memcpy(&fdata->lib_info[fdata->num_libs].lib_sig, sig, sizeof(*sig));
 
 	/*
 	 * XXX keep the handle somewhere 
@@ -328,16 +354,16 @@ load_filter_lib(char *lib_name, filter_data_t * fdata)
 			}
 		}
 
-		/* JIAYING: temporaryly pass in lib name. 
-		 * we may want to use separate lib for each filter later 
+		/*
+		 * JIAYING: temporaryly pass in lib name. we may want to use 
+		 * separate lib for each filter later 
 		 */
-		if( strlen(lib_name) > PATH_MAX ) {
+		if (strlen(lib_name) > PATH_MAX) {
 			return (EINVAL);
 		}
-		memcpy(cur_filt->lib_name, lib_name, strlen(lib_name)+1);
+		memcpy(cur_filt->lib_name, lib_name, strlen(lib_name) + 1);
 
 	}
-
 	return (0);
 }
 
@@ -359,7 +385,8 @@ verify_filters(filter_data_t * fdata)
 	 * Make sure we have at least 1 filter defined.
 	 */
 	if (fdata->fd_num_filters == 0) {
-		log_message(LOGT_FILT, LOGL_ERR, "verify_filters(): no filters");
+		log_message(LOGT_FILT, LOGL_ERR,
+			    "verify_filters(): no filters");
 		printf("num filters is 0 \n");
 		return (EINVAL);
 	}
@@ -380,7 +407,7 @@ verify_filters(filter_data_t * fdata)
 		 */
 		if (strlen(fdata->fd_filters[fid].fi_name) == 0) {
 			log_message(LOGT_FILT, LOGL_ERR,
-			            "verify_filters(): no filter name");
+				    "verify_filters(): no filter name");
 			printf("bad name len  on %d \n", fid);
 			return (EINVAL);
 		}
@@ -390,8 +417,9 @@ verify_filters(filter_data_t * fdata)
 		 */
 		if (fdata->fd_filters[fid].fi_threshold == -1) {
 			log_message(LOGT_FILT, LOGL_ERR,
-			            "verify_filters(): no threshold");
-			printf("bad threshold on %s \n", fdata->fd_filters[fid].fi_name);
+				    "verify_filters(): no threshold");
+			printf("bad threshold on %s \n",
+			       fdata->fd_filters[fid].fi_name);
 			return (EINVAL);
 		}
 	}
@@ -415,24 +443,6 @@ find_filter_id(filter_data_t * fdata, const char *name)
 	return (INVALID_FILTER_ID);
 }
 
-static void
-print_filter_list(char *tag, filter_data_t * fdata)
-{
-	int             i;
-
-	fprintf(stderr, "%s:", tag);
-	if (fdata->fd_num_filters == 0) {
-		fprintf(stderr, "<null>");
-		return;
-	}
-
-	for (i = 0; i < fdata->fd_num_filters; i++) {
-		fprintf(stderr, " %s", fdata->fd_filters[i].fi_name);
-	}
-	fprintf(stderr, "\n");
-}
-
-
 
 /*
  * build a label in buf (potential overflow error) using the filter name and
@@ -451,7 +461,7 @@ build_label(char *buf, filter_info_t * fil)
 		strcat(buf, " ");
 		strcat(buf, fil->fi_arglist[i]);
 		// strcat(buf, "\\n");
-		if (strlen(buf) > width) {  /* too long */
+		if (strlen(buf) > width) {	/* too long */
 			strcat(buf, "...");
 			break;
 		}
@@ -471,7 +481,7 @@ resolve_filter_deps(filter_data_t * fdata)
 	filter_info_t  *cur_filter;
 	int             i;
 	int             id,
-	tempid;
+	                tempid;
 	// int lastid;
 	graph_t         graph;
 	node_t         *np;
@@ -510,7 +520,7 @@ resolve_filter_deps(filter_data_t * fdata)
 #ifdef VERBOSE
 
 		fprintf(stderr, "resolving dependencies for %s\n",
-		        cur_filter->fi_name);
+			cur_filter->fi_name);
 #endif
 
 		/*
@@ -524,16 +534,20 @@ resolve_filter_deps(filter_data_t * fdata)
 		 * add edges; note direction reversed 
 		 */
 		for (i = 0; i < cur_filter->fi_depcount; i++) {
-			tempid = find_filter_id(fdata, cur_filter->fi_deps[i].name);
+			tempid =
+			    find_filter_id(fdata,
+					   cur_filter->fi_deps[i].name);
 			if (tempid == INVALID_FILTER_ID) {
-				fprintf(stderr, "could not resolve filter <%s>"
-				        " needed by <%s>\n",
-				        cur_filter->fi_deps[i].name, cur_filter->fi_name);
+				fprintf(stderr,
+					"could not resolve filter <%s>"
+					" needed by <%s>\n",
+					cur_filter->fi_deps[i].name,
+					cur_filter->fi_name);
 				return (EINVAL);
 			}
 			// cur_filter->fi_deps[i].filter = tmp;
 			gAddEdge(&graph, fdata->fd_filters[tempid].fi_gnode,
-			         cur_filter->fi_gnode);
+				 cur_filter->fi_gnode);
 
 			/*
 			 * also build up a partial_order 
@@ -572,12 +586,12 @@ resolve_filter_deps(filter_data_t * fdata)
 			filter_info_t  *info;
 
 			if (!np->data || np == src_node) {
-				continue;       /* skip */
+				continue;	/* skip */
 			}
 			info = (filter_info_t *) np->data;
 			fid = info->fi_filterid;
 			if (fid == fdata->fd_app_id) {
-				continue;       /* skip */
+				continue;	/* skip */
 			}
 			pmSetElt(fdata->fd_perm, pos++, fid);
 		}
@@ -608,7 +622,7 @@ resolve_filter_deps(filter_data_t * fdata)
 	fprintf(stderr, "filterexec: filter seq ordering");
 	for (i = 0; i < pmLength(fdata->fd_perm); i++) {
 		fprintf(stderr, " %s",
-		        fdata->fd_filters[pmElt(fdata->fd_perm, i)].fi_name);
+			fdata->fd_filters[pmElt(fdata->fd_perm, i)].fi_name);
 	}
 	fprintf(stderr, "\n");
 #endif
@@ -658,48 +672,51 @@ initialize_policy(filter_data_t * fdata)
  * Inputs:
  *  lib_name:   The name of the shared library that has the filter files.
  *  filter_spec:    The file containing the filter spec.
- *  froot:      A pointer to where the pointer to the list of filters
+ *  fdata:      A pointer to where the pointer to the list of filters
  *          should be stored.   
+ *  sig:        md5 sum of the filter 
+ *
  * Returns:
  *  0   if it initailized correctly
  *  !0  something failed.   
  */
 int
 fexec_load_searchlet(char *lib_name, char *filter_spec,
-                     filter_data_t ** fdata)
+		     filter_data_t ** fdata, sig_val_t * sig)
 {
 	int             err;
 
 	log_message(LOGT_FILT, LOGL_TRACE,
-	            "fexec_load_searchlet: lib %s spec %s", lib_name,
-	            filter_spec);
+		    "fexec_load_searchlet: lib %s spec %s", lib_name,
+		    filter_spec);
 
 	if (filter_spec != NULL) {
 		err = read_filter_spec(filter_spec, fdata);
 		if (err) {
 			log_message(LOGT_FILT, LOGL_ERR,
-		            "Failed to read filter spec <%s>", filter_spec);
+				    "Failed to read filter spec <%s>",
+				    filter_spec);
 			return (err);
 		}
-		print_filter_list("filterexec: init", *fdata);
 
 		err = resolve_filter_deps(*fdata);
 		if (err) {
 			log_message(LOGT_FILT, LOGL_ERR,
-		            	"Failed resolving filter dependancies <%s>", filter_spec);
+				    "Failed resolving filter dependancies <%s>",
+				    filter_spec);
 			return (1);
 		}
 
 		err = verify_filters(*fdata);
 		if (err) {
-			log_message(LOGT_FILT, LOGL_ERR, "Filter verify failed <%s>",
-		            	filter_spec);
+			log_message(LOGT_FILT, LOGL_ERR,
+				    "Filter verify failed <%s>", filter_spec);
 			return (err);
 		}
 
 		/*
-	 	* this need to be cleaned up somewhere XXX 
-	 	*/
+		 * this need to be cleaned up somewhere XXX 
+		 */
 		initialize_policy(*fdata);
 
 	}
@@ -709,10 +726,11 @@ fexec_load_searchlet(char *lib_name, char *filter_spec,
 	 */
 
 	if (lib_name != NULL) {
-		err = load_filter_lib(lib_name, *fdata);
+		err = load_filter_lib(lib_name, *fdata, sig);
 		if (err) {
 			log_message(LOGT_FILT, LOGL_ERR,
-			            "Failed loading filter library <%s>", lib_name);
+				    "Failed loading filter library <%s>",
+				    lib_name);
 			return (err);
 		}
 
@@ -720,7 +738,7 @@ fexec_load_searchlet(char *lib_name, char *filter_spec,
 		 * everything was loaded correctly, log it 
 		 */
 		log_message(LOGT_FILT, LOGL_TRACE,
-		            "init_filters: loaded %s", lib_name);
+			    "init_filters: loaded %s", lib_name);
 	}
 
 	return (0);
@@ -749,7 +767,8 @@ void
 optimize_filter_order(filter_data_t * fdata, opt_policy_t * policy)
 {
 	if (policy->p_optimize) {
-		policy->exploit = policy->p_optimize(policy->p_context, fdata);
+		policy->exploit =
+		    policy->p_optimize(policy->p_context, fdata);
 	}
 }
 
@@ -759,14 +778,12 @@ tv_diff(struct timeval *end, struct timeval *start)
 	double          temp;
 	long            val;
 
-	if (end->tv_usec > start->tv_usec)
-	{
+	if (end->tv_usec > start->tv_usec) {
 		val = end->tv_usec - start->tv_usec;
 		temp = (double) (end->tv_sec - start->tv_sec);
 		temp += val / (double) 1000000.0;
-	} else
-	{
-		//val = 1000000 - end->tv_usec - start->tv_usec;
+	} else {
+		// val = 1000000 - end->tv_usec - start->tv_usec;
 		val = 1000000 + end->tv_usec - start->tv_usec;
 		temp = (double) (end->tv_sec - start->tv_sec - 1);
 		temp += val / (double) 1000000.0;
@@ -807,20 +824,20 @@ fexec_get_load(filter_data_t * fdata)
 
 int
 eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
-             double	*elapsed,
-             void *cookie, int (*continue_cb)(void *cookie),
-             int (*cb_func) (void *cookie, char *name,
-                             int *pass, uint64_t * et))
+	     double *elapsed,
+	     void *cookie, int (*continue_cb) (void *cookie),
+	     int (*cb_func) (void *cookie, char *name,
+			     int *pass, uint64_t * et))
 {
 	filter_info_t  *cur_filter;
 	int             val;
 	char            timebuf[BUFSIZ];
 	int             err;
 	size_t          asize;
-	int             pass = 1;   /* return value */
+	int             pass = 1;	/* return value */
 	int             rv;
 	int             cur_fid,
-	cur_fidx;
+	                cur_fidx;
 	struct timeval  wstart;
 	struct timeval  wstop;
 	struct timezone tz;
@@ -831,8 +848,8 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	 * timer info 
 	 */
 	rtimer_t        rt;
-	u_int64_t       time_ns;    /* time for one filter */
-	u_int64_t       stack_ns;   /* time for whole filter stack */
+	u_int64_t       time_ns;	/* time for one filter */
+	u_int64_t       stack_ns;	/* time for whole filter stack */
 
 
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
@@ -858,7 +875,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	 */
 	asize = sizeof(stack_ns);
 	err = obj_read_attr(&obj_handle->attr_info, FLTRTIME,
-	                    &asize, (void *) &stack_ns);
+			    &asize, (void *) &stack_ns);
 	if (err != 0) {
 		/*
 		 * If we didn't find it, then set our count to 0. 
@@ -886,7 +903,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 		asize = sizeof(time_ns);
 		err = obj_read_attr(&obj_handle->attr_info, timebuf,
-		                    &asize, (void *) &time_ns);
+				    &asize, (void *) &time_ns);
 
 		/*
 		 * if the read is sucessful, then this stage
@@ -894,16 +911,16 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 */
 		if (err == 0) {
 			log_message(LOGT_FILT, LOGL_TRACE,
-			            "eval_filters: Filter %s has already been run",
-			            cur_filter->fi_name);
+				    "eval_filters: Filter %s has already been run",
+				    cur_filter->fi_name);
 			continue;
 		}
 
 		/*
 		 * Look at the current filter bypass to see if we should actually
 		 * run it or pass it.  For the non-auto partitioning, we
-		* we still use the bypass values to determine how much of
-		* the allocation to run.
+		 * we still use the bypass values to determine how much of
+		 * the allocation to run.
 		 */
 		if (force_eval == 0) {
 			if ((fexec_autopart_type == AUTO_PART_BYPASS) ||
@@ -914,8 +931,8 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 					break;
 				}
 			} else if ((fexec_autopart_type == AUTO_PART_QUEUE) &&
-			           (cur_filter->fi_firstgroup)) {
-				if ((*continue_cb)(cookie) == 0) {
+				   (cur_filter->fi_firstgroup)) {
+				if ((*continue_cb) (cookie) == 0) {
 					pass = 1;
 					break;
 				}
@@ -929,27 +946,29 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 * initialize obj state for this call 
 		 */
 		obj_handle->cur_offset = 0;
-		obj_handle->cur_blocksize = 1024;   /* XXX */
+		obj_handle->cur_blocksize = 1024;	/* XXX */
 
 
 		/*
 		 * run the filter and update pass 
 		 */
 		if (cb_func) {
-			err = (*cb_func) (cookie, cur_filter->fi_name, &pass, &time_ns);
+			err =
+			    (*cb_func) (cookie, cur_filter->fi_name, &pass,
+					&time_ns);
 #define SANITY_NS_PER_FILTER (2 * 1000000000)
 
 			assert(time_ns < SANITY_NS_PER_FILTER);
 		} else {
 			rt_init(&rt);
-			rt_start(&rt);      /* assume only one thread here */
+			rt_start(&rt);	/* assume only one thread here */
 
 			assert(cur_filter->fi_eval_fp);
 			/*
 			 * arg 3 here looks strange -rw 
 			 */
 			val = cur_filter->fi_eval_fp(obj_handle,
-			                              cur_filter->fi_filt_arg);
+						     cur_filter->fi_filt_arg);
 
 			/*
 			 * get timing info and update stats 
@@ -964,23 +983,25 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 				pass = 0;
 			}
 			log_message(LOGT_FILT, LOGL_TRACE,
-			            "eval_filters:  filter %s has val (%d) - threshold %d",
-			            cur_filter->fi_name, val, cur_filter->fi_threshold);
+				    "eval_filters:  filter %s has val (%d) - threshold %d",
+				    cur_filter->fi_name, val,
+				    cur_filter->fi_threshold);
 		}
 
-		cur_filter->fi_time_ns += time_ns;  /* update filter stats */
+		cur_filter->fi_time_ns += time_ns;	/* update filter
+							 * stats */
 
 		stack_ns += time_ns;
 		obj_write_attr(&obj_handle->attr_info, timebuf,
-		               sizeof(time_ns), (void *) &time_ns);
+			       sizeof(time_ns), (void *) &time_ns);
 		if (!pass) {
 			cur_filter->fi_drop++;
 		} else {
 			cur_filter->fi_pass++;
 		}
 
-		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm), cur_fidx,
-		                  pass);
+		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm),
+				  cur_fidx, pass);
 
 		/*
 		 * XXX update the time spent on filter 
@@ -995,13 +1016,13 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	fexec_active_filter = NULL;
 
 	log_message(LOGT_FILT, LOGL_TRACE,
-	            "eval_filters:  done - total time is %lld", stack_ns);
+		    "eval_filters:  done - total time is %lld", stack_ns);
 
 	/*
 	 * save the total time info attribute 
 	 */
 	obj_write_attr(&obj_handle->attr_info,
-	               FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
+		       FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
 	/*
 	 * track per-object info 
 	 */
@@ -1036,4 +1057,3 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 	return pass;
 }
-

@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -43,9 +43,12 @@
 #include "hstub_impl.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
-/* XXX move to common header */
+/*
+ * XXX move to common header 
+ */
 #define	HSTUB_RING_SIZE	512
 #define OBJ_RING_SIZE	512
 
@@ -54,13 +57,15 @@ static char const cvsid[] = "$Header$";
  * Return the cache device characteristics.
  */
 int
-device_characteristics(void *handle, device_char_t *dev_chars)
+device_characteristics(void *handle, device_char_t * dev_chars)
 {
-	sdevice_state_t *dev = (sdevice_state_t *)handle;
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
 
 	*dev_chars = dev->dev_char;
 
-	/* XXX debug */
+	/*
+	 * XXX debug 
+	 */
 	assert(dev_chars->dc_isa == dev->dev_char.dc_isa);
 	assert(dev_chars->dc_speed == dev->dev_char.dc_speed);
 	assert(dev_chars->dc_mem == dev->dev_char.dc_mem);
@@ -71,22 +76,24 @@ device_characteristics(void *handle, device_char_t *dev_chars)
 
 
 int
-device_statistics(void *handle, dev_stats_t *dev_stats, int *stat_len)
+device_statistics(void *handle, dev_stats_t * dev_stats, int *stat_len)
 {
-	sdevice_state_t *dev = (sdevice_state_t *)handle;
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
 
 	if (dev->stat_size == 0) {
 		memset(dev_stats, 0, *stat_len);
 	} else {
-		/* XXX locking ?? */
+		/*
+		 * XXX locking ?? 
+		 */
 		if (dev->stat_size > *stat_len) {
 			*stat_len = dev->stat_size;
-			return(ENOMEM);
+			return (ENOMEM);
 		}
 		memcpy(dev_stats, dev->dstats, dev->stat_size);
 		*stat_len = dev->stat_size;
 	}
-	return(0);
+	return (0);
 }
 
 
@@ -99,16 +106,18 @@ device_statistics(void *handle, dev_stats_t *dev_stats, int *stat_len)
 int
 device_stop(void *handle, int id)
 {
-	int			err;
-	control_header_t *	cheader;
+	int             err;
+	control_header_t *cheader;
 	sdevice_state_t *dev;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
@@ -117,10 +126,14 @@ device_stop(void *handle, int id)
 	cheader->data_len = htonl(0);
 	cheader->spare = 0;
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed device stop \n");
 		free(cheader);
 		return (EAGAIN);
@@ -142,17 +155,19 @@ device_stop(void *handle, int id)
 int
 device_terminate(void *handle, int id)
 {
-	int			err;
-	control_header_t *	cheader;
+	int             err;
+	control_header_t *cheader;
 	sdevice_state_t *dev;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
@@ -161,14 +176,20 @@ device_terminate(void *handle, int id)
 	cheader->data_len = htonl(0);
 	cheader->spare = 0;
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		free(cheader);
 		return (EAGAIN);
 	}
-	/* XXX flags */
+	/*
+	 * XXX flags 
+	 */
 	pthread_mutex_lock(&dev->con_data.mutex);
 	dev->con_data.flags |= CINFO_PENDING_CONTROL;
 	pthread_mutex_unlock(&dev->con_data.mutex);
@@ -184,15 +205,17 @@ device_terminate(void *handle, int id)
 int
 device_start(void *handle, int id)
 {
-	int			err;
-	control_header_t *	cheader;
+	int             err;
+	control_header_t *cheader;
 	sdevice_state_t *dev;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
@@ -201,10 +224,14 @@ device_start(void *handle, int id)
 	cheader->data_len = htonl(0);
 	cheader->spare = 0;
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to enq start  on ring\n");
 		free(cheader);
 		return (EAGAIN);
@@ -219,15 +246,17 @@ device_start(void *handle, int id)
 int
 device_clear_gids(void *handle, int id)
 {
-	int			err;
-	control_header_t *	cheader;
+	int             err;
+	control_header_t *cheader;
 	sdevice_state_t *dev;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
@@ -236,10 +265,14 @@ device_clear_gids(void *handle, int id)
 	cheader->data_len = htonl(0);
 	cheader->spare = 0;
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to enq clear_gids \n");
 		free(cheader);
 		return (EAGAIN);
@@ -252,35 +285,37 @@ device_clear_gids(void *handle, int id)
 }
 
 
-obj_info_t *
+obj_info_t     *
 device_next_obj(void *handle)
 {
 	sdevice_state_t *dev;
-	obj_info_t *	oinfo;
+	obj_info_t     *oinfo;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 	oinfo = ring_deq(dev->obj_ring);
 
 	if (oinfo != NULL) {
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}
-	return(oinfo);
+	return (oinfo);
 }
 
 
 int
 device_new_gid(void *handle, int id, groupid_t gid)
 {
-	int			err;
-	control_header_t *	cheader;
-	sgid_subheader_t *  sgid;
+	int             err;
+	control_header_t *cheader;
+	sgid_subheader_t *sgid;
 	sdevice_state_t *dev;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
@@ -293,10 +328,14 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	cheader->data_len = htonl(sizeof(*sgid));
 	cheader->spare = (uint32_t) sgid;
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to enq set gids \n");
 		free(cheader);
 		return (EAGAIN);
@@ -311,16 +350,18 @@ device_new_gid(void *handle, int id, groupid_t gid)
 int
 device_set_offload(void *handle, int id, uint64_t offload)
 {
-	int			err;
-	control_header_t *	cheader;
-	offload_subheader_t *   offl;
+	int             err;
+	control_header_t *cheader;
+	offload_subheader_t *offl;
 	sdevice_state_t *dev;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
@@ -333,10 +374,14 @@ device_set_offload(void *handle, int id, uint64_t offload)
 	cheader->data_len = htonl(sizeof(*offl));
 	cheader->spare = (uint32_t) offl;
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to set offload\n");
 		free(cheader);
 		free(offl);
@@ -359,23 +404,25 @@ device_set_offload(void *handle, int id, uint64_t offload)
 int
 device_set_searchlet(void *handle, int id, char *filter, char *spec)
 {
-	int			err;
-	control_header_t *	cheader;
-	searchlet_subhead_t *	shead;
-	char *			data;
-	int			total_len;
-	int			spec_len;
-	int			filter_len;
-	struct stat 		stats;
-	ssize_t			rsize;
-	FILE *			cur_file;
-	sdevice_state_t *	dev;
+	int             err;
+	control_header_t *cheader;
+	searchlet_subhead_t *shead;
+	char           *data;
+	int             total_len;
+	int             spec_len;
+	int             filter_len;
+	struct stat     stats;
+	ssize_t         rsize;
+	FILE           *cur_file;
+	sdevice_state_t *dev;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
@@ -388,7 +435,9 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 */
 	err = stat(filter, &stats);
 	if (err) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (ENOENT);
 	}
 	filter_len = stats.st_size;
@@ -397,7 +446,9 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 
 		err = stat(spec, &stats);
 		if (err) {
-			/* XXX log */
+			/*
+			 * XXX log 
+			 */
 			return (ENOENT);
 		}
 		spec_len = stats.st_size;
@@ -424,22 +475,26 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 * copy in the filter spec from the file.  NOTE: This is
 	 * currently blocks, we may want to do something else later.
 	 */
-	data = (char *)shead + sizeof(*shead);
+	data = (char *) shead + sizeof(*shead);
 
 	if (spec != NULL) {
 		cur_file = fopen(spec, "r");
 		if (cur_file == NULL) {
-			/* XXX log */
+			/*
+			 * XXX log 
+			 */
 			free(cheader);
 			free(shead);
 			return (ENOENT);
 		}
 		rsize = fread(data, spec_len, 1, cur_file);
 		if (rsize != 1) {
-			/* XXX log */
+			/*
+			 * XXX log 
+			 */
 			free(cheader);
 			free(shead);
-			return(EAGAIN);
+			return (EAGAIN);
 		}
 
 		fclose(cur_file);
@@ -454,17 +509,21 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	data += ((spec_len + 3) & ~3);
 	cur_file = fopen(filter, "r");
 	if (cur_file == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		free(shead);
 		return (ENOENT);
 	}
 	rsize = fread(data, filter_len, 1, cur_file);
 	if (rsize != 1) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		free(shead);
-		return(EAGAIN);
+		return (EAGAIN);
 	}
 
 	fclose(cur_file);
@@ -476,10 +535,14 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 */
 	cheader->spare = (uint32_t) shead;
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		free(cheader);
 		printf("failed enq \n");
 		return (EAGAIN);
@@ -494,22 +557,26 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 int
 device_set_log(void *handle, uint32_t level, uint32_t src)
 {
-	int			err;
-	control_header_t *	cheader;
+	int             err;
+	control_header_t *cheader;
 	sdevice_state_t *dev;
-	setlog_subheader_t *	slheader;
+	setlog_subheader_t *slheader;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
 	slheader = (setlog_subheader_t *) malloc(sizeof(*slheader));
 	if (slheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -526,10 +593,14 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 
 
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to enq set_log \n");
 		free(cheader);
 		return (EAGAIN);
@@ -547,33 +618,39 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 int
 device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 {
-	int		        	    err;
-	control_header_t *  	cheader;
-	sdevice_state_t *       dev;
-	dctl_subheader_t *      dsub;
-	int                     plen;
-	int                     tot_len;
+	int             err;
+	control_header_t *cheader;
+	sdevice_state_t *dev;
+	dctl_subheader_t *dsub;
+	int             plen;
+	int             tot_len;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
 	tot_len = plen + len + sizeof(*dsub);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		return (EAGAIN);
 	}
 
 
-	/* fill in the data */
+	/*
+	 * fill in the data 
+	 */
 
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_WRITE_LEAF);
@@ -595,10 +672,14 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	memcpy(&dsub->dctl_data[plen], data, len);
 
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
 		free(dsub);
@@ -614,33 +695,39 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 int
 device_read_leaf(void *handle, char *path, int32_t opid)
 {
-	int		        	    err;
-	control_header_t *  	cheader;
-	sdevice_state_t *       dev;
-	dctl_subheader_t *      dsub;
-	int                     plen;
-	int                     tot_len;
+	int             err;
+	control_header_t *cheader;
+	sdevice_state_t *dev;
+	dctl_subheader_t *dsub;
+	int             plen;
+	int             tot_len;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
 	tot_len = plen + sizeof(*dsub);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		return (EAGAIN);
 	}
 
 
-	/* fill in the data */
+	/*
+	 * fill in the data 
+	 */
 
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_READ_LEAF);
@@ -661,10 +748,14 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	memcpy(&dsub->dctl_data[0], path, plen);
 
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
 		free(dsub);
@@ -682,33 +773,39 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 int
 device_list_nodes(void *handle, char *path, int32_t opid)
 {
-	int		        	    err;
-	control_header_t *  	cheader;
-	sdevice_state_t *       dev;
-	dctl_subheader_t *      dsub;
-	int                     plen;
-	int                     tot_len;
+	int             err;
+	control_header_t *cheader;
+	sdevice_state_t *dev;
+	dctl_subheader_t *dsub;
+	int             plen;
+	int             tot_len;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
 	tot_len = plen + sizeof(*dsub);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		return (EAGAIN);
 	}
 
 
-	/* fill in the data */
+	/*
+	 * fill in the data 
+	 */
 
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_LIST_NODES);
@@ -729,10 +826,14 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	memcpy(&dsub->dctl_data[0], path, plen);
 
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
 		free(dsub);
@@ -748,33 +849,39 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 int
 device_list_leafs(void *handle, char *path, int32_t opid)
 {
-	int		        	    err;
-	control_header_t *  	cheader;
-	sdevice_state_t *       dev;
-	dctl_subheader_t *      dsub;
-	int                     plen;
-	int                     tot_len;
+	int             err;
+	control_header_t *cheader;
+	sdevice_state_t *dev;
+	dctl_subheader_t *dsub;
+	int             plen;
+	int             tot_len;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
 	tot_len = plen + sizeof(*dsub);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		return (EAGAIN);
 	}
 
 
-	/* fill in the data */
+	/*
+	 * fill in the data 
+	 */
 
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_LIST_LEAFS);
@@ -795,10 +902,14 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	memcpy(&dsub->dctl_data[0], path, plen);
 
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
 		free(dsub);
@@ -814,33 +925,39 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 int
 device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 {
-	int		        	    err;
-	control_header_t *  	cheader;
-	sdevice_state_t *       dev;
-	blob_subheader_t *      bsub;
-	int                     nlen;
-	int                     tot_len;
+	int             err;
+	control_header_t *cheader;
+	sdevice_state_t *dev;
+	blob_subheader_t *bsub;
+	int             nlen;
+	int             tot_len;
 
-	dev = (sdevice_state_t *)handle;
+	dev = (sdevice_state_t *) handle;
 
 	nlen = strlen(name) + 1;
 	tot_len = nlen + blob_len + sizeof(*bsub);
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EAGAIN);
 	}
 
 	bsub = (blob_subheader_t *) malloc(tot_len);
 	if (bsub == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(cheader);
 		return (EAGAIN);
 	}
 
 
-	/* fill in the data */
+	/*
+	 * fill in the data 
+	 */
 
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_SET_BLOB);
@@ -860,10 +977,14 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	memcpy(&bsub->blob_sdata[nlen], blob, blob_len);
 
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to write leaf \n");
 		free(cheader);
 		free(bsub);
@@ -879,8 +1000,8 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 int
 device_set_limit(void *handle, int limit)
 {
-	sdevice_state_t *       dev;
-	dev = (sdevice_state_t *)handle;
+	sdevice_state_t *dev;
+	dev = (sdevice_state_t *) handle;
 
 	if (dev->con_data.obj_limit != limit) {
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
@@ -895,7 +1016,7 @@ device_set_limit(void *handle, int limit)
 void
 device_stop_obj(void *handle)
 {
-	sdevice_state_t *       dev = (sdevice_state_t *)handle;
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
 
 	pthread_mutex_lock(&dev->con_data.mutex);
 	dev->con_data.flags |= CINFO_BLOCK_OBJ;
@@ -906,7 +1027,7 @@ device_stop_obj(void *handle)
 void
 device_enable_obj(void *handle)
 {
-	sdevice_state_t *       dev = (sdevice_state_t *)handle;
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
 
 	pthread_mutex_lock(&dev->con_data.mutex);
 	dev->con_data.flags &= ~CINFO_BLOCK_OBJ;
@@ -914,68 +1035,82 @@ device_enable_obj(void *handle)
 }
 
 static void
-setup_stats(sdevice_state_t *dev, uint32_t devid)
+setup_stats(sdevice_state_t * dev, uint32_t devid)
 {
 	struct hostent *hent;
-	int             len, err;
-	char *          delim;
-	char            node_name[128]; /* XXX */
-	char            path_name[128]; /* XXX */
+	int             len,
+	                err;
+	char           *delim;
+	char            node_name[128];	/* XXX */
+	char            path_name[128];	/* XXX */
 
 	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
 	if (hent == NULL) {
-		struct in_addr in;
+		struct in_addr  in;
 
 		printf("failed to get hostname\n");
 		in.s_addr = devid;
 		delim = inet_ntoa(in);
 		strcpy(node_name, delim);
 
-		/* replace all the '.' with '_' */
+		/*
+		 * replace all the '.' with '_' 
+		 */
 		while ((delim = index(node_name, '.')) != NULL) {
 			*delim = '_';
 		}
 	} else {
-		delim = index(hent->h_name ,'.');
+		delim = index(hent->h_name, '.');
 		if (delim == NULL) {
 			len = strlen(hent->h_name);
 		} else {
 			len = delim - hent->h_name;
 		}
-		strncpy(node_name, hent->h_name , len);
+		strncpy(node_name, hent->h_name, len);
 		node_name[len] = 0;
 	}
 
 	sprintf(path_name, "%s.%s", HOST_NETWORK_PATH, node_name);
 
 	err = dctl_register_node(HOST_NETWORK_PATH, node_name);
-	assert(err==0);
+	assert(err == 0);
 
 
 
 	dctl_register_leaf(path_name, "obj_rx", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &dev->con_data.stat_obj_rx);
+			   dctl_read_uint32, NULL,
+			   &dev->con_data.stat_obj_rx);
 	dctl_register_leaf(path_name, "obj_total_bytes_rx", DCTL_DT_UINT64,
-	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_total_byte_rx);
+			   dctl_read_uint64, NULL,
+			   &dev->con_data.stat_obj_total_byte_rx);
 	dctl_register_leaf(path_name, "obj_hdr_bytes_rx", DCTL_DT_UINT64,
-	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_hdr_byte_rx);
+			   dctl_read_uint64, NULL,
+			   &dev->con_data.stat_obj_hdr_byte_rx);
 	dctl_register_leaf(path_name, "obj_attr_bytes_rx", DCTL_DT_UINT64,
-	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_attr_byte_rx);
+			   dctl_read_uint64, NULL,
+			   &dev->con_data.stat_obj_attr_byte_rx);
 	dctl_register_leaf(path_name, "obj_data_bytes_rx", DCTL_DT_UINT64,
-	                   dctl_read_uint64, NULL, &dev->con_data.stat_obj_data_byte_rx);
+			   dctl_read_uint64, NULL,
+			   &dev->con_data.stat_obj_data_byte_rx);
 
 	dctl_register_leaf(path_name, "control_rx", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &dev->con_data.stat_control_rx);
+			   dctl_read_uint32, NULL,
+			   &dev->con_data.stat_control_rx);
 	dctl_register_leaf(path_name, "control_byte_rx", DCTL_DT_UINT64,
-	                   dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_rx);
+			   dctl_read_uint64, NULL,
+			   &dev->con_data.stat_control_byte_rx);
 	dctl_register_leaf(path_name, "control_tx", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &dev->con_data.stat_control_tx);
+			   dctl_read_uint32, NULL,
+			   &dev->con_data.stat_control_tx);
 	dctl_register_leaf(path_name, "control_byte_tx", DCTL_DT_UINT64,
-	                   dctl_read_uint64, NULL, &dev->con_data.stat_control_byte_tx);
+			   dctl_read_uint64, NULL,
+			   &dev->con_data.stat_control_byte_tx);
 	dctl_register_leaf(path_name, "log_rx", DCTL_DT_UINT32,
-	                   dctl_read_uint32, NULL, &dev->con_data.stat_log_rx);
+			   dctl_read_uint32, NULL,
+			   &dev->con_data.stat_log_rx);
 	dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64,
-	                   dctl_read_uint64, NULL, &dev->con_data.stat_log_byte_rx);
+			   dctl_read_uint64, NULL,
+			   &dev->con_data.stat_log_byte_rx);
 
 }
 
@@ -984,13 +1119,15 @@ setup_stats(sdevice_state_t *dev, uint32_t devid)
  * called by the searchlet library when we startup.
  */
 
-/* XXX callback for new packets  */
-void *
-device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
-            void *dctl_cookie, void *log_cookie)
+/*
+ * XXX callback for new packets 
+ */
+void           *
+device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list,
+	    void *dctl_cookie, void *log_cookie)
 {
 	sdevice_state_t *new_dev;
-	int		err;
+	int             err;
 
 	new_dev = (sdevice_state_t *) malloc(sizeof(*new_dev));
 	if (new_dev == NULL) {
@@ -1027,9 +1164,11 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 	 */
 	err = hstub_establish_connection(&new_dev->con_data, devid);
 	if (err) {
-		/* XXX log,  */
+		/*
+		 * XXX log, 
+		 */
 		free(new_dev);
-		return(NULL);
+		return (NULL);
 	}
 
 	/*
@@ -1058,13 +1197,15 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
 	 */
 
 	err = pthread_create(&new_dev->thread_id, PATTR_DEFAULT, hstub_main,
-	                     (void *)new_dev);
+			     (void *) new_dev);
 	if (err) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		free(new_dev);
 		return (NULL);
 	}
-	return((void *)new_dev);
+	return ((void *) new_dev);
 }
 
 
@@ -1075,9 +1216,8 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t *cb_list,
  * device search.
  */
 void
-device_fini(sdevice_state_t *dev_state)
+device_fini(sdevice_state_t * dev_state)
 {
 
 	free(dev_state);
 }
-

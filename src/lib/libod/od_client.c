@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -20,50 +20,51 @@
 #include "od.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 void
 messageprog_1(char *host)
 {
-	CLIENT *clnt;
-	int  *result_1;
-	char * printmessage_1_arg;
-	int  *result_2;
-	struct add_args  add_gid_1_arg;
+	CLIENT         *clnt;
+	int            *result_1;
+	char           *printmessage_1_arg;
+	int            *result_2;
+	struct add_args add_gid_1_arg;
 
 #ifndef	DEBUG
 
-	clnt = clnt_create (host, MESSAGEPROG, MESSAGEVERS, "udp");
+	clnt = clnt_create(host, MESSAGEPROG, MESSAGEVERS, "udp");
 	if (clnt == NULL) {
-		clnt_pcreateerror (host);
-		exit (1);
+		clnt_pcreateerror(host);
+		exit(1);
 	}
-#endif	/* DEBUG */
+#endif				/* DEBUG */
 
 	result_1 = printmessage_1(&printmessage_1_arg, clnt);
 	if (result_1 == (int *) NULL) {
-		clnt_perror (clnt, "call failed");
+		clnt_perror(clnt, "call failed");
 	}
 	result_2 = add_gid_1(&add_gid_1_arg, clnt);
 	if (result_2 == (int *) NULL) {
-		clnt_perror (clnt, "call failed");
+		clnt_perror(clnt, "call failed");
 	}
 #ifndef	DEBUG
-	clnt_destroy (clnt);
-#endif	 /* DEBUG */
+	clnt_destroy(clnt);
+#endif				/* DEBUG */
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-	char *host;
+	char           *host;
 
 	if (argc < 2) {
-		printf ("usage: %s server_host\n", argv[0]);
-		exit (1);
+		printf("usage: %s server_host\n", argv[0]);
+		exit(1);
 	}
 	host = argv[1];
-	messageprog_1 (host);
-	exit (0);
+	messageprog_1(host);
+	exit(0);
 }

@@ -26,7 +26,7 @@ typedef	int (*sstub_close_conn_fn)(void *app_cookie);
 typedef	int (*sstub_start_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_stop_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_set_searchlet_fn)(void *app_cookie, int gen_num,
-                                      char *spec, char *filter);
+                                      char *spec, char *filter, sig_val_t *sig);
 typedef	int (*sstub_set_list_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_terminate_fn)(void *app_cookie, int gen_num);
 typedef	void (*sstub_getstats_fn)(void *app_cookie, int gen_num);

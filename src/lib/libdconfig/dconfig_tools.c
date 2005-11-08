@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -23,7 +23,8 @@
 #include    "lib_dconfig.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 
@@ -37,52 +38,60 @@ static char const cvsid[] = "$Header$";
  * location.
  */
 
-FILE *
+FILE           *
 dconfig_open_config_file(const char *conf_file)
 {
-	FILE *  new_file;
-	char *  lkup;
-	char	fname[MAX_PATH];
+	FILE           *new_file;
+	char           *lkup;
+	char            fname[MAX_PATH];
 
 
-	/* try the environment variable */
+	/*
+	 * try the environment variable 
+	 */
 	lkup = getenv(DIAMOND_CONFIG_ENV_NAME);
 	if (lkup != NULL) {
-		/* XXX deal with overflow */
-		snprintf(fname, MAX_PATH, "%s/%s", lkup,
-			conf_file);
+		/*
+		 * XXX deal with overflow 
+		 */
+		snprintf(fname, MAX_PATH, "%s/%s", lkup, conf_file);
 		fname[MAX_PATH - 1] = '\0';
 		new_file = fopen(fname, "r");
 		if (new_file != NULL) {
-			return(new_file);
+			return (new_file);
 		}
 	}
 
-		
-	/* look in the local directory for the config directory */
+
+	/*
+	 * look in the local directory for the config directory 
+	 */
 	snprintf(fname, MAX_PATH, "./%s/%s", DIAMOND_CONFIG_DIR_NAME,
-		conf_file);
+		 conf_file);
 	fname[MAX_PATH - 1] = '\0';
 	new_file = fopen(fname, "r");
 	if (new_file != NULL) {
-		return(new_file);
+		return (new_file);
 	}
 
-	/* try the user's home directory */
+	/*
+	 * try the user's home directory 
+	 */
 	lkup = getenv("HOME");
 	if (lkup != NULL) {
-		/* XXX deal with overflow */
+		/*
+		 * XXX deal with overflow 
+		 */
 		snprintf(fname, MAX_PATH, "%s/%s/%s", lkup,
-			DIAMOND_CONFIG_DIR_NAME,
-			conf_file);
+			 DIAMOND_CONFIG_DIR_NAME, conf_file);
 		fname[MAX_PATH - 1] = '\0';
 		new_file = fopen(fname, "r");
 		if (new_file != NULL) {
-			return(new_file);
+			return (new_file);
 		}
 	}
-	/* didn't find a file, return NULL */
-	return(NULL);
+	/*
+	 * didn't find a file, return NULL 
+	 */
+	return (NULL);
 }
-
-

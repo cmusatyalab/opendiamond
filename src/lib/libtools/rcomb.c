@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -21,7 +21,8 @@
 #include "rcomb.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 // #define VERBOSE 1
 
@@ -33,20 +34,16 @@ static char const cvsid[] = "$Header$";
  */
 
 
-typedef struct heap_elt_t
-{
+typedef struct heap_elt_t {
 	int             key;
 	void           *val;
-}
-heap_elt_t;
+} heap_elt_t;
 
-typedef struct heap_t
-{
+typedef struct heap_t {
 	int             size;
 	int             capacity;
-	heap_elt_t      data[0];    /* variable size */
-}
-heap_t;
+	heap_elt_t      data[0];	/* variable size */
+} heap_t;
 /*
  * data[0] unused 
  */
@@ -69,7 +66,8 @@ heap_new(int n)
 {
 	heap_t         *heap;
 
-	heap = (heap_t *) malloc(sizeof(heap_t) + sizeof(heap_elt_t) * (n + 1));
+	heap =
+	    (heap_t *) malloc(sizeof(heap_t) + sizeof(heap_elt_t) * (n + 1));
 	assert(heap);
 	heap->size = 0;
 	heap->capacity = n;
@@ -107,7 +105,7 @@ static void
 heapify(heap_t * heap, int i)
 {
 	int             l,
-	r;
+	                r;
 	int             largest;
 
 	l = LEFT(i);
@@ -180,7 +178,7 @@ pmNew(int n)
 
 	assert(n >= 0);
 	ptr = (permutation_t *) malloc(sizeof(permutation_t) +
-	                               sizeof(pelt_t) * n);
+				       sizeof(pelt_t) * n);
 	assert(ptr);
 	ptr->size = 0;
 	ptr->capacity = n;
@@ -365,8 +363,8 @@ pmPrint(const permutation_t * pm, char *buf, int bufsiz)
  * poset functions 
  */
 
-//static int      poGet(const partial_order_t * po, int u, int v);
-int      poGet(const partial_order_t * po, int u, int v);
+// static int poGet(const partial_order_t * po, int u, int v);
+int             poGet(const partial_order_t * po, int u, int v);
 
 
 partial_order_t *
@@ -375,7 +373,7 @@ poNew(int n)
 	partial_order_t *po;
 
 	po = (partial_order_t *) malloc(sizeof(partial_order_t) +
-	                                n * n * sizeof(char));
+					n * n * sizeof(char));
 	assert(po);
 	po->dim = n;
 	memset(po->data, PO_INCOMPARABLE, n * n * sizeof(char));
@@ -407,7 +405,7 @@ void
 poPrint(partial_order_t * po)
 {
 	int             i,
-	j;
+	                j;
 
 	printf("   ");
 	for (i = 0; i < po->dim; i++) {
@@ -420,17 +418,17 @@ poPrint(partial_order_t * po)
 		for (j = 0; j < po->dim; j++) {
 			char            c = ' ';
 			switch (poGet(po, i, j)) {
-				case PO_EQ:
-					c = '=';
-					break;
-				case PO_LT:
-					c = '<';
-					break;
-				case PO_GT:
-					c = '>';
-					break;
-				default:
-					c = '?';
+			case PO_EQ:
+				c = '=';
+				break;
+			case PO_LT:
+				c = '<';
+				break;
+			case PO_GT:
+				c = '>';
+				break;
+			default:
+				c = '?';
 			}
 			printf(" %c", c);
 		}
@@ -454,7 +452,7 @@ poSetOrder(partial_order_t * po, int u, int v, po_relation_t rel)
 	po->data[v * po->dim + u] = poInverse(rel);
 }
 
-//static int
+// static int
 int
 poGet(const partial_order_t * po, int u, int v)
 {
@@ -467,8 +465,8 @@ void
 poClosure(partial_order_t * po)
 {
 	int             i,
-	j,
-	k;
+	                j,
+	                k;
 	int             n = po->dim;
 
 	/*
@@ -478,8 +476,10 @@ poClosure(partial_order_t * po)
 		for (i = 0; i < n; i++) {
 			for (j = 0; j < n; j++) {
 				if (poIncomparable(po, i, j)) {
-					if (poGet(po, i, k) == poGet(po, k, j)) {
-						poSetOrder(po, i, j, poGet(po, i, k));
+					if (poGet(po, i, k) ==
+					    poGet(po, k, j)) {
+						poSetOrder(po, i, j,
+							   poGet(po, i, k));
 					}
 				}
 			}
@@ -552,7 +552,7 @@ poComparable(const partial_order_t * po, int u, int v)
 
 void
 hill_climb_init(hc_state_t * ptr, const permutation_t * start,
-                const partial_order_t * po)
+		const partial_order_t * po)
 {
 	ptr->best_seq = pmDup(start);
 	randomize_permutation(ptr->best_seq, po);
@@ -581,7 +581,7 @@ hill_climb_cleanup(hc_state_t * ptr)
  */
 static int
 check_valid_swap(const partial_order_t * po, const permutation_t * perm,
-                 int u, int v)
+		 int u, int v)
 {
 	int             i;
 
@@ -607,10 +607,10 @@ check_valid_swap(const partial_order_t * po, const permutation_t * perm,
 
 int
 hill_climb_step(hc_state_t * hc, const partial_order_t * po,
-                evaluation_func_t evf, void *context)
+		evaluation_func_t evf, void *context)
 {
 	int             i,
-	j;
+	                j;
 	int             err = 0;
 	int             n = hc->n;
 	int             best_score;
@@ -637,8 +637,8 @@ hill_climb_step(hc_state_t * hc, const partial_order_t * po,
 	}
 
 	while (!err && hc->improved) {
-		printf("best: %s, score=%d\n", pmPrint(hc->best_seq, buf, BUFSIZ),
-		       best_score);
+		printf("best: %s, score=%d\n",
+		       pmPrint(hc->best_seq, buf, BUFSIZ), best_score);
 
 		/*
 		 * test seq 
@@ -667,7 +667,9 @@ hill_climb_step(hc_state_t * hc, const partial_order_t * po,
 				/*
 				 * evaluate option 
 				 */
-				err = evf(context, hc->next_seq, hc->generation, &next_score);
+				err =
+				    evf(context, hc->next_seq, hc->generation,
+					&next_score);
 
 				/*
 				 * printf("permutation %d/%d: %s, score=%d... ", i, j, 
@@ -687,7 +689,7 @@ hill_climb_step(hc_state_t * hc, const partial_order_t * po,
 					printf("rejected!\n");
 				} else if (err) {
 					goto done;
-				} else {        /* (next_score > best_score) */
+				} else {	/* (next_score > best_score) */
 					printf("improved!\n");
 					/*
 					 * keep track of best 
@@ -710,7 +712,7 @@ hill_climb_step(hc_state_t * hc, const partial_order_t * po,
 				i++;
 				j = i + 1;
 			}
-		}                       /* while(i.. */
+		}		/* while(i.. */
 
 		/*
 		 * reset loop 
@@ -719,7 +721,7 @@ hill_climb_step(hc_state_t * hc, const partial_order_t * po,
 		j = 1;
 		hc->improved = 0;
 
-done:
+	      done:
 		hc->i = i;
 		hc->j = j;
 	}
@@ -738,8 +740,12 @@ done:
 	if (err == RC_ERR_COMPLETE) {
 		if (hc->global_best) {
 			int             err1;
-			err1 = evf(context, hc->best_seq, hc->generation, &best_score);
-			err1 = evf(context, hc->global_best, hc->generation, &next_score);
+			err1 =
+			    evf(context, hc->best_seq, hc->generation,
+				&best_score);
+			err1 =
+			    evf(context, hc->global_best, hc->generation,
+				&next_score);
 			if (next_score > best_score) {
 				pmCopy(hc->best_seq, hc->global_best);
 			} else {
@@ -779,13 +785,13 @@ hill_climb_next(hc_state_t * hc)
 
 void
 best_first_init(bf_state_t * ptr, int n, const partial_order_t * po,
-                evaluation_func_t evf, const void *context)
+		evaluation_func_t evf, const void *context)
 {
 	ptr->n = n;
 	ptr->i = 0;
 	ptr->j = 0;
 	ptr->improved = 1;
-	ptr->pq = heap_new(MAX(n * n, 1000));   /* XXX */
+	ptr->pq = heap_new(MAX(n * n, 1000));	/* XXX */
 	ptr->po = po;
 	ptr->best_seq = pmNew(n);
 	ptr->next_seq = pmNew(n);
@@ -816,16 +822,17 @@ best_first_cleanup(bf_state_t * ptr)
  */
 static int
 is_valid_partial_perm(const partial_order_t * po, const permutation_t * perm,
-                      int n)
+		      int n)
 {
 	int             i,
-	j;
+	                j;
 	// char buf[BUFSIZ];
 
 	// printf("checking %s", pmPrint(perm, buf, BUFSIZ));
 	for (i = 0; i < pmLength(perm); i++) {
 		for (j = i + 1; j < n; j++) {
-			if (poGet(po, pmElt(perm, i), pmElt(perm, j)) == PO_GT) {
+			if (poGet(po, pmElt(perm, i), pmElt(perm, j)) ==
+			    PO_GT) {
 				// printf("\tnot valid\n");
 				return 0;
 			}
@@ -842,10 +849,10 @@ static void
 make_valid_perm(const partial_order_t * po, permutation_t * perm, int n)
 {
 	int             i,
-	j;
+	                j;
 	int             start = pmLength(perm);
 	int             v1,
-	v2;
+	                v2;
 
 	/*
 	 * yeah, it's n^2... XXX 
@@ -891,128 +898,140 @@ best_first_step(bf_state_t * bf)
 #endif
 
 	switch (bf->state) {
-		case RC_BFS_INIT:
+	case RC_BFS_INIT:
 
-			while (bf->i < n) {
-				if (poIsMin(bf->po, bf->i)) {   /* inefficient XXX */
-					permutation_t  *perm;
-					/*
-					 * setup the permutation so that the unused part contains the
-					 * filters not used 
-					 */
-					perm = pmNew(n);
-					pmIdentity(perm);
-					pmSwap(perm, 0, bf->i);
-					pmSetSize(perm, 1);
-
-					err =
-					    bf->evfunc(bf->evcontext, perm, bf->generation,
-					               &next_score);
-					if (err) {
-						pmCopyAll(bf->next_seq, perm);  /* try this */
-						make_valid_perm(bf->po, bf->next_seq, n);
-						pmSetSize(bf->next_seq, n);
-						return RC_ERR_NODATA;
-					}
-#ifdef VERBOSE
-					printf("heap insert: %s", pmPrint(perm, buf, BUFSIZ));
-					printf(" (score=%s)\n", format_number(buf, next_score));
-#endif
-
-					heap_insert(bf->pq, next_score, perm);
-				}
-				bf->i++;
-			}
-			bf->state = RC_BFS_VISIT;
-			break;
-
-
-		case RC_BFS_VISIT:
-
-			// printf("bfs_visit\n");
-			if (!heap_size(bf->pq)) {
-				assert(bf->best_seq);
-				assert(pmLength(bf->best_seq) == bf->n);
-				return RC_ERR_COMPLETE;
-			}
-
-			pmCopyAll(bf->best_seq, heap_extract_max(bf->pq));
-#ifdef VERBOSE
-
-			printf("bfs visiting: %s\n", pmPrint(bf->best_seq, buf, BUFSIZ));
-#endif
-
-			/*
-			 * found full permutation 
-			 */
-			if (pmLength(bf->best_seq) == bf->n) {
-#ifdef VERBOSE
-				printf("bfs found terminal: %s\n",
-				       pmPrint(bf->best_seq, buf, BUFSIZ));
-#endif
-
-				bf->state = RC_BFS_DONE;
-				return RC_ERR_COMPLETE;
-			}
-
-			bf->state = RC_BFS_EXPAND;
-			bf->j = pmSize(bf->best_seq);
-			break;
-
-
-		case RC_BFS_EXPAND:
-
-			// printf("bfs_expand: %s\n", pmPrint(bf->best_seq, buf, BUFSIZ));
-			/*
-			 * get all the children 
-			 */
-			while (bf->j < n) {
-				pos = pmSize(bf->best_seq);
-				pmCopyAll(bf->next_seq, bf->best_seq);
-				pmSwap(bf->next_seq, pos, bf->j);
-				pmSetSize(bf->next_seq, pos + 1);
-				if (is_valid_partial_perm(bf->po, bf->next_seq, n)) {
-					int             score;
-					err =
-					    bf->evfunc(bf->evcontext, bf->next_seq, bf->generation,
-					               &score);
-					if (err) {
-#ifdef VERBOSE
-						printf("bfs needs info for %s\n",
-						       pmPrint(bf->next_seq, buf, BUFSIZ));
-#endif
-
-						make_valid_perm(bf->po, bf->next_seq, n);
-						pmSetSize(bf->next_seq, n);
-						return RC_ERR_NODATA;
-					}
-#ifdef VERBOSE
-					printf("heap inserting: %s",
-					       pmPrint(bf->next_seq, buf, BUFSIZ));
-					printf(" (score=%s)\n", format_number(buf, score));
-#endif
-					// score /= pmLength(bf->next_seq); /* XXX average cost */
-					heap_insert(bf->pq, score, pmDup(bf->next_seq));
-				}
-				bf->j++;
-			}
-			bf->state = RC_BFS_VISIT;
-			break;
-
-		case RC_BFS_DONE:
-			/*
-			 * drain the pq 
-			 */
-			while (heap_size(bf->pq)) { /* inefficient XXX */
+		while (bf->i < n) {
+			if (poIsMin(bf->po, bf->i)) {	/* inefficient XXX */
 				permutation_t  *perm;
-				perm = (permutation_t *) heap_extract_max(bf->pq);
-				pmDelete(perm);
+				/*
+				 * setup the permutation so that the unused part contains the
+				 * filters not used 
+				 */
+				perm = pmNew(n);
+				pmIdentity(perm);
+				pmSwap(perm, 0, bf->i);
+				pmSetSize(perm, 1);
+
+				err =
+				    bf->evfunc(bf->evcontext, perm,
+					       bf->generation, &next_score);
+				if (err) {
+					pmCopyAll(bf->next_seq, perm);	/* try 
+									 * this 
+									 */
+					make_valid_perm(bf->po, bf->next_seq,
+							n);
+					pmSetSize(bf->next_seq, n);
+					return RC_ERR_NODATA;
+				}
+#ifdef VERBOSE
+				printf("heap insert: %s",
+				       pmPrint(perm, buf, BUFSIZ));
+				printf(" (score=%s)\n",
+				       format_number(buf, next_score));
+#endif
+
+				heap_insert(bf->pq, next_score, perm);
 			}
-			bf->i = 0;
-			bf->j = 0;
-			bf->generation++;
-			bf->state = RC_BFS_INIT;
-			break;
+			bf->i++;
+		}
+		bf->state = RC_BFS_VISIT;
+		break;
+
+
+	case RC_BFS_VISIT:
+
+		// printf("bfs_visit\n");
+		if (!heap_size(bf->pq)) {
+			assert(bf->best_seq);
+			assert(pmLength(bf->best_seq) == bf->n);
+			return RC_ERR_COMPLETE;
+		}
+
+		pmCopyAll(bf->best_seq, heap_extract_max(bf->pq));
+#ifdef VERBOSE
+
+		printf("bfs visiting: %s\n",
+		       pmPrint(bf->best_seq, buf, BUFSIZ));
+#endif
+
+		/*
+		 * found full permutation 
+		 */
+		if (pmLength(bf->best_seq) == bf->n) {
+#ifdef VERBOSE
+			printf("bfs found terminal: %s\n",
+			       pmPrint(bf->best_seq, buf, BUFSIZ));
+#endif
+
+			bf->state = RC_BFS_DONE;
+			return RC_ERR_COMPLETE;
+		}
+
+		bf->state = RC_BFS_EXPAND;
+		bf->j = pmSize(bf->best_seq);
+		break;
+
+
+	case RC_BFS_EXPAND:
+
+		// printf("bfs_expand: %s\n", pmPrint(bf->best_seq, buf,
+		// BUFSIZ));
+		/*
+		 * get all the children 
+		 */
+		while (bf->j < n) {
+			pos = pmSize(bf->best_seq);
+			pmCopyAll(bf->next_seq, bf->best_seq);
+			pmSwap(bf->next_seq, pos, bf->j);
+			pmSetSize(bf->next_seq, pos + 1);
+			if (is_valid_partial_perm(bf->po, bf->next_seq, n)) {
+				int             score;
+				err =
+				    bf->evfunc(bf->evcontext, bf->next_seq,
+					       bf->generation, &score);
+				if (err) {
+#ifdef VERBOSE
+					printf("bfs needs info for %s\n",
+					       pmPrint(bf->next_seq, buf,
+						       BUFSIZ));
+#endif
+
+					make_valid_perm(bf->po, bf->next_seq,
+							n);
+					pmSetSize(bf->next_seq, n);
+					return RC_ERR_NODATA;
+				}
+#ifdef VERBOSE
+				printf("heap inserting: %s",
+				       pmPrint(bf->next_seq, buf, BUFSIZ));
+				printf(" (score=%s)\n",
+				       format_number(buf, score));
+#endif
+				// score /= pmLength(bf->next_seq); /* XXX
+				// average cost */
+				heap_insert(bf->pq, score,
+					    pmDup(bf->next_seq));
+			}
+			bf->j++;
+		}
+		bf->state = RC_BFS_VISIT;
+		break;
+
+	case RC_BFS_DONE:
+		/*
+		 * drain the pq 
+		 */
+		while (heap_size(bf->pq)) {	/* inefficient XXX */
+			permutation_t  *perm;
+			perm = (permutation_t *) heap_extract_max(bf->pq);
+			pmDelete(perm);
+		}
+		bf->i = 0;
+		bf->j = 0;
+		bf->generation++;
+		bf->state = RC_BFS_INIT;
+		break;
 
 	}
 
@@ -1038,7 +1057,7 @@ best_first_next(bf_state_t * bf)
 
 void
 indep_init(indep_state_t * ptr, int n, const partial_order_t * po,
-           evaluation_func_t evf, const void *context)
+	   evaluation_func_t evf, const void *context)
 {
 	ptr->best_seq = pmNew(n);
 	ptr->next_seq = pmNew(n);
@@ -1140,8 +1159,8 @@ randomize_permutation(permutation_t * perm, const partial_order_t * po)
 	int             steps;
 	int             j;
 
-	steps = (10 * N * N * N * log(N));  /* this is almost certainly incorrect
-			                                         * -RW */
+	steps = (10 * N * N * N * log(N));	/* this is almost certainly
+						 * incorrect * -RW */
 
 #ifdef VERBOSE
 
@@ -1157,7 +1176,7 @@ randomize_permutation(permutation_t * perm, const partial_order_t * po)
 		int             i;
 		if (random() & 1) {
 			continue;
-		}                       // Half chance to do nothing
+		}		// Half chance to do nothing
 		/*
 		 * We subtract one because we use 0-based indexing, but paper assumes 
 		 * 1-based indexing. 
@@ -1221,7 +1240,7 @@ draw_from_cdf(int num, double *cdf)
 	int             i;
 	double          r;
 
-	r = 1.0 * (random() & ((1 << 30) - 1)) / (1 << 30); /* 0<=r<1 */
+	r = 1.0 * (random() & ((1 << 30) - 1)) / (1 << 30);	/* 0<=r<1 */
 	for (i = 0; i < num; i++) {
 		// print "-> cdf[$i]=", $$cdf[$i], " r=$r\n";
 		// printf("r=%f\n", r);

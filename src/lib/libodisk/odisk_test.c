@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -28,19 +28,20 @@
 #include "lib_log.h"
 #include "odisk_priv.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 void
-remove_some_attr(obj_attr_t *attr, int size, int num)
+remove_some_attr(obj_attr_t * attr, int size, int num)
 {
-	int	i;
-	int	err;
-	char	name_string[128];
+	int             i;
+	int             err;
+	char            name_string[128];
 
 
 
-	for (i=0; i < num; i++) {
+	for (i = 0; i < num; i++) {
 		sprintf(name_string, "some_attr_%d_%d", size, i);
 		err = obj_del_attr(attr, name_string);
 		if (err) {
@@ -54,15 +55,15 @@ remove_some_attr(obj_attr_t *attr, int size, int num)
 
 
 void
-check_some_attr(obj_attr_t *attr, int size, int num)
+check_some_attr(obj_attr_t * attr, int size, int num)
 {
-	char *	base_data;
-	char *	ret_data;
-	int	i;
-	int	diff;
-	int	err;
-	char	name_string[128];
-	size_t	attr_size;
+	char           *base_data;
+	char           *ret_data;
+	int             i;
+	int             diff;
+	int             err;
+	char            name_string[128];
+	size_t          attr_size;
 
 	base_data = malloc(size);
 	if (base_data == NULL) {
@@ -77,10 +78,10 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 	}
 
 
-	for (i=0; i < num; i++) {
+	for (i = 0; i < num; i++) {
 		memset(base_data, i, size);
 		sprintf(name_string, "some_attr_%d_%d", size, i);
-		attr_size = (off_t)(2 * size);
+		attr_size = (off_t) (2 * size);
 		err = obj_read_attr(attr, name_string, &attr_size, ret_data);
 		if (err) {
 			printf("failed to read attr <%s>\n", name_string);
@@ -89,7 +90,7 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 
 		if (attr_size != size) {
 			printf("wrong size on <%s> got %d want %d \n",
-			       name_string, (int)attr_size, size);
+			       name_string, (int) attr_size, size);
 			exit(1);
 		}
 
@@ -107,12 +108,12 @@ check_some_attr(obj_attr_t *attr, int size, int num)
 }
 
 void
-write_some_attr(obj_attr_t *attr, int size, int num)
+write_some_attr(obj_attr_t * attr, int size, int num)
 {
-	char *	data;
-	int	i;
-	int	err;
-	char	name_string[128];
+	char           *data;
+	int             i;
+	int             err;
+	char            name_string[128];
 
 	data = malloc(size);
 	if (data == NULL) {
@@ -121,10 +122,10 @@ write_some_attr(obj_attr_t *attr, int size, int num)
 	}
 
 
-	for (i=0; i < num; i++) {
+	for (i = 0; i < num; i++) {
 		memset(data, i, size);
 		sprintf(name_string, "some_attr_%d_%d", size, i);
-		err = obj_write_attr(attr, name_string, (off_t)size, data);
+		err = obj_write_attr(attr, name_string, (off_t) size, data);
 		if (err) {
 			printf("failed to write attr <%s>\n", name_string);
 			exit(1);
@@ -136,7 +137,7 @@ write_some_attr(obj_attr_t *attr, int size, int num)
 
 
 void
-test_attrs(obj_attr_t *attr)
+test_attrs(obj_attr_t * attr)
 {
 
 
@@ -183,11 +184,11 @@ test_attrs(obj_attr_t *attr)
 int
 main(int argc, char **argv)
 {
-	odisk_state_t*	odisk;
-	obj_data_t *	new_obj;
-	void *		log_cookie;
-	void *		dctl_cookie;
-	int		err;
+	odisk_state_t  *odisk;
+	obj_data_t     *new_obj;
+	void           *log_cookie;
+	void           *dctl_cookie;
+	int             err;
 
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);

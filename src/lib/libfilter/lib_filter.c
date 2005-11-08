@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -38,11 +38,12 @@
 #include "obj_attr_dump.h"
 #include "lib_log.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
-static read_attr_cb 	read_attr_fn = NULL;
-static write_attr_cb 	write_attr_fn = NULL;
+static read_attr_cb read_attr_fn = NULL;
+static write_attr_cb write_attr_fn = NULL;
 
 
 
@@ -50,57 +51,63 @@ int
 lf_set_read_cb(read_attr_cb cb_fn)
 {
 	read_attr_fn = cb_fn;
-	return(0);
+	return (0);
 }
 
 int
-lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len, void *data)
+lf_read_attr(lf_obj_handle_t obj, const char *name, size_t * len, void *data)
 {
-	obj_data_t	*odata;
-	obj_attr_t	*adata;
-	int		err;
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int             err;
 
-	odata = (obj_data_t *)obj;
+	odata = (obj_data_t *) obj;
 	adata = &odata->attr_info;
 	err = obj_read_attr(adata, name, len, data);
 
-	/* pass information about the read to the cache function */
+	/*
+	 * pass information about the read to the cache function 
+	 */
 	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn)(obj, name, *len, data);
+		(*read_attr_fn) (obj, name, *len, data);
 	}
-	return(err);
+	return (err);
 }
 
 
 int
-lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len, void **data)
+lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, void **data)
 {
-	obj_data_t	*odata;
-	obj_attr_t	*adata;
-	int		err;
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int             err;
 
-	odata = (obj_data_t *)obj;
+	odata = (obj_data_t *) obj;
 	adata = &odata->attr_info;
 	err = obj_ref_attr(adata, name, len, data);
-	/* add read attrs into cache queue: input attr set */
+	/*
+	 * add read attrs into cache queue: input attr set 
+	 */
 	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn)(obj, name, *len, *data);
+		(*read_attr_fn) (obj, name, *len, *data);
 	}
-	return(err);
+	return (err);
 }
 
-/* XXX */
+/*
+ * XXX 
+ */
 int
 lf_dump_attr(lf_obj_handle_t obj)
 {
-	obj_data_t	*odata;
-	obj_attr_t	*adata;
-	int		err;
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int             err;
 
-	odata = (obj_data_t *)obj;
+	odata = (obj_data_t *) obj;
 	adata = &odata->attr_info;
 	err = obj_dump_attr(adata);
-	return(err);
+	return (err);
 }
 
 
@@ -108,7 +115,7 @@ int
 lf_set_write_cb(write_attr_cb cb_fn)
 {
 	write_attr_fn = cb_fn;
-	return(0);
+	return (0);
 }
 
 /*
@@ -118,18 +125,20 @@ lf_set_write_cb(write_attr_cb cb_fn)
 int
 lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, char *data)
 {
-	obj_data_t	*odata;
-	obj_attr_t	*adata;
-	int		err;
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int             err;
 
-	odata = (obj_data_t *)obj;
+	odata = (obj_data_t *) obj;
 	adata = &odata->attr_info;
 	err = obj_write_attr(adata, name, len, data);
-	/* add writen attrs into cache queue: output attr set */
-	if ( !err && (write_attr_fn != NULL) ) {
-		(*write_attr_fn)(obj, name, len, data);
+	/*
+	 * add writen attrs into cache queue: output attr set 
+	 */
+	if (!err && (write_attr_fn != NULL)) {
+		(*write_attr_fn) (obj, name, len, data);
 	}
-	return(err);
+	return (err);
 }
 
 /*
@@ -138,39 +147,39 @@ lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, char *data)
  *
  *
  * Args:
- * 	obj_handle - the object handle.
+ *      obj_handle - the object handle.
  *
- * 	num_blocks - the number of blocks to read.
+ *      num_blocks - the number of blocks to read.
  *
- * 	len	   - This is a pointer to the number of bytes to read.  On
- *  	     	     return this location will hold the number of bytes that
- *		     were actually read.
+ *      len        - This is a pointer to the number of bytes to read.  On
+ *                   return this location will hold the number of bytes that
+ *                   were actually read.
  *
- * 	bufp	   - a pointer to the location where the buffer pointer
- * 		     will be stored.
+ *      bufp       - a pointer to the location where the buffer pointer
+ *                   will be stored.
  *
  * Return:
- * 	0	   - the read was successful. 
+ *      0          - the read was successful. 
  *
- * 	ENOSPC	   - insufficient resources were available to complete the call.
+ *      ENOSPC     - insufficient resources were available to complete the call.
  * 
- * 	ENOENT	   - insufficient resources were available to complete the call.
+ *      ENOENT     - insufficient resources were available to complete the call.
  * 
- * 	EINVAL     - one of the handles was invalid. 
+ *      EINVAL     - one of the handles was invalid. 
  *
  */
 
 int
 lf_next_block(lf_obj_handle_t obj_handle,
-              int num_blocks,  size_t *len, char **bufp)
+	      int num_blocks, size_t * len, char **bufp)
 {
-	obj_data_t *	odata;
-	char	*	buf;
-	size_t		length;
-	size_t		remain;
-	int		max_blocks;
+	obj_data_t     *odata;
+	char           *buf;
+	size_t          length;
+	size_t          remain;
+	int             max_blocks;
 
-	odata = (obj_data_t *)obj_handle;
+	odata = (obj_data_t *) obj_handle;
 
 	/*
 	 * See if there is any data to read.
@@ -180,14 +189,14 @@ lf_next_block(lf_obj_handle_t obj_handle,
 		       odata->cur_offset, odata->data_len);
 		*len = 0;
 		assert(0);
-		return(EINVAL);
+		return (EINVAL);
 	}
 
-	/* 
+	/*
 	 * We need to make sure that the product will not overflow
 	 * the off_t.
 	 */
-	max_blocks = INT_MAX/odata->cur_blocksize;
+	max_blocks = INT_MAX / odata->cur_blocksize;
 	if (num_blocks >= max_blocks) {
 		length = INT_MAX;
 	} else {
@@ -197,14 +206,13 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	if (length > remain) {
 		length = remain;
 	}
-
 #ifdef	DEBUG_COPY
 	buf = (char *) malloc(length);
 	if (buf == NULL) {
 		printf("failed to allocate block \n");
 		assert(0);
 		*len = 0;
-		return(ENOSPC);
+		return (ENOSPC);
 	}
 
 	memcpy(buf, &odata->data[odata->cur_offset], length);
@@ -227,31 +235,33 @@ lf_next_block(lf_obj_handle_t obj_handle,
  *
  *
  * Args:
- * 	obj_handle - the object handle.
+ *      obj_handle - the object handle.
  *
- * 	num_blocks - the number of blocks to read.
+ *      num_blocks - the number of blocks to read.
  *
  * Return:
- * 	0	   - the read was successful. 
+ *      0          - the read was successful. 
  *
- * 	ENOSPC	   - insufficient resources were available to complete the call.
+ *      ENOSPC     - insufficient resources were available to complete the call.
  * 
- * 	EINVAL     - one of the handles was invalid. 
+ *      EINVAL     - one of the handles was invalid. 
  *
  */
 
 int
 lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
 {
-	obj_data_t *	odata;
-	size_t		length;
-	size_t		remain;
+	obj_data_t     *odata;
+	size_t          length;
+	size_t          remain;
 
-	odata = (obj_data_t *)obj_handle;
+	odata = (obj_data_t *) obj_handle;
 
-	/* See if there is any data to skip past.  */
+	/*
+	 * See if there is any data to skip past.  
+	 */
 	if (odata->data_len <= odata->cur_offset) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	length = num_blocks * odata->cur_blocksize;
@@ -271,31 +281,33 @@ lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
  * can be retrieved from the host system.
  *
  * Args:  
- * 	level 	   - The log level associated with the command.  This
- * 		     used to limit the amount of information being passed.
+ *      level      - The log level associated with the command.  This
+ *                   used to limit the amount of information being passed.
  *
- * 	name       - The name of the attribute to write.
+ *      name       - The name of the attribute to write.
  *
- * 	fmt	   - format string used for parsing the data.  This uses
- * 		     printf syntax
+ *      fmt        - format string used for parsing the data.  This uses
+ *                   printf syntax
  *
- * 	... 	   - the arguments for the format.
+ *      ...        - the arguments for the format.
  *
  */
-/* XXX this should match the one in log, but doesn't need to */
+/*
+ * XXX this should match the one in log, but doesn't need to 
+ */
 #define	MAX_LOG_BUF	80
 
-char * fexec_cur_filtname();
+char           *fexec_cur_filtname();
 
 void
 lf_log(int level, char *fmt, ...)
 {
-	va_list	ap;
-	va_list	new_ap;
-	char	log_buffer[MAX_LOG_BUF];
-	char	*cur_filter;
-	int	len;
-	int	remain_len;
+	va_list         ap;
+	va_list         new_ap;
+	char            log_buffer[MAX_LOG_BUF];
+	char           *cur_filter;
+	int             len;
+	int             remain_len;
 
 	cur_filter = fexec_cur_filtname();
 	len = snprintf(log_buffer, MAX_LOG_BUF, "%s : ", cur_filter);

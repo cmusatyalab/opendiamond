@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -20,7 +20,8 @@
 #include <errno.h>
 #include "lib_dctl.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * helper function that returns the value of the
@@ -35,14 +36,14 @@ dctl_read_uint32(void *cookie, int *len, char *data)
 
 	if (*len < sizeof(uint32_t)) {
 		*len = sizeof(uint32_t);
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
 
 	*len = sizeof(uint32_t);
-	*(uint32_t *)data = *(uint32_t *)cookie;
+	*(uint32_t *) data = *(uint32_t *) cookie;
 
-	return(0);
+	return (0);
 }
 
 
@@ -57,12 +58,12 @@ dctl_write_uint32(void *cookie, int len, char *data)
 	assert(data != NULL);
 
 	if (len < sizeof(uint32_t)) {
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
-	*(uint32_t *)cookie = *(uint32_t *)data;
+	*(uint32_t *) cookie = *(uint32_t *) data;
 
-	return(0);
+	return (0);
 }
 
 
@@ -77,16 +78,20 @@ dctl_read_uint64(void *cookie, int *len, char *data)
 	assert(cookie != NULL);
 	assert(data != NULL);
 
-	/* make sure there is a enough space */
+	/*
+	 * make sure there is a enough space 
+	 */
 	if (*len < sizeof(uint64_t)) {
 		*len = sizeof(uint64_t);
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
-	/* store the data and the data size */
+	/*
+	 * store the data and the data size 
+	 */
 	*len = sizeof(uint64_t);
 	memcpy(data, cookie, sizeof(uint64_t));
-	return(0);
+	return (0);
 
 }
 
@@ -102,13 +107,13 @@ dctl_write_uint64(void *cookie, int len, char *data)
 	assert(data != NULL);
 
 	if (len < sizeof(uint64_t)) {
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
 
-	*(uint64_t *)cookie = *(uint64_t *)data;
+	*(uint64_t *) cookie = *(uint64_t *) data;
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -123,17 +128,21 @@ dctl_read_char(void *cookie, int *len, char *data)
 	assert(cookie != NULL);
 	assert(data != NULL);
 
-	/* make sure there is a enough space */
+	/*
+	 * make sure there is a enough space 
+	 */
 	if (*len < sizeof(char)) {
 		*len = sizeof(char);
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
 
-	/* store the data and the data size */
+	/*
+	 * store the data and the data size 
+	 */
 	*len = sizeof(char);
-	*(char *)data = *(char *)cookie;
-	return(0);
+	*(char *) data = *(char *) cookie;
+	return (0);
 
 }
 
@@ -150,11 +159,11 @@ dctl_write_char(void *cookie, int len, char *data)
 	assert(data != NULL);
 
 	if (len < sizeof(char)) {
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
-	*(char *)cookie = *(char *)data;
-	return(0);
+	*(char *) cookie = *(char *) data;
+	return (0);
 }
 
 
@@ -169,23 +178,26 @@ dctl_write_char(void *cookie, int len, char *data)
 int
 dctl_read_string(void *cookie, int *len, char *data)
 {
-	int	slen;
+	int             slen;
 
 	assert(cookie != NULL);
 	assert(data != NULL);
 
-	slen = strlen((char *)cookie);
-	slen += 1; 	/* include the null term */
+	slen = strlen((char *) cookie);
+	slen += 1;		/* include the null term */
 
-	/* make sure there is a enough space */
+	/*
+	 * make sure there is a enough space 
+	 */
 	if (*len < slen) {
 		*len = slen;
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 
-	/* store the data and the data size */
+	/*
+	 * store the data and the data size 
+	 */
 	*len = slen;
-	memcpy((char *)data, (char *)cookie, slen);
-	return(0);
+	memcpy((char *) data, (char *) cookie, slen);
+	return (0);
 }
-

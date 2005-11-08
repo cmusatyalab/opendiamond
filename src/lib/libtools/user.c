@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -21,32 +21,36 @@
 #include "lib_tools.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
-/* XXXX move this else where */
+/*
+ * XXXX move this else where 
+ */
 void
 get_user_name(char *name)
 {
-	uid_t	uid;
-	struct passwd *pwd;
-	size_t	ret;
+	uid_t           uid;
+	struct passwd  *pwd;
+	size_t          ret;
 
 	uid = getuid();
 
 	pwd = getpwuid(uid);
 
-	/* if we fail, the name is the uid otherwise use the name */
+	/*
+	 * if we fail, the name is the uid otherwise use the name 
+	 */
 	if (pwd == NULL) {
 		ret = snprintf(name, MAX_USER_NAME, "%d", uid);
 	} else {
 		ret = snprintf(name, MAX_USER_NAME, "%s", pwd->pw_name);
 	}
 
-	/* deal with overflow in the user name */
+	/*
+	 * deal with overflow in the user name 
+	 */
 	if (ret > (MAX_USER_NAME - 1)) {
-		name[MAX_USER_NAME -1] = '\0';
+		name[MAX_USER_NAME - 1] = '\0';
 	}
 }
-
-
-

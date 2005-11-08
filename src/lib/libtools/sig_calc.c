@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -20,36 +20,39 @@
 #include "sig_calc.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 static const EVP_MD *md;
-static int	 done_sig_init = 0;
+static int      done_sig_init = 0;
 
 int
 sig_cal_init()
 {
-	/* make sure we only call once */
+	/*
+	 * make sure we only call once 
+	 */
 	if (done_sig_init) {
-		return(0);
+		return (0);
 	}
 
 	OpenSSL_add_all_digests();
 	md = EVP_get_digestbyname("md5");
-	if(!md) {
+	if (!md) {
 		perror("Unknown message digest md5");
-		assert( md!= NULL);
-		//exit(1);
+		assert(md != NULL);
+		// exit(1);
 	}
 	done_sig_init = 1;
-	return(0);
+	return (0);
 }
 
 int
-sig_cal(const void *buf, off_t buflen, sig_val_t *sig_val)
+sig_cal(const void *buf, off_t buflen, sig_val_t * sig_val)
 {
-	EVP_MD_CTX mdctx;
-	unsigned char *md_value;
-	int md_len=0;
+	EVP_MD_CTX      mdctx;
+	unsigned char  *md_value;
+	int             md_len = 0;
 
 	assert(done_sig_init == 1);
 
@@ -63,77 +66,78 @@ sig_cal(const void *buf, off_t buflen, sig_val_t *sig_val)
 	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
 	EVP_MD_CTX_cleanup(&mdctx);
 	/*
-	    printf("Digest is: ");
-	    for(i = 0; i < md_len; i++)
-	        printf("%x", md_value[i]);
-	    printf("\n");
-	*/
-	return(0);
+	 * printf("Digest is: "); for(i = 0; i < md_len; i++) printf("%x",
+	 * md_value[i]); printf("\n"); 
+	 */
+	return (0);
 }
 
 
 int
-sig_cal_str(const char *buf, sig_val_t *sig_val)
+sig_cal_str(const char *buf, sig_val_t * sig_val)
 {
-	off_t	len = strlen(buf);
-	int	err;
+	off_t           len = strlen(buf);
+	int             err;
 
 	err = sig_cal(buf, len, sig_val);
-	return(err);
+	return (err);
 }
 
-char *
-sig_string(sig_val_t *sig_val)
+char           *
+sig_string(sig_val_t * sig_val)
 {
-	char *	new_str;
-	char *	cp;
-	int 	i;
+	char           *new_str;
+	char           *cp;
+	int             i;
 
-	new_str = (char *)malloc(2 * SIG_SIZE + 1);
+	new_str = (char *) malloc(2 * SIG_SIZE + 1);
 	if (new_str == NULL) {
-		/* XXX log?? */
-		return(NULL);
+		/*
+		 * XXX log?? 
+		 */
+		return (NULL);
 	}
 	cp = new_str;
-	for (i=0; i < SIG_SIZE; i++) {
+	for (i = 0; i < SIG_SIZE; i++) {
 		sprintf(cp, "%02X", sig_val->sig[i]);
 		cp += 2;
 	}
 
-	/* terminate the string */
+	/*
+	 * terminate the string 
+	 */
 	*cp = '\0';
 
-	return(new_str);
+	return (new_str);
 }
 
-unsigned long 
-sig_hash(sig_val_t *sig)
+unsigned long
+sig_hash(sig_val_t * sig)
 {
-	int 	i;
-	unsigned long	v = 0;
+	int             i;
+	unsigned long   v = 0;
 
-	for (i=0; i < SIG_SIZE; i++) {
-		v = ((unsigned long)sig->sig[i]) + (v << 6) + (v << 16) - v;
+	for (i = 0; i < SIG_SIZE; i++) {
+		v = ((unsigned long) sig->sig[i]) + (v << 6) + (v << 16) - v;
 	}
 
-	return(v);
+	return (v);
 }
 
 
-int 
-sig_match(sig_val_t *sig1, sig_val_t *sig2)
+int
+sig_match(sig_val_t * sig1, sig_val_t * sig2)
 {
 	if (memcmp(sig1, sig2, sizeof(sig_val_t)) == 0) {
-		return(1);
+		return (1);
 	} else {
-		return(0);
+		return (0);
 	}
 }
 
-void sig_clear(sig_val_t *sig)
+void
+sig_clear(sig_val_t * sig)
 {
 	memset(sig, 0, sizeof(sig_val_t));
 
 }
-
-

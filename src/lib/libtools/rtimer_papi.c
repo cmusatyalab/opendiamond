@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -26,7 +26,8 @@
 #include "papi.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * warning: assumes appropriate locks are already held when calling these
@@ -118,10 +119,11 @@ rt_papi_global_init()
 	 * pthread attr init 
 	 */
 
-	pattr_default = (pthread_attr_t *) malloc(sizeof(pthread_attr_t));  /* not
-			                                                                         * free'd 
-			                                                                         * XXX 
-			                                                                         */
+	pattr_default = (pthread_attr_t *) malloc(sizeof(pthread_attr_t));	/* not
+										 * *
+										 * free'd 
+										 * *
+										 * XXX */
 	if (!pattr_default) {
 		report_error(__FILE__, __LINE__, "malloc", 0);
 		return 1;
@@ -136,7 +138,8 @@ rt_papi_global_init()
 
 	err = pthread_attr_setscope(pattr_default, PTHREAD_SCOPE_SYSTEM);
 	if (err != 0) {
-		report_error(__FILE__, __LINE__, "pthread_attr_setscope", err);
+		report_error(__FILE__, __LINE__, "pthread_attr_setscope",
+			     err);
 		return 1;
 	}
 #endif
@@ -164,7 +167,8 @@ rt_papi_init(rtimer_papi_t * rt)
 		report_error(__FILE__, __LINE__, "PAPI_create_eventset", err);
 	}
 
-	if ((err = PAPI_add_events(&rt->EventSet, Events, NUM_EVENTS)) != PAPI_OK) {
+	if ((err =
+	     PAPI_add_events(&rt->EventSet, Events, NUM_EVENTS)) != PAPI_OK) {
 		report_error(__FILE__, __LINE__, "PAPI_add_events", err);
 	}
 

@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -41,29 +41,34 @@
 #include "dctl_socket.h"
 #include "lib_tools.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
-/* linux specific flag */
+/*
+ * linux specific flag 
+ */
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
 #endif
 
 #define	DCTL_RING_SIZE	512
 
-/* create a buffer much larger than we need */
+/*
+ * create a buffer much larger than we need 
+ */
 #define	BIG_SIZE	512
-static	char 		data_buffer[BIG_SIZE];
+static char     data_buffer[BIG_SIZE];
 
 #define	MAX_ENTS	128
-static	dctl_entry_t	entry_buffer[MAX_ENTS];
+static dctl_entry_t entry_buffer[MAX_ENTS];
 
 
 static void
 send_err_response(int conn, int err_code)
 {
-	dctl_msg_hdr_t	msg;
-	int		err;
+	dctl_msg_hdr_t  msg;
+	int             err;
 
 
 	msg.dctl_op = DCTL_OP_REPLY;
@@ -72,15 +77,18 @@ send_err_response(int conn, int err_code)
 	msg.dctl_plen = 0;
 
 	err = send(conn, &msg, sizeof(msg), MSG_NOSIGNAL);
-	/* XXX ignore response */
+	/*
+	 * XXX ignore response 
+	 */
 }
 
 
 static void
-send_read_response(int conn, dctl_data_type_t dtype, int len, char *data_buffer)
+send_read_response(int conn, dctl_data_type_t dtype, int len,
+		   char *data_buffer)
 {
-	dctl_msg_hdr_t	msg;
-	int		err;
+	dctl_msg_hdr_t  msg;
+	int             err;
 
 	msg.dctl_op = DCTL_OP_REPLY;
 	msg.dctl_dtype = dtype;
@@ -92,7 +100,9 @@ send_read_response(int conn, dctl_data_type_t dtype, int len, char *data_buffer)
 	if (err != sizeof(msg)) {
 		return;
 	}
-	/* XXX ignore response */
+	/*
+	 * XXX ignore response 
+	 */
 
 	err = send(conn, data_buffer, len, MSG_NOSIGNAL);
 	if (err != len) {
@@ -101,11 +111,11 @@ send_read_response(int conn, dctl_data_type_t dtype, int len, char *data_buffer)
 }
 
 static void
-send_list_response(int conn, int num_ents, dctl_entry_t *entry_buffer)
+send_list_response(int conn, int num_ents, dctl_entry_t * entry_buffer)
 {
-	dctl_msg_hdr_t	msg;
-	int		err;
-	int		dlen;
+	dctl_msg_hdr_t  msg;
+	int             err;
+	int             dlen;
 
 	dlen = num_ents * sizeof(dctl_entry_t);
 
@@ -115,12 +125,14 @@ send_list_response(int conn, int num_ents, dctl_entry_t *entry_buffer)
 	msg.dctl_plen = 0;
 
 	err = send(conn, &msg, sizeof(msg), MSG_NOSIGNAL);
-	if (err!=sizeof(msg)) {
+	if (err != sizeof(msg)) {
 		return;
 	}
-	/* XXX ignore response */
+	/*
+	 * XXX ignore response 
+	 */
 
-	err = send(conn, (char *)entry_buffer, dlen, MSG_NOSIGNAL);
+	err = send(conn, (char *) entry_buffer, dlen, MSG_NOSIGNAL);
 	if (err != dlen) {
 		return;
 	}
@@ -129,62 +141,62 @@ send_list_response(int conn, int num_ents, dctl_entry_t *entry_buffer)
 
 
 static void
-process_request(dctl_msg_hdr_t *msg, char *data, int conn)
+process_request(dctl_msg_hdr_t * msg, char *data, int conn)
 {
-	int		        err;
-	int		        len;
-	dctl_op_t	    cmd;
-	char *		    path;
-	char *		    arg;
-	int		        arg_len;
-	dctl_data_type_t    dtype;
+	int             err;
+	int             len;
+	dctl_op_t       cmd;
+	char           *path;
+	char           *arg;
+	int             arg_len;
+	dctl_data_type_t dtype;
 
 	path = data;
 
 	cmd = msg->dctl_op;
 
-	switch(cmd) {
-		case DCTL_OP_READ:
-			len = BIG_SIZE;
-			err = dctl_read_leaf(path, &dtype, &len, data_buffer);
-			assert(err != ENOMEM);
-			if (err) {
-				send_err_response(conn, err);
-			}
-			send_read_response(conn, dtype, len, data_buffer);
-			break;
-
-		case DCTL_OP_WRITE:
-			arg = &data[msg->dctl_plen];
-			arg_len = msg->dctl_dlen - msg->dctl_plen;
-			err = dctl_write_leaf(path, arg_len, arg);
-			assert(err != ENOMEM);
+	switch (cmd) {
+	case DCTL_OP_READ:
+		len = BIG_SIZE;
+		err = dctl_read_leaf(path, &dtype, &len, data_buffer);
+		assert(err != ENOMEM);
+		if (err) {
 			send_err_response(conn, err);
-			break;
+		}
+		send_read_response(conn, dtype, len, data_buffer);
+		break;
 
-		case DCTL_OP_LIST_NODES:
-			len = MAX_ENTS;
-			err = dctl_list_nodes(path, &len, entry_buffer);
-			assert(err != ENOMEM);
-			if (err) {
-				send_err_response(conn, err);
-			}
-			send_list_response(conn, len, entry_buffer);
-			break;
+	case DCTL_OP_WRITE:
+		arg = &data[msg->dctl_plen];
+		arg_len = msg->dctl_dlen - msg->dctl_plen;
+		err = dctl_write_leaf(path, arg_len, arg);
+		assert(err != ENOMEM);
+		send_err_response(conn, err);
+		break;
 
-		case DCTL_OP_LIST_LEAFS:
-			len = MAX_ENTS;
-			err = dctl_list_leafs(path, &len, entry_buffer);
-			assert(err != ENOMEM);
-			if (err) {
-				send_err_response(conn, err);
-			}
-			send_list_response(conn, len, entry_buffer);
-			break;
+	case DCTL_OP_LIST_NODES:
+		len = MAX_ENTS;
+		err = dctl_list_nodes(path, &len, entry_buffer);
+		assert(err != ENOMEM);
+		if (err) {
+			send_err_response(conn, err);
+		}
+		send_list_response(conn, len, entry_buffer);
+		break;
 
-		default:
-			assert(0);
-			break;
+	case DCTL_OP_LIST_LEAFS:
+		len = MAX_ENTS;
+		err = dctl_list_leafs(path, &len, entry_buffer);
+		assert(err != ENOMEM);
+		if (err) {
+			send_err_response(conn, err);
+		}
+		send_list_response(conn, len, entry_buffer);
+		break;
+
+	default:
+		assert(0);
+		break;
 
 	}
 
@@ -192,13 +204,14 @@ process_request(dctl_msg_hdr_t *msg, char *data, int conn)
 
 
 void
-process_dctl_requests(search_context_t *sc, int conn)
+process_dctl_requests(search_context_t * sc, int conn)
 {
-	dctl_msg_hdr_t	msg;
-	char *		buf;
-	int		len, dlen;
+	dctl_msg_hdr_t  msg;
+	char           *buf;
+	int             len,
+	                dlen;
 
-	while(1) {
+	while (1) {
 		/*
 		 * Look to see if there is any control information to
 		 * process.
@@ -209,7 +222,7 @@ process_dctl_requests(search_context_t *sc, int conn)
 		}
 
 		dlen = msg.dctl_dlen;
-		buf = (char *)malloc(dlen);
+		buf = (char *) malloc(dlen);
 		assert(buf != NULL);
 
 		len = recv(conn, buf, dlen, MSG_WAITALL);
@@ -228,23 +241,24 @@ process_dctl_requests(search_context_t *sc, int conn)
  * the data coming from the individual devices.
  */
 
-static void *
+static void    *
 dctl_main(void *arg)
 {
-	search_context_t *	sc;
-	int			err;
-	int	fd, newsock;
-	char 	user_name[MAX_USER_NAME];
+	search_context_t *sc;
+	int             err;
+	int             fd,
+	                newsock;
+	char            user_name[MAX_USER_NAME];
 	struct sockaddr_un sa;
 	struct sockaddr_un newaddr;
-	int	slen;
+	int             slen;
 
-	/* change the umask so someone else can delete
-	 * the socket later.
+	/*
+	 * change the umask so someone else can delete the socket later. 
 	 */
 	umask(0);
 
-	sc = (search_context_t *)arg;
+	sc = (search_context_t *) arg;
 
 	dctl_thread_register(sc->dctl_cookie);
 	log_thread_register(sc->log_cookie);
@@ -254,15 +268,19 @@ dctl_main(void *arg)
 	 * Open the socket for the log information.
 	 */
 	fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	/* XXX socket error code */
+	/*
+	 * XXX socket error code 
+	 */
 
-	/* bind the socket to a path name */
+	/*
+	 * bind the socket to a path name 
+	 */
 	get_user_name(user_name);
 	sprintf(sa.sun_path, "%s.%s", SOCKET_DCTL_NAME, user_name);
 	sa.sun_family = AF_UNIX;
 	unlink(sa.sun_path);
 
-	err = bind(fd, (struct sockaddr *)&sa, sizeof (sa));
+	err = bind(fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err < 0) {
 		fprintf(stderr, "binding %s\n", sa.sun_path);
 		perror("bind failed ");
@@ -278,7 +296,8 @@ dctl_main(void *arg)
 
 	while (1) {
 		slen = sizeof(newaddr);
-		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen))
+		if ((newsock =
+		     accept(fd, (struct sockaddr *) &newaddr, &slen))
 		    == -1) {
 
 			perror("accept failed \n");
@@ -292,31 +311,35 @@ dctl_main(void *arg)
 
 
 int
-dctl_start(search_context_t *sc)
+dctl_start(search_context_t * sc)
 {
 
-	int		err;
-	pthread_t	thread_id;
+	int             err;
+	pthread_t       thread_id;
 #ifdef	XXX
 	/*
 	 * Initialize the ring of commands for the thread.
 	 */
 	err = ring_init(&sc->dctl_ring, DCTL_RING_SIZE);
 	if (err) {
-		/* XXX err log */
-		return(err);
+		/*
+		 * XXX err log 
+		 */
+		return (err);
 	}
 #endif
 
 	/*
 	 * Create a thread to handle background processing.
 	 */
-	err = pthread_create(&thread_id, PATTR_DEFAULT, dctl_main, (void *)sc);
+	err =
+	    pthread_create(&thread_id, PATTR_DEFAULT, dctl_main, (void *) sc);
 	if (err) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		printf("failed to create background thread \n");
-		return(ENOENT);
+		return (ENOENT);
 	}
-	return(0);
+	return (0);
 }
-

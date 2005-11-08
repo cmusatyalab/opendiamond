@@ -117,12 +117,12 @@ typedef struct {
 	} u;
 } oattr_ring_entry;
 
-int digest_cal(char *lib_name, char *filt_name, int numarg, 
-char **filt_args, int blob_len, void *blob, 
-sig_val_t * signature);
+int digest_cal(filter_data_t *fdata, char *fn_name, int numarg, 
+	char **filt_args, int blob_len, void *blob, sig_val_t * signature);
 
-int cache_lookup0(sig_val_t * id_sig, cache_attr_set * change_attr, 
-	obj_attr_t *init_attr);
+int cache_get_init_attrs(sig_val_t * id_sig, cache_attr_set * change_attr);
+
+void cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t *init_attr);
 
 int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
 	cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, 
@@ -132,9 +132,6 @@ int cache_lookup2(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table,
 	cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, 
 	int *oattr_flag, int flag);
 
-int cache_wait_lookup(obj_data_t *lobj, sig_val_t *fsig, void *fcache_table, 
-	cache_attr_set *change_attr, cache_attr_set **oattr_set);
-
 int ocache_init(char *path_name, void *dctl_cookie, void * log_cookie);
 int ocache_start();
 int ocache_stop(char *path_name);
@@ -143,7 +140,7 @@ int ocache_wait_finish();
 int ocache_read_file(char *disk_path, sig_val_t *fsig, 
 	void **fcache_table, struct timeval *atime);
 int ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table, 
-	int lookup, int oattr_flag, sig_val_t *fsig);
+	sig_val_t *fsig);
 
 int ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf);
 

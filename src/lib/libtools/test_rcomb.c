@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -18,14 +18,15 @@
 #include "rcomb.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 int
 evaluate(void *context, permutation_t * perm, int *score)
 {
 	int             i,
-	n;
+	                n;
 
 	if ((random() & 3) >= 3) {
 		return RC_ERR_NODATA;

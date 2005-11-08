@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -22,21 +22,24 @@
 #include "lib_log.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 typedef struct log_state {
-	int		head;
-	int		tail;
-	int		drops;
-	unsigned int	level;
-	unsigned int	type;
-	pthread_mutex_t	log_mutex;
-	char 		buffer[MAX_LOG_BUFFER];
+	int             head;
+	int             tail;
+	int             drops;
+	unsigned int    level;
+	unsigned int    type;
+	pthread_mutex_t log_mutex;
+	char            buffer[MAX_LOG_BUFFER];
 } log_state_t;
 
-/* some state for handling our multiple instantiations */
-static  pthread_key_t   log_state_key;
-static  pthread_once_t  log_state_once = PTHREAD_ONCE_INIT;
+/*
+ * some state for handling our multiple instantiations 
+ */
+static pthread_key_t log_state_key;
+static pthread_once_t log_state_once = PTHREAD_ONCE_INIT;
 
 
 /*
@@ -45,11 +48,11 @@ static  pthread_once_t  log_state_once = PTHREAD_ONCE_INIT;
 static log_state_t *
 log_get_state()
 {
-	log_state_t *   ls;
+	log_state_t    *ls;
 
-	ls = (log_state_t *)pthread_getspecific(log_state_key);
-	//XXX ??? assert(ls != NULL);
-	return(ls);
+	ls = (log_state_t *) pthread_getspecific(log_state_key);
+	// XXX ??? assert(ls != NULL);
+	return (ls);
 }
 
 
@@ -61,7 +64,7 @@ log_get_state()
 void
 log_setlevel(unsigned int level_mask)
 {
-	log_state_t *ls;
+	log_state_t    *ls;
 	/*
 	 * If we haven't been initialized then there is nothing
 	 * that we can do.
@@ -84,7 +87,7 @@ log_setlevel(unsigned int level_mask)
 void
 log_settype(unsigned int type_mask)
 {
-	log_state_t *ls;
+	log_state_t    *ls;
 	/*
 	 * If we haven't been initialized then there is nothing
 	 * that we can do.
@@ -106,25 +109,29 @@ log_state_alloc()
 void
 log_thread_register(void *cookie)
 {
-	pthread_setspecific(log_state_key, (char *)cookie);
+	pthread_setspecific(log_state_key, (char *) cookie);
 }
 
 void
 log_init(void **cookie)
 {
-	int err;
-	log_state_t *ls;
+	int             err;
+	log_state_t    *ls;
 
 	pthread_once(&log_state_once, log_state_alloc);
 
-	/* make sure we haven't be initialized more than once */
+	/*
+	 * make sure we haven't be initialized more than once 
+	 */
 	if (pthread_getspecific(log_state_key) != NULL) {
 		assert(0);
 	}
 
 	ls = (log_state_t *) malloc(sizeof(*ls));
 	if (ls == NULL) {
-		/* XXX  don't know what to do and who to report it to*/
+		/*
+		 * XXX don't know what to do and who to report it to
+		 */
 		return;
 	}
 	memset(ls, 0, sizeof(*ls));
@@ -135,7 +142,7 @@ log_init(void **cookie)
 	ls->type = LOGT_ALL;
 
 	err = pthread_mutex_init(&ls->log_mutex, NULL);
-	pthread_setspecific(log_state_key, (char *)ls);
+	pthread_setspecific(log_state_key, (char *) ls);
 	*cookie = ls;
 
 	assert(err == 0);
@@ -151,16 +158,18 @@ void
 log_message(unsigned int type, unsigned int level, char *fmt, ...)
 {
 
-	va_list		ap;
-	va_list		new_ap;
-	int		num;
-	int		remain;
-	int		total_len;
-	log_ent_t *	ent;
-	log_state_t *	ls;
+	va_list         ap;
+	va_list         new_ap;
+	int             num;
+	int             remain;
+	int             total_len;
+	log_ent_t      *ent;
+	log_state_t    *ls;
 
 	ls = log_get_state();
-	/* if ls == NULL, the we haven't initalized yet, so return */
+	/*
+	 * if ls == NULL, the we haven't initalized yet, so return 
+	 */
 	if (ls == NULL) {
 		return;
 	}
@@ -201,14 +210,16 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 		return;
 	}
 
-	ent = (log_ent_t *)&ls->buffer[ls->head];
+	ent = (log_ent_t *) & ls->buffer[ls->head];
 
 	va_start(ap, fmt);
 	va_copy(new_ap, ap);
 	num = vsnprintf(&ent->le_data[0], MAX_LOG_STRING, fmt, new_ap);
 	va_end(ap);
 
-	/* include the trailing '\0' */
+	/*
+	 * include the trailing '\0' 
+	 */
 	num++;
 
 	/*
@@ -222,7 +233,9 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 
 
 
-	/* store the data associated with this record */
+	/*
+	 * store the data associated with this record 
+	 */
 	ent->le_dlen = htonl(num);
 	ent->le_level = htonl(level);
 	ent->le_type = ntohl(type);
@@ -234,7 +247,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	 */
 
 	total_len = LOG_ENT_BASE_SIZE + num;
-	total_len = (total_len + (sizeof(int) -1)) & ~(sizeof(int) - 1);
+	total_len = (total_len + (sizeof(int) - 1)) & ~(sizeof(int) - 1);
 
 	/*
 	 * advance the header pointer, as we checked above, we should
@@ -244,8 +257,9 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 
 	ls->head += total_len;
 
-	/* If there is not enough room at the end for another entry,
-	 * then move back around.
+	/*
+	 * If there is not enough room at the end for another entry, then
+	 * move back around. 
 	 */
 	remain = MAX_LOG_BUFFER - ls->head;
 
@@ -268,15 +282,15 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 int
 log_getbuf(char **data)
 {
-	int 	len;
-	log_state_t *	ls;
+	int             len;
+	log_state_t    *ls;
 
 	ls = log_get_state();
 	/*
 	 * if they are equal we have no more data
 	 */
 	if (ls->tail == ls->head) {
-		return(0);
+		return (0);
 	}
 
 	if (ls->tail < ls->head) {
@@ -288,7 +302,7 @@ log_getbuf(char **data)
 
 	*data = &ls->buffer[ls->tail];
 
-	return(len);
+	return (len);
 }
 
 
@@ -299,7 +313,7 @@ log_getbuf(char **data)
 void
 log_advbuf(int len)
 {
-	log_state_t *ls;
+	log_state_t    *ls;
 
 	ls = log_get_state();
 
@@ -315,4 +329,3 @@ log_advbuf(int len)
 
 	pthread_mutex_unlock(&ls->log_mutex);
 }
-

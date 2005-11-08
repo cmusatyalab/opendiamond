@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -40,17 +40,23 @@
 #include "hstub_impl.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
-/* set a socket to non-blocking */
+/*
+ * set a socket to non-blocking 
+ */
 static void
 socket_non_block(int fd)
 {
-	int flags, err;
+	int             flags,
+	                err;
 
 	flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1) {
-		/* XXX */
+		/*
+		 * XXX 
+		 */
 		printf("get flags failed \n");
 		exit(1);
 	}
@@ -67,45 +73,57 @@ socket_non_block(int fd)
  * side.
  */
 int
-hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
+hstub_establish_connection(conn_info_t * cinfo, uint32_t devid)
 {
-	struct protoent	*	pent;
-	struct sockaddr_in	sa;
-	int			err;
-	size_t			size;
+	struct protoent *pent;
+	struct sockaddr_in sa;
+	int             err;
+	size_t          size;
 
 	pent = getprotobyname("tcp");
 	if (pent == NULL) {
-		/* XXX log error */
-		return(ENOENT);
+		/*
+		 * XXX log error 
+		 */
+		return (ENOENT);
 	}
 
 	cinfo->control_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
-	/* XXX err ?? */
+	/*
+	 * XXX err ?? 
+	 */
 
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons((unsigned short) CONTROL_PORT);
 	sa.sin_addr.s_addr = devid;
 
-	/* save the device id for later use */
+	/*
+	 * save the device id for later use 
+	 */
 	cinfo->dev_id = devid;
 
-	err = connect(cinfo->control_fd, (struct sockaddr *)&sa, sizeof(sa));
+	err = connect(cinfo->control_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {
-		/* XXX log error */
+		/*
+		 * XXX log error 
+		 */
 		printf("failed to connected \n");
-		return(ENOENT);
+		return (ENOENT);
 	}
 
-	size = read(cinfo->control_fd, (char *)&cinfo->con_cookie,
-	            sizeof(cinfo->con_cookie));
+	size = read(cinfo->control_fd, (char *) &cinfo->con_cookie,
+		    sizeof(cinfo->con_cookie));
 	if (size == -1) {
-		/* XXX */
+		/*
+		 * XXX 
+		 */
 		printf("XXX failed to read from cntrl info \n");
-		return(ENOENT);
+		return (ENOENT);
 	}
 
-	/* XXX */
+	/*
+	 * XXX 
+	 */
 	socket_non_block(cinfo->control_fd);
 
 	/*
@@ -114,24 +132,32 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 
 	cinfo->data_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
 
-	/* we reuse the sockaddr, just change the port number */
+	/*
+	 * we reuse the sockaddr, just change the port number 
+	 */
 	sa.sin_port = htons((unsigned short) DATA_PORT);
 
-	err = connect(cinfo->data_fd, (struct sockaddr *)&sa, sizeof(sa));
+	err = connect(cinfo->data_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {
-		/* XXX log error */
+		/*
+		 * XXX log error 
+		 */
 		printf("connect to data  \n");
-		return(ENOENT);
+		return (ENOENT);
 	}
 
-	/* write the cookie into the fd */
-	size = send(cinfo->data_fd, (char *)&cinfo->con_cookie,
-	            sizeof(cinfo->con_cookie), 0);
+	/*
+	 * write the cookie into the fd 
+	 */
+	size = send(cinfo->data_fd, (char *) &cinfo->con_cookie,
+		    sizeof(cinfo->con_cookie), 0);
 	if (size == -1) {
-		/* XXX */
+		/*
+		 * XXX 
+		 */
 		printf("XXX failed to write data cookie \n");
 		close(cinfo->con_cookie);
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	socket_non_block(cinfo->data_fd);
@@ -142,27 +168,37 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 
 	cinfo->log_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
 
-	/* we reuse the sockaddr, just change the port number */
+	/*
+	 * we reuse the sockaddr, just change the port number 
+	 */
 	sa.sin_port = htons((unsigned short) LOG_PORT);
 
-	err = connect(cinfo->log_fd, (struct sockaddr *)&sa, sizeof(sa));
+	err = connect(cinfo->log_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {
-		/* XXX log error */
+		/*
+		 * XXX log error 
+		 */
 		printf("failed to connect to log \n");
-		return(ENOENT);
+		return (ENOENT);
 	}
 
-	/* write the cookie into the fd */
-	size = write(cinfo->log_fd, (char *)&cinfo->con_cookie,
-	             sizeof(cinfo->con_cookie));
+	/*
+	 * write the cookie into the fd 
+	 */
+	size = write(cinfo->log_fd, (char *) &cinfo->con_cookie,
+		     sizeof(cinfo->con_cookie));
 	if (size == -1) {
-		/* XXX */
+		/*
+		 * XXX 
+		 */
 		printf("XXX failed to write data cookie \n");
 		close(cinfo->control_fd);
 		close(cinfo->data_fd);
-		return(ENOENT);
+		return (ENOENT);
 	}
-	/* XXX */
+	/*
+	 * XXX 
+	 */
 	socket_non_block(cinfo->log_fd);
 
 	/*
@@ -173,6 +209,5 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 	cinfo->log_rx_state = LOG_RX_NO_PENDING;
 
-	return(0);
+	return (0);
 }
-

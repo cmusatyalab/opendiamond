@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -16,13 +16,14 @@
 #include "rstat.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 int
 main(int argc, char **argv)
 {
 	u_int64_t       freq,
-	mem;
+	                mem;
 
 	r_cpu_freq(&freq);
 	r_freemem(&mem);

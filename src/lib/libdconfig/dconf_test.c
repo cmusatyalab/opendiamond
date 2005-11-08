@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -23,12 +23,13 @@
 #include    "lib_dconfig.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 int
 main(int argc, char **argv)
 {
-	char *	dir;
+	char           *dir;
 
 	dir = dconf_get_dataroot();
 	printf("data_root <%s> \n", dir);

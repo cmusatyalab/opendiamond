@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -24,7 +24,8 @@
 #include "ring.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 #define	TEST_RING_SIZE	512
 ring_data_t    *my_ring;
@@ -41,7 +42,8 @@ simple_test()
 	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_enq(my_ring, (void *) i);
 		if (err) {
-			printf("faild to write to ring on iteration %d \n", i);
+			printf("faild to write to ring on iteration %d \n",
+			       i);
 			exit(1);
 		}
 	}
@@ -95,7 +97,8 @@ simple_count_test()
 	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_enq(my_ring, (void *) i);
 		if (err) {
-			printf("faild to write to ring on iteration %d \n", i);
+			printf("faild to write to ring on iteration %d \n",
+			       i);
 			exit(1);
 		}
 		cnt = ring_count(my_ring);
@@ -137,7 +140,8 @@ count_test()
 	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_enq(my_ring, (void *) i);
 		if (err) {
-			printf("faild to write to ring on iteration %d \n", i);
+			printf("faild to write to ring on iteration %d \n",
+			       i);
 			exit(1);
 		}
 		data = ring_deq(my_ring);
@@ -164,7 +168,8 @@ overflow_test()
 	for (i = 1; i < (TEST_RING_SIZE); i++) {
 		err = ring_enq(my_ring, (void *) i);
 		if (err) {
-			printf("failed to write to ring on iteration %d \n", i);
+			printf("failed to write to ring on iteration %d \n",
+			       i);
 			exit(1);
 		}
 	}
@@ -301,7 +306,8 @@ simple_2test()
 	for (i = 1; i < (TEST_RING_SIZE - 1); i++) {
 		err = ring_2enq(my_2ring, (void *) i, (void *) i + 1);
 		if (err) {
-			printf("simple_2test: failed to write on iter %d \n", i);
+			printf("simple_2test: failed to write on iter %d \n",
+			       i);
 			exit(1);
 		}
 	}
@@ -311,7 +317,8 @@ simple_2test()
 	 */
 	err = ring_2empty(my_2ring);
 	if (err) {
-		printf("simple_2test: non-empty ring returned wrong result \n");
+		printf
+		    ("simple_2test: non-empty ring returned wrong result \n");
 		exit(1);
 	}
 
@@ -352,12 +359,13 @@ simple_2count_test()
 	int             err;
 	int             cnt;
 	int             data1,
-	data2;
+	                data2;
 
 	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_2enq(my_2ring, (void *) i, (void *) i + 1);
 		if (err) {
-			printf("faild to write to ring on iteration %d \n", i);
+			printf("faild to write to ring on iteration %d \n",
+			       i);
 			exit(1);
 		}
 		cnt = ring_2count(my_2ring);
@@ -395,12 +403,13 @@ count_2test()
 	int             i;
 	int             err;
 	int             data1,
-	data2;
+	                data2;
 
 	for (i = 1; i < TEST_RING_SIZE; i++) {
 		err = ring_2enq(my_2ring, (void *) i, (void *) i + 1);
 		if (err) {
-			printf("faild to write to ring on iteration %d \n", i);
+			printf("faild to write to ring on iteration %d \n",
+			       i);
 			exit(1);
 		}
 		err = ring_2deq(my_2ring, (void *) &data1, (void *) &data2);

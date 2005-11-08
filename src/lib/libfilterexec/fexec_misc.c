@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -32,18 +32,17 @@
 #include "filter_priv.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 int
 fexec_num_filters(struct filter_data *fdata)
 {
 
 
-	if (fdata == NULL)
-	{
+	if (fdata == NULL) {
 		return (0);
-	} else
-	{
+	} else {
 		return (fdata->fd_num_filters);
 	}
 }
@@ -52,7 +51,7 @@ fexec_num_filters(struct filter_data *fdata)
 
 int
 fexec_set_blob(filter_data_t * fdata, char *filter_name,
-               int blob_len, void *blob_data)
+	       int blob_len, void *blob_data)
 {
 	void           *new_data;
 	int             i;

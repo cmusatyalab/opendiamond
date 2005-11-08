@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -40,28 +40,33 @@
 #include "hstub_impl.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * This is called when there is data waiting on
  * the object socket.
  */
 void
-hstub_read_data(sdevice_state_t *dev)
+hstub_read_data(sdevice_state_t * dev)
 {
-	obj_data_t *	obj;
-	obj_adata_t *	attr_data;
-	conn_info_t *	cinfo;
-	int		header_offset, header_remain;
-	int		attr_offset, attr_remain;
-	int		data_offset, data_remain;
-	int		rsize;
-	uint32_t	alen, dlen;
-	int		ver_no;
-	char *		adata;
-	char *		odata;
-	char *		data;
-	int		err;
+	obj_data_t     *obj;
+	obj_adata_t    *attr_data;
+	conn_info_t    *cinfo;
+	int             header_offset,
+	                header_remain;
+	int             attr_offset,
+	                attr_remain;
+	int             data_offset,
+	                data_remain;
+	int             rsize;
+	uint32_t        alen,
+	                dlen;
+	int             ver_no;
+	char           *adata;
+	char           *odata;
+	char           *data;
+	int             err;
 
 	cinfo = &dev->con_data;
 
@@ -92,8 +97,9 @@ hstub_read_data(sdevice_state_t *dev)
 		header_offset = 0;
 		header_remain = 0;
 		attr_offset = cinfo->data_rx_offset;
-		attr_remain = cinfo->data_rx_obj->attr_info.attr_dlist->adata_len -
-		              attr_offset;
+		attr_remain =
+		    cinfo->data_rx_obj->attr_info.attr_dlist->adata_len -
+		    attr_offset;
 		data_offset = 0;
 		data_remain = cinfo->data_rx_obj->data_len;
 
@@ -115,28 +121,34 @@ hstub_read_data(sdevice_state_t *dev)
 	 * to finish the remainder.
 	 */
 	if (header_remain > 0) {
-		data = (char *)&cinfo->data_rx_header;
+		data = (char *) &cinfo->data_rx_header;
 
 		rsize = recv(cinfo->data_fd, &data[header_offset],
-		             header_remain, 0);
+			     header_remain, 0);
 		if (rsize < 0) {
 			if (errno == EAGAIN) {
 				/*
-					 * We don't have any data to read just now, 
+				 * We don't have any data to read just now, 
 				 * This probably should not happen.
-					 */
+				 */
 				cinfo->data_rx_state = DATA_RX_HEADER;
 				cinfo->data_rx_offset = header_offset;
 				return;
 			} else {
-				/* XXX what to do?? */
-				/* XXX log */
+				/*
+				 * XXX what to do?? 
+				 */
+				/*
+				 * XXX log 
+				 */
 				perror("get_obj_data: unknown err: \n");
 				exit(1);
 			}
 		}
 
-		/* XXX look for zero for shutdown connections */
+		/*
+		 * XXX look for zero for shutdown connections 
+		 */
 
 		if (rsize != header_remain) {
 			cinfo->data_rx_state = DATA_RX_HEADER;
@@ -153,7 +165,9 @@ hstub_read_data(sdevice_state_t *dev)
 		 */
 		if (ntohl(cinfo->data_rx_header.obj_magic)
 		    != OBJ_MAGIC_HEADER) {
-			/* XXX log */
+			/*
+			 * XXX log 
+			 */
 			printf("get_obj_data:  bad magic number \n");
 			exit(1);
 		}
@@ -165,12 +179,17 @@ hstub_read_data(sdevice_state_t *dev)
 		dlen = ntohl(cinfo->data_rx_header.data_len);
 
 
-		/* try to allocate storage for the attributes */
+		/*
+		 * try to allocate storage for the attributes 
+		 */
 		if (alen > 0) {
 			adata = (char *) malloc(alen);
 			if (adata == NULL) {
-				/* XXX treate as partial and recover later ??*/
-				printf("failed to allocation attribute data \n");
+				/*
+				 * XXX treate as partial and recover later ??
+				 */
+				printf
+				    ("failed to allocation attribute data \n");
 				exit(1);
 
 			}
@@ -184,7 +203,9 @@ hstub_read_data(sdevice_state_t *dev)
 		if (dlen > 0) {
 			odata = (char *) malloc(dlen);
 			if (odata == NULL) {
-				/* XXX treate as partial and recover later?? */
+				/*
+				 * XXX treate as partial and recover later?? 
+				 */
 				printf("failed to allocation object data \n");
 				exit(1);
 			}
@@ -194,11 +215,11 @@ hstub_read_data(sdevice_state_t *dev)
 
 
 		/*
-			 * allocate an obj_data_t structure to hold the object
+		 * allocate an obj_data_t structure to hold the object
 		 * and populate it.
 		 */
 
-		obj = (obj_data_t *)malloc(sizeof(*obj));
+		obj = (obj_data_t *) malloc(sizeof(*obj));
 		if (obj == NULL) {
 			printf("XXX crap, no space for object data \n");
 			exit(1);
@@ -207,7 +228,7 @@ hstub_read_data(sdevice_state_t *dev)
 		obj->data = odata;
 		obj->base = odata;
 
-		attr_data = (obj_adata_t *)malloc(sizeof(*attr_data));
+		attr_data = (obj_adata_t *) malloc(sizeof(*attr_data));
 		attr_data->adata_data = adata;
 		attr_data->adata_base = adata;
 		attr_data->adata_len = alen;
@@ -215,7 +236,9 @@ hstub_read_data(sdevice_state_t *dev)
 
 		obj->attr_info.attr_ndata = 1;
 		obj->attr_info.attr_dlist = attr_data;
-		obj->remain_compute = (float)ntohl(cinfo->data_rx_header.remain_compute)/1000.0;
+		obj->remain_compute =
+		    (float) ntohl(cinfo->data_rx_header.remain_compute) /
+		    1000.0;
 		cinfo->data_rx_obj = obj;
 
 		attr_offset = 0;
@@ -232,27 +255,33 @@ hstub_read_data(sdevice_state_t *dev)
 		data = cinfo->data_rx_obj->attr_info.attr_dlist->adata_data;
 
 		rsize = recv(cinfo->data_fd, &data[attr_offset],
-		             attr_remain, 0);
+			     attr_remain, 0);
 		if (rsize < 0) {
 			if (errno == EAGAIN) {
 				/*
-					 * We don't have enough data, so we 
+				 * We don't have enough data, so we 
 				 * need to recover
-					 * by saving the partial state and returning.
-					 */
+				 * by saving the partial state and returning.
+				 */
 				cinfo->data_rx_state = DATA_RX_ATTR;
 				cinfo->data_rx_offset = attr_offset;
 				return;
 			} else {
-				/* XXX what to do?? */
-				/* XXX log */
+				/*
+				 * XXX what to do?? 
+				 */
+				/*
+				 * XXX log 
+				 */
 				perror("get_obj_data: err reading attrs\n");
 				exit(1);
 			}
 		}
 
 		if (rsize != attr_remain) {
-			/* XXX save partial results */
+			/*
+			 * XXX save partial results 
+			 */
 			cinfo->data_rx_state = DATA_RX_ATTR;
 			cinfo->data_rx_offset = attr_offset + rsize;
 			return;
@@ -269,20 +298,24 @@ hstub_read_data(sdevice_state_t *dev)
 		data = cinfo->data_rx_obj->data;
 
 		rsize = recv(cinfo->data_fd, &data[data_offset],
-		             data_remain, 0);
+			     data_remain, 0);
 		if (rsize < 0) {
 			if (errno == EAGAIN) {
 				/*
-					 * We don't have enough data, so we need to 
+				 * We don't have enough data, so we need to 
 				 * recover  by saving the partial state 
 				 * and returning.
-					 */
+				 */
 				cinfo->data_rx_state = DATA_RX_DATA;
 				cinfo->data_rx_offset = data_offset;
 				return;
 			} else {
-				/* XXX what to do?? */
-				/* XXX log */
+				/*
+				 * XXX what to do?? 
+				 */
+				/*
+				 * XXX log 
+				 */
 				perror("get_obj_data: err reading data\n");
 				exit(1);
 			}
@@ -301,11 +334,13 @@ hstub_read_data(sdevice_state_t *dev)
 	}
 
 	cinfo->stat_obj_rx++;
-	cinfo->stat_obj_attr_byte_rx += cinfo->data_rx_obj->attr_info.attr_dlist->adata_len;
+	cinfo->stat_obj_attr_byte_rx +=
+	    cinfo->data_rx_obj->attr_info.attr_dlist->adata_len;
 	cinfo->stat_obj_hdr_byte_rx += sizeof(obj_header_t);
 	cinfo->stat_obj_data_byte_rx += cinfo->data_rx_obj->data_len;
-	cinfo->stat_obj_total_byte_rx += cinfo->data_rx_obj->attr_info.attr_dlist->adata_len +
-	                                 sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
+	cinfo->stat_obj_total_byte_rx +=
+	    cinfo->data_rx_obj->attr_info.attr_dlist->adata_len +
+	    sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
 
 
 
@@ -314,15 +349,17 @@ hstub_read_data(sdevice_state_t *dev)
 
 	if ((cinfo->data_rx_obj->data_len == 0) &&
 	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0)) {
-		(*dev->hstub_search_done_cb)(dev->hcookie, ver_no);
+		(*dev->hstub_search_done_cb) (dev->hcookie, ver_no);
 		free(cinfo->data_rx_obj);
 
 	} else {
 
-		/* XXX put it into the object ring */
-		obj_info_t *oinfo;
+		/*
+		 * XXX put it into the object ring 
+		 */
+		obj_info_t     *oinfo;
 
-		oinfo = (obj_info_t *)malloc(sizeof(*oinfo));
+		oinfo = (obj_info_t *) malloc(sizeof(*oinfo));
 		assert(oinfo != NULL);
 
 		oinfo->ver_num = ver_no;
@@ -335,7 +372,7 @@ hstub_read_data(sdevice_state_t *dev)
 }
 
 void
-hstub_except_data(sdevice_state_t *dev)
+hstub_except_data(sdevice_state_t * dev)
 {
 	printf("except_data \n");
 }
@@ -349,10 +386,11 @@ hstub_except_data(sdevice_state_t *dev)
 void
 hstub_write_data(sdevice_state_t * dev)
 {
-	conn_info_t *		cinfo;
-	char *			data;
-	size_t			send_size, mcount;
-	int			count;
+	conn_info_t    *cinfo;
+	char           *data;
+	size_t          send_size,
+	                mcount;
+	int             count;
 
 	cinfo = &dev->con_data;
 
@@ -365,26 +403,32 @@ hstub_write_data(sdevice_state_t * dev)
 		return;
 	}
 
-	/* build the credit count messages using the current state */
+	/*
+	 * build the credit count messages using the current state 
+	 */
 	cinfo->cc_msg.cc_magic = htonl(CC_MAGIC_HEADER);
 
 	count = cinfo->obj_limit - ring_count(dev->obj_ring);
 	if (count < 0) {
 		count = 0;
 	}
-	cinfo->cc_msg.cc_count =  htonl(count);
+	cinfo->cc_msg.cc_count = htonl(count);
 
-	/* send the messages */
-	data = (char *)&cinfo->cc_msg;
+	/*
+	 * send the messages 
+	 */
+	data = (char *) &cinfo->cc_msg;
 	mcount = sizeof(credit_count_msg_t);
 	send_size = send(cinfo->data_fd, data, mcount, 0);
 
-	/* XXX we don't handle partials today XXX */
+	/*
+	 * XXX we don't handle partials today XXX 
+	 */
 	assert(send_size == mcount);
 
-	/* if successful, clear the flag */
+	/*
+	 * if successful, clear the flag 
+	 */
 	cinfo->flags &= ~CINFO_PENDING_CREDIT;
 
 }
-
-

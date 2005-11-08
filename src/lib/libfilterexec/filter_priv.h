@@ -156,6 +156,14 @@ typedef struct filter_prob {
  */
 #define STAT_WINDOW 1024
 
+#define FLIB_INCREMENT	10	
+
+typedef struct flib_info {
+	sig_val_t	lib_sig;
+	void *		dl_handle;
+	char *		lib_name;
+} flib_info_t;
+
 /*
  * This is the structure that holds all the data.
  * initialized in filter_spec.l:read_filter_spec -RW
@@ -176,11 +184,15 @@ struct filter_data {
 
 	time_t          obj_ns[STAT_WINDOW];    /* data */
 	int             obj_ns_valid;   /* number of valid entries */
-	int             obj_ns_pos; /* current insertion point */
+	int             obj_ns_pos; 	/* current insertion point */
 
 	int             obj_counter;    /* used to synchronize monitoring output
-	                                     * (filter_exec) */
-
+				     	 * (filter_exec) 
+					 */
+	int		max_libs;
+	int		num_libs;
+	flib_info_t *	lib_info;
+	
 	filter_info_t   fd_filters[0];  /* variable size struct */
 };
 

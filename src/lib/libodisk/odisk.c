@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -39,21 +39,22 @@
 #include "sys_attr.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 #define	MAX_READ_THREADS	1
 
 #define	CACHE_EXT	".CACHEFL"
-unsigned int cache_oattr_ratio = 5;
-unsigned int skip_cache_oattr = 1;
-unsigned int last_ring_depth = 0;
-unsigned int dynamic_load = 1;
+unsigned int    cache_oattr_ratio = 5;
+unsigned int    skip_cache_oattr = 1;
+unsigned int    last_ring_depth = 0;
+unsigned int    dynamic_load = 1;
 
 /*
  * forward declarations 
  */
 static void     update_gid_idx(odisk_state_t * odisk, char *name,
-                               groupid_t * gid);
+			       groupid_t * gid);
 static void     delete_object_gids(odisk_state_t * odisk, obj_data_t * obj);
 
 /*
@@ -69,9 +70,9 @@ static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
 
 #define	OBJ_RING_SIZE	32
 
-static ring_data_t *    obj_pr_ring;
-static pthread_cond_t   pr_fg_cv = PTHREAD_COND_INITIALIZER;
-static pthread_cond_t   pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
+static ring_data_t *obj_pr_ring;
+static pthread_cond_t pr_fg_cv = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
 #define OBJ_PR_RING_SIZE        32
 /*
  * These are the set of group ID's we are using to 
@@ -80,10 +81,10 @@ static pthread_cond_t   pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
 #define MAX_GID_FILTER  64
 
 int
-odisk_next_index_ent(FILE *idx_file, char *file_name)
+odisk_next_index_ent(FILE * idx_file, char *file_name)
 {
-	int	offset;
-	int	val;
+	int             offset;
+	int             val;
 
 	offset = 0;
 	while (offset < (NAME_MAX - 1)) {
@@ -91,50 +92,56 @@ odisk_next_index_ent(FILE *idx_file, char *file_name)
 		if (val == EOF) {
 			if (offset > 0) {
 				file_name[offset++] = '\0';
-				return(1);
+				return (1);
 			} else {
-				return(0);
+				return (0);
 			}
 		}
 		if ((val == '\0') || (val == '\n')) {
 			if (offset > 0) {
 				file_name[offset++] = '\0';
-				return(1);
+				return (1);
 			}
 		} else {
-			file_name[offset++] = (char)val;
+			file_name[offset++] = (char) val;
 		}
-	} 
+	}
 
-	/* if we get here we have overflowed ... */
+	/*
+	 * if we get here we have overflowed ... 
+	 */
 	file_name[offset++] = '\0';
-	return(1);
+	return (1);
 }
 
 
 static int
 dynamic_load_oattr(int ring_depth)
 {
-	/* XXX fix this */
-	return(1);
-	if( dynamic_load == 0 ) {
-		return(1);
+	/*
+	 * XXX fix this 
+	 */
+	return (1);
+	if (dynamic_load == 0) {
+		return (1);
 	}
 
-	if( ring_depth < 3 ) {
-		return(0);
+	if (ring_depth < 3) {
+		return (0);
 	} else {
-		return(1);
+		return (1);
 	}
 
 }
 
-/* Set an attribute if it is not defined to the name value passed in */
+/*
+ * Set an attribute if it is not defined to the name value passed in 
+ */
 static void
-obj_set_notdef(obj_data_t *obj, char *attr_name, void *val, size_t len)
+obj_set_notdef(obj_data_t * obj, char *attr_name, void *val, size_t len)
 {
-	int	err;
-	size_t	rlen;
+	int             err;
+	size_t          rlen;
 
 	rlen = 0;
 
@@ -150,18 +157,22 @@ obj_set_notdef(obj_data_t *obj, char *attr_name, void *val, size_t len)
  * the object.
  */
 static void
-obj_set_sysattr(odisk_state_t *odisk, obj_data_t *obj, char * name)
+obj_set_sysattr(odisk_state_t * odisk, obj_data_t * obj, char *name)
 {
-	size_t	len;
+	size_t          len;
 
-	/* set the object name */
+	/*
+	 * set the object name 
+	 */
 	len = strlen(name) + 1;
-    	obj_set_notdef(obj, DISPLAY_NAME, name, len);
+	obj_set_notdef(obj, DISPLAY_NAME, name, len);
 
-	/* set the object name */
+	/*
+	 * set the object name 
+	 */
 	len = strlen(odisk->odisk_name) + 1;
-    	obj_set_notdef(obj, DEVICE_NAME, odisk->odisk_name, len);
-	
+	obj_set_notdef(obj, DEVICE_NAME, odisk->odisk_name, len);
+
 
 }
 
@@ -173,13 +184,14 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	int             os_file;
 	char           *data;
 	char           *base;
-	int             err, len;
+	int             err,
+	                len;
 	size_t          size;
 	uint64_t        local_id;
 	char           *ptr;
 	char            attr_name[NAME_MAX];
 
-	assert( name != NULL );
+	assert(name != NULL);
 	if (strlen(name) >= NAME_MAX) {
 		/*
 		 * XXX log error 
@@ -188,13 +200,16 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	}
 
 	new_obj = malloc(sizeof(*new_obj));
-	assert( new_obj != NULL );
+	assert(new_obj != NULL);
 
-	/* open and read the data file, since we are streaming through
-	    * the data we try to use the direct reads to save the memcopy
-	    * in the buffer cache.
+	/*
+	 * open and read the data file, since we are streaming through * the
+	 * data we try to use the direct reads to save the memcopy * in the
+	 * buffer cache. 
 	 */
-	/* XXX: add flock ? */
+	/*
+	 * XXX: add flock ? 
+	 */
 	os_file = open(name, odisk->open_flags);
 	if (os_file == -1) {
 		printf("XXXX open failed \n");
@@ -209,8 +224,8 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	}
 
 	base = (char *) malloc(ALIGN_SIZE(stats.st_size));
-	assert( base != NULL );
-	data = (char *)ALIGN_VAL(base);
+	assert(base != NULL);
+	data = (char *) ALIGN_VAL(base);
 	if (base == NULL) {
 		close(os_file);
 		free(new_obj);
@@ -264,7 +279,9 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	obj_load_text_attr(odisk, name, new_obj);
 
 
-	/* set any system specific attributes for the object */
+	/*
+	 * set any system specific attributes for the object 
+	 */
 	obj_set_sysattr(odisk, new_obj, name);
 
 	*obj_handle = (obj_data_t *) new_obj;
@@ -277,7 +294,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 float
 odisk_get_erate(odisk_state_t * odisk)
 {
-	return(ring_erate(obj_ring));
+	return (ring_erate(obj_ring));
 }
 
 int
@@ -292,8 +309,9 @@ odisk_get_obj_cnt(odisk_state_t * odisk)
 	int             ret;
 
 	for (i = 0; i < odisk->num_gids; i++) {
-		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", 
-			odisk->odisk_indexdir, GID_IDX, odisk->gid_list[i]);
+		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX",
+			       odisk->odisk_indexdir, GID_IDX,
+			       odisk->gid_list[i]);
 		assert(len < NAME_MAX);
 		new_file = fopen(idx_file, "r");
 		if (new_file == NULL) {
@@ -317,7 +335,7 @@ odisk_save_obj(odisk_state_t * odisk, obj_data_t * obj)
 	int             len;
 
 	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
-	               obj->local_id);
+		       obj->local_id);
 	assert(len < NAME_MAX);
 
 
@@ -341,7 +359,9 @@ odisk_save_obj(odisk_state_t * odisk, obj_data_t * obj)
 		}
 	}
 
-	/* save the attributes associated with the file */
+	/*
+	 * save the attributes associated with the file 
+	 */
 	len = snprintf(attrbuf, NAME_MAX, "%s%s", buf, BIN_ATTR_EXT);
 	assert(len < NAME_MAX);
 	obj_write_attr_file(attrbuf, &obj->attr_info);
@@ -361,7 +381,7 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 	delete_object_gids(odisk, obj);
 
 	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
-	               obj->local_id);
+		       obj->local_id);
 	assert(len < NAME_MAX);
 	err = unlink(buf);
 	if (err == -1) {
@@ -369,9 +389,12 @@ odisk_delete_obj(odisk_state_t * odisk, obj_data_t * obj)
 		perror("");
 	}
 
-	/* find the attributes and destroy if they exist */
-	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX%s", odisk->odisk_dataroot,
-	               obj->local_id, BIN_ATTR_EXT);
+	/*
+	 * find the attributes and destroy if they exist 
+	 */
+	len =
+	    snprintf(buf, NAME_MAX, "%s/OBJ%016llX%s", odisk->odisk_dataroot,
+		     obj->local_id, BIN_ATTR_EXT);
 	assert(len < NAME_MAX);
 
 	err = unlink(buf);
@@ -395,7 +418,7 @@ odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
 
 
 	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
-	               oid->local_id);
+		       oid->local_id);
 
 	assert(len < NAME_MAX);
 
@@ -412,7 +435,9 @@ void
 odisk_ref_obj(obj_data_t * obj)
 {
 
-	/* increment ref count */
+	/*
+	 * increment ref count 
+	 */
 	pthread_mutex_lock(&obj->mutex);
 	obj->ref_count++;
 	pthread_mutex_unlock(&obj->mutex);
@@ -424,14 +449,17 @@ int
 odisk_release_obj(obj_data_t * obj)
 {
 
-	obj_adata_t *cur, *next;
+	obj_adata_t    *cur,
+	               *next;
 
-	/* decrement ref count */
+	/*
+	 * decrement ref count 
+	 */
 	pthread_mutex_lock(&obj->mutex);
 	obj->ref_count--;
 	if (obj->ref_count != 0) {
 		pthread_mutex_unlock(&obj->mutex);
-		return(0);
+		return (0);
 	}
 
 	/*
@@ -441,9 +469,11 @@ odisk_release_obj(obj_data_t * obj)
 	pthread_mutex_unlock(&obj->mutex);
 
 
-	/* XXX make assert ?? */
+	/*
+	 * XXX make assert ?? 
+	 */
 	if (obj == NULL) {
-		return(1);
+		return (1);
 	}
 
 	if (obj->base != NULL) {
@@ -460,17 +490,17 @@ odisk_release_obj(obj_data_t * obj)
 
 	pthread_mutex_destroy(&obj->mutex);
 	free(obj);
-	return(1);
+	return (1);
 }
 
 static int
 odisk_release_pr_obj(pr_obj_t * pobj)
 {
-	if (pobj == NULL ) {
+	if (pobj == NULL) {
 		return (0);
 	}
 
-	if (pobj->obj_name != NULL ) {
+	if (pobj->obj_name != NULL) {
 		free(pobj->obj_name);
 	}
 
@@ -482,8 +512,9 @@ int
 odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 {
 	gid_list_t     *glist;
-	size_t           len;
-	int             i, err;
+	size_t          len;
+	int             i,
+	                err;
 	int             space;
 
 	len = 0;
@@ -499,7 +530,7 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 		assert(glist != NULL);
 		err =
 		    obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len,
-		                  (char *) glist);
+				  (char *) glist);
 		assert(err == 0);
 	}
 
@@ -514,7 +545,8 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 	}
 
 	if (space == -1) {
-		int             old, new;
+		int             old,
+		                new;
 		old = glist->num_gids;
 		new = old + 4;
 		glist = realloc(glist, GIDLIST_SIZE(new));
@@ -529,7 +561,7 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 
 	glist->gids[space] = *gid;
 	err = obj_write_attr(&obj->attr_info, GIDLIST_NAME,
-	                     GIDLIST_SIZE(glist->num_gids), (char *) glist);
+			     GIDLIST_SIZE(glist->num_gids), (char *) glist);
 	assert(err == 0);
 
 	return (0);
@@ -540,8 +572,9 @@ int
 odisk_rem_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 {
 	gid_list_t     *glist;
-	size_t           len;
-	int             i, err;
+	size_t          len;
+	int             i,
+	                err;
 
 	len = 0;
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
@@ -551,16 +584,16 @@ odisk_rem_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 
 	glist = (gid_list_t *) malloc(len);
 	assert(glist != NULL);
-	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, 
-		&len, (char *) glist);
+	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME,
+			    &len, (char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
 		if (glist->gids[i] == *gid) {
 			glist->gids[i] = *gid;
 			err = obj_write_attr(&obj->attr_info, GIDLIST_NAME,
-			                     GIDLIST_SIZE(glist->num_gids),
-			                     (char *) glist);
+					     GIDLIST_SIZE(glist->num_gids),
+					     (char *) glist);
 			return (0);
 		}
 	}
@@ -580,8 +613,9 @@ odisk_new_obj(odisk_state_t * odisk, obj_id_t * oid, groupid_t * gid)
 	local_id = rand();
 
 	while (1) {
-		len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
-		               local_id);
+		len =
+		    snprintf(buf, NAME_MAX, "%s/OBJ%016llX",
+			     odisk->odisk_dataroot, local_id);
 		assert(len < NAME_MAX);
 		fd = open(buf, O_CREAT | O_EXCL, 0777);
 		if (fd == -1) {
@@ -644,7 +678,7 @@ odisk_set_gid(odisk_state_t * odisk, groupid_t gid)
 
 int
 odisk_write_obj(odisk_state_t * odisk, obj_data_t * obj, int len,
-                int offset, char *data)
+		int offset, char *data)
 {
 	int             total_len;
 	char           *dbuf;
@@ -652,7 +686,7 @@ odisk_write_obj(odisk_state_t * odisk, obj_data_t * obj, int len,
 	total_len = offset + len;
 
 	if (total_len > obj->data_len) {
-		dbuf = (char *)malloc(total_len);
+		dbuf = (char *) malloc(total_len);
 		assert(dbuf != NULL);
 		memcpy(dbuf, obj->data, obj->data_len);
 		obj->data_len = total_len;
@@ -669,7 +703,7 @@ odisk_write_obj(odisk_state_t * odisk, obj_data_t * obj, int len,
 
 int
 odisk_read_obj(odisk_state_t * odisk, obj_data_t * obj, int *len,
-               int offset, char *data)
+	       int offset, char *data)
 {
 	int             rlen;
 	int             remain;
@@ -706,13 +740,15 @@ odisk_read_next(obj_data_t ** new_object, odisk_state_t * odisk)
 	int             len;
 
 
-again:
+      again:
 	for (i = odisk->cur_file; i < odisk->max_files; i++) {
 		if (odisk->index_files[i] != NULL) {
 			ret = odisk_next_index_ent(odisk->index_files[i],
-				file_name);
+						   file_name);
 			if (ret == 0) {
-				/* This file done, close it and continue.  */
+				/*
+				 * This file done, close it and continue.  
+				 */
 				fclose(odisk->index_files[i]);
 				odisk->index_files[i] = NULL;
 				continue;
@@ -737,7 +773,7 @@ again:
 			if (odisk->cur_file >= odisk->max_files) {
 				odisk->cur_file = 0;
 			}
-			return(0);
+			return (0);
 		}
 	}
 
@@ -754,9 +790,9 @@ again:
 }
 
 static int
-odisk_pr_next(pr_obj_t **new_object)
+odisk_pr_next(pr_obj_t ** new_object)
 {
-	pr_obj_t *tmp;
+	pr_obj_t       *tmp;
 
 	pthread_mutex_lock(&odisk_mutex);
 	while (1) {
@@ -764,20 +800,19 @@ odisk_pr_next(pr_obj_t **new_object)
 			tmp = ring_deq(obj_pr_ring);
 
 			pthread_cond_signal(&pr_bg_queue_cv);
-			if (tmp->oattr_fnum == -1 ) {
+			if (tmp->oattr_fnum == -1) {
 				free(tmp);
 				search_done = 1;
-				printf("odisk_pr_next: search_done\n");
 			} else {
-				*new_object =  tmp;
+				*new_object = tmp;
 				pthread_mutex_unlock(&odisk_mutex);
-				return(0);
+				return (0);
 			}
 		} else {
 			if (search_done) {
 				*new_object = NULL;
 				pthread_mutex_unlock(&odisk_mutex);
-				return(ENOENT);
+				return (ENOENT);
 			}
 			pthread_cond_wait(&pr_fg_cv, &odisk_mutex);
 		}
@@ -785,16 +820,17 @@ odisk_pr_next(pr_obj_t **new_object)
 }
 
 static int
-odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
+odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
+	      odisk_state_t * odisk)
 {
-	int err;
-	int i;
+	int             err;
+	int             i;
 	char            timebuf[BUFSIZ];
 	rtimer_t        rt;
 	u_int64_t       time_ns;
 	u_int64_t       stack_ns;
 
-	assert( pr_obj != NULL );
+	assert(pr_obj != NULL);
 	stack_ns = pr_obj->stack_ns;
 
 	/*
@@ -804,17 +840,21 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 	err = odisk_load_obj(odisk, new_object, pr_obj->obj_name);
 	if (err) {
 		printf("load obj <%s> failed %d \n", pr_obj->obj_name, err);
-		return(err);
+		return (err);
 	}
 
-	/* see if we have partials to load */
-	if ((pr_obj->oattr_fnum==0) ||
-	    (dynamic_load_oattr( ring_count(obj_ring) ) == 0) ) {
-		return(0);
+	/*
+	 * see if we have partials to load 
+	 */
+	if ((pr_obj->oattr_fnum == 0) ||
+	    (dynamic_load_oattr(ring_count(obj_ring)) == 0)) {
+		return (0);
 	}
 
-	/* load the partial state */
-	for( i=0; i<pr_obj->oattr_fnum; i++) {
+	/*
+	 * load the partial state 
+	 */
+	for (i = 0; i < pr_obj->oattr_fnum; i++) {
 
 		if (pr_obj->filters[i] == NULL) {
 			continue;
@@ -823,40 +863,46 @@ odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **new_object, odisk_state_t *odisk)
 		rt_init(&rt);
 		rt_start(&rt);
 
-		/* XXX */
-		err = obj_read_oattr(odisk, odisk->odisk_dataroot, 
-			&(*new_object)->id_sig, &pr_obj->fsig[i], 
-			&pr_obj->iattrsig[i], &(*new_object)->attr_info);
+		/*
+		 * XXX 
+		 */
+		err = obj_read_oattr(odisk, odisk->odisk_dataroot,
+				     &(*new_object)->id_sig, &pr_obj->fsig[i],
+				     &pr_obj->iattrsig[i],
+				     &(*new_object)->attr_info);
 
 		rt_stop(&rt);
 		time_ns = rt_nanos(&rt);
 		stack_ns += time_ns;
 
-		/* if we didn't read the cached attributes dont' read further*/
+		/*
+		 * if we didn't read the cached attributes dont' read further
+		 */
 		if (err != 0) {
 			break;
 		}
 
 		sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
 		err = obj_write_attr(&(*new_object)->attr_info, timebuf,
-				     sizeof(time_ns), (void *)&time_ns);
+				     sizeof(time_ns), (void *) &time_ns);
 		if (err != 0) {
-			printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
+			printf("CHECK OBJECT %016llX ATTR FILE\n",
+			       pr_obj->obj_id);
 		}
 	}
 
 	err = obj_write_attr(&(*new_object)->attr_info,
-	                     FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
+			     FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
 	if (err != 0) {
 		printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
 	}
 
-	assert(err==0);
+	assert(err == 0);
 	return (0);
 }
 
 int
-odisk_pr_add(pr_obj_t *pr_obj)
+odisk_pr_add(pr_obj_t * pr_obj)
 {
 	pthread_mutex_lock(&odisk_mutex);
 
@@ -868,14 +914,14 @@ odisk_pr_add(pr_obj_t *pr_obj)
 		if (search_active == 0) {
 			odisk_release_pr_obj(pr_obj);
 			pthread_mutex_unlock(&odisk_mutex);
-			return(0);
+			return (0);
 		}
 
-		if (!ring_full(obj_pr_ring) ) {
+		if (!ring_full(obj_pr_ring)) {
 			ring_enq(obj_pr_ring, pr_obj);
 			pthread_cond_signal(&pr_fg_cv);
 			pthread_mutex_unlock(&odisk_mutex);
-			return(0);
+			return (0);
 		} else {
 			pthread_cond_wait(&pr_bg_queue_cv, &odisk_mutex);
 		}
@@ -883,28 +929,29 @@ odisk_pr_add(pr_obj_t *pr_obj)
 }
 
 
-char *
-odisk_next_obj_name(odisk_state_t *odisk)
+char           *
+odisk_next_obj_name(odisk_state_t * odisk)
 {
-	char            	file_name[NAME_MAX];
-	char            	path_name[NAME_MAX];
-	char *			ncopy;
-	int                     i;
-	int                     ret;
+	char            file_name[NAME_MAX];
+	char            path_name[NAME_MAX];
+	char           *ncopy;
+	int             i;
+	int             ret;
 
-again:
+      again:
 	for (i = odisk->cur_file; i < odisk->max_files; i++) {
 		if (odisk->index_files[i] != NULL) {
-			/* XXX overflow !!! */
-			ret = odisk_next_index_ent(odisk->index_files[i], 
-				file_name);
+			/*
+			 * XXX overflow !!! 
+			 */
+			ret = odisk_next_index_ent(odisk->index_files[i],
+						   file_name);
 			if (ret == 1) {
-				sprintf(path_name, "%s/%s", 
-					odisk->odisk_dataroot, 
-					file_name);
+				sprintf(path_name, "%s/%s",
+					odisk->odisk_dataroot, file_name);
 				ncopy = strdup(path_name);
 				odisk->cur_file = i;
-				return(ncopy);
+				return (ncopy);
 			} else {
 				fclose(odisk->index_files[i]);
 				odisk->index_files[i] = NULL;
@@ -920,32 +967,36 @@ again:
 		odisk->cur_file = 0;
 		goto again;
 	} else {
-		//search_done = 1;
-		return(NULL);
+		// search_done = 1;
+		return (NULL);
 	}
 }
 
 
 int
-odisk_flush(odisk_state_t *odisk)
+odisk_flush(odisk_state_t * odisk)
 {
-	pr_obj_t *	pobj;
-	obj_data_t *	obj;
-	int			err;
+	pr_obj_t       *pobj;
+	obj_data_t     *obj;
+	int             err;
 
 	err = pthread_mutex_lock(&odisk_mutex);
 	assert(err == 0);
 	search_active = 0;
 
-	/* drain the pr ring */
+	/*
+	 * drain the pr ring 
+	 */
 	while (!ring_empty(obj_pr_ring)) {
 		pobj = ring_deq(obj_pr_ring);
-		if (pobj != NULL ) {
+		if (pobj != NULL) {
 			odisk_release_pr_obj(pobj);
 		}
 	}
 
-	/* drain the object ring */
+	/*
+	 * drain the object ring 
+	 */
 	while (!ring_empty(obj_ring)) {
 		obj = ring_deq(obj_ring);
 		if (obj != NULL) {
@@ -954,22 +1005,24 @@ odisk_flush(odisk_state_t *odisk)
 	}
 
 	pthread_cond_signal(&pr_bg_queue_cv);
-	/* wake up all threads since we are shutting down */
+	/*
+	 * wake up all threads since we are shutting down 
+	 */
 	pthread_cond_broadcast(&bg_queue_cv);
 
 	err = pthread_mutex_unlock(&odisk_mutex);
 	assert(err == 0);
 	printf("odisk_flush done\n");
 
-	return(0);
+	return (0);
 }
 
 static void    *
 odisk_main(void *arg)
 {
 	odisk_state_t  *ostate = (odisk_state_t *) arg;
-	pr_obj_t *              pobj;
-	obj_data_t     *nobj=NULL;
+	pr_obj_t       *pobj;
+	obj_data_t     *nobj = NULL;
 	int             err;
 
 	dctl_thread_register(ostate->dctl_cookie);
@@ -1076,14 +1129,14 @@ odisk_num_waiting(odisk_state_t * odisk)
 void
 odisk_setup_open_flags(odisk_state_t * odisk)
 {
-	char *      test_name;
-	char *      buf;
-	int  		test_fd;
-	ssize_t		wsize;
-	char * 	base;
-	char *	data;
+	char           *test_name;
+	char           *buf;
+	int             test_fd;
+	ssize_t         wsize;
+	char           *base;
+	char           *data;
 
-	test_name = (char *)malloc (MAX_TEMP_NAME);
+	test_name = (char *) malloc(MAX_TEMP_NAME);
 	if (test_name == NULL) {
 		printf("filename failed \n");
 		assert(0);
@@ -1096,17 +1149,21 @@ odisk_setup_open_flags(odisk_state_t * odisk)
 	}
 
 
-	buf = (char *)calloc(1, TEST_BUF_SIZE);
+	buf = (char *) calloc(1, TEST_BUF_SIZE);
 	wsize = write(test_fd, buf, TEST_BUF_SIZE);
 	assert(wsize == TEST_BUF_SIZE);
 	close(test_fd);
 	free(buf);
 
 #ifdef	SUPPORT_O_DIRECT
-	/* now test the file with direct flag */
-	odisk->open_flags = (O_RDONLY|O_DIRECT);
+	/*
+	 * now test the file with direct flag 
+	 */
+	odisk->open_flags = (O_RDONLY | O_DIRECT);
 #else
-	/* now test the file with direct flag */
+	/*
+	 * now test the file with direct flag 
+	 */
 	odisk->open_flags = (O_RDONLY);
 #endif
 
@@ -1116,9 +1173,9 @@ odisk_setup_open_flags(odisk_state_t * odisk)
 
 
 
-    	base = (char *) malloc(ALIGN_SIZE(TEST_BUF_SIZE));
-    	assert( base != NULL );
-    	data = (char *)ALIGN_VAL(base);
+	base = (char *) malloc(ALIGN_SIZE(TEST_BUF_SIZE));
+	assert(base != NULL);
+	data = (char *) ALIGN_VAL(base);
 
 	wsize = read(test_fd, data, ALIGN_ROUND(TEST_BUF_SIZE));
 	if (wsize != TEST_BUF_SIZE) {
@@ -1128,25 +1185,25 @@ odisk_setup_open_flags(odisk_state_t * odisk)
 
 		wsize = read(test_fd, data, ALIGN_ROUND(TEST_BUF_SIZE));
 		assert(wsize != TEST_BUF_SIZE);
-    	}
+	}
 
 	free(base);
-    	close(test_fd);
-    	unlink(test_name);
-    	free(test_name);
+	close(test_fd);
+	unlink(test_name);
+	free(test_name);
 }
 
 
 
 int
 odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
-           void *log_cookie)
+	   void *log_cookie)
 {
 	odisk_state_t  *new_state;
 	int             err;
-	char *			dataroot;
-	char *			indexdir;
-	int			i;
+	char           *dataroot;
+	char           *indexdir;
+	int             i;
 
 	if (dirp == NULL) {
 		dataroot = dconf_get_dataroot();
@@ -1163,23 +1220,29 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 
 	indexdir = dconf_get_indexdir();
 	if (strlen(indexdir) > (MAX_DIR_PATH - 1)) {
-		/* XXX log  */
+		/*
+		 * XXX log 
+		 */
 		return (EINVAL);
 	}
-	
-	/* make sure we have a reasonable umask */
+
+	/*
+	 * make sure we have a reasonable umask 
+	 */
 	umask(0);
 
 	sig_cal_init();
 
-	/* clear umask so we get file permissions we specify */
+	/*
+	 * clear umask so we get file permissions we specify 
+	 */
 	// XXX umask(0777);
 
 	ring_init(&obj_ring, OBJ_RING_SIZE);
 	ring_init(&obj_pr_ring, OBJ_PR_RING_SIZE);
 
 	new_state = (odisk_state_t *) malloc(sizeof(*new_state));
-	assert( new_state != NULL );
+	assert(new_state != NULL);
 
 	memset(new_state, 0, sizeof(*new_state));
 
@@ -1188,15 +1251,17 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 
 	if (dctl_cookie != NULL) {
 		dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
-		                   dctl_read_uint32, NULL, &new_state->obj_load);
-		dctl_register_leaf(DEV_OBJ_PATH, "next_blocked", DCTL_DT_UINT32,
-		                   dctl_read_uint32, NULL, &new_state->next_blocked);
+				   dctl_read_uint32, NULL,
+				   &new_state->obj_load);
+		dctl_register_leaf(DEV_OBJ_PATH, "next_blocked",
+				   DCTL_DT_UINT32, dctl_read_uint32, NULL,
+				   &new_state->next_blocked);
 		dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked",
-		                   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-		                   &new_state->readahead_full);
+				   DCTL_DT_UINT32, dctl_read_uint32, NULL,
+				   &new_state->readahead_full);
 		dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load",
-		                   DCTL_DT_UINT32, dctl_read_uint32, dctl_write_uint32,
-		                   &dynamic_load);
+				   DCTL_DT_UINT32, dctl_read_uint32,
+				   dctl_write_uint32, &dynamic_load);
 	}
 
 	/*
@@ -1205,7 +1270,9 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	strcpy(new_state->odisk_dataroot, dataroot);
 	strcpy(new_state->odisk_indexdir, indexdir);
 
-	/* get the host name */
+	/*
+	 * get the host name 
+	 */
 	err = gethostname(new_state->odisk_name, MAX_HOST_NAME);
 	if (err) {
 		sprintf(new_state->odisk_name, "Unknown");
@@ -1214,9 +1281,9 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 
 	odisk_setup_open_flags(new_state);
 
-	for (i=0; i < MAX_READ_THREADS; i++) {
+	for (i = 0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, PATTR_DEFAULT,
-		                     odisk_main, (void *) new_state);
+				     odisk_main, (void *) new_state);
 	}
 
 	*odisk = new_state;
@@ -1243,8 +1310,9 @@ odisk_reset(odisk_state_t * odisk)
 	}
 
 	for (i = 0; i < odisk->num_gids; i++) {
-		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", 
-					odisk->odisk_indexdir, GID_IDX, odisk->gid_list[i]);
+		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX",
+			       odisk->odisk_indexdir, GID_IDX,
+			       odisk->gid_list[i]);
 		assert(len < NAME_MAX);
 		new_file = fopen(idx_file, "r");
 		if (new_file == NULL) {
@@ -1291,13 +1359,14 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	int             len;
 	gid_idx_ent_t   gid_idx;
 
-	len = snprintf(idx_name, NAME_MAX, "%s/%s%016llX", 
-		odisk->odisk_indexdir, GID_IDX, *gid);
+	len = snprintf(idx_name, NAME_MAX, "%s/%s%016llX",
+		       odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
 	idx_file = fopen(idx_name, "a");
 	if (idx_file == NULL) {
-		fprintf(stderr, "update_gid_idx: failed to open <%s> \n", idx_name);
+		fprintf(stderr, "update_gid_idx: failed to open <%s> \n",
+			idx_name);
 		return;
 	}
 
@@ -1323,36 +1392,36 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	gid_idx_ent_t   cur_gididx;
 	int             err;
 	int             len;
-	int				skip_copy = 0;
+	int             skip_copy = 0;
 
-	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", 
-		odisk->odisk_indexdir, GID_IDX, *gid);
+	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old",
+		       odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
-	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", 
-		odisk->odisk_indexdir, GID_IDX, *gid);
+	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX",
+		       odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
 
 	/*
-	* rename the old index file
-	*/
+	 * rename the old index file
+	 */
 	err = rename(new_name, old_name);
 	if (err) {
 		perror("Failed renaming index file:");
-		//return;
+		// return;
 	}
 
 	old_file = fopen(old_name, "r");
 	if (old_file == NULL) {
 		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
-		        old_name);
+			old_name);
 		skip_copy = 1;
 	}
 
 	new_file = fopen(new_name, "w+");
 	if (new_file == NULL) {
 		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
-		        new_name);
+			new_name);
 		return;
 	}
 
@@ -1360,11 +1429,13 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	if (err) {
 		perror("removing old file ");
 		/*
-		* XXX what to do ....
-		*/
+		 * XXX what to do ....
+		 */
 	}
 
-	/* write the new entry */
+	/*
+	 * write the new entry 
+	 */
 	memset(&gid_idx, 0, sizeof(gid_idx));
 	len = snprintf(gid_idx.gid_name, NAME_MAX, "%s", name);
 	assert(len < NAME_MAX);
@@ -1375,7 +1446,9 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	if (skip_copy)
 		goto done;
 
-	/* copy over the old entries */
+	/*
+	 * copy over the old entries 
+	 */
 	while (fread(&cur_gididx, sizeof(cur_gididx), 1, old_file) == 1) {
 		num = fwrite(&cur_gididx, sizeof(cur_gididx), 1, new_file);
 		if (num != 1) {
@@ -1383,7 +1456,7 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 		}
 	}
 	fclose(old_file);
-done:
+      done:
 	fclose(new_file);
 }
 #endif
@@ -1401,11 +1474,11 @@ remove_gid_from_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	int             err;
 	int             len;
 
-	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old", 
-			odisk->odisk_indexdir, GID_IDX, *gid);
+	len = snprintf(old_name, NAME_MAX, "%s/%s%016llX.old",
+		       odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
-	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX", 
-			odisk->odisk_indexdir, GID_IDX, *gid);
+	len = snprintf(new_name, NAME_MAX, "%s/%s%016llX",
+		       odisk->odisk_indexdir, GID_IDX, *gid);
 	assert(len < NAME_MAX);
 
 
@@ -1422,14 +1495,14 @@ remove_gid_from_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	old_file = fopen(old_name, "r");
 	if (old_file == NULL) {
 		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
-		        old_name);
+			old_name);
 		return;
 	}
 
 	new_file = fopen(new_name, "w+");
 	if (new_file == NULL) {
 		fprintf(stderr, "remove_gid_from_idx: failed to open <%s> \n",
-		        new_name);
+			new_name);
 		return;
 	}
 
@@ -1445,7 +1518,8 @@ remove_gid_from_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 	snprintf(rem_gid_idx.gid_name, NAME_MAX, "%s", name);
 
 	while (fread(&cur_gididx, sizeof(cur_gididx), 1, old_file) == 1) {
-		if (memcmp(&cur_gididx, &rem_gid_idx, sizeof(cur_gididx)) == 0) {
+		if (memcmp(&cur_gididx, &rem_gid_idx, sizeof(cur_gididx)) ==
+		    0) {
 			continue;
 		}
 		num = fwrite(&cur_gididx, sizeof(cur_gididx), 1, new_file);
@@ -1462,8 +1536,9 @@ static void
 update_object_gids(odisk_state_t * odisk, obj_data_t * obj, char *name)
 {
 	gid_list_t     *glist;
-	size_t           len;
-	int             i, err;
+	size_t          len;
+	int             i,
+	                err;
 
 	len = 0;
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
@@ -1475,9 +1550,9 @@ update_object_gids(odisk_state_t * odisk, obj_data_t * obj, char *name)
 	}
 
 	glist = (gid_list_t *) malloc(len);
-	assert( glist != NULL );
-	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, 
-		(char *) glist);
+	assert(glist != NULL);
+	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len,
+			    (char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
@@ -1495,7 +1570,8 @@ delete_object_gids(odisk_state_t * odisk, obj_data_t * obj)
 {
 	gid_list_t     *glist;
 	size_t          len;
-	int             i, err;
+	int             i,
+	                err;
 	char            buf[NAME_MAX];
 	int             slen;
 
@@ -1512,9 +1588,9 @@ delete_object_gids(odisk_state_t * odisk, obj_data_t * obj)
 	}
 
 	glist = (gid_list_t *) malloc(len);
-	assert( glist != NULL );
-	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, 
-		&len, (char *) glist);
+	assert(glist != NULL);
+	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME,
+			    &len, (char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
@@ -1537,12 +1613,14 @@ int
 odisk_clear_indexes(odisk_state_t * odisk)
 {
 	struct dirent  *cur_ent;
-	int             extlen, flen;
+	int             extlen,
+	                flen;
 	char            idx_name[NAME_MAX];
 	char           *poss_ext;
 	DIR            *dir;
 	int             count = 0;
-	int             err, len;
+	int             err,
+	                len;
 
 	dir = opendir(odisk->odisk_indexdir);
 	if (dir == NULL) {
@@ -1570,7 +1648,8 @@ odisk_clear_indexes(odisk_state_t * odisk)
 		/*
 		 * If this isn't a file then we skip the entry.
 		 */
-		if ((cur_ent->d_type != DT_REG) && (cur_ent->d_type != DT_LNK)) {
+		if ((cur_ent->d_type != DT_REG)
+		    && (cur_ent->d_type != DT_LNK)) {
 			continue;
 		}
 
@@ -1584,13 +1663,15 @@ odisk_clear_indexes(odisk_state_t * odisk)
 		if (flen > extlen) {
 			poss_ext = &cur_ent->d_name[flen - extlen];
 			if (strncmp(cur_ent->d_name, GID_IDX, extlen) == 0) {
-				len = snprintf(idx_name, NAME_MAX, "%s/%s", 
-					odisk->odisk_indexdir, cur_ent->d_name);
+				len = snprintf(idx_name, NAME_MAX, "%s/%s",
+					       odisk->odisk_indexdir,
+					       cur_ent->d_name);
 				assert(len < NAME_MAX);
-				err = remove
-					      (idx_name);
+				err = remove(idx_name);
 				if (err == -1) {
-					fprintf(stderr, "Failed to remove %s\n", idx_name);
+					fprintf(stderr,
+						"Failed to remove %s\n",
+						idx_name);
 				}
 			}
 		}
@@ -1603,12 +1684,14 @@ int
 odisk_build_indexes(odisk_state_t * odisk)
 {
 	struct dirent  *cur_ent;
-	int             extlen, flen;
+	int             extlen,
+	                flen;
 	char           *poss_ext;
 	char            max_path[NAME_MAX];
 	DIR            *dir;
 	int             count = 0;
-	int             err, len;
+	int             err,
+	                len;
 	obj_data_t     *new_object;
 
 	dir = opendir(odisk->odisk_dataroot);
@@ -1674,8 +1757,9 @@ odisk_build_indexes(odisk_state_t * odisk)
 		}
 
 
-		len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_dataroot,
-		               cur_ent->d_name);
+		len =
+		    snprintf(max_path, NAME_MAX, "%s/%s",
+			     odisk->odisk_dataroot, cur_ent->d_name);
 		assert(len < NAME_MAX);
 
 		err = odisk_load_obj(odisk, &new_object, max_path);
@@ -1684,7 +1768,7 @@ odisk_build_indexes(odisk_state_t * odisk)
 			 * XXX log 
 			 */
 			fprintf(stderr, "load obj <%s> failed on %d \n",
-			        max_path, err);
+				max_path, err);
 			return (err);
 		}
 
@@ -1703,7 +1787,8 @@ int
 odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 {
 	struct dirent  *cur_ent;
-	int             extlen, flen;
+	int             extlen,
+	                flen;
 	char           *poss_ext;
 	char            max_path[NAME_MAX];
 	DIR            *dir;
@@ -1741,7 +1826,8 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 		/*
 		 * If this isn't a file then we skip the entry.
 		 */
-		if ((cur_ent->d_type != DT_REG) && (cur_ent->d_type != DT_LNK)) {
+		if ((cur_ent->d_type != DT_REG)
+		    && (cur_ent->d_type != DT_LNK)) {
 			continue;
 		}
 
@@ -1768,8 +1854,9 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 			}
 		}
 
-		len = snprintf(max_path, NAME_MAX, "%s/%s", odisk->odisk_dataroot,
-		               cur_ent->d_name);
+		len =
+		    snprintf(max_path, NAME_MAX, "%s/%s",
+			     odisk->odisk_dataroot, cur_ent->d_name);
 
 		err = odisk_load_obj(odisk, &new_object, max_path);
 		if (err) {
@@ -1785,7 +1872,7 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 		 * XXX write attribute 
 		 */
 		err = obj_write_attr(&new_object->attr_info, "MY_OID",
-		                     sizeof(obj_id), (char *) &obj_id);
+				     sizeof(obj_id), (char *) &obj_id);
 		assert(err == 0);
 
 		/*
@@ -1822,4 +1909,3 @@ odisk_null_obj()
 
 	return (new_obj);
 }
-

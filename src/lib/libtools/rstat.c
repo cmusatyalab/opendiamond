@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -18,7 +18,8 @@
 #include "rstat.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * return NULL if not found 
@@ -54,7 +55,7 @@ find_token(const char *fname, const char *token, char *buf)
 				buf++;
 			}
 			if (*buf) {
-				value = buf + 1;    /* skip ':' */
+				value = buf + 1;	/* skip ':' */
 			}
 		}
 	}
@@ -100,8 +101,8 @@ r_freemem(u_int64_t * mem)
 {
 	int             err = 1;
 	char           *bufp,
-	*p,
-	buf[BUFSIZ];
+	               *p,
+	                buf[BUFSIZ];
 
 #ifdef linux
 	/*

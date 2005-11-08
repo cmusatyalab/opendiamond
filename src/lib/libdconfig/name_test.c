@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -22,7 +22,8 @@
 #include    "diamond_types.h"
 #include    "lib_dconfig.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 #define MAX_GIDS    64
 
@@ -54,7 +55,8 @@ dump_gid_list()
 	void           *cookie;
 	char           *name;
 	int             err;
-	int             num, i;
+	int             num,
+	                i;
 	groupid_t       gid_list[MAX_GIDS];
 	num = MAX_GIDS;
 
@@ -94,7 +96,9 @@ int
 main(int argc, char **argv)
 {
 	groupid_t       gid_list[MAX_GIDS];
-	int             num, err, i;
+	int             num,
+	                err,
+	                i;
 
 	err = enum_names();
 	dump_gid_list();

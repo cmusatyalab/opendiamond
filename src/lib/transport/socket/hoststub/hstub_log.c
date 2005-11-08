@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -40,17 +40,20 @@
 #include "hstub_impl.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 void
-hstub_read_log(sdevice_state_t  *dev)
+hstub_read_log(sdevice_state_t * dev)
 {
-	conn_info_t *	cinfo;
-	int		header_offset, header_remain;
-	int		data_offset, data_remain;
-	int		dsize;
-	char *		data;
-	char *		data_buf = NULL;
+	conn_info_t    *cinfo;
+	int             header_offset,
+	                header_remain;
+	int             data_offset,
+	                data_remain;
+	int             dsize;
+	char           *data;
+	char           *data_buf = NULL;
 
 	cinfo = &dev->con_data;
 
@@ -69,8 +72,7 @@ hstub_read_log(sdevice_state_t  *dev)
 	} else if (cinfo->log_rx_state == LOG_RX_HEADER) {
 
 		header_offset = cinfo->log_rx_offset;
-		header_remain = sizeof(cinfo->log_rx_header) -
-		                header_offset;
+		header_remain = sizeof(cinfo->log_rx_header) - header_offset;
 		data_remain = 0;
 		data_offset = 0;
 	} else {
@@ -79,20 +81,20 @@ hstub_read_log(sdevice_state_t  *dev)
 		header_offset = 0;
 		data_offset = cinfo->log_rx_offset;
 		data_remain = ntohl(cinfo->log_rx_header.log_len) -
-		              data_offset;
+		    data_offset;
 		data_buf = cinfo->log_rx_data;
 	}
 
 
 
 	if (header_remain > 0) {
-		data = (char *)&cinfo->log_rx_header;
-		dsize = recv(cinfo->log_fd, (char *)&data[header_offset],
-		             header_remain, 0);
+		data = (char *) &cinfo->log_rx_header;
+		dsize = recv(cinfo->log_fd, (char *) &data[header_offset],
+			     header_remain, 0);
 
 		/*
-			 * Handle some of the different error cases.
-			 */
+		 * Handle some of the different error cases.
+		 */
 		if (dsize < 0) {
 			/*
 			 * The call failed, the only possibility is that
@@ -109,7 +111,9 @@ hstub_read_log(sdevice_state_t  *dev)
 				/*
 				 * some un-handled error happened, 
 				 */
-				/* XXX what now */
+				/*
+				 * XXX what now 
+				 */
 				printf("dev %08x \n", cinfo->dev_id);
 				perror("uknown socket problem:");
 				exit(1);
@@ -137,14 +141,18 @@ hstub_read_log(sdevice_state_t  *dev)
 		 */
 		data_offset = 0;
 		data_remain = ntohl(cinfo->log_rx_header.log_len);
-		assert( ntohl(cinfo->log_rx_header.log_magic) ==
-		        LOG_MAGIC_HEADER);
+		assert(ntohl(cinfo->log_rx_header.log_magic) ==
+		       LOG_MAGIC_HEADER);
 
-		/* get a buffer to store the data if appropriate */
+		/*
+		 * get a buffer to store the data if appropriate 
+		 */
 		if (data_remain > 0) {
 			data_buf = (char *) malloc(data_remain);
 			if (data_buf == NULL) {
-				/* XXX crap, how do I get out of this */
+				/*
+				 * XXX crap, how do I get out of this 
+				 */
 				printf("XXX failed to alloc log buffer \n");
 				exit(1);
 			}
@@ -158,7 +166,7 @@ hstub_read_log(sdevice_state_t  *dev)
 	 */
 	if (data_remain > 0) {
 		dsize = recv(cinfo->log_fd, &data_buf[data_offset],
-		             data_remain, 0);
+			     data_remain, 0);
 
 		if (dsize < 0) {
 
@@ -177,7 +185,9 @@ hstub_read_log(sdevice_state_t  *dev)
 				 * some un-handled error happened, we
 				 * just shutdown the connection.
 				 */
-				/* XXX log */
+				/*
+				 * XXX log 
+				 */
 				perror("process_log");
 				exit(1);
 			}
@@ -199,9 +209,9 @@ hstub_read_log(sdevice_state_t  *dev)
 
 	}
 
-	cinfo->stat_log_rx ++;
+	cinfo->stat_log_rx++;
 	cinfo->stat_log_byte_rx += sizeof(cinfo->log_rx_header) +
-	                           ntohl(cinfo->log_rx_header.log_len);
+	    ntohl(cinfo->log_rx_header.log_len);
 
 	/*
 	 * If we get here we have the full log message, now
@@ -209,10 +219,15 @@ hstub_read_log(sdevice_state_t  *dev)
 	 * the data when done.
 	 */
 
-	/* XXX get the correct devid */
-	/* call callback function for the log */
+	/*
+	 * XXX get the correct devid 
+	 */
+	/*
+	 * call callback function for the log 
+	 */
 	dsize = ntohl(cinfo->log_rx_header.log_len);
-	(*dev->hstub_log_data_cb)(dev->hcookie, data_buf, dsize, cinfo->dev_id);
+	(*dev->hstub_log_data_cb) (dev->hcookie, data_buf, dsize,
+				   cinfo->dev_id);
 
 	cinfo->log_rx_state = LOG_RX_NO_PENDING;
 	return;
@@ -230,5 +245,3 @@ hstub_write_log(sdevice_state_t * dev)
 {
 	printf("write_log \n");
 }
-
-

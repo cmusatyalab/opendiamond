@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -21,18 +21,21 @@
 #include "lib_tools.h"
 #include "lib_searchlet.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
-/* XXX debug */
+/*
+ * XXX debug 
+ */
 #define	TEST_FILTER_NAME	"/home/larry/coda/src/proj/libsearchlet/test.so"
 #define	TEST_FILTER_SPEC	"/home/larry/coda/src/proj/libsearchlet/test_spec"
 int
-main(int argc , char **argv)
+main(int argc, char **argv)
 {
-	int			err;
-	ls_obj_handle_t		cur_obj;
-	ls_search_handle_t	shandle;
-	groupid_t		gid;
+	int             err;
+	ls_obj_handle_t cur_obj;
+	ls_search_handle_t shandle;
+	groupid_t       gid;
 
 
 	shandle = ls_init_search();
@@ -50,17 +53,17 @@ main(int argc , char **argv)
 	if (err) {
 		printf("Failed to set searchlet on err %d \n", err);
 		exit(1);
-		\
+
 	}
 
 
 
 	err = ls_set_searchlet(shandle, DEV_ISA_IA32, TEST_FILTER_NAME,
-	                       TEST_FILTER_SPEC);
+			       TEST_FILTER_SPEC);
 	if (err) {
 		printf("Failed to set searchlet on err %d \n", err);
 		exit(1);
-		\
+
 	}
 
 	/*
@@ -99,4 +102,3 @@ main(int argc , char **argv)
 
 	return (0);
 }
-

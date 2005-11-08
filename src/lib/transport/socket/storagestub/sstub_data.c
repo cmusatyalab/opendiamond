@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -39,80 +39,81 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 int
 sstub_queued_objects(void *cookie)
 {
-	cstate_t *cstate = (cstate_t *)cookie;
-	int	count;
+	cstate_t       *cstate = (cstate_t *) cookie;
+	int             count;
 
 	count = ring_2count(cstate->partial_obj_ring);
 	count += ring_2count(cstate->complete_obj_ring);
-	return(count);
+	return (count);
 }
 
 static int
-drop_attributes(cstate_t *cstate)
+drop_attributes(cstate_t * cstate)
 {
-	unsigned int	rv;
-	int	tx_count;
+	unsigned int    rv;
+	int             tx_count;
 	if ((cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) ||
 	    (cstate->attr_policy == NW_ATTR_POLICY_FIXED)) {
 		rv = random();
 		if (rv > cstate->attr_threshold) {
-			return(1);
+			return (1);
 		} else {
-			return(0);
+			return (0);
 		}
 	} else if (cstate->attr_policy == NW_ATTR_POLICY_QUEUE) {
 		tx_count = sstub_queued_objects(cstate);
 		if ((tx_count > DESIRED_MAX_TX_THRESH) &&
 		    (cstate->cc_credits >= DESIRED_CREDIT_THRESH)) {
-			return(1);
+			return (1);
 		} else {
-			return(0);
+			return (0);
 		}
 	}
-	return(0);
+	return (0);
 }
 
 static float
-prop_get_tx_ratio(cstate_t *cstate)
+prop_get_tx_ratio(cstate_t * cstate)
 {
-	float	ratio;
-	int		count;
+	float           ratio;
+	int             count;
 
 	count = sstub_queued_objects(cstate);
-	ratio = ((float)count)/(float)DESIRED_MAX_TX_QUEUE;
+	ratio = ((float) count) / (float) DESIRED_MAX_TX_QUEUE;
 	if (ratio > 1.0) {
 		ratio = 1.0;
 	} else if (ratio < 0) {
 		ratio = 0.0;
 	}
-	return(ratio);
+	return (ratio);
 }
 
 static float
-prop_get_rx_ratio(cstate_t *cstate)
+prop_get_rx_ratio(cstate_t * cstate)
 {
-	float	ratio;
+	float           ratio;
 
-	ratio = ((float)cstate->cc_credits)/(float)DESIRED_MAX_CREDITS;
+	ratio = ((float) cstate->cc_credits) / (float) DESIRED_MAX_CREDITS;
 	if (ratio > 1.0) {
 		ratio = 1.0;
 	} else if (ratio < 0) {
 		ratio = 0.0;
 	}
-	return(ratio);
+	return (ratio);
 }
 
 
 static void
-update_attr_policy(cstate_t *cstate)
+update_attr_policy(cstate_t * cstate)
 {
-	float tx_ratio;
-	float rx_ratio;
+	float           tx_ratio;
+	float           rx_ratio;
 
 	/*
 	 * we only do updates for the proportional scheduling today.
@@ -120,7 +121,9 @@ update_attr_policy(cstate_t *cstate)
 	if (cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) {
 		tx_ratio = prop_get_tx_ratio(cstate);
 		rx_ratio = prop_get_rx_ratio(cstate);
-		/* we use the min to set the threshold */
+		/*
+		 * we use the min to set the threshold 
+		 */
 		if (rx_ratio < tx_ratio) {
 			cstate->attr_threshold = rx_ratio * RAND_MAX;
 			cstate->attr_ratio = (int) (rx_ratio * 100.0);
@@ -133,7 +136,8 @@ update_attr_policy(cstate_t *cstate)
 		if (cstate->attr_ratio == 100) {
 			cstate->attr_threshold = RAND_MAX;
 		} else {
-			cstate->attr_threshold = (RAND_MAX/100) * cstate->attr_ratio;
+			cstate->attr_threshold =
+			    (RAND_MAX / 100) * cstate->attr_ratio;
 		}
 	}
 	return;
@@ -141,38 +145,44 @@ update_attr_policy(cstate_t *cstate)
 
 
 static int
-sstub_attr_len(obj_data_t *obj, int drop_attrs)
+sstub_attr_len(obj_data_t * obj, int drop_attrs)
 {
-	int	err;
-	size_t	len, total;
-	char *	buf;
-	void *	cookie;
+	int             err;
+	size_t          len,
+	                total;
+	char           *buf;
+	void           *cookie;
 
 	total = 0;
 
-	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, drop_attrs);
+	err =
+	    obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie,
+			       drop_attrs);
 	while (err == 0) {
 		total += len;
 		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie,
-		                        drop_attrs);
+					drop_attrs);
 	}
 
-	return(total);
+	return (total);
 }
 
 
 void
-sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
+sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 {
-	obj_data_t	*obj;
-	int		sent;
-	void *		vnum;
-	void *		junk;
-	int		err;
-	int		header_remain=0, header_offset=0;
-	size_t		attr_remain=0, attr_offset=0;
-	int		data_remain=0, data_offset=0;
-	char *		data;
+	obj_data_t     *obj;
+	int             sent;
+	void           *vnum;
+	void           *junk;
+	int             err;
+	int             header_remain = 0,
+	    header_offset = 0;
+	size_t          attr_remain = 0,
+	    attr_offset = 0;
+	int             data_remain = 0,
+	    data_offset = 0;
+	char           *data;
 
 
 	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
@@ -182,7 +192,8 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		 * If we don't get a complete object, look for a partial.
 		 */
 		if (err) {
-			err = ring_2deq(cstate->partial_obj_ring, &junk, &vnum);
+			err =
+			    ring_2deq(cstate->partial_obj_ring, &junk, &vnum);
 		}
 
 		/*
@@ -193,13 +204,13 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 			pthread_mutex_unlock(&cstate->cmutex);
 			return;
 		}
-		obj = (obj_data_t *)junk;
+		obj = (obj_data_t *) junk;
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/*
-			 * periodically we want to update our send policy if
-			 * we are dynamic.
-			 */
+		 * periodically we want to update our send policy if
+		 * we are dynamic.
+		 */
 		if ((cstate->stats_objs_tx & 0xF) == 0) {
 			update_attr_policy(cstate);
 		}
@@ -217,25 +228,29 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 		 * to send out.
 		 */
 		cstate->data_tx_oheader.obj_magic = htonl(OBJ_MAGIC_HEADER);
-		cstate->data_tx_oheader.attr_len  =
+		cstate->data_tx_oheader.attr_len =
 		    htonl(sstub_attr_len(obj, cstate->drop_attrs));
-		cstate->data_tx_oheader.data_len  =
-		    htonl((int)obj->data_len);
-		cstate->data_tx_oheader.remain_compute  =
-		    htonl((int)(obj->remain_compute * 1000));
-		cstate->data_tx_oheader.version_num  = htonl((int)vnum);
+		cstate->data_tx_oheader.data_len = htonl((int) obj->data_len);
+		cstate->data_tx_oheader.remain_compute =
+		    htonl((int) (obj->remain_compute * 1000));
+		cstate->data_tx_oheader.version_num = htonl((int) vnum);
 
 
 
-		/* setup the remain and offset counters */
+		/*
+		 * setup the remain and offset counters 
+		 */
 		header_offset = 0;
 		header_remain = sizeof(cstate->data_tx_oheader);
 
-		/* setup attr setup */
+		/*
+		 * setup attr setup 
+		 */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
-		                         &cstate->attr_buf,
-		                         &cstate->attr_remain,
-		                         &cstate->attr_cookie,  cstate->drop_attrs);
+					 &cstate->attr_buf,
+					 &cstate->attr_remain,
+					 &cstate->attr_cookie,
+					 cstate->drop_attrs);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -252,12 +267,16 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 
 		header_offset = cstate->data_tx_offset;
 		header_remain = sizeof(cstate->data_tx_oheader) -
-		                header_offset;
+		    header_offset;
 
-		/* setup the attribute information */
+		/*
+		 * setup the attribute information 
+		 */
 		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
-		                         &cstate->attr_buf, &cstate->attr_remain,
-		                         &cstate->attr_cookie,  cstate->drop_attrs);
+					 &cstate->attr_buf,
+					 &cstate->attr_remain,
+					 &cstate->attr_cookie,
+					 cstate->drop_attrs);
 		attr_offset = 0;
 		if (err == ENOENT) {
 			attr_remain = 0;
@@ -295,9 +314,9 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 	 */
 
 	if (header_remain > 0) {
-		data = (char *)&cstate->data_tx_oheader;
+		data = (char *) &cstate->data_tx_oheader;
 		sent = send(cstate->data_fd, &data[header_offset],
-		            header_remain, 0);
+			    header_remain, 0);
 
 		if (sent < 0) {
 			if (errno == EAGAIN) {
@@ -305,7 +324,9 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 				cstate->data_tx_offset = header_offset;
 				return;
 			} else {
-				/* XXX what errors should we handles ?? */
+				/*
+				 * XXX what errors should we handles ?? 
+				 */
 				perror("send oheader ");
 				printf("XXX error while sending oheader\n");
 				exit(1);
@@ -324,11 +345,11 @@ sstub_write_data(listener_state_t *lstate, cstate_t *cstate)
 	 * send it.
 	 */
 
-more_attrs:
+      more_attrs:
 
 	if (attr_remain) {
 		sent = send(cstate->data_fd, &cstate->attr_buf[attr_offset],
-		            attr_remain, 0);
+			    attr_remain, 0);
 
 		if (sent < 0) {
 			if (errno == EAGAIN) {
@@ -337,7 +358,9 @@ more_attrs:
 				cstate->attr_remain = attr_remain;
 				return;
 			} else {
-				/* XXX what errors should we handles ?? */
+				/*
+				 * XXX what errors should we handles ?? 
+				 */
 				perror("send attr ");
 				exit(1);
 			}
@@ -349,19 +372,25 @@ more_attrs:
 			cstate->attr_remain = attr_remain - sent;
 			return;
 		} else {
-			err = obj_get_attr_next(&cstate->data_tx_obj->attr_info,
-			                        &cstate->attr_buf, &attr_remain,
-			                        &cstate->attr_cookie,  cstate->drop_attrs);
+			err =
+			    obj_get_attr_next(&cstate->data_tx_obj->attr_info,
+					      &cstate->attr_buf, &attr_remain,
+					      &cstate->attr_cookie,
+					      cstate->drop_attrs);
 			if (err == ENOENT) {
 				attr_remain = 0;
 			} else {
-				cstate->stats_objs_attr_bytes_tx += attr_remain;
-				cstate->stats_objs_total_bytes_tx += attr_remain;
+				cstate->stats_objs_attr_bytes_tx +=
+				    attr_remain;
+				cstate->stats_objs_total_bytes_tx +=
+				    attr_remain;
 				attr_offset = 0;
 				goto more_attrs;
 			}
 		}
-		/* XXX fix up attr bytes send !!! */
+		/*
+		 * XXX fix up attr bytes send !!! 
+		 */
 	}
 
 
@@ -371,10 +400,10 @@ more_attrs:
 	 */
 
 	if (data_remain) {
-		data = (char *)cstate->data_tx_obj->data;
+		data = (char *) cstate->data_tx_obj->data;
 
 		sent = send(cstate->data_fd, &data[data_offset],
-		            data_remain, 0);
+			    data_remain, 0);
 
 		if (sent < 0) {
 			if (errno == EAGAIN) {
@@ -382,7 +411,9 @@ more_attrs:
 				cstate->data_tx_offset = data_offset;
 				return;
 			} else {
-				/* XXX what errors should we handles ?? */
+				/*
+				 * XXX what errors should we handles ?? 
+				 */
 				perror("send data ");
 				exit(1);
 			}
@@ -395,12 +426,14 @@ more_attrs:
 		}
 	}
 
-	/* some stats */
+	/*
+	 * some stats 
+	 */
 	cstate->stats_objs_tx++;
 	cstate->stats_objs_data_bytes_tx += obj->data_len;
 	cstate->stats_objs_hdr_bytes_tx += sizeof(cstate->data_tx_oheader);
 	cstate->stats_objs_total_bytes_tx += sizeof(cstate->data_tx_oheader) +
-	                                     obj->data_len;
+	    obj->data_len;
 
 	/*
 	 * If we make it here, then we have sucessfully sent
@@ -410,10 +443,14 @@ more_attrs:
 	 */
 
 	cstate->data_tx_state = DATA_TX_NO_PENDING;
-	(*lstate->release_obj_cb)(cstate->app_cookie, cstate->data_tx_obj);
+	(*lstate->release_obj_cb) (cstate->app_cookie, cstate->data_tx_obj);
 
-	/* decrement credit count */
-	/* XXX do I need to lock */
+	/*
+	 * decrement credit count 
+	 */
+	/*
+	 * XXX do I need to lock 
+	 */
 	if (cstate->cc_credits > 0) {
 		cstate->cc_credits--;
 	} else {
@@ -423,10 +460,12 @@ more_attrs:
 }
 
 void
-sstub_except_data(listener_state_t *lstate, cstate_t *cstate)
+sstub_except_data(listener_state_t * lstate, cstate_t * cstate)
 {
 	printf("XXX except data \n");
-	/* Handle the case where we are shutting down */
+	/*
+	 * Handle the case where we are shutting down 
+	 */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;
 	}
@@ -437,34 +476,38 @@ sstub_except_data(listener_state_t *lstate, cstate_t *cstate)
 
 
 void
-sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
+sstub_read_data(listener_state_t * lstate, cstate_t * cstate)
 {
 
-	char *	data;
-	size_t	data_size;
-	size_t	rsize;
+	char           *data;
+	size_t          data_size;
+	size_t          rsize;
 
-	/* Handle the case where we are shutting down */
+	/*
+	 * Handle the case where we are shutting down 
+	 */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;
 	}
 
-	/* XXX handle case where we did read all the data last time.
-	 * XXXX this should probably never occur ...
-	    */
-	data = (char *)&cstate->cc_msg;
+	/*
+	 * XXX handle case where we did read all the data last time. XXXX
+	 * this should probably never occur ... 
+	 */
+	data = (char *) &cstate->cc_msg;
 	data_size = sizeof(credit_count_msg_t);
 	rsize = recv(cstate->data_fd, data, data_size, 0);
 
-	/* make sure we read the whole message and that it has
-	 * the right header 
+	/*
+	 * make sure we read the whole message and that it has the right
+	 * header 
 	 */
 	if (rsize == -1) {
 		perror("sstub_read_data:");
 		exit(1);
 		return;
 	} else if (rsize == 0) {
-		//printf("no data \n");
+		// printf("no data \n");
 		return;
 	} else if (rsize != data_size) {
 		printf("bad readsize %d  %d\n", rsize, data_size);
@@ -472,8 +515,9 @@ sstub_read_data(listener_state_t *lstate, cstate_t *cstate)
 	}
 	assert(ntohl(cstate->cc_msg.cc_magic) == CC_MAGIC_HEADER);
 
-	/* update the count */
+	/*
+	 * update the count 
+	 */
 	cstate->cc_credits = ntohl(cstate->cc_msg.cc_count);
 	return;
 }
-

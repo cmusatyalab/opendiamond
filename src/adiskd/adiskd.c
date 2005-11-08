@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -31,7 +31,8 @@
 #include "search_state.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 /*
@@ -74,32 +75,32 @@ main(int argc, char **argv)
 		}
 		switch (c) {
 
-			case 'c':
-				do_cleanup = 0;
-				break;
+		case 'c':
+			do_cleanup = 0;
+			break;
 
-			case 'd':
-				do_daemon = 0;
-				break;
+		case 'd':
+			do_daemon = 0;
+			break;
 
-			case 'h':
-				usage();
-				exit(0);
-				break;
+		case 'h':
+			usage();
+			exit(0);
+			break;
 
-			case 'n':
-				do_fork = 0;
-				do_daemon = 0;
-				break;
+		case 'n':
+			do_fork = 0;
+			do_daemon = 0;
+			break;
 
-			case 's':
-				not_silent = 1;
-				break;
+		case 's':
+			not_silent = 1;
+			break;
 
-			default:
-				usage();
-				exit(1);
-				break;
+		default:
+			usage();
+			exit(1);
+			break;
 		}
 	}
 

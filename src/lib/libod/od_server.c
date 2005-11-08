@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -22,10 +22,11 @@
 
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
-static struct odisk_state * odata = NULL;
+static struct odisk_state *odata = NULL;
 
 
 
@@ -35,9 +36,9 @@ static struct odisk_state * odata = NULL;
 void
 init_disk()
 {
-	int err;
-	void *	log_cookie;
-	void *	dctl_cookie;
+	int             err;
+	void           *log_cookie;
+	void           *dctl_cookie;
 
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);
@@ -57,15 +58,14 @@ init_disk()
  * Create a new object on the disk.
  */
 create_obj_result_t *
-rpc_create_obj_1_svc(create_obj_arg_t *arg, struct svc_req *rq)
+rpc_create_obj_1_svc(create_obj_arg_t * arg, struct svc_req *rq)
 {
 
-	static  create_obj_result_t result;
-	static  obj_id_t            new_oid;
-	int                         err;
+	static create_obj_result_t result;
+	static obj_id_t new_oid;
+	int             err;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
@@ -73,31 +73,29 @@ rpc_create_obj_1_svc(create_obj_arg_t *arg, struct svc_req *rq)
 
 	result.obj_id = &new_oid;
 	result.status = err;
-	return(&result);
+	return (&result);
 }
 
 
 
-int *
-rpc_write_data_1_svc(write_data_arg_t *arg, struct svc_req *rq)
+int            *
+rpc_write_data_1_svc(write_data_arg_t * arg, struct svc_req *rq)
 {
-	static int          result;
-	obj_data_t *        obj;
-	int                 err;
+	static int      result;
+	obj_data_t     *obj;
+	int             err;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
 	err = odisk_get_obj(odata, &obj, arg->oid);
-	if (err != 0)
-	{
+	if (err != 0) {
 		result = err;
-	} else
-	{
-		err = odisk_write_obj(odata, obj, arg->data.data_len , arg->offset,
-		                      arg->data.data_val);
+	} else {
+		err =
+		    odisk_write_obj(odata, obj, arg->data.data_len,
+				    arg->offset, arg->data.data_val);
 		if (err == 0) {
 			err = odisk_save_obj(odata, obj);
 		}
@@ -105,37 +103,33 @@ rpc_write_data_1_svc(write_data_arg_t *arg, struct svc_req *rq)
 		odisk_release_obj(obj);
 	}
 
-	return(&result);
+	return (&result);
 }
 
 
 read_results_t *
-rpc_read_data_1_svc(read_data_arg_t *arg, struct svc_req *rq)
+rpc_read_data_1_svc(read_data_arg_t * arg, struct svc_req * rq)
 {
 
-	static read_results_t   result;
-	int                     len;
-	int                     err;
-	static char *           buf = NULL;
-	obj_data_t *            obj;
+	static read_results_t result;
+	int             len;
+	int             err;
+	static char    *buf = NULL;
+	obj_data_t     *obj;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
-	if (buf != NULL)
-	{
+	if (buf != NULL) {
 		free(buf);
 		buf = NULL;
 	}
 	err = odisk_get_obj(odata, &obj, arg->oid);
-	if (err != 0)
-	{
+	if (err != 0) {
 		result.status = err;
-	} else
-	{
-		buf = (char *)malloc(arg->len);
+	} else {
+		buf = (char *) malloc(arg->len);
 		len = arg->len;
 		err = odisk_read_obj(odata, obj, &len, arg->offset, buf);
 		if (err) {
@@ -147,27 +141,24 @@ rpc_read_data_1_svc(read_data_arg_t *arg, struct svc_req *rq)
 		}
 		odisk_release_obj(obj);
 	}
-	return(&result);
+	return (&result);
 }
 
-int *
-rpc_add_gid_1_svc(update_gid_args_t *arg, struct svc_req *rq)
+int            *
+rpc_add_gid_1_svc(update_gid_args_t * arg, struct svc_req *rq)
 {
 	static int      result;
-	obj_data_t *    obj;
+	obj_data_t     *obj;
 	int             err;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
 	err = odisk_get_obj(odata, &obj, arg->oid);
-	if (err != 0)
-	{
+	if (err != 0) {
 		result = err;
-	} else
-	{
+	} else {
 		err = odisk_add_gid(odata, obj, arg->gid);
 		result = err;
 		err = odisk_save_obj(odata, obj);
@@ -175,28 +166,25 @@ rpc_add_gid_1_svc(update_gid_args_t *arg, struct svc_req *rq)
 		odisk_release_obj(obj);
 	}
 
-	return(&result);
+	return (&result);
 }
 
 
-int *
-rpc_rem_gid_1_svc(update_gid_args_t *arg, struct svc_req *rq)
+int            *
+rpc_rem_gid_1_svc(update_gid_args_t * arg, struct svc_req *rq)
 {
 	static int      result;
-	obj_data_t *    obj;
+	obj_data_t     *obj;
 	int             err;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
 	err = odisk_get_obj(odata, &obj, arg->oid);
-	if (err != 0)
-	{
+	if (err != 0) {
 		result = err;
-	} else
-	{
+	} else {
 		err = odisk_rem_gid(odata, obj, arg->gid);
 		result = err;
 		err = odisk_save_obj(odata, obj);
@@ -204,36 +192,33 @@ rpc_rem_gid_1_svc(update_gid_args_t *arg, struct svc_req *rq)
 		odisk_release_obj(obj);
 	}
 
-	return(&result);
+	return (&result);
 }
 
 
 
-int *
-rpc_write_attr_1_svc(wattr_args_t *arg, struct svc_req *rq)
+int            *
+rpc_write_attr_1_svc(wattr_args_t * arg, struct svc_req *rq)
 {
 	static int      result;
-	obj_data_t *    obj;
+	obj_data_t     *obj;
 	int             err;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
 	err = odisk_get_obj(odata, &obj, arg->oid);
-	if (err != 0)
-	{
+	if (err != 0) {
 		result = err;
-		return(&result);
+		return (&result);
 	}
 
 	err = obj_write_attr(&obj->attr_info, arg->name, arg->data.data_len,
-	                     arg->data.data_val);
-	if (err)
-	{
+			     arg->data.data_val);
+	if (err) {
 		result = err;
-		return(&result);
+		return (&result);
 	}
 
 	err = odisk_save_obj(odata, obj);
@@ -241,48 +226,43 @@ rpc_write_attr_1_svc(wattr_args_t *arg, struct svc_req *rq)
 	odisk_release_obj(obj);
 
 	result = 0;
-	return(&result);
+	return (&result);
 }
 
 read_results_t *
-rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
+rpc_read_attr_1_svc(rattr_args_t * arg, struct svc_req * rq)
 {
-	static read_results_t   result;
-	obj_data_t *            obj;
-	int                     err;
-	off_t                   len;
-	static char *           dbuf = NULL;
+	static read_results_t result;
+	obj_data_t     *obj;
+	int             err;
+	off_t           len;
+	static char    *dbuf = NULL;
 
-	if (odata == NULL)
-	{
+	if (odata == NULL) {
 		init_disk();
 	}
 
-	if (dbuf != NULL)
-	{
+	if (dbuf != NULL) {
 		free(dbuf);
 		dbuf = NULL;
 	}
 
 	err = odisk_get_obj(odata, &obj, arg->oid);
-	if (err != 0)
-	{
+	if (err != 0) {
 		result.status = err;
 		result.data.data_len = 0;
 		result.data.data_val = NULL;
-		return(&result);
+		return (&result);
 	}
 
 	len = 0;
 	err = obj_read_attr(&obj->attr_info, arg->name, &len, NULL);
-	if (err == 0)
-	{
+	if (err == 0) {
 		result.status = 0;
 		result.data.data_len = 0;
 		result.data.data_val = NULL;
 		goto done;
-	} else if (err != ENOMEM)
-	{
+	} else if (err != ENOMEM) {
 		result.status = err;
 		result.data.data_len = 0;
 		result.data.data_val = NULL;
@@ -292,12 +272,11 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
 	/*
 	 * Allocate some space and read the real data.
 	 */
-	dbuf = (char *)malloc(len);
+	dbuf = (char *) malloc(len);
 	assert(dbuf != NULL);
 
 	err = obj_read_attr(&obj->attr_info, arg->name, &len, dbuf);
-	if (err)
-	{
+	if (err) {
 		odisk_release_obj(obj);
 		result.status = err;
 		result.data.data_len = 0;
@@ -311,20 +290,20 @@ rpc_read_attr_1_svc(rattr_args_t *arg, struct svc_req *rq)
 	result.data.data_len = len;
 	result.data.data_val = dbuf;
 
-done:
+      done:
 	odisk_release_obj(obj);
-	return(&result);
+	return (&result);
 }
 
 
 rgid_results_t *
-rpc_read_gididx_1_svc(rgid_idx_arg_t *arg, struct svc_req *rq)
+rpc_read_gididx_1_svc(rgid_idx_arg_t * arg, struct svc_req * rq)
 {
 	char            idx_file[NAME_MAX];
 	FILE           *new_file;
-	static rgid_results_t   result;
-	int                     len;
-	static char *           buf = NULL;
+	static rgid_results_t result;
+	int             len;
+	static char    *buf = NULL;
 
 	if (odata == NULL) {
 		init_disk();
@@ -335,18 +314,16 @@ rpc_read_gididx_1_svc(rgid_idx_arg_t *arg, struct svc_req *rq)
 		buf = NULL;
 	}
 
-	len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX", 
-		odata->odisk_indexdir, "GIDIDX", arg->gid);
+	len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX",
+		       odata->odisk_indexdir, "GIDIDX", arg->gid);
 	assert(len < NAME_MAX);
 	new_file = fopen(idx_file, "r");
-	if (new_file == NULL)
-	{
+	if (new_file == NULL) {
 		perror("open");
 		result.status = ENOENT;
-	} else
-	{
+	} else {
 
-		buf = (char *)malloc(arg->len);
+		buf = (char *) malloc(arg->len);
 		len = arg->len;
 
 		fseek(new_file, arg->offset, SEEK_SET);
@@ -357,6 +334,5 @@ rpc_read_gididx_1_svc(rgid_idx_arg_t *arg, struct svc_req *rq)
 		result.data.data_val = buf;
 		fclose(new_file);
 	}
-	return(&result);
+	return (&result);
 }
-

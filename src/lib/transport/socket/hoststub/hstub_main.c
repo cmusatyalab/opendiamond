@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -41,21 +41,26 @@
 #include "hstub_impl.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
-/* XXX constant config */
+/*
+ * XXX constant config 
+ */
 #define		POLL_SECS	0
 #define		POLL_USECS	200000
 
 static void
-request_chars(sdevice_state_t *dev)
+request_chars(sdevice_state_t * dev)
 {
-	int			err;
-	control_header_t *	cheader;
+	int             err;
+	control_header_t *cheader;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return;
 	}
 
@@ -63,10 +68,14 @@ request_chars(sdevice_state_t *dev)
 	cheader->command = htonl(CNTL_CMD_GET_CHAR);
 	cheader->data_len = htonl(0);
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to request_chars  \n");
 		free(cheader);
 		return;
@@ -79,14 +88,16 @@ request_chars(sdevice_state_t *dev)
 }
 
 static void
-request_stats(sdevice_state_t *dev)
+request_stats(sdevice_state_t * dev)
 {
-	int			err;
-	control_header_t *	cheader;
+	int             err;
+	control_header_t *cheader;
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return;
 	}
 
@@ -94,10 +105,14 @@ request_stats(sdevice_state_t *dev)
 	cheader->command = htonl(CNTL_CMD_GET_STATS);
 	cheader->data_len = htonl(0);
 
-	err = ring_enq(dev->device_ops, (void *)cheader);
+	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/* XXX log */
-		/* XXX should we wait ?? */
+		/*
+		 * XXX log 
+		 */
+		/*
+		 * XXX should we wait ?? 
+		 */
 		printf("XXX failed to request stats  \n");
 		free(cheader);
 		return;
@@ -116,21 +131,21 @@ request_stats(sdevice_state_t *dev)
  * processing data to/from the individual devices
  */
 
-void *
+void           *
 hstub_main(void *arg)
 {
 	sdevice_state_t *dev;
-	conn_info_t *		cinfo;
-	struct timeval 		to;
-	int			err;
-	int			max_fd;
-	struct timeval		this_time;
-	struct timeval		next_time = {
-		                            0,0
-	                            };
-	struct timezone		tz;
+	conn_info_t    *cinfo;
+	struct timeval  to;
+	int             err;
+	int             max_fd;
+	struct timeval  this_time;
+	struct timeval  next_time = {
+		0, 0
+	};
+	struct timezone tz;
 
-	dev = (sdevice_state_t *)arg;
+	dev = (sdevice_state_t *) arg;
 
 	dctl_thread_register(dev->dctl_cookie);
 	log_thread_register(dev->log_cookie);
@@ -181,18 +196,18 @@ hstub_main(void *arg)
 		FD_ZERO(&cinfo->write_fds);
 		FD_ZERO(&cinfo->except_fds);
 
-		FD_SET(cinfo->control_fd,  &cinfo->read_fds);
-		FD_SET(cinfo->log_fd,  &cinfo->read_fds);
+		FD_SET(cinfo->control_fd, &cinfo->read_fds);
+		FD_SET(cinfo->log_fd, &cinfo->read_fds);
 
 		if (!(cinfo->flags & CINFO_BLOCK_OBJ)) {
-			FD_SET(cinfo->data_fd,  &cinfo->read_fds);
+			FD_SET(cinfo->data_fd, &cinfo->read_fds);
 		}
 
 		if (cinfo->flags & CINFO_PENDING_CONTROL) {
-			FD_SET(cinfo->control_fd,  &cinfo->write_fds);
+			FD_SET(cinfo->control_fd, &cinfo->write_fds);
 		}
 		if (cinfo->flags & CINFO_PENDING_CREDIT) {
-			FD_SET(cinfo->data_fd,  &cinfo->write_fds);
+			FD_SET(cinfo->data_fd, &cinfo->write_fds);
 		}
 
 		to.tv_sec = 0;
@@ -200,10 +215,12 @@ hstub_main(void *arg)
 
 
 		err = select(max_fd, &cinfo->read_fds, &cinfo->write_fds,
-		             &cinfo->except_fds,  &to);
+			     &cinfo->except_fds, &to);
 
 		if (err == -1) {
-			/* XXX log */
+			/*
+			 * XXX log 
+			 */
 			perror("XXX select failed \n");
 			exit(1);
 		}
@@ -239,6 +256,3 @@ hstub_main(void *arg)
 		}
 	}
 }
-
-
-

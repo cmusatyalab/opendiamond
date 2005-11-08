@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -20,7 +20,8 @@
 #include "lib_log.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 #define	INNER_MAX	500
 #define	OUTER_MAX	10000
@@ -28,8 +29,8 @@ static char const cvsid[] = "$Header$";
 void
 empty_log()
 {
-	int	len;
-	char *	data;
+	int             len;
+	char           *data;
 
 
 	while ((len = log_getbuf(&data)) != 0) {
@@ -41,11 +42,11 @@ empty_log()
 void
 string_test()
 {
-	int		i;
-	int		len;
-	char * 		data;
-	int		cur_off;
-	log_ent_t *	cur_ent;
+	int             i;
+	int             len;
+	char           *data;
+	int             cur_off;
+	log_ent_t      *cur_ent;
 
 	empty_log();
 
@@ -72,7 +73,7 @@ string_test()
 
 	cur_off = 0;
 	while (cur_off < (len)) {
-		cur_ent = (log_ent_t *)&data[cur_off];
+		cur_ent = (log_ent_t *) & data[cur_off];
 		printf("str_test: <%s> \n", cur_ent->le_data);
 		cur_off += ntohl(cur_ent->le_nextoff);
 	}
@@ -82,11 +83,13 @@ string_test()
 void
 test_many_writes()
 {
-	int		i, j, x;
-	int		len;
-	char *		data;
-	int		cur_off;
-	log_ent_t *	cur_ent;
+	int             i,
+	                j,
+	                x;
+	int             len;
+	char           *data;
+	int             cur_off;
+	log_ent_t      *cur_ent;
 
 	empty_log();
 
@@ -108,7 +111,7 @@ test_many_writes()
 		while ((len = log_getbuf(&data)) != 0) {
 			cur_off = 0;
 			while (cur_off < (len)) {
-				cur_ent = (log_ent_t *)&data[cur_off];
+				cur_ent = (log_ent_t *) & data[cur_off];
 				x = atoi(cur_ent->le_data);
 				if (x != j) {
 					printf("expected %d got %d \n", x, j);
@@ -131,10 +134,10 @@ test_many_writes()
 int
 main(int argc, char **argv)
 {
-	void	*foo;
+	void           *foo;
 
 	log_init(&foo);
 	string_test();
 	test_many_writes();
-	return(0);
+	return (0);
 }

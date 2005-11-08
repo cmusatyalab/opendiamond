@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -20,31 +20,34 @@
 #include "lib_filter.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 int
 test(lf_obj_handle_t ohandle, int numarg, char **args)
 {
-	int		foo = 1;
-	int		bar = 2;
-	size_t		size;
-	int		err;
+	int             foo = 1;
+	int             bar = 2;
+	size_t          size;
+	int             err;
 
 	printf("num args %d \n", numarg);
 	{
-		int i;
-		for (i=0; i<numarg; i++) {
+		int             i;
+		for (i = 0; i < numarg; i++) {
 			printf("arg %d <%s> \n", i, args[i]);
 		}
 
 	}
 
-	lf_write_attr(ohandle, "test", sizeof(foo), (char *)&foo);
+	lf_write_attr(ohandle, "test", sizeof(foo), (char *) &foo);
 
 	size = sizeof(bar);
-	err = lf_read_attr(ohandle,  "test", &size, (char *)&bar);
+	err = lf_read_attr(ohandle, "test", &size, (char *) &bar);
 	if (err != 0) {
-		/* XXX error handler  */
+		/*
+		 * XXX error handler 
+		 */
 		exit(1);
 	}
 	if (bar != foo) {
@@ -52,19 +55,18 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 	}
 
 	foo = 45;
-	lf_write_attr(ohandle, "test", sizeof(foo), (char *)&foo);
+	lf_write_attr(ohandle, "test", sizeof(foo), (char *) &foo);
 	size = sizeof(bar);
-	err = lf_read_attr(ohandle,  "test", &size, (char *)&bar);
+	err = lf_read_attr(ohandle, "test", &size, (char *) &bar);
 	if (err != 0) {
-		/* XXX error handler  */
+		/*
+		 * XXX error handler 
+		 */
 		exit(1);
 	}
 	if (bar != foo) {
 		printf("read/write attr not match: %d %d \n", foo, bar);
 	}
 
-	return(0);
+	return (0);
 }
-
-
-

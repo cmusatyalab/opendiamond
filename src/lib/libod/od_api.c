@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -22,7 +22,8 @@
 #include "od_priv.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * call before calling the other library calls.
@@ -32,7 +33,7 @@ int
 od_init()
 {
 	ods_init();
-	return(0);
+	return (0);
 }
 
 /*
@@ -41,16 +42,16 @@ od_init()
  * 0 indicates success.
  */
 int
-od_create(obj_id_t *new_obj, groupid_t* gid)
+od_create(obj_id_t * new_obj, groupid_t * gid)
 {
-	od_srv_t *          osrv;
-	create_obj_arg_t    cobj;
+	od_srv_t       *osrv;
+	create_obj_arg_t cobj;
 	create_obj_result_t *cresult;
 
 
 	osrv = ods_allocate_by_gid(gid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	cobj.gid = gid;
@@ -64,12 +65,12 @@ od_create(obj_id_t *new_obj, groupid_t* gid)
 
 	if (cresult->status != 0) {
 		fprintf(stderr, "failed to create on %d \n", cresult->status);
-		return(cresult->status);
+		return (cresult->status);
 	}
 
 	*new_obj = *(cresult->obj_id);
 	new_obj->dev_id = osrv->ods_id;
-	return(0);
+	return (0);
 }
 
 
@@ -78,10 +79,12 @@ od_create(obj_id_t *new_obj, groupid_t* gid)
  * the ID to delete.
  */
 int
-od_delete(obj_id_t *oid)
+od_delete(obj_id_t * oid)
 {
-	/* XXX fix */
-	return(0);
+	/*
+	 * XXX fix 
+	 */
+	return (0);
 }
 
 /*
@@ -92,15 +95,15 @@ od_delete(obj_id_t *oid)
  * of the file has been reached.
  */
 int
-od_read(obj_id_t *oid, off_t offset, off_t len, char *buf)
+od_read(obj_id_t * oid, off_t offset, off_t len, char *buf)
 {
-	od_srv_t *          osrv;
-	read_data_arg_t     rdata;
-	read_results_t *    results;
+	od_srv_t       *osrv;
+	read_data_arg_t rdata;
+	read_results_t *results;
 
 	osrv = ods_lookup_by_oid(oid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	rdata.oid = oid;
@@ -117,11 +120,11 @@ od_read(obj_id_t *oid, off_t offset, off_t len, char *buf)
 
 	if (results->status != 0) {
 		fprintf(stderr, "failed to read on %d \n", results->status);
-		return(-1);
+		return (-1);
 	}
 	memcpy(buf, results->data.data_val, results->data.data_len);
 
-	return(results->data.data_len);
+	return (results->data.data_len);
 }
 
 /*
@@ -129,15 +132,15 @@ od_read(obj_id_t *oid, off_t offset, off_t len, char *buf)
  * The resulting data is returned in the buffer.
  */
 int
-od_write(obj_id_t *oid, off_t offset, off_t len, char *buf)
+od_write(obj_id_t * oid, off_t offset, off_t len, char *buf)
 {
-	od_srv_t *          osrv;
-	write_data_arg_t    wdata;
-	int *               result;
+	od_srv_t       *osrv;
+	write_data_arg_t wdata;
+	int            *result;
 
 	osrv = ods_lookup_by_oid(oid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	wdata.oid = oid;
@@ -154,10 +157,10 @@ od_write(obj_id_t *oid, off_t offset, off_t len, char *buf)
 
 	if (*result != 0) {
 		fprintf(stderr, "failed to write on %d \n", *result);
-		return(*result);
+		return (*result);
 	}
 
-	return(0);
+	return (0);
 }
 
 
@@ -165,15 +168,15 @@ od_write(obj_id_t *oid, off_t offset, off_t len, char *buf)
  * Add a new groupid to the specified object. 
  */
 int
-od_add_gid(obj_id_t *oid, groupid_t * gid)
+od_add_gid(obj_id_t * oid, groupid_t * gid)
 {
-	od_srv_t *          osrv;
-	update_gid_args_t   ugid;
-	int *               result;
+	od_srv_t       *osrv;
+	update_gid_args_t ugid;
+	int            *result;
 
 	osrv = ods_lookup_by_oid(oid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	ugid.oid = oid;
@@ -189,26 +192,26 @@ od_add_gid(obj_id_t *oid, groupid_t * gid)
 
 	if (*result != 0) {
 		fprintf(stderr, "failed add gid on %d \n", *result);
-		return(*result);
+		return (*result);
 	}
 
-	return(0);
+	return (0);
 }
 
 /*
  * Remove a new groupid to the specified object. 
  */
 int
-od_rem_gid(obj_id_t *oid, groupid_t * gid)
+od_rem_gid(obj_id_t * oid, groupid_t * gid)
 {
-	od_srv_t *          osrv;
-	update_gid_args_t   ugid;
-	int *               result;
+	od_srv_t       *osrv;
+	update_gid_args_t ugid;
+	int            *result;
 
 
 	osrv = ods_lookup_by_oid(oid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 
@@ -226,7 +229,7 @@ od_rem_gid(obj_id_t *oid, groupid_t * gid)
 		fprintf(stderr, "failed rem gid on %d \n", *result);
 	}
 
-	return(*result);
+	return (*result);
 }
 
 
@@ -239,16 +242,16 @@ od_rem_gid(obj_id_t *oid, groupid_t * gid)
  * set to be the size needed to complete the call. 
  */
 int
-od_get_attr(obj_id_t *oid, char *name, int *len, char *buf)
+od_get_attr(obj_id_t * oid, char *name, int *len, char *buf)
 {
-	od_srv_t *          osrv;
-	rattr_args_t        rattr;
-	read_results_t *    results;
+	od_srv_t       *osrv;
+	rattr_args_t    rattr;
+	read_results_t *results;
 
 
 	osrv = ods_lookup_by_oid(oid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	rattr.oid = oid;
@@ -263,16 +266,16 @@ od_get_attr(obj_id_t *oid, char *name, int *len, char *buf)
 
 	if (results->status != 0) {
 		fprintf(stderr, "failed rem gid on %d \n", results->status);
-		return(results->status);
+		return (results->status);
 	}
 
 	if (*len > results->data.data_len) {
 		memcpy(buf, results->data.data_val, results->data.data_len);
 		*len = results->data.data_len;
-		return(0);
+		return (0);
 	} else {
 		*len = results->data.data_len;
-		return(ENOMEM);
+		return (ENOMEM);
 	}
 }
 
@@ -282,16 +285,16 @@ od_get_attr(obj_id_t *oid, char *name, int *len, char *buf)
 
 
 int
-od_set_attr(obj_id_t *oid, const char *name, int len, const char *buf)
+od_set_attr(obj_id_t * oid, const char *name, int len, const char *buf)
 {
-	od_srv_t *          osrv;
-	wattr_args_t        wattr;
-	int *               result;
+	od_srv_t       *osrv;
+	wattr_args_t    wattr;
+	int            *result;
 
 
 	osrv = ods_lookup_by_oid(oid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 
@@ -311,7 +314,7 @@ od_set_attr(obj_id_t *oid, const char *name, int len, const char *buf)
 		fprintf(stderr, "failed rem gid on %d \n", *result);
 	}
 
-	return(*result);
+	return (*result);
 }
 
 
@@ -319,9 +322,9 @@ od_set_attr(obj_id_t *oid, const char *name, int len, const char *buf)
  * Delete an attribute on an object.
  */
 int
-od_del_attr(obj_id_t *oid, char *name)
+od_del_attr(obj_id_t * oid, char *name)
 {
-	return(0);
+	return (0);
 }
 
 /*
@@ -333,17 +336,17 @@ od_del_attr(obj_id_t *oid, char *name)
  */
 int
 od_read_gididx(groupid_t gid, uint32_t devid, off_t offset,
-               off_t len, char *buf)
+	       off_t len, char *buf)
 {
-	od_srv_t *          osrv;
-	rgid_idx_arg_t      rgid;
-	rgid_results_t *    results;
-	uint64_t		bigid;
+	od_srv_t       *osrv;
+	rgid_idx_arg_t  rgid;
+	rgid_results_t *results;
+	uint64_t        bigid;
 
 	bigid = (uint64_t) devid;
 	osrv = ods_lookup_by_devid(devid);
 	if (osrv == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 
 	rgid.gid = gid;
@@ -359,12 +362,9 @@ od_read_gididx(groupid_t gid, uint32_t devid, off_t offset,
 
 	if (results->status != 0) {
 		fprintf(stderr, "failed to read on %d \n", results->status);
-		return(-1);
+		return (-1);
 	}
 	memcpy(buf, results->data.data_val, results->data.data_len);
 
-	return(results->data.data_len);
+	return (results->data.data_len);
 }
-
-
-

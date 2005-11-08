@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -28,33 +28,40 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 #ifdef	XXX_OLD
 int
-odisk_create_obj(obj_handle_t  *obj_handle, char *name)
+odisk_create_obj(obj_handle_t * obj_handle, char *name)
 {
 
-	obj_state_t *	new_obj;
-	struct stat	stats;
-	int		err;
+	obj_state_t    *new_obj;
+	struct stat     stats;
+	int             err;
 
 
 	printf("create_obj: <%s> \n", name);
 
 	if (strlen(name) >= MAX_FNAME) {
-		/* XXX log error */
+		/*
+		 * XXX log error 
+		 */
 		return (EINVAL);
 	}
 
 	new_obj = malloc(sizeof(*new_obj));
 	if (new_obj == NULL) {
-		/* XXX log error */
+		/*
+		 * XXX log error 
+		 */
 		return (ENOMEM);
 	}
 	strcpy(new_obj->os_name, name);
 
-	/* get the length and save it as part of the data */
+	/*
+	 * get the length and save it as part of the data 
+	 */
 	err = stat(new_obj->os_name, &stats);
 	if (err != 0) {
 		free(new_obj);
@@ -64,16 +71,18 @@ odisk_create_obj(obj_handle_t  *obj_handle, char *name)
 
 	printf("obj len %ld \n", stats.st_size);
 
-	/* open the file */
-	new_obj->os_file  = fopen(name, "rb");
+	/*
+	 * open the file 
+	 */
+	new_obj->os_file = fopen(name, "rb");
 	if (new_obj->os_file == NULL) {
 		free(new_obj);
 		return (ENOENT);
 	}
 
-	*obj_handle = (obj_handle_t)new_obj;
+	*obj_handle = (obj_handle_t) new_obj;
 
-	return(0);
+	return (0);
 }
 
 
@@ -84,16 +93,18 @@ odisk_create_obj(obj_handle_t  *obj_handle, char *name)
  */
 
 int
-odisk_free_obj(obj_handle_t *obj_handle)
+odisk_free_obj(obj_handle_t * obj_handle)
 {
-	obj_state_t * 	ostate = (obj_state_t *)obj_handle;
-	obj_map_t *	cur_map;
-	obj_map_t *	next_map;
-	anc_state_t *	cur_state;
-	anc_state_t *	next_state;
-	int		err;
+	obj_state_t    *ostate = (obj_state_t *) obj_handle;
+	obj_map_t      *cur_map;
+	obj_map_t      *next_map;
+	anc_state_t    *cur_state;
+	anc_state_t    *next_state;
+	int             err;
 
-	/* XXX verify handle */
+	/*
+	 * XXX verify handle 
+	 */
 
 	/*
 	 * First we need to go through the different mappings and free them.
@@ -120,20 +131,19 @@ odisk_free_obj(obj_handle_t *obj_handle)
 	}
 
 
-	/* close the FD */
+	/*
+	 * close the FD 
+	 */
 	err = fclose(ostate->os_file);
 	if (err) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		return (EINVAL);
 	}
 
 	free(ostate);
 
-	return(0);
+	return (0);
 }
 #endif
-
-
-
-
-

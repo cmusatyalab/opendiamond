@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -25,7 +25,8 @@
 #include "rtimer_std.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 /*
  * warning: assumes appropriate locks are already held when calling these
@@ -74,19 +75,19 @@ rt_std_nanos(rtimer_std_t * rt)
 	 */
 	nanos +=
 	    (u_int64_t) (rt->ru2.ru_utime.tv_sec -
-	                 rt->ru1.ru_utime.tv_sec) * ns_s;
+			 rt->ru1.ru_utime.tv_sec) * ns_s;
 	nanos +=
 	    (u_int64_t) (rt->ru2.ru_utime.tv_usec -
-	                 rt->ru1.ru_utime.tv_usec) * us_s;
+			 rt->ru1.ru_utime.tv_usec) * us_s;
 	/*
 	 * sys time 
 	 */
 	nanos +=
 	    (u_int64_t) (rt->ru2.ru_stime.tv_sec -
-	                 rt->ru1.ru_stime.tv_sec) * ns_s;
+			 rt->ru1.ru_stime.tv_sec) * ns_s;
 	nanos +=
 	    (u_int64_t) (rt->ru2.ru_stime.tv_usec -
-	                 rt->ru1.ru_stime.tv_usec) * us_s;
+			 rt->ru1.ru_stime.tv_usec) * us_s;
 
 	return nanos;
 }

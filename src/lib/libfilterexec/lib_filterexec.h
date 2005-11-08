@@ -79,7 +79,7 @@ extern struct filter_exec_t filter_exec;
 void            fexec_system_init();
 
 int             fexec_load_searchlet(char *filterfile, char *fspec,
-				     filter_data_t ** fdata);
+				     filter_data_t ** fdata, sig_val_t *sig);
 int             fexec_init_search(filter_data_t * fdata);
 int             fexec_term_search(filter_data_t * fdata);
 void	    	optimize_filter_order(filter_data_t * fdata, 

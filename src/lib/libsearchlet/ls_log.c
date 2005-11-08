@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -43,12 +43,15 @@
 #include "lib_hstub.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 #define	LOG_RING_SIZE	512
 
-/* linux specific flag */
+/*
+ * linux specific flag 
+ */
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
 #endif
@@ -58,14 +61,14 @@ static char const cvsid[] = "$Header$";
  */
 
 int
-log_send_local_data(search_context_t *sc, int conn)
+log_send_local_data(search_context_t * sc, int conn)
 {
 
-	log_msg_t	log_msg;
-	char *		data_buf;
-	int		data_len;
-	int		slen;
-	int		err = 0;
+	log_msg_t       log_msg;
+	char           *data_buf;
+	int             data_len;
+	int             slen;
+	int             err = 0;
 
 
 	/*
@@ -82,26 +85,28 @@ log_send_local_data(search_context_t *sc, int conn)
 
 	log_msg.log_len = data_len;
 	log_msg.log_type = LOG_SOURCE_BACKGROUND;
-	/* XXX should we get our IP?? */
+	/*
+	 * XXX should we get our IP?? 
+	 */
 	log_msg.dev_id = 0;
 
 
-	slen = send(conn, (void *)&log_msg, sizeof(log_msg), MSG_NOSIGNAL);
+	slen = send(conn, (void *) &log_msg, sizeof(log_msg), MSG_NOSIGNAL);
 	if ((slen < 0) || (slen != sizeof(log_msg))) {
 		err = 1;
 		goto done;
 	}
 
 
-	slen = send(conn, (void *)data_buf, data_len, MSG_NOSIGNAL);
+	slen = send(conn, (void *) data_buf, data_len, MSG_NOSIGNAL);
 	if ((slen < 0) || (slen != data_len)) {
 		err = 1;
 		goto done;
 	}
 
-done:
+      done:
 	log_advbuf(data_len);
-	return(err);
+	return (err);
 }
 
 /*
@@ -109,133 +114,140 @@ done:
  */
 
 int
-log_send_queued_data(search_context_t *sc, log_info_t *log_info, int conn)
+log_send_queued_data(search_context_t * sc, log_info_t * log_info, int conn)
 {
 
-	log_msg_t	log_msg;
-	char *		data;
-	int		data_len;
-	int		slen;
-	int		err = 0;
+	log_msg_t       log_msg;
+	char           *data;
+	int             data_len;
+	int             slen;
+	int             err = 0;
 
 	data = log_info->data;
 	data_len = log_info->len;
 
 
 	log_msg.log_len = data_len;
-	/* XXX set type */
+	/*
+	 * XXX set type 
+	 */
 	log_msg.log_type = LOG_SOURCE_DEVICE;
 	log_msg.dev_id = log_info->dev;
 
 
-	slen = send(conn, (void *)&log_msg, sizeof(log_msg), MSG_NOSIGNAL);
+	slen = send(conn, (void *) &log_msg, sizeof(log_msg), MSG_NOSIGNAL);
 	if ((slen < 0) || (slen != sizeof(log_msg))) {
 		err = 1;
 		goto done;
 	}
 
 
-	slen = send(conn, (void *)data, data_len, MSG_NOSIGNAL);
+	slen = send(conn, (void *) data, data_len, MSG_NOSIGNAL);
 	if ((slen < 0) || (slen != data_len)) {
 		err = 1;
 		goto done;
 	}
 
-done:
+      done:
 	free(data);
 	free(log_info);
-	return(err);
+	return (err);
 
 }
 
 
-static uint32_t		last_level, last_src;
+static uint32_t last_level,
+                last_src;
 
 void
-update_device_log_level(search_context_t *sc)
+update_device_log_level(search_context_t * sc)
 {
-	device_handle_t	*	cur_dev;
-	int					err;
+	device_handle_t *cur_dev;
+	int             err;
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 
-		err = device_set_log(cur_dev->dev_handle, last_level, last_src);
+		err =
+		    device_set_log(cur_dev->dev_handle, last_level, last_src);
 	}
 
 }
 
 
 void
-set_device_log(log_set_level_t *llevel, search_context_t *sc)
+set_device_log(log_set_level_t * llevel, search_context_t * sc)
 {
 	device_handle_t *cur_dev;
-	uint32_t	hlevel, hsrc;
-	int		err;
+	uint32_t        hlevel,
+	                hsrc;
+	int             err;
 
 	hlevel = ntohl(llevel->log_level);
 	hsrc = ntohl(llevel->log_src);
 
-	switch(llevel->log_op) {
-		case LOG_SETLEVEL_ALL:
-			last_level = llevel->log_level;
-			last_src = llevel->log_src;
+	switch (llevel->log_op) {
+	case LOG_SETLEVEL_ALL:
+		last_level = llevel->log_level;
+		last_src = llevel->log_src;
 
-			for (cur_dev = sc->dev_list; cur_dev != NULL;
-			     cur_dev = cur_dev->next) {
+		for (cur_dev = sc->dev_list; cur_dev != NULL;
+		     cur_dev = cur_dev->next) {
 
+			err = device_set_log(cur_dev->dev_handle,
+					     llevel->log_level,
+					     llevel->log_src);
+		}
+
+		log_setlevel(hlevel);
+		log_settype(hsrc);
+
+		break;
+
+	case LOG_SETLEVEL_DEVICE:
+		cur_dev = sc->dev_list;
+		while (cur_dev != NULL) {
+			if (cur_dev->dev_id == llevel->dev_id) {
 				err = device_set_log(cur_dev->dev_handle,
-				                     llevel->log_level, llevel->log_src);
+						     llevel->log_level,
+						     llevel->log_src);
 			}
-
-			log_setlevel(hlevel);
-			log_settype(hsrc);
-
-			break;
-
-		case LOG_SETLEVEL_DEVICE:
-			cur_dev = sc->dev_list;
-			while(cur_dev != NULL) {
-				if (cur_dev->dev_id == llevel->dev_id) {
-					err = device_set_log(
-					          cur_dev->dev_handle,
-					          llevel->log_level,
-					          llevel->log_src);
-				}
-				cur_dev = cur_dev->next;
-			}
-			break;
+			cur_dev = cur_dev->next;
+		}
+		break;
 
 
-		case LOG_SETLEVEL_HOST:
-			log_setlevel(hlevel);
-			log_settype(hsrc);
-			break;
+	case LOG_SETLEVEL_HOST:
+		log_setlevel(hlevel);
+		log_settype(hsrc);
+		break;
 
 
-		default:
-			assert(0);
-			break;
+	default:
+		assert(0);
+		break;
 
 	}
 
 
-	/* XXX handle single device set options */
+	/*
+	 * XXX handle single device set options 
+	 */
 
 
 }
 
 
 void
-process_log_data(search_context_t *sc, int conn)
+process_log_data(search_context_t * sc, int conn)
 {
-	log_info_t *linfo;
-	log_set_level_t	llevel;
-	int	next_sec = 0;
-	struct timeval	curtime;
-	struct timezone	tz;
-	int err;
-	int	len;
+	log_info_t     *linfo;
+	log_set_level_t llevel;
+	int             next_sec = 0;
+	struct timeval  curtime;
+	struct timezone tz;
+	int             err;
+	int             len;
 
-	while(1) {
+	while (1) {
 
 		/*
 		 * This code looks at the current time, and if 1 second
@@ -259,12 +271,13 @@ process_log_data(search_context_t *sc, int conn)
 		 * process.
 		 */
 		len = recv(conn, &llevel, sizeof(llevel), MSG_DONTWAIT);
-		if (len == sizeof (llevel) ) {
+		if (len == sizeof(llevel)) {
 			set_device_log(&llevel, sc);
 		} else if (len > 0) {
-			/* if we got something other than an error
-			 * we have a partial we don't handle, so assert.
-			 * XXX should we do something smarter ?? 
+			/*
+			 * if we got something other than an error we have a
+			 * partial we don't handle, so assert. XXX should we
+			 * do something smarter ?? 
 			 */
 			assert(0);
 		} else if ((len == -1) && (errno != EAGAIN)) {
@@ -275,7 +288,9 @@ process_log_data(search_context_t *sc, int conn)
 
 
 
-		/* XXX get local log data also */
+		/*
+		 * XXX get local log data also 
+		 */
 		linfo = (log_info_t *) ring_deq(sc->log_ring);
 		if (linfo == NULL) {
 			sleep(1);
@@ -299,23 +314,24 @@ process_log_data(search_context_t *sc, int conn)
  * the data coming from the individual devices.
  */
 
-static void *
+static void    *
 log_main(void *arg)
 {
-	search_context_t *	sc;
-	int			err;
-	int	fd, newsock;
-	char	user_name[MAX_USER_NAME];
+	search_context_t *sc;
+	int             err;
+	int             fd,
+	                newsock;
+	char            user_name[MAX_USER_NAME];
 	struct sockaddr_un sa;
 	struct sockaddr_un newaddr;
-	int	slen;
+	int             slen;
 
-	/* change the umask so someone else can delete
-	 * the socket later.
+	/*
+	 * change the umask so someone else can delete the socket later. 
 	 */
 	umask(0);
 
-	sc = (search_context_t *)arg;
+	sc = (search_context_t *) arg;
 
 	dctl_thread_register(sc->dctl_cookie);
 	log_thread_register(sc->log_cookie);
@@ -324,15 +340,19 @@ log_main(void *arg)
 	 * Open the socket for the log information.
 	 */
 	fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	/* XXX socket error code */
+	/*
+	 * XXX socket error code 
+	 */
 
-	/* bind the socket to a path name */
+	/*
+	 * bind the socket to a path name 
+	 */
 	get_user_name(user_name);
 	sprintf(sa.sun_path, "%s.%s", SOCKET_LOG_NAME, user_name);
 	sa.sun_family = AF_UNIX;
 	unlink(sa.sun_path);
 
-	err = bind(fd, (struct sockaddr *)&sa, sizeof (sa));
+	err = bind(fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err < 0) {
 		fprintf(stderr, "binding %s\n", SOCKET_LOG_NAME);
 		perror("bind failed ");
@@ -348,7 +368,8 @@ log_main(void *arg)
 
 	while (1) {
 		slen = sizeof(newaddr);
-		if ((newsock = accept(fd, (struct sockaddr *)&newaddr, &slen))
+		if ((newsock =
+		     accept(fd, (struct sockaddr *) &newaddr, &slen))
 		    == -1) {
 
 			perror("accept failed \n");
@@ -362,30 +383,34 @@ log_main(void *arg)
 
 
 int
-log_start(search_context_t *sc)
+log_start(search_context_t * sc)
 {
 
-	int		err;
-	pthread_t	thread_id;
+	int             err;
+	pthread_t       thread_id;
 
 	/*
 	 * Initialize the ring of commands for the thread.
 	 */
 	err = ring_init(&sc->log_ring, LOG_RING_SIZE);
 	if (err) {
-		/* XXX err log */
-		return(err);
+		/*
+		 * XXX err log 
+		 */
+		return (err);
 	}
 
 	/*
 	 * Create a thread to handle background processing.
 	 */
-	err = pthread_create(&thread_id, PATTR_DEFAULT, log_main, (void *)sc);
+	err =
+	    pthread_create(&thread_id, PATTR_DEFAULT, log_main, (void *) sc);
 	if (err) {
-		/* XXX log */
+		/*
+		 * XXX log 
+		 */
 		printf("failed to create background thread \n");
-		return(ENOENT);
+		return (ENOENT);
 	}
-	return(0);
+	return (0);
 }
-

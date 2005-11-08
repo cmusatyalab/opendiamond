@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -33,14 +33,15 @@
 #include "lib_log.h"
 
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 int
-handle_new_obj(void *hcookie, obj_data_t *odata, int vno)
+handle_new_obj(void *hcookie, obj_data_t * odata, int vno)
 {
 
 	printf("new_obj!! - vno  %d \n", vno);
-	return(0);
+	return (0);
 }
 
 void
@@ -53,12 +54,12 @@ handle_log_data(void *hcookie, char *data, int len, int dev)
 int
 main(int argc, char **argv)
 {
-	int	err;
-	void *	cookie;
-	void *	log_cookie;
-	void *	dctl_cookie;
-	hstub_cb_args_t		cb_args;
-	struct in_addr		addr;
+	int             err;
+	void           *cookie;
+	void           *log_cookie;
+	void           *dctl_cookie;
+	hstub_cb_args_t cb_args;
+	struct in_addr  addr;
 
 
 	cb_args.log_data_cb = handle_log_data;
@@ -68,9 +69,11 @@ main(int argc, char **argv)
 	log_init(&log_cookie);
 	dctl_init(&dctl_cookie);
 
-	/* XXX */
+	/*
+	 * XXX 
+	 */
 	cookie = device_init(100, addr.s_addr, 0, &cb_args, dctl_cookie,
-	                     log_cookie);
+			     log_cookie);
 
 
 	err = device_start(cookie, 101);
@@ -78,7 +81,7 @@ main(int argc, char **argv)
 		printf("failed to start device \n");
 	}
 
-	err = device_set_searchlet(cookie, 102, "/tmp/x", "/tmp/y" );
+	err = device_set_searchlet(cookie, 102, "/tmp/x", "/tmp/y");
 
 	printf("XXX sending stop \n");
 	err = device_stop(cookie, 102);

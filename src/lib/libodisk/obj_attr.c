@@ -1,5 +1,5 @@
 /*
- * 	Diamond (Release 1.0)
+ *      Diamond (Release 1.0)
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -32,19 +32,19 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 
-static char const cvsid[] = "$Header$";
+static char const cvsid[] =
+    "$Header$";
 
 
 int
-obj_read_attr_file(odisk_state_t *odisk, char *attr_fname, 
-	obj_attr_t *attr)
+obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)
 {
-	int		attr_fd;
-	struct stat	stats;
-	int		err;
-	size_t		size;
-	size_t		rsize;
-	obj_adata_t *	adata;
+	int             attr_fd;
+	struct stat     stats;
+	int             err;
+	size_t          size;
+	size_t          rsize;
+	obj_adata_t    *adata;
 
 	/*
 	 * Open the file or create it.
@@ -53,14 +53,14 @@ obj_read_attr_file(odisk_state_t *odisk, char *attr_fname,
 	if (attr_fd == -1) {
 		attr->attr_ndata = 0;
 		attr->attr_dlist = NULL;
-		return(0);	
+		return (0);
 	}
 
 	err = fstat(attr_fd, &stats);
 	if (err != 0) {
 		attr->attr_ndata = 0;
 		attr->attr_dlist = NULL;
-		return(0);	
+		return (0);
 	}
 
 	size = stats.st_size;
@@ -69,13 +69,13 @@ obj_read_attr_file(odisk_state_t *odisk, char *attr_fname,
 		attr->attr_ndata = 0;
 		attr->attr_dlist = NULL;
 	} else {
-		adata = (obj_adata_t *)malloc(sizeof(*adata));
+		adata = (obj_adata_t *) malloc(sizeof(*adata));
 		assert(adata != NULL);
 
 		adata->adata_len = size;
-		adata->adata_base = (char *)malloc(ALIGN_SIZE(size));
+		adata->adata_base = (char *) malloc(ALIGN_SIZE(size));
 		assert(adata->adata_base != NULL);
-		adata->adata_data = (char *)ALIGN_VAL(adata->adata_base);
+		adata->adata_data = (char *) ALIGN_VAL(adata->adata_base);
 
 		attr->attr_ndata = 1;
 		adata->adata_next = NULL;
@@ -88,28 +88,28 @@ obj_read_attr_file(odisk_state_t *odisk, char *attr_fname,
 			attr->attr_ndata = 0;
 			attr->attr_dlist = NULL;
 			close(attr_fd);
-			return(0);
+			return (0);
 		}
 	}
 
 	close(attr_fd);
-	return(0);
+	return (0);
 }
 
 int
-obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
+obj_write_attr_file(char *attr_fname, obj_attr_t * attr)
 {
-	int			attr_fd;
-	off_t		wsize;
-	size_t		len;
-	char 	*	buf;
-	int			err;
-	void *		cookie;
+	int             attr_fd;
+	off_t           wsize;
+	size_t          len;
+	char           *buf;
+	int             err;
+	void           *cookie;
 
 	/*
 	 * Open the file or create it.
 	 */
-	attr_fd = open(attr_fname, O_CREAT|O_WRONLY|O_TRUNC, 00700);
+	attr_fd = open(attr_fname, O_CREAT | O_WRONLY | O_TRUNC, 00700);
 	if (attr_fd == -1) {
 		perror("failed to open stat file");
 		exit(1);
@@ -127,43 +127,46 @@ obj_write_attr_file(char *attr_fname, obj_attr_t *attr)
 	}
 
 	close(attr_fd);
-	return(0);
+	return (0);
 }
 
 
 
-static char *
-extend_attr_store(obj_attr_t *attr, int new_size)
+static char    *
+extend_attr_store(obj_attr_t * attr, int new_size)
 {
-	char *			new_attr;
-	attr_record_t * 	new_record;
-	int				buf_size;
-	obj_adata_t *	new_adata;
+	char           *new_attr;
+	attr_record_t  *new_record;
+	int             buf_size;
+	obj_adata_t    *new_adata;
 
-	/* we extend the store by multiples of attr_increment */
-	buf_size = (new_size + (ATTR_INCREMENT -1)) &
-	           ~(ATTR_INCREMENT - 1);
+	/*
+	 * we extend the store by multiples of attr_increment 
+	 */
+	buf_size = (new_size + (ATTR_INCREMENT - 1)) & ~(ATTR_INCREMENT - 1);
 	assert(buf_size >= new_size);
 
-	new_attr = (char *)malloc(buf_size);
+	new_attr = (char *) malloc(buf_size);
 	assert(new_attr != NULL);
 
 	new_record = (attr_record_t *) new_attr;
 	new_record->rec_len = buf_size;
 	new_record->flags = ATTR_FLAG_FREE;
 
-	new_adata = (obj_adata_t *)malloc(sizeof(*new_adata));
+	new_adata = (obj_adata_t *) malloc(sizeof(*new_adata));
 	assert(new_adata != NULL);
 	new_adata->adata_len = buf_size;
 	new_adata->adata_data = new_attr;
 	new_adata->adata_base = new_attr;
 
-	/* link it on the list of items */
+	/*
+	 * link it on the list of items 
+	 */
 	new_adata->adata_next = attr->attr_dlist;
 	attr->attr_dlist = new_adata;
 	attr->attr_ndata++;
 
-	return(new_attr);
+	return (new_attr);
 }
 
 /*
@@ -174,13 +177,13 @@ extend_attr_store(obj_attr_t *attr, int new_size)
  * to extend the space used by the attributes.
  */
 static attr_record_t *
-find_free_record(obj_attr_t *attr, int size)
+find_free_record(obj_attr_t * attr, int size)
 {
-	obj_adata_t	*		cur_adata;
-	attr_record_t *		cur_rec;
-	attr_record_t *		new_frag;
-	attr_record_t *		good_rec = NULL;
-	int			offset;
+	obj_adata_t    *cur_adata;
+	attr_record_t  *cur_rec;
+	attr_record_t  *new_frag;
+	attr_record_t  *good_rec = NULL;
+	int             offset;
 
 	if (size < 0) {
 		return (NULL);
@@ -191,9 +194,10 @@ find_free_record(obj_attr_t *attr, int size)
 
 		offset = 0;
 		while (offset < cur_adata->adata_len) {
-			cur_rec = (attr_record_t *)&cur_adata->adata_data[offset];
-			if (((cur_rec->flags & ATTR_FLAG_FREE) == ATTR_FLAG_FREE) &&
-			    (cur_rec->rec_len >= size)) {
+			cur_rec =
+			    (attr_record_t *) & cur_adata->adata_data[offset];
+			if (((cur_rec->flags & ATTR_FLAG_FREE) ==
+			     ATTR_FLAG_FREE) && (cur_rec->rec_len >= size)) {
 				good_rec = cur_rec;
 				goto match;
 			}
@@ -202,27 +206,34 @@ find_free_record(obj_attr_t *attr, int size)
 	}
 
 
-	/* if we got here, we fell through, create some more space and
-	 * use it.
-		 */
+	/*
+	 * if we got here, we fell through, create some more space and use
+	 * it. 
+	 */
 
-	good_rec = (attr_record_t *)extend_attr_store(attr, size);
+	good_rec = (attr_record_t *) extend_attr_store(attr, size);
 
-match:
+      match:
 
-	/* we have record, we if we want to split it */
+	/*
+	 * we have record, we if we want to split it 
+	 */
 	if ((good_rec->rec_len - size) >= ATTR_MIN_FRAG) {
-		new_frag = (attr_record_t *)&(((char *)good_rec)[size]);
+		new_frag = (attr_record_t *) & (((char *) good_rec)[size]);
 		new_frag->rec_len = good_rec->rec_len - size;
 		new_frag->flags = ATTR_FLAG_FREE;
-		/* set the new size and clear free flag */
+		/*
+		 * set the new size and clear free flag 
+		 */
 		good_rec->rec_len = size;
 		good_rec->flags &= ~ATTR_FLAG_FREE;
 	} else {
-		/* the only thing we do is clear free flag */
+		/*
+		 * the only thing we do is clear free flag 
+		 */
 		good_rec->flags &= ~ATTR_FLAG_FREE;
 	}
-	return(good_rec);
+	return (good_rec);
 }
 
 /*
@@ -235,7 +246,7 @@ match:
  */
 
 static void
-free_record(obj_attr_t *attr, attr_record_t *rec)
+free_record(obj_attr_t * attr, attr_record_t * rec)
 {
 
 	/*
@@ -253,12 +264,12 @@ free_record(obj_attr_t *attr, attr_record_t *rec)
 
 
 static attr_record_t *
-find_record(obj_attr_t *attr, const char *name)
+find_record(obj_attr_t * attr, const char *name)
 {
-	int			namelen;
-	int			offset;
-	obj_adata_t *		cur_adata;
-	attr_record_t *		cur_rec;
+	int             namelen;
+	int             offset;
+	obj_adata_t    *cur_adata;
+	attr_record_t  *cur_rec;
 
 	if (name == NULL) {
 		return (NULL);
@@ -271,31 +282,32 @@ find_record(obj_attr_t *attr, const char *name)
 
 		offset = 0;
 		while (offset < cur_adata->adata_len) {
-			cur_rec = (attr_record_t *)&cur_adata->adata_data[offset];
+			cur_rec =
+			    (attr_record_t *) & cur_adata->adata_data[offset];
 
 			if (((cur_rec->flags & ATTR_FLAG_FREE) == 0) &&
 			    (cur_rec->name_len >= namelen) &&
 			    (strcmp(name, cur_rec->data) == 0)) {
-				return(cur_rec);
+				return (cur_rec);
 			}
 			offset += cur_rec->rec_len;
 		}
 	}
 
-	return(NULL);
+	return (NULL);
 }
 
 int
-odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t *sig)
+odisk_get_attr_sig(obj_data_t * obj, const char *name, sig_val_t * sig)
 {
-	attr_record_t *	arec;
+	attr_record_t  *arec;
 
 	arec = find_record(&obj->attr_info, name);
 	if (arec == NULL) {
-		return(ENOENT);
+		return (ENOENT);
 	}
 	memcpy(sig, &arec->attr_sig, sizeof(sig_val_t));
-	return(0);
+	return (0);
 }
 
 
@@ -304,20 +316,24 @@ odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t *sig)
  */
 
 int
-obj_write_attr(obj_attr_t *attr, const char * name, size_t len, 
-			const char *data)
+obj_write_attr(obj_attr_t * attr, const char *name, size_t len,
+	       const char *data)
 {
-	attr_record_t *	data_rec;
-	int		total_size;
-	int		namelen;
-	static int	done_init = 0;
+	attr_record_t  *data_rec;
+	int             total_size;
+	int             namelen;
+	static int      done_init = 0;
 
 	if (!done_init) {
 		sig_cal_init();
 		done_init = 1;
 	}
-	/* XXX validate object ??? */
-	/* XXX make sure we don't have the same name on the list ?? */
+	/*
+	 * XXX validate object ??? 
+	 */
+	/*
+	 * XXX make sure we don't have the same name on the list ?? 
+	 */
 
 	if (name == NULL) {
 		return (EINVAL);
@@ -326,10 +342,12 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len,
 
 	if (namelen > MAX_ATTR_NAME) {
 		return (EINVAL);
-	}	
+	}
 
-	/* XXX round to word boundary ?? */
-	total_size  = sizeof(*data_rec) + namelen + len;
+	/*
+	 * XXX round to word boundary ?? 
+	 */
+	total_size = sizeof(*data_rec) + namelen + len;
 
 	data_rec = find_record(attr, name);
 	if (data_rec != NULL) {
@@ -346,7 +364,9 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len,
 	if (data_rec == NULL) {
 		data_rec = find_free_record(attr, total_size);
 		if (data_rec == NULL) {
-			/* XXX log */
+			/*
+			 * XXX log 
+			 */
 			return (ENOMEM);
 		}
 	}
@@ -359,10 +379,12 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len,
 	memcpy(data_rec->data, name, namelen);
 	memcpy(&data_rec->data[namelen], data, len);
 
-	/* compute the attribute signature */
+	/*
+	 * compute the attribute signature 
+	 */
 	sig_cal(data, len, &data_rec->attr_sig);
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -370,13 +392,13 @@ obj_write_attr(obj_attr_t *attr, const char * name, size_t len,
  */
 
 int
-obj_read_attr(obj_attr_t *attr, const char * name, size_t *len, void *data)
+obj_read_attr(obj_attr_t * attr, const char *name, size_t * len, void *data)
 {
-	attr_record_t *		record;
-	char *			dptr;
+	attr_record_t  *record;
+	char           *dptr;
 
 	if ((strlen(name) + 1) > MAX_ATTR_NAME) {
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	record = find_record(attr, name);
@@ -404,9 +426,11 @@ obj_read_attr(obj_attr_t *attr, const char * name, size_t *len, void *data)
 	 * and copy the data in.
 	 */
 	dptr = &record->data[record->name_len];
-	/* looks good, return the data */
+	/*
+	 * looks good, return the data 
+	 */
 	memcpy(data, dptr, record->data_len);
-	return(0);
+	return (0);
 }
 
 /*
@@ -414,9 +438,9 @@ obj_read_attr(obj_attr_t *attr, const char * name, size_t *len, void *data)
  * the real data.  The caller may not modify it.
  */
 int
-obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, void **data)
+obj_ref_attr(obj_attr_t * attr, const char *name, size_t * len, void **data)
 {
-	attr_record_t *		record;
+	attr_record_t  *record;
 
 	record = find_record(attr, name);
 	if (record == NULL) {
@@ -424,9 +448,9 @@ obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, void **data)
 	}
 
 	*len = record->data_len;
-	*data = (void *)&record->data[record->name_len];
+	*data = (void *) &record->data[record->name_len];
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -435,9 +459,9 @@ obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, void **data)
  */
 
 int
-obj_del_attr(obj_attr_t *attr, const char * name)
+obj_del_attr(obj_attr_t * attr, const char *name)
 {
-	attr_record_t *		record;
+	attr_record_t  *record;
 
 	record = find_record(attr, name);
 	if (record == NULL) {
@@ -445,41 +469,41 @@ obj_del_attr(obj_attr_t *attr, const char * name)
 	}
 
 	free_record(attr, record);
-	return(0);
+	return (0);
 }
 
 
-/* XXX short term hack */
-typedef struct acookie
-{
-	size_t		offset;
-	obj_adata_t *	adata;
-}
-acookie_t;
+/*
+ * XXX short term hack 
+ */
+typedef struct acookie {
+	size_t          offset;
+	obj_adata_t    *adata;
+} acookie_t;
 
 
 static int
-obj_use_record(attr_record_t *cur_rec, int skip_big)
+obj_use_record(attr_record_t * cur_rec, int skip_big)
 {
 
 	if (cur_rec->flags & ATTR_FLAG_FREE) {
-		return(0);
+		return (0);
 	}
 
 	if ((cur_rec->data_len > ATTR_BIG_THRESH) && (skip_big)) {
-		return(0);
+		return (0);
 	}
-	return(1);
+	return (1);
 }
 
 int
-obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
-                   int  skip_big)
+obj_get_attr_first(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
+		   int skip_big)
 {
-	size_t			offset;
-	obj_adata_t *		cur_adata;
-	attr_record_t *		cur_rec;
-	acookie_t *			acookie;
+	size_t          offset;
+	obj_adata_t    *cur_adata;
+	attr_record_t  *cur_rec;
+	acookie_t      *acookie;
 
 
 	for (cur_adata = attr->attr_dlist; cur_adata != NULL;
@@ -487,35 +511,37 @@ obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
 
 		offset = 0;
 		while (offset < cur_adata->adata_len) {
-			cur_rec = (attr_record_t *)&cur_adata->adata_data[offset];
+			cur_rec =
+			    (attr_record_t *) & cur_adata->adata_data[offset];
 			if (obj_use_record(cur_rec, skip_big)) {
-				acookie = (acookie_t *)malloc(sizeof(*acookie));
+				acookie =
+				    (acookie_t *) malloc(sizeof(*acookie));
 				assert(acookie != NULL);
 
 				acookie->offset = offset + cur_rec->rec_len;
 				acookie->adata = cur_adata;
 				*len = cur_rec->rec_len;
-				*buf = (void *)cur_rec;
-				*cookie = (void *)acookie;
-				return(0);
+				*buf = (void *) cur_rec;
+				*cookie = (void *) acookie;
+				return (0);
 			}
 			offset += cur_rec->rec_len;
 		}
 	}
-	return(ENOENT);
+	return (ENOENT);
 }
 
 int
-obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
-                  int skip_big)
+obj_get_attr_next(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
+		  int skip_big)
 {
-	size_t			offset;
-	obj_adata_t *		cur_adata;
-	attr_record_t *		cur_rec;
-	acookie_t *			acookie;
+	size_t          offset;
+	obj_adata_t    *cur_adata;
+	attr_record_t  *cur_rec;
+	acookie_t      *acookie;
 
 
-	acookie = (acookie_t *)*cookie;
+	acookie = (acookie_t *) * cookie;
 
 	for (cur_adata = acookie->adata; cur_adata != NULL;
 	     cur_adata = cur_adata->adata_next) {
@@ -526,46 +552,48 @@ obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len, void **cookie,
 			offset = 0;
 		}
 		while (offset < cur_adata->adata_len) {
-			cur_rec = (attr_record_t *)&cur_adata->adata_data[offset];
+			cur_rec =
+			    (attr_record_t *) & cur_adata->adata_data[offset];
 			if (obj_use_record(cur_rec, skip_big)) {
 				assert(acookie != NULL);
 				acookie->offset = offset + cur_rec->rec_len;
 				acookie->adata = cur_adata;
 				*len = cur_rec->rec_len;
-				*buf = (void *)cur_rec;
-				*cookie = (void *)acookie;
-				return(0);
+				*buf = (void *) cur_rec;
+				*cookie = (void *) acookie;
+				return (0);
 			}
 			offset += cur_rec->rec_len;
 		}
 	}
 	free(*cookie);
-	return(ENOENT);
+	return (ENOENT);
 }
 
 
 int
-obj_read_oattr(odisk_state_t *odisk, char *disk_path, sig_val_t *id_sig,
-	sig_val_t *fsig, sig_val_t *iattrsig, obj_attr_t *attr)
+obj_read_oattr(odisk_state_t * odisk, char *disk_path, sig_val_t * id_sig,
+	       sig_val_t * fsig, sig_val_t * iattrsig, obj_attr_t * attr)
 {
-	int fd;
+	int             fd;
 	off_t           rsize;
 	struct stat     stats;
-	char attrbuf[MAX_ATTR_CACHE_NAME];
-	char *filt_str;
-	char *id_str;
-	char *iattr_str;
-	obj_adata_t *	adata;
-	int err, len;
-	char *dirp;
+	char            attrbuf[MAX_ATTR_CACHE_NAME];
+	char           *filt_str;
+	char           *id_str;
+	char           *iattr_str;
+	obj_adata_t    *adata;
+	int             err,
+	                len;
+	char           *dirp;
 
 	filt_str = sig_string(fsig);
 	iattr_str = sig_string(iattrsig);
 	id_str = sig_string(id_sig);
 	dirp = dconf_get_cachedir();
 
-	len = snprintf(attrbuf, MAX_ATTR_CACHE_NAME, "%s/%s/%s.%s", 
-		dirp, filt_str, id_str, iattr_str);
+	len = snprintf(attrbuf, MAX_ATTR_CACHE_NAME, "%s/%s/%s.%s",
+		       dirp, filt_str, id_str, iattr_str);
 
 	free(filt_str);
 	free(iattr_str);
@@ -588,36 +616,37 @@ obj_read_oattr(odisk_state_t *odisk, char *disk_path, sig_val_t *id_sig,
 	if (stats.st_size == 0) {
 		close(fd);
 		return (0);
-	} 
+	}
 
-	adata = (obj_adata_t *)malloc(sizeof(*adata));
+	adata = (obj_adata_t *) malloc(sizeof(*adata));
 	assert(adata != NULL);
 
 	adata->adata_len = stats.st_size;
-	adata->adata_base = (char *)malloc(ALIGN_SIZE(stats.st_size));
+	adata->adata_base = (char *) malloc(ALIGN_SIZE(stats.st_size));
 	assert(adata->adata_base != NULL);
-	adata->adata_data = (char *)ALIGN_VAL(adata->adata_base);
+	adata->adata_data = (char *) ALIGN_VAL(adata->adata_base);
 
 
 	rsize = read(fd, adata->adata_data, ALIGN_ROUND(stats.st_size));
 	assert(rsize == stats.st_size);
 
-	/* put this attribute at the head of the object attributes */
+	/*
+	 * put this attribute at the head of the object attributes 
+	 */
 	attr->attr_ndata++;
 	adata->adata_next = attr->attr_dlist;
 	attr->attr_dlist = adata;
 
 	close(fd);
-	return(0);
+	return (0);
 }
 
 
-attr_record_t *
-odisk_get_arec(struct obj_data *obj, const char *name)
+attr_record_t  *
+odisk_get_arec(struct obj_data * obj, const char *name)
 {
-	attr_record_t *arec;
+	attr_record_t  *arec;
 
 	arec = find_record(&obj->attr_info, name);
-	return(arec);
+	return (arec);
 }
-

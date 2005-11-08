@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE_NAME=diamond-1.1.0-rc2
+RELEASE_NAME=diamond-1.2.0
 #
 # Make sure we have cleaned the source tree
 #

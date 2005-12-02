@@ -115,7 +115,6 @@ obj_write_attr_file(char *attr_fname, obj_attr_t * attr)
 		exit(1);
 	}
 
-
 	err = obj_get_attr_first(attr, &buf, &len, &cookie, 0);
 	while (err != ENOENT) {
 		wsize = write(attr_fd, buf, len);
@@ -532,6 +531,25 @@ obj_get_attr_first(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
 }
 
 int
+obj_first_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
+	void **cookie)
+{
+	attr_record_t  *cur_rec;
+	size_t		rec_len;
+	int		err;
+
+	err = obj_get_attr_first(attr, (char **)&cur_rec, &rec_len, cookie, 0);
+	if (err) {
+		return(err);
+	}
+
+	*name = &cur_rec->data[0];
+	*data = (void *) &cur_rec->data[cur_rec->name_len];
+	*len = cur_rec->data_len;
+	return(0);
+}
+
+int
 obj_get_attr_next(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
 		  int skip_big)
 {
@@ -570,6 +588,25 @@ obj_get_attr_next(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
 	return (ENOENT);
 }
 
+
+int
+obj_next_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
+	void **cookie)
+{
+	attr_record_t  *cur_rec;
+	size_t		rec_len;
+	int		err;
+
+	err = obj_get_attr_next(attr, (char **)&cur_rec, &rec_len, cookie, 0);
+	if (err) {
+		return(err);
+	}
+
+	*name = &cur_rec->data[0];
+	*len = cur_rec->data_len;
+	*data = (void *) &cur_rec->data[cur_rec->name_len];
+	return(0);
+}
 
 int
 obj_read_oattr(odisk_state_t * odisk, char *disk_path, sig_val_t * id_sig,

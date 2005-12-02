@@ -93,6 +93,12 @@ int obj_read_oattr(struct odisk_state *odisk, char *disk_path,
 	sig_val_t *id_sig, sig_val_t *fsig, sig_val_t *iattrsig, 
 	obj_attr_t *attr);
 
+int obj_first_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
+        void **cookie);
+int obj_next_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
+        void **cookie);
+
+
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
 
 

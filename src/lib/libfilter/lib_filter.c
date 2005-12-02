@@ -325,3 +325,33 @@ lf_log(int level, char *fmt, ...)
 	log_message(LOGT_APP, level, "%s", log_buffer);
 
 }
+
+
+int 
+lf_first_attr(lf_obj_handle_t ohandle, char **name,
+                size_t *len, void **data, void **cookie)
+{
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int             err;
+
+	odata = (obj_data_t *) ohandle;
+	adata = &odata->attr_info;
+	err = obj_first_attr(adata, name, len, data, cookie);
+	return (err);
+}
+
+int 
+lf_next_attr(lf_obj_handle_t ohandle, char **name,
+                size_t *len, void **data, void **cookie)
+{
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int             err;
+
+	odata = (obj_data_t *) ohandle;
+	adata = &odata->attr_info;
+	err = obj_next_attr(adata, name, len, data, cookie);
+	return (err);
+}
+

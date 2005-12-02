@@ -213,10 +213,6 @@ int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
  * \return 0
  *		Attributes were read successfully.
  *
- * \return ENOSPC
- *		The provided buffer was not large enough to hold
- *		the attribute.
- *
  * \return EINVAL
  *		One or more of the arguments was invalid.
  */
@@ -228,7 +224,6 @@ int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len,
  * Get pointer to attribute data in an object.  The returned pointer should
  * be treated read-only, and is only valid in the current instance of the
  * filter.  
-
  * \param ohandle
  * 		the object handle.
  *
@@ -304,6 +299,56 @@ int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len, char *data);
 
 void lf_log(int level, char *fmt, ...);
 
+
+/*!
+ * Get pointer to first attribute and it's data.  
+ * \param ohandle
+ * 		the object handle.
+ *
+ * \param name
+ *		Pointer where name pointer will be stored 
+ *
+ * \param len
+ *		A pointer to the location where the length
+ * 		attribute data will be stored.
+ *
+ * \param data
+ *		A pointer to where the data pointer will be stored.
+ *
+ * \return 0
+ *		Attributes were read successfully.
+ *
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
+ */
+
+int lf_first_attr(lf_obj_handle_t ohandle, char **name, 
+		size_t *len, void **data, void **cookie);
+
+/*!
+ * Get pointer to first attribute and it's data.  
+ * \param ohandle
+ * 		the object handle.
+ *
+ * \param name
+ *		Pointer where name pointer will be stored 
+ *
+ * \param len
+ *		A pointer to the location where the length
+ * 		attribute data will be stored.
+ *
+ * \param data
+ *		A pointer to where the data pointer will be stored.
+ *
+ * \return 0
+ *		Attributes were read successfully.
+ *
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
+ */
+
+int lf_next_attr(lf_obj_handle_t ohandle, char **name, 
+		size_t *len, void **data, void **cookie);
 
 
 #ifdef __cplusplus

@@ -11,6 +11,18 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -36,13 +48,11 @@ static char const cvsid[] = "$Header$";
 #define	MAX_TYPE	8
 #define	MAX_TOKEN	32
 
-typedef struct
-{
+typedef struct {
 	char	*	key;
 	char 	*	descr;
 	uint32_t	val;
-}
-flag_ent_t;
+} flag_ent_t;
 
 
 flag_ent_t 	level_map[] = {
@@ -77,7 +87,6 @@ get_level_string(uint32_t level, char *string, int max)
 
 
 	switch(level) {
-
 		case LOGL_CRIT:
 			strncpy(string, "Crit", max);
 			string[max-1] = '\0';
@@ -195,13 +204,9 @@ display_results(log_msg_t *lheader, char *data, unsigned int level_flags,
 		fprintf(stdout, "<%c %s %s %s> %s \n",
 		        source, host_id, level_string, type_string,
 		        log_ent->le_data);
-
 	}
-
-
-
-
 }
+
 void
 read_log(int fd, unsigned int level_flags, unsigned int src_flags)
 {
@@ -369,6 +374,8 @@ set_log_flags(int fd, uint32_t level_flags, uint32_t src_flags)
 	}
 }
 
+
+
 int
 main(int argc, char **argv)
 {
@@ -463,5 +470,3 @@ main(int argc, char **argv)
 	/* we should never get here, but it keeps gcc happy -:) */
 	exit(0);
 }
-
-

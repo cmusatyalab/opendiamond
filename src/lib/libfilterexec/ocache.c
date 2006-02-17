@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,9 +133,7 @@ digest_cal(filter_data_t * fdata, char *fn_name, int numarg, char **filt_args,
 	EVP_MD_CTX      mdctx;
 	const EVP_MD   *md;
 	unsigned char  *md_value;
-	int             md_len = 0,
-	    i,
-	    len;
+	unsigned int	md_len = 0, i, len;
 
 	OpenSSL_add_all_digests();
 	md = EVP_get_digestbyname("md5");
@@ -187,8 +195,8 @@ sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 	EVP_MD_CTX      mdctx;
 	const EVP_MD   *md;
 	unsigned char  *md_value;
-	int             md_len = 0,
-	    i;
+	unsigned int	md_len = 0;
+	int		i;
 
 	OpenSSL_add_all_digests();
 	md = EVP_get_digestbyname("md5");
@@ -358,7 +366,7 @@ cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t * init_attr)
 	cache_init_obj *cobj;
 	unsigned int    index;
 	attr_record_t  *arec;
-	char           *buf;
+	unsigned char  *buf;
 	size_t          len;
 	void           *cookie;
 	int             err;
@@ -1275,7 +1283,7 @@ ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table,
 
 static void
 ocache_add_iattr(lf_obj_handle_t ohandle,
-		 const char *name, off_t len, const char *data)
+		 const char *name, off_t len, const unsigned char *data)
 {
 	cache_ring_entry *new_entry;
 	unsigned int    name_len;
@@ -1318,7 +1326,7 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 
 static void
 ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
-		 off_t len, const char *data)
+		 off_t len, const unsigned char *data)
 {
 	cache_ring_entry *new_entry;
 	oattr_ring_entry *oattr_entry;

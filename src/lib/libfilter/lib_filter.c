@@ -11,6 +11,18 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 /*
  * This provides many of the main functions in the provided
  * through the searchlet API.
@@ -55,7 +67,8 @@ lf_set_read_cb(read_attr_cb cb_fn)
 }
 
 int
-lf_read_attr(lf_obj_handle_t obj, const char *name, size_t * len, void *data)
+lf_read_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
+	unsigned char *data)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -76,7 +89,8 @@ lf_read_attr(lf_obj_handle_t obj, const char *name, size_t * len, void *data)
 
 
 int
-lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, void **data)
+lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
+	unsigned char **data)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -85,31 +99,13 @@ lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, void **data)
 	odata = (obj_data_t *) obj;
 	adata = &odata->attr_info;
 	err = obj_ref_attr(adata, name, len, data);
-	/*
-	 * add read attrs into cache queue: input attr set 
-	 */
+
+	/* add read attrs into cache queue: input attr set */
 	if (!err && (read_attr_fn != NULL)) {
 		(*read_attr_fn) (obj, name, *len, *data);
 	}
 	return (err);
 }
-
-/*
- * XXX 
- */
-int
-lf_dump_attr(lf_obj_handle_t obj)
-{
-	obj_data_t     *odata;
-	obj_attr_t     *adata;
-	int             err;
-
-	odata = (obj_data_t *) obj;
-	adata = &odata->attr_info;
-	err = obj_dump_attr(adata);
-	return (err);
-}
-
 
 int
 lf_set_write_cb(write_attr_cb cb_fn)
@@ -123,7 +119,7 @@ lf_set_write_cb(write_attr_cb cb_fn)
  * XXX
  */
 int
-lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, char *data)
+lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -329,7 +325,7 @@ lf_log(int level, char *fmt, ...)
 
 int 
 lf_first_attr(lf_obj_handle_t ohandle, char **name,
-                size_t *len, void **data, void **cookie)
+                size_t *len, unsigned char **data, void **cookie)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -343,7 +339,7 @@ lf_first_attr(lf_obj_handle_t ohandle, char **name,
 
 int 
 lf_next_attr(lf_obj_handle_t ohandle, char **name,
-                size_t *len, void **data, void **cookie)
+                size_t *len, unsigned char **data, void **cookie)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;

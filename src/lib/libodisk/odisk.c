@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -528,9 +538,8 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 	} else {
 		glist = (gid_list_t *) malloc(len);
 		assert(glist != NULL);
-		err =
-		    obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len,
-				  (char *) glist);
+		err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len,
+				  (unsigned char *) glist);
 		assert(err == 0);
 	}
 
@@ -545,8 +554,7 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 	}
 
 	if (space == -1) {
-		int             old,
-		                new;
+		int             old, new;
 		old = glist->num_gids;
 		new = old + 4;
 		glist = realloc(glist, GIDLIST_SIZE(new));
@@ -561,7 +569,7 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 
 	glist->gids[space] = *gid;
 	err = obj_write_attr(&obj->attr_info, GIDLIST_NAME,
-			     GIDLIST_SIZE(glist->num_gids), (char *) glist);
+		     GIDLIST_SIZE(glist->num_gids), (unsigned char *) glist);
 	assert(err == 0);
 
 	return (0);
@@ -585,15 +593,15 @@ odisk_rem_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 	glist = (gid_list_t *) malloc(len);
 	assert(glist != NULL);
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME,
-			    &len, (char *) glist);
+			    &len, (unsigned char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
 		if (glist->gids[i] == *gid) {
 			glist->gids[i] = *gid;
 			err = obj_write_attr(&obj->attr_info, GIDLIST_NAME,
-					     GIDLIST_SIZE(glist->num_gids),
-					     (char *) glist);
+				     GIDLIST_SIZE(glist->num_gids),
+				     (unsigned char *) glist);
 			return (0);
 		}
 	}
@@ -1552,7 +1560,7 @@ update_object_gids(odisk_state_t * odisk, obj_data_t * obj, char *name)
 	glist = (gid_list_t *) malloc(len);
 	assert(glist != NULL);
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len,
-			    (char *) glist);
+			    (unsigned char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
@@ -1590,7 +1598,7 @@ delete_object_gids(odisk_state_t * odisk, obj_data_t * obj)
 	glist = (gid_list_t *) malloc(len);
 	assert(glist != NULL);
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME,
-			    &len, (char *) glist);
+			    &len, (unsigned char *) glist);
 	assert(err == 0);
 
 	for (i = 0; i < glist->num_gids; i++) {
@@ -1872,7 +1880,7 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 		 * XXX write attribute 
 		 */
 		err = obj_write_attr(&new_object->attr_info, "MY_OID",
-				     sizeof(obj_id), (char *) &obj_id);
+				     sizeof(obj_id), (unsigned char *) &obj_id);
 		assert(err == 0);
 
 		/*

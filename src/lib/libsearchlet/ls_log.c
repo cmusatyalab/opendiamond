@@ -12,6 +12,16 @@
  */
 
 /*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+/*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
  */
@@ -324,7 +334,7 @@ log_main(void *arg)
 	char            user_name[MAX_USER_NAME];
 	struct sockaddr_un sa;
 	struct sockaddr_un newaddr;
-	int             slen;
+	socklen_t	slen;
 
 	/*
 	 * change the umask so someone else can delete the socket later. 
@@ -368,10 +378,8 @@ log_main(void *arg)
 
 	while (1) {
 		slen = sizeof(newaddr);
-		if ((newsock =
-		     accept(fd, (struct sockaddr *) &newaddr, &slen))
+		if ((newsock = accept(fd, (struct sockaddr *) &newaddr, &slen))
 		    == -1) {
-
 			perror("accept failed \n");
 			continue;
 		}

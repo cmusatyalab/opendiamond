@@ -12,6 +12,16 @@
  */
 
 /*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+/*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
  */
@@ -369,7 +379,7 @@ static void
 accept_control_conn(listener_state_t * list_state)
 {
 	struct sockaddr_in ca;
-	int             csize;
+	socklen_t       csize;
 	int             new_sock;
 	int             i;
 	uint32_t        data;
@@ -445,7 +455,7 @@ static void
 accept_data_conn(listener_state_t * list_state)
 {
 	struct sockaddr_in ca;
-	int             csize;
+	socklen_t	csize;
 	int             new_sock;
 	uint32_t        data;
 	size_t          dsize;
@@ -511,7 +521,7 @@ static void
 accept_log_conn(listener_state_t * list_state)
 {
 	struct sockaddr_in ca;
-	int             csize;
+	socklen_t       csize;
 	int             new_sock;
 	uint32_t        data;
 	size_t          dsize;

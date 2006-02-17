@@ -11,6 +11,18 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -56,35 +68,35 @@ set_defattr(odisk_state_t *odisk, char *attr_name, char *data_name)
 	}
 
 	err = obj_write_attr(&attr, SIZE, sizeof(stats.st_size),
-	                     (char *)&stats.st_size);
+	                     (unsigned char *)&stats.st_size);
 	if (err) {
 		printf("failed to write size \n");
 		exit(1);
 	}
 
 	err = obj_write_attr(&attr, UID, sizeof(stats.st_uid),
-	                     (char *)&stats.st_uid);
+	                     (unsigned char *)&stats.st_uid);
 	if (err) {
 		printf("failed to write uid \n");
 		exit(1);
 	}
 
 	err = obj_write_attr(&attr, GID, sizeof(stats.st_gid),
-	                     (char *)&stats.st_gid);
+	                     (unsigned char *)&stats.st_gid);
 	if (err) {
 		printf("failed to write gid \n");
 		exit(1);
 	}
 
 	err = obj_write_attr(&attr, BLK_SIZE, sizeof(stats.st_blksize),
-	                     (char *)&stats.st_blksize);
+	                     (unsigned char *)&stats.st_blksize);
 	if (err) {
 		printf("failed to write blk_size \n");
 		exit(1);
 	}
 
 	err = obj_write_attr(&attr, ATIME, sizeof(stats.st_atime),
-	                     (char *)&stats.st_atime);
+	                     (unsigned char *)&stats.st_atime);
 	if (err) {
 		printf("failed to write atime \n");
 		exit(1);
@@ -92,14 +104,14 @@ set_defattr(odisk_state_t *odisk, char *attr_name, char *data_name)
 
 
 	err = obj_write_attr(&attr, MTIME, sizeof(stats.st_mtime),
-	                     (char *)&stats.st_mtime);
+	                     (unsigned char *)&stats.st_mtime);
 	if (err) {
 		printf("failed to write mtime \n");
 		exit(1);
 	}
 
 	err = obj_write_attr(&attr, CTIME, sizeof(stats.st_ctime),
-	                     (char *)&stats.st_ctime);
+	                     (unsigned char *)&stats.st_ctime);
 	if (err) {
 		printf("failed to write ctime \n");
 		exit(1);

@@ -11,6 +11,18 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+
 #include <errno.h>
 #include <openssl/evp.h>
 #include <assert.h>
@@ -52,7 +64,7 @@ sig_cal(const void *buf, off_t buflen, sig_val_t * sig_val)
 {
 	EVP_MD_CTX      mdctx;
 	unsigned char  *md_value;
-	int             md_len = 0;
+	unsigned int	md_len = 0;
 
 	assert(done_sig_init == 1);
 

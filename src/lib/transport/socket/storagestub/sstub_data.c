@@ -11,6 +11,18 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 /*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
@@ -150,18 +162,17 @@ sstub_attr_len(obj_data_t * obj, int drop_attrs)
 	int             err;
 	size_t          len,
 	                total;
-	char           *buf;
+	unsigned char  *buf;
 	void           *cookie;
 
 	total = 0;
 
-	err =
-	    obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie,
-			       drop_attrs);
+	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie,
+		drop_attrs);
 	while (err == 0) {
 		total += len;
 		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie,
-					drop_attrs);
+			drop_attrs);
 	}
 
 	return (total);
@@ -176,12 +187,9 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 	void           *vnum;
 	void           *junk;
 	int             err;
-	int             header_remain = 0,
-	    header_offset = 0;
-	size_t          attr_remain = 0,
-	    attr_offset = 0;
-	int             data_remain = 0,
-	    data_offset = 0;
+	int             header_remain = 0, header_offset = 0;
+	size_t          attr_remain = 0, attr_offset = 0;
+	int             data_remain = 0, data_offset = 0;
 	char           *data;
 
 

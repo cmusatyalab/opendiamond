@@ -11,6 +11,15 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +37,7 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
+#include "lib_dconfig.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "odisk_priv.h"
@@ -102,7 +112,7 @@ obj_write_attr_file(char *attr_fname, obj_attr_t * attr)
 	int             attr_fd;
 	off_t           wsize;
 	size_t          len;
-	char           *buf;
+	unsigned char *	buf;
 	int             err;
 	void           *cookie;
 
@@ -115,7 +125,8 @@ obj_write_attr_file(char *attr_fname, obj_attr_t * attr)
 		exit(1);
 	}
 
-	err = obj_get_attr_first(attr, &buf, &len, &cookie, 0);
+	err = obj_get_attr_first(attr, (unsigned char **)&buf, &len, 
+			&cookie, 0);
 	while (err != ENOENT) {
 		wsize = write(attr_fd, buf, len);
 		if (wsize != len) {
@@ -286,7 +297,7 @@ find_record(obj_attr_t * attr, const char *name)
 
 			if (((cur_rec->flags & ATTR_FLAG_FREE) == 0) &&
 			    (cur_rec->name_len >= namelen) &&
-			    (strcmp(name, cur_rec->data) == 0)) {
+			    (strcmp(name, (char *)cur_rec->data) == 0)) {
 				return (cur_rec);
 			}
 			offset += cur_rec->rec_len;
@@ -316,7 +327,7 @@ odisk_get_attr_sig(obj_data_t * obj, const char *name, sig_val_t * sig)
 
 int
 obj_write_attr(obj_attr_t * attr, const char *name, size_t len,
-	       const char *data)
+	       const unsigned char *data)
 {
 	attr_record_t  *data_rec;
 	int             total_size;
@@ -391,10 +402,11 @@ obj_write_attr(obj_attr_t * attr, const char *name, size_t len,
  */
 
 int
-obj_read_attr(obj_attr_t * attr, const char *name, size_t * len, void *data)
+obj_read_attr(obj_attr_t * attr, const char *name, size_t * len, 
+		unsigned char *data)
 {
 	attr_record_t  *record;
-	char           *dptr;
+	unsigned char         *dptr;
 
 	if ((strlen(name) + 1) > MAX_ATTR_NAME) {
 		return (EINVAL);
@@ -437,7 +449,8 @@ obj_read_attr(obj_attr_t * attr, const char *name, size_t * len, void *data)
  * the real data.  The caller may not modify it.
  */
 int
-obj_ref_attr(obj_attr_t * attr, const char *name, size_t * len, void **data)
+obj_ref_attr(obj_attr_t * attr, const char *name, size_t * len, 
+		unsigned char **data)
 {
 	attr_record_t  *record;
 
@@ -447,7 +460,7 @@ obj_ref_attr(obj_attr_t * attr, const char *name, size_t * len, void **data)
 	}
 
 	*len = record->data_len;
-	*data = (void *) &record->data[record->name_len];
+	*data = &record->data[record->name_len];
 
 	return (0);
 }
@@ -496,8 +509,8 @@ obj_use_record(attr_record_t * cur_rec, int skip_big)
 }
 
 int
-obj_get_attr_first(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
-		   int skip_big)
+obj_get_attr_first(obj_attr_t * attr, unsigned char **buf, size_t * len, 
+		void **cookie, int skip_big)
 {
 	size_t          offset;
 	obj_adata_t    *cur_adata;
@@ -531,27 +544,29 @@ obj_get_attr_first(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
 }
 
 int
-obj_first_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
-	void **cookie)
+obj_first_attr(obj_attr_t * attr, char **name, size_t * len, 
+		unsigned char **data, void **cookie)
 {
 	attr_record_t  *cur_rec;
+	unsigned char * dbuf;
 	size_t		rec_len;
 	int		err;
 
-	err = obj_get_attr_first(attr, (char **)&cur_rec, &rec_len, cookie, 0);
+	err = obj_get_attr_first(attr, &dbuf, &rec_len, cookie, 0);
 	if (err) {
 		return(err);
 	}
+	cur_rec = (attr_record_t *)dbuf;
 
-	*name = &cur_rec->data[0];
-	*data = (void *) &cur_rec->data[cur_rec->name_len];
+	*name = (char *)&cur_rec->data[0];
+	*data = &cur_rec->data[cur_rec->name_len];
 	*len = cur_rec->data_len;
 	return(0);
 }
 
 int
-obj_get_attr_next(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
-		  int skip_big)
+obj_get_attr_next(obj_attr_t * attr, unsigned char **buf, size_t * len, 
+		void **cookie, int skip_big)
 {
 	size_t          offset;
 	obj_adata_t    *cur_adata;
@@ -590,21 +605,23 @@ obj_get_attr_next(obj_attr_t * attr, char **buf, size_t * len, void **cookie,
 
 
 int
-obj_next_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
-	void **cookie)
+obj_next_attr(obj_attr_t * attr, char **name, size_t * len, 
+	unsigned char **data, void **cookie)
 {
+	unsigned char * dbuf;
 	attr_record_t  *cur_rec;
 	size_t		rec_len;
 	int		err;
 
-	err = obj_get_attr_next(attr, (char **)&cur_rec, &rec_len, cookie, 0);
+	err = obj_get_attr_next(attr, &dbuf, &rec_len, cookie, 0);
 	if (err) {
 		return(err);
 	}
+	cur_rec = (attr_record_t *)dbuf;
 
-	*name = &cur_rec->data[0];
+	*name = (char *)&cur_rec->data[0];
 	*len = cur_rec->data_len;
-	*data = (void *) &cur_rec->data[cur_rec->name_len];
+	*data = &cur_rec->data[cur_rec->name_len];
 	return(0);
 }
 

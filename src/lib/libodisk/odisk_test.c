@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +68,7 @@ void
 check_some_attr(obj_attr_t * attr, int size, int num)
 {
 	char           *base_data;
-	char           *ret_data;
+	unsigned char  *ret_data;
 	int             i;
 	int             diff;
 	int             err;
@@ -110,7 +120,7 @@ check_some_attr(obj_attr_t * attr, int size, int num)
 void
 write_some_attr(obj_attr_t * attr, int size, int num)
 {
-	char           *data;
+	unsigned char *	data;
 	int             i;
 	int             err;
 	char            name_string[128];

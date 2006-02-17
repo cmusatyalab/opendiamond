@@ -17,8 +17,8 @@ CFLAGS="${CFLAGS} -Wall -D_REENTRANT -D_THREAD_SAFE -ffast-math"
 
 
 # Checks for libraries.
-AC_CHECK_LIB([crypto], [main], , 
-	[AC_MSG_ERROR(Unable to find libcrypto)])
+#AC_CHECK_LIB([crypto], [main], , 
+	#[AC_MSG_ERROR(Unable to find libcrypto)])
 AC_CHECK_LIB([dl], [main], , 
 	[AC_MSG_ERROR(Unable to find libdl)])
 AC_CHECK_LIB([fl], [main], ,
@@ -27,8 +27,8 @@ AC_CHECK_LIB([m], [main], ,
 	[AC_MSG_ERROR(Unable to find libm)])
 AC_CHECK_LIB([pthread], [main], ,
 	[AC_MSG_ERROR(Unable to find libpthread)])
-AC_CHECK_LIB([ssl], [main], ,
-	[AC_MSG_ERROR(Unable to find libssl)])
+#AC_CHECK_LIB([ssl], [main], ,
+	#[AC_MSG_ERROR(Unable to find libssl)])
 
 
 OBJROOT=`pwd`

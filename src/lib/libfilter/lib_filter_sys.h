@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #ifndef _LIB_FILTER_SYS_H_
 #define	_LIB_FILTER_SYS_H_
 
@@ -22,13 +32,13 @@ extern "C" {
  * Debug function used by the runtime, we probably should move it
  * elsewhere.
  */
-typedef void (*read_attr_cb)(lf_obj_handle_t ohandle,
-			     const char *name, off_t len, const char *data);
+typedef void (*read_attr_cb)(lf_obj_handle_t ohandle, const char *name, 
+		off_t len, const unsigned char *data);
 
 int lf_set_read_cb(read_attr_cb);
 
 typedef void (*write_attr_cb)(lf_obj_handle_t ohandle, const char *name, 
-		off_t len, const char *data);
+		off_t len, const unsigned char *data);
 
 int lf_set_write_cb(write_attr_cb);
 

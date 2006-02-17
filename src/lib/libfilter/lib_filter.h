@@ -11,6 +11,17 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #ifndef _LIB_FILTER_H_
 #define	_LIB_FILTER_H_
 
@@ -218,7 +229,7 @@ int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
  */
 
 int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len, 
-		void *data);
+		unsigned char *data);
 
 /*!
  * Get pointer to attribute data in an object.  The returned pointer should
@@ -248,7 +259,7 @@ int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len,
  */
 
 int lf_ref_attr(lf_obj_handle_t ohandle, const char *name, 
-		size_t *len, void **data);
+		size_t *len, unsigned char **data);
 
 
 /*!
@@ -277,7 +288,8 @@ int lf_ref_attr(lf_obj_handle_t ohandle, const char *name,
  *		One or more of the arguments was invalid.
  */
 
-int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len, char *data);
+int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len, 
+		unsigned char *data);
 
 
 /*!
@@ -323,7 +335,7 @@ void lf_log(int level, char *fmt, ...);
  */
 
 int lf_first_attr(lf_obj_handle_t ohandle, char **name, 
-		size_t *len, void **data, void **cookie);
+		size_t *len, unsigned char **data, void **cookie);
 
 /*!
  * Get pointer to first attribute and it's data.  
@@ -348,7 +360,7 @@ int lf_first_attr(lf_obj_handle_t ohandle, char **name,
  */
 
 int lf_next_attr(lf_obj_handle_t ohandle, char **name, 
-		size_t *len, void **data, void **cookie);
+		size_t *len, unsigned char **data, void **cookie);
 
 
 #ifdef __cplusplus

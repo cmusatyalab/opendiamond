@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #ifndef _OBJ_ATTR_H_ 
 #define _OBJ_ATTR_H_	1
 
@@ -52,7 +62,7 @@ typedef struct attr_record {
 	int				data_len;
 	sig_val_t			attr_sig;
 	int				flags;
-	char 				data[0];
+	unsigned char 			data[0];
 } attr_record_t;
 
 
@@ -72,31 +82,32 @@ typedef struct attr_record {
  * These are the object attribute managment calls.
  */
 int obj_write_attr(obj_attr_t *attr, const char *name,
-                   size_t len, const char *data);
+                   size_t len, const unsigned char *data);
 int obj_read_attr(obj_attr_t *attr, const char *name,
-                  size_t *len, void *data);
+                  size_t *len, unsigned char *data);
 
-int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, void **data);
+int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, 
+		unsigned char **data);
 
 int obj_del_attr(obj_attr_t *attr, const char *name);
 int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname, 
 		obj_attr_t *attr);
 int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
 
-int obj_get_attr_first(obj_attr_t *attr, char **buf, size_t *len,
+int obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
                        void **cookie, int skip_big);
 
-int obj_get_attr_next(obj_attr_t *attr, char **buf, size_t *len,
+int obj_get_attr_next(obj_attr_t *attr, unsigned char **buf, size_t *len,
                       void **cookie, int skip_big);
 
 int obj_read_oattr(struct odisk_state *odisk, char *disk_path, 
 	sig_val_t *id_sig, sig_val_t *fsig, sig_val_t *iattrsig, 
 	obj_attr_t *attr);
 
-int obj_first_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
-        void **cookie);
-int obj_next_attr(obj_attr_t * attr, char **name, size_t * len, void **data,
-        void **cookie);
+int obj_first_attr(obj_attr_t * attr, char **name, size_t * len, 
+		unsigned char **data, void **cookie);
+int obj_next_attr(obj_attr_t * attr, char **name, size_t * len, 
+		unsigned char **data, void **cookie);
 
 
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);

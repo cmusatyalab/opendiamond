@@ -14,6 +14,17 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -155,9 +166,9 @@ have_value(char *input)
 		fprintf(stderr, "Failed to parse string <%s> \n", input);
 	}
 
-	dlen = strlen(attr_value) +1;
+	dlen = strlen((char *)attr_value) +1;
 	err = obj_write_attr(&cur_obj->attr_info, attr_name, dlen, 
-		attr_value);
+		(unsigned char *)attr_value);
 	if (err) {
 		fprintf(stderr, "Failed writing attribute \n");
 		
@@ -165,13 +176,13 @@ have_value(char *input)
 }
 
 static int
-load_ref_file(char *afile, size_t *dlen, char **dref)
+load_ref_file(char *afile, size_t *dlen, unsigned char **dref)
 {
 	struct stat     stats;
 	char            attr_name[NAME_MAX];
 	int		len;
 	int		os_file;
-	char *		data;
+	unsigned char * data;
 	size_t		size;
 	int		err;
 		
@@ -223,7 +234,7 @@ load_ref_file(char *afile, size_t *dlen, char **dref)
                 return (1);
         }
         
-	data = (char *)malloc(stats.st_size);
+	data = (unsigned char *)malloc(stats.st_size);
 	if (data == NULL) {
                 fprintf(stderr, "load_ref_file: can't alloc mem \n");
                 return (1);
@@ -248,12 +259,11 @@ load_ref_file(char *afile, size_t *dlen, char **dref)
 static void
 have_ref(char *input)
 {
-	int		err;
-	size_t		dlen;
-	char *		data;
+	int			err;
+	size_t			dlen = 0;
+	unsigned char *		data = NULL;
 
 
-	printf("have_ref\n");
 	err = extract_name_value(input, attr_name, attr_value);
 	if (err) {
 		fprintf(stderr, "have_ref: Failed to parse string <%s> \n", 	

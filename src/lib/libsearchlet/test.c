@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,10 +50,10 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 
 	}
 
-	lf_write_attr(ohandle, "test", sizeof(foo), (char *) &foo);
+	lf_write_attr(ohandle, "test", sizeof(foo), (unsigned char *) &foo);
 
 	size = sizeof(bar);
-	err = lf_read_attr(ohandle, "test", &size, (char *) &bar);
+	err = lf_read_attr(ohandle, "test", &size, (unsigned char *) &bar);
 	if (err != 0) {
 		/*
 		 * XXX error handler 
@@ -55,9 +65,9 @@ test(lf_obj_handle_t ohandle, int numarg, char **args)
 	}
 
 	foo = 45;
-	lf_write_attr(ohandle, "test", sizeof(foo), (char *) &foo);
+	lf_write_attr(ohandle, "test", sizeof(foo), (unsigned char *) &foo);
 	size = sizeof(bar);
-	err = lf_read_attr(ohandle, "test", &size, (char *) &bar);
+	err = lf_read_attr(ohandle, "test", &size, (unsigned char *) &bar);
 	if (err != 0) {
 		/*
 		 * XXX error handler 

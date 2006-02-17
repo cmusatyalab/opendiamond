@@ -11,6 +11,17 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #ifndef	_SSTUB_IMPL_H_
 #define	_SSTUB_IMPL_H_
 
@@ -94,52 +105,52 @@ typedef struct cstate
 	struct listener_state *lstate;
 	int			        control_fd;
 	int			        data_fd;
-	int			        log_fd;
-	void *			    app_cookie;
-	fd_set			    read_fds;
-	fd_set			    write_fds;
-	fd_set			    except_fds;
+	int			log_fd;
+	void *			app_cookie;
+	fd_set			read_fds;
+	fd_set			write_fds;
+	fd_set			except_fds;
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
 	control_rx_state_t	control_rx_state;
 	control_header_t	control_rx_header;
-	char *			    control_rx_data;
-	int			        control_rx_offset;
+	char *			control_rx_data;
+	int			control_rx_offset;
 	ring_data_t * 		control_tx_ring;
 	control_tx_state_t	control_tx_state;
 	control_header_t *	control_tx_header;
-	int			        control_tx_offset;
-	char *			    log_tx_buf;
-	int			        log_tx_len;
-	int			        log_tx_offset;
+	int			control_tx_offset;
+	char *			log_tx_buf;
+	int		        log_tx_len;
+	int		        log_tx_offset;
 	log_header_t		log_tx_header;
 	log_tx_state_t		log_tx_state;
 	obj_data_t *		data_tx_obj;
 	data_tx_state_t		data_tx_state;
-	int			        data_tx_offset;
+	int		        data_tx_offset;
 	obj_header_t		data_tx_oheader;
-	int					attr_policy;
+	int			attr_policy;
 	unsigned int		attr_threshold;
-	int					attr_ratio;
-	int					drop_attrs;
-	char *			attr_buf;
+	int			attr_ratio;
+	int			drop_attrs;
+	unsigned char *		attr_buf;
 	void *			attr_cookie;
 	size_t			attr_remain;
 	/* store incoming credit message */
 	credit_count_msg_t	cc_msg;
 	/* number of remaining credits */
-	uint32_t			cc_credits;
-	uint32_t            stats_objs_tx;
-	uint64_t            stats_objs_attr_bytes_tx;
-	uint64_t            stats_objs_data_bytes_tx;
-	uint64_t            stats_objs_hdr_bytes_tx;
-	uint64_t            stats_objs_total_bytes_tx;
-	uint32_t            stats_control_tx;
-	uint64_t            stats_control_bytes_tx;
-	uint32_t            stats_control_rx;
-	uint64_t            stats_control_bytes_rx;
-	uint32_t            stats_log_tx;
-	uint64_t            stats_log_bytes_tx;
+	uint32_t		cc_credits;
+	uint32_t            	stats_objs_tx;
+	uint64_t            	stats_objs_attr_bytes_tx;
+	uint64_t            	stats_objs_data_bytes_tx;
+	uint64_t            	stats_objs_hdr_bytes_tx;
+	uint64_t            	stats_objs_total_bytes_tx;
+	uint32_t            	stats_control_tx;
+	uint64_t            	stats_control_bytes_tx;
+	uint32_t            	stats_control_rx;
+	uint64_t            	stats_control_bytes_rx;
+	uint32_t            	stats_log_tx;
+	uint64_t            	stats_log_bytes_tx;
 }
 cstate_t;
 
@@ -181,8 +192,7 @@ typedef struct listener_state
 	sstub_set_blob_fn		set_blob_cb;
 	sstub_set_offload_fn		set_offload_cb;
 	cstate_t		        conns[MAX_CONNS];
-}
-listener_state_t;
+} listener_state_t;
 
 
 

@@ -169,7 +169,7 @@ typedef int (*filter_fini_proto)(void *filter_args);
  */
 
 int lf_next_block(lf_obj_handle_t obj_handle, int num_blocks,  
-			size_t *lenp, char **bufp);
+			size_t *lenp, unsigned char **bufp);
 
 /*!
  * This skips the next N blocks of the specified object.  For an input

@@ -167,10 +167,10 @@ lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
 
 int
 lf_next_block(lf_obj_handle_t obj_handle,
-	      int num_blocks, size_t * len, char **bufp)
+	      int num_blocks, size_t * len, unsigned char **bufp)
 {
 	obj_data_t     *odata;
-	char           *buf;
+	unsigned char  *buf;
 	size_t          length;
 	size_t          remain;
 	int             max_blocks;
@@ -213,7 +213,7 @@ lf_next_block(lf_obj_handle_t obj_handle,
 
 	memcpy(buf, &odata->data[odata->cur_offset], length);
 #else
-	buf = &odata->data[odata->cur_offset];
+	buf = (unsigned char *)&odata->data[odata->cur_offset];
 #endif
 	odata->cur_offset += length;
 	*len = length;

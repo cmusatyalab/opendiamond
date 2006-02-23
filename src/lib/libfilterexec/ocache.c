@@ -67,7 +67,7 @@ static char const cvsid[] =
  * dctl variables 
  */
 unsigned int    if_cache_table = 1;
-unsigned int    if_cache_oattr = 1;
+unsigned int    if_cache_oattr = 0;
 unsigned int    count_thresh = 0;
 
 static int      search_active = 0;
@@ -151,7 +151,7 @@ digest_cal(filter_data_t * fdata, char *fn_name, int numarg, char **filt_args,
 	 */
 	for (i = 0; i < fdata->num_libs; i++) {
 		EVP_DigestUpdate(&mdctx, &fdata->lib_info[i].lib_sig,
-				 sizeof(sig_val_t));
+		    sizeof(sig_val_t));
 	}
 
 	EVP_DigestUpdate(&mdctx, fn_name, strlen(fn_name));

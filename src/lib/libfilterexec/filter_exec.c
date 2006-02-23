@@ -12,6 +12,17 @@
  */
 
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -293,7 +304,7 @@ load_filter_lib(char *lib_name, filter_data_t * fdata, sig_val_t * sig)
 	filter_id_t     fid;
 	char           *error;
 
-	handle = dlopen(lib_name, RTLD_LAZY | RTLD_GLOBAL);
+	handle = dlopen(lib_name, RTLD_LAZY | RTLD_LOCAL);
 	if (!handle) {
 		/*
 		 * XXX error log 
@@ -323,6 +334,7 @@ load_filter_lib(char *lib_name, filter_data_t * fdata, sig_val_t * sig)
 	assert(fdata->lib_info[fdata->num_libs].lib_name != NULL);
 
 	memcpy(&fdata->lib_info[fdata->num_libs].lib_sig, sig, sizeof(*sig));
+	fdata->num_libs++;
 
 	/*
 	 * XXX keep the handle somewhere 

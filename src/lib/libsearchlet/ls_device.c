@@ -12,6 +12,16 @@
  */
 
 /*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+/*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
  */
@@ -541,8 +551,6 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 	char            node_name[128];
 	char            cr_name[128];
 
-	// XXX printf("register remote on %08x \n", devid);
-
 	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
 	if (hent == NULL) {
 		struct in_addr  in;
@@ -574,8 +582,6 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 	cbs.dfwd_lnodes_cb = remote_list_nodes;
 	cbs.dfwd_lleafs_cb = remote_list_leafs;
 	cbs.dfwd_cookie = (void *) dev_handle;
-
-	// XXX printf("register remote <%s> \n", node_name);
 
 	err = dctl_register_fwd_node(HOST_DEVICE_PATH, node_name, &cbs);
 	if (err) {
@@ -662,8 +668,7 @@ create_new_device(search_context_t * sc, uint32_t devid)
 
 
 	new_dev->dev_handle = device_init(sc->cur_search_id, devid,
-					  (void *) new_dev, &cb_data,
-					  sc->dctl_cookie, sc->log_cookie);
+	  (void *) new_dev, &cb_data, sc->dctl_cookie, sc->log_cookie);
 
 	if (new_dev->dev_handle == NULL) {
 		/*

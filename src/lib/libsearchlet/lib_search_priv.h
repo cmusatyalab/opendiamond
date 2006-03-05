@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 #ifndef _LIB_SEARCH_PRIV_H_
 #define _LIB_SEARCH_PRIV_H_
 
@@ -42,29 +52,27 @@ struct search_context;
 
 #define	MAX_DEV_GROUPS		64
 
-typedef struct device_handle
-{
-	struct device_handle * 			next;
+typedef struct device_handle {
+	struct device_handle * 		next;
 	uint32_t			dev_id;
 	groupid_t			dev_groups[MAX_DEV_GROUPS];
-	int					num_groups;
-	unsigned int		flags;
+	int				num_groups;
+	unsigned int			flags;
 	void *				dev_handle;
-	int					ver_no;
+	int				ver_no;
 	time_t				start_time;
-	int					remain_old;
-	int					remain_mid;
-	int					remain_new;
+	int				remain_old;
+	int				remain_mid;
+	int				remain_new;
 	float				done;
 	float				delta;
 	float				prate;
-	int					obj_total;
+	int				obj_total;
 	float				cur_credits;	/* credits for current iteration */
-	int					credit_incr;	/* incremental credits to add */
-	int					serviced;	/* times data removed */
+	int				credit_incr;	/* incremental credits to add */
+	int				serviced;	/* times data removed */
 	struct 				search_context *	sc;
-}
-device_handle_t;
+} device_handle_t;
 
 
 #define	MAX_DEV_PER_GROUP	64

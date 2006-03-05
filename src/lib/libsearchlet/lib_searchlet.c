@@ -11,6 +11,17 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 /*
  * This provides many of the main functions in the provided
  * through the searchlet API.
@@ -213,6 +224,23 @@ ls_terminate_search(ls_search_handle_t handle)
 }
 
 
+/*
+ * simpling error logging for failed device.
+ */
+
+static void
+log_dev_error(uint32_t host, const char *str)
+{
+	struct in_addr  in;
+	char           *name;
+
+	in.s_addr = host;
+	name = inet_ntoa(in);
+
+	log_message(LOGT_BG, LOGL_CRIT, "%s for device %s", str, name);
+}
+
+
 #define	MAX_HOST_IDS	64
 
 int
@@ -248,17 +276,9 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		cur_dev->num_groups = 0;
-		err =
-		    device_clear_gids(cur_dev->dev_handle, sc->cur_search_id);
+		err = device_clear_gids(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
-			/*
-			 * if we get an error we note it for
-			 * the return value but try to process the rest
-			 * of the devices
-			 */
-			/*
-			 * XXX logging 
-			 */
+			log_dev_error(cur_dev->dev_id, "failed clear gid");
 		}
 	}
 
@@ -274,21 +294,7 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 		for (j = 0; j < hosts; j++) {
 			err = device_add_gid(sc, cur_gid, host_ids[j]);
 			if (err) {
-				struct in_addr  in;
-				char           *name;
-				/*
-				 * we failed to add of init with the host,
-				 * just fail this call for now, this
-				 * is basically a bad state
-				 * we can't recover from.
-				 */
-				in.s_addr = host_ids[j];
-				name = inet_ntoa(in);
-				fprintf(stderr,
-					"Failed to connect to device %s for gid %llx\n",
-					name, cur_gid);
-				assert(0);
-				return (EINVAL);
+				log_dev_error(host_ids[j], "Failed to add gid");
 			}
 		}
 	}
@@ -347,17 +353,8 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 					   filter_file_name,
 					   filter_spec_name);
 		if (err != 0) {
-			/*
-			 * It isn't obvious what we need to do if we
-			 * get an error here.  This applies to the fault
-			 * tolerance story.  For now we keep trying the
-			 * rest of the device
-			 * XXX figure out what to do here ???
-			 */
-			/*
-			 * XXX logging 
-			 */
-			printf("XXX device start failed \n");
+			log_dev_error(cur_dev->dev_id, 
+			    "failed setting searchlet");
 		} else {
 			started++;
 		}
@@ -365,7 +362,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	}
 
 	err = bg_set_searchlet(sc, sc->cur_search_id,
-			       filter_file_name, filter_spec_name);
+       		filter_file_name, filter_spec_name);
 	if (err) {
 		/*
 		 * XXX log 
@@ -417,17 +414,8 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 					   sc->cur_search_id,
 					   filter_file_name, NULL);
 		if (err != 0) {
-			/*
-			 * It isn't obvious what we need to do if we
-			 * get an error here.  This applies to the fault
-			 * tolerance story.  For now we keep trying the
-			 * rest of the device
-			 * XXX figure out what to do here ???
-			 */
-			/*
-			 * XXX logging 
-			 */
-			printf("XXX device add failed \n");
+			log_dev_error(cur_dev->dev_id, 
+			    "failed adding filter file");
 		} else {
 			started++;
 		}
@@ -522,17 +510,7 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 				      sc->cur_search_id, filter_name,
 				      blob_len, blob_data);
 		if (err != 0) {
-			/*
-			 * It isn't obvious what we need to do if we
-			 * get an error here.  This applies to the fault
-			 * tolerance story.  For now we keep trying the
-			 * rest of the device
-			 * XXX figure out what to do here ???
-			 */
-			/*
-			 * XXX logging 
-			 */
-			assert(0);
+			log_dev_error(cur_dev->dev_id, "failed to set blob");
 		}
 	}
 
@@ -644,17 +622,8 @@ ls_start_search(ls_search_handle_t handle)
 		cur_dev->start_time = cur_time;
 		err = device_start(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
-			/*
-			 * It isn't obvious what we need to do if we
-			 * get an error here.  This applies to the fault
-			 * tolerance story.  For now we keep trying the
-			 * rest of the device
-			 * XXX figure out what to do here ???
-			 */
-			assert(0);
-			/*
-			 * XXX logging 
-			 */
+			log_dev_error(cur_dev->dev_id,
+			    "failed starting search");
 		} else {
 			started++;
 		}

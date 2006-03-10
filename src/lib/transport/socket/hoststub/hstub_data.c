@@ -11,6 +11,18 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 /*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
@@ -34,6 +46,7 @@
 #include "lib_tools.h"
 #include "socket_trans.h"
 #include "obj_attr.h"
+#include "lib_log.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
@@ -135,14 +148,10 @@ hstub_read_data(sdevice_state_t * dev)
 				cinfo->data_rx_offset = header_offset;
 				return;
 			} else {
-				/*
-				 * XXX what to do?? 
-				 */
-				/*
-				 * XXX log 
-				 */
-				perror("get_obj_data: unknown err: \n");
-				exit(1);
+			    	log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_read_data: broken socket");
+				hstub_conn_down(dev);
+				return;
 			}
 		}
 
@@ -165,11 +174,10 @@ hstub_read_data(sdevice_state_t * dev)
 		 */
 		if (ntohl(cinfo->data_rx_header.obj_magic)
 		    != OBJ_MAGIC_HEADER) {
-			/*
-			 * XXX log 
-			 */
-			printf("get_obj_data:  bad magic number \n");
-			exit(1);
+			log_message(LOGT_NET, LOGL_CRIT,
+			    "hstub_read_data: bad magic");
+			hstub_conn_down(dev);
+			return;
 		}
 
 		/*
@@ -185,13 +193,10 @@ hstub_read_data(sdevice_state_t * dev)
 		if (alen > 0) {
 			adata = (char *) malloc(alen);
 			if (adata == NULL) {
-				/*
-				 * XXX treate as partial and recover later ??
-				 */
-				printf
-				    ("failed to allocation attribute data \n");
-				exit(1);
-
+				log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_read_data: malloc failed");
+				hstub_conn_down(dev);
+				return;
 			}
 		} else {
 			adata = NULL;
@@ -203,11 +208,10 @@ hstub_read_data(sdevice_state_t * dev)
 		if (dlen > 0) {
 			odata = (char *) malloc(dlen);
 			if (odata == NULL) {
-				/*
-				 * XXX treate as partial and recover later?? 
-				 */
-				printf("failed to allocation object data \n");
-				exit(1);
+				log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_read_data: malloc failed");
+				hstub_conn_down(dev);
+				return;
 			}
 		} else {
 			odata = NULL;
@@ -221,8 +225,10 @@ hstub_read_data(sdevice_state_t * dev)
 
 		obj = (obj_data_t *) malloc(sizeof(*obj));
 		if (obj == NULL) {
-			printf("XXX crap, no space for object data \n");
-			exit(1);
+			log_message(LOGT_NET, LOGL_CRIT,
+			    "hstub_read_data: malloc failed");
+			hstub_conn_down(dev);
+			return;
 		}
 		obj->data_len = dlen;
 		obj->data = odata;
@@ -267,14 +273,10 @@ hstub_read_data(sdevice_state_t * dev)
 				cinfo->data_rx_offset = attr_offset;
 				return;
 			} else {
-				/*
-				 * XXX what to do?? 
-				 */
-				/*
-				 * XXX log 
-				 */
-				perror("get_obj_data: err reading attrs\n");
-				exit(1);
+				log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_read_data: socket down");
+				hstub_conn_down(dev);
+				return;
 			}
 		}
 
@@ -310,14 +312,10 @@ hstub_read_data(sdevice_state_t * dev)
 				cinfo->data_rx_offset = data_offset;
 				return;
 			} else {
-				/*
-				 * XXX what to do?? 
-				 */
-				/*
-				 * XXX log 
-				 */
-				perror("get_obj_data: err reading data\n");
-				exit(1);
+				log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_read_data: socket down");
+				hstub_conn_down(dev);
+				return;
 			}
 		}
 
@@ -395,7 +393,7 @@ hstub_write_data(sdevice_state_t * dev)
 	cinfo = &dev->con_data;
 
 	/*
-	 * the only data we should every need to write is 
+	 * the only data we should ever need to write is 
 	 * credit count messages.
 	 */
 

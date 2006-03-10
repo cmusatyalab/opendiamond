@@ -12,6 +12,16 @@
  */
 
 /*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+/*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
  */
@@ -32,6 +42,7 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
+#include "lib_log.h"
 #include "socket_trans.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
@@ -54,16 +65,13 @@ socket_non_block(int fd)
 
 	flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1) {
-		/*
-		 * XXX 
-		 */
-		printf("get flags failed \n");
-		exit(1);
+		log_message(LOGT_NET, LOGL_ERR, "hstub: issue fcntl");
+		return;
 	}
 	err = fcntl(fd, F_SETFL, (flags | O_NONBLOCK));
 	if (err == -1) {
-		printf("set flags failed \n");
-		exit(1);
+		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to set fcntl");
+		return;
 	}
 }
 

@@ -12,6 +12,16 @@
  */
 
 /*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+/*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
  */
@@ -58,9 +68,8 @@ request_chars(sdevice_state_t * dev)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		 log_message(LOGT_NET, LOGL_ERR, 
+		     "control message: malloc failed");
 		return;
 	}
 
@@ -70,13 +79,8 @@ request_chars(sdevice_state_t * dev)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to request_chars  \n");
+		 log_message(LOGT_NET, LOGL_ERR, 
+		     "control message: queue overflow");
 		free(cheader);
 		return;
 	}
@@ -95,9 +99,8 @@ request_stats(sdevice_state_t * dev)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		 log_message(LOGT_NET, LOGL_ERR, 
+		     "control message: malloc failed");
 		return;
 	}
 
@@ -107,13 +110,8 @@ request_stats(sdevice_state_t * dev)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to request stats  \n");
+		 log_message(LOGT_NET, LOGL_ERR, 
+		     "control message: queue overflow");
 		free(cheader);
 		return;
 	}
@@ -124,6 +122,15 @@ request_stats(sdevice_state_t * dev)
 	return;
 }
 
+void
+hstub_conn_down(sdevice_state_t * dev)
+{
+	/* callback to mark the search done */
+	(*dev->hstub_search_done_cb) (dev->hcookie, dev->ver_no);
+
+	/* set the flag */
+	dev->con_data.flags |= CINFO_DOWN;
+}
 
 
 /*
@@ -131,7 +138,7 @@ request_stats(sdevice_state_t * dev)
  * processing data to/from the individual devices
  */
 
-void           *
+void *
 hstub_main(void *arg)
 {
 	sdevice_state_t *dev;
@@ -140,9 +147,7 @@ hstub_main(void *arg)
 	int             err;
 	int             max_fd;
 	struct timeval  this_time;
-	struct timeval  next_time = {
-		0, 0
-	};
+	struct timeval  next_time = {0, 0};
 	struct timezone tz;
 
 	dev = (sdevice_state_t *) arg;
@@ -172,10 +177,22 @@ hstub_main(void *arg)
 	 */
 	while (1) {
 
+		/* if the connection has been marked down then we
+		 * exit for now. 
+		 * TODO: future version should possibly start over.
+		 */
+		if (cinfo->flags & CINFO_DOWN) {
+			pthread_exit(0);
+		}
+
 		gettimeofday(&this_time, &tz);
 
+		/*
+		 * periodically prove send device statistics and
+		 * device characteristic probes.
+		 */
 		if (((this_time.tv_sec == next_time.tv_sec) &&
-		     (this_time.tv_usec >= next_time.tv_usec)) ||
+	     	    (this_time.tv_usec >= next_time.tv_usec)) ||
 		    (this_time.tv_sec > next_time.tv_sec)) {
 
 			request_chars(dev);
@@ -218,11 +235,9 @@ hstub_main(void *arg)
 			     &cinfo->except_fds, &to);
 
 		if (err == -1) {
-			/*
-			 * XXX log 
-			 */
-			perror("XXX select failed \n");
-			exit(1);
+		 	log_message(LOGT_NET, LOGL_CRIT, 
+			    "hstub_main: broken socket");
+			hstub_conn_down(dev);
 		}
 
 		if (err > 0) {

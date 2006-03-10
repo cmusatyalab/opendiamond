@@ -12,6 +12,16 @@
  */
 
 /*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+/*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
  */
@@ -35,6 +45,7 @@
 #include "socket_trans.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
+#include "lib_log.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
@@ -108,15 +119,9 @@ hstub_read_log(sdevice_state_t * dev)
 				 */
 				return;
 			} else {
-				/*
-				 * some un-handled error happened, 
-				 */
-				/*
-				 * XXX what now 
-				 */
-				printf("dev %08x \n", cinfo->dev_id);
-				perror("uknown socket problem:");
-				exit(1);
+			    	log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_readlog: broken socket");
+				hstub_conn_down(dev);
 				return;
 			}
 		}
@@ -150,11 +155,10 @@ hstub_read_log(sdevice_state_t * dev)
 		if (data_remain > 0) {
 			data_buf = (char *) malloc(data_remain);
 			if (data_buf == NULL) {
-				/*
-				 * XXX crap, how do I get out of this 
-				 */
-				printf("XXX failed to alloc log buffer \n");
-				exit(1);
+			    	log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_readlog: malloc failed");
+				hstub_conn_down(dev);
+				return;
 			}
 		}
 	}
@@ -181,15 +185,10 @@ hstub_read_log(sdevice_state_t * dev)
 				cinfo->log_rx_state = LOG_RX_DATA;
 				return;
 			} else {
-				/*
-				 * some un-handled error happened, we
-				 * just shutdown the connection.
-				 */
-				/*
-				 * XXX log 
-				 */
-				perror("process_log");
-				exit(1);
+			    	log_message(LOGT_NET, LOGL_CRIT,
+			    	    "hstub_readlog: malloc failed");
+				hstub_conn_down(dev);
+				return;
 			}
 		}
 

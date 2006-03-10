@@ -11,6 +11,18 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 /*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
@@ -38,6 +50,7 @@
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_hstub.h"
+#include "lib_log.h"
 #include "hstub_impl.h"
 
 
@@ -274,8 +287,9 @@ process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 		break;
 
 	default:
-		printf("XXX process control: unknown command %d \n", cmd);
-		exit(1);
+		log_message(LOGT_NET, LOGL_ERR,
+	    	    "process_control: bad message type");
+		break;
 
 	}
 
@@ -312,7 +326,6 @@ hstub_read_cntrl(sdevice_state_t * dev)
 		data_offset = 0;
 
 	} else if (cinfo->control_rx_state == CONTROL_RX_HEADER) {
-
 		header_offset = cinfo->control_rx_offset;
 		header_remain = sizeof(cinfo->control_rx_header) -
 		    header_offset;
@@ -351,16 +364,9 @@ hstub_read_cntrl(sdevice_state_t * dev)
 				 */
 				return;
 			} else {
-				/*
-				 * some un-handled error happened, 
-				 */
-				/*
-				 * XXX what now 
-				 */
-				printf("lost conn with %08x \n",
-				       cinfo->dev_id);
-				perror("uknown socket problem:");
-				exit(1);
+				log_message(LOGT_NET, LOGL_CRIT,
+				    "hstub_write: broken socket");
+				hstub_conn_down(dev);
 				return;
 			}
 		}
@@ -392,10 +398,10 @@ hstub_read_cntrl(sdevice_state_t * dev)
 		if (data_remain > 0) {
 			data_buf = (char *) malloc(data_remain);
 			if (data_buf == NULL) {
-				/*
-				 * XXX crap, how do I get out of this 
-				 */
-				exit(1);
+				log_message(LOGT_NET, LOGL_CRIT,
+				    "hstub_read_cntrl: malloc failed");
+				hstub_conn_down(dev);
+				return;
 			}
 		}
 	}
@@ -424,15 +430,10 @@ hstub_read_cntrl(sdevice_state_t * dev)
 				cinfo->control_rx_state = CONTROL_RX_DATA;
 				return;
 			} else {
-				/*
-				 * some un-handled error happened, we
-				 * just shutdown the connection.
-				 */
-				/*
-				 * XXX log 
-				 */
-				perror("process_control");
-				exit(1);
+				log_message(LOGT_NET, LOGL_CRIT,
+				    "hstub_read_cntrl: broken socket");
+				hstub_conn_down(dev);
+				return;
 			}
 		}
 
@@ -543,10 +544,9 @@ hstub_write_cntrl(sdevice_state_t * dev)
 				cinfo->control_state = CONTROL_TX_HEADER;
 				return;
 			} else {
-				/*
-				 * XXX log, what else do we do ?? 
-				 */
-				assert(0);
+				log_message(LOGT_NET, LOGL_CRIT,
+				    "hstub_read_cntrl: broken socket");
+				hstub_conn_down(dev);
 				return;
 			}
 		}
@@ -571,10 +571,9 @@ hstub_write_cntrl(sdevice_state_t * dev)
 				cinfo->control_state = CONTROL_TX_DATA;
 				return;
 			} else {
-				/*
-				 * XXX log, what else do we do ?? 
-				 */
-				assert(0);
+				log_message(LOGT_NET, LOGL_CRIT,
+				    "hstub_write: broken socket");
+				hstub_conn_down(dev);
 				return;
 			}
 		}

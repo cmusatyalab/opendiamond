@@ -11,6 +11,17 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
 /*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
@@ -33,6 +44,7 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
+#include "lib_log.h"
 #include "socket_trans.h"
 #include "obj_attr.h"
 #include "diamond_types.h"
@@ -113,11 +125,9 @@ device_stop(void *handle, int id)
 	dev = (sdevice_state_t *) handle;
 
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+	if ((cheader = (control_header_t *) malloc(sizeof(*cheader))) == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_stop: failed to malloc message");
 		return (EAGAIN);
 	}
 
@@ -128,13 +138,8 @@ device_stop(void *handle, int id)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed device stop \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_stop: failed to enqueue stop command");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -165,9 +170,8 @@ device_terminate(void *handle, int id)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_terminate: failed to malloc message");
 		return (EAGAIN);
 	}
 
@@ -178,12 +182,8 @@ device_terminate(void *handle, int id)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_terminate: failed to enqueue message");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -211,11 +211,13 @@ device_start(void *handle, int id)
 
 	dev = (sdevice_state_t *) handle;
 
+	/* save the new start id */
+	dev->ver_no = id;
+
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_start: failed to allocate message");
 		return (EAGAIN);
 	}
 
@@ -226,13 +228,8 @@ device_start(void *handle, int id)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to enq start  on ring\n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_start: failed to enqueue message");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -254,9 +251,8 @@ device_clear_gids(void *handle, int id)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_clear_gids: failed to allocate message");
 		return (EAGAIN);
 	}
 
@@ -267,13 +263,8 @@ device_clear_gids(void *handle, int id)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to enq clear_gids \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_clear_gids: failed to enqueue message");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -313,9 +304,8 @@ device_new_gid(void *handle, int id, groupid_t gid)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_new_gids: failed to malloc message");
 		return (EAGAIN);
 	}
 
@@ -330,13 +320,8 @@ device_new_gid(void *handle, int id, groupid_t gid)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to enq set gids \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_new_gids: failed to enqueue message");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -357,18 +342,20 @@ device_set_offload(void *handle, int id, uint64_t offload)
 
 	dev = (sdevice_state_t *) handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+	if ((cheader = (control_header_t *) malloc(sizeof(*cheader))) == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_offload: failed to malloc message");
 		return (EAGAIN);
 	}
 
-	offl = (offload_subheader_t *) malloc(sizeof(*offl));
-	assert(offl != NULL);
-	offl->offl_data = offload;	/* XXX bswap */
+	if((offl = (offload_subheader_t *) malloc(sizeof(*offl))) == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_offload: failed to malloc message");
+		free(cheader);
+		return (EAGAIN);
+	}
 
+	offl->offl_data = offload;	/* XXX bswap */
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_SET_OFFLOAD);
 	cheader->data_len = htonl(sizeof(*offl));
@@ -376,13 +363,8 @@ device_set_offload(void *handle, int id, uint64_t offload)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to set offload\n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_offload: failed to enqueue message");
 		free(cheader);
 		free(offl);
 		return (EAGAIN);
@@ -420,9 +402,8 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed to malloc message");
 		return (EAGAIN);
 	}
 
@@ -435,20 +416,19 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 */
 	err = stat(filter, &stats);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed stat filter file <%s>", 
+		    filter);
 		return (ENOENT);
 	}
 	filter_len = stats.st_size;
 
 	if (spec != NULL) {
-
 		err = stat(spec, &stats);
 		if (err) {
-			/*
-			 * XXX log 
-			 */
+			log_message(LOGT_NET, LOGL_ERR,
+		    	    "device_set_searchlet: failed stat spec file <%s>", 
+		    	    spec);
 			return (ENOENT);
 		}
 		spec_len = stats.st_size;
@@ -478,20 +458,18 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	data = (char *) shead + sizeof(*shead);
 
 	if (spec != NULL) {
-		cur_file = fopen(spec, "r");
-		if (cur_file == NULL) {
-			/*
-			 * XXX log 
-			 */
+		if ((cur_file = fopen(spec, "r")) == NULL) {
+			log_message(LOGT_NET, LOGL_ERR,
+		    	    "device_set_searchlet: failed open spec <%s>", 
+		    	    spec);
 			free(cheader);
 			free(shead);
 			return (ENOENT);
 		}
-		rsize = fread(data, spec_len, 1, cur_file);
-		if (rsize != 1) {
-			/*
-			 * XXX log 
-			 */
+		if ((rsize = fread(data, spec_len, 1, cur_file)) != 1) {
+			log_message(LOGT_NET, LOGL_ERR,
+		    	    "device_set_searchlet: failed read spec <%s>", 
+			    spec);
 			free(cheader);
 			free(shead);
 			return (EAGAIN);
@@ -507,20 +485,18 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 * boundary.
 	 */
 	data += ((spec_len + 3) & ~3);
-	cur_file = fopen(filter, "r");
-	if (cur_file == NULL) {
-		/*
-		 * XXX log 
-		 */
+	if ((cur_file = fopen(filter, "r")) == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed open filter <%s>", 
+		    filter);
 		free(cheader);
 		free(shead);
 		return (ENOENT);
 	}
-	rsize = fread(data, filter_len, 1, cur_file);
-	if (rsize != 1) {
-		/*
-		 * XXX log 
-		 */
+	if ((rsize = fread(data, filter_len, 1, cur_file)) != 1) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed read filter <%s>", 
+		    filter);
 		free(cheader);
 		free(shead);
 		return (EAGAIN);

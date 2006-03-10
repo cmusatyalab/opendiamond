@@ -47,10 +47,4 @@ get_user_name(char *name)
 		ret = snprintf(name, MAX_USER_NAME, "%s", pwd->pw_name);
 	}
 
-	/*
-	 * deal with overflow in the user name 
-	 */
-	if (ret > (MAX_USER_NAME - 1)) {
-		name[MAX_USER_NAME - 1] = '\0';
-	}
 }

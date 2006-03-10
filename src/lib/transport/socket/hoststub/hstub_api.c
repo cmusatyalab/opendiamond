@@ -1118,11 +1118,7 @@ setup_stats(sdevice_state_t * dev, uint32_t devid)
  * This is the initialization function that is
  * called by the searchlet library when we startup.
  */
-
-/*
- * XXX callback for new packets 
- */
-void           *
+void *
 device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list,
 	    void *dctl_cookie, void *log_cookie)
 {

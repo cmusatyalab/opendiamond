@@ -122,7 +122,6 @@ log_send_local_data(search_context_t * sc, int conn)
 /*
  * send a specific log entry.
  */
-
 int
 log_send_queued_data(search_context_t * sc, log_info_t * log_info, int conn)
 {
@@ -158,7 +157,7 @@ log_send_queued_data(search_context_t * sc, log_info_t * log_info, int conn)
 		goto done;
 	}
 
-      done:
+done:
 	free(data);
 	free(log_info);
 	return (err);
@@ -209,7 +208,6 @@ set_device_log(log_set_level_t * llevel, search_context_t * sc)
 
 		log_setlevel(hlevel);
 		log_settype(hsrc);
-
 		break;
 
 	case LOG_SETLEVEL_DEVICE:

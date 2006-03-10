@@ -31,11 +31,20 @@
 /* max user name we support */
 #define MAX_USER_NAME   64
 
+#ifdef __cplusplus
+extern          "C"
+{
+#endif
+
 /*
  * fill in string name of the current user (assumes
  * string is MAX_USER_NAME bytes long).
  */
 void    get_user_name(char *name);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif                          /* _LIB_TOOOLS_H */

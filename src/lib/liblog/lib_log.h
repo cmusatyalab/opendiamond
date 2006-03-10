@@ -27,6 +27,7 @@
 #define	LOGT_FILT	0x00000004	/* from filter evaluation */
 #define	LOGT_BG		0x00000008	/* from host background process */
 #define LOGT_UTILITY    0x00000010      /* from generic utility functions */
+#define LOGT_NET	0x00000020      /* network related */
 #define	LOGT_ALL	0xFFFFFFFF	/* log all types */
 
 /*

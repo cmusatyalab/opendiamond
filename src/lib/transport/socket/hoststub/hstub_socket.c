@@ -90,16 +90,15 @@ hstub_establish_connection(conn_info_t * cinfo, uint32_t devid)
 
 	pent = getprotobyname("tcp");
 	if (pent == NULL) {
-		/*
-		 * XXX log error 
-		 */
-		return (ENOENT);
+		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to find tcp");
+		return(ENOENT);
 	}
 
-	cinfo->control_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
-	/*
-	 * XXX err ?? 
-	 */
+	if ((cinfo->control_fd = socket(PF_INET, SOCK_STREAM,pent->p_proto))<0){
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: failed to create socket");
+		return(ENOENT);
+	}
 
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons((unsigned short) CONTROL_PORT);
@@ -112,26 +111,20 @@ hstub_establish_connection(conn_info_t * cinfo, uint32_t devid)
 
 	err = connect(cinfo->control_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {
-		/*
-		 * XXX log error 
-		 */
-		printf("failed to connected \n");
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: connect failed");
 		return (ENOENT);
 	}
 
+	/* wait for ack to our connect request */
 	size = read(cinfo->control_fd, (char *) &cinfo->con_cookie,
 		    sizeof(cinfo->con_cookie));
 	if (size == -1) {
-		/*
-		 * XXX 
-		 */
-		printf("XXX failed to read from cntrl info \n");
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: failed to read from socket");
 		return (ENOENT);
 	}
 
-	/*
-	 * XXX 
-	 */
 	socket_non_block(cinfo->control_fd);
 
 	/*
@@ -147,10 +140,8 @@ hstub_establish_connection(conn_info_t * cinfo, uint32_t devid)
 
 	err = connect(cinfo->data_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {
-		/*
-		 * XXX log error 
-		 */
-		printf("connect to data  \n");
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: connect data port failed");
 		return (ENOENT);
 	}
 
@@ -160,10 +151,8 @@ hstub_establish_connection(conn_info_t * cinfo, uint32_t devid)
 	size = send(cinfo->data_fd, (char *) &cinfo->con_cookie,
 		    sizeof(cinfo->con_cookie), 0);
 	if (size == -1) {
-		/*
-		 * XXX 
-		 */
-		printf("XXX failed to write data cookie \n");
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: send on  data port failed");
 		close(cinfo->con_cookie);
 		return (ENOENT);
 	}
@@ -183,10 +172,8 @@ hstub_establish_connection(conn_info_t * cinfo, uint32_t devid)
 
 	err = connect(cinfo->log_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {
-		/*
-		 * XXX log error 
-		 */
-		printf("failed to connect to log \n");
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: send on log port failed");
 		return (ENOENT);
 	}
 
@@ -196,17 +183,12 @@ hstub_establish_connection(conn_info_t * cinfo, uint32_t devid)
 	size = write(cinfo->log_fd, (char *) &cinfo->con_cookie,
 		     sizeof(cinfo->con_cookie));
 	if (size == -1) {
-		/*
-		 * XXX 
-		 */
-		printf("XXX failed to write data cookie \n");
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: write on log port failed");
 		close(cinfo->control_fd);
 		close(cinfo->data_fd);
 		return (ENOENT);
 	}
-	/*
-	 * XXX 
-	 */
 	socket_non_block(cinfo->log_fd);
 
 	/*

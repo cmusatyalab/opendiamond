@@ -55,6 +55,7 @@ struct search_context;
 typedef struct device_handle {
 	struct device_handle * 		next;
 	uint32_t			dev_id;
+	char *				dev_name;
 	groupid_t			dev_groups[MAX_DEV_GROUPS];
 	int				num_groups;
 	unsigned int			flags;

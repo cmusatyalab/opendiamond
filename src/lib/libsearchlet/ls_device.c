@@ -43,6 +43,7 @@
 #include "lib_tools.h"
 #include "lib_searchlet.h"
 #include "lib_odisk.h"
+#include "lib_log.h"
 #include "lib_search_priv.h"
 #include "log_socket.h"
 #include "log_impl.h"
@@ -64,10 +65,8 @@ static char const cvsid[] =
 void
 dev_log_data_cb(void *cookie, char *data, int len, int devid)
 {
-
 	log_info_t     *linfo;
 	device_handle_t *dev;
-
 
 	dev = (device_handle_t *) cookie;
 
@@ -103,22 +102,23 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 void
 dev_search_done_cb(void *hcookie, int ver_no)
 {
-
 	device_handle_t *dev;
 	time_t          cur_time;
 	time_t          delta;
 
 	dev = (device_handle_t *) hcookie;
 
+	log_message(LOGT_BG, LOGL_INFO, "device %s search is complete",
+	    dev->dev_name);
+
 	/*
 	 * If this version number doesn't match this was
 	 * an old message stuck in the queue.
 	 */
 	if (dev->sc->cur_search_id != ver_no) {
-		/*
-		 * XXX 
-		 */
-		// printf("search done but vno doesn't match !!! \n");
+		log_message(LOGT_BG, LOGL_INFO, 
+		    "search_done_cb:  version mismatch got %d expected %d",
+		    ver_no, dev->sc->cur_search_id);
 		return;
 	}
 
@@ -542,7 +542,6 @@ read_float_as_uint32(void *cookie, int *len, char *data)
 static void
 register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 {
-
 	struct hostent *hent;
 	dctl_fwd_cbs_t  cbs;
 	int             len,
@@ -585,12 +584,13 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 
 	err = dctl_register_fwd_node(HOST_DEVICE_PATH, node_name, &cbs);
 	if (err) {
-		printf("XXX failed to register on %d \n", err);
-		assert(0);
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "register_remove_dctl:  failed to register remote - err=%d",
+		    err);
+		return;
 	}
 
 	err = snprintf(cr_name, 128, "%s_%s", "credit_incr", node_name);
-	cr_name[127] = '\0';
 
 	/*
 	 * also register a dctl for the credit count 
@@ -600,13 +600,11 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 				 &dev_handle->credit_incr);
 
 	err = snprintf(cr_name, 128, "%s_%s", "cur_credits", node_name);
-	cr_name[127] = '\0';
 	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
 				 read_float_as_uint32, NULL,
 				 &dev_handle->cur_credits);
 
 	err = snprintf(cr_name, 128, "%s_%s", "be_serviced", node_name);
-	cr_name[127] = '\0';
 
 	/*
 	 * also register a dctl for the credit count 
@@ -614,10 +612,11 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
 				 dctl_read_uint32, NULL,
 				 &dev_handle->serviced);
-
-	// XXX printf("register <%s> \n", cr_name);
-
-	assert(err == 0);
+	if (err) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "register_remove_remove:  failed to register leaf - err=%d",
+		    err);
+	}
 }
 
 
@@ -632,7 +631,9 @@ create_new_device(search_context_t * sc, uint32_t devid)
 {
 	device_handle_t *new_dev;
 	hstub_cb_args_t cb_data;
+	struct hostent *hent;
 	static int      done_init = 0;
+	struct in_addr	iaddr;
 
 	if (!done_init) {
 		init_pending();
@@ -640,11 +641,18 @@ create_new_device(search_context_t * sc, uint32_t devid)
 
 	new_dev = (device_handle_t *) malloc(sizeof(*new_dev));
 	if (new_dev == NULL) {
-		/*
-		 * XXX log 
-		 */
-		printf("XXX to create new device \n");
+		log_message(LOGT_BG, LOGL_CRIT, 
+		    "create_new_device: failed malloc");
 		return (NULL);
+	}
+	iaddr.s_addr = devid;
+
+	/* get symbolic name */
+	hent = gethostbyaddr(&iaddr, sizeof(iaddr), AF_INET);
+	if (hent == NULL) {
+		new_dev->dev_name = strdup(inet_ntoa(iaddr));
+	} else {
+		new_dev->dev_name = strdup(hent->h_name);
 	}
 
 	new_dev->flags = 0;
@@ -668,13 +676,11 @@ create_new_device(search_context_t * sc, uint32_t devid)
 
 
 	new_dev->dev_handle = device_init(sc->cur_search_id, devid,
-	  (void *) new_dev, &cb_data, sc->dctl_cookie, sc->log_cookie);
+	    (void *) new_dev, &cb_data, sc->dctl_cookie, sc->log_cookie);
 
 	if (new_dev->dev_handle == NULL) {
-		/*
-		 * XXX log 
-		 */
-		// XXX printf("device init failed \n");
+		log_message(LOGT_BG, LOGL_CRIT, 
+		    "create_new_device: failed device init");
 		free(new_dev);
 		return (NULL);
 	}
@@ -707,9 +713,8 @@ device_add_gid(search_context_t * sc, groupid_t gid, uint32_t devid)
 	if (cur_dev == NULL) {
 		cur_dev = create_new_device(sc, devid);
 		if (cur_dev == NULL) {
-			/*
-			 * XXX log 
-			 */
+			log_message(LOGT_BG, LOGL_CRIT, 
+		    	    "device_add_gid: create_device failed");
 			return (ENOENT);
 		}
 	}
@@ -728,10 +733,8 @@ device_add_gid(search_context_t * sc, groupid_t gid, uint32_t devid)
 	 * check to see if we can add more groups, if so add it to the list
 	 */
 	if (cur_dev->num_groups >= MAX_DEV_GROUPS) {
-		fprintf(stderr, "Too many group id's \n");
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_BG, LOGL_CRIT, 
+		    "device_add_gid: MAX_DEV_GROUP exceeded");
 		return (ENOENT);
 	}
 

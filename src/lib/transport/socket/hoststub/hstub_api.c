@@ -505,22 +505,12 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	fclose(cur_file);
 
 
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
 	cheader->spare = (uint32_t) shead;
-
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed to enqueue command");
 		free(cheader);
-		printf("failed enq \n");
 		return (EAGAIN);
 	}
 	pthread_mutex_lock(&dev->con_data.mutex);
@@ -542,17 +532,15 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_log: failed to malloc command");
 		return (EAGAIN);
 	}
 
 	slheader = (setlog_subheader_t *) malloc(sizeof(*slheader));
 	if (slheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_log: failed to malloc slheader");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -571,13 +559,9 @@ device_set_log(void *handle, uint32_t level, uint32_t src)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to enq set_log \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_log: failed to enqueue command");
+		free(slheader);
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -608,17 +592,15 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_write_leaf: failed malloc command");
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_write_leaf: failed malloc data");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -631,10 +613,6 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_WRITE_LEAF);
 	cheader->data_len = htonl(tot_len);
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
 	cheader->spare = (uint32_t) dsub;
 
 	/*
@@ -650,13 +628,8 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to write leaf \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_write_leaf: failed enqueue command");
 		free(cheader);
 		free(dsub);
 		return (EAGAIN);
@@ -685,17 +658,15 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_read_leaf: failed malloc command");
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_read_leaf: failed malloc data");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -708,10 +679,6 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_READ_LEAF);
 	cheader->data_len = htonl(tot_len);
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
 	cheader->spare = (uint32_t) dsub;
 
 	/*
@@ -726,13 +693,8 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to write leaf \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_read_leaf: failed enqueue command");
 		free(cheader);
 		free(dsub);
 		return (EAGAIN);
@@ -763,17 +725,15 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_list_nodes: failed malloc command");
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_list_nodes: failed malloc data");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -786,10 +746,6 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_LIST_NODES);
 	cheader->data_len = htonl(tot_len);
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
 	cheader->spare = (uint32_t) dsub;
 
 	/*
@@ -804,13 +760,8 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to write leaf \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_list_nodes: failed enqueue command");
 		free(cheader);
 		free(dsub);
 		return (EAGAIN);
@@ -839,17 +790,15 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_list_leafs: failed malloc header");
 		return (EAGAIN);
 	}
 
 	dsub = (dctl_subheader_t *) malloc(tot_len);
 	if (dsub == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_list_leafs: failed malloc data");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -862,10 +811,6 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	cheader->generation_number = htonl(0);
 	cheader->command = htonl(CNTL_CMD_LIST_LEAFS);
 	cheader->data_len = htonl(tot_len);
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
 	cheader->spare = (uint32_t) dsub;
 
 	/*
@@ -880,13 +825,8 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to write leaf \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_list_leafs: failed enqueue command");
 		free(cheader);
 		free(dsub);
 		return (EAGAIN);
@@ -915,17 +855,15 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 
 	cheader = (control_header_t *) malloc(sizeof(*cheader));
 	if (cheader == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_blob: failed to malloc message");
 		return (EAGAIN);
 	}
 
 	bsub = (blob_subheader_t *) malloc(tot_len);
 	if (bsub == NULL) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_blob: failed to malloc data");
 		free(cheader);
 		return (EAGAIN);
 	}
@@ -938,10 +876,6 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_SET_BLOB);
 	cheader->data_len = htonl(tot_len);
-	/*
-	 * XXX HACK.  For now we store the pointer to the data
-	 * using the spare field in the header to point to the data.
-	 */
 	cheader->spare = (uint32_t) bsub;
 
 	/*
@@ -955,13 +889,8 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		/*
-		 * XXX should we wait ?? 
-		 */
-		printf("XXX failed to write leaf \n");
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_blob: failed to enqueue data");
 		free(cheader);
 		free(bsub);
 		return (EAGAIN);
@@ -1136,9 +1065,8 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list,
 	 */
 	err = hstub_establish_connection(&new_dev->con_data, devid);
 	if (err) {
-		/*
-		 * XXX log, 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_init: failed to establish connection");
 		free(new_dev);
 		return (NULL);
 	}
@@ -1171,9 +1099,8 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list,
 	err = pthread_create(&new_dev->thread_id, PATTR_DEFAULT, hstub_main,
 			     (void *) new_dev);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_init: failed to create thread");
 		free(new_dev);
 		return (NULL);
 	}

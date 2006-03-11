@@ -323,7 +323,7 @@ get_next_object(search_context_t * sc)
 		cur_dev = sc->last_dev->next;
 	}
 
-      redo:
+redo:
 	while (cur_dev != NULL) {
 		if (cur_dev->cur_credits > 0.0) {
 			obj_inf = device_next_obj(cur_dev->dev_handle);
@@ -484,8 +484,7 @@ bg_main(void *arg)
 					ls_release_object(sc, new_obj);
 					free(obj_info);
 				} else {
-					err =
-					    ring_enq(sc->proc_ring,
+					err = ring_enq(sc->proc_ring,
 						     (void *) obj_info);
 					if (err) {
 						/*
@@ -521,7 +520,6 @@ bg_main(void *arg)
 					sc->cur_status = SS_DONE;
 				}
 			}
-
 		} else {
 			/*
 			 * There are no objects.  See if all devices

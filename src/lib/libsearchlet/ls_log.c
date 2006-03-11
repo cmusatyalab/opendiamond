@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <netdb.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -79,6 +80,7 @@ log_send_local_data(search_context_t * sc, int conn)
 	int             data_len;
 	int             slen;
 	int             err = 0;
+	struct hostent *hent;
 
 
 	/*
@@ -93,13 +95,17 @@ log_send_local_data(search_context_t * sc, int conn)
 	 * Fill in the header.
 	 */
 
+
 	log_msg.log_len = data_len;
 	log_msg.log_type = LOG_SOURCE_BACKGROUND;
-	/*
-	 * XXX should we get our IP?? 
-	 */
-	log_msg.dev_id = 0;
 
+	/* get our local address */
+	hent = gethostent();
+	if (hent == NULL) {
+		log_msg.dev_id = 0;
+	} else {
+	       	log_msg.dev_id = *((uint32_t *)hent->h_addr_list[0]);
+	}
 
 	slen = send(conn, (void *) &log_msg, sizeof(log_msg), MSG_NOSIGNAL);
 	if ((slen < 0) || (slen != sizeof(log_msg))) {
@@ -114,7 +120,7 @@ log_send_local_data(search_context_t * sc, int conn)
 		goto done;
 	}
 
-      done:
+done:
 	log_advbuf(data_len);
 	return (err);
 }

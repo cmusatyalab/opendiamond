@@ -20,7 +20,7 @@ OBJROOT = @OBJROOT@
 OBJS = rem_group.o
 SRCS = rem_group.c
 
-LIBS += -lodisk -ltools -lpthread -llog -ldctl -lssl -ldconfig
+LIBS += -lodisk -ltools -lpthread -llog -ldctl -lssl -lcrypto -ldconfig
 
 TARGETS = rem_group
 

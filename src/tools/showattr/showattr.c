@@ -34,6 +34,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <limits.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"

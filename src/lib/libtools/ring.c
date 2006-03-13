@@ -296,7 +296,6 @@ ring_deq(ring_data_t * ring)
 	ring_update_drate(ring);
 	pthread_mutex_unlock(&ring->mutex);
 	return (data);
-
 }
 
 

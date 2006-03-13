@@ -22,69 +22,67 @@ extern          "C"
 #endif
 
 
-	/*
-	 * This number of elements in a ring.  This must be a multiple of 2. 
-	 */
+/*
+ * This number of elements in a ring.  This must be a multiple of 2. 
+ */
 
-	typedef enum {
-	    RING_TYPE_SINGLE,
-	    RING_TYPE_DOUBLE
-	} ring_type_t;
+typedef enum {
+    RING_TYPE_SINGLE,
+    RING_TYPE_DOUBLE
+} ring_type_t;
 
 #define	RATE_AVG_WINDOW		64
 
 #define	MAX_ENQ_THREAD		8
 
-	/* thread specific enqueue state */
-	typedef struct enq_state {
-		pthread_t		thread_id;
-		double			last_enq;	/* last enqueue time */
-	}
-	enq_state_t;
+/* thread specific enqueue state */
+typedef struct enq_state {
+	pthread_t		thread_id;
+	double			last_enq;	/* last enqueue time */
+} enq_state_t;
 
-	typedef struct ring_data {
-		pthread_mutex_t mutex;  /* make sure updates are atomic */
-		ring_type_t     type;   /* is it 1 or 2 element ring ? */
-		int             head;   /* location for next enq */
-		int             tail;   /* location for next deq */
-		enq_state_t		en_state[MAX_ENQ_THREAD];
-		double			enq_rate;	/* enqueue rate in objs/sec */
-		double			deq_rate;	/* dequeue rate in objs/sec */
-		double			last_deq;	/* last dequeue time */
-		int             size;   /* total number of elements */
-		void           *data[0];
-	}
-	ring_data_t;
+typedef struct ring_data {
+	pthread_mutex_t mutex;  /* make sure updates are atomic */
+	ring_type_t     type;   /* is it 1 or 2 element ring ? */
+	int             head;   /* location for next enq */
+	int             tail;   /* location for next deq */
+	enq_state_t		en_state[MAX_ENQ_THREAD];
+	double			enq_rate;	/* enqueue rate in objs/sec */
+	double			deq_rate;	/* dequeue rate in objs/sec */
+	double			last_deq;	/* last dequeue time */
+	int             size;   /* total number of elements */
+	void           *data[0];
+} ring_data_t;
 
 
 #define	RING_STORAGE_SZ(__num_elem)	(sizeof(ring_data_t) + (((__num_elem) + 2) \
-					 * sizeof(void *)))
+			 * sizeof(void *)))
 
 
-	/*
-	 * These are the function prototypes that are used for
-	 * single entries.
-	 */
-	int             ring_init(ring_data_t ** ring, int num_elem);
-	int             ring_empty(ring_data_t * ring);
-	int             ring_full(ring_data_t * ring);
-	int             ring_enq(ring_data_t * ring, void *data);
-	int             ring_count(ring_data_t * ring);
-	float           ring_erate(ring_data_t * ring);
-	float           ring_drate(ring_data_t * ring);
-	void           *ring_deq(ring_data_t * ring);
+/*
+* These are the function prototypes that are used for
+ * single entries.
+ */
+int             ring_init(ring_data_t ** ring, int num_elem);
+int             ring_empty(ring_data_t * ring);
+int             ring_full(ring_data_t * ring);
+int             ring_enq(ring_data_t * ring, void *data);
+int             ring_count(ring_data_t * ring);
+float           ring_erate(ring_data_t * ring);
+float           ring_drate(ring_data_t * ring);
+void           *ring_deq(ring_data_t * ring);
 
-	/*
-	 * These are the function prototypes for the double entry functions.
-	 */
-	int             ring_2init(ring_data_t ** ring, int num_elem);
-	int             ring_2empty(ring_data_t * ring);
-	int             ring_2full(ring_data_t * ring);
-	int             ring_2enq(ring_data_t * ring, void *data1, void *data2);
-	int             ring_2count(ring_data_t * ring);
-	float           ring_2erate(ring_data_t * ring);
-	float           ring_2drate(ring_data_t * ring);
-	int             ring_2deq(ring_data_t * ring, void **data1, void **data2);
+/*
+ * These are the function prototypes for the double entry functions.
+ */
+int             ring_2init(ring_data_t ** ring, int num_elem);
+int             ring_2empty(ring_data_t * ring);
+int             ring_2full(ring_data_t * ring);
+int             ring_2enq(ring_data_t * ring, void *data1, void *data2);
+int             ring_2count(ring_data_t * ring);
+float           ring_2erate(ring_data_t * ring);
+float           ring_2drate(ring_data_t * ring);
+int             ring_2deq(ring_data_t * ring, void **data1, void **data2);
 
 #ifdef __cplusplus
 }

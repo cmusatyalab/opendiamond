@@ -14,7 +14,10 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
 #include <pthread.h>
+
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>

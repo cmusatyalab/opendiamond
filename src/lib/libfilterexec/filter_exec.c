@@ -32,10 +32,10 @@
 #include <stddef.h>
 #include <assert.h>
 #include <stdint.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #include "diamond_consts.h"
 #include "diamond_types.h"

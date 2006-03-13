@@ -16,10 +16,12 @@
  * optimizers for filter execution. 
  */
 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include "lib_tools.h"
 #include "fexec_opt.h"

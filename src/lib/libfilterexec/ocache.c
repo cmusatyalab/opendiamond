@@ -27,7 +27,6 @@
 #include <string.h>
 #include <errno.h>
 #include <stddef.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <fcntl.h>

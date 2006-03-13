@@ -249,7 +249,6 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 			 * XXX log error 
 			 */
 			printf("odisk_load_obj: failed to reading data \n");
-			printf("rs %d stat %ld \n", size, stats.st_size);
 			perror("read");
 			free(base);
 			close(os_file);

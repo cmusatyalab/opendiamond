@@ -1081,6 +1081,7 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list,
 	new_dev->hstub_wleaf_done_cb = cb_list->wleaf_done_cb;
 	new_dev->hstub_lnode_done_cb = cb_list->lnode_done_cb;
 	new_dev->hstub_lleaf_done_cb = cb_list->lleaf_done_cb;
+	new_dev->hstub_conn_down_cb = cb_list->conn_down_cb;
 
 
 	/*

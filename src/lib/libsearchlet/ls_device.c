@@ -130,6 +130,37 @@ dev_search_done_cb(void *hcookie, int ver_no)
 	return;
 }
 
+void
+conn_down_cb(void *hcookie, int ver_no)
+{
+	device_handle_t *dev;
+	time_t          cur_time;
+	time_t          delta;
+
+	dev = (device_handle_t *) hcookie;
+
+	log_message(LOGT_BG, LOGL_ERR, "device %s connection is down",
+	    dev->dev_name);
+
+	/*
+	 * If this version number doesn't match this was
+	 * an old message stuck in the queue.
+	 */
+	if (dev->sc->cur_search_id != ver_no) {
+		log_message(LOGT_BG, LOGL_INFO, 
+		    "search_done_cb:  version mismatch got %d expected %d",
+		    ver_no, dev->sc->cur_search_id);
+		return;
+	}
+
+	dev->flags |= DEV_FLAG_COMPLETE;
+	time(&cur_time);
+	delta = cur_time - dev->start_time;
+	fprintf(stdout, "complete: %08x elapsed time %ld data %s ",
+		dev->dev_id, delta, ctime(&cur_time));
+	return;
+}
+
 
 /*
  * Search through the list of current devices to see
@@ -673,6 +704,7 @@ create_new_device(search_context_t * sc, uint32_t devid)
 	cb_data.wleaf_done_cb = write_leaf_done_cb;
 	cb_data.lnode_done_cb = lnodes_done_cb;
 	cb_data.lleaf_done_cb = lleafs_done_cb;
+	cb_data.conn_down_cb = conn_down_cb;
 
 
 	new_dev->dev_handle = device_init(sc->cur_search_id, devid,

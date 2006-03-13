@@ -62,7 +62,7 @@ hstub_read_log(sdevice_state_t * dev)
 	                header_remain;
 	int             data_offset,
 	                data_remain;
-	int             dsize;
+	ssize_t         dsize;
 	char           *data;
 	char           *data_buf = NULL;
 

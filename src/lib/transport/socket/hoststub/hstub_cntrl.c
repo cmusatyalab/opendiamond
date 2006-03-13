@@ -418,7 +418,6 @@ hstub_read_cntrl(sdevice_state_t * dev)
 			     data_remain, 0);
 
 		if (dsize < 0) {
-
 			/*
 			 * The call failed, the only possibility is that
 			 * we didn't have enough data for it.  In that
@@ -484,7 +483,7 @@ void
 hstub_write_cntrl(sdevice_state_t * dev)
 {
 	char           *data;
-	size_t          send_len;
+	ssize_t         send_len;
 	conn_info_t    *cinfo;
 	control_header_t *cheader;
 	int             remain_header;

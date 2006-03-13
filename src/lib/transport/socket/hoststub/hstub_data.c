@@ -72,7 +72,7 @@ hstub_read_data(sdevice_state_t * dev)
 	                attr_remain;
 	int             data_offset,
 	                data_remain;
-	int             rsize;
+	ssize_t         rsize;
 	uint32_t        alen,
 	                dlen;
 	int             ver_no;
@@ -386,8 +386,7 @@ hstub_write_data(sdevice_state_t * dev)
 {
 	conn_info_t    *cinfo;
 	char           *data;
-	size_t          send_size,
-	                mcount;
+	ssize_t          send_size, mcount;
 	int             count;
 
 	cinfo = &dev->con_data;

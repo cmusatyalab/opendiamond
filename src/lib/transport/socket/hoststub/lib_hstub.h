@@ -24,18 +24,18 @@ typedef	void (*hstub_lnodes_done_fn)(void *hcookie, int err, int num_ents,
                                      dctl_entry_t *data, int32_t opid);
 typedef	void (*hstub_lleafs_done_fn)(void *hcookie, int err, int num_ents,
                                      dctl_entry_t *data, int32_t opid);
+typedef	void (*hstub_conn_down_fn)(void *hcookie, int ver_num);
 
 
-typedef struct
-{
-	hstub_log_data_fn		    log_data_cb;
-	hstub_search_done_fn	    search_done_cb;
-	hstub_rleaf_done_fn		    rleaf_done_cb;
-	hstub_wleaf_done_fn		    wleaf_done_cb;
+typedef struct {
+	hstub_log_data_fn		log_data_cb;
+	hstub_search_done_fn	    	search_done_cb;
+	hstub_rleaf_done_fn		rleaf_done_cb;
+	hstub_wleaf_done_fn		wleaf_done_cb;
 	hstub_lnodes_done_fn		lnode_done_cb;
 	hstub_lleafs_done_fn		lleaf_done_cb;
-}
-hstub_cb_args_t;
+	hstub_conn_down_fn	    	conn_down_cb;
+} hstub_cb_args_t;
 
 
 /*

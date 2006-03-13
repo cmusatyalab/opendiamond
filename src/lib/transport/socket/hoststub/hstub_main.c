@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <netdb.h>
 #include <assert.h>
 #include "diamond_consts.h"
@@ -126,11 +127,13 @@ void
 hstub_conn_down(sdevice_state_t * dev)
 {
 	/* callback to mark the search done */
-	(*dev->hstub_search_done_cb) (dev->hcookie, dev->ver_no);
+	(*dev->hstub_conn_down_cb) (dev->hcookie, dev->ver_no);
 
 	/* set the flag */
 	dev->con_data.flags |= CINFO_DOWN;
+	pthread_exit(0);
 }
+
 
 
 /*
@@ -154,6 +157,8 @@ hstub_main(void *arg)
 
 	dctl_thread_register(dev->dctl_cookie);
 	log_thread_register(dev->log_cookie);
+
+	signal(SIGPIPE, SIG_IGN);
 
 	/*
 	 * XXX need to open comm channel with device
@@ -269,5 +274,6 @@ hstub_main(void *arg)
 				hstub_write_log(dev);
 			}
 		}
+
 	}
 }

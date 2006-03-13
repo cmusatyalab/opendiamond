@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <unistd.h>
 #include "lib_tools.h"
 #include "lib_searchlet.h"
 
@@ -27,7 +28,7 @@ static char const cvsid[] =
 /*
  * XXX debug 
  */
-#define	TEST_FILTER_NAME	"/home/larry/coda/src/proj/libsearchlet/test.so"
+#define	TEST_FILTER_NAME	"/Users/huston/diamond/diamond/src/lib/libsearchlet/test.so"
 #define	TEST_FILTER_SPEC	"/home/larry/coda/src/proj/libsearchlet/test_spec"
 int
 main(int argc, char **argv)

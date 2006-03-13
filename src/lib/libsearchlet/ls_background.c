@@ -233,7 +233,6 @@ update_rail(search_context_t * sc)
 	float           max_done = 0.0;
 	float           target;
 
-	// printf("update rates: rail \n");
 	update_dev_stats(sc);
 
 	/*
@@ -244,7 +243,6 @@ update_rail(search_context_t * sc)
 			max_done = cur_dev->done;
 		}
 	}
-	// XXX printf("max done %f \n", max_done);
 
 	/*
 	 * now adjust all the values 
@@ -485,7 +483,7 @@ bg_main(void *arg)
 					free(obj_info);
 				} else {
 					err = ring_enq(sc->proc_ring,
-						     (void *) obj_info);
+				     	    (void *) obj_info);
 					if (err) {
 						/*
 						 * XXX handle overflow
@@ -561,9 +559,8 @@ bg_main(void *arg)
 			case BG_SEARCHLET:
 				sc->bg_status |= BG_SET_SEARCHLET;
 				err = fexec_load_searchlet(cmd->filter_name,
-							   cmd->spec_name,
-							   &sc->bg_fdata,
-							   &cmd->filt_sig);
+				    cmd->spec_name, &sc->bg_fdata, 
+				    &cmd->filt_sig);
 				assert(!err);
 				break;
 

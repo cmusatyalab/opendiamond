@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 #include "lib_tools.h"
 #include "lib_searchlet.h"
 #include "lib_filter.h"

@@ -79,7 +79,6 @@ ls_search_handle_t ls_init_search();
 
 int ls_terminate_search(ls_search_handle_t handle);
 
-
 /*!
  * This determines the set of objects we are going to search.  This takes
  * a list of group ID's that contain the set of objects we are going

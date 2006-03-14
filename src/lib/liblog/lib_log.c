@@ -138,7 +138,7 @@ log_init(void **cookie)
 	ls->head = 0;
 	ls->tail = 0;
 	ls->drops = 0;
-	ls->level = LOGL_ALL;
+	ls->level = LOGL_CRIT|LOGL_ERR;
 	ls->type = LOGT_ALL;
 
 	err = pthread_mutex_init(&ls->log_mutex, NULL);

@@ -109,6 +109,9 @@ update_dev_stats(search_context_t * sc)
 	assert(dstats != NULL);
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		size = DEV_STATS_SIZE(20);
 		err = device_statistics(cur_dev->dev_handle, dstats, &size);
 		assert(err == 0);
@@ -141,12 +144,18 @@ update_total_rate(search_context_t * sc)
 	update_dev_stats(sc);
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		if (cur_dev->done < min_done) {
 			min_done = cur_dev->done;
 		}
 	}
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		cur_dev->delta = cur_dev->done - min_done;
 		if (cur_dev->delta < 0.0) {
 			cur_dev->delta = 0.0;
@@ -160,6 +169,9 @@ update_total_rate(search_context_t * sc)
 	 * now adjust all the values 
 	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		cur_dev->credit_incr =
 		    (int) ((cur_dev->delta / max_delta) * MAX_CREDIT_INCR);
 		if (cur_dev->credit_incr > MAX_CREDIT_INCR) {
@@ -183,6 +195,9 @@ update_delta_rate(search_context_t * sc)
 	update_dev_stats(sc);
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		if (cur_dev->done < min_done) {
 			min_done = cur_dev->done;
 		}
@@ -192,6 +207,9 @@ update_delta_rate(search_context_t * sc)
 	}
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		cur_dev->delta = ((float) (cur_dev->done - min_done)) /
 		    (float) min_done;
 		if (cur_dev->delta < 0.0) {
@@ -212,6 +230,9 @@ update_delta_rate(search_context_t * sc)
 	 * now adjust all the values 
 	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		target = (int) (cur_dev->delta * scale);
 		if (target > MAX_CREDIT_INCR) {
 			target = MAX_CREDIT_INCR;
@@ -239,6 +260,9 @@ update_rail(search_context_t * sc)
 	 * find the one that will finish the latest 
 	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		if (cur_dev->done > max_done) {
 			max_done = cur_dev->done;
 		}
@@ -248,6 +272,9 @@ update_rail(search_context_t * sc)
 	 * now adjust all the values 
 	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		if (cur_dev->done == max_done) {
 			target = MAX_CREDIT_INCR;
 		} else {
@@ -291,13 +318,13 @@ refill_credits(search_context_t * sc)
 	device_handle_t *cur_dev;
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		cur_dev->cur_credits += (float) cur_dev->credit_incr;
 		if (cur_dev->cur_credits > (float) MAX_CUR_CREDIT) {
 			cur_dev->cur_credits = (float) MAX_CUR_CREDIT;
 		}
-		// printf("refil: id=%08x new %f incr %d \n",
-		// cur_dev->dev_id,
-		// cur_dev->cur_credits, cur_dev->credit_incr);
 	}
 }
 
@@ -323,6 +350,10 @@ get_next_object(search_context_t * sc)
 
 redo:
 	while (cur_dev != NULL) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			cur_dev = cur_dev->next;
+			continue;
+		}
 		if (cur_dev->cur_credits > 0.0) {
 			obj_inf = device_next_obj(cur_dev->dev_handle);
 			if (obj_inf != NULL) {
@@ -502,15 +533,17 @@ bg_main(void *arg)
 				 */
 
 				any = 0;
-				cur_dev = sc->dev_list;
-				while (cur_dev != NULL) {
+				for (cur_dev = sc->dev_list; cur_dev != NULL;
+				    cur_dev = cur_dev->next) {
+					if (cur_dev->flags & DEV_FLAG_DOWN) {
+						continue;
+					}
 					if ((cur_dev->
 					     flags & DEV_FLAG_COMPLETE) ==
 					    0) {
 						any = 1;
 						break;
 					}
-					cur_dev = cur_dev->next;
 				}
 
 				if ((any == 0)

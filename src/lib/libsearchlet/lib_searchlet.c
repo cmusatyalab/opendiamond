@@ -165,9 +165,11 @@ ls_terminate_search(ls_search_handle_t handle)
 	 * if there is a current search, we need to start shutting it down
 	 */
 	if (sc->cur_status == SS_ACTIVE) {
-		cur_dev = sc->dev_list;
-
-		while (cur_dev != NULL) {
+		for (cur_dev = sc->dev_list; cur_dev != NULL; 
+		    cur_dev = cur_dev->next) {
+			if (cur_dev->flags & DEV_FLAG_DOWN) {
+				continue;
+			}
 			err = device_stop(cur_dev->dev_handle,
 					  sc->cur_search_id);
 			if (err != 0) {
@@ -180,7 +182,6 @@ ls_terminate_search(ls_search_handle_t handle)
 				 * XXX logging 
 				 */
 			}
-			cur_dev = cur_dev->next;
 		}
 	}
 	/*
@@ -202,11 +203,11 @@ ls_terminate_search(ls_search_handle_t handle)
 	 * Now we need to shutdown each of the device specific
 	 * handlers.
 	 */
-	cur_dev = sc->dev_list;
-
-	while (cur_dev != NULL) {
-		err =
-		    device_terminate(cur_dev->dev_handle, sc->cur_search_id);
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
+		err = device_terminate(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
 			/*
 			 * if we get an error we note it for
@@ -217,7 +218,6 @@ ls_terminate_search(ls_search_handle_t handle)
 			 * XXX logging 
 			 */
 		}
-		cur_dev = cur_dev->next;
 	}
 
 	return (0);
@@ -275,6 +275,9 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	 * clear the state 
 	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		cur_dev->num_groups = 0;
 		err = device_clear_gids(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
@@ -346,8 +349,10 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	/*
 	 * we need to verify the searchlet somehow 
 	 */
-	cur_dev = sc->dev_list;
-	while (cur_dev != NULL) {
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		err = device_set_searchlet(cur_dev->dev_handle,
 					   sc->cur_search_id,
 					   filter_file_name,
@@ -358,7 +363,6 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		} else {
 			started++;
 		}
-		cur_dev = cur_dev->next;
 	}
 
 	err = bg_set_searchlet(sc, sc->cur_search_id,
@@ -408,8 +412,10 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 	/*
 	 * we need to verify the searchlet somehow 
 	 */
-	cur_dev = sc->dev_list;
-	while (cur_dev != NULL) {
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		err = device_set_searchlet(cur_dev->dev_handle,
 					   sc->cur_search_id,
 					   filter_file_name, NULL);
@@ -419,7 +425,6 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 		} else {
 			started++;
 		}
-		cur_dev = cur_dev->next;
 	}
 
 	err = bg_set_searchlet(sc, sc->cur_search_id, filter_file_name, NULL);
@@ -506,6 +511,9 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 	 * we need to verify the searchlet somehow 
 	 */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		err = device_set_blob(cur_dev->dev_handle,
 				      sc->cur_search_id, filter_name,
 				      blob_len, blob_data);
@@ -613,8 +621,10 @@ ls_start_search(ls_search_handle_t handle)
 
 	time(&cur_time);
 
-	cur_dev = sc->dev_list;
-	while (cur_dev != NULL) {
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		/*
 		 * clear the complete flag 
 		 */
@@ -627,7 +637,6 @@ ls_start_search(ls_search_handle_t handle)
 		} else {
 			started++;
 		}
-		cur_dev = cur_dev->next;
 	}
 
 	/*
@@ -676,11 +685,11 @@ ls_abort_search(ls_search_handle_t handle)
 		 */
 	}
 
-	cur_dev = sc->dev_list;
-
 	ret_err = 0;
-
-	while (cur_dev != NULL) {
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		err = device_stop(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
 			/*
@@ -692,7 +701,6 @@ ls_abort_search(ls_search_handle_t handle)
 			 */
 			ret_err = EINVAL;
 		}
-		cur_dev = cur_dev->next;
 	}
 
 	/*
@@ -919,16 +927,16 @@ ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t * handle_list,
 	/*
 	 * XXX check for active? 
 	 */
-	cur_dev = sc->dev_list;
-
 	dev_count = 0;
-	while (cur_dev != NULL) {
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		if (*num_handles <= dev_count)
 			return ENOSPC;
 		dev_count++;
 		*handle_list = cur_dev;
 		handle_list++;
-		cur_dev = cur_dev->next;
 	}
 	*num_handles = dev_count;
 	return 0;

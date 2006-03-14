@@ -42,6 +42,8 @@
 #define	DEV_FLAG_RUNNING		0x01
 #define	DEV_FLAG_COMPLETE		0x02
 #define	DEV_FLAG_BLOCKED		0x04
+#define	DEV_FLAG_DOWN			0x08
+
 struct search_context;
 
 #define       DEFAULT_CREDIT_INCR             4.0

@@ -180,7 +180,9 @@ update_device_log_level(search_context_t * sc)
 	device_handle_t *cur_dev;
 	int             err;
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-
+		if (cur_dev->flags & DEV_FLAG_DOWN) {
+			continue;
+		}
 		err =
 		    device_set_log(cur_dev->dev_handle, last_level, last_src);
 	}

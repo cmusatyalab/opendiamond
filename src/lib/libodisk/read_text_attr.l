@@ -344,10 +344,13 @@ obj_load_text_attr(odisk_state_t *odisk, char *file_name, obj_data_t *new_obj)
 
 	yyin = open_attr_file(file_name);
 
-	/* if no file then exit */
+	/*
+	 * it is possible the file doesn't exist so this is not a real
+	 * error.
+	 */
 	if (yyin == NULL) {
-		log_message(LOGT_DISK, LOGL_ERR,
-		    "obj_load_text_attr: failed to open attr file (%s)",
+		log_message(LOGT_DISK, LOGL_TRACE,
+		    "obj_load_text_attr: not text attr file (%s)",
 		    file_name);
 		return;
 	}

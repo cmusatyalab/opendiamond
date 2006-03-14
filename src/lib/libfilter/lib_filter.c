@@ -47,7 +47,6 @@
 #include "lib_filter.h"
 #include "lib_filter_sys.h"
 #include "lib_filter_priv.h"
-#include "obj_attr_dump.h"
 #include "lib_log.h"
 
 static char const cvsid[] =

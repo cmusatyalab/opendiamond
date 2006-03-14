@@ -55,10 +55,9 @@ static char const cvsid[] =
 #define	MAX_READ_THREADS	1
 
 #define	CACHE_EXT	".CACHEFL"
-unsigned int    cache_oattr_ratio = 5;
-unsigned int    skip_cache_oattr = 1;
-unsigned int    last_ring_depth = 0;
-unsigned int    dynamic_load = 1;
+
+static unsigned int    dynamic_load = 1;
+static unsigned int    dynamic_load_depth = 3;
 
 /*
  * forward declarations 
@@ -124,19 +123,22 @@ odisk_next_index_ent(FILE * idx_file, char *file_name)
 	return (1);
 }
 
+/*
+ * Decide if we should load the output attributes
+ * from the disk. This uses a simple threshold to see
+ * if we are I/O bound.  If we have less than N objects then
+ * we decide we are behind and skip (return 0) else
+ * we return (1).
+ */
 
 static int
 dynamic_load_oattr(int ring_depth)
 {
-	/*
-	 * XXX fix this 
-	 */
-	return (1);
 	if (dynamic_load == 0) {
 		return (1);
 	}
 
-	if (ring_depth < 3) {
+	if (ring_depth < dynamic_load_depth) {
 		return (0);
 	} else {
 		return (1);
@@ -203,9 +205,8 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 
 	assert(name != NULL);
 	if (strlen(name) >= NAME_MAX) {
-		/*
-		 * XXX log error 
-		 */
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_load_obj: file name <%s> exceeds NAME_MAX", name);
 		return (EINVAL);
 	}
 
@@ -217,12 +218,10 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	 * data we try to use the direct reads to save the memcopy * in the
 	 * buffer cache. 
 	 */
-	/*
-	 * XXX: add flock ? 
-	 */
 	os_file = open(name, odisk->open_flags);
 	if (os_file == -1) {
-		printf("XXXX open failed \n");
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_load_obj: open file <%s> failed", name);
 		free(new_obj);
 		return (ENOENT);
 	}
@@ -237,6 +236,9 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	assert(base != NULL);
 	data = (char *) ALIGN_VAL(base);
 	if (base == NULL) {
+		log_message(LOGT_DISK, LOGL_ERR,
+		     "odisk_load_obj: failed to allocate storage for <%s>",
+		     name);
 		close(os_file);
 		free(new_obj);
 		return (ENOENT);
@@ -245,11 +247,8 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	if (stats.st_size > 0) {
 		size = read(os_file, data, ALIGN_ROUND(stats.st_size));
 		if (size != stats.st_size) {
-			/*
-			 * XXX log error 
-			 */
-			printf("odisk_load_obj: failed to reading data \n");
-			perror("read");
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "odisk_load_obj: load file <%s> failed", name);
 			free(base);
 			close(os_file);
 			free(new_obj);
@@ -281,11 +280,11 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
 
 	/*
-	 * Load the attributes, if any.
+	 * Load text attributes, if any.
 	 */
 	len = snprintf(attr_name, NAME_MAX, "%s%s", name, TEXT_ATTR_EXT);
 	assert(len < NAME_MAX);
-	obj_load_text_attr(odisk, name, new_obj);
+	obj_load_text_attr(odisk, attr_name, new_obj);
 
 
 	/*
@@ -345,7 +344,12 @@ odisk_save_obj(odisk_state_t * odisk, obj_data_t * obj)
 
 	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
 		       obj->local_id);
-	assert(len < NAME_MAX);
+	if (len >= NAME_MAX) {
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_save_obj: name <%s/OBJ%016llX> exceeds NAME_MAX", 
+		    odisk->odisk_dataroot, obj->local_id);
+		return(EINVAL);
+	}
 
 
 	/*
@@ -353,17 +357,18 @@ odisk_save_obj(odisk_state_t * odisk, obj_data_t * obj)
 	 */
 	os_file = fopen(buf, "wb");
 	if (os_file == NULL) {
-		printf("Failed to open save obj \n");
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_save_obj: unable to open file <%s>", buf);
 		return (ENOENT);
 	}
 
 	if (obj->data_len > 0) {
 		size = fwrite(obj->data, obj->data_len, 1, os_file);
 		if (size != 1) {
-			/*
-			 * XXX log error 
-			 */
-			printf("failed to write data \n");
+			log_message(LOGT_DISK, LOGL_ERR,
+			     "odisk_save_obj: failed write to file <%s>", buf);
+			fclose(os_file);
+			unlink(buf);
 			return (ENOENT);
 		}
 	}
@@ -457,9 +462,9 @@ odisk_ref_obj(obj_data_t * obj)
 int
 odisk_release_obj(obj_data_t * obj)
 {
+	obj_adata_t    *cur, *next;
 
-	obj_adata_t    *cur,
-	               *next;
+	assert(obj != NULL);
 
 	/*
 	 * decrement ref count 
@@ -476,14 +481,6 @@ odisk_release_obj(obj_data_t * obj)
 	 * (or else someone screwed up).
 	 */
 	pthread_mutex_unlock(&obj->mutex);
-
-
-	/*
-	 * XXX make assert ?? 
-	 */
-	if (obj == NULL) {
-		return (1);
-	}
 
 	if (obj->base != NULL) {
 		free(obj->base);
@@ -502,11 +499,11 @@ odisk_release_obj(obj_data_t * obj)
 	return (1);
 }
 
-static int
+static void
 odisk_release_pr_obj(pr_obj_t * pobj)
 {
 	if (pobj == NULL) {
-		return (0);
+		return;
 	}
 
 	if (pobj->obj_name != NULL) {
@@ -514,7 +511,7 @@ odisk_release_pr_obj(pr_obj_t * pobj)
 	}
 
 	free(pobj);
-	return (0);
+	return;
 }
 
 int
@@ -580,8 +577,7 @@ odisk_rem_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 {
 	gid_list_t     *glist;
 	size_t          len;
-	int             i,
-	                err;
+	int             i, err;
 
 	len = 0;
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
@@ -870,21 +866,15 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 		rt_init(&rt);
 		rt_start(&rt);
 
-		/*
-		 * XXX 
-		 */
 		err = obj_read_oattr(odisk, odisk->odisk_dataroot,
-				     &(*new_object)->id_sig, &pr_obj->fsig[i],
-				     &pr_obj->iattrsig[i],
-				     &(*new_object)->attr_info);
+		    &(*new_object)->id_sig, &pr_obj->fsig[i],
+		    &pr_obj->iattrsig[i], &(*new_object)->attr_info);
 
 		rt_stop(&rt);
 		time_ns = rt_nanos(&rt);
 		stack_ns += time_ns;
 
-		/*
-		 * if we didn't read the cached attributes dont' read further
-		 */
+		/* if attribute read failed, we exit */
 		if (err != 0) {
 			break;
 		}
@@ -893,6 +883,7 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 		err = obj_write_attr(&(*new_object)->attr_info, timebuf,
 				     sizeof(time_ns), (void *) &time_ns);
 		if (err != 0) {
+			/* XXX */
 			printf("CHECK OBJECT %016llX ATTR FILE\n",
 			       pr_obj->obj_id);
 		}
@@ -903,8 +894,6 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 	if (err != 0) {
 		printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
 	}
-
-	assert(err == 0);
 	return (0);
 }
 
@@ -942,20 +931,21 @@ odisk_next_obj_name(odisk_state_t * odisk)
 	char            file_name[NAME_MAX];
 	char            path_name[NAME_MAX];
 	char           *ncopy;
-	int             i;
-	int             ret;
+	int             i, ret;
 
-      again:
+again:
 	for (i = odisk->cur_file; i < odisk->max_files; i++) {
 		if (odisk->index_files[i] != NULL) {
-			/*
-			 * XXX overflow !!! 
-			 */
 			ret = odisk_next_index_ent(odisk->index_files[i],
 						   file_name);
 			if (ret == 1) {
-				sprintf(path_name, "%s/%s",
+				ret = snprintf(path_name, NAME_MAX, "%s/%s",
 					odisk->odisk_dataroot, file_name);
+				if (ret >= NAME_MAX) {
+					log_message(LOGT_DISK, LOGL_ERR,
+			    			"next_obj_name: name to big");
+					continue;
+				}
 				ncopy = strdup(path_name);
 				odisk->cur_file = i;
 				return (ncopy);
@@ -974,7 +964,6 @@ odisk_next_obj_name(odisk_state_t * odisk)
 		odisk->cur_file = 0;
 		goto again;
 	} else {
-		// search_done = 1;
 		return (NULL);
 	}
 }
@@ -1036,19 +1025,17 @@ odisk_main(void *arg)
 	log_thread_register(ostate->log_cookie);
 
 	while (1) {
-		/*
-		 * XXX??? If there is no search don't do anything 
-		 */
+		/* If there is no search is active we hang out for a while */
 		while (search_active == 0) {
-			sleep(1);
+			usleep(10000);
 		}
-
 		/*
-		 * get the next object 
+		 * get the next object. this is a blocking call
+		 * so we are guaranteed to get an object if there are
+		 * any left.
 		 */
 		err = odisk_pr_next(&pobj);
 		if (err == ENOENT) {
-			odisk_release_pr_obj(pobj);
 			search_active = 0;
 			search_done = 1;
 			pthread_mutex_lock(&odisk_mutex);
@@ -1063,14 +1050,16 @@ odisk_main(void *arg)
 		err = odisk_pr_load(pobj, &nobj, ostate);
 		odisk_release_pr_obj(pobj);
 
-		if (err == ENOENT) {
-			continue;
-		} else if (err != 0) {
-			printf("ERR IS %d\n", err);
-			assert(0);
+		if (err) {
+			log_message(LOGT_DISK, LOGL_ERR,
+			    "odisk_main: failed to load object");
 		}
 
-
+		/*
+		 * We have an object put it into the queue to process.
+		 * The queue may be full, so we will block on a condition
+		 * variable to make sure we don't drop it.
+		 */
 		pthread_mutex_lock(&odisk_mutex);
 		while (1) {
 			if (search_active == 0) {
@@ -1219,17 +1208,17 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	}
 
 	if (strlen(dataroot) > (MAX_DIR_PATH - 1)) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_init: dataroot (%s) exceeds MAX_DIR_PATH",
+		    dataroot);
 		return (EINVAL);
 	}
 
 	indexdir = dconf_get_indexdir();
 	if (strlen(indexdir) > (MAX_DIR_PATH - 1)) {
-		/*
-		 * XXX log 
-		 */
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_init: indexdir (%s) exceeds MAX_DIR_PATH",
+		    indexdir);
 		return (EINVAL);
 	}
 
@@ -1243,8 +1232,6 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	/*
 	 * clear umask so we get file permissions we specify 
 	 */
-	// XXX umask(0777);
-
 	ring_init(&obj_ring, OBJ_RING_SIZE);
 	ring_init(&obj_pr_ring, OBJ_PR_RING_SIZE);
 
@@ -1269,6 +1256,9 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 		dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load",
 				   DCTL_DT_UINT32, dctl_read_uint32,
 				   dctl_write_uint32, &dynamic_load);
+		dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load_depth",
+				   DCTL_DT_UINT32, dctl_read_uint32,
+				   dctl_write_uint32, &dynamic_load_depth);
 	}
 
 	/*
@@ -1550,9 +1540,8 @@ update_object_gids(odisk_state_t * odisk, obj_data_t * obj, char *name)
 	len = 0;
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
 	if (err != ENOMEM) {
-		/*
-		 * XXX log ?? 
-		 */
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "update_object_gids: failed to read attr");
 		return;
 	}
 
@@ -1583,14 +1572,17 @@ delete_object_gids(odisk_state_t * odisk, obj_data_t * obj)
 	int             slen;
 
 	slen = snprintf(buf, NAME_MAX, "OBJ%016llX", obj->local_id);
-	assert(slen < NAME_MAX);
+	if (slen >= NAME_MAX) {
+		log_message(LOGT_DISK, LOGL_ERR,
+	   	    "delete_object_gids: attr file (%s) exceeds NAM_MAX", buf);
+		return;
+	}
 
 	len = 0;
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
 	if (err != ENOMEM) {
-		/*
-		 * XXX log ?? 
-		 */
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "delete_object_gids: failed to read attr");
 		return;
 	}
 
@@ -1620,8 +1612,7 @@ int
 odisk_clear_indexes(odisk_state_t * odisk)
 {
 	struct dirent  *cur_ent;
-	int             extlen,
-	                flen;
+	int             extlen, flen;
 	char            idx_name[NAME_MAX];
 	char           *poss_ext;
 	DIR            *dir;
@@ -1631,10 +1622,9 @@ odisk_clear_indexes(odisk_state_t * odisk)
 
 	dir = opendir(odisk->odisk_indexdir);
 	if (dir == NULL) {
-		/*
-		 * XXX log 
-		 */
-		printf("failed to open %s \n", odisk->odisk_indexdir);
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_clear_indexes: uname to opendir (%s)",
+		    odisk->odisk_indexdir);
 		return (0);
 	}
 
@@ -1703,10 +1693,9 @@ odisk_build_indexes(odisk_state_t * odisk)
 
 	dir = opendir(odisk->odisk_dataroot);
 	if (dir == NULL) {
-		/*
-		 * XXX log 
-		 */
-		printf("failed to open %s \n", odisk->odisk_dataroot);
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_build_indexes: uname to opendir (%s)",
+		    odisk->odisk_dataroot);
 		return (0);
 	}
 
@@ -1764,19 +1753,21 @@ odisk_build_indexes(odisk_state_t * odisk)
 		}
 
 
-		len =
-		    snprintf(max_path, NAME_MAX, "%s/%s",
-			     odisk->odisk_dataroot, cur_ent->d_name);
-		assert(len < NAME_MAX);
+		len = snprintf(max_path, NAME_MAX, "%s/%s",
+		    odisk->odisk_dataroot, cur_ent->d_name);
+		if (len < NAME_MAX) {
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "odisk_build_indexes: name (%s) exceeds NAME_MAX",
+			    max_path);
+			continue;
+		}
 
 		err = odisk_load_obj(odisk, &new_object, max_path);
 		if (err) {
-			/*
-			 * XXX log 
-			 */
-			fprintf(stderr, "load obj <%s> failed on %d \n",
-				max_path, err);
-			return (err);
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "odisk_build_indexes: failed to load (%s)",
+			    max_path);
+			continue;
 		}
 
 		/*
@@ -1809,10 +1800,9 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 
 	dir = opendir(odisk->odisk_dataroot);
 	if (dir == NULL) {
-		/*
-		 * XXX log 
-		 */
-		printf("failed to open %s \n", odisk->odisk_dataroot);
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_write_oids: open data dir (%s) failed",
+		    odisk->odisk_dataroot);
 		return (0);
 	}
 
@@ -1861,26 +1851,32 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 			}
 		}
 
-		len =
-		    snprintf(max_path, NAME_MAX, "%s/%s",
-			     odisk->odisk_dataroot, cur_ent->d_name);
+		len = snprintf(max_path, NAME_MAX, "%s/%s",
+		    odisk->odisk_dataroot, cur_ent->d_name);
+		if (len >= NAME_MAX) {
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "odisk_write_oids: file name <%s> exceeds NAME_MAX",
+			    max_path);
+			continue;
+		}
 
 		err = odisk_load_obj(odisk, &new_object, max_path);
 		if (err) {
-			/*
-			 * XXX log 
-			 */
-			fprintf(stderr, "create obj failed %d \n", err);
-			return (err);
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "odisk_write_oids: file name <%s> load fails",
+			    max_path);
+			continue;
 		}
 		obj_id.local_id = new_object->local_id;
 
-		/*
-		 * XXX write attribute 
-		 */
 		err = obj_write_attr(&new_object->attr_info, "MY_OID",
-				     sizeof(obj_id), (unsigned char *) &obj_id);
-		assert(err == 0);
+		    sizeof(obj_id), (unsigned char *) &obj_id);
+		if (err != 0) {
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "odisk_write_oids: file name <%s> load fails",
+			    max_path);
+			continue;
+		}
 
 		/*
 		 * save the state 
@@ -1888,7 +1884,6 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
 		odisk_save_obj(odisk, new_object);
 		odisk_release_obj(new_object);
 	}
-
 	closedir(dir);
 }
 

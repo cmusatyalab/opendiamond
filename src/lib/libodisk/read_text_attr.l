@@ -47,6 +47,7 @@
 #include "diamond_types.h"
 #include "sig_calc.h"
 #include "lib_odisk.h"
+#include "lib_log.h"
 #include "odisk_priv.h"
 #include "obj_attr.h"
 
@@ -86,7 +87,8 @@ HEX64	{HEX32}:{HEX32}
 static void 
 have_error()
 {
-	fprintf(stderr, "unknown text %s\n", yytext);
+	log_message(LOGT_DISK, LOGL_ERR,
+	    "read_text_attr: unknown text (%s)", yytext);
 }
 
 
@@ -112,8 +114,8 @@ extract_name_value(char *input, char *name, char *value)
 		name[soffset++] = input[offset++];
 		if (offset >= inlen) return(1);
 		if (soffset >= MAX_ATTR_NAME) {
-			/* XXX log */
-			printf("Data too large for storage \n");
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "extract_name_value: attr too long (%s)", input);
 			return(1);
 		}
 	}
@@ -125,15 +127,22 @@ extract_name_value(char *input, char *name, char *value)
 	/* look for = or @ */
 	while ((input[offset] != '=') && (input[offset] != '@')) {
 		offset++;
-		if (offset >= inlen) return(1);
+		if (offset >= inlen) {
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "extract_name_value: missing '=' or '@' (%s)",
+			    input);
+			return(1);
+		}
 	}
+
 	/* skip the key value */
 	offset++;
 	
 	/* remove leading data before the " */
 	while(input[offset] != '"') {
 		offset++;
-		if (offset >= inlen) return(1);
+		if (offset >= inlen)
+			return(1);
 	}
 
 	/* skip the " */
@@ -143,10 +152,13 @@ extract_name_value(char *input, char *name, char *value)
 	soffset = 0;
 	while (input[offset] != '"') {
 		value[soffset++] = input[offset++];
-		if (offset >= inlen) return(1);
+		if (offset >= inlen) {
+			return(1);
+		}
 		if (soffset >= MAX_ATTR_NAME) {
-			/* XXX log */
-			printf("Data too large for storage \n");
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	    "extract_name_value: string too long (%s)",
+			    input);
 			return(1);
 		}
 	}
@@ -164,15 +176,17 @@ have_value(char *input)
 
 	err = extract_name_value(input, attr_name, attr_value);
 	if (err) {
-		fprintf(stderr, "Failed to parse string <%s> \n", input);
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "have_value: failed to extract name/value (%s)", input);
+		return;
 	}
 
 	dlen = strlen((char *)attr_value) +1;
 	err = obj_write_attr(&cur_obj->attr_info, attr_name, dlen, 
-		(unsigned char *)attr_value);
+	    (unsigned char *)attr_value);
 	if (err) {
-		fprintf(stderr, "Failed writing attribute \n");
-		
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "have_value: failed to write attribute (%s)", attr_name);
 	}
 }
 
@@ -192,7 +206,8 @@ load_ref_file(char *afile, size_t *dlen, unsigned char **dref)
 	if (afile[0] == '/') {
 		len = snprintf(attr_name, NAME_MAX, "%s", afile);
 		if (len >= NAME_MAX) {
-			fprintf(stderr, "load_ref_file: File too long \n");
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	   "load_ref_file: filename too long (%s)", attr_name);
 			return(1);
 		}
 	} else {
@@ -201,49 +216,53 @@ load_ref_file(char *afile, size_t *dlen, unsigned char **dref)
 
 		len = snprintf(attr_name, NAME_MAX, "%s", cur_base);
 		if (len >= NAME_MAX) {
-			fprintf(stderr, "load_ref_file: File too long \n");
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	   "load_ref_file: filename too long (%s)", attr_name);
 			return(1);
 		}
 		offset = rindex(attr_name, '/');
 		if (offset == NULL) {
-			fprintf(stderr, "load_ref_file: can't find prefix \n");
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	   "load_ref_file: no prefix (%s)", attr_name);
 			return(1);
 		}
 	
 		remain_len = NAME_MAX - (int)(offset + 1 - attr_name);
 		len = snprintf(offset+1, remain_len, "%s", afile);
 		if (len >= remain_len) {
-			fprintf(stderr, "load_ref_file: complete file long\n");
+			log_message(LOGT_DISK, LOGL_ERR,
+		    	   "load_ref_file: file name too long (%s)", attr_name);
 			return(1);
 		}
 	}
 
-	/* attr name now holds the name of the file we want */
-	printf("attr file <%s> \n", attr_name);
-
-
 	/* try to open the file */
         os_file = open(attr_name, cur_odisk->open_flags);
         if (os_file == -1) {
-                fprintf(stderr, "load_ref_file: can't open file \n");
+		log_message(LOGT_DISK, LOGL_ERR,
+	       	    "load_ref_file: failed to open (%s)", attr_name);
                 return (1);
         }
 
 	err = fstat(os_file, &stats);
         if (err != 0) {
-                fprintf(stderr, "load_ref_file: can't stat file \n");
+		log_message(LOGT_DISK, LOGL_ERR,
+	       	    "load_ref_file: failed to stat file (%s)", attr_name);
                 return (1);
         }
         
 	data = (unsigned char *)malloc(stats.st_size);
 	if (data == NULL) {
-                fprintf(stderr, "load_ref_file: can't alloc mem \n");
+		log_message(LOGT_DISK, LOGL_ERR,
+	       	    "load_ref_file: failed to malloc %d bytes",
+		    stats.st_size);
                 return (1);
 	} 
 
 	size = read(os_file, data, stats.st_size);
 	if (size != stats.st_size) {
-	    	fprintf(stderr, "load_ref_file: failed read \n");
+		log_message(LOGT_DISK, LOGL_ERR,
+	       	    "load_ref_file: failed to read data");
 		free(data);
 		close(os_file);
 		return (1);
@@ -264,16 +283,17 @@ have_ref(char *input)
 	size_t			dlen = 0;
 	unsigned char *		data = NULL;
 
-
 	err = extract_name_value(input, attr_name, attr_value);
 	if (err) {
-		fprintf(stderr, "have_ref: Failed to parse string <%s> \n", 	
-			input);
+		log_message(LOGT_DISK, LOGL_ERR,
+	       	    "have_ref: failed extract name value from (%s)", input);
+		return;
 	}
 
 	err = load_ref_file(attr_value, &dlen, &data);
 	if (err) {
-		fprintf(stderr, "have_ref: can't load file %s \n", attr_value);
+		log_message(LOGT_DISK, LOGL_ERR,
+	       	    "have_ref: failed to load ref file (%s)", attr_value);
 	}
 
 	/* attr value is the file name to load the data */
@@ -281,11 +301,10 @@ have_ref(char *input)
 	err = obj_write_attr(&cur_obj->attr_info, attr_name, dlen, 
 		data);
 	if (err) {
-		fprintf(stderr, "have_ref: Failed writing attribute \n");
+		log_message(LOGT_DISK, LOGL_ERR,
+	       	    "have_ref: failed to write attributes (%s)", attr_name);
 	}
 	free(data);
-
-
 }
 
 int textattrwrap() {
@@ -309,7 +328,6 @@ open_attr_file(char *base_name)
 	/* try the local directory */
 	new_file = fopen(attr_name, "r");
 	if (new_file != NULL) {
-		/* printf("XXX local %s \n", map_name); */
 		return(new_file);
 	}	
 
@@ -328,17 +346,21 @@ obj_load_text_attr(odisk_state_t *odisk, char *file_name, obj_data_t *new_obj)
 
 	/* if no file then exit */
 	if (yyin == NULL) {
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "obj_load_text_attr: failed to open attr file (%s)",
+		    file_name);
 		return;
 	}
 	/* set visible pointer to the object */
 	cur_obj = new_obj;
 	cur_base = file_name;
 	cur_odisk = odisk;
-		
 
 	ret = yylex();
 	if (ret) {
-		/* XXX log message */
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "obj_load_text_attr: failed to process attr file (%s)",
+		    file_name);
 	}
 
 	fclose(yyin);

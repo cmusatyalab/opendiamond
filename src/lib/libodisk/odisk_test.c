@@ -77,13 +77,13 @@ check_some_attr(obj_attr_t * attr, int size, int num)
 
 	base_data = malloc(size);
 	if (base_data == NULL) {
-		printf("XXX failed to allocate attributes \n");
+		fprintf(stderr, "Failed to allocate attributes\n");
 		exit(1);
 	}
 
 	ret_data = malloc(2 * size);
 	if (ret_data == NULL) {
-		printf("XXX failed to allocate attributes \n");
+		fprintf(stderr, "Failed to allocate attributes\n");
 		exit(1);
 	}
 
@@ -127,7 +127,7 @@ write_some_attr(obj_attr_t * attr, int size, int num)
 
 	data = malloc(size);
 	if (data == NULL) {
-		printf("XXX failed to allocate attributes \n");
+		fprintf(stderr, "Failed to allocate attributes\n");
 		exit(1);
 	}
 
@@ -137,7 +137,8 @@ write_some_attr(obj_attr_t * attr, int size, int num)
 		sprintf(name_string, "some_attr_%d_%d", size, i);
 		err = obj_write_attr(attr, name_string, (off_t) size, data);
 		if (err) {
-			printf("failed to write attr <%s>\n", name_string);
+			fprintf(stderr, "failed to write attr <%s>\n",
+			    name_string);
 			exit(1);
 		}
 	}

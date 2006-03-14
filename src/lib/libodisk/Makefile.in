@@ -11,7 +11,6 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-
 ROOTDIR = @top_srcdir@
 SRCDIR = @srcdir@
 VPATH = @srcdir@
@@ -23,8 +22,8 @@ TEST_SRCS = odisk_test.c
 ATEST_SRCS = attr_test.c
 ATEST_OBJS = attr_test.o
 
-LIBOBJS = odisk.o obj_attr.o obj_lib_priv.o obj_attr_dump.o read_text_attr.o
-LIBSRCS = odisk.c obj_attr.c obj_lib_priv.c obj_attr_dump.c
+LIBOBJS = odisk.o obj_attr.o read_text_attr.o
+LIBSRCS = odisk.c obj_attr.c 
 
 OBJS = $(LIBOBJS) $(TEST_OBJS) $(ATEST_OBJS)  
 OBJS += del_obj.o odisk_idx.o odisk_setoid.o
@@ -32,7 +31,7 @@ OBJS += del_obj.o odisk_idx.o odisk_setoid.o
 SRCS = $(LIBSRCS) $(TEST_SRCS) $(ATEST_SRCS)  
 SRCS += del_obj.c odisk_idx.o odisk_setoid.o
 
-SHARED_HEADERS = lib_odisk.h obj_attr.h obj_attr_dump.h
+SHARED_HEADERS = lib_odisk.h obj_attr.h
 
 SHARED_BIN = odisk_idx odisk_setoid
 

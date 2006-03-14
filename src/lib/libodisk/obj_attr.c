@@ -40,6 +40,7 @@
 #include "lib_dconfig.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
+#include "lib_log.h"
 #include "odisk_priv.h"
 
 static char const cvsid[] =
@@ -374,9 +375,8 @@ obj_write_attr(obj_attr_t * attr, const char *name, size_t len,
 	if (data_rec == NULL) {
 		data_rec = find_free_record(attr, total_size);
 		if (data_rec == NULL) {
-			/*
-			 * XXX log 
-			 */
+			log_message(LOGT_DISK, LOGL_ERR, 
+			   "write_attr: failed allocate space");
 			return (ENOMEM);
 		}
 	}

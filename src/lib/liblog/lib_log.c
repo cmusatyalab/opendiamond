@@ -75,7 +75,6 @@ log_setlevel(unsigned int level_mask)
 	}
 
 	ls->level = level_mask;
-
 }
 
 
@@ -115,8 +114,7 @@ log_thread_register(void *cookie)
 void
 log_init(void **cookie)
 {
-	int             err;
-	log_state_t    *ls;
+
 
 	pthread_once(&log_state_once, log_state_alloc);
 

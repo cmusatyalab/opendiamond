@@ -11,6 +11,14 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -256,11 +264,21 @@ dctl_register_fwd_node(char *path, char *node_name, dctl_fwd_cbs_t * cbs)
 	}
 
 	/*
-	 * make there is not already a node with this name 
+	 * If the node name exists and is of the correct type we just
+	 * replace the state because we may do this if we have to re-start
+	 * the search at a node.
 	 */
 	new_node = lookup_child_node(parent_node, node_name);
 	if (new_node != NULL) {
-		return (EEXIST);
+		if (new_node->node_type != DCTL_NODE_FWD) {
+			return (EEXIST);
+		}
+		new_node->node_rleaf_cb = cbs->dfwd_rleaf_cb;
+		new_node->node_wleaf_cb = cbs->dfwd_wleaf_cb;
+		new_node->node_lnodes_cb = cbs->dfwd_lnodes_cb;
+		new_node->node_lleafs_cb = cbs->dfwd_lleafs_cb;
+		new_node->node_cookie = cbs->dfwd_cookie;
+		return (0);
 	}
 
 	/*
@@ -374,11 +392,16 @@ dctl_register_node(char *path, char *node_name)
 	}
 
 	/*
-	 * make there is not already a node with this name 
+	 * If the entry exists and is a node we just return okay.  If
+	 * it isn't a node this is an error.
 	 */
 	new_node = lookup_child_node(parent_node, node_name);
 	if (new_node != NULL) {
-		return (EEXIST);
+		if (new_node->node_type == DCTL_NODE_LOCAL) {
+			return(0);
+		} else {
+			return(EEXIST);
+		}
 	}
 
 	/*
@@ -464,7 +487,11 @@ dctl_unregister_node(char *path, char *node_name)
 	return (0);
 }
 
-
+/*
+ * This registers a leaf node with the appropriate read/write functions.
+ * We have changed behavior to replace entries instead of failing if
+ * they already exist.
+ */
 
 int
 dctl_register_leaf(char *path, char *leaf_name, dctl_data_type_t data_type,
@@ -482,27 +509,24 @@ dctl_register_leaf(char *path, char *leaf_name, dctl_data_type_t data_type,
 	 * make sure this name doesn't already exist 
 	 */
 	new_leaf = lookup_child_leaf(parent_node, leaf_name);
-	if (new_leaf != NULL) {
-		return (EEXIST);
-	}
-
-	new_leaf = (dctl_leaf_t *) malloc(sizeof(*new_leaf));
 	if (new_leaf == NULL) {
-		return (ENOMEM);	/* XXX different error ?? */
-	}
+		new_leaf = (dctl_leaf_t *) malloc(sizeof(*new_leaf));
+		if (new_leaf == NULL) {
+			return (ENOMEM);	/* XXX different error ?? */
+		}
 
-	new_leaf->leaf_name = strdup(leaf_name);
-	if (new_leaf->leaf_name == NULL) {
-		free(new_leaf);
-		return (ENOMEM);	/* XXX different error ?? */
+		new_leaf->leaf_name = strdup(leaf_name);
+		if (new_leaf->leaf_name == NULL) {
+			free(new_leaf);
+			return (ENOMEM);	/* XXX different error ?? */
+		}
+		insert_leaf(parent_node, new_leaf);
 	}
-
 	new_leaf->leaf_type = data_type;
 	new_leaf->leaf_read_cb = read_cb;
 	new_leaf->leaf_write_cb = write_cb;
 	new_leaf->leaf_cookie = cookie;
 
-	insert_leaf(parent_node, new_leaf);
 
 	return (0);
 }

@@ -114,6 +114,8 @@ log_thread_register(void *cookie)
 void
 log_init(void **cookie)
 {
+	log_state_t *ls;
+	int		err;
 
 
 	pthread_once(&log_state_once, log_state_alloc);

@@ -461,8 +461,6 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 	 */
 	if (cstate->cc_credits > 0) {
 		cstate->cc_credits--;
-	} else {
-		printf("no decrementing credis because it is too low \n");
 	}
 	return;
 }

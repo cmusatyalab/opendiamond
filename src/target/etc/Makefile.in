@@ -30,6 +30,8 @@ include $(OBJROOT)/Makefile.template
 diamond_config: $(OBJROOT)/Makefile.template
 ifneq ($(strip ${DATADIR}),)
 	echo "DATADIR" ${DATADIR} > diamond_config
+else
+	touch diamond_config
 endif
 
 

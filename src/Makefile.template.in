@@ -69,7 +69,7 @@ CPLUSPLUS = @CXX@
 
 # XXX bin install for these ???
 INSTALL = install
-MKDIR = mkdir
+MKDIR = mkdir -p
 
 #
 # Other misc objects to remove during a make clean operation.

@@ -192,7 +192,32 @@ will stop the daemons on the remote machine's.
 
 
 
+Building Debian packages
+------------------------
+
+Debian packaging files are in the debian subdirectory.  To rebuild the
+debian packages, run the following from Diamond's top level directory:
+	fakeroot debian/rules clean
+
+This will do a clean build.  Then build the source package.
+	cd ..
+	dpkg-source -b -sn  diamond-<version>
+
+This will create the source package, which consists of:
+	diamond_<version>.tar.gz (source tarball)
+	diamond_<version>.dsc	(source summary)
+
+Build the binary package:
+	cd diamond-<version>
+	fakeroot debian/rules build	
+
+This will create diamond_<version>_<arch>.deb in the directory above.
 
 
+Installing Debian packages
+--------------------------
+To install the binary package:
+	dpkg -i diamond_<version>_<arch>.deb
 
-
+To unpack the source package:
+	dpkg-source -x diamond-<version>.dsc

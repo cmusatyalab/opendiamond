@@ -1,7 +1,7 @@
 Source: diamond
 Section: unknown
 Priority: optional
-Maintainer: lily <lily@unknown>
+Maintainer: diamond <diamond@cs.cmu.edu>
 Build-Depends: debhelper (>= 4.0.0), autotools-dev, autoconf
 Build-Conflicts: autoconf2.13
 Standards-Version: 3.6.2

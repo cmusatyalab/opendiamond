@@ -71,9 +71,6 @@ static odisk_state_t *cur_odisk;
 NAME	\"[^\"]+\"
 VALUE	\"[^\"]*\"
 WS	[ \t]*
-HEX16	{HEX8}:{HEX8}
-HEX32	{HEX16}:{HEX16}
-HEX64	{HEX32}:{HEX32}
 
 %%
 ^#.*\n						{printf("comment\n"); }
@@ -312,27 +309,17 @@ int textattrwrap() {
 }
 
 static FILE *
-open_attr_file(char *base_name)
+open_attr_file(char *fname)
 {
 	FILE *		new_file;
-	char            attr_name[NAME_MAX];
-	int		len;
-
-
-	/* 
-	 * Load attributes if any.
-	 */
-	len = snprintf(attr_name, NAME_MAX, "%s%s", base_name, TEXT_ATTR_EXT);
-      	assert(len < NAME_MAX);
 
 	/* try the local directory */
-	new_file = fopen(attr_name, "r");
+	new_file = fopen(fname, "r");
 	if (new_file != NULL) {
 		return(new_file);
 	}	
 
 	return(NULL);
-
 }
 
 

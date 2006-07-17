@@ -118,11 +118,12 @@ DIST_OBJS += .depend Makefile
 ifndef do-subdirs
 define do-subdirs
 	@for entry in ${SUBDIRS}; do \
-		(if test -d $${entry}; then \
+		set -e; \
+		if test -d $${entry}; then \
 			${MAKE} -C $${entry} $@; \
 		else \
 			echo "*** Warning:  couldn't find subdir $${entry}"; \
-		fi); \
+		fi; \
 	done
 endef
 endif

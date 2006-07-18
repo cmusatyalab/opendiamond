@@ -13,7 +13,7 @@ AC_PROG_AWK
 AC_PROG_LEX
 
 # Add some cflags of our choosing
-CFLAGS="${CFLAGS} -Wall -D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -ffast-math"
+CFLAGS="${CFLAGS} -Wall -D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -fPIC -Werror-implicit-function-declaration -ffast-math"
 
 
 # Checks for libraries.

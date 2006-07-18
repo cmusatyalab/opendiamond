@@ -41,8 +41,6 @@ LIBS +=  -ldctl  -lssl -lcrypto
 
 TARGETS = libodisk.a odisk_test odisk_idx odisk_setoid attr_test del_obj
 
-CFLAGS += -D_GNU_SOURCE
-
 include $(OBJROOT)/Makefile.template 
 
 

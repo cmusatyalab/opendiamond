@@ -17,6 +17,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include "obj_attr.h"
+#include "diamond_consts.h"
 
 #ifdef	__cplusplus
 extern "C"

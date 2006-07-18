@@ -25,7 +25,7 @@
 #define _OBJ_ATTR_H_	1
 
 #include <stdint.h>
-
+#include "sig_calc.h"
 
 struct obj_data;
 struct odisk_state;

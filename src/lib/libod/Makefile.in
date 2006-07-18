@@ -43,20 +43,13 @@ APILIBDIR += -L../libod -L../libtools -L../libdconfig
 
 TARGETS = od.h libod.a od_server otest apitest
 
-CLEAN_OTHERS += $(RPCGEN_SRCS) ./od.x ./lib_od.h
+CLEAN_OTHERS += $(RPCGEN_SRCS)
 
 include $(OBJROOT)/Makefile.template 
 
 
-#
-# There are some problems with rpcgen that I havn't
-# figured out. if you don't compile in the local directory
-# it adds absolute path names and doesn't find includes.
-# this is a bug hack for now ...
-$(RPCGEN_SRCS): od.x_src
-	cp -fuv $<  od.x
-	cp -fuv $(<D)/lib_od.h lib_od.h
-	rpcgen od.x
+$(RPCGEN_SRCS): od.x lib_od.h
+	rpcgen $<
 
 
 od_server: od.h $(SRVOBJS) 

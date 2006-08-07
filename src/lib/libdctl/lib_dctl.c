@@ -224,7 +224,8 @@ dctl_init(void **cookie)
 	pthread_once(&root_node_once, root_key_alloc);
 
 	if (pthread_getspecific(root_node_key) != NULL) {
-		return (ENOENT);	/* XXX different error ?? */
+#warning Hacked by Adam G
+	  //		return (ENOENT);	/* XXX different error ?? */
 	}
 
 	root_node = (dctl_node_t *) malloc(sizeof(*root_node));

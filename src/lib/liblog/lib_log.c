@@ -124,7 +124,8 @@ log_init(void **cookie)
 	 * make sure we haven't be initialized more than once 
 	 */
 	if (pthread_getspecific(log_state_key) != NULL) {
-		assert(0);
+#warning Hacked by Adam G
+	  //		assert(0);
 	}
 
 	ls = (log_state_t *) malloc(sizeof(*ls));

@@ -31,71 +31,17 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `crypto' library (-lcrypto). */
-#undef HAVE_LIBCRYPTO
-
-/* Define to 1 if you have the `cvaux' library (-lcvaux). */
-#undef HAVE_LIBCVAUX
-
-/* Define to 1 if you have the `dconfig' library (-ldconfig). */
-#undef HAVE_LIBDCONFIG
-
-/* Define to 1 if you have the `dctl' library (-ldctl). */
-#undef HAVE_LIBDCTL
-
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
-
-/* Define to 1 if you have the `filter' library (-lfilter). */
-#undef HAVE_LIBFILTER
-
-/* Define to 1 if you have the `filterexec' library (-lfilterexec). */
-#undef HAVE_LIBFILTEREXEC
 
 /* Define to 1 if you have the `fl' library (-lfl). */
 #undef HAVE_LIBFL
 
-/* Define to 1 if you have the `hstub' library (-lhstub). */
-#undef HAVE_LIBHSTUB
-
-/* Define to 1 if you have the `log' library (-llog). */
-#undef HAVE_LIBLOG
-
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
-/* Define to 1 if you have the `ocache' library (-locache). */
-#undef HAVE_LIBOCACHE
-
-/* Define to 1 if you have the `od' library (-lod). */
-#undef HAVE_LIBOD
-
-/* Define to 1 if you have the `odisk' library (-lodisk). */
-#undef HAVE_LIBODISK
-
-/* Define to 1 if you have the `opencv' library (-lopencv). */
-#undef HAVE_LIBOPENCV
-
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
-
-/* Define to 1 if you have the `searchlet' library (-lsearchlet). */
-#undef HAVE_LIBSEARCHLET
-
-/* Define to 1 if you have the `ssl' library (-lssl). */
-#undef HAVE_LIBSSL
-
-/* Define to 1 if you have the `sstub' library (-lsstub). */
-#undef HAVE_LIBSSTUB
-
-/* Define to 1 if you have the `tools' library (-ltools). */
-#undef HAVE_LIBTOOLS
-
-/* Define to 1 if you have the `trace' library (-ltrace). */
-#undef HAVE_LIBTRACE
-
-/* Define to 1 if you have the `xml2' library (-lxml2). */
-#undef HAVE_LIBXML2
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
@@ -263,9 +209,11 @@
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef gid_t
 
-/* Define as `__inline' if that's what the C compiler calls it, or to nothing
-   if it is not supported. */
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
 #undef inline
+#endif
 
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc

@@ -60,6 +60,7 @@ flag_ent_t 	level_map[] = {
                               {"err", "general errors", LOGL_ERR},
                               {"info", "General information", LOGL_INFO},
                               {"trace", "Trace Information", LOGL_TRACE},
+                              {"debug", "Debugging Information", LOGL_DEBUG},
                               {"all", "All of the above ", LOGL_ALL},
                               {NULL, NULL, 0}
                           };
@@ -104,6 +105,11 @@ get_level_string(uint32_t level, char *string, int max)
 
 		case LOGL_TRACE:
 			strncpy(string, "Trace", max);
+			string[max-1] = '\0';
+			break;
+
+		case LOGL_DEBUG:
+			strncpy(string, "Debug", max);
 			string[max-1] = '\0';
 			break;
 

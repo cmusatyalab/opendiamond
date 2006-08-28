@@ -43,6 +43,7 @@ int             do_daemon = 1;
 int             do_fork = 1;
 int             do_cleanup = 1;
 int             not_silent = 0;
+int             bind_locally = 0;
 
 void
 usage()
@@ -52,6 +53,7 @@ usage()
 	fprintf(stdout, "\t -n do not fork for a  new connection \n");
 	fprintf(stdout, "\t -c do not cleanup *.so files from /tmp \n");
 	fprintf(stdout, "\t -s do not close stderr on fork \n");
+	fprintf(stdout, "\t -l only listen on localhost \n");
 	fprintf(stdout, "\t -h get this help message \n");
 }
 
@@ -69,7 +71,7 @@ main(int argc, char **argv)
 	 */
 
 	while (1) {
-		c = getopt(argc, argv, "cdhns");
+		c = getopt(argc, argv, "cdhnsl");
 		if (c == -1) {
 			break;
 		}
@@ -95,6 +97,10 @@ main(int argc, char **argv)
 
 		case 's':
 			not_silent = 1;
+			break;
+
+		case 'l':
+			bind_locally = 1;
 			break;
 
 		default:
@@ -140,7 +146,7 @@ main(int argc, char **argv)
 	cb_args.set_blob_cb = search_set_blob;
 	cb_args.set_offload_cb = search_set_offload;
 
-	cookie = sstub_init(&cb_args);
+	cookie = sstub_init_2(&cb_args, bind_locally);
 	if (cookie == NULL) {
 		fprintf(stderr, "Unable to initialize the communications\n");
 		exit(1);

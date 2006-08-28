@@ -435,6 +435,18 @@ sstub_send_dev_char(void *cookie, device_char_t * dev_char)
 void           *
 sstub_init(sstub_cb_args_t * cb_args)
 {
+	return sstub_init_2(cb_args, 0);
+}
+
+
+/*
+ * This is a new version of sstub_init which allows
+ * for binding only to localhost.
+ */
+void *
+sstub_init_2(sstub_cb_args_t * cb_args,
+	     int bind_only_locally)
+{
 	listener_state_t *list_state;
 	int             err;
 
@@ -476,7 +488,8 @@ sstub_init(sstub_cb_args_t * cb_args)
 	/*
 	 * Open the listner sockets for the different types of connections.
 	 */
-	err = sstub_new_sock(&list_state->control_fd, CONTROL_PORT);
+	err = sstub_new_sock(&list_state->control_fd, CONTROL_PORT,
+			     bind_only_locally);
 	if (err) {
 		/*
 		 * XXX log, 
@@ -486,7 +499,8 @@ sstub_init(sstub_cb_args_t * cb_args)
 		return (NULL);
 	}
 
-	err = sstub_new_sock(&list_state->data_fd, DATA_PORT);
+	err = sstub_new_sock(&list_state->data_fd, DATA_PORT,
+			     bind_only_locally);
 	if (err) {
 		/*
 		 * XXX log, 
@@ -496,7 +510,8 @@ sstub_init(sstub_cb_args_t * cb_args)
 		return (NULL);
 	}
 
-	err = sstub_new_sock(&list_state->log_fd, LOG_PORT);
+	err = sstub_new_sock(&list_state->log_fd, LOG_PORT,
+			     bind_only_locally);
 	if (err) {
 		/*
 		 * XXX log, 
@@ -508,7 +523,6 @@ sstub_init(sstub_cb_args_t * cb_args)
 
 	return ((void *) list_state);
 }
-
 
 int
 sstub_wleaf_response(void *cookie, int err, int32_t opid)

@@ -209,7 +209,7 @@ shutdown_connection(listener_state_t * lstate, cstate_t * cstate)
  * side.
  */
 int
-sstub_new_sock(int *fd, int port)
+sstub_new_sock(int *fd, int port, int bind_only_locally)
 {
 	int             new_fd;
 	struct protoent *pent;
@@ -248,7 +248,12 @@ sstub_new_sock(int *fd, int port)
 
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons((unsigned short) port);
-	sa.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	if (bind_only_locally) {
+		sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	} else {
+		sa.sin_addr.s_addr = htonl(INADDR_ANY);
+	}
 
 	err = bind(new_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {

@@ -37,7 +37,8 @@
 #define	LOGL_CRIT	0x00000001	/* A critical error   */
 #define	LOGL_ERR	0x00000002	/* an error condition */
 #define	LOGL_INFO	0x00000004	/* General Information */
-#define	LOGL_TRACE	0x00000008	/* Tracing information for debugging */
+#define	LOGL_TRACE	0x00000008	/* Tracing information for analysis */
+#define LOGL_DEBUG  0x00000010  /* Debugging */
 #define	LOGL_ALL	0xFFFFFFFF	/* log all levels */
 
 
@@ -61,13 +62,13 @@ typedef struct log_ent {
  * Defined the maximum message size for any given message.  Anything
  * longer than this will be truncated.
  */
-#define	MAX_LOG_ENTRY	128
+#define	MAX_LOG_ENTRY	256
 #define	MAX_LOG_STRING	(MAX_LOG_ENTRY - LOG_ENT_BASE_SIZE)
 
 /*
  * The total amount of space the we should buffer for logging.
  */
-#define	MAX_LOG_BUFFER	128*1024
+#define	MAX_LOG_BUFFER	256*1024
 
 
 

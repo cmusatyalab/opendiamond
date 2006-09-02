@@ -18,7 +18,11 @@
 /*
  * some of the default constants for packet processing 
  */
-#define	SSTATE_DEFAULT_PEND_MAX	100
+#define	SSTATE_DEFAULT_PEND_MAX	30
+
+
+/* do we try to continue evaluating objects when stalled */ 
+#define	SSTATE_DEFAULT_WORKAHEAD	1
 
 
 enum split_types_t {
@@ -29,7 +33,7 @@ enum split_types_t {
 
 #define	SPLIT_DEFAULT_BP_THRESH	15
 #define	SPLIT_DEFAULT_TYPE		(SPLIT_TYPE_FIXED)
-#define	SPLIT_DEFAULT_RATIO		(78)
+#define	SPLIT_DEFAULT_RATIO		(100)
 #define	SPLIT_DEFAULT_AUTO_STEP		5
 #define	SPLIT_DEFAULT_PEND_LOW		200
 #define	SPLIT_DEFAULT_MULT		20
@@ -64,6 +68,7 @@ typedef struct search_state {
 	uint            pend_objs;
 	float           pend_compute;
 	uint            pend_max;
+	uint            work_ahead;	/* do we work ahead for caching */
 	uint            split_type;	/* policy for the splitting */
 	uint            split_ratio;	/* amount of computation to do local */
 	uint            split_mult;	/* multiplier for queue size */

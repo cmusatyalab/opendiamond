@@ -42,6 +42,8 @@
 #include "search_state.h"
 #include "dctl_common.h"
 #include "lib_ocache.h"
+#include "sys_attr.h"
+#include "obj_attr.h"
 
 static char const cvsid[] =
     "$Header$";
@@ -413,8 +415,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			free(name);
 			free(blob);
 			break;
-		}
-
+	}
 
 	default:
 		printf("unknown command %d \n", cmd->cmd);
@@ -623,6 +624,72 @@ continue_fn(void *cookie)
 #endif
 }
 
+
+typedef struct {
+	int	ver_no;
+	int	max_names;
+	int	num_names;
+	char ** nlist;
+} good_objs_t;
+
+
+static void
+init_good_objs(good_objs_t *gobj, int ver_no)
+{
+	gobj->num_names = 0;
+	gobj->max_names = 256;
+	gobj->ver_no = ver_no;
+
+	gobj->nlist = malloc(sizeof(char *) * gobj->max_names);
+	assert(gobj->nlist != NULL); 
+}
+
+static void
+clear_good_objs(good_objs_t *gobj, int ver_no)
+{
+	int	i;
+
+	for (i=0; i < gobj->num_names; i++)
+		free(gobj->nlist[i]);
+
+	gobj->num_names = 0;
+	gobj->ver_no = ver_no;
+}
+
+/*
+ * Helper function to save hits.
+ */ 
+
+static void
+save_good_name(good_objs_t *gobj, obj_data_t *obj, int ver_no)
+{
+	size_t          size;
+	int             err;
+	unsigned char  *name;
+	
+
+	if (gobj->num_names == gobj->max_names) {
+		gobj->max_names += 256;
+		fprintf(stderr, "realloc: max %d \n", gobj->max_names);
+		gobj->nlist = realloc(gobj->nlist, 
+		    sizeof(char *) * gobj->max_names);
+		assert(gobj->nlist != NULL);
+	}
+
+
+	err = obj_ref_attr(&obj->attr_info, DISPLAY_NAME, &size, &name);
+	if (err) {
+		fprintf(stdout, "name Unknown \n");
+	} else {
+		gobj->nlist[gobj->num_names] = strdup((char *)name);
+		gobj->ver_no = ver_no;
+		assert(gobj->nlist[gobj->num_names] != NULL);
+		gobj->num_names++;
+	}
+}
+
+
+
 /*
  * This is the main thread that executes a "search" on a device.
  * This interates it handles incoming messages as well as processing
@@ -637,12 +704,15 @@ device_main(void *arg)
 	obj_data_t     *new_obj;
 	int             err;
 	int             any;
+	int             lookahead = 0;
 	int             complete;
 	struct timespec timeout;
 	int             force_eval;
-
+	good_objs_t	gobj;
 
 	sstate = (search_state_t *) arg;
+
+	init_good_objs(&gobj, sstate->ver_no);
 
 	log_thread_register(sstate->log_cookie);
 	dctl_thread_register(sstate->dctl_cookie);
@@ -673,6 +743,23 @@ device_main(void *arg)
 		if ((sstate->flags & DEV_FLAG_RUNNING) &&
 		    (sstate->pend_objs < sstate->pend_max)) {
 
+			/*
+			 * If we ever did lookahead to heat the cache
+			 * we now inject those names back into the processing
+			 * stages. If the lookehead was from a previous
+			 * search we will just clean up otherwise tell
+			 * the cache eval code about the objects.
+			 */	
+			if (lookahead) {
+				if (gobj.ver_no != sstate->ver_no) {
+					clear_good_objs(&gobj, sstate->ver_no);
+				} else {
+					ceval_inject_names(gobj.nlist, 
+						gobj.num_names);
+					init_good_objs(&gobj, sstate->ver_no);
+				}
+				lookahead = 0;
+			}
 			force_eval = 0;
 			err = odisk_next_obj(&new_obj, sstate->ostate);
 
@@ -681,8 +768,7 @@ device_main(void *arg)
 			 * the partial queue.
 			 */
 			if (err == ENOENT) {
-				err =
-				    sstub_get_partial(sstate->comm_cookie,
+				err = sstub_get_partial(sstate->comm_cookie,
 						      &new_obj);
 				if (err == 0) {
 					force_eval = 1;
@@ -733,36 +819,20 @@ device_main(void *arg)
 				continue;
 			} else {
 				any = 1;
-				/*
-				 * set the bypass values periodically 
-				 */
-
-#ifdef	XXX
-
-				if ((sstate->obj_processed & 0xf) == 0xf) {
-					update_bypass(sstate);
-				}
-#endif
-
-				/*
-				 * XXX process the object 
-				 */
-
 				sstate->obj_processed++;
 
 				/*
 				 * We want to process some number of objects
 				 * locally to get the necessary statistics.  
-				 * Setting force_eval will make sure process the whole
-				 * object.
+				 * Setting force_eval will make sure process 
+				 * the whole object.
 				 */
 
 				if ((sstate->obj_processed & 0xf) == 0xf) {
 					force_eval = 1;
 				}
 
-				err =
-				    ceval_filters2(new_obj, sstate->fdata,
+				err = ceval_filters2(new_obj, sstate->fdata,
 						   force_eval, sstate,
 						   continue_fn);
 
@@ -780,12 +850,8 @@ device_main(void *arg)
 					sstate->pend_objs++;
 					sstate->pend_compute +=
 					    new_obj->remain_compute;
-					// printf("queu %f new %f \n",
-					// new_obj->remain_compute,
-					// sstate->pend_compute);
 
-					err =
-					    sstub_send_obj(sstate->
+					err = sstub_send_obj(sstate->
 							   comm_cookie,
 							   new_obj,
 							   sstate->ver_no,
@@ -799,6 +865,31 @@ device_main(void *arg)
 						    new_obj->remain_compute;
 					}
 				}
+			}
+		} else if ((sstate->flags & DEV_FLAG_RUNNING) &&
+		    sstate->work_ahead) {
+			/* 
+			 * If work ahead is enabled we continue working
+			 * on the objects.  We keep track of the ones that
+			 * pass so we can re-fetch them later.
+			 */
+			err = odisk_next_obj(&new_obj, sstate->ostate);
+			if (err == 0) {
+				any = 1;	
+				lookahead = 1;
+				err = ceval_filters2(new_obj, sstate->fdata,
+					   1, sstate, NULL);
+				if (err == 0) {
+					fprintf(stderr, "lookahead drop\n");
+					sstate->obj_dropped++;
+					sstate->obj_processed++;
+				} else {
+					save_good_name(&gobj, new_obj,
+					   sstate->ver_no);
+				}
+				search_free_obj(sstate, new_obj);
+			} else {
+				sstate->tx_full_stalls++;
 			}
 		} else if ((sstate->flags & DEV_FLAG_RUNNING)) {
 			sstate->tx_full_stalls++;
@@ -944,6 +1035,9 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
 			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
 			   &sstate->ver_no);
+	dctl_register_leaf(DEV_SEARCH_PATH, "work_ahead", DCTL_DT_UINT32,
+			   dctl_read_uint32, dctl_write_uint32, 
+			   &sstate->work_ahead);
 	dctl_register_leaf(DEV_SEARCH_PATH, "obj_total", DCTL_DT_UINT32,
 			   dctl_read_uint32, NULL, &sstate->obj_total);
 	dctl_register_leaf(DEV_SEARCH_PATH, "obj_processed", DCTL_DT_UINT32,
@@ -1017,6 +1111,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
 	sstate->flags = 0;
 	sstate->comm_cookie = comm_cookie;
+
+	sstate->work_ahead = SSTATE_DEFAULT_WORKAHEAD;
 
 	sstate->pend_max = SSTATE_DEFAULT_PEND_MAX;
 	sstate->pend_objs = 0;
@@ -1112,10 +1208,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 			 sstats_drop, sstats_process);
 	return (0);
 }
-
-
-
-
 
 /*
  * a request to get the characteristics of the device.

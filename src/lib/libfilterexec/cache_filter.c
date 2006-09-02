@@ -91,6 +91,21 @@ unsigned int    use_cache_oattr = 1;
 unsigned int    cache_oattr_thresh = 10000;
 unsigned int    mdynamic_load = 1;
 
+/*
+ * data structure to keep track of the good names we need to process
+ * due to optimistic evaluation.
+ */
+typedef struct inject_names {
+	char **nlist;
+	int	num_name;
+	int	cur_name;
+	TAILQ_ENTRY(inject_names)	in_link;
+} inject_names_t;
+
+static TAILQ_HEAD(, inject_names) inject_list = 
+    TAILQ_HEAD_INITIALIZER(inject_list);
+
+
 static void
 mark_end()
 {
@@ -105,11 +120,14 @@ mark_end()
 	odisk_pr_add(pr_obj);
 }
 
+
+
 static void    *
 ceval_main(void *arg)
 {
 	ceval_state_t  *cstate = (ceval_state_t *) arg;
 	char           *new_name;
+	inject_names_t *names; 
 	int             err;
 
 	while (1) {
@@ -121,7 +139,21 @@ ceval_main(void *arg)
 		ceval_blocked = 0;
 		pthread_mutex_unlock(&ceval_mutex);
 
-		new_name = odisk_next_obj_name(cstate->odisk);
+		/*
+		 * If there are names in the 'good' list we process there
+		 * names first. otherwise we get a file name from odisk.
+		 */	
+		if ((names = TAILQ_FIRST(&inject_list)) != NULL) {		
+			if (names->num_name == names->cur_name) {
+				free(names->nlist);
+				TAILQ_REMOVE(&inject_list, names, in_link);
+				free(names);
+				continue;
+			}
+			new_name = names->nlist[names->cur_name++];
+		} else {
+			new_name = odisk_next_obj_name(cstate->odisk);
+		}
 
 		if (new_name != NULL) {
 			ceval_filters1(new_name, cstate->fdata, cstate);
@@ -131,6 +163,61 @@ ceval_main(void *arg)
 		}
 	}
 }
+
+/*
+ * We have recieved a list of good names that have been partially
+ * processed.  We need to add these to the list of items we will search
+ * again.
+ */
+
+void
+ceval_inject_names(char **nl, int nents)
+{
+	inject_names_t *names;
+
+	/* allocate structure and put on the list of items */
+	names = malloc(sizeof(*names));
+	names->nlist = nl;
+	names->num_name = nents;
+	names->cur_name = 0;
+	TAILQ_INSERT_TAIL(&inject_list, names, in_link);
+
+	/*
+	 * we need to tell libodisk there is more data in case
+	 * we had previously told it we were done.
+	 */ 
+	odisk_continue();
+
+	/*
+	 * Wake up current thread that may have thought we were done
+	 * processing.
+	 */
+	pthread_mutex_lock(&ceval_mutex);
+	search_active = 1;
+	pthread_cond_signal(&active_cv);
+	pthread_mutex_unlock(&ceval_mutex);
+}
+
+/*
+ *  Clean up the list of good names from an older search by walking
+ *  the list and free'ing any resources.
+ */
+static void
+ceval_reset_inject()
+{
+	inject_names_t *names;
+	int	i;
+
+	while ((names = TAILQ_FIRST(&inject_list)) != NULL) {		
+		for (i=names->cur_name; i < names->num_name; i++) {
+			free(names->nlist[i]);
+		}
+		free(names->nlist);
+		TAILQ_REMOVE(&inject_list, names, in_link);
+		free(names);
+	}
+}
+
 
 /*
  * called when DEV_SEARCHLET 
@@ -150,6 +237,8 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 	err = gettimeofday(&atime, &tz);
 	assert(err == 0);
 
+	ceval_reset_inject();
+
 	pthread_mutex_lock(&ceval_mutex);
 	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
 		cur_filt = &fdata->fd_filters[fid];
@@ -157,9 +246,9 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 			continue;
 		}
 		err = digest_cal(fdata, cur_filt->fi_eval_name,
-				 cur_filt->fi_numargs, cur_filt->fi_arglist,
-				 cur_filt->fi_blob_len,
-				 cur_filt->fi_blob_data, &cur_filt->fi_sig);
+			 cur_filt->fi_numargs, cur_filt->fi_arglist, 
+			 cur_filt->fi_blob_len, cur_filt->fi_blob_data, 
+			 &cur_filt->fi_sig);
 
 		sig_str = sig_string(&cur_filt->fi_sig);
 		if (sig_str == NULL) {

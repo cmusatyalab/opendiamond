@@ -27,5 +27,8 @@ typedef struct ceval_state {
 */
 
 
+int ceval_inject_names(char **nlist, int nents);
+
+
 #endif	/* !_CEVAL_PRIV_H_ */
 

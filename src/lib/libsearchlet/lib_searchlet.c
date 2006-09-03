@@ -371,6 +371,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		/*
 		 * XXX log 
 		 */
+		assert(0);
 	}
 
 	/*

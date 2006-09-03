@@ -701,7 +701,7 @@ bg_filt_sig(char *fname, sig_val_t * sig)
 
 	err = 0;
 
-      done:
+done:
 	free(buf);
 	close(fd);
 	return (err);

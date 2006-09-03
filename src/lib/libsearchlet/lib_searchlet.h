@@ -127,7 +127,7 @@ int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
  *              the application will need to call this once for
  *              every device type.
  *
- * \param	filter_file_name
+ * \param filter_file_name
  *		this is the name of the file where the filter
  * 		files are stored.  This should be a shared library
  * 		file where each filters is a different function as

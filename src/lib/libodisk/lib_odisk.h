@@ -106,6 +106,7 @@ typedef struct {
  * function in dev_emul.c
  */
 int odisk_term(struct odisk_state *odisk);
+int odisk_continue();
 int odisk_init(struct odisk_state **odisk, char *path_name,
 	       void *dctl_cookie, void * log_cookie);
 int odisk_get_obj_cnt(struct odisk_state *odisk);

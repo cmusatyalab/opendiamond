@@ -1333,6 +1333,17 @@ odisk_reset(odisk_state_t * odisk)
 
 
 int
+odisk_continue()
+{
+	pthread_mutex_lock(&odisk_mutex);
+	search_active = 1;
+	search_done = 0;
+	pthread_cond_signal(&bg_active_cv);
+	pthread_mutex_unlock(&odisk_mutex);
+	return(0);
+}
+
+int
 odisk_term(odisk_state_t * odisk)
 {
 	int             err;
@@ -1453,7 +1464,7 @@ update_gid_idx(odisk_state_t * odisk, char *name, groupid_t * gid)
 		}
 	}
 	fclose(old_file);
-      done:
+done:
 	fclose(new_file);
 }
 #endif

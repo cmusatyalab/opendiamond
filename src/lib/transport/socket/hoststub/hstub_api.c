@@ -287,6 +287,11 @@ device_next_obj(void *handle)
 
 	if (oinfo != NULL) {
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
+	} else {
+	       	if (dev->con_data.cc_counter++ > 100) {
+			dev->con_data.flags |= CINFO_PENDING_CREDIT;
+			dev->con_data.cc_counter = 0;
+		}
 	}
 	return (oinfo);
 }

@@ -702,7 +702,7 @@ create_new_device(search_context_t * sc, uint32_t devid)
 		return (NULL);
 	}
 
-	device_set_limit(new_dev->dev_handle, DEFAULT_QUEUE_LEN);
+	device_set_limit(new_dev->dev_handle, sc->dev_queue_limit);
 
 	/*
 	 * Put this device on the list of devices involved

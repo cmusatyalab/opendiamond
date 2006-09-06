@@ -32,8 +32,7 @@
 
 
 /* Some constants */
-#define	LS_OBJ_PEND_HW	60
-#define	LS_OBJ_PEND_LW	55
+#define	LS_OBJ_PEND_LW	50
 
 /*
  * This structure keeps track of the state associated with each
@@ -79,14 +78,12 @@ typedef struct device_handle {
 
 
 #define	MAX_DEV_PER_GROUP	64
-typedef struct gid_map
-{
+typedef struct gid_map {
 	struct gid_map *	next;
 	groupid_t		gid;
 	int			num_dev;
 	uint32_t		devs[MAX_DEV_PER_GROUP];
-}
-gid_map_t;
+} gid_map_t;
 
 
 typedef enum {
@@ -115,25 +112,23 @@ typedef enum {
 
 #define	OBJ_QUEUE_SIZE		1024
 struct filter_info;
-typedef struct search_context
-{
+typedef struct search_context {
 	int			cur_search_id;	/* ID of current search */
-	double				avg_proc_time;	/* time spent per object */
+	double			avg_proc_time;	/* time spent per object */
 	device_handle_t *	dev_list;
 	device_handle_t *	last_dev;
-	search_status_t		cur_status;		/* current status of search */
-	ring_data_t *		proc_ring;		/* processed objects */
-	ring_data_t *		bg_ops;			/* unprocessed objects */
-	ring_data_t *		log_ring;		/* data to log */
+	search_status_t		cur_status;	/* current status of search */
+	ring_data_t *		proc_ring;	/* processed objects */
+	ring_data_t *		bg_ops;		/* unprocessed objects */
+	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
-	int					bg_credit_policy;
-	struct filter_data *bg_fdata; 		/* filter_data_t  */
-	int					pend_hw;		/* pending hw mark */
-	int					pend_lw;		/* pending lw mark */
-	void *				dctl_cookie;	/* cookie for dctl library */
-	void *				log_cookie;		/* cookie for log library */
-}
-search_context_t;
+	int			bg_credit_policy;
+	struct filter_data *	bg_fdata; 	/* filter_data_t  */
+	int			pend_lw;	/* pending lw mark */
+	int			dev_queue_limit; /* # objs queued at dev*/
+	void *			dctl_cookie;	/* cookie for dctl library */
+	void *			log_cookie;	/* cookie for log library */
+} search_context_t;
 
 /*
  * These are the prototypes of the device operations that

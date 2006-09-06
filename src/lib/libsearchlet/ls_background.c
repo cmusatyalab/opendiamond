@@ -135,6 +135,61 @@ update_dev_stats(search_context_t * sc)
 }
 
 void
+update_device_queue(search_context_t * sc)
+{
+	device_handle_t *cur_dev;
+	thread_setup(sc);
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN)
+			continue;
+		device_set_limit(cur_dev->dev_handle, sc->dev_queue_limit);
+	}
+}
+/*
+ * helper function that write the value passed in the data to the
+ * uint32_t that the cookie points to.
+ */
+int
+dctl_write_dev_queue(void *cookie, int len, char *data)
+{
+	search_context_t * sc;
+	assert(cookie != NULL);
+	assert(data != NULL);
+
+	if (len < sizeof(uint32_t)) {
+		return (ENOMEM);
+	}
+
+	sc = (search_context_t *)cookie;
+	sc->dev_queue_limit = *(int *) data;
+
+	update_device_queue(sc);
+	return (0);
+}
+
+int
+dctl_read_dev_queue(void *cookie, int *len, char *data)
+{
+	search_context_t * sc;
+
+	if (*len < sizeof(uint32_t)) {
+		return (ENOMEM);
+	}
+
+	sc = (search_context_t *)cookie;
+
+        *len = sizeof(uint32_t);
+	*(uint32_t *) data = sc->dev_queue_limit;
+
+	return (0);
+}
+
+
+
+
+
+
+void
 update_total_rate(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
@@ -443,6 +498,16 @@ bg_main(void *arg)
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "cpu_split",
 				 DCTL_DT_UINT32, dctl_read_uint32,
 				 dctl_write_uint32, &do_cpu_update);
+	assert(err == 0);
+
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "dev_queue_max",
+				 DCTL_DT_UINT32, dctl_read_dev_queue,
+				 dctl_write_dev_queue, sc);
+	assert(err == 0);
+
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "pend_queue_max",
+				 DCTL_DT_UINT32, dctl_read_uint32,
+				 dctl_write_uint32, &sc->pend_lw);
 	assert(err == 0);
 
 

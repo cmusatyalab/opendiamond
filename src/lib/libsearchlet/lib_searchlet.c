@@ -120,8 +120,8 @@ ls_init_search()
 	sc->dev_list = NULL;
 	sc->cur_status = SS_EMPTY;
 	sc->bg_status = 0;
-	sc->pend_hw = LS_OBJ_PEND_HW;
 	sc->pend_lw = LS_OBJ_PEND_LW;
+	sc->dev_queue_limit = DEFAULT_QUEUE_LEN;
 	sc->last_dev = NULL;
 	sc->bg_credit_policy = BG_DEFAULT_CREDIT_POLICY;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);

@@ -88,6 +88,7 @@ typedef struct conn_info {
 	char *			log_rx_data;
 	log_header_t		log_rx_header;
 	credit_count_msg_t 	cc_msg;
+	int			cc_counter;
 	int			obj_limit;
 	int			log_fd;		/* fd for the log connection */
 	fd_set			read_fds;

@@ -285,6 +285,7 @@ process_object_message(listener_state_t * lstate, cstate_t * cstate,
 	int objlen;
 	int fd;
 	char objname[PATH_MAX];
+	sig_val_t data_sig;
 	char * sig;
 	char *cache;
 	char *buf;
@@ -308,6 +309,10 @@ process_object_message(listener_state_t * lstate, cstate_t * cstate,
 
 	objlen = ntohl(shead->obj_len);
 
+	sig_cal(buf, objlen, &data_sig);
+	if (memcmp(&data_sig, &shead->obj_sig, sizeof(data_sig)) != 0) {
+		fprintf(stderr, "data doesn't match sig\n");
+	}
         /* create the new file */
 	file_get_lock(objname);
 	fd = open(objname, O_CREAT|O_EXCL|O_WRONLY, 0744);
@@ -413,6 +418,7 @@ process_obj_message(listener_state_t * lstate, cstate_t * cstate,
 
 	} else {
 		/* XXX ref count before start command */
+		cstate->pend_obj++;
 		sstub_get_obj(cstate, &ohead->obj_sig);
 	}
 }
@@ -435,7 +441,13 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 
 	switch (cmd) {
 	case CNTL_CMD_START:
-		(*lstate->start_cb) (cstate->app_cookie, gen);
+		fprintf(stderr, "have_start pend %d \n", cstate->pend_obj);
+		if (cstate->pend_obj == 0) {
+			(*lstate->start_cb) (cstate->app_cookie, gen);
+		} else {
+			cstate->have_start = 1;
+			cstate->start_gen = gen;
+		}
 		break;
 
 	case CNTL_CMD_STOP:
@@ -605,6 +617,11 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		assert(data != NULL);
 		process_object_message(lstate, cstate, data);
 		free(data);
+		cstate->pend_obj--;
+		if ((cstate->pend_obj== 0) && (cstate->have_start)) {
+			(*lstate->start_cb) (cstate->app_cookie, cstate->start_gen);
+			cstate->have_start = 0;
+		}
 		break;
 
 	default:

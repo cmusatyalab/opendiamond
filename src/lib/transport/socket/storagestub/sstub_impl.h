@@ -104,6 +104,9 @@ typedef struct cstate {
 	struct listener_state *lstate;
 	int			        control_fd;
 	int			        data_fd;
+	int			        pend_obj;
+	int			        have_start;
+	uint32_t		        start_gen;
 	int			log_fd;
 	void *			app_cookie;
 	fd_set			read_fds;

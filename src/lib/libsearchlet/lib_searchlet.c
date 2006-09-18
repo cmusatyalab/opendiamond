@@ -29,6 +29,8 @@
 
 #include <pthread.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -224,9 +226,7 @@ ls_terminate_search(ls_search_handle_t handle)
 }
 
 
-/*
- * simpling error logging for failed device.
- */
+/* simple error logging for failed device.  */
 
 static void
 log_dev_error(uint32_t host, const char *str)
@@ -301,18 +301,161 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 			}
 		}
 	}
-
-	/*
-	 * XXX push the list of groups to disk 
-	 */
-
 	return (0);
 }
 
+static int
+cache_file(char *oname, sig_val_t *sig)
+{
+	size_t	olen; 
+	char *	buf;
+	ssize_t rsize;
+	struct stat stats;
+	char * cdir;
+	int err;
+	int fd;
+	FILE *cur_file;
+	char *sstr;
+	char name_buf[PATH_MAX];
+
+	/* read the object file into memory */
+
+	err = stat(oname, &stats);
+	if (err) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed stat object file <%s>", oname);
+		return (ENOENT);
+	}
+	olen = stats.st_size;
+	buf = malloc(olen);
+	if ((cur_file = fopen(oname, "r")) == NULL) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed open object <%s>", oname);
+		free(buf);
+       		return (ENOENT);
+       	}
+	if ((rsize = fread(buf, olen, 1, cur_file)) != 1) { 
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed read object <%s>", oname); 
+		free(buf); 
+		return (EAGAIN);
+	}
+	fclose(cur_file);
+
+		
+	
+
+	/* compute the signature of the file */
+	sig_cal(buf, olen, sig);
+
+	cdir = dconf_get_binary_cachedir();
+	sstr = sig_string(sig);
+	snprintf(name_buf, PATH_MAX, OBJ_FORMAT, cdir, sstr);
+
+	/* create the new file */
+	file_get_lock(name_buf);
+	fd = open(name_buf, O_CREAT|O_EXCL|O_WRONLY, 0744);
+	if (fd < 0) {
+		file_release_lock(name_buf);
+		if (errno == EEXIST) {
+			return(0);
+		}
+		fprintf(stderr, "file %s failed on %d \n",
+			name_buf, errno);
+		err = errno;
+		goto done;
+
+	}
+	if (write(fd, buf, olen) != olen) {
+		perror("write buffer file");
+
+	}
+	// XXX
+	err = 0;
+	close(fd);
+	file_release_lock(name_buf);
+done:
+	free(buf);
+	free(cdir);	
+	free(sstr);	
+	return(err);
+}
+
+static int
+cache_spec(char *oname, sig_val_t *sig)
+{
+	size_t	olen; 
+	char *	buf;
+	ssize_t rsize;
+	struct stat stats;
+	char * cdir;
+	int err;
+	int fd;
+	FILE *cur_file;
+	char *sstr;
+	char name_buf[PATH_MAX];
+
+	/* read the object file into memory */
+
+	err = stat(oname, &stats);
+	if (err) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed stat object file <%s>", oname);
+		return (ENOENT);
+	}
+	olen = stats.st_size;
+	buf = malloc(olen);
+	if ((cur_file = fopen(oname, "r")) == NULL) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed open object <%s>", oname);
+		free(buf);
+       		return (ENOENT);
+       	}
+	if ((rsize = fread(buf, olen, 1, cur_file)) != 1) { 
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed read object <%s>", oname); 
+		free(buf); 
+		return (EAGAIN);
+	}
+	fclose(cur_file);
 
 
+	/* compute the signature of the file */
+	sig_cal(buf, olen, sig);
 
+	cdir = dconf_get_spec_cachedir();
+	sstr = sig_string(sig);
+	snprintf(name_buf, PATH_MAX, SPEC_FORMAT, cdir, sstr);
 
+	file_get_lock(name_buf);
+	/* create the new file */
+	fd = open(name_buf, O_CREAT|O_EXCL|O_WRONLY, 0744);
+	if (fd < 0) {
+		file_release_lock(name_buf);
+		if (errno == EEXIST) {
+			return(0);
+		}
+		fprintf(stderr, "file %s failed on %d \n",
+			name_buf, errno);
+		err = errno;
+		goto done;
+
+	}
+	if (write(fd, buf, olen) != olen) {
+		perror("write buffer file");
+
+	}
+	// XXX
+	err = 0;
+
+	close(fd);
+	file_release_lock(name_buf);
+done:
+	free(buf);
+	free(cdir);	
+	free(sstr);	
+	return(err);
+}
 
 int
 ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
@@ -322,7 +465,8 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	device_handle_t *cur_dev;
 	int             err;
 	int             started = 0;
-	;
+	sig_val_t	obj_sig;
+	sig_val_t	spec_sig;
 
 	sc = (search_context_t *) handle;
 	thread_setup(sc);
@@ -330,9 +474,10 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	/*
 	 * XXX do something with the isa_type !! 
 	 */
+
 	/*
 	 * if state is active, we can't change the searchlet.
-	 * XXX what other states are no valid ??
+	 * XXX what other states are not valid ??
 	 */
 	if (sc->cur_status == SS_ACTIVE) {
 		/*
@@ -341,10 +486,26 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		printf("still idle \n");
 		return (EINVAL);
 	}
-	/*
-	 * change the search id 
-	 */
+
+	/* change the search id */
 	sc->cur_search_id++;
+
+	/* copy object file to the object cache directory */
+	if (cache_spec(filter_spec_name, &spec_sig)) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed to cache spec <%s>", 
+		    filter_spec_name); 
+		return(EINVAL);
+	}
+
+
+	/* copy object file to the object cache directory */
+	if (cache_file(filter_file_name, &obj_sig)) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed to cache objectt <%s>", 
+		    filter_file_name); 
+		return(EINVAL);
+	}
 
 	/*
 	 * we need to verify the searchlet somehow 
@@ -353,10 +514,14 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		err = device_set_searchlet(cur_dev->dev_handle,
-					   sc->cur_search_id,
-					   filter_file_name,
-					   filter_spec_name);
+		err = device_set_spec(cur_dev->dev_handle,
+		    sc->cur_search_id, filter_spec_name, &spec_sig);
+		if (err != 0) {
+			log_dev_error(cur_dev->dev_id, 
+			    "failed setting spec");
+		}
+		err = device_set_lib(cur_dev->dev_handle,
+		    sc->cur_search_id, &obj_sig);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_id, 
 			    "failed setting searchlet");
@@ -365,8 +530,15 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		}
 	}
 
-	err = bg_set_searchlet(sc, sc->cur_search_id,
-       		filter_file_name, filter_spec_name);
+	err = bg_set_spec(sc, sc->cur_search_id, &spec_sig);
+	if (err) {
+		/*
+		 * XXX log 
+		 */
+		assert(0);
+	}
+
+	err = bg_set_lib(sc, sc->cur_search_id, &obj_sig);
 	if (err) {
 		/*
 		 * XXX log 
@@ -390,7 +562,7 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 	device_handle_t *cur_dev;
 	int             err;
 	int             started = 0;
-	;
+	sig_val_t	obj_sig;
 
 	sc = (search_context_t *) handle;
 	thread_setup(sc);
@@ -410,6 +582,13 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 		return (EINVAL);
 	}
 
+	/* copy object file to the object cache directory */
+	if (cache_file(filter_file_name, &obj_sig)) {
+		log_message(LOGT_BG, LOGL_ERR, 
+		    "ls_set_searchlet: failed to cache objectt <%s>", filter_file_name); 
+		return(EINVAL);
+	}
+
 	/*
 	 * we need to verify the searchlet somehow 
 	 */
@@ -417,9 +596,8 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		err = device_set_searchlet(cur_dev->dev_handle,
-					   sc->cur_search_id,
-					   filter_file_name, NULL);
+		err = device_set_lib(cur_dev->dev_handle,
+		    sc->cur_search_id, &obj_sig);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_id, 
 			    "failed adding filter file");
@@ -428,7 +606,8 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 		}
 	}
 
-	err = bg_set_searchlet(sc, sc->cur_search_id, filter_file_name, NULL);
+	/* XXX */	
+	err = bg_set_lib(sc, sc->cur_search_id, &obj_sig);
 	if (err) {
 		/*
 		 * XXX log 

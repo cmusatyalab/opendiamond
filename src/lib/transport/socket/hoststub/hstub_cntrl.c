@@ -51,6 +51,7 @@
 #include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "lib_log.h"
+#include "lib_dconfig.h"
 #include "hstub_impl.h"
 
 
@@ -247,6 +248,103 @@ list_leafs_done(sdevice_state_t * dev, char *data)
 
 
 
+int
+send_obj(sdevice_state_t * dev, char *data, int id)
+{
+	int             err;
+	control_header_t *cheader;
+	int             total_len;
+	struct stat     stats;
+	ssize_t         rsize;
+	int		buf_len;
+	FILE           *cur_file;
+	get_obj_header_t *dsub;
+	send_obj_subhead_t *sobj;
+	char objname[PATH_MAX];
+	char *cache;
+	char *sig;
+
+	dsub = (get_obj_header_t *) data;
+
+	cache = dconf_get_binary_cachedir();
+	sig = sig_string(&dsub->obj_sig);
+	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig);
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
+	if (cheader == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed to malloc message");
+		return (EAGAIN);
+	}
+
+	cheader->generation_number = htonl(id);
+	cheader->command = htonl(CNTL_CMD_SEND_OBJ);
+
+	assert(file_exists(objname));
+
+	err = stat(objname, &stats);
+	if (err) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed stat spec file <%s>",  
+		    objname);
+		return (ENOENT);
+	}
+	buf_len = stats.st_size;
+
+
+	total_len = sizeof(*sobj) + buf_len;
+	cheader->data_len = htonl(total_len);
+
+	sobj = malloc(total_len);
+	if (sobj == NULL) {
+		free(cheader);
+		return (EAGAIN);
+	}
+
+	sobj->obj_len = htonl(buf_len);
+	memcpy(&sobj->obj_sig, &dsub->obj_sig, sizeof(sig_val_t));
+
+
+	/*
+	 * set data to the beginning of the data portion  and
+	 * copy in the filter spec from the file.  NOTE: This is
+	 * currently blocks, we may want to do something else later.
+	 */
+	data = ((char *) sobj) + sizeof(*sobj);
+
+	if ((cur_file = fopen(objname, "r")) == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_send_obj: failed open <%s>", objname);
+		free(cheader);
+		free(sobj);
+		return (ENOENT);
+	}
+	if ((rsize = fread(data, buf_len, 1, cur_file)) != 1) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_send_obj: failed read obj <%s>", objname);
+		free(cheader);
+		free(sobj);
+		return (EAGAIN);
+	}
+
+	fclose(cur_file);
+
+	cheader->spare = (uint32_t) sobj;
+	err = ring_enq(dev->device_ops, (void *) cheader);
+	if (err) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_send_obj: failed to enqueue command");
+		free(cheader);
+		return (EAGAIN);
+	}
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
+
+
+
 static void
 process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 {
@@ -286,7 +384,14 @@ process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 		free(data_buf);
 		break;
 
+	case CNTL_CMD_GET_OBJ:
+		send_obj(dev, data_buf, 
+		    ntohl(cinfo->control_rx_header.generation_number));
+		free(data_buf);
+		break;
+
 	default:
+		fprintf(stderr, "unknown message %d \n", cmd);
 		log_message(LOGT_NET, LOGL_ERR,
 	    	    "process_control: bad message type");
 		break;

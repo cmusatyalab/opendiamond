@@ -389,15 +389,14 @@ device_set_offload(void *handle, int id, uint64_t offload)
 
 
 int
-device_set_searchlet(void *handle, int id, char *filter, char *spec)
+device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 {
 	int             err;
 	control_header_t *cheader;
-	searchlet_subhead_t *shead;
+	spec_subhead_t *shead;
 	char           *data;
 	int             total_len;
 	int             spec_len;
-	int             filter_len;
 	struct stat     stats;
 	ssize_t         rsize;
 	FILE           *cur_file;
@@ -405,7 +404,7 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 
 	dev = (sdevice_state_t *) handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
+	cheader = malloc(sizeof(*cheader));
 	if (cheader == NULL) {
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_searchlet: failed to malloc message");
@@ -413,47 +412,30 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	}
 
 	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_SET_SEARCHLET);
+	cheader->command = htonl(CNTL_CMD_SET_SPEC);
 
 
-	/*
-	 * Now get the total size of the filter spec and the filter
-	 */
-	err = stat(filter, &stats);
+	err = stat(spec, &stats);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed stat filter file <%s>", 
-		    filter);
+		    "device_set_searchlet: failed stat spec file <%s>", 
+		    spec);
 		return (ENOENT);
 	}
-	filter_len = stats.st_size;
-
-	if (spec != NULL) {
-		err = stat(spec, &stats);
-		if (err) {
-			log_message(LOGT_NET, LOGL_ERR,
-		    	    "device_set_searchlet: failed stat spec file <%s>", 
-		    	    spec);
-			return (ENOENT);
-		}
-		spec_len = stats.st_size;
-	} else {
-		spec_len = 0;
-	}
+	spec_len = stats.st_size;
 
 
-	total_len = ((spec_len + 3) & ~3) + filter_len + sizeof(*shead);
+	total_len = sizeof(*shead) + spec_len;
 	cheader->data_len = htonl(total_len);
 
-	shead = (searchlet_subhead_t *) malloc(total_len);
+	shead = malloc(total_len);
 	if (shead == NULL) {
 		free(cheader);
 		return (EAGAIN);
 	}
 
 	shead->spec_len = htonl(spec_len);
-	shead->filter_len = htonl(filter_len);
-
+	memcpy(&shead->spec_sig, sig, sizeof(*sig));
 
 	/*
 	 * set data to the beginning of the data portion  and
@@ -462,46 +444,17 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	 */
 	data = (char *) shead + sizeof(*shead);
 
-	if (spec != NULL) {
-		if ((cur_file = fopen(spec, "r")) == NULL) {
-			log_message(LOGT_NET, LOGL_ERR,
-		    	    "device_set_searchlet: failed open spec <%s>", 
-		    	    spec);
-			free(cheader);
-			free(shead);
-			return (ENOENT);
-		}
-		if ((rsize = fread(data, spec_len, 1, cur_file)) != 1) {
-			log_message(LOGT_NET, LOGL_ERR,
-		    	    "device_set_searchlet: failed read spec <%s>", 
-			    spec);
-			free(cheader);
-			free(shead);
-			return (EAGAIN);
-		}
-
-		fclose(cur_file);
-	}
-
-
-	/*
-	 * Now set data to where we are going to store the searchlet.
-	 * Data is the size of the spec_len rounded up to the next 4-byte
-	 * boundary.
-	 */
-	data += ((spec_len + 3) & ~3);
-	if ((cur_file = fopen(filter, "r")) == NULL) {
+	if ((cur_file = fopen(spec, "r")) == NULL) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed open filter <%s>", 
-		    filter);
+		    "device_set_searchlet: failed open spec <%s>", spec);
 		free(cheader);
 		free(shead);
 		return (ENOENT);
 	}
-	if ((rsize = fread(data, filter_len, 1, cur_file)) != 1) {
+	if ((rsize = fread(data, spec_len, 1, cur_file)) != 1) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed read filter <%s>", 
-		    filter);
+		    "device_set_searchlet: failed read spec <%s>", 
+		    spec);
 		free(cheader);
 		free(shead);
 		return (EAGAIN);
@@ -524,6 +477,49 @@ device_set_searchlet(void *handle, int id, char *filter, char *spec)
 	return (0);
 }
 
+int
+device_set_lib(void *handle, int id, sig_val_t *obj_sig)
+{
+	int             err;
+	control_header_t *cheader;
+	set_obj_header_t *shead;
+	sdevice_state_t *dev;
+
+	dev = (sdevice_state_t *) handle;
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
+	if (cheader == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed to malloc message");
+		return (EAGAIN);
+	}
+
+	cheader->generation_number = htonl(id);
+	cheader->command = htonl(CNTL_CMD_SET_OBJ);
+
+
+	cheader->data_len = htonl(sizeof(*shead));
+	shead = malloc(sizeof(*shead));
+	if (shead == NULL) {
+		free(cheader);
+		return (EAGAIN);
+	}
+
+	memcpy(&shead->obj_sig, obj_sig, sizeof(*obj_sig));
+
+	cheader->spare = (uint32_t) shead;
+	err = ring_enq(dev->device_ops, (void *) cheader);
+	if (err) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_searchlet: failed to enqueue command");
+		free(cheader);
+		return (EAGAIN);
+	}
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
+}
 
 int
 device_set_log(void *handle, uint32_t level, uint32_t src)

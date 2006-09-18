@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
 /*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
@@ -69,16 +79,12 @@ typedef enum {
 	DEV_STOP,
 	DEV_TERM,
 	DEV_START,
-	DEV_SEARCHLET,
+	DEV_SPEC,
+	DEV_OBJ,
 	DEV_BLOB
 } dev_op_type_t;
 
 
-typedef struct {
-	char           *filter;
-	char           *spec;
-	sig_val_t       sig;
-} dev_slet_data_t;
 
 typedef struct {
 	char           *fname;
@@ -89,8 +95,8 @@ typedef struct {
 typedef struct {
 	dev_op_type_t   cmd;
 	int             id;
+	sig_val_t	sig;
 	union {
-		dev_slet_data_t sdata;
 		dev_blob_data_t bdata;
 	} extra_data;
 } dev_cmd_data_t;
@@ -203,8 +209,7 @@ search_start(void *app_cookie, int id)
  */
 
 int
-search_set_searchlet(void *app_cookie, int id, char *filter, char *spec,
-		     sig_val_t * sig)
+search_set_spec(void *app_cookie, int id, sig_val_t *spec_sig)
 {
 	dev_cmd_data_t *cmd;
 	int             err;
@@ -217,13 +222,10 @@ search_set_searchlet(void *app_cookie, int id, char *filter, char *spec,
 		return (1);
 	}
 
-	cmd->cmd = DEV_SEARCHLET;
+	cmd->cmd = DEV_SPEC;
 	cmd->id = id;
 
-	cmd->extra_data.sdata.filter = filter;
-	cmd->extra_data.sdata.spec = spec;
-	memcpy(&cmd->extra_data.sdata.sig, sig, sizeof(*sig));
-
+	memcpy(&cmd->sig, spec_sig, sizeof(*spec_sig));
 	err = ring_enq(sstate->control_ops, (void *) cmd);
 	if (err) {
 		free(cmd);
@@ -232,6 +234,32 @@ search_set_searchlet(void *app_cookie, int id, char *filter, char *spec,
 	return (0);
 }
 
+
+int
+search_set_obj(void *app_cookie, int id, sig_val_t * objsig)
+{
+	dev_cmd_data_t *cmd;
+	int             err;
+	search_state_t *sstate;
+
+	sstate = (search_state_t *) app_cookie;
+
+	cmd = (dev_cmd_data_t *) malloc(sizeof(*cmd));
+	if (cmd == NULL) {
+		return (1);
+	}
+
+	cmd->cmd = DEV_OBJ;
+	cmd->id = id;
+
+	memcpy(&cmd->sig, objsig, sizeof(*objsig));
+	err = ring_enq(sstate->control_ops, (void *) cmd);
+	if (err) {
+		free(cmd);
+		return (1);
+	}
+	return (0);
+}
 
 /*
  * Reset the statistics for the current search.
@@ -278,8 +306,6 @@ static void
 dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 {
 	int             err;
-	char           *obj_name;
-	char           *spec_name;
 
 	switch (cmd->cmd) {
 	case DEV_STOP:
@@ -354,15 +380,9 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		sstate->flags |= DEV_FLAG_RUNNING;
 		break;
 
-	case DEV_SEARCHLET:
+	case DEV_SPEC:
 		sstate->ver_no = cmd->id;
-
-		obj_name = cmd->extra_data.sdata.filter;
-		spec_name = cmd->extra_data.sdata.spec;
-
-		err = fexec_load_searchlet(obj_name, spec_name,
-					   &sstate->fdata,
-					   &cmd->extra_data.sdata.sig);
+		err = fexec_load_spec(&sstate->fdata, &cmd->sig);
 		if (err) {
 			/*
 			 * XXX log 
@@ -370,33 +390,16 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			assert(0);
 			return;
 		}
-		/*
-		 * XXX fix this 
-		 */
-		do_cleanup = 0;
+		break;
 
-		/*
-		 * Remove the files that held the data.  If do_cleanup 
-		 * is * not set then we keep the files so we can 
-		 * do debugging.
-		 */
-		if (do_cleanup) {
-			err = unlink(obj_name);
-			if (err) {
-				perror("failed to unlink");
-				exit(1);
-			}
-			if (spec_name != NULL) {
-				unlink(spec_name);
-				if (err) {
-					perror("failed to unlink");
-					exit(1);
-				}
-			}
-		}
-		free(obj_name);
-		if (spec_name != NULL) {
-			free(spec_name);
+	case DEV_OBJ:
+		err = fexec_load_obj(sstate->fdata, &cmd->sig);
+		if (err) {
+			/*
+			 * XXX log 
+			 */
+			assert(0);
+			return;
 		}
 		break;
 

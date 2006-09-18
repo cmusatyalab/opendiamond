@@ -11,6 +11,15 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
 #ifndef _SEARCH_STATE_H_
 #define _SEARCH_STATE_H_
 
@@ -96,9 +105,10 @@ int             search_new_conn(void *cookie, void **app_cookie);
 int             search_close_conn(void *app_cookie);
 int             search_start(void *app_cookie, int gen_num);
 int             search_stop(void *app_cookie, int gen_num);
-int             search_set_searchlet(void *app_cookie, int gen_num,
-				     char *filter, char *spec,
-				     sig_val_t * sig);
+int             search_set_spec(void *app_cookie, int gen_num,
+		    sig_val_t *spec_sig);
+int             search_set_obj(void *app_cookie, int gen_num,
+		    sig_val_t *obj_sig);
 int             search_set_list(void *app_cookie, int gen_num);
 int             search_term(void *app_cookie, int gen_num);
 void            search_get_stats(void *app_cookie, int gen_num);

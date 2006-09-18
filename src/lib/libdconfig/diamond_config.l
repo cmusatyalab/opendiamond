@@ -14,7 +14,17 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
 #include <pthread.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
@@ -140,6 +150,31 @@ dconf_get_cachedir()
 	return(dir);
 }
 
+
+char *
+dconf_get_binary_cachedir()
+{
+	char *dir;
+	do_init();
+
+	dir = malloc(PATH_MAX);
+
+	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
+	    BINARY_DIAMOND_CACHE);
+	return(dir);
+}
+
+char *
+dconf_get_spec_cachedir()
+{
+	char *dir;
+	do_init();
+	dir = malloc(PATH_MAX);
+	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
+	    SPEC_DIAMOND_CACHE);
+	return(dir);
+}
+
 static int
 set_index_dir(char *dir)
 {
@@ -171,7 +206,16 @@ dconf_get_datatype()
 	return(dinfo->dconf_dtype);
 }
 
-
+static void
+setup_dir(const char *dir)
+{
+	int	err;
+	err = mkdir(dir, 0700);
+	if (err && (errno != EEXIST)) {
+		fprintf(stderr, "Failed to initialize dir %s \n", dir);
+	}
+	return(dir);
+}
 
 
 
@@ -185,6 +229,7 @@ static void
 do_init()
 {
 	int ret;
+	char *dir;
 
 	if (dinfo != NULL) {
 		return;	
@@ -192,6 +237,10 @@ do_init()
 
 	dinfo = malloc(sizeof(*dinfo));
 	assert(dinfo != NULL);
+
+	/* setup defaults */
+	/* XXX other defaults */
+	dinfo->dconf_cachedir = DEFAULT_DIAMOND_CACHE;
 
 	yyin = dconfig_open_config_file(DIAMOND_CONFIG_FILE_NAME);
 	if (yyin == NULL) {
@@ -207,6 +256,21 @@ do_init()
 		dinfo = NULL;
 		exit(1);
 	}
+
+	/* setup all the directories we need if they don't exist */
+	dir = dconf_get_cachedir();
+	setup_dir(dir);
+	free(dir);
+
+	dir = dconf_get_spec_cachedir();
+	setup_dir(dir);
+	free(dir);
+
+	dir = dconf_get_binary_cachedir();
+	setup_dir(dir);
+	free(dir);
+
+
 
 	return;
 }

@@ -143,8 +143,8 @@ int device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid);
  * These are background processing functions.
  */
 int bg_init(search_context_t *sc, int id);
-int bg_set_searchlet(search_context_t *sc, int id, char *filter_name,
-                     char *spec_name);
+int bg_set_lib(search_context_t *sc, int id, sig_val_t *sig);
+int bg_set_spec(search_context_t *sc, int id, sig_val_t *sig);
 int bg_set_blob(search_context_t *sc, int id, char *filter_name,
                 int blob_len, void *blob_data);
 int bg_start_search(search_context_t *sc, int id);

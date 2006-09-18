@@ -11,6 +11,14 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+#  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
 ROOTDIR = @top_srcdir@
 SRCDIR = @srcdir@
 VPATH = @srcdir@
@@ -19,10 +27,10 @@ OBJROOT = @OBJROOT@
 
 
 LIBOBJS += ring.o rtimer_std.o rtimer.o sig_calc.o
-LIBOBJS += rstat.o rgraph.o rcomb.o user.o
+LIBOBJS += rstat.o rgraph.o rcomb.o user.o file_tools.o
 
 LIBSRCS += ring.c rtimer_std.c rtimer.c  sig_calc.c
-LIBSRCS += rstat.c rgraph.c rcomb.c user.c
+LIBSRCS += rstat.c rgraph.c rcomb.c user.c file_tools.c
 
 TESTOBJS = test_ring.o
 TESTSRCS = test_ring.c

@@ -69,7 +69,8 @@ uint32_t        do_cpu_update = 0;
 typedef enum {
 	BG_STOP,
 	BG_START,
-	BG_SEARCHLET,
+	BG_SPEC,
+	BG_LIB,
 	BG_SET_BLOB,
 } bg_op_type_t;
 
@@ -80,6 +81,8 @@ typedef struct {
 	bg_op_type_t    cmd;
 	bg_op_type_t    ver_id;
 	sig_val_t       filt_sig;
+	sig_val_t       spec_sig;
+	sig_val_t       lib_sig;
 	char           *filter_name;
 	char           *spec_name;
 	void           *blob;
@@ -654,13 +657,18 @@ bg_main(void *arg)
 		if (cmd != NULL) {
 			any = 1;
 			switch (cmd->cmd) {
-			case BG_SEARCHLET:
+			case BG_SPEC:
 				sc->bg_status |= BG_SET_SEARCHLET;
-				err = fexec_load_searchlet(cmd->filter_name,
-				    cmd->spec_name, &sc->bg_fdata, 
-				    &cmd->filt_sig);
+				err = fexec_load_spec(&sc->bg_fdata,
+				    &cmd->spec_sig);
 				assert(!err);
 				break;
+			case BG_LIB:
+				err = fexec_load_obj(sc->bg_fdata,
+				    &cmd->lib_sig);
+				assert(!err);
+				break;
+
 
 			case BG_SET_BLOB:
 				fexec_set_blob(sc->bg_fdata, cmd->filter_name,
@@ -787,11 +795,9 @@ done:
  */
 
 int
-bg_set_searchlet(search_context_t * sc, int id, char *filter_name,
-		 char *spec_name)
+bg_set_spec(search_context_t * sc, int id, sig_val_t *sig)
 {
 	bg_cmd_data_t  *cmd;
-	int             err;
 
 	/*
 	 * Allocate a command struct to store the new command.
@@ -799,27 +805,27 @@ bg_set_searchlet(search_context_t * sc, int id, char *filter_name,
 	cmd = (bg_cmd_data_t *) malloc(sizeof(*cmd));
 	assert(cmd != NULL);
 
-	cmd->cmd = BG_SEARCHLET;
+	cmd->cmd = BG_SPEC;
 	cmd->ver_id = (bg_op_type_t) id;
+	memcpy(&cmd->spec_sig, sig, sizeof(*sig));
+	ring_enq(sc->bg_ops, (void *) cmd);
+	return (0);
+}
 
-	if (filter_name != NULL) {
-		cmd->filter_name = strdup(filter_name);
-		assert(cmd->filter_name);
-		err = bg_filt_sig(filter_name, &cmd->filt_sig);
-		if (err) {
-			free(cmd->filter_name);
-			free(cmd);
-			return (EINVAL);
-		}
-	} else {
-		cmd->filter_name = NULL;
-	}
+int
+bg_set_lib(search_context_t * sc, int id, sig_val_t *sig)
+{
+	bg_cmd_data_t  *cmd;
 
-	if (spec_name != NULL) {
-		cmd->spec_name = strdup(spec_name);
-	} else {
-		cmd->spec_name = NULL;
-	}
+	/*
+	 * Allocate a command struct to store the new command.
+	 */
+	cmd = (bg_cmd_data_t *) malloc(sizeof(*cmd));
+	assert(cmd != NULL);
+
+	cmd->cmd = BG_LIB;
+	cmd->ver_id = (bg_op_type_t) id;
+	memcpy(&cmd->lib_sig, sig, sizeof(*sig));
 	ring_enq(sc->bg_ops, (void *) cmd);
 	return (0);
 }

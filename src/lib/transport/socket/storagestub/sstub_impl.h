@@ -97,8 +97,7 @@ typedef enum {
 /* XXX forward ref */
 struct listener_state;
 
-typedef struct cstate
-{
+typedef struct cstate {
 	unsigned int		flags;
 	pthread_t		    thread_id;
 	pthread_mutex_t		cmutex;
@@ -161,37 +160,37 @@ cstate_t;
  * functions that are invoked messages of a specified type arrive.
  */
 
-typedef struct listener_state
-{
-	pthread_t		        thread_id;
-	int			            control_fd;
-	int			            data_fd;
-	int			            log_fd;
-	unsigned int		    flags;
-	fd_set			        read_fds;
-	fd_set			        write_fds;
-	fd_set			        except_fds;
-	sstub_new_conn_fn 	    new_conn_cb;
+typedef struct listener_state {
+	pthread_t		thread_id;
+	int			control_fd;
+	int			data_fd;
+	int			log_fd;
+	unsigned int		flags;
+	fd_set			read_fds;
+	fd_set			write_fds;
+	fd_set			except_fds;
+	sstub_new_conn_fn 	new_conn_cb;
 	sstub_close_conn_fn 	close_conn_cb;
-	sstub_start_fn 		    start_cb;
-	sstub_stop_fn 		    stop_cb;
-	sstub_set_searchlet_fn	set_searchlet_cb;
-	sstub_set_list_fn	    set_list_cb;
-	sstub_terminate_fn	    terminate_cb;
-	sstub_getstats_fn	    get_stats_cb;
+	sstub_start_fn 		start_cb;
+	sstub_stop_fn 		stop_cb;
+	sstub_set_filter_spec_fn set_fspec_cb;
+	sstub_set_filter_obj_fn set_fobj_cb;
+	sstub_set_list_fn	set_list_cb;
+	sstub_terminate_fn	terminate_cb;
+	sstub_getstats_fn	get_stats_cb;
 	sstub_release_obj_fn	release_obj_cb;
 	sstub_get_devchar_fn	get_char_cb;
-	sstub_log_done_fn	    log_done_cb;
-	sstub_set_log_fn	    setlog_cb;
+	sstub_log_done_fn	log_done_cb;
+	sstub_set_log_fn	setlog_cb;
 	sstub_rleaf_fn	        rleaf_cb;
 	sstub_wleaf_fn	        wleaf_cb;
 	sstub_lleaf_fn	        lleaf_cb;
 	sstub_lnode_fn	        lnode_cb;
 	sstub_sgid_fn	        sgid_cb;
-	sstub_clear_gids_fn		clear_gids_cb;
-	sstub_set_blob_fn		set_blob_cb;
-	sstub_set_offload_fn		set_offload_cb;
-	cstate_t		        conns[MAX_CONNS];
+	sstub_clear_gids_fn	clear_gids_cb;
+	sstub_set_blob_fn	set_blob_cb;
+	sstub_set_offload_fn	set_offload_cb;
+	cstate_t		conns[MAX_CONNS];
 } listener_state_t;
 
 

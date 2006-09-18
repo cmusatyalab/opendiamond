@@ -50,6 +50,7 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 #include "lib_ocache.h"
+#include "lib_dconfig.h"
 
 
 static char const cvsid[] =
@@ -294,7 +295,21 @@ fexec_term_search(filter_data_t * fdata)
 }
 
 static int
-load_filter_lib(char *lib_name, filter_data_t * fdata, sig_val_t * sig)
+relink_lib(char *lib, char *so_name)
+{
+	char	command[256];	
+
+	sprintf(command, "g++ -o %s  -shared %s ", so_name, lib);
+	if (system(command) < 0) {
+		printf("Failed to load command\n");
+		return(-1);	
+	}
+	return(0);
+}
+
+static int
+load_filter_lib(char *lib_name, char *so_name, filter_data_t * fdata, 
+    sig_val_t * sig)
 {
 	void           *handle;
 	filter_info_t  *cur_filt;
@@ -304,15 +319,24 @@ load_filter_lib(char *lib_name, filter_data_t * fdata, sig_val_t * sig)
 	filter_id_t     fid;
 	char           *error;
 
-	handle = dlopen(lib_name, RTLD_LAZY | RTLD_LOCAL);
+	file_get_lock(so_name);
+	if (!file_exists(so_name)) {
+		if (relink_lib(lib_name, so_name) < 0) {
+			fprintf(stderr, "failed to link lib <%s> \n", so_name);
+			exit(1);
+		}
+	}
+
+	handle = dlopen(so_name, RTLD_LAZY | RTLD_LOCAL);
 	if (!handle) {
 		/*
 		 * XXX error log 
 		 */
-		fprintf(stderr, "failed to open lib <%s> \n", lib_name);
+		fprintf(stderr, "failed to open lib <%s> \n", so_name);
 		fputs(dlerror(), stderr);
 		exit(1);
 	}
+	file_release_lock(so_name);
 
 	/*
 	 * Store information about this lib.
@@ -330,7 +354,7 @@ load_filter_lib(char *lib_name, filter_data_t * fdata, sig_val_t * sig)
 	}
 
 	fdata->lib_info[fdata->num_libs].dl_handle = handle;
-	fdata->lib_info[fdata->num_libs].lib_name = strdup(lib_name);
+	fdata->lib_info[fdata->num_libs].lib_name = strdup(so_name);
 	assert(fdata->lib_info[fdata->num_libs].lib_name != NULL);
 
 	memcpy(&fdata->lib_info[fdata->num_libs].lib_sig, sig, sizeof(*sig));
@@ -370,10 +394,10 @@ load_filter_lib(char *lib_name, filter_data_t * fdata, sig_val_t * sig)
 		 * JIAYING: temporaryly pass in lib name. we may want to use 
 		 * separate lib for each filter later 
 		 */
-		if (strlen(lib_name) > PATH_MAX) {
+		if (strlen(so_name) > PATH_MAX) {
 			return (EINVAL);
 		}
-		memcpy(cur_filt->lib_name, lib_name, strlen(lib_name) + 1);
+		memcpy(cur_filt->lib_name, so_name, strlen(so_name) + 1);
 
 	}
 	return (0);
@@ -674,87 +698,79 @@ initialize_policy(filter_data_t * fdata)
 
 
 /*
- * This initializes all of the filters.  First it parses the filter spec
- * file to create the data structures for each of the filters and the associated
- * state for the filters.  After this we verify each of the filters to make
- * sure we have the minimum required information for the filter.  We then load
- * the shared library that should contain the filter functions and we
- * identify all the entry points of these functions.
- *
- * Inputs:
- *  lib_name:   The name of the shared library that has the filter files.
- *  filter_spec:    The file containing the filter spec.
- *  fdata:      A pointer to where the pointer to the list of filters
- *          should be stored.   
- *  sig:        md5 sum of the filter 
- *
- * Returns:
- *  0   if it initailized correctly
- *  !0  something failed.   
  */
 int
-fexec_load_searchlet(char *lib_name, char *filter_spec,
-		     filter_data_t ** fdata, sig_val_t * sig)
+fexec_load_obj(filter_data_t * fdata, sig_val_t *sig)
 {
-	int             err;
+	int  err;
+	char * cache_dir;
+	char name_buf[PATH_MAX];
+	char so_name[PATH_MAX];
+	char *sig_str;
 
-	log_message(LOGT_FILT, LOGL_TRACE,
-		    "fexec_load_searchlet: lib %s spec %s", lib_name,
-		    filter_spec);
+	sig_str = sig_string(sig);
+	log_message(LOGT_FILT, LOGL_TRACE, "fexec_load_obj: lib %s", sig_str);
 
-	if (filter_spec != NULL) {
-		err = read_filter_spec(filter_spec, fdata);
-		if (err) {
-			log_message(LOGT_FILT, LOGL_ERR,
-				    "Failed to read filter spec <%s>",
-				    filter_spec);
-			return (err);
-		}
+	cache_dir = dconf_get_binary_cachedir();
+	snprintf(name_buf, PATH_MAX, OBJ_FORMAT, cache_dir, sig_str);
+	snprintf(so_name, PATH_MAX, SO_FORMAT, cache_dir, sig_str);
+	free(sig_str);
+	free(cache_dir);
 
-		err = resolve_filter_deps(*fdata);
-		if (err) {
-			log_message(LOGT_FILT, LOGL_ERR,
-				    "Failed resolving filter dependancies <%s>",
-				    filter_spec);
-			return (1);
-		}
-
-		err = verify_filters(*fdata);
-		if (err) {
-			log_message(LOGT_FILT, LOGL_ERR,
-				    "Filter verify failed <%s>", filter_spec);
-			return (err);
-		}
-
-		/*
-		 * this need to be cleaned up somewhere XXX 
-		 */
-		initialize_policy(*fdata);
-
+	err = load_filter_lib(name_buf, so_name, fdata, sig);
+	if (err) {
+		log_message(LOGT_FILT, LOGL_ERR,
+			    "Failed loading filter library <%s>",
+			    name_buf);
+		return (err);
 	}
-	/*
-	 * We have loaded the filter spec, now try to load the library
-	 * and resolve the dependancies against it.
-	 */
-
-	if (lib_name != NULL) {
-		err = load_filter_lib(lib_name, *fdata, sig);
-		if (err) {
-			log_message(LOGT_FILT, LOGL_ERR,
-				    "Failed loading filter library <%s>",
-				    lib_name);
-			return (err);
-		}
-
-		/*
-		 * everything was loaded correctly, log it 
-		 */
-		log_message(LOGT_FILT, LOGL_TRACE,
-			    "init_filters: loaded %s", lib_name);
-	}
-
 	return (0);
 }
+
+int
+fexec_load_spec(filter_data_t **fdata, sig_val_t *sig)
+{
+	int err;
+	char * cache_dir;
+	char name_buf[PATH_MAX];
+	char *sig_str;
+
+	sig_str = sig_string(sig);
+	log_message(LOGT_FILT, LOGL_TRACE, "fexec_load_spec: spec %s", sig_str);
+
+	cache_dir = dconf_get_spec_cachedir();
+	snprintf(name_buf, PATH_MAX, SPEC_FORMAT, cache_dir, sig_str);
+	free(sig_str);
+	free(cache_dir);
+
+	err = read_filter_spec(name_buf, fdata);
+	if (err) {
+		log_message(LOGT_FILT, LOGL_ERR,
+	    	    "Failed to read filter spec <%s>", name_buf);
+		return (err);
+	}
+
+	err = resolve_filter_deps(*fdata);
+	if (err) {
+		log_message(LOGT_FILT, LOGL_ERR,
+		    "Failed resolving filter dependancies <%s>", name_buf);
+		return (1);
+	}
+
+	err = verify_filters(*fdata);
+	if (err) {
+		log_message(LOGT_FILT, LOGL_ERR,
+			    "Filter verify failed <%s>", name_buf);
+		return (err);
+	}
+
+	/*
+	 * this need to be cleaned up somewhere XXX 
+	 */
+	initialize_policy(*fdata);
+	return(0);
+}
+
 
 void
 update_filter_order(filter_data_t * fdata, const permutation_t * perm)

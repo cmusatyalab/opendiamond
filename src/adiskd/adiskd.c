@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -128,7 +138,10 @@ main(int argc, char **argv)
 	cb_args.close_conn_cb = search_close_conn;
 	cb_args.start_cb = search_start;
 	cb_args.stop_cb = search_stop;
-	cb_args.set_searchlet_cb = search_set_searchlet;
+
+	cb_args.set_fspec_cb = search_set_spec;
+	cb_args.set_fobj_cb = search_set_obj;
+
 	cb_args.set_list_cb = search_set_list;
 	cb_args.terminate_cb = search_term;
 	cb_args.get_stats_cb = search_get_stats;

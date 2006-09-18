@@ -11,6 +11,16 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+
+/*
+ *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
 /*
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
@@ -38,6 +48,7 @@
 #include "socket_trans.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
+#include "lib_dconfig.h"
 #include "sstub_impl.h"
 
 
@@ -267,114 +278,146 @@ sstub_except_control(listener_state_t * lstate, cstate_t * cstate)
 }
 
 void
-process_searchlet_message(listener_state_t * lstate, cstate_t * cstate,
+process_object_message(listener_state_t * lstate, cstate_t * cstate,
 			  char *data)
 {
-	char           *lib_name;
-	char           *spec_name;
-	uint32_t        cmd;
-	uint32_t        gen;
-	searchlet_subhead_t *shead;
-	int             spec_offset,
-	                filter_offset;
-	int             lib_fd,
-	                spec_fd;
-	int             spec_len,
-	                filter_len;
-	size_t          wsize;
-	sig_val_t       sig;
+	send_obj_subhead_t *shead;
+	int objlen;
+	int fd;
+	char objname[PATH_MAX];
+	char * sig;
+	char *cache;
+	char *buf;
+	int err;
+	uint32_t gen;
 
-	cmd = ntohl(cstate->control_rx_header.command);
+
+	shead = (send_obj_subhead_t *) data;
+
 	gen = ntohl(cstate->control_rx_header.generation_number);
 
-	shead = (searchlet_subhead_t *) data;
-	spec_offset = sizeof(*shead);
+
+	/* get name to store the object */ 	
+	cache = dconf_get_binary_cachedir();
+	sig = sig_string(&shead->obj_sig);
+	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig);
+	free(sig);
+	free(cache);
+
+	buf = ((char *)shead) + sizeof(*shead);
+
+	objlen = ntohl(shead->obj_len);
+
+        /* create the new file */
+	file_get_lock(objname);
+	fd = open(objname, O_CREAT|O_EXCL|O_WRONLY, 0744);
+       	if (fd < 0) {
+		file_release_lock(objname);
+		if (errno == EEXIST) { 
+			return; 
+		}
+		fprintf(stderr, "file %s failed on %d \n", objname, errno); 
+		err = errno;
+		return;
+	} 
+	if (write(fd, buf, objlen) != objlen) {
+		perror("write buffer file"); 
+	}
+	close(fd);
+	file_release_lock(objname);
+
+	(*lstate->set_fobj_cb)(cstate->app_cookie, gen, &shead->obj_sig);
+
+}
+
+void
+process_spec_message(listener_state_t * lstate, cstate_t * cstate,
+			  char *data)
+{
+	uint32_t gen;
+	spec_subhead_t *shead;
+	int spec_len;
+	char specpath[PATH_MAX];
+	char * cache;
+	char * sig;
+	char *buf;
+	int fd;
+	int err;
+
+	gen = ntohl(cstate->control_rx_header.generation_number);
+
+	shead = (spec_subhead_t *) data;
 	spec_len = ntohl(shead->spec_len);
-	filter_len = ntohl(shead->filter_len);
-	filter_offset = ((spec_len + 3) & ~3) + spec_offset;
 
 	/*
 	 * create a file for storing the searchlet library.
 	 */
-
-	/*
-	 * sanity check the constants 
-	 */
-	assert(MAX_TEMP_NAME > (sizeof(TEMP_DIR_NAME) +
-				sizeof(TEMP_OBJ_NAME) + 1));
-
-	lib_name = (char *) malloc(MAX_TEMP_NAME);
-	if (lib_name == NULL) {
-		printf("filename failed \n");
-		exit(1);
-	}
-	sprintf(lib_name, "%s%s", TEMP_DIR_NAME, TEMP_OBJ_NAME);
 	umask(0000);
 
-	lib_fd = mkstemp(lib_name);
-	if (lib_fd == -1) {
-		free(lib_name);
-		/*
-		 * XXX 
-		 */
-		perror("failed to create lib_fd:");
-		/*
-		 * XXX 
-		 */
-		exit(1);
+	cache = dconf_get_spec_cachedir();
+	sig = sig_string(&shead->spec_sig);
+	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, sig);
+	free(sig);
+	free(cache);
+
+	buf = ((char *)shead) + sizeof(*shead);
+	
+        /* create the new file */
+	file_get_lock(specpath);
+	fd = open(specpath, O_CREAT|O_EXCL|O_WRONLY, 0744);
+       	if (fd < 0) {
+		file_release_lock(specpath);
+		if (errno == EEXIST) { 
+			goto done; 
+		}
+		fprintf(stderr, "file %s failed on %d \n", specpath, errno); 
+		err = errno;
+		return;
 	}
-
-	if (spec_len > 0) {
-		/*
-		 * Create a file to hold the filter spec.
-		 */
-		assert(MAX_TEMP_NAME > (sizeof(TEMP_DIR_NAME) +
-					sizeof(TEMP_SPEC_NAME) + 1));
-
-		spec_name = (char *) malloc(MAX_TEMP_NAME);
-		if (spec_name == NULL) {
-			printf("specname failed \n");
-			exit(1);
-		}
-		sprintf(spec_name, "%s%s", TEMP_DIR_NAME, TEMP_SPEC_NAME);
-
-
-		spec_fd = mkstemp(spec_name);
-		if (spec_fd == -1) {
-			free(spec_name);
-			/*
-			 * XXX 
-			 */
-			printf("failed to create spec_fd \n");
-			/*
-			 * XXX 
-			 */
-			exit(1);
-		}
-
-		wsize = write(spec_fd, &data[spec_offset], (size_t) spec_len);
-		if (wsize != spec_len) {
-			printf("write %d len %d err %d \n", wsize, spec_len,
-			       errno);
-			assert(0);
-		}
-		assert(wsize == spec_len);
-		close(spec_fd);
-	} else {
-		spec_name = NULL;
+	if (write(fd, buf, spec_len) != spec_len) {
+		perror("write buffer file"); 
 	}
+	close(fd);
+	file_release_lock(specpath);
 
-	sig_cal(&data[filter_offset], filter_len, &sig);
-
-	wsize = write(lib_fd, &data[filter_offset], (size_t) filter_len);
-	assert(filter_len == filter_len);
-	close(lib_fd);
-
-
-	(*lstate->set_searchlet_cb) (cstate->app_cookie, gen,
-				     lib_name, spec_name, &sig);
-
+done:
+	(*lstate->set_fspec_cb)(cstate->app_cookie, gen, &shead->spec_sig);
 }
+
+void
+process_obj_message(listener_state_t * lstate, cstate_t * cstate,
+			  char *data)
+{
+	uint32_t gen;
+	set_obj_header_t *ohead;
+	char objpath[PATH_MAX];
+	char * cache;
+	char * sig;
+
+	gen = ntohl(cstate->control_rx_header.generation_number);
+	ohead = (set_obj_header_t *) data;
+
+	/*
+	 * create a file for storing the searchlet library.
+	 */
+	umask(0000);
+
+	cache = dconf_get_binary_cachedir();
+	sig = sig_string(&ohead->obj_sig);
+	snprintf(objpath, PATH_MAX, OBJ_FORMAT, cache, sig);
+	free(sig);
+	free(cache);
+
+	if (file_exists(objpath)) {
+		(*lstate->set_fobj_cb)(cstate->app_cookie, gen, &ohead->obj_sig);
+
+	} else {
+		/* XXX ref count before start command */
+		sstub_get_obj(cstate, &ohead->obj_sig);
+	}
+}
+
+
 
 /*
  * This is called when we have an indication that data is ready
@@ -399,9 +442,15 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		(*lstate->stop_cb) (cstate->app_cookie, gen);
 		break;
 
-	case CNTL_CMD_SET_SEARCHLET:
+	case CNTL_CMD_SET_SPEC:
 		assert(data != NULL);
-		process_searchlet_message(lstate, cstate, data);
+		process_spec_message(lstate, cstate, data);
+		free(data);
+		break;
+
+	case CNTL_CMD_SET_OBJ:
+		assert(data != NULL);
+		process_obj_message(lstate, cstate, data);
 		free(data);
 		break;
 
@@ -551,6 +600,12 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 			free(data);
 			break;
 		}
+
+	case CNTL_CMD_SEND_OBJ:
+		assert(data != NULL);
+		process_object_message(lstate, cstate, data);
+		free(data);
+		break;
 
 	default:
 		printf("unknown command: %d \n", cmd);

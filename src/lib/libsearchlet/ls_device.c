@@ -568,9 +568,8 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 
 	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
 	if (hent == NULL) {
+		/* no host name to use the IP address */
 		struct in_addr  in;
-
-		printf("failed to get hostname\n");
 		in.s_addr = devid;
 		delim = inet_ntoa(in);
 		strcpy(node_name, delim);

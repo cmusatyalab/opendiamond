@@ -11,6 +11,16 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+
+#
+#  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
 ROOTDIR = @top_srcdir@
 SRCDIR = @srcdir@
 VPATH = @srcdir@
@@ -26,8 +36,8 @@ LIBSRCS += ls_device.c ls_log.c ls_dctl.c
 LIBOBJS += lib_searchlet.o ls_background.o   
 LIBOBJS += ls_device.o ls_log.o ls_dctl.o
 
-LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lfilter -lodisk -ltools 
-LIBS += -lfilterexec -llog -lhstub -ldconfig
+LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lfilter -lodisk
+LIBS += -lfilterexec -llog -lhstub -ldconfig -ltools
 LIBS +=  -ldctl  -lm -lssl -lcrypto
 
 

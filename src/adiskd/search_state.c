@@ -673,7 +673,6 @@ save_good_name(good_objs_t *gobj, obj_data_t *obj, int ver_no)
 
 	if (gobj->num_names == gobj->max_names) {
 		gobj->max_names += 256;
-		fprintf(stderr, "realloc: max %d \n", gobj->max_names);
 		gobj->nlist = realloc(gobj->nlist, 
 		    sizeof(char *) * gobj->max_names);
 		assert(gobj->nlist != NULL);
@@ -883,7 +882,6 @@ device_main(void *arg)
 				err = ceval_filters2(new_obj, sstate->fdata,
 					   1, sstate, NULL);
 				if (err == 0) {
-					fprintf(stderr, "lookahead drop\n");
 					sstate->obj_dropped++;
 					sstate->obj_processed++;
 				} else {

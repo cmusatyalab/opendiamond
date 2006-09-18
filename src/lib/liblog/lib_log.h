@@ -14,6 +14,7 @@
 #ifndef	_LIB_LOG_H_
 #define	_LIB_LOG_H_	1
 
+#include <stdint.h>
 
 
 /*

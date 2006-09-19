@@ -194,7 +194,7 @@ ifneq ($(strip ${INSTALL_OTHERS}),)
 endif
 ifneq ($(strip ${INSTALL_HEADERS}),)	
 	@for entry in ${INSTALL_HEADERS} ; do \
-		${INSTALL} $${entry} ${INSTALLDIR_INCLUDE} ; \
+		${INSTALL} -m u=rw,go=r $${entry} ${INSTALLDIR_INCLUDE} ; \
 	done
 endif
 ifneq ($(strip ${INSTALL_LIBS}),)	
@@ -209,7 +209,7 @@ ifneq ($(strip ${INSTALL_BIN}),)
 endif
 ifneq ($(strip ${INSTALL_ETC}),)	
 	@for entry in ${INSTALL_ETC} ; do \
-		${INSTALL} $${entry} ${INSTALLDIR_ETC} ; \
+		${INSTALL} -m u=rw,go=r $${entry} ${INSTALLDIR_ETC} ; \
 	done
 endif
 

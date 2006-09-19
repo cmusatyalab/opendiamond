@@ -299,7 +299,7 @@ relink_lib(char *lib, char *so_name)
 {
 	char	command[256];	
 
-	sprintf(command, "g++ -o %s  -shared %s ", so_name, lib);
+	sprintf(command, "g++ -m32 -o %s  -shared %s ", so_name, lib);
 	if (system(command) < 0) {
 		printf("Failed to load command\n");
 		return(-1);	

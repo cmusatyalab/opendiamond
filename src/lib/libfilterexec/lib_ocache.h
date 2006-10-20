@@ -22,7 +22,7 @@ extern "C"
 {
 #endif
 
-#define ATTR_ENTRY_NUM  50
+#define ATTR_ENTRY_NUM  128
 
 struct ocache_state;
 

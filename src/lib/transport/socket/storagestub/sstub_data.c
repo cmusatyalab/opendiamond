@@ -502,22 +502,24 @@ sstub_read_data(listener_state_t * lstate, cstate_t * cstate)
 	 */
 	data = (char *) &cstate->cc_msg;
 	data_size = sizeof(credit_count_msg_t);
-	rsize = recv(cstate->data_fd, data, data_size, 0);
 
-	/*
-	 * make sure we read the whole message and that it has the right
-	 * header 
-	 */
-	if (rsize == -1) {
-		perror("sstub_read_data:");
-		exit(1);
-		return;
-	} else if (rsize == 0) {
-		// printf("no data \n");
-		return;
-	} else if (rsize != data_size) {
-		printf("bad readsize %d  %d\n", rsize, data_size);
-		exit(1);
+	while (data_size > 0) {
+	  rsize = recv(cstate->data_fd, data, data_size, 0);
+
+	  /*
+	   * make sure we read the whole message and that it has the right
+	   * header 
+	   */
+	  if (rsize == -1) {
+	          perror("sstub_read_data:");
+		  exit(1);
+		  return;
+	  } else if (rsize == 0) {
+	          // printf("no data \n");
+	          return;
+	  }
+	  data_size -= rsize;
+	  data += rsize;
 	}
 	assert(ntohl(cstate->cc_msg.cc_magic) == CC_MAGIC_HEADER);
 

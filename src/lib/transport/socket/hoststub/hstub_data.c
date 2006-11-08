@@ -416,12 +416,12 @@ hstub_write_data(sdevice_state_t * dev)
 	 */
 	data = (char *) &cinfo->cc_msg;
 	mcount = sizeof(credit_count_msg_t);
-	send_size = send(cinfo->data_fd, data, mcount, 0);
-
-	/*
-	 * XXX we don't handle partials today XXX 
-	 */
-	assert(send_size == mcount);
+	while (mcount > 0) {
+	  send_size = send(cinfo->data_fd, data, mcount, 0);
+	  assert (send_size != -1);
+	  mcount -= send_size;
+	  data += send_size;
+	}
 
 	/*
 	 * if successful, clear the flag 

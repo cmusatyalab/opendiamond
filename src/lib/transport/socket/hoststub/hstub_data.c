@@ -418,7 +418,10 @@ hstub_write_data(sdevice_state_t * dev)
 	mcount = sizeof(credit_count_msg_t);
 	while (mcount > 0) {
 	  send_size = send(cinfo->data_fd, data, mcount, 0);
-	  assert (send_size != -1);
+	  if (send_size == -1) {
+	    perror("hstub_write_data");
+	    return;
+	  }
 	  mcount -= send_size;
 	  data += send_size;
 	}
@@ -427,5 +430,4 @@ hstub_write_data(sdevice_state_t * dev)
 	 * if successful, clear the flag 
 	 */
 	cinfo->flags &= ~CINFO_PENDING_CREDIT;
-
 }

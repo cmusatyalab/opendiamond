@@ -419,8 +419,12 @@ hstub_write_data(sdevice_state_t * dev)
 	while (mcount > 0) {
 		send_size = send(cinfo->data_fd, data, mcount, 0);
 		if (send_size == -1) {
-			perror("hstub_write_data");
-			return;
+			if (errno == EAGAIN) {
+				continue;
+			} else {
+				perror("hstub_write_data");
+				return;
+			}
 		}
 		mcount -= send_size;
 		data += send_size;

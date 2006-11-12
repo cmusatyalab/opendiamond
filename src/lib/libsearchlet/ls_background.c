@@ -475,12 +475,11 @@ bg_main(void *arg)
 	int             err;
 	bg_cmd_data_t  *cmd;
 	int             any;
+	int             active;
 	device_handle_t *cur_dev;
 	double          etime;
 	struct timeval  this_time;
-	struct timeval  next_time = {
-		0, 0
-	};
+	struct timeval  next_time = { 0, 0 };
 	struct timezone tz;
 	struct timespec timeout;
 	uint32_t        loop_count = 0;
@@ -600,21 +599,20 @@ bg_main(void *arg)
 				 * are done.
 				 */
 
-				any = 0;
+				active = 0;
 				for (cur_dev = sc->dev_list; cur_dev != NULL;
 				    cur_dev = cur_dev->next) {
 					if (cur_dev->flags & DEV_FLAG_DOWN) {
 						continue;
 					}
 					if ((cur_dev->
-					     flags & DEV_FLAG_COMPLETE) ==
-					    0) {
-						any = 1;
+					     flags & DEV_FLAG_COMPLETE) == 0) {
+						active = 1;
 						break;
 					}
 				}
 
-				if ((any == 0)
+				if ((active == 0)
 				    && (sc->cur_status == SS_ACTIVE)) {
 					sc->cur_status = SS_DONE;
 				}

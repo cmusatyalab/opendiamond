@@ -702,29 +702,26 @@ ocache_write_file(char *disk_path, fcache_t * fcache)
 	sprintf(fpath, "%s/%s.%s", disk_path, s_str, CACHE_EXT);
 	free(s_str);
 
-	fd = open(fpath, O_CREAT | O_RDWR, 00777);
-	if (fd < 0) {
-		perror("failed to open cache file\n");
-		return (0);
-	}
-	err = flock(fd, LOCK_EX);
-	if (err) {
-		perror("failed to lock cache file\n");
+	fd = open(fpath, O_RDWR, 00777);
+	if (fd >=  0) {
+		err = flock(fd, LOCK_EX);
+		if (err) {
+			perror("failed to lock cache file\n");
+			close(fd);
+			return (0);
+		}
+		err = fstat(fd, &stats);
+		if (err != 0) {
+			perror("failed to stat cache file\n");
+			close(fd);
+			return (0);
+		}
+		if (memcmp(&stats.st_mtime, &fcache->mtime, sizeof(time_t))) {
+			err = ocache_update(fd, cache_table, &stats);
+		}
 		close(fd);
-		return (0);
-	}
-	err = fstat(fd, &stats);
-	if (err != 0) {
-		perror("failed to stat cache file\n");
-		close(fd);
-		return (0);
 	}
 
-	if (memcmp(&stats.st_mtime, &fcache->mtime, sizeof(time_t))) {
-		err = ocache_update(fd, cache_table, &stats);
-	}
-
-	close(fd);
 	fd = open(fpath, O_CREAT | O_RDWR | O_TRUNC, 00777);
 	err = flock(fd, LOCK_EX);
 	if (err) {

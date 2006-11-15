@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <stdint.h>
 #include <netinet/in.h>
 #include <sys/time.h>
@@ -46,6 +47,7 @@
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
+#include "lib_dconfig.h"
 #include "lib_log.h"
 #include "rcomb.h"
 #include "lib_filterexec.h"
@@ -67,6 +69,10 @@ static void    *update_bypass(void *arg);
  * XXX other place 
  */
 extern int      do_cleanup;
+extern int      do_fork;
+extern int      active_searches;
+extern int      idle_background;
+extern pid_t    background_pid;
 
 /*
  * XXX move to seperate header file !!! 
@@ -1010,11 +1016,32 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 {
 	search_state_t *sstate;
 	int             err;
+	pid_t		new_proc;
+
+	/* kill any background processing if appropriate */
+	if ((idle_background) && (background_pid != -1)) {
+		kill(background_pid, SIGHUP);
+	}
+
+
+	/*
+	 * We have a new connection decide whether to fork or not
+	 */
+	if (do_fork) {
+		new_proc = fork();
+        } else {
+		new_proc = 0;
+        }
+	
+	if (new_proc != 0) {
+		active_searches++;
+		return 1;
+	}
 
 	sstate = (search_state_t *) malloc(sizeof(*sstate));
 	if (sstate == NULL) {
 		*app_cookie = NULL;
-		return (ENOMEM);
+		exit(1);
 	}
 
 	memset((void *) sstate, 0, sizeof(*sstate));
@@ -1107,7 +1134,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	if (err) {
 		free(sstate);
 		*app_cookie = NULL;
-		return (ENOENT);
+		exit(1);
 	}
 
 	sstate->flags = 0;
@@ -1148,7 +1175,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		 */
 		free(sstate);
 		*app_cookie = NULL;
-		return (ENOENT);
+		exit(1);
 	}
 
 	/*
@@ -1496,7 +1523,20 @@ search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 {
 	int             err;
 	search_state_t *sstate;
+	char path[PATH_MAX];
+	char *prefix;
+	FILE *fp;
 
+	prefix = dconf_get_filter_cachedir();
+
+	snprintf(path, PATH_MAX, "%s/GID_LIST", prefix);
+	fp = fopen(path, "a+");
+	fprintf(fp, "%llu\n", gid);
+	fclose(fp);
+	
+
+
+	
 	sstate = (search_state_t *) app_cookie;
 	err = odisk_set_gid(sstate->ostate, gid);
 	assert(err == 0);

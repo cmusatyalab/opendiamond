@@ -165,6 +165,33 @@ dconf_get_binary_cachedir()
 }
 
 char *
+dconf_get_filter_cachedir()
+{
+	char *dir;
+	do_init();
+
+	dir = malloc(PATH_MAX);
+
+	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
+	    FILTER_DIAMOND_CACHE);
+	return(dir);
+}
+
+char *
+dconf_get_blob_cachedir()
+{
+	char *dir;
+	do_init();
+
+	dir = malloc(PATH_MAX);
+
+	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
+	    BLOB_DIAMOND_CACHE);
+	return(dir);
+}
+
+
+char *
 dconf_get_spec_cachedir()
 {
 	char *dir;
@@ -270,6 +297,13 @@ do_init()
 	setup_dir(dir);
 	free(dir);
 
+	dir = dconf_get_filter_cachedir();
+	setup_dir(dir);
+	free(dir);
+
+	dir = dconf_get_blob_cachedir();
+	setup_dir(dir);
+	free(dir);
 
 
 	return;

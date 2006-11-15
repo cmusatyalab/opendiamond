@@ -83,3 +83,11 @@ fexec_set_blob(filter_data_t * fdata, char *filter_name,
 	 */
 	return (ENOENT);
 }
+
+void
+fexec_set_full_eval(filter_data_t * fdata)
+{
+	fdata->full_eval = 1;
+
+}
+

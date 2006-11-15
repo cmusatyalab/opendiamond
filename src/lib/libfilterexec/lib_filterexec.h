@@ -76,11 +76,25 @@ extern int             fexec_autopart_type;
 struct filter_exec_t {
 	enum policy_type_t current_policy;
 };
+
+
+
 /*
  * update at your own risk! 
  */
 extern struct filter_exec_t filter_exec;
 
+/* XXX */
+#define	MAX_OBJ_FILES	64
+
+typedef struct {
+	sig_val_t	spec_sig;
+	int		num_objfiles;
+	sig_val_t	obj_sigs[MAX_OBJ_FILES];
+
+
+		
+} filter_config_t;
 
 /*
  * functions
@@ -115,7 +129,6 @@ int             fexec_get_stats(filter_data_t * fdata, int max,
 char           *fexec_cur_filtname();
 
 
-
 int             fexec_update_bypass(filter_data_t * fdata, double ratio);
 int             fexec_update_grouping(filter_data_t * fdata, double ratio);
 float           fexec_get_prate(filter_data_t *fdata);
@@ -125,8 +138,7 @@ int             fexec_estimate_cost(filter_data_t * fdata,
 				    float *cost);
 int             fexec_estimate_cur_cost(filter_data_t * fdata,
 					float *cost);
-
-
+void            fexec_set_full_eval(filter_data_t * fdata);
 
 #ifdef __cplusplus
 }

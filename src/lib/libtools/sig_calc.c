@@ -123,6 +123,21 @@ sig_string(sig_val_t * sig_val)
 	return (new_str);
 }
 
+void
+string_to_sig(char *string, sig_val_t * sig_val)
+{
+	int             i;
+	char		tmp_str[4];
+
+	for (i = 0; i < SIG_SIZE; i++) {
+		tmp_str[0] = *string++;
+		tmp_str[1] = *string++;
+		tmp_str[2] = 0;
+
+		sig_val->sig[i] = strtol(tmp_str, NULL, 16);
+	}
+}
+
 unsigned long
 sig_hash(sig_val_t * sig)
 {

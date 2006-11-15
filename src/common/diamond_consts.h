@@ -55,11 +55,22 @@
 /* directory under diamond cache where binaries are stored */
 #define	BINARY_DIAMOND_CACHE	"binary"
 
+/* directory under diamond cache where blobs are stored */
+#define	BLOB_DIAMOND_CACHE	"blobs"
+
+/* directory under diamond cache where filter execution history is stored */
+#define	FILTER_DIAMOND_CACHE	"filters"
+
 /* directory under diamond cache where filter specs are stored */
 #define	SPEC_DIAMOND_CACHE	"specs"
 
+/* strings for formating data */
 #define	OBJ_FORMAT		"%s/%s.obj"
 #define	SO_FORMAT		"%s/%s.so"
+#define	BLOB_FORMAT		"%s/%s.blob"
+#define	FILTER_SUMMARY		"%s/%s.summary"
+#define	FILTER_CONFIG		"%s/%s.filter_config"
+#define	FILTER_STATS		"%s/%s.filter_stats"
 #define	SPEC_FORMAT		"%s/%s.spec"
 
 

@@ -58,6 +58,8 @@ char * dconf_get_indexdir();
 char * dconf_get_cachedir();
 char * dconf_get_spec_cachedir();
 char * dconf_get_binary_cachedir();
+char * dconf_get_blob_cachedir();
+char * dconf_get_filter_cachedir();
 
 data_type_t	dconf_get_datatype();
 

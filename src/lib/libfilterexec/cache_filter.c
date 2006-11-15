@@ -741,8 +741,12 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 	cache_set_init_attrs(&obj_handle->id_sig, &obj_handle->attr_info);
 
-	for (cur_fidx = 0; pass && cur_fidx < pmLength(fdata->fd_perm);
+	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm);
 	     cur_fidx++) {
+
+		if ((pass == 0) && (fdata->full_eval == 0))
+			break;;
+
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
 		fexec_active_filter = cur_filter;
@@ -758,7 +762,7 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 * Look at the current filter bypass to see if we should 
 		 * actually run it or pass it.  For the non-auto 
 		 * partitioning, we still use the bypass values
-		 * to determine how much of * the allocation to run.
+		 * to determine how much of the allocation to run.
 		 */
 		if (err == 0) {
 			cur_filter->fi_called++;
@@ -850,11 +854,9 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 		if (!pass) {
 			cur_filter->fi_drop++;
-			break;
 		} else {
 			cur_filter->fi_pass++;
 		}
-
 	}
 
 

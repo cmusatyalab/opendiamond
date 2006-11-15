@@ -8,10 +8,7 @@
  *  This software is distributed under the terms of the Eclipse Public
  *  License, Version 1.0 which can be found in the file named LICENSE.
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
- *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
- */
-
-#ifndef _FILTER_PRIV_H_
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT */ #ifndef _FILTER_PRIV_H_
 #define _FILTER_PRIV_H_
 
 #include <stdint.h>
@@ -85,6 +82,7 @@ typedef struct filter_info {
 
 	int             fi_blob_len;    /* associated blob len */
 	void           *fi_blob_data;   /* associated blob of data */
+	sig_val_t	fi_blob_sig;	/* checksum of the blob data */
 
 	/*
 	 * dependency info 
@@ -191,6 +189,8 @@ struct filter_data {
 					 */
 	int		max_libs;
 	int		num_libs;
+	sig_val_t	spec_sig;
+	int		full_eval;
 	flib_info_t *	lib_info;
 	
 	filter_info_t   fd_filters[0];  /* variable size struct */

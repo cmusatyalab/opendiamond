@@ -127,4 +127,7 @@ int             search_set_blob(void *app_cookie, int gen, char *name,
 				int blob_len, void *blob_data);
 int             search_set_offload(void *app_cookie, int gen, uint64_t data);
 
+
+void		start_background(void);
+
 #endif				/* ifndef _SEARCH_STATE_H_ */

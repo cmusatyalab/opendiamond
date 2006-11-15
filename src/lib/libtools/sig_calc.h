@@ -38,6 +38,9 @@ int sig_cal_str(const char *buf, sig_val_t * sig);
  */
 char * sig_string(sig_val_t *sig);
 
+
+void string_to_sig(char *string, sig_val_t * sig_val);
+
 unsigned long sig_hash(sig_val_t *sig);
 
 int sig_match(sig_val_t *sig1, sig_val_t *sig2);

@@ -291,7 +291,7 @@ have_full_conn(listener_state_t * list_state, int conn)
 	int             err;
 	void           *new_cookie;
 	cstate_t       *cstate;
-	pid_t           new_proc;
+	int		parent;
 
 
 	cstate = &list_state->conns[conn];
@@ -322,28 +322,10 @@ have_full_conn(listener_state_t * list_state, int conn)
 		return;
 	}
 
-	/*
-	 * Now we fork a new process.  The child will invoke the callback
-	 * and handle the new connections.  The parent will clean up
-	 * the local state.
-	 */
-	if (do_fork) {
-		new_proc = fork();
+	parent = (*list_state->new_conn_cb) ((void *) cstate, &new_cookie);
+	if (parent) {
+		shutdown_connection(list_state, cstate);
 	} else {
-		new_proc = 0;
-	}
-
-	if (new_proc == 0) {
-		err =
-		    (*list_state->new_conn_cb) ((void *) cstate, &new_cookie);
-		if (err) {
-			printf("new conn callback failed \n");
-			/*
-			 * XXX clean up sockets 
-			 */
-			return;
-		}
-
 		/*
 		 * we registered correctly, save the cookie;
 		 */
@@ -368,8 +350,6 @@ have_full_conn(listener_state_t * list_state, int conn)
 		 */
 		connection_main(list_state, conn);
 		return;
-	} else {
-		shutdown_connection(list_state, cstate);
 	}
 }
 
@@ -589,14 +569,12 @@ accept_log_conn(listener_state_t * list_state)
  */
 
 void
-sstub_listen(void *cookie, int fork)
+sstub_listen(void *cookie)
 {
 	listener_state_t *list_state;
 	struct timeval  now;
 	int             err;
 	int             max_fd = 0;
-	int             wait_status;
-	pid_t           wait_pid;
 
 	/*
 	 * update the global state about forking 
@@ -618,68 +596,53 @@ sstub_listen(void *cookie, int fork)
 
 
 
-	while (1) {
-		FD_ZERO(&list_state->read_fds);
-		FD_ZERO(&list_state->write_fds);
-		FD_ZERO(&list_state->except_fds);
+	FD_ZERO(&list_state->read_fds);
+	FD_ZERO(&list_state->write_fds);
+	FD_ZERO(&list_state->except_fds);
 
-		FD_SET(list_state->control_fd, &list_state->read_fds);
-		FD_SET(list_state->data_fd, &list_state->read_fds);
-		FD_SET(list_state->log_fd, &list_state->read_fds);
+	FD_SET(list_state->control_fd, &list_state->read_fds);
+	FD_SET(list_state->data_fd, &list_state->read_fds);
+	FD_SET(list_state->log_fd, &list_state->read_fds);
 
 
-		now.tv_sec = 1;
-		now.tv_usec = 0;
+	now.tv_sec = 1;
+	now.tv_usec = 0;
 
+	/*
+	 * Sleep on the set of sockets to see if anything
+	 * interesting has happened.
+	 */
+	err = select(max_fd, &list_state->read_fds,
+		     &list_state->write_fds,
+		     &list_state->except_fds, &now);
+	if (err == -1) {
 		/*
-		 * Sleep on the set of sockets to see if anything
-		 * interesting has happened.
+		 * XXX log 
 		 */
-		err = select(max_fd, &list_state->read_fds,
-			     &list_state->write_fds,
-			     &list_state->except_fds, &now);
-		if (err == -1) {
-			/*
-			 * XXX log 
-			 */
-			printf("XXX select failed \n");
-			exit(1);
-		}
-
-		/*
-		 * If err > 0 then there are some objects
-		 * that have data.
-		 */
-		if (err > 0) {
-			if (FD_ISSET(list_state->control_fd,
-				     &list_state->read_fds)) {
-				accept_control_conn(list_state);
-			}
-
-			if (FD_ISSET(list_state->data_fd,
-				     &list_state->read_fds)) {
-				accept_data_conn(list_state);
-			}
-			if (FD_ISSET(list_state->log_fd,
-				     &list_state->read_fds)) {
-				accept_log_conn(list_state);
-			}
-		}
-
-
-		/*
-		 * We need to do a periodic wait. To get rid
-		 * of all the zombies.  The posix spec appears to
-		 * be fuzzy on the behavior of setting sigchild
-		 * to ignore, so we will do a periodic nonblocking
-		 * wait to clean up the zombies.
-		 */
-		wait_pid = waitpid(-1, &wait_status, WNOHANG | WUNTRACED);
-		if (wait_pid > 0) {
-			/*
-			 * XXX nothing to do ?? 
-			 */
-		}
-
+		printf("XXX select failed \n");
+		exit(1);
 	}
+
+	/*
+	 * If err > 0 then there are some objects
+	 * that have data.
+	 */
+	if (err > 0) {
+		if (FD_ISSET(list_state->control_fd,
+			     &list_state->read_fds)) {
+			accept_control_conn(list_state);
+		}
+
+		if (FD_ISSET(list_state->data_fd,
+			     &list_state->read_fds)) {
+			accept_data_conn(list_state);
+		}
+		if (FD_ISSET(list_state->log_fd,
+			     &list_state->read_fds)) {
+			accept_log_conn(list_state);
+		}
+	}
+
+	return;	
+
 }

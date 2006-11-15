@@ -464,6 +464,7 @@ read_filter_spec(char *spec_name, filter_data_t **fdp)
     fdata->obj_counter = 0;
     fdata->fd_avg_wall = 1.0;
     fdata->fd_avg_exec = 1.0;
+    fdata->full_eval = 0;
 
     fdata->lib_info = malloc(sizeof(flib_info_t) * FLIB_INCREMENT);
     assert(fdata->lib_info != NULL);

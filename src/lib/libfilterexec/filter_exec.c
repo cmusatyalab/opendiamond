@@ -21,8 +21,6 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -216,6 +214,102 @@ fexec_cur_filtname()
 	}
 }
 
+void
+save_blob_data(void *data, size_t dlen, sig_val_t *sig)
+{
+	char * cache_dir;
+	char name_buf[PATH_MAX];
+	char *sig_str;
+	FILE *fp;
+
+	sig_str = sig_string(sig);
+
+	cache_dir = dconf_get_blob_cachedir();
+	snprintf(name_buf, PATH_MAX, BLOB_FORMAT, cache_dir, sig_str);
+	free(sig_str);
+	free(cache_dir);
+
+	fp = fopen(name_buf, "w+");
+	if (fp == NULL) {
+		/* XXX log */
+		return;
+	}
+	if (fwrite(data, dlen, 1, fp) != 1) {
+		assert(0);
+	}
+	fclose(fp);
+}
+
+
+void
+save_filter_state(filter_data_t *fdata, filter_info_t *cur_filt)
+{
+	char * cache_dir;
+	char name_buf[PATH_MAX];
+	char *sig_str;
+	int i;
+	FILE *fp;
+	filter_info_t *bfilt;
+	filter_id_t fid;
+	int num_blobs;
+
+	sig_str = sig_string(&cur_filt->fi_sig);
+
+	cache_dir = dconf_get_filter_cachedir();
+	snprintf(name_buf, PATH_MAX, FILTER_CONFIG, cache_dir, sig_str);
+	free(sig_str);
+	free(cache_dir);
+
+	fp = fopen(name_buf, "w+");
+	if (fp == NULL) {
+		/* XXX log */
+		return;
+	}
+	fprintf(fp, "FNAME %s\n", cur_filt->fi_name);
+
+	sig_str = sig_string(&fdata->spec_sig);
+	fprintf(fp, "SPEC_SIG %s\n", sig_str);
+	free(sig_str);
+
+	fprintf(fp, "NUM_OBJECT_FILES %d\n", fdata->num_libs);
+	for (i=0; i < fdata->num_libs; i++) {
+		sig_str = sig_string(&fdata->lib_info[i].lib_sig);
+		fprintf(fp, "OBJECT_FILE %s\n", sig_str);
+		free(sig_str);
+	}
+
+	num_blobs = 0;
+	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
+		bfilt = &fdata->fd_filters[fid];
+		if (fid == fdata->fd_app_id)
+			continue;
+		if (bfilt->fi_blob_len > 0)
+			num_blobs++;
+
+	}
+	fprintf(fp, "NUM_BLOBS %d\n", num_blobs);
+
+
+	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
+		bfilt = &fdata->fd_filters[fid];
+		if (fid == fdata->fd_app_id)
+			continue;
+		if (bfilt->fi_blob_len == 0)
+			continue;
+	
+		fprintf(fp, "BLOBLEN %d\n", bfilt->fi_blob_len);
+		sig_str = sig_string(&bfilt->fi_blob_sig);
+		fprintf(fp, "BLOBSIG %s\n", sig_str);
+		free(sig_str);
+		fprintf(fp, "BLOBFILTER %s\n", bfilt->fi_name);
+	}
+
+	/* XXX dump other crap */
+
+
+	fclose(fp);
+}
+
 
 int
 fexec_init_search(filter_data_t * fdata)
@@ -261,6 +355,27 @@ fexec_init_search(filter_data_t * fdata)
 				 cur_filt->fi_numargs, cur_filt->fi_arglist,
 				 cur_filt->fi_blob_len,
 				 cur_filt->fi_blob_data, &cur_filt->fi_sig);
+
+		/* store out some of the cached data */
+		if (cur_filt->fi_blob_len > 0) {
+			err = sig_cal(cur_filt->fi_blob_data,
+				      cur_filt->fi_blob_len,
+				      &cur_filt->fi_blob_sig);
+			save_blob_data(cur_filt->fi_blob_data,
+				       cur_filt->fi_blob_len,
+				       &cur_filt->fi_blob_sig);
+
+		}
+
+	}
+
+	/* go through each filter and write out the config to the cache */
+	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
+		cur_filt = &fdata->fd_filters[fid];
+		if (fid == fdata->fd_app_id) {
+			continue;
+		}
+		save_filter_state(fdata, cur_filt);
 	}
 	return (0);
 }
@@ -268,11 +383,21 @@ fexec_init_search(filter_data_t * fdata)
 
 
 int
-fexec_term_search(filter_data_t * fdata)
+fexec_term_search(filter_data_t * fdata) 
 {
 	filter_info_t  *cur_filt;
 	filter_id_t     fid;
-	int             err;
+	int             bytes, err;
+	int		fd = -1;
+	char *		root;
+	char *		sig_str;
+	char		path[PATH_MAX];
+	
+	if (fdata->full_eval == 0) { 
+		root = dconf_get_filter_cachedir();
+		snprintf(path, PATH_MAX, "%s/results.XXXXXX", root);
+		fd = mkstemp(path);
+	}	
 
 	/*
 	 * Go through all the filters and call the init function 
@@ -290,7 +415,17 @@ fexec_term_search(filter_data_t * fdata)
 			 */
 			assert(0);
 		}
+		if (fd > 0) {
+			sig_str = sig_string(&cur_filt->fi_sig);
+			bytes = snprintf(path, PATH_MAX, "%s %u %u %u \n",
+			    sig_str, fdata->obj_counter, cur_filt->fi_called,
+			   cur_filt->fi_drop );
+			write(fd, path, bytes); 
+			free(sig_str);
+		}
 	}
+	if (fd > 0) 
+		close(fd);
 	return (0);
 }
 
@@ -738,6 +873,7 @@ fexec_load_spec(filter_data_t **fdata, sig_val_t *sig)
 	sig_str = sig_string(sig);
 	log_message(LOGT_FILT, LOGL_TRACE, "fexec_load_spec: spec %s", sig_str);
 
+
 	cache_dir = dconf_get_spec_cachedir();
 	snprintf(name_buf, PATH_MAX, SPEC_FORMAT, cache_dir, sig_str);
 	free(sig_str);
@@ -749,6 +885,9 @@ fexec_load_spec(filter_data_t **fdata, sig_val_t *sig)
 	    	    "Failed to read filter spec <%s>", name_buf);
 		return (err);
 	}
+
+	/* save the filter spec signature */
+	memcpy(&(*fdata)->spec_sig, sig, sizeof(*sig));
 
 	err = resolve_filter_deps(*fdata);
 	if (err) {

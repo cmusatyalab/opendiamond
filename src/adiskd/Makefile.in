@@ -20,8 +20,8 @@ LIBS += -ldl  -lpthread -lfilterexec -lfl -Wl,-whole-archive
 LIBS += -lfilter -llog -lodisk -Wl,-no-whole-archive
 LIBS += -lsstub -ltools -ldctl -lm -lssl -lcrypto -ldconfig
 
-SRCS = adiskd.c search_state.c
-OBJS = adiskd.o search_state.o
+SRCS = adiskd.c search_state.c background.c
+OBJS = adiskd.o search_state.o background.o
 
 #
 # Compilation Targets

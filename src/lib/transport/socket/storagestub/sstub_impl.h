@@ -193,6 +193,7 @@ typedef struct listener_state {
 	sstub_clear_gids_fn	clear_gids_cb;
 	sstub_set_blob_fn	set_blob_cb;
 	sstub_set_offload_fn	set_offload_cb;
+	sstub_set_exec_mode_fn set_exec_mode_cb;
 	cstate_t		conns[MAX_CONNS];
 } listener_state_t;
 
@@ -242,7 +243,5 @@ void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
  * Functions exported by sstub_conn.c
  */
 void * connection_main(listener_state_t *lstate, int conn);
-
-
 
 #endif /* !_SSTUB_IMPL_H_ */

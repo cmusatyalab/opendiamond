@@ -58,6 +58,8 @@ typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,
                                  int blen, void *blob);
 typedef int (*sstub_set_offload_fn)(void *app_cookie, int gen_num,
                                     uint64_t load);
+typedef int (*sstub_set_exec_mode_fn)(void *app_cookie, int mode);
+
 
 
 typedef struct {
@@ -82,6 +84,7 @@ typedef struct {
 	sstub_clear_gids_fn		clear_gids_cb;
 	sstub_set_blob_fn		set_blob_cb;
 	sstub_set_offload_fn    set_offload_cb;
+	sstub_set_exec_mode_fn  set_exec_mode_cb;
 } sstub_cb_args_t;
 
 

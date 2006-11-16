@@ -93,6 +93,7 @@ typedef struct search_state {
 	void           *dctl_cookie;
 	void           *log_cookie;
 	unsigned char  *sig;
+	int				exec_mode;  /* filter execution mode */
 } search_state_t;
 
 
@@ -126,6 +127,7 @@ int             search_clear_gids(void *app_cookie, int gen);
 int             search_set_blob(void *app_cookie, int gen, char *name,
 				int blob_len, void *blob_data);
 int             search_set_offload(void *app_cookie, int gen, uint64_t data);
+int				search_set_exec_mode(void *app_cookie, uint32_t mode);
 
 
 void		start_background(void);

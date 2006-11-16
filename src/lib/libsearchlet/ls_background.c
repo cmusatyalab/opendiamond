@@ -37,6 +37,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <dirent.h>
+#include <values.h>
 
 #include "lib_tools.h"
 #include "lib_searchlet.h"
@@ -484,6 +485,8 @@ bg_main(void *arg)
 	struct timespec timeout;
 	uint32_t        loop_count = 0;
 	uint32_t        dummy = 0;
+	uint32_t		exec_mode_thresh_low = MAXINT;
+	uint32_t		exec_mode_thresh_high = MAXINT;
 
 	sc = (search_context_t *) arg;
 
@@ -521,6 +524,16 @@ bg_main(void *arg)
 	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "credit_policy",
 				 DCTL_DT_UINT32, dctl_read_uint32,
 				 dctl_write_uint32, &sc->bg_credit_policy);
+	assert(err == 0);
+
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "exec_mode_thresh_lo",
+				 DCTL_DT_UINT32, dctl_read_uint32,
+				 dctl_write_uint32, &exec_mode_thresh_low);
+	assert(err == 0);
+
+	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "exec_mode_thresh_hi",
+				 DCTL_DT_UINT32, dctl_read_uint32,
+				 dctl_write_uint32, &exec_mode_thresh_high);
 	assert(err == 0);
 
 
@@ -580,8 +593,8 @@ bg_main(void *arg)
 					ls_release_object(sc, new_obj);
 					free(obj_info);
 				} else {
-					err = ring_enq(sc->proc_ring,
-				     	    (void *) obj_info);
+					err = ring_enq(sc->proc_ring, (void *) obj_info);
+
 					if (err) {
 						/*
 						 * XXX handle overflow
@@ -592,6 +605,48 @@ bg_main(void *arg)
 						 */
 						assert(0);
 					}
+
+				    /*
+				     * change filter execution modes based on the
+				     * current mode and the number of objects in 
+				     * the proc_ring.
+				     */
+
+					int proc_ring_count = ring_count(sc->proc_ring);
+					int new_mode = sc->search_exec_mode;
+					
+				    log_message(LOGT_BG, LOGL_DEBUG, 
+				    			"Search %d, %d objects queued for app, limit %d", 
+				    			sc->cur_search_id, 
+				    			proc_ring_count,
+				    			sc->dev_queue_limit);
+				    
+				    if (sc->search_exec_mode == SM_CURRENT) {
+				    	if (proc_ring_count > exec_mode_thresh_high) {
+				    		new_mode = SM_MODEL;
+				    	} else if (proc_ring_count > exec_mode_thresh_low) {
+				    		new_mode = SM_HYBRID;
+				    	} 
+					} else if (sc->search_exec_mode == SM_HYBRID) {
+				    	if (proc_ring_count <= exec_mode_thresh_low) {
+				    		new_mode = SM_CURRENT;
+				    	} else if (proc_ring_count > exec_mode_thresh_high) {
+				    		new_mode = SM_MODEL;
+				    	} 
+				    } else if (sc->search_exec_mode == SM_MODEL) {
+				    	if (proc_ring_count <= exec_mode_thresh_low) {
+				    		new_mode = SM_CURRENT;
+				    	} else if (proc_ring_count <= exec_mode_thresh_high) {
+				    		new_mode = SM_HYBRID;
+				    	} 
+				    }
+				    
+				    if (sc->search_exec_mode != new_mode) {			    
+						for (cur_dev = sc->dev_list; cur_dev != NULL;
+					    	 cur_dev = cur_dev->next) {
+					    	device_set_exec_mode(cur_dev->dev_handle, new_mode);
+					    }
+				    }
 				}
 			} else {
 				/*

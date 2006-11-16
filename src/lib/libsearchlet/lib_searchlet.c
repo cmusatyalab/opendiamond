@@ -126,6 +126,7 @@ ls_init_search()
 	sc->dev_queue_limit = DEFAULT_QUEUE_LEN;
 	sc->last_dev = NULL;
 	sc->bg_credit_policy = BG_DEFAULT_CREDIT_POLICY;
+	sc->search_exec_mode = SM_CURRENT;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
 	if (err) {
 		/*
@@ -840,6 +841,30 @@ ls_start_search(ls_search_handle_t handle)
  */
 
 int
+ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
+{
+	obj_data_t     *new_obj;
+	obj_adata_t    *cur,
+	               *next;
+
+	new_obj = (obj_data_t *) obj_handle;
+
+	if (new_obj->base != NULL) {
+		free(new_obj->base);
+	}
+
+	cur = new_obj->attr_info.attr_dlist;
+	while (cur != NULL) {
+		next = cur->adata_next;
+		free(cur->adata_base);
+		free(cur);
+		cur = next;
+	}
+	free(new_obj);
+	return (0);
+}
+
+int
 ls_abort_search(ls_search_handle_t handle)
 {
 	search_context_t *sc;
@@ -1034,30 +1059,6 @@ ls_num_objects(ls_search_handle_t handle, int *obj_cnt)
  * For now are using malloc/free to handle the data, so we 
  * will try to remove them.
  */
-
-int
-ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
-{
-	obj_data_t     *new_obj;
-	obj_adata_t    *cur,
-	               *next;
-
-	new_obj = (obj_data_t *) obj_handle;
-
-	if (new_obj->base != NULL) {
-		free(new_obj->base);
-	}
-
-	cur = new_obj->attr_info.attr_dlist;
-	while (cur != NULL) {
-		next = cur->adata_next;
-		free(cur->adata_base);
-		free(cur);
-		cur = next;
-	}
-	free(new_obj);
-	return (0);
-}
 
 /*
  * This gets a list of all the storage devices that will be involved in

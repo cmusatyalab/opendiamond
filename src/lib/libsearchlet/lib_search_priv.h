@@ -94,6 +94,11 @@ typedef enum {
     SS_IDLE
 } search_status_t;
 
+typedef enum {		/* filter execution mode */
+	SM_CURRENT,		/* execute currently defined filters */
+	SM_HYBRID,		/* hybrid of current and historical filters */
+	SM_MODEL		/* model (history) based filter execution */
+} search_mode_t;
 
 typedef enum {
     CREDIT_POLICY_STATIC = 0,
@@ -128,6 +133,7 @@ typedef struct search_context {
 	int			dev_queue_limit; /* # objs queued at dev*/
 	void *			dctl_cookie;	/* cookie for dctl library */
 	void *			log_cookie;	/* cookie for log library */
+	int 		search_exec_mode;  /* a search_mode_t */
 } search_context_t;
 
 /*

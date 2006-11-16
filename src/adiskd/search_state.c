@@ -1607,3 +1607,14 @@ search_set_offload(void *app_cookie, int gen_num, uint64_t load)
 {
 	return (0);
 }
+
+int search_set_exec_mode(void *app_cookie, uint32_t mode)
+{
+	log_message(LOGT_DISK, LOGL_DEBUG, "search_set_exec_mode: %d", mode);
+	
+	search_state_t *sstate;
+	sstate = (search_state_t *) app_cookie;
+	sstate->exec_mode = mode;
+	return(0);
+}
+

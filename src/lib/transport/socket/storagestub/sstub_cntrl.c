@@ -624,6 +624,16 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		}
 		break;
 
+	case CNTL_CMD_SET_EXEC_MODE:
+		{
+		exec_mode_subheader_t *emheader;
+		
+		assert(data != NULL);
+		emheader = (exec_mode_subheader_t *) data;
+		(*lstate->set_exec_mode_cb) (cstate->app_cookie, emheader->mode);
+		free(data);
+		break;
+		}
 	default:
 		printf("unknown command: %d \n", cmd);
 		if (data) {

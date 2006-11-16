@@ -57,6 +57,7 @@
 #define	CNTL_CMD_GET_OBJ		24
 #define	CNTL_CMD_SEND_OBJ		25
 #define	CNTL_CMD_SET_OBJ		26
+#define CNTL_CMD_SET_EXEC_MODE 	27
 
 
 /*
@@ -169,7 +170,9 @@ typedef struct {
 	uint64_t    offl_data;      /* host cycles to apply to this problem */
 } offload_subheader_t;
 
-
+typedef struct {
+	uint32_t	mode;		/* filter execution mode */
+} exec_mode_subheader_t;
 
 /*
  * Header that goes on the log buffers that are sent to the host.

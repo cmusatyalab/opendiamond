@@ -52,6 +52,7 @@
 #include "lib_hstub.h"
 #include "lib_dconfig.h"
 #include "dctl_common.h"
+#include "lib_filterexec.h"
 
 
 static char const cvsid[] =
@@ -126,7 +127,7 @@ ls_init_search()
 	sc->dev_queue_limit = DEFAULT_QUEUE_LEN;
 	sc->last_dev = NULL;
 	sc->bg_credit_policy = BG_DEFAULT_CREDIT_POLICY;
-	sc->search_exec_mode = SM_CURRENT;
+	sc->search_exec_mode = FM_CURRENT;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
 	if (err) {
 		/*

@@ -621,23 +621,23 @@ bg_main(void *arg)
 				    			proc_ring_count,
 				    			sc->dev_queue_limit);
 				    
-				    if (sc->search_exec_mode == SM_CURRENT) {
+				    if (sc->search_exec_mode == FM_CURRENT) {
 				    	if (proc_ring_count > exec_mode_thresh_high) {
-				    		new_mode = SM_MODEL;
+				    		new_mode = FM_MODEL;
 				    	} else if (proc_ring_count > exec_mode_thresh_low) {
-				    		new_mode = SM_HYBRID;
+				    		new_mode = FM_HYBRID;
 				    	} 
-					} else if (sc->search_exec_mode == SM_HYBRID) {
+					} else if (sc->search_exec_mode == FM_HYBRID) {
 				    	if (proc_ring_count <= exec_mode_thresh_low) {
-				    		new_mode = SM_CURRENT;
+				    		new_mode = FM_CURRENT;
 				    	} else if (proc_ring_count > exec_mode_thresh_high) {
-				    		new_mode = SM_MODEL;
+				    		new_mode = FM_MODEL;
 				    	} 
-				    } else if (sc->search_exec_mode == SM_MODEL) {
+				    } else if (sc->search_exec_mode == FM_MODEL) {
 				    	if (proc_ring_count <= exec_mode_thresh_low) {
-				    		new_mode = SM_CURRENT;
+				    		new_mode = FM_CURRENT;
 				    	} else if (proc_ring_count <= exec_mode_thresh_high) {
-				    		new_mode = SM_HYBRID;
+				    		new_mode = FM_HYBRID;
 				    	} 
 				    }
 				    

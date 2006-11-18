@@ -94,12 +94,6 @@ typedef enum {
     SS_IDLE
 } search_status_t;
 
-typedef enum {		/* filter execution mode */
-	SM_CURRENT,		/* execute currently defined filters */
-	SM_HYBRID,		/* hybrid of current and historical filters */
-	SM_MODEL		/* model (history) based filter execution */
-} search_mode_t;
-
 typedef enum {
     CREDIT_POLICY_STATIC = 0,
     CREDIT_POLICY_RAIL,

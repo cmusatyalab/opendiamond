@@ -96,6 +96,13 @@ typedef struct {
 		
 } filter_config_t;
 
+typedef enum {		/* filter execution mode */
+	FM_CURRENT,		/* execute currently defined filters */
+	FM_HYBRID,		/* hybrid of current and historical filters */
+	FM_MODEL		/* model (history) based filter execution */
+} filter_exec_mode_t;
+
+
 /*
  * functions
  */

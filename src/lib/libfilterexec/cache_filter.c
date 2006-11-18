@@ -51,7 +51,6 @@
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
 
-
 static char const cvsid[] =
     "$Header$";
 
@@ -696,7 +695,7 @@ ceval_wattr_stats(off_t len)
 
 int
 ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
-	       void *cookie, int (*continue_cb) (void *cookie))
+	       int exec_mode, void *cookie, int (*continue_cb) (void *cookie))
 {
 	filter_info_t  *cur_filter;
 	int             conf;
@@ -716,10 +715,10 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	u_int64_t       stack_ns;	/* time for whole filter stack */
 	cache_attr_set *oattr_set;
 
-	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
+	log_message(LOGT_FILT, LOGL_TRACE, "ceval_filters2: Entering");
 
 	if (fdata->fd_num_filters == 0) {
-		log_message(LOGT_FILT, LOGL_ERR, "eval_filters: no filters");
+		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters2: no filters");
 		return 1;
 	}
 
@@ -741,11 +740,16 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 	cache_set_init_attrs(&obj_handle->id_sig, &obj_handle->attr_info);
 
-	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm);
-	     cur_fidx++) {
+	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm); cur_fidx++) {
 
-		if ((pass == 0) && (fdata->full_eval == 0))
-			break;;
+		if ((pass == 0) && (fdata->full_eval == 0) && (exec_mode != FM_HYBRID))
+			break;
+		/*
+		 * in hybrid filter execution mode, execute tagged filters
+		 * even if the object is to be discarded for this search
+		 */
+		if ((pass == 0) && (exec_mode == FM_HYBRID) && (fdata->hybrid_eval == 0))
+			continue;
 
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];

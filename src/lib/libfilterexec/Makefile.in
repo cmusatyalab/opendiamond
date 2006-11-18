@@ -19,14 +19,18 @@ OBJROOT = @OBJROOT@
 
 CFLAGS_SO = $(CFLAGS) -fPIC
 
+CPPFLAGS += `pkg-config glib-2.0 --cflags-only-I`
+
 LIBOBJS = filter_exec.o filter_spec.o fexec_stats.o fexec_misc.o 
 LIBOBJS += fexec_opt.o fexec_bypass.o ocache.o cache_filter.o
+LIBOBJS += fexec_history.o
 
 LIBSRCS = filter_exec.c filter_spec.c fexec_stats.c fexec_misc.c 
 LIBSRCS += fexec_opt.c fexec_bypass.c ocache.c cache_filter.c
+LIBSRCS += fexec_history.c
 
 LIBS += -ldl -lfl -lpthread -ltools -llog -lodisk
-LIBS +=  -lhstub  
+LIBS +=  -lhstub  -lglib-2.0
 
 SRCS = $(LIBSRCS)
 OBJS = $(LIBOBJS)

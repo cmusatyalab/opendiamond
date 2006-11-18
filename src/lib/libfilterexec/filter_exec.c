@@ -35,6 +35,8 @@
 #include <dirent.h>
 #include <unistd.h>
 
+#include <glib.h>
+
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
@@ -49,6 +51,7 @@
 #include "fexec_opt.h"
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
+#include "fexec_history.h"
 
 
 static char const cvsid[] =
@@ -105,6 +108,7 @@ static opt_policy_t policy_arr[] = {
 int             fexec_bypass_type = BP_NONE;
 int             fexec_autopart_type = AUTO_PART_NONE;
 int             fexec_cpu_slowdown = 0;	/* percentage slowdown for CPU */
+int				fexec_frequency_threshold = 1;  /* threshold for filter history */
 
 char            ratio[40];
 char            pid_str[40];
@@ -183,6 +187,10 @@ fexec_system_init()
 	dctl_register_leaf(DEV_FEXEC_PATH, "cpu_slowdown", DCTL_DT_UINT32,
 			   dctl_read_uint32, fexec_set_slowdown,
 			   &fexec_cpu_slowdown);
+
+	dctl_register_leaf(DEV_FEXEC_PATH, "frequency_threshold", DCTL_DT_UINT32,
+			   dctl_read_uint32, dctl_write_uint32,
+			   &fexec_frequency_threshold);
 
 	// #ifdef VERBOSE
 	fprintf(stderr, "fexec_system_init: policy = %d\n",
@@ -318,12 +326,20 @@ fexec_init_search(filter_data_t * fdata)
 	filter_info_t  *cur_filt;
 	filter_id_t     fid;
 	int             err;
+	GHashTable     *filter_histories;
+	filter_history_t *fh;
 
 	/*
 	 * clean up the stats 
 	 */
 	fexec_clear_stats(fdata);
 
+	/*
+	 * get filter history for hybrid filter execution mode
+	 */
+	filter_histories = get_filter_history();
+	update_filter_history(filter_histories, FALSE);
+	 
 	/*
 	 * Go through all the filters and call the init function 
 	 */
@@ -367,6 +383,20 @@ fexec_init_search(filter_data_t * fdata)
 
 		}
 
+		/* 
+		 * look up this filter's history. 
+		 * XXX use a proper threshold for number of executions!
+		 */
+		fh = (filter_history_t *) 
+			g_hash_table_lookup(filter_histories, &cur_filt->fi_sig);
+		if (fh != NULL && fh->executions > fexec_frequency_threshold) {
+			log_message(LOGT_FILT, LOGL_DEBUG, 
+						"Found history for filter %s, freq = %d",
+						cur_filt->fi_name, fh->executions);
+			fdata->hybrid_eval = 1;
+		} else {
+			fdata->hybrid_eval = 0;
+		}
 	}
 
 	/* go through each filter and write out the config to the cache */
@@ -377,6 +407,8 @@ fexec_init_search(filter_data_t * fdata)
 		}
 		save_filter_state(fdata, cur_filt);
 	}
+	
+	g_hash_table_destroy(filter_histories);
 	return (0);
 }
 

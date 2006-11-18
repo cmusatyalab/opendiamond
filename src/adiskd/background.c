@@ -211,6 +211,9 @@ load_gids()
 
 	snprintf(path, PATH_MAX, "%s/GID_LIST", prefix);
 	fp = fopen(path, "r");
+	if (fp == NULL) {
+		return;
+	}
 
 	while (1) {
 		int exist = 0;
@@ -543,8 +546,8 @@ background_eval(void *arg)
 			sstate->obj_processed++;
 
 			/* XXX force eval of desired filters */
-			err = ceval_filters2(new_obj, sstate->fdata, 1, sstate,
-					   continue_fn);
+			err = ceval_filters2(new_obj, sstate->fdata, 1, sstate->exec_mode,
+						sstate, continue_fn);
 
 			if (err == 0) {
 				sstate->obj_dropped++;
@@ -812,6 +815,7 @@ bg_new_search(filter_opts_t *fops)
 int
 bg_stop(void *app_cookie)
 {
+	bg_shutdown = 1;
 	return (0);
 }
 

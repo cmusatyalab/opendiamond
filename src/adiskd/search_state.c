@@ -841,8 +841,8 @@ device_main(void *arg)
 				}
 
 				err = ceval_filters2(new_obj, sstate->fdata,
-						   force_eval, sstate,
-						   continue_fn);
+						   force_eval, sstate->exec_mode, 
+						   sstate, continue_fn);
 
 				if (err == 0) {
 					sstate->obj_dropped++;
@@ -886,7 +886,7 @@ device_main(void *arg)
 				any = 1;	
 				lookahead = 1;
 				err = ceval_filters2(new_obj, sstate->fdata,
-					   1, sstate, NULL);
+					   1, sstate->exec_mode, sstate, NULL);
 				if (err == 0) {
 					sstate->obj_dropped++;
 					sstate->obj_processed++;

@@ -26,10 +26,15 @@
 
 
 /* some random port numbers that we are  using ??? */
+#ifdef DIAMOND_EXPERIMENTAL
+#define		CONTROL_PORT		5875
+#define		DATA_PORT	    	5876
+#define		LOG_PORT		5877
+#else
 #define		CONTROL_PORT		5872
 #define		DATA_PORT	    	5873
 #define		LOG_PORT		5874
-
+#endif
 
 #define	CNTL_CMD_START			1
 #define	CNTL_CMD_STOP			2

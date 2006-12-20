@@ -42,8 +42,12 @@ AC_ARG_WITH(buildroot, [--with-buildroot=DIR set target build hierarchy to DIR],
     )
                                                                                 
                                                                                 
-
-
+AC_ARG_ENABLE([experimental],
+	AS_HELP_STRING([--enable-experimental],
+	               [enable experimental build (default is NO)]),
+	      [CFLAGS="${CFLAGS} -DDIAMOND_EXPERIMENTAL";
+	       EXPERIMENTALSUFFIX="-experimental"])
+AC_SUBST(EXPERIMENTALSUFFIX)
 
 # Checks for header files.
 AC_HEADER_DIRENT

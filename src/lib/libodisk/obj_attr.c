@@ -466,6 +466,25 @@ obj_ref_attr(obj_attr_t * attr, const char *name, size_t * len,
 }
 
 /*
+ * Mark this attribute as "omitted". Omitted attributes
+ * are never sent upstream.
+ */
+int
+obj_omit_attr(obj_attr_t * attr, const char *name)
+{
+	attr_record_t  *record;
+
+	record = find_record(attr, name);
+	if (record == NULL) {
+		return (ENOENT);
+	}
+
+	record->flags |= ATTR_FLAG_OMIT;
+	return (0);
+}
+
+
+/*
  * Delete an attribute that was previously associated
  * with the object.
  */

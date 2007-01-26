@@ -136,6 +136,20 @@ lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
 	return (err);
 }
 
+int
+lf_omit_attr(lf_obj_handle_t obj, char *name)
+{
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int             err;
+
+	odata = (obj_data_t *) obj;
+	adata = &odata->attr_info;
+	err = obj_omit_attr(adata, name);
+
+	return (err);
+}
+
 /*
  * This gets the next blocks of data in an object.  The block size is
  * specified by the filter specification.  

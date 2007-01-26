@@ -293,6 +293,25 @@ int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
 
 
 /*!
+ * This function marks an attribute as omitted (won't travel upstream).
+ *
+ * \param ohandle
+ *		the object handle.
+ *
+ * \param name
+ *		The name of the attribute to omit.
+ *
+ * \return 0
+ *		Attribute was marked successfully.
+ *
+ * \return ENOENT
+ *		Attribute was not found.
+ */
+
+int lf_omit_attr(lf_obj_handle_t ohandle, char *name);
+
+
+/*!
  * This function allows the programmer to log some data that
  * can be retrieved from the host system.
  *

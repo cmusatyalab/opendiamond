@@ -263,7 +263,7 @@ free_record(obj_attr_t * attr, attr_record_t * rec)
 	/*
 	 * XXX try to colesce in later versions ???
 	 */
-	rec->flags |= ATTR_FLAG_FREE;
+	rec->flags = ATTR_FLAG_FREE;
 }
 
 
@@ -499,6 +499,10 @@ obj_use_record(attr_record_t * cur_rec, int skip_big)
 {
 
 	if (cur_rec->flags & ATTR_FLAG_FREE) {
+		return (0);
+	}
+
+	if (cur_rec->flags & ATTR_FLAG_OMIT) {
 		return (0);
 	}
 

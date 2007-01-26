@@ -69,6 +69,7 @@ typedef struct attr_record {
 
 #define	ATTR_FLAG_FREE		0x01
 #define	ATTR_FLAG_RECOMPUTE	0x02
+#define	ATTR_FLAG_OMIT          0x04
 
 /* constant for the extend increment size */
 #define	ATTR_INCREMENT	4096

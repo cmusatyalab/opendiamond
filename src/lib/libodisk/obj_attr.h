@@ -20,6 +20,9 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ * Copyright (c) 2007 Carnegie Mellon University. All rights reserved.
+ */
 
 #ifndef _OBJ_ATTR_H_ 
 #define _OBJ_ATTR_H_	1

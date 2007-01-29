@@ -21,6 +21,10 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ * Copyright (c) 2007 Carnegie Mellon University. All rights reserved.
+ */
+
 
 #ifndef _LIB_FILTER_H_
 #define	_LIB_FILTER_H_

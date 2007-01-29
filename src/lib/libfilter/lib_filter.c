@@ -22,6 +22,10 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+/*
+ * Copyright (c) 2007 Carnegie Mellon University. All rights reserved.
+ */
+
 
 /*
  * This provides many of the main functions in the provided

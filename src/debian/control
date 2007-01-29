@@ -10,6 +10,6 @@ Package: diamond
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Diamond: a system for interactive search
- This package provides the Diamond infrastructure and API for building 
+ This package provides the OpenDiamond infrastructure and API for building 
  content search applications. 
 

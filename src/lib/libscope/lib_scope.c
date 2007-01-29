@@ -1,19 +1,8 @@
 /*
- *      Diamond
+ *      OpenDiamond 2.0
  *      A system for interactive brute-force search
  *
- *      Copyright (c) 2002-2007, Intel Corporation
- *      All Rights Reserved
- *
- *  This software is distributed under the terms of the Eclipse Public
- *  License, Version 1.0 which can be found in the file named LICENSE.
- *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
- *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
- */
-
-
-/*
- *  Copyright (c) 2007 Adam Wolbach
+ *  Copyright (c) 2007 Carnegie Mellon University
  *
  *  This software is distributed under the terms of the Eclipse Public
  *  License, Version 1.0 which can be found in the file named LICENSE.

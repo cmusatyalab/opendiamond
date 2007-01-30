@@ -1,5 +1,5 @@
 /*
- * 	OpenDiamond 2.0
+ * 	Diamond
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -25,9 +25,9 @@
 
 /*!  
  * \defgroup searchlet  Searchlet API
- * The searchlet API is the programming interface between OpenDiamond and
+ * The searchlet API is the programming interface between Diamond and
  * the Diamond applications running on the host.   All communications with
- * OpenDiamond are performed through this interface.  The programming interface
+ * Diamond are performed through this interface.  The programming interface
  * is defined in lib_searchlet.h.
  *
  * */

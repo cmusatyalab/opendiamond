@@ -1,5 +1,5 @@
 /*
- * 	OpenDiamond 2.0
+ * 	Diamond
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation
@@ -31,7 +31,7 @@
 
 /*!  \defgroup Filter  Filter API
  * The filter API is the API used by the searchlets to interact with
- * the OpenDiamond run-time when evaluating objects.  It provides interfaces
+ * the Diamond run-time when evaluating objects.  It provides interfaces
  * to read/write object data as well as reading and writing object
  * attributes.  This API can also be used by the host application
  * to manipulate data objects.  The programming interface is defined
@@ -42,7 +42,7 @@
  * \file lib_filter.h
  * \ingroup filter
  * The API for the functions that are available to filters running on
- * the OpenDiamond system.
+ * the Diamond system.
  */
 
 

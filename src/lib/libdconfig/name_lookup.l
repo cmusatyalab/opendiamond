@@ -2,7 +2,7 @@
 %option prefix="nlkup"
 %{
 /*
- * 	OpenDiamond 2.0
+ * 	Diamond
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2005, Intel Corporation

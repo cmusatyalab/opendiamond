@@ -1,5 +1,5 @@
 /*
- * 	OpenDiamond 2.0
+ * 	Diamond
  *      A system for interactive brute-force search
  *
  *      Copyright (c) 2002-2006, Intel Corporation

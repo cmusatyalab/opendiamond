@@ -1,5 +1,5 @@
 /*
- *      OpenDiamond 2.0
+ *      Diamond
  *      A system for interactive brute-force search
  *
  *  Copyright (c) 2007 Adam Wolbach and Carnegie Mellon University

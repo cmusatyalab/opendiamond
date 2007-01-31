@@ -37,7 +37,7 @@ LIBOBJS += lib_searchlet.o ls_background.o
 LIBOBJS += ls_device.o ls_log.o ls_dctl.o
 
 LIBS += -ldl -lpthread -lsearchlet -lfilterexec -lfl -lfilter -lodisk
-LIBS += -lfilterexec -llog -lhstub -ldconfig -ltools
+LIBS += -lfilterexec -llog -lhstub -ldconfig -ltools -lauth -lkrb5
 LIBS +=  -ldctl  -lm -lssl -lcrypto -lglib-2.0
 
 

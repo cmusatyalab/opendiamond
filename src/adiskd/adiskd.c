@@ -57,20 +57,22 @@ int             not_silent = 0;
 int             bind_locally = 0;
 int             active_searches = 0;
 int             do_background = 1;
+int				do_authenticate = 0;
 int             idle_background = 1;	/* only run background when idle */
 pid_t		background_pid = -1;	/* pid_t of the background process */
 
 void
 usage()
 {
-	fprintf(stdout, "adiskd -[bcdlhins] \n");
+	fprintf(stdout, "adiskd -[abcdlhins] \n");
+	fprintf(stdout, "\t -a authenticate connections \n");
 	fprintf(stdout, "\t -b do not run background tasks \n");
 	fprintf(stdout, "\t -d do not run adisk as a daemon \n");
 	fprintf(stdout, "\t -h get this help message \n");
 	fprintf(stdout, "\t -i allow background to run when not idle\n");
+	fprintf(stdout, "\t -l only listen on localhost \n");
 	fprintf(stdout, "\t -n do not fork for a  new connection \n");
 	fprintf(stdout, "\t -s do not close stderr on fork \n");
-	fprintf(stdout, "\t -l only listen on localhost \n");
 }
 
 
@@ -89,11 +91,14 @@ main(int argc, char **argv)
 	 */
 
 	while (1) {
-		c = getopt(argc, argv, "bdhilns");
+		c = getopt(argc, argv, "abdhilns");
 		if (c == -1) {
 			break;
 		}
 		switch (c) {
+		case 'a':
+			do_authenticate = 0;
+			break;
 		case 'b':
 			/* disable background processing */
 			do_background = 0;
@@ -176,7 +181,7 @@ main(int argc, char **argv)
 	cb_args.set_offload_cb = search_set_offload;
 	cb_args.set_exec_mode_cb = search_set_exec_mode;
 
-	cookie = sstub_init_2(&cb_args, bind_locally);
+	cookie = sstub_init_ext(&cb_args, bind_locally, do_authenticate);
 	if (cookie == NULL) { 
 		fprintf(stderr, "Unable to initialize the communications\n");
 		exit(1);

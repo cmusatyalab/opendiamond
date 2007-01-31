@@ -97,7 +97,7 @@ main(int argc, char **argv)
 		}
 		switch (c) {
 		case 'a':
-			do_authenticate = 0;
+			do_authenticate = 1;
 			break;
 		case 'b':
 			/* disable background processing */

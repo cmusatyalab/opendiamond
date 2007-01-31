@@ -37,7 +37,7 @@ include $(OBJROOT)/Makefile.template
 actest:  actest.o libauth.a
 	$(CC) $(CFLAGS) -o actest actest.o libauth.a $(LIBDIR) $(LIBS)
 
-astest:  actest.o libauth.a
+astest:  astest.o libauth.a
 	$(CC) $(CFLAGS) -o astest astest.o libauth.a $(LIBDIR) $(LIBS)
 
 	

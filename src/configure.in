@@ -83,6 +83,7 @@ AC_CONFIG_FILES([Makefile
                  common/Makefile
                  idiskd/Makefile
                  lib/Makefile
+                 lib/libauth/Makefile
                  lib/libdconfig/Makefile
                  lib/libdctl/Makefile
                  lib/libfilter/Makefile

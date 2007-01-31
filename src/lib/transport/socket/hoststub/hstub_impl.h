@@ -64,6 +64,7 @@ typedef enum {
 #define	CINFO_BLOCK_OBJ		0x02
 #define	CINFO_PENDING_CREDIT	0x04
 #define	CINFO_DOWN		0x08
+#define CINFO_AUTHENTICATED	0x10
 
 typedef struct conn_info {
 	int	 		flags;
@@ -94,6 +95,9 @@ typedef struct conn_info {
 	fd_set			read_fds;
 	fd_set			write_fds;
 	fd_set			except_fds;
+	auth_handle_t			ca_handle;
+	auth_handle_t			da_handle;
+	auth_handle_t			la_handle;
 	uint32_t            	stat_log_rx;
 	uint64_t            	stat_log_byte_rx;
 	uint32_t            	stat_control_rx;

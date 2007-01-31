@@ -52,6 +52,7 @@
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "lib_hstub.h"
+#include "lib_auth.h"
 #include "hstub_impl.h"
 
 

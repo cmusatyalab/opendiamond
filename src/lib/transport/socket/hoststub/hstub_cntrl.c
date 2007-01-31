@@ -52,6 +52,7 @@
 #include "lib_hstub.h"
 #include "lib_log.h"
 #include "lib_dconfig.h"
+#include "lib_auth.h"
 #include "hstub_impl.h"
 
 

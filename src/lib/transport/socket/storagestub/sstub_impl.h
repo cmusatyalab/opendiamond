@@ -156,6 +156,9 @@ typedef struct cstate {
 }
 cstate_t;
 
+/* These are the flags for each listener state defined below */
+#define	LSTATE_AUTH_REQUIRED	0x0001
+
 
 /*
  * This is the main state for the library.  It includes the socket
@@ -172,6 +175,9 @@ typedef struct listener_state {
 	fd_set			read_fds;
 	fd_set			write_fds;
 	fd_set			except_fds;
+	auth_handle_t		ca_handle;
+	auth_handle_t		da_handle;
+	auth_handle_t		la_handle;
 	sstub_new_conn_fn 	new_conn_cb;
 	sstub_close_conn_fn 	close_conn_cb;
 	sstub_start_fn 		start_cb;
@@ -217,7 +223,6 @@ typedef struct listener_state {
  */
 void shutdown_connection(listener_state_t *lstate, cstate_t *cstate);
 int sstub_new_sock(int *fd, int port, int bind_only_locally);
-
 
 /*
  * Functions exported by sstub_cntrl.c

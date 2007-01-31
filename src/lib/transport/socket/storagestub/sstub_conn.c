@@ -35,6 +35,7 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "socket_trans.h"
+#include "lib_auth.h"
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"

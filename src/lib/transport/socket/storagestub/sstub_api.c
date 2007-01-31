@@ -46,6 +46,7 @@
 #include "lib_odisk.h"
 #include "socket_trans.h"
 #include "lib_dctl.h"
+#include "lib_auth.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
@@ -494,7 +495,7 @@ sstub_get_obj(void *cookie, sig_val_t *sig)
 void           *
 sstub_init(sstub_cb_args_t * cb_args)
 {
-	return sstub_init_2(cb_args, 0);
+	return sstub_init_ext(cb_args, 0, 0);
 }
 
 
@@ -505,6 +506,18 @@ sstub_init(sstub_cb_args_t * cb_args)
 void *
 sstub_init_2(sstub_cb_args_t * cb_args,
 	     int bind_only_locally)
+{
+	return sstub_init_ext(cb_args, bind_only_locally, 0);
+}
+
+/*
+ * This is a new version of sstub_init which allows
+ * for binding only to localhost.
+ */
+void *
+sstub_init_ext(sstub_cb_args_t * cb_args,
+	     int bind_only_locally,
+	     int auth_required)
 {
 	listener_state_t *list_state;
 	int             err;
@@ -545,6 +558,13 @@ sstub_init_2(sstub_cb_args_t * cb_args,
 	list_state->set_blob_cb = cb_args->set_blob_cb;
 	list_state->set_offload_cb = cb_args->set_offload_cb;
 	list_state->set_exec_mode_cb = cb_args->set_exec_mode_cb;
+	
+	/*
+	 * save authentication state
+	 */
+	if (auth_required) {
+		list_state->flags |= LSTATE_AUTH_REQUIRED;
+	}
 
 	/*
 	 * Open the listner sockets for the different types of connections.
@@ -584,6 +604,7 @@ sstub_init_2(sstub_cb_args_t * cb_args,
 
 	return ((void *) list_state);
 }
+
 
 int
 sstub_wleaf_response(void *cookie, int err, int32_t opid)

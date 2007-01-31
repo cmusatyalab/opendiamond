@@ -91,6 +91,9 @@ typedef struct {
 
 void * sstub_init(sstub_cb_args_t *cb_args);
 void * sstub_init_2(sstub_cb_args_t *cb_args, int bind_only_locally);
+void * sstub_init_ext(sstub_cb_args_t *cb_args, 
+						int bind_only_locally,
+						int auth_required);
 void  sstub_listen(void * cookie);
 int sstub_send_stats(void *cookie, dev_stats_t *dstats, int len);
 int sstub_send_dev_char(void *cookie, device_char_t *dchar);

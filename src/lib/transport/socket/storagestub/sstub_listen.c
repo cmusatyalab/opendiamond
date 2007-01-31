@@ -389,7 +389,7 @@ accept_control_conn(listener_state_t * list_state)
 		list_state->ca_handle = auth_conn_server(new_sock);
 		if (list_state->ca_handle == NULL) {
 			close(new_sock);
-			printf("XXX authenication failed (control)\n");
+			printf("Authentication failed (control)\n");
 			return;
 		}
 	}
@@ -499,7 +499,7 @@ accept_data_conn(listener_state_t * list_state)
 		list_state->da_handle = auth_conn_server(new_sock);
 		if (list_state->da_handle == NULL) {
 			close(new_sock);
-			printf("XXX authenication failed (data)\n");
+			printf("Authentication failed (data)\n");
 			return;
 		}
 		
@@ -590,7 +590,7 @@ accept_log_conn(listener_state_t * list_state)
 		list_state->la_handle = auth_conn_server(new_sock);
 		if (list_state->la_handle == NULL) {
 			close(new_sock);
-			printf("XXX authenication failed (log)\n");
+			printf("Authentication failed (log)\n");
 			return;
 		}
 		

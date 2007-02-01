@@ -16,6 +16,16 @@ AC_PROG_LEX
 CFLAGS="${CFLAGS} -m32 -Wall -D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -fPIC -Werror-implicit-function-declaration -ffast-math"
 
 
+# checks for kerberos - is this MIT or Heimdal?
+MITKRB5="no"
+AC_SEARCH_LIBS(krb5_encrypt, k5crypto, [MITKRB5="yes"])
+if test "$MITKRB5" = yes ; then    
+	AC_DEFINE(HAVE_KRB5, 1, [Define if kerberos 5 is available])
+else 
+    AC_DEFINE(HAVE_HEIMDAL, 1, [Define if using heimdal as kerberos5 library])
+fi
+
+
 # Checks for libraries.
 AC_CHECK_LIB([dl], [main], , 
 	[AC_MSG_ERROR(Unable to find libdl)])
@@ -29,15 +39,6 @@ AC_CHECK_LIB([pthread], [main], ,
 	#[AC_MSG_ERROR(Unable to find libssl)])
 AC_CHECK_LIB([krb5], [main], , 
 	[AC_MSG_ERROR(Unable to find libkrb5)])
-
-# checks for kerberos - is this MIT or Heimdal?
-MITKRB5="no"
-AC_SEARCH_LIBS(krb5_encrypt, k5crypto, [MITKRB5="yes"])
-if test "$MITKRB5" = yes ; then    
-	AC_DEFINE(HAVE_KRB5, 1, [Define if kerberos 5 is available])
-else 
-    AC_DEFINE(HAVE_HEIMDAL, 1, [Define if using heimdal as kerberos5 library])
-fi
 
 OBJROOT=`pwd`
 AC_SUBST(OBJROOT)

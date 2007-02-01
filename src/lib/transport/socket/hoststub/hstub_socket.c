@@ -123,7 +123,13 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	size = read(cinfo->control_fd, (char *) &cinfo->con_cookie,
 		    sizeof(cinfo->con_cookie));
 	if (size == -1) {
-		/* is authentication required? */
+		log_message(LOGT_NET, LOGL_ERR, 
+		    	"hstub: failed to read from socket");
+		close(cinfo->control_fd);
+		return (ENOENT);
+	}
+	if ((int) cinfo->con_cookie < 0) {
+		/* authenticate */
 		cinfo->ca_handle = auth_conn_client(cinfo->control_fd);
 		if (cinfo->ca_handle) {
 			/* wait for ack to our connect request */

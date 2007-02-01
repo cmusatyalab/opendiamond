@@ -75,7 +75,8 @@ auth_handle_t auth_conn_server(int sockfd)
 	    log_message(LOGT_NET, LOGL_ERR, 
 	    			"Error %d while initializing auth context", 	
 	    			retval);
-	    krb5_free_context(k->context);	    
+	    krb5_free_principal(k->context, server);
+	    krb5_free_context(k->context);	  
 	    free(k);
 	    return (NULL);
     }
@@ -86,7 +87,10 @@ auth_handle_t auth_conn_server(int sockfd)
 			   0,	/* no flags */
 			   keytab,	/* default keytab is NULL */
 			   &ticket);
-    if (retval) {
+
+   	krb5_free_principal(k->context, server);	/* done using it */
+
+   	if (retval) {
 		log_message(LOGT_NET, LOGL_ERR, 
 					"recvauth failed--error %s\n", 
 					error_message(retval));
@@ -95,9 +99,9 @@ auth_handle_t auth_conn_server(int sockfd)
 		free(k);
 		return(NULL);
     }
-
+  
     /* Get client name */
-    retval = krb5_unparse_name(k->context, ticket->enc_part2->client, &cname);
+    retval = krb5_unparse_name(k->context, tkt_client(ticket), &cname);
     if (retval){
 		log_message(LOGT_NET, LOGL_ERR, 
 					"Error unparsing principal name: %s\n", 
@@ -108,6 +112,7 @@ auth_handle_t auth_conn_server(int sockfd)
  					cname, service);
  		free(cname);
     }
+    krb5_free_ticket(k->context, ticket);	/* done using it */
     
     /* set auth context for encrypted messaging */
     retval = krb5_auth_con_genaddrs(k->context, k->auth_context, sockfd,
@@ -145,7 +150,7 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
     krb5_error_code retval;
     krb5_ccache ccdef;
     krb5_principal client, server;
-    krb5_error *err_ret;
+    krb5_error *err_ret = NULL;
  	char            node_name[128];
  	char		   *clientstr = NULL;
  	struct hostent *hent;
@@ -211,6 +216,7 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
 		log_message(LOGT_NET, LOGL_ERR,
 					"Error while getting default ccache--%s", 
 					error_message(retval));
+		krb5_free_principal(k->context, server);
 		krb5_free_context(k->context);
         free(k);
 		return(NULL);
@@ -221,6 +227,8 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
 		log_message(LOGT_NET, LOGL_ERR,
 					"Error while getting client principal name: %s", 
 					error_message(retval));
+		krb5_cc_close(k->context, ccdef);
+		krb5_free_principal(k->context, server);
 		krb5_free_context(k->context);
         free(k);
 		return(NULL);
@@ -231,6 +239,8 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
 		log_message(LOGT_NET, LOGL_ERR,
 					"Error while unparsing client principal name: %s", 
 					error_message(retval));
+		krb5_cc_close(k->context, ccdef);
+		krb5_free_principal(k->context, server);
 		krb5_free_context(k->context);
         free(k);
 		return(NULL);
@@ -245,6 +255,9 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
 	    log_message(LOGT_NET, LOGL_ERR,
 	    			"Error while initializing auth context: %s\n", 
 	    			error_message(retval));
+	    krb5_free_principal(k->context, client);
+	    krb5_cc_close(k->context, ccdef);
+	    krb5_free_principal(k->context, server);
 	    krb5_free_context(k->context);
         free(k);
 	    return(NULL);
@@ -267,6 +280,7 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
 		log_message(LOGT_NET, LOGL_ERR, 
 					"Error from sendauth: %s\n", 
 					error_message(retval));
+		if (err_ret) krb5_free_error(k->context, err_ret);
 		krb5_auth_con_free(k->context, k->auth_context);
 		krb5_free_context(k->context);
         free(k);
@@ -276,13 +290,14 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
 		/* got an error */
 		log_message(LOGT_NET, LOGL_ERR,
 					"sendauth rejected, error reply is:\n\t\"%*s\"\n",
-	       			err_ret->text.length, err_ret->text.data);
+					err_length(err_ret), err_text(err_ret));
+	    krb5_free_error(k->context, err_ret);
 	    krb5_auth_con_free(k->context, k->auth_context);
 	    krb5_free_context(k->context);
         free(k);
 	    return(NULL);
     }
-
+    
     /* set auth context for encrypted messaging */
  	retval = krb5_auth_con_genaddrs(k->context, k->auth_context, sockfd,
 			     KRB5_AUTH_CONTEXT_GENERATE_LOCAL_FULL_ADDR |
@@ -329,7 +344,7 @@ int auth_msg_encrypt(auth_handle_t handle, char *inbuf, int ilen,
 	auth_context_t *c;
 	int len;
 	
-	c = (auth_context_t *) handle;	
+	c = (auth_context_t *) handle;
 	clear.length = ilen;
     clear.data = inbuf;
     

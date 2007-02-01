@@ -386,6 +386,19 @@ accept_control_conn(listener_state_t * list_state)
 	
 	/* authenticate connection */
 	if (list_state->flags & LSTATE_AUTH_REQUIRED) {
+		/* send a negative cookie to alert the host */
+		data = -1;
+		wsize = write(new_sock, (char *) &data, sizeof(data));
+		if (wsize < 0) {
+			/*
+			 * XXX log 
+		 	*/
+			printf("XXX Failed write on cntrl connection \n");
+			close(new_sock);
+			list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
+			return;
+		}
+		
 		list_state->ca_handle = auth_conn_server(new_sock);
 		if (list_state->ca_handle == NULL) {
 			close(new_sock);

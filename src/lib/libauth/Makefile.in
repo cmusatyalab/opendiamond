@@ -16,6 +16,8 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
+CFLAGS += -I$(ROOTDIR)
+
 LIBOBJS = lib_auth.o
 
 LIBS += -lkrb5 -llog -lpthread

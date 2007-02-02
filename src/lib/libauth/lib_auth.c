@@ -266,7 +266,7 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
     retval = krb5_sendauth(k->context, &k->auth_context, 
     		   (krb5_pointer) &sockfd,
 			   DIAMOND_VERSION, client, server,
-			   AP_OPTS_USE_SESSION_KEY,
+			   0,
 			   &cksum_data,
 			   0,		/* no creds, use ccache instead */
 			   ccdef, &err_ret, NULL, NULL);

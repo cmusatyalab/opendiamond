@@ -87,7 +87,7 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	struct protoent *pent;
 	struct sockaddr_in sa;
 	int             err;
-	size_t          size, len;
+	ssize_t         size, len;
 	int				auth_required = 0;
 	char			buf[BUFSIZ];
 

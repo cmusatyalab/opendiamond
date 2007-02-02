@@ -370,7 +370,7 @@ accept_control_conn(listener_state_t * list_state)
 	int             i;
 	int				len;
 	uint32_t        data;
-	size_t          wsize;
+	ssize_t         wsize;
 	char 			buf[BUFSIZ];
 
 	csize = sizeof(ca);
@@ -490,7 +490,7 @@ accept_data_conn(listener_state_t * list_state)
 	socklen_t	csize;
 	int             new_sock;
 	uint32_t        data;
-	size_t          size, dsize;
+	ssize_t          size, dsize;
 	char 			buf[BUFSIZ];
 
 	csize = sizeof(ca);
@@ -581,7 +581,7 @@ accept_log_conn(listener_state_t * list_state)
 	socklen_t       csize;
 	int             new_sock;
 	uint32_t        data;
-	size_t          size, dsize;
+	ssize_t          size, dsize;
 	char			buf[BUFSIZ];
 
 	csize = sizeof(ca);

@@ -56,7 +56,7 @@ int             do_fork = 1;
 int             not_silent = 0;
 int             bind_locally = 0;
 int             active_searches = 0;
-int             do_background = 1;
+int             do_background = 0;
 int				do_authenticate = 0;
 int             idle_background = 1;	/* only run background when idle */
 pid_t		background_pid = -1;	/* pid_t of the background process */
@@ -66,7 +66,7 @@ usage()
 {
 	fprintf(stdout, "adiskd -[abcdlhins] \n");
 	fprintf(stdout, "\t -a authenticate connections \n");
-	fprintf(stdout, "\t -b do not run background tasks \n");
+	fprintf(stdout, "\t -b run background tasks \n");
 	fprintf(stdout, "\t -d do not run adisk as a daemon \n");
 	fprintf(stdout, "\t -h get this help message \n");
 	fprintf(stdout, "\t -i allow background to run when not idle\n");
@@ -100,8 +100,8 @@ main(int argc, char **argv)
 			do_authenticate = 1;
 			break;
 		case 'b':
-			/* disable background processing */
-			do_background = 0;
+			/* enable background processing */
+			do_background = 1;
 			break;
 
 		case 'd':
@@ -124,7 +124,7 @@ main(int argc, char **argv)
 			/* this is a debugging mode where we don't
 			 * want extra processes so diable most of them.
 			 */
-			//do_background = 0;
+			do_background = 0;
 			do_fork = 0;
 			do_daemon = 0;
 			break;

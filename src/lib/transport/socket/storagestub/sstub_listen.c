@@ -395,7 +395,6 @@ accept_control_conn(listener_state_t * list_state)
 		 	*/
 			printf("XXX Failed write on cntrl connection \n");
 			close(new_sock);
-			list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
 			return;
 		}
 		

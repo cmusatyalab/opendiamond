@@ -30,7 +30,7 @@
 #include <assert.h>
 
 #include <krb5.h>
-#include <com_err.h>
+#include <et/com_err.h>
 
 #include "lib_log.h"
 #include "lib_auth.h"

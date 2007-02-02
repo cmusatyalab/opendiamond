@@ -450,8 +450,6 @@ accept_control_conn(listener_state_t * list_state)
 			list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
 			return;
 		}
-		
-		printf("Encrypted cookie is %d bytes\n", len);
 	
 		wsize = write(new_sock, &buf[0], len);
 		if (wsize < 0) {
@@ -461,7 +459,6 @@ accept_control_conn(listener_state_t * list_state)
 			return;
 		}
 	
-		printf("Sent %d bytes\n", wsize);	
     } else {
 		wsize = write(new_sock, (char *) &data, sizeof(data));
 		if (wsize < 0) {

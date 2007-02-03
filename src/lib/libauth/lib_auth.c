@@ -116,8 +116,8 @@ auth_handle_t auth_conn_server(int sockfd)
     
     /* set auth context for encrypted messaging */
     retval = krb5_auth_con_genaddrs(k->context, k->auth_context, sockfd,
-			     KRB5_AUTH_CONTEXT_GENERATE_LOCAL_FULL_ADDR |
-			     KRB5_AUTH_CONTEXT_GENERATE_REMOTE_FULL_ADDR);
+			     KRB5_AUTH_CONTEXT_GENERATE_LOCAL_ADDR |
+			     KRB5_AUTH_CONTEXT_GENERATE_REMOTE_ADDR);
   	if (retval) {
       	log_message(LOGT_NET, LOGL_ERR, 
 				"Error generating addrs for auth_context: %s\n",
@@ -300,8 +300,8 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
     
     /* set auth context for encrypted messaging */
  	retval = krb5_auth_con_genaddrs(k->context, k->auth_context, sockfd,
-			     KRB5_AUTH_CONTEXT_GENERATE_LOCAL_FULL_ADDR |
-			     KRB5_AUTH_CONTEXT_GENERATE_REMOTE_FULL_ADDR);
+			     KRB5_AUTH_CONTEXT_GENERATE_LOCAL_ADDR |
+			     KRB5_AUTH_CONTEXT_GENERATE_REMOTE_ADDR);
   	if (retval) {
       	log_message(LOGT_NET, LOGL_ERR,
       				"Error generating addrs for auth_context: %s\n",

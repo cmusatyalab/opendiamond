@@ -25,6 +25,10 @@ OR
 >>(2b) mkdir opendiamond-OBJS; cd opendiamond-OBJS/
 >>(2b) /fullpath..../opendiamond/src/configure
 
+The configure script may alert you to missing libraries. Note that
+OpenDiamond requires Kerberos 5 and OpenSSL. Install the development
+packages on your system for any missing libraries.
+
 Then build OpenDiamond. As the system builds, all of the important header files,
 libraries and binaries will be put in target/{include, lib, bin}.
 

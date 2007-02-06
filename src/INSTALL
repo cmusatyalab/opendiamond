@@ -1,11 +1,11 @@
 Welcome
 -------------------
 
-In this file, ">>" indicates a line to execute. The intent is that reading through this file while executing these lines provides a reasonable way to install and build Diamond.
+In this file, ">>" indicates a line to execute. The intent is that reading through this file while executing these lines provides a reasonable way to install and build OpenDiamond.
 
 Notes
 -------------------
--- Diamond does NOT work with the latest version of gcc. Downgrade gcc until you stop getting "can't compile with both -static and -shared".
+-- OpenDiamond does NOT work with the latest version of gcc. Downgrade gcc until you stop getting "can't compile with both -static and -shared".
 -- adiskd can't find data -> check the number of zeros in GIDIDX0000...000...
 
 
@@ -15,22 +15,22 @@ Building the system
 If you are building from CVS, run autoconf to generate the configure script:
 >>(1) cd diamond/src; autoconf
 
-Now run the configure script. The Diamond source trees allows compilation output to be in a separate tree, so the sources can be read-only. Here the tree starts in a separate directory named diamond-OBJS.
+Now run the configure script. The OpenDiamond source trees allows compilation output to be in a separate tree, so the sources can be read-only. Here the tree starts in a separate directory named opendiamond-OBJS.
 
 Thus either do:
->>(2a) cd diamond/src; ./configure
+>>(2a) cd opendiamond/src; ./configure
 
 OR
 
->>(2b) mkdir diamond-OBJS; cd diamond-OBJS/
->>(2b) /fullpath..../diamond/src/configure
+>>(2b) mkdir opendiamond-OBJS; cd opendiamond-OBJS/
+>>(2b) /fullpath..../opendiamond/src/configure
 
-Then build Diamond. As the system builds, all of the important header files,
+Then build OpenDiamond. As the system builds, all of the important header files,
 libraries and binaries will be put in target/{include, lib, bin}.
 
 >>(3) make
 
-One make has completed, you can either run diamond out of the 
+One make has completed, you can either run OpenDiamond programs  out of the 
 build directory or you can install it in the system.  Running
 "make install" will install all the files in 
 /usr/local/diamond/{include,lib,bin}  (this requires root access).  Options
@@ -38,10 +38,10 @@ to make install allow data to be install into other locations.
 
 >>(4 - optional) make install
 
-Diamond Configuration
----------------------
+OpenDiamond Configuration
+-------------------------
 
-Diamond has two components.  The first runs on the back end
+The OpenDiamond platform has two components.  The first runs on the back end
 where the data is stored and the other is the runtime running
 on the host where the application is executed.  Both
 require special configuration files that describe
@@ -54,7 +54,7 @@ as a specific user instead of as a service.  Any files that
 are to be processed during the search, need to be read-accessible
 to the user starting the daemon.
 
-The front-end software is included in the diamond applications
+The front-end software is included in the Diamond applications
 through the libraries. 
 
 In both cases (the front and back end), the necessary configuration files live
@@ -94,7 +94,7 @@ use to store cached state.  Some place in /tmp is usually
 a good location.  DATATYPE NATIVE, tells the system to use
 the native files instead of the object store.
 
-Data in diamond is organized into groups.  Each group contains files
+Data in Diamond is organized into groups.  Each group contains files
 that are related to each other.  For examples, one group can be images,
 another group can be sounds, etc.   Each group is assigned a 64-bit
 number that is used to identify the collection.  (In many config
@@ -196,36 +196,36 @@ Building Debian packages
 ------------------------
 
 Debian packaging files are in the debian subdirectory.  To build the
-debian packages from scratch, run the following from the Diamond 
-source diretory, which must be named diamond-<version>.
+debian packages from scratch, run the following from the OpenDiamond
+source directory, which must be named opendiamond-<version>.
 
-	cp -pr src diamond-<version>
-	cd diamond-<version>
+	cp -pr src opendiamond-<version>
+	cd opendiamond-<version>
 	fakeroot debian/rules clean
 
 This will do a make clean.  Then build the source package.
 	cd ..
-	dpkg-source -ICVS -b -sn diamond-<version>
+	dpkg-source -ICVS -b -sn opendiamond-<version>
 
 This will create the source package, which consists of:
-	diamond_<version>.tar.gz (source tarball)
-	diamond_<version>.dsc	(source summary)
+	opendiamond_<version>.tar.gz (source tarball)
+	opendiamond_<version>.dsc	(source summary)
 
 Build the binary package:
-	cd diamond-<version>
+	cd opendiamond-<version>
 	fakeroot debian/rules binary
 
-This will create diamond_<version>_<arch>.deb in the directory above.
+This will create opendiamond_<version>_<arch>.deb in the directory above.
 
 
 
 Installing Debian packages
 --------------------------
 To install the binary package:
-	dpkg -i diamond_<version>_<arch>.deb
+	dpkg -i opendiamond_<version>_<arch>.deb
 
 To unpack the source package:
-	dpkg-source -x diamond-<version>.dsc
+	dpkg-source -x opendiamond-<version>.dsc
 
 
 Building RPMs
@@ -233,11 +233,11 @@ Building RPMs
 
 Use the alien package to build RPMs from debian files.
 To build the binary package:
-	alien -k -r diamond_<version>_<arch>.deb
+	alien -k -r opendiamond_<version>_<arch>.deb
 
-This will generate diamond-<version>.<arch>.rpm
+This will generate opendiamond-<version>.<arch>.rpm
 
 To build the source package:
-	alien -k -r diamond_<version>.tar.gz
+	alien -k -r opendiamond_<version>.tar.gz
 
-This will generate diamond_<version>.noarch.rpm
+This will generate opendiamond_<version>.noarch.rpm

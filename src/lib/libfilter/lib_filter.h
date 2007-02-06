@@ -1,37 +1,24 @@
 /*
- * 	Diamond
- *      A system for interactive brute-force search
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 2
  *
- *      Copyright (c) 2002-2005, Intel Corporation
- *      All Rights Reserved
- *
- *  This software is distributed under the terms of the Eclipse Public
- *  License, Version 1.0 which can be found in the file named LICENSE.
- *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
- *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
- */
-
-
-/*
+ *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University
+ *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
  *  License, Version 1.0 which can be found in the file named LICENSE.
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
-
-/*
- * Copyright (c) 2007 Carnegie Mellon University. All rights reserved.
- */
-
 
 #ifndef _LIB_FILTER_H_
 #define	_LIB_FILTER_H_
 
 /*!  \defgroup Filter  Filter API
  * The filter API is the API used by the searchlets to interact with
- * the Diamond run-time when evaluating objects.  It provides interfaces
+ * the OpenDiamond run-time when evaluating objects.  It provides interfaces
  * to read/write object data as well as reading and writing object
  * attributes.  This API can also be used by the host application
  * to manipulate data objects.  The programming interface is defined
@@ -42,7 +29,7 @@
  * \file lib_filter.h
  * \ingroup filter
  * The API for the functions that are available to filters running on
- * the Diamond system.
+ * the OpenDiamond system.
  */
 
 

@@ -1,10 +1,22 @@
 #!/usr/bin/perl -w
+#
+#  The OpenDiamond Platform for Interactive Search
+#  Version 2
+#
+#  Copyright (c) 2002-2005 Intel Corporation
+#  All rights reserved.
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
 
 use strict;
 use File::Temp qw/ tempfile tempdir /; 
 
 # Modified version of populate-disk that only sticks sound
-# files for Solar into Diamond.
+# files for Solar into OpenDiamond.
 # Main changes: no longer does convert, so concept of parent
 # image is no longer valid
 

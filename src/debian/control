@@ -1,4 +1,4 @@
-Source: diamond
+Source: opendiamond
 Section: unknown
 Priority: optional
 Maintainer: diamond <diamond@cs.cmu.edu>
@@ -6,10 +6,10 @@ Build-Depends: debhelper (>= 4.0.0), autotools-dev, autoconf, libssl (>= 0.9.7)
 Build-Conflicts: autoconf2.13
 Standards-Version: 3.6.2
 
-Package: diamond
+Package: opendiamond
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Diamond: a system for interactive search
+Description: The OpenDiamond platform for interactive search
  This package provides the Diamond infrastructure and API for building 
  content search applications. 
 

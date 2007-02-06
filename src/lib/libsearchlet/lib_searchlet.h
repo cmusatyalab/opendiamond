@@ -1,33 +1,25 @@
 /*
- * 	Diamond
- *      A system for interactive brute-force search
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 2
  *
- *      Copyright (c) 2002-2005, Intel Corporation
- *      All Rights Reserved
- *
- *  This software is distributed under the terms of the Eclipse Public
- *  License, Version 1.0 which can be found in the file named LICENSE.
- *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
- *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
- */
-
-
-/*
+ *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
  *  License, Version 1.0 which can be found in the file named LICENSE.
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
+
 #ifndef _LIB_SEARCHLET_H_
 #define	_LIB_SEARCHLET_H_
 
 /*!  
  * \defgroup searchlet  Searchlet API
- * The searchlet API is the programming interface between Diamond and
+ * The searchlet API is the programming interface between OpenDiamond and
  * the Diamond applications running on the host.   All communications with
- * Diamond are performed through this interface.  The programming interface
+ * OpenDiamond are performed through this interface.  The programming interface
  * is defined in lib_searchlet.h.
  *
  * */
@@ -38,7 +30,7 @@
  * \file lib_searchlet.h
  * \ingroup searchlet
  * This defines the API that applications use to talk to the rest
- * of the diamond system.
+ * of the OpenDiamond system.
  */
 
 #include "rtimer.h"

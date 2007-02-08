@@ -40,6 +40,9 @@
 /* maximum attribute name we allow */
 #define	MAX_ATTR_NAME		128
 
+/* maximum length of a text attribute value */
+#define MAX_ATTR_VALUE		4096
+
 /* default location of diamond cache if not set in .diamondrc */
 #define	DEFAULT_DIAMOND_CACHE	"/tmp/diamond_cache"
 

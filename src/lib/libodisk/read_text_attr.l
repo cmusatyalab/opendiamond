@@ -48,7 +48,7 @@ static void have_error();
 
 
 static char  attr_name[MAX_ATTR_NAME];
-static char  attr_value[MAX_ATTR_NAME];
+static char  attr_value[MAX_ATTR_VALUE];
 
 
 static obj_data_t *cur_obj;
@@ -142,7 +142,7 @@ extract_name_value(char *input, char *name, char *value)
 		if (offset >= inlen) {
 			return(1);
 		}
-		if (soffset >= MAX_ATTR_NAME) {
+		if (soffset >= MAX_ATTR_VALUE) {
 			log_message(LOGT_DISK, LOGL_ERR,
 		    	    "extract_name_value: string too long (%s)",
 			    input);

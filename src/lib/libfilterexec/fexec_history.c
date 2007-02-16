@@ -72,24 +72,22 @@ GHashTable *get_filter_history()
 	snprintf(fname, PATH_MAX, "%s/filter_history", path);
 
 	fp = fopen(fname, "r");
-	if (fp == NULL) {
-		return NULL;
-	}
-
-	while (1) {
-		filter_history_t *fh = g_malloc(sizeof(filter_history_t));
-
-		cnt = fscanf(fp, "%s %u %u %u %u %u \n", 
-			fname, &fh->executions, &fh->search_objects,
-			&fh->filter_objects, &fh->drop_objects, 
-			&fh->last_run);
-		if (cnt != 6) {
-			break;
+	if (fp != NULL) {
+		while (1) {
+			filter_history_t *fh = g_malloc(sizeof(filter_history_t));
+	
+			cnt = fscanf(fp, "%s %u %u %u %u %u \n", 
+				fname, &fh->executions, &fh->search_objects,
+				&fh->filter_objects, &fh->drop_objects, 
+				&fh->last_run);
+			if (cnt != 6) {
+				break;
+			}
+			string_to_sig(fname, &fh->filter_sig);
+			g_hash_table_insert(histories, &fh->filter_sig, fh);
 		}
-		string_to_sig(fname, &fh->filter_sig);
-		g_hash_table_insert(histories, &fh->filter_sig, fh);
+		fclose(fp);
 	}
-	fclose(fp);
 	
 	return histories;
 }

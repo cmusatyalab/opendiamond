@@ -1,0 +1,48 @@
+#
+#  The OpenDiamond Platform for Interactive Search
+#  Version 2
+#
+#  Copyright (c) 2002-2005 Intel Corporation
+#  All rights reserved.
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+ROOTDIR = @top_srcdir@
+SRCDIR = @srcdir@
+VPATH = @srcdir@
+OBJROOT = @OBJROOT@
+
+CPPFLAGS += `pkg-config glib-2.0 --cflags`
+
+LIBS += -ltools -ldconfig -lssl
+LIBS += `pkg-config glib-2.0 --libs`
+
+DCACHE_SRCS = dcache.c centry.c
+DCACHE_OBJS = dcache.o centry.o
+
+MCACHE_SRCS = mcache.c centry.c
+MCACHE_OBJS = mcache.o centry.o
+
+SRCS = $(DCACHE_SRCS) $(MCACHE_SRCS) 
+OBJS = $(DCACHE_OBJS) $(MCACHE_OBJS)
+
+TARGETS = dcache mcache
+
+SHARED_BIN = dcache mcache
+
+
+include $(OBJROOT)/Makefile.template
+
+#
+#
+
+dcache: $(DCACHE_OBJS)
+	$(CC) $(CFLAGS) -o dcache $(DCACHE_OBJS) $(LIBDIR) $(LIBS)
+
+mcache: $(MCACHE_OBJS)
+	$(CC) $(CFLAGS) -o mcache $(MCACHE_OBJS) $(LIBDIR) $(LIBS)
+	

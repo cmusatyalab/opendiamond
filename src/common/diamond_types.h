@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 #include "rtimer.h"
-
+#include "diamond_consts.h"
 
 #ifdef __cplusplus
 extern "C"

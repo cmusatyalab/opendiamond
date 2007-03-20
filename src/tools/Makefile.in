@@ -18,7 +18,7 @@ OBJROOT = @OBJROOT@
 
 
 SUBDIRS = delattr initattr setattr showattr dctl showgid 
-SUBDIRS += rem_group slowdown rand_idx dlog cache
+SUBDIRS += rem_group slowdown rand_idx dlog
 
 
 include $(OBJROOT)/Makefile.template

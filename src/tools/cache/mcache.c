@@ -33,6 +33,16 @@
 
 #include "centry.h"
 
+// XXX from fexec_history.h
+typedef struct {
+	sig_val_t	filter_sig;
+	unsigned int	executions;
+	unsigned int	search_objects;
+	unsigned int	filter_objects;
+	unsigned int	drop_objects;
+	unsigned int	last_run;
+} filter_history_t;
+
 static char const cvsid[] = "$Header$";
 
 /*
@@ -49,6 +59,22 @@ char *new_cache_dir = DEFAULT_OUTPUT_DIR;
 void usage()
 {
 	fprintf(stdout, "mcache [-h] [-d new-cache-dir] list-of-cache-directories\n");
+}
+
+gboolean sig_equal_fn(gconstpointer a, gconstpointer b) {
+	gboolean match = FALSE;
+	
+	sig_val_t *sig1 = (sig_val_t *) a;
+	sig_val_t *sig2 = (sig_val_t *) b;
+	if (sig_match(sig1, sig2))
+		match = TRUE;
+		
+	return (match);
+}
+
+guint sig_hash_fn(gconstpointer key) {
+	sig_val_t *sig = (sig_val_t *) key;
+	return (guint) sig_hash(sig);
 }
 
 void objectIterator(gpointer key, gpointer value, 
@@ -102,6 +128,19 @@ void attrIterator(gpointer key, gpointer value,
 	put_cache_init_entry(fd, cobj);
 }
 
+void historyIterator(gpointer key, gpointer value, 
+					gpointer user_data) 
+{
+	/* key = object sig, value = history entry */
+	filter_history_t *fh = (filter_history_t *) value;
+	char *sigstr = sig_string(&fh->filter_sig);
+	FILE *fp = (FILE *) user_data;
+	fprintf(fp, "%s %u %u %u %u %u \n", 
+		sigstr, fh->executions, fh->search_objects,
+		fh->filter_objects, fh->drop_objects, 
+		fh->last_run);	
+}
+
 
 char *entryToKey(cache_obj * cobj) 
 {
@@ -136,7 +175,7 @@ int copy_file(char *frompath, char *topath)
 		return(1);
 	}
 		
-	tofd = open(topath, O_CREAT | O_RDWR | O_TRUNC);	
+	tofd = open(topath, O_CREAT | O_RDWR | O_TRUNC, 00777);	
 	if (tofd < 0) {
 		printf("Error %d creating %s\n", errno, topath);
 		return(1);
@@ -246,6 +285,7 @@ int main(int argc, char **argv)
 	GHashTable *filter_hash;
 	GHashTable *oHash;
 	GHashTable *attrHash;
+	GHashTable *historyHash;
 	char filter_name[MAXNAMLEN];
 	char *filter_key;
 	char path[PATH_MAX];
@@ -261,8 +301,13 @@ int main(int argc, char **argv)
 	cache_obj *tobj;
 	cache_init_obj *ciobj;
 	cache_init_obj *aobj;
+	filter_history_t *fh;
+	filter_history_t *tfh;
 	int rc;
 	int i;
+	int cnt;
+	FILE *fp;
+	
 	
 	if (argc < 3) {
 		usage();
@@ -306,6 +351,7 @@ int main(int argc, char **argv)
 	
 	attrHash = g_hash_table_new(g_str_hash, g_str_equal);
 	filter_hash = g_hash_table_new(g_str_hash, g_str_equal);
+	historyHash = g_hash_table_new(sig_hash_fn, sig_equal_fn);
 
 	for (i = 1; i < argc; i++) {
 		cache_dir = argv[i];
@@ -352,6 +398,8 @@ int main(int argc, char **argv)
 			}
 		}
 		
+
+
 		/* process the CACHEFL files */
 		dir = opendir(cache_dir);
 		while ((cur_ent = readdir(dir)) != NULL) {
@@ -425,22 +473,64 @@ int main(int argc, char **argv)
 		}	
 		
 		closedir(dir);
-		
+
+		/* process history file */
+		snprintf(path, MAXPATHLEN, "%s/filters/filter_history", cache_dir);
+		fp = fopen(path, "r");
+		if (fp != NULL) {
+			printf("Processing history %s\n", path);		
+			while (1) {
+				fh = g_malloc(sizeof(filter_history_t));
+	
+				cnt = fscanf(fp, "%s %u %u %u %u %u \n", 
+					filter_name, &fh->executions, &fh->search_objects,
+					&fh->filter_objects, &fh->drop_objects, 
+					&fh->last_run);
+				if (cnt != 6) {
+					break;
+				}
+				string_to_sig(filter_name, &fh->filter_sig);
+				
+				/* do we have this entry? */
+				tfh = g_hash_table_lookup(historyHash, &fh->filter_sig);
+				if (tfh == NULL) {
+					printf("Adding object %s\n", filter_name);
+					g_hash_table_insert(historyHash, &fh->filter_sig, fh);
+					tfh = fh;
+				} else {
+					printf("Found object %s\n", filter_name);
+					tfh->executions += fh->executions;
+					tfh->search_objects += fh->search_objects;
+					tfh->filter_objects += fh->filter_objects;
+					tfh->drop_objects += fh->drop_objects;
+					g_free(fh);
+				}
+			}
+			fclose(fp);
+		}		
 	}
 	
 	/* now write the merged versions */
+	g_hash_table_foreach(filter_hash, filterIterator, NULL);
+
 	printf("\nWriting ATTRSIG\n");
 	sprintf(path, "%s/ATTRSIG", new_cache_dir);
 	fd = open(path, O_CREAT | O_RDWR | O_TRUNC, 00777);
 	if (fd < 0) {
 		printf("Error %d opening %s\n", errno, path);
 		exit(1);
-	}
+	}	
 	
 	g_hash_table_foreach(attrHash, attrIterator, &fd);
 	close(fd);
 	
-	g_hash_table_foreach(filter_hash, filterIterator, NULL);
+	sprintf(path, "%s/filters/filter_history", new_cache_dir);
+	fp = fopen(path, "w+");
+	if (fp != NULL) {
+		printf("\nWriting filter_history %s\n", path);
+		g_hash_table_foreach(historyHash, historyIterator, fp);
+		fclose(fp);
+	}	
 	
 	exit(0);
 }

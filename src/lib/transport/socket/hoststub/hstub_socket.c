@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <netdb.h>
 #include <assert.h>
+#include <stdlib.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
@@ -95,7 +96,7 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	}
 
 	sa.sin_family = AF_INET;
-	sa.sin_port = htons((unsigned short) CONTROL_PORT);
+	sa.sin_port = htons(diamond_get_control_port());
 	sa.sin_addr.s_addr = devid;
 
 	/*
@@ -163,7 +164,7 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	/*
 	 * we reuse the sockaddr, just change the port number 
 	 */
-	sa.sin_port = htons((unsigned short) DATA_PORT);
+	sa.sin_port = htons(diamond_get_data_port());
 
 	err = connect(cinfo->data_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {
@@ -228,7 +229,7 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	/*
 	 * we reuse the sockaddr, just change the port number 
 	 */
-	sa.sin_port = htons((unsigned short) LOG_PORT);
+	sa.sin_port = htons(diamond_get_log_port());
 
 	err = connect(cinfo->log_fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (err) {

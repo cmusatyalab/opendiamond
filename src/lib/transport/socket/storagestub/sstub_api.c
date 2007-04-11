@@ -561,7 +561,8 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	/*
 	 * Open the listner sockets for the different types of connections.
 	 */
-	err = sstub_new_sock(&list_state->control_fd, CONTROL_PORT,
+	err = sstub_new_sock(&list_state->control_fd,
+			     diamond_get_control_port(),
 			     bind_only_locally);
 	if (err) {
 		/*
@@ -572,7 +573,8 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 		return (NULL);
 	}
 
-	err = sstub_new_sock(&list_state->data_fd, DATA_PORT,
+	err = sstub_new_sock(&list_state->data_fd,
+			     diamond_get_data_port(),
 			     bind_only_locally);
 	if (err) {
 		/*
@@ -583,7 +585,8 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 		return (NULL);
 	}
 
-	err = sstub_new_sock(&list_state->log_fd, LOG_PORT,
+	err = sstub_new_sock(&list_state->log_fd,
+			     diamond_get_log_port(),
 			     bind_only_locally);
 	if (err) {
 		/*

@@ -28,13 +28,13 @@ OBJS = adiskd.o search_state.o background.o
 # Compilation Targets
 #
 
-TARGETS = adiskd@EXPERIMENTALSUFFIX@
+TARGETS = adiskd
 
-SHARED_BIN = adiskd@EXPERIMENTALSUFFIX@
+SHARED_BIN = adiskd
 
 include $(OBJROOT)/Makefile.template
 
-adiskd@EXPERIMENTALSUFFIX@:  $(OBJS)
+adiskd:  $(OBJS)
 	$(CC) $(CFLAGS) -o $@ -rdynamic $(OBJS) $(LIBDIR) $(LIBS)
 
 

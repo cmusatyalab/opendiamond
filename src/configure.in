@@ -53,6 +53,8 @@ AC_CHECK_LIB([pthread], [main], ,
 	#[AC_MSG_ERROR(Unable to find libssl)])
 AC_CHECK_LIB([krb5], [main], , 
 	[AC_MSG_ERROR(Unable to find libkrb5)])
+AC_CHECK_LIB([glib-2.0], [main], , 
+	[AC_MSG_ERROR(Unable to find libglib-2.0)])
 
 OBJROOT=`pwd`
 AC_SUBST(OBJROOT)

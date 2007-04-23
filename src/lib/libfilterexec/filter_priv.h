@@ -130,7 +130,10 @@ typedef struct filter_info {
 	void	*   	cache_table;
 	int	    	fi_cache_drop; /* # of objs dropped through cache lookup */
 	int		fi_cache_pass; /* # of objs skipped by using cache */
-	int		fi_compute;    /* # of objs computed */
+	int		fi_compute;    /* # of objs evaluated */
+	int		fi_hits_inter_session;	/* hits computed before this session */
+	int		fi_hits_inter_query;	/* hits computed in session, before query */
+	int		fi_hits_intra_query;	/* hits computed this query */
 } filter_info_t;
 
 

@@ -46,6 +46,7 @@ int glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t * hostids);
 
 char * dconf_get_dataroot();
 char * dconf_get_indexdir();
+char * dconf_get_logdir();
 char * dconf_get_cachedir();
 char * dconf_get_spec_cachedir();
 char * dconf_get_binary_cachedir();

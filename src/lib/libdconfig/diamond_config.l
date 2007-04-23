@@ -37,6 +37,7 @@ static int  have_error();
 static int  set_data_root(char *name);
 static int  set_cache_dir(char *name);
 static int  set_index_dir(char *name);
+static int  set_log_dir(char *name);
 static int  set_data_type(data_type_t type);
 
 static char * eat_token(char *str);
@@ -47,6 +48,7 @@ typedef struct	dconfig_info {
 	char *		dconf_dataroot;
 	char *		dconf_cachedir;
 	char *		dconf_indexdir;
+	char *      dconf_logdir;
 	data_type_t	dconf_dtype;
 } dconf_info_t;
 
@@ -72,6 +74,7 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
 DATAROOT[ \t]+[[:alnum:]\-_\/]+	{set_data_root(eat_token(yytext));}
 CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yytext));}
 INDEXDIR[ \t]+[[:alnum:]\-_\/]+	{set_index_dir(eat_token(yytext));}
+LOGDIR[ \t]+[[:alnum:]\-_\/]+	{set_log_dir(eat_token(yytext));}
 DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
 DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
 .				{have_error(); }
@@ -202,6 +205,13 @@ set_index_dir(char *dir)
 	return(0);
 }
 
+static int
+set_log_dir(char *dir)
+{
+	dinfo->dconf_logdir = strdup(dir);
+	return(0);
+}
+
 char *
 dconf_get_indexdir()
 {
@@ -211,6 +221,14 @@ dconf_get_indexdir()
 	return(dir);
 }
 
+char *
+dconf_get_logdir()
+{
+	char *dir;
+	do_init();
+	dir = strdup(dinfo->dconf_logdir);
+	return(dir);
+}
 
 static int
 set_data_type(data_type_t type)
@@ -261,7 +279,8 @@ do_init()
 	/* setup defaults */
 	/* XXX other defaults */
 	dinfo->dconf_cachedir = DEFAULT_DIAMOND_CACHE;
-
+	dinfo->dconf_logdir = DEFAULT_DIAMOND_LOG;
+	
 	yyin = dconfig_open_config_file(DIAMOND_CONFIG_FILE_NAME);
 	if (yyin == NULL) {
 		/* XXX log */
@@ -281,6 +300,10 @@ do_init()
 	dir = dconf_get_cachedir();
 	setup_dir(dir);
 	free(dir);
+	
+	dir = dconf_get_logdir();
+	setup_dir(dir);
+	free(dir);
 
 	dir = dconf_get_spec_cachedir();
 	setup_dir(dir);
@@ -297,7 +320,6 @@ do_init()
 	dir = dconf_get_blob_cachedir();
 	setup_dir(dir);
 	free(dir);
-
 
 	return;
 }

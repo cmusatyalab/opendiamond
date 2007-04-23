@@ -58,6 +58,9 @@
 /* directory under diamond cache where filter specs are stored */
 #define	SPEC_DIAMOND_CACHE	"specs"
 
+/* default location of diamond logs if not set in .diamondrc */
+#define DEFAULT_DIAMOND_LOG  "/tmp/diamond_log"
+
 /* strings for formating data */
 #define	OBJ_FORMAT		"%s/%s.obj"
 #define	SO_FORMAT		"%s/%s.so"

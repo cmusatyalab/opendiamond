@@ -20,7 +20,7 @@ CFLAGS += -I$(ROOTDIR)
 
 LIBOBJS = lib_auth.o
 
-LIBS += -lkrb5 -llog -lpthread
+LIBS += -lkrb5 -llog -lpthread -lglib-2.0
 
 SRCS = lib_auth.c
 

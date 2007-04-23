@@ -16,6 +16,8 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
+CPPFLAGS += `pkg-config glib-2.0 --cflags-only-I`
+
 SHARED_HEADERS = lib_log.h
 
 LIBSRCS = lib_log.c
@@ -37,4 +39,4 @@ TARGETS = liblog.a $(TESTPROGS)
 include $(OBJROOT)/Makefile.template
 
 test_log: liblog.a $(TESTOBJS)
-	$(CC) $(CFLAGS) -o test_log $(TESTOBJS) -L. -llog -lpthread
+	$(CC) $(CFLAGS) -o test_log $(TESTOBJS) -L. -llog -lpthread -lglib-2.0

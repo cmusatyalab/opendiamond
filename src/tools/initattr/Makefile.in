@@ -16,7 +16,8 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-LIBS += -lodisk -ltools -lpthread -llog -ldctl -lssl -lcrypto -ldconfig
+LIBS += -lodisk -ltools -lpthread -llog -ldctl -lssl -lcrypto 
+LIBS += -ldconfig -lglib-2.0
 
 #
 # Compilation Targets

@@ -16,7 +16,6 @@ SRCDIR = @srcdir@
 VPATH = @srcdir@
 OBJROOT = @OBJROOT@
 
-
 TEST_OBJS = odisk_test.o 
 TEST_SRCS = odisk_test.c 
 ATEST_SRCS = attr_test.c
@@ -36,7 +35,7 @@ SHARED_HEADERS = lib_odisk.h obj_attr.h
 SHARED_BIN = odisk_idx odisk_setoid
 
 LIBS += -ldl -lpthread  -lfl -lodisk -ltools -llog -ldconfig
-LIBS +=  -ldctl  -lssl -lcrypto
+LIBS +=  -ldctl  -lssl -lcrypto -lglib-2.0
 
 
 TARGETS = libodisk.a odisk_test odisk_idx odisk_setoid attr_test del_obj

@@ -23,7 +23,7 @@
  
 
 void usage() {
-	printf("usage: actest <host_name> <port_number>");
+	printf("usage: actest <host_name> <port_number>\n");
 	exit(-1);
 }
 

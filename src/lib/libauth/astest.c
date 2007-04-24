@@ -21,7 +21,7 @@
 #include "lib_auth.h"
 
 void usage() {
-	usage("astest <port_number>");
+	printf("astest <port_number>\n");
 	exit(-1);
 }
 

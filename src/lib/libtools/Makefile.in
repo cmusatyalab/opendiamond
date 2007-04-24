@@ -31,7 +31,7 @@ TESTOBJS = test_ring.o
 TESTSRCS = test_ring.c
 
 SHARED_HEADERS = ring.h lib_tools.h queue.h sig_calc.h 
-SHARED_HEADERS += rtimer.h rcomb.h rgraph.h rstat.h ports.h
+SHARED_HEADERS += rtimer.h rcomb.h rgraph.h rstat.h
 
 SRCS = $(LIBSRCS) $(TESTSRCS) 
 OBJS = $(LIBOBJS) $(TESTOBJS) 

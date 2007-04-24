@@ -22,7 +22,7 @@ static char const cvsid[] =
 
 
 int
-evaluate(void *context, permutation_t * perm, int *score)
+evaluate(const void *context, permutation_t * perm, int gen, int *score)
 {
 	int             i,
 	                n;
@@ -31,7 +31,7 @@ evaluate(void *context, permutation_t * perm, int *score)
 		return RC_ERR_NODATA;
 	}
 
-	n = perm->length;
+	n = perm->size;
 	*score = 100;
 	for (i = 1; i < n; i++) {
 		if (pmElt(perm, i - 1) < pmElt(perm, i)) {
@@ -60,7 +60,7 @@ main(int argc, char **argv)
 	for (i = 0; i < n; i++) {
 		pmSetElt(start, i, i);
 	}
-	hill_climb_init(&hc, start);
+	hill_climb_init(&hc, start, po);
 
 	while (err != RC_ERR_COMPLETE) {
 		err = hill_climb_step(&hc, po, evaluate, NULL);

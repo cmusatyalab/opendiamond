@@ -14,7 +14,9 @@
 #ifndef _RSTAT_H_
 #define _RSTAT_H_
 
-int             r_cpu_freq(u_int64_t *);
-int             r_freemem(u_int64_t *);
+#include <stdint.h>
+
+int             r_cpu_freq(uint64_t *);
+int             r_freemem(uint64_t *);
 
 #endif                          /* _RSTAT_H_ */

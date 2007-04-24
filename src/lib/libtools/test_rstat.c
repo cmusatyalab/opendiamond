@@ -21,7 +21,7 @@ static char const cvsid[] =
 int
 main(int argc, char **argv)
 {
-	u_int64_t       freq,
+	uint64_t       freq,
 	                mem;
 
 	r_cpu_freq(&freq);

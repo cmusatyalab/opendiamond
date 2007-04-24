@@ -34,7 +34,7 @@ main(int argc, char **argv)
 			x *= 1.2 + sqrt(i);
 		}
 		rt_stop(&rt);
-		printf("%f\n", rt_seconds(&rt));
+		printf("%f\n", rt_nanos(&rt));
 	}
 
 	return 0;

@@ -42,6 +42,7 @@
 #include "lib_auth.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
+#include "ports.h"
 
 
 static char const cvsid[] =

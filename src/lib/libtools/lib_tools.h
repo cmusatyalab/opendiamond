@@ -24,7 +24,6 @@
 #include "rcomb.h"
 #include "rgraph.h"
 #include "rstat.h"
-#include "ports.h"
 
 
 /* external functions defined in user.c */

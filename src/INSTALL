@@ -12,32 +12,31 @@ Notes
 Building the system
 -------------------
 
-If you are building from CVS, run autoconf to generate the configure script:
->>(1) cd diamond/src; autoconf
+If you are building from CVS, run "autoreconf -i" to generate the configure script:
+>>(1) cd opendiamond/src; autoreconf -i
 
 Now run the configure script. The OpenDiamond source trees allows compilation output to be in a separate tree, so the sources can be read-only. Here the tree starts in a separate directory named opendiamond-OBJS.
 
 Thus either do:
->>(2a) cd opendiamond/src; ./configure
+>>(2a) ./configure
 
 OR
 
 >>(2b) mkdir opendiamond-OBJS; cd opendiamond-OBJS/
->>(2b) /fullpath..../opendiamond/src/configure
+>>(2b) /fullpath..../opendiamond/configure
 
 The configure script may alert you to missing libraries. Note that
 OpenDiamond requires Kerberos 5 and OpenSSL. Install the development
 packages on your system for any missing libraries.
 
-Then build OpenDiamond. As the system builds, all of the important header files,
-libraries and binaries will be put in target/{include, lib, bin}.
+Then build OpenDiamond. 
 
 >>(3) make
 
 One make has completed, you can either run OpenDiamond programs  out of the 
 build directory or you can install it in the system.  Running
 "make install" will install all the files in 
-/usr/local/diamond/{include,lib,bin}  (this requires root access).  Options
+PREFIX/{include,lib,bin}  (this requires root access).  Options
 to make install allow data to be install into other locations.
 
 >>(4 - optional) make install
@@ -163,9 +162,9 @@ will show other arguments.
 
 
 Run adiskd in debug mode:
->>(12a) diamond/src/target/bin/adiskd -d -n
+>>(12a) opendiamond/adiskd/adiskd -d -n
 OR
->>(13a) diamond-OBJS/target/bin/adiskd -d -n
+>>(13a) diamond-OBJS/adiskd/adiskd -d -n
 
 Remote setup
 ------------

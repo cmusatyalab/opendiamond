@@ -226,7 +226,7 @@ main(int argc, char **argv)
 	cb_args.close_conn_cb = close_connection;
 	cb_args.start_cb = start;
 	cb_args.stop_cb = stop;
-	b_args.set_searchlet_cb = set_searchlet;
+	cb_args.set_searchlet_cb = set_searchlet;
 	cb_args.set_list_cb = set_list;
 	cb_args.terminate_cb = terminate;
 	cb_args.get_stats_cb = get_stats;

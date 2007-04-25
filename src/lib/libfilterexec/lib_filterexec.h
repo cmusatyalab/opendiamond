@@ -16,6 +16,7 @@
 #define _LIB_FILTEREXEC_H_ 1
 
 
+#include "lib_odisk.h"
 #include "rcomb.h"
 
 #ifdef __cplusplus

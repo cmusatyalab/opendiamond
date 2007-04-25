@@ -14,6 +14,7 @@
 #ifndef	_LIB_OCACHE_H_
 #define	_LIB_OCACHE_H_ 	1
 
+#include "lib_filterexec.h"
 #include "obj_attr.h"
 
 #ifdef	__cplusplus

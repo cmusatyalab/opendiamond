@@ -15,8 +15,12 @@
 #define	_DIAMOND_TYPES_H_
 
 #include <stdint.h>
+#include <netinet/in.h>
+#include <sys/time.h>
+
 #include "rtimer.h"
 #include "diamond_consts.h"
+
 
 #ifdef __cplusplus
 extern "C"
@@ -60,7 +64,7 @@ typedef	void *	ls_dev_handle_t;
  */
 
 typedef struct filter_stats {
-	char		fs_name[MAX_FILTER_NAME];  /* the filter name */
+	char	fs_name[MAX_FILTER_NAME];  /* the filter name */
 	int		fs_objs_processed;	   /* objs processed by filter*/
 	int		fs_objs_dropped;	   /* obj dropped by filter */
 	/* JIAYING */
@@ -68,6 +72,9 @@ typedef struct filter_stats {
 	int		fs_objs_cache_passed;
 	int		fs_objs_compute;
 	/* JIAYING */
+	int		fs_hits_inter_session;	/* hits computed before this session */
+	int		fs_hits_inter_query;	/* hits computed in session, before query */
+	int		fs_hits_intra_query;	/* hits computed this query */
 	rtime_t		fs_avg_exec_time;	   /* avg time spent in filter*/
 } filter_stats_t;
 
@@ -86,12 +93,12 @@ typedef struct dev_stats {
 	int		ds_objs_dropped;	/* total objects dropped */
 	int		ds_objs_nproc;		/* objs not procced at disk */
 	int		ds_system_load;		/* average load on  device??? */
-	rtime_t		ds_avg_obj_time;	/* average time per objects */
+	rtime_t	ds_avg_obj_time;	/* average time per objects */
 	int		ds_num_filters; 	/* number of filters */
 	filter_stats_t	ds_filter_stats[0];	/* list of filter */
 } dev_stats_t;
 
-	/* copy from lib_log.h */
+/* copy from lib_log.h */
 #ifndef offsetof
 #define offsetof(type, member) ( (int) & ((type*)0) -> member )
 #endif
@@ -99,6 +106,20 @@ typedef struct dev_stats {
 #define DEV_STATS_BASE_SIZE  (offsetof(struct dev_stats, ds_filter_stats))
 #define DEV_STATS_SIZE(nfilt) \
   (DEV_STATS_BASE_SIZE + (sizeof(filter_stats_t) * (nfilt)))
+
+
+typedef struct host_stats {
+	int		hs_objs_received;	/* objects at the host, all devices (obj_ring) */
+	int 	hs_objs_queued;		/* objects queued for ls_next_object (proc_ring) */
+	int		hs_objs_read;		/* objects returned through ls_next_object */
+	int		hs_objs_uqueued;	/* objects queued for user */
+	int		hs_objs_upresented;	/* objects presented to user */
+} host_stats_t;
+
+typedef struct app_stats {
+	int		as_objs_queued;		/* objects queued for user */
+	int		as_objs_presented;	/* objects presented to user */
+} app_stats_t;
 
 /*
  * This is an enumeration for the instruction set of the processor on
@@ -113,6 +134,33 @@ typedef enum {
     DEV_ISA_IA64,
     DEV_ISA_XSCALE,
 } device_isa_t;
+
+/*
+ * Enumeration for user state hint
+ */
+typedef enum {
+	USER_UNKNOWN,
+	USER_WAITING,
+	USER_BUSY,
+} user_state_t;
+
+/*
+ * descriptor for search sessions
+ */
+typedef struct {
+	struct sockaddr_in 	clientaddr;
+	struct timeval		connect_time;
+	int					conn_idx;
+} session_info_t;
+
+/*
+ * descriptor for individual queries
+ */
+typedef struct {
+	session_info_t	session;
+	int				query_id;
+} query_info_t;
+
 
 /*
  * The device characteristics.

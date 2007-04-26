@@ -119,6 +119,7 @@ typedef struct search_context {
 	void *			dctl_cookie;	/* cookie for dctl library */
 	void *			log_cookie;	/* cookie for log library */
 	int 		search_exec_mode;  /* a search_mode_t */
+	host_stats_t	host_stats;		/* object stats for this search */
 } search_context_t;
 
 /*

@@ -54,14 +54,6 @@ static char const cvsid[] =
 #define OBJ_RING_SIZE		512
 #define CONTROL_RING_SIZE	1024
 
-/*
- * this is a flag that tells use if we should fork
- * when we get a new connection.  This isn't very useful
- * except for some debugging situations.
- */
-static int      do_fork = 1;
-
-
 
 /*
  * set a socket to non-blocking 
@@ -662,12 +654,6 @@ sstub_listen(void *cookie)
 	struct timeval  now;
 	int             err;
 	int             max_fd = 0;
-
-	/*
-	 * update the global state about forking 
-	 */
-	do_fork = fork;
-
 
 	list_state = (listener_state_t *) cookie;
 

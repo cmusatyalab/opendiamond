@@ -187,7 +187,6 @@ main(int argc, char **argv)
 	while (1) {
 		sstub_listen(cookie);
 
-
 		/*
 		 * We need to do a periodic wait. To get rid
 		 * of all the zombies.  The posix spec appears to

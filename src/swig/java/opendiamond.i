@@ -1,4 +1,5 @@
 %module OpenDiamond
+%include "typemaps.i"
 
 %{
 #include "diamond_consts.h"

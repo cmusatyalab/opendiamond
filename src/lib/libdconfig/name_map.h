@@ -38,7 +38,6 @@ name_map_t     *read_name_map(char *mapfile);
 
 int             nlkup_lookup_collection(char *name, int *num_gids,
                                         groupid_t * gids);
-int             nlkup_add_entry(char *name, int num_gids, groupid_t * gids);
 int             nlkup_first_entry(char **name, void **cookie);
 int             nlkup_next_entry(char **name, void **cookie);
 

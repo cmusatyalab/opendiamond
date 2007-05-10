@@ -1,7 +1,8 @@
 %module OpenDiamond
-%include "typemaps.i"
 %include "various.i"
-%include "cpointer.i"
+%include "arrays_java.i"
+%include "typemaps.i"
+%include "carrays.i"
 
 %{
 #include "diamond_consts.h"
@@ -47,13 +48,18 @@ void delete_char_cookie(char **c) {
   }
 %}
 
-
-
 %include "diamond_consts.h"
 %include "diamond_types.h"
-%include "lib_dconfig.h"
-%include "lib_filter.h"
-%include "lib_searchlet.h"
+
+
+int nlkup_first_entry(char **name, void **cookie);
+int nlkup_next_entry(char **name, void **cookie);
+
+%array_class(groupid_t, groupidArray);
+
+int nlkup_lookup_collection(char *name, int *INOUT, groupidArray *OUT);
+
+
 
 void **create_void_cookie(void);
 void delete_void_cookie(void **c);

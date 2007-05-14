@@ -1,9 +1,16 @@
 package edu.cmu.cs.diamond.opendiamond;
 
+import java.awt.Image;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
 
 public class Test {
 
@@ -18,7 +25,7 @@ public class Test {
         }
 
         // use first scope
-        Scope scope = scopes.get(0);
+        Scope scope = scopes.get(4);
 
         // set up the rgb filter
         Filter rgb = null;
@@ -56,6 +63,35 @@ public class Test {
         int count = 0;
         while ((r = search.getNextResult()) != null && count < 10) {
             System.out.println(r);
+
+            byte data[] = r.getData();
+            // try {
+            // DataOutputStream fout = new DataOutputStream(new
+            // FileOutputStream("/tmp/zz.jpg"));
+            // fout.write(data);
+            // fout.close();
+            // } catch (FileNotFoundException e1) {
+            // e1.printStackTrace();
+            // } catch (IOException e) {
+            // // TODO Auto-generated catch block
+            // e.printStackTrace();
+            // }
+
+            ByteArrayInputStream in = new ByteArrayInputStream(data);
+            try {
+                Image img = ImageIO.read(in);
+
+                if (img != null) {
+                    System.out.println(img);
+                    JFrame j = new JFrame();
+                    j.getContentPane().add(new JButton(new ImageIcon(img)));
+                    j.pack();
+                    j.setVisible(true);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             count++;
         }
 

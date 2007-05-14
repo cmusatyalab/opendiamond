@@ -45,6 +45,7 @@ public class Result {
     private byte[] extractData(long[] len, SWIGTYPE_p_p_unsigned_char data) {
         byte[] result;
         result = new byte[(int) len[0]];
+        
         byteArray d = OpenDiamond.deref_data_cookie(data);
         for (int i = 0; i < result.length; i++) {
             result[i] = (byte) d.getitem(i);
@@ -69,8 +70,8 @@ public class Result {
             // first
             int err = OpenDiamond.lf_first_attr(OpenDiamond
                     .deref_void_cookie(obj_handle), name, len, data, cookie);
-            while (err != 0) {
-                result.add(extractData(len, data));
+            while (err == 0) {
+                result.add(extractData(len, name));
                 err = OpenDiamond
                         .lf_next_attr(
                                 OpenDiamond.deref_void_cookie(obj_handle),
@@ -83,6 +84,11 @@ public class Result {
         }
 
         return result;
+    }
+
+    private byte[] extractData(long[] len, SWIGTYPE_p_p_char name) {
+        String d = OpenDiamond.deref_char_cookie(name);
+        return d.getBytes();
     }
 
     @Override

@@ -1,5 +1,4 @@
 %module OpenDiamond
-%include "various.i"
 %include "arrays_java.i"
 %include "typemaps.i"
 %include "carrays.i"

@@ -5,10 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Searchlet {
-    private List<Filter> filters = new ArrayList<Filter>();
+    final private List<Filter> filters = new ArrayList<Filter>();
+    private String[] dependencies;
     
     public void addFilter(Filter f) {
         filters.add(f);
+    }
+    
+    public void setApplicationDependencies(String dependencies[]) {
+        this.dependencies = new String[dependencies.length];
+        System.arraycopy(dependencies, 0, this.dependencies, 0, dependencies.length);
     }
     
     public File createFilterSpecFile() throws IOException {
@@ -18,6 +24,13 @@ public class Searchlet {
         Writer w = new FileWriter(out);
         for (Filter f : filters) {
             w.write(f.toString());
+        }
+        
+        if (dependencies != null) {
+            w.write("FILTER APPLICATION\n");
+            for (String d : dependencies) {
+                w.write("REQUIRES " + d + "\n");
+            }
         }
         
         w.close();

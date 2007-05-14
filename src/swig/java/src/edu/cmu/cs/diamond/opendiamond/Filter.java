@@ -24,11 +24,11 @@ public class Filter {
             String dependencies[], String arguments[], int merit) {
 
         // TODO check for valid characters as in filter_spec.l
-        this.name = name;
+        this.name = name.trim();
         this.code = code;
-        this.evalFunction = evalFunction;
-        this.initFunction = initFunction;
-        this.finiFunction = finiFunction;
+        this.evalFunction = evalFunction.trim();
+        this.initFunction = initFunction.trim();
+        this.finiFunction = finiFunction.trim();
         this.threshold = threshold;
         this.merit = merit;
 

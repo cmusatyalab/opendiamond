@@ -33,12 +33,12 @@ public class Search {
         }
 
         stopSearch();
-        
+
         // prepare searchlet
         File filterspec = searchlet.createFilterSpecFile();
         File filters[] = searchlet.createFilterFiles();
         OpenDiamond.ls_set_searchlet(handle, device_isa_t.DEV_ISA_IA32,
-                filterspec.getAbsolutePath(), filters[0].getAbsolutePath());
+                filters[0].getAbsolutePath(), filterspec.getAbsolutePath());
         for (int i = 1; i < filters.length; i++) {
             OpenDiamond.ls_add_filter_file(handle, device_isa_t.DEV_ISA_IA32,
                     filters[i].getAbsolutePath());

@@ -91,4 +91,16 @@ public class Result {
                 .deref_void_cookie(obj_handle));
         OpenDiamond.delete_void_cookie(obj_handle);
     }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Result [");
+        
+        for (byte[] data : getKeys()) {
+            sb.append(" '" + new String(data) + "'");
+        }
+        sb.append(" ]");
+        return sb.toString();
+    }
 }

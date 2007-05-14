@@ -37,25 +37,28 @@ public class Test {
         // make a new search
         Search search = new Search();
         search.setScope(scope);
-        
+
         // make a new searchlet
         Searchlet searchlet = new Searchlet();
         searchlet.addFilter(rgb);
+        searchlet.setApplicationDependencies(new String[] { "RGB" });
         try {
             search.setSearchlet(searchlet);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
+
         // begin search
         search.startSearch();
-        
+
         // read 10 results
         Result r;
-        while((r = search.getNextResult()) != null) {
+        int count = 0;
+        while ((r = search.getNextResult()) != null && count < 10) {
             System.out.println(r);
+            count++;
         }
-        
+
         // disconnect
         search.close();
     }

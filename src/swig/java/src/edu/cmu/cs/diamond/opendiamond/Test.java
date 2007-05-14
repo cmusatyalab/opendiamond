@@ -35,12 +35,17 @@ public class Test {
         }
 
         // make a new search
-        Search search = new Search(scope);
+        Search search = new Search();
+        search.setScope(scope);
         
         // make a new searchlet
         Searchlet searchlet = new Searchlet();
         searchlet.addFilter(rgb);
-        search.setSearchlet(searchlet);
+        try {
+            search.setSearchlet(searchlet);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         
         // begin search
         search.startSearch();

@@ -40,6 +40,23 @@ const char *deref_char_cookie(char **c) {
 void delete_char_cookie(char **c) {
   free(c);
 }
+
+unsigned char **create_data_cookie(void) {
+  return (unsigned char**) malloc(sizeof(unsigned char *));
+}
+
+const unsigned char *deref_data_cookie(unsigned char **c) {
+  if (c == NULL) {
+    return NULL;
+  } else {
+    return *c;
+  }
+}
+
+void delete_data_cookie(unsigned char **c) {
+  free(c);
+}
+
 %}
 
 %pragma(java) jniclasscode=%{
@@ -54,7 +71,6 @@ void delete_char_cookie(char **c) {
 
 %include "diamond_consts.h"
 %include "diamond_types.h"
-
 
 int nlkup_first_entry(char **name, void **cookie);
 int nlkup_next_entry(char **name, void **cookie);
@@ -87,9 +103,25 @@ int ls_get_dev_stats(ls_search_handle_t handle,
                      dev_stats_t *dev_stats, int *stat_len);
 
 
+typedef	void *	lf_obj_handle_t;
+typedef unsigned int  size_t;
+int lf_next_block(lf_obj_handle_t obj_handle, int num_blocks,
+			size_t *OUTPUT, unsigned char **data);
+int lf_ref_attr(lf_obj_handle_t ohandle, const char *name,
+		size_t *OUTPUT, unsigned char **data);
+int lf_first_attr(lf_obj_handle_t ohandle, char **name,
+		size_t *OUTPUT, unsigned char **data, void **cookie);
+int lf_next_attr(lf_obj_handle_t ohandle, char **name,
+		size_t *OUTPUT, unsigned char **data, void **cookie);
+
+%array_class(unsigned char, byteArray);
+
 void **create_void_cookie(void);
 void delete_void_cookie(void **c);
 void *deref_void_cookie(void **c);
 char **create_char_cookie(void);
 const char *deref_char_cookie(char **c);
 void delete_char_cookie(char **c);
+unsigned char **create_data_cookie(void);
+const byteArray *deref_data_cookie(unsigned char **c);
+void delete_data_cookie(unsigned char **c);

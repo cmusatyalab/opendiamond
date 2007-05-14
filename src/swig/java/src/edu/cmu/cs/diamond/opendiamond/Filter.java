@@ -60,4 +60,8 @@ public class Filter {
 
         return sb.toString();
     }
+
+    public FilterCode getFilterCode() {
+        return code;
+    }
 }

@@ -65,17 +65,6 @@ public class Test {
             System.out.println(r);
 
             byte data[] = r.getData();
-            // try {
-            // DataOutputStream fout = new DataOutputStream(new
-            // FileOutputStream("/tmp/zz.jpg"));
-            // fout.write(data);
-            // fout.close();
-            // } catch (FileNotFoundException e1) {
-            // e1.printStackTrace();
-            // } catch (IOException e) {
-            // // TODO Auto-generated catch block
-            // e.printStackTrace();
-            // }
 
             try {
                 // try reading the data

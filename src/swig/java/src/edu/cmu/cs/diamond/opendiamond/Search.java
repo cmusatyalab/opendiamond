@@ -43,7 +43,6 @@ public class Search {
             OpenDiamond.ls_add_filter_file(handle, device_isa_t.DEV_ISA_IA32,
                     filters[i].getAbsolutePath());
         }
-
     }
 
     public void startSearch() {

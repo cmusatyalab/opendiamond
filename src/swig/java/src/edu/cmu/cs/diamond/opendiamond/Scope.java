@@ -19,5 +19,4 @@ public abstract class Scope {
     int getGidsSize() {
         return gidsSize;
     }
-
 }

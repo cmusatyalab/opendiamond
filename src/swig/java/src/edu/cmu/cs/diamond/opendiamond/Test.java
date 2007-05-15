@@ -1,6 +1,8 @@
 package edu.cmu.cs.diamond.opendiamond;
 
-import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -25,7 +27,7 @@ public class Test {
         }
 
         // use first scope
-        Scope scope = scopes.get(4);
+        Scope scope = scopes.get(0);
 
         // set up the rgb filter
         Filter rgb = null;
@@ -77,17 +79,40 @@ public class Test {
             // e.printStackTrace();
             // }
 
-            ByteArrayInputStream in = new ByteArrayInputStream(data);
             try {
-                Image img = ImageIO.read(in);
+                // try reading the data
+                ByteArrayInputStream in = new ByteArrayInputStream(data);
+                BufferedImage img = ImageIO.read(in);
 
-                if (img != null) {
-                    System.out.println(img);
-                    JFrame j = new JFrame();
-                    j.getContentPane().add(new JButton(new ImageIcon(img)));
-                    j.pack();
-                    j.setVisible(true);
+                // else, try the other one
+                data = r.getValue("_rgb_image.rgbimage".getBytes());
+                byte tmp[] = r.getValue("_cols.int".getBytes());
+                int w = (tmp[3] & 0xFF) << 24 | (tmp[2] & 0xFF) << 16
+                        | (tmp[1] & 0xFF) << 8 | (tmp[0] & 0xFF);
+                tmp = r.getValue("_rows.int".getBytes());
+                int h = (tmp[3] & 0xFF) << 24 | (tmp[2] & 0xFF) << 16
+                        | (tmp[1] & 0xFF) << 8 | (tmp[0] & 0xFF);
+
+                System.out.println(w + "x" + h);
+
+                img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+                for (int y = 0; y < h; y++) {
+                    for (int x = 0; x < w; x++) {
+                        int i = (y * w + x) * 4;
+                        // System.out.println(x);
+                        // System.out.println(y);
+                        int val = (data[i] & 0xFF) << 16
+                                | (data[i + 1] & 0xFF) << 8
+                                | (data[i + 2] & 0xFF);
+                        img.setRGB(x, y, val);
+                    }
                 }
+
+                System.out.println(img);
+                JFrame j = new JFrame();
+                j.getContentPane().add(new JButton(new ImageIcon(img)));
+                j.pack();
+                j.setVisible(true);
             } catch (IOException e) {
                 e.printStackTrace();
             }

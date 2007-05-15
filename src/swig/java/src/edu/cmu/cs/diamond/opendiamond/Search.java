@@ -13,6 +13,10 @@ public class Search {
 
     private boolean closed;
 
+    private Searchlet searchlet;
+
+    private Scope scope;
+
     public Search() {
         handle = OpenDiamond.ls_init_search();
     }
@@ -21,28 +25,14 @@ public class Search {
         if (closed) {
             throw new ClosedSearchException();
         }
-
-        stopSearch();
-        OpenDiamond.ls_set_searchlist(handle, scope.getGidsSize(), scope
-                .getGids());
+        this.scope = scope;
     }
 
-    public void setSearchlet(Searchlet searchlet) throws IOException {
+    public void setSearchlet(Searchlet searchlet) {
         if (closed) {
             throw new ClosedSearchException();
         }
-
-        stopSearch();
-
-        // prepare searchlet
-        File filterspec = searchlet.createFilterSpecFile();
-        File filters[] = searchlet.createFilterFiles();
-        OpenDiamond.ls_set_searchlet(handle, device_isa_t.DEV_ISA_IA32,
-                filters[0].getAbsolutePath(), filterspec.getAbsolutePath());
-        for (int i = 1; i < filters.length; i++) {
-            OpenDiamond.ls_add_filter_file(handle, device_isa_t.DEV_ISA_IA32,
-                    filters[i].getAbsolutePath());
-        }
+        this.searchlet = searchlet;
     }
 
     public void startSearch() {
@@ -50,6 +40,27 @@ public class Search {
             throw new ClosedSearchException();
         }
 
+        // set scope
+        OpenDiamond.ls_set_searchlist(handle, scope.getGidsSize(), scope
+                .getGids());
+
+        // prepare searchlet
+        File filterspec;
+        try {
+            filterspec = searchlet.createFilterSpecFile();
+            File filters[] = searchlet.createFilterFiles();
+            OpenDiamond.ls_set_searchlet(handle, device_isa_t.DEV_ISA_IA32,
+                    filters[0].getAbsolutePath(), filterspec.getAbsolutePath());
+            for (int i = 1; i < filters.length; i++) {
+                OpenDiamond.ls_add_filter_file(handle, device_isa_t.DEV_ISA_IA32,
+                        filters[i].getAbsolutePath());
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+        
         // begin
         OpenDiamond.ls_start_search(handle);
     }
@@ -59,7 +70,7 @@ public class Search {
             throw new ClosedSearchException();
         }
 
-        OpenDiamond.ls_abort_search(handle);
+        OpenDiamond.ls_terminate_search(handle);
     }
 
     public Result getNextResult() {
@@ -82,7 +93,7 @@ public class Search {
             return;
         }
         closed = true;
-        OpenDiamond.ls_terminate_search(handle);
+        OpenDiamond.ls_abort_search(handle);
     }
 
     @Override

@@ -22,7 +22,7 @@ public class ScopeSource {
             while (val == 0) {
                 String nameStr = OpenDiamond.deref_char_cookie(name);
 
-                int arraySize[] = {32};
+                int arraySize[] = {1024};
                 groupidArray gg = new groupidArray(arraySize[0]);
 
                 OpenDiamond.nlkup_lookup_collection(nameStr, arraySize, gg);

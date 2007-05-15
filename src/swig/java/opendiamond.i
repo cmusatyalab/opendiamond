@@ -80,7 +80,7 @@ int nlkup_lookup_collection(char *name, int *INOUT, groupidArray *gids);
 
 
 ls_search_handle_t ls_init_search(void);
-int ls_terminate_search(ls_search_handle_t handle);  // destroys everything
+int ls_terminate_search(ls_search_handle_t handle); // stops search
 int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
                       groupidArray *glist);
 int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
@@ -88,7 +88,7 @@ int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 int ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
                      char *filter_file_name);
 int ls_start_search(ls_search_handle_t handle);
-int ls_abort_search(ls_search_handle_t handle);  // you can start again after
+int ls_abort_search(ls_search_handle_t handle); // broken version of terminate?
 
 int ls_next_object(ls_search_handle_t handle,
                    ls_obj_handle_t *obj_handle,

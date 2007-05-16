@@ -1,6 +1,8 @@
 package edu.cmu.cs.diamond.opendiamond;
 
 public class Util {
+    // XXX endian specific
+    
     static int extractInt(byte[] value) {
         return (value[3] & 0xFF) << 24 | (value[2] & 0xFF) << 16
                 | (value[1] & 0xFF) << 8 | (value[0] & 0xFF);

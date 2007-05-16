@@ -100,6 +100,7 @@ public class Test {
             }
 
             JFrame j = new JFrame();
+            j.setLocationByPlatform(true);
             j.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             j.getContentPane().add(new JButton(new ImageIcon(img)));
             j.pack();

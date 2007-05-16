@@ -28,7 +28,7 @@ char **create_char_cookie(void) {
   return (char**) malloc(sizeof(char *));
 }
 
-const char *deref_char_cookie(char **c) {
+char *deref_char_cookie(char **c) {
   if (c == NULL) {
     return NULL;
   } else {
@@ -44,7 +44,7 @@ unsigned char **create_data_cookie(void) {
   return (unsigned char**) malloc(sizeof(unsigned char *));
 }
 
-const unsigned char *deref_data_cookie(unsigned char **c) {
+unsigned char *deref_data_cookie(unsigned char **c) {
   if (c == NULL) {
     return NULL;
   } else {
@@ -119,8 +119,8 @@ void **create_void_cookie(void);
 void delete_void_cookie(void **c);
 void *deref_void_cookie(void **c);
 char **create_char_cookie(void);
-const char *deref_char_cookie(char **c);
+char *deref_char_cookie(char **c);
 void delete_char_cookie(char **c);
 unsigned char **create_data_cookie(void);
-const byteArray *deref_data_cookie(unsigned char **c);
+byteArray *deref_data_cookie(unsigned char **c);
 void delete_data_cookie(unsigned char **c);

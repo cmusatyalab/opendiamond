@@ -79,13 +79,11 @@ public class Test {
             BufferedImage img = ImageIO.read(in);
 
             // else, try the other one
-            data = r.getValue("_rgb_image.rgbimage".getBytes());
-            byte tmp[] = r.getValue("_cols.int".getBytes());
-            int w = (tmp[3] & 0xFF) << 24 | (tmp[2] & 0xFF) << 16
-                    | (tmp[1] & 0xFF) << 8 | (tmp[0] & 0xFF);
-            tmp = r.getValue("_rows.int".getBytes());
-            int h = (tmp[3] & 0xFF) << 24 | (tmp[2] & 0xFF) << 16
-                    | (tmp[1] & 0xFF) << 8 | (tmp[0] & 0xFF);
+            data = r.getValue("_rgb_image.rgbimage");
+            byte tmp[] = r.getValue("_cols.int");
+            int w = Util.extractInt(tmp);
+            tmp = r.getValue("_rows.int");
+            int h = Util.extractInt(tmp);
 
             System.out.println(w + "x" + h);
 

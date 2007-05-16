@@ -16,7 +16,7 @@ public class Result {
         return getValue(null);
     }
 
-    public byte[] getValue(byte[] key) {
+    public byte[] getValue(String key) {
         byte result[];
         long lenp[] = { 0 };
 
@@ -29,23 +29,25 @@ public class Result {
                         .deref_void_cookie(obj_handle), Integer.MAX_VALUE,
                         lenp, data);
             } else {
-                OpenDiamond.lf_ref_attr(OpenDiamond
-                        .deref_void_cookie(obj_handle), new String(key), lenp,
-                        data);
+                if (OpenDiamond.lf_ref_attr(OpenDiamond
+                        .deref_void_cookie(obj_handle), key, lenp, data) != 0) {
+                    // no such key
+                    return null;
+                }
             }
 
             // copy
-            result = extractData(lenp, data);
+            result = extractData((int) lenp[0], data);
         } finally {
             OpenDiamond.delete_data_cookie(data);
         }
         return result;
     }
 
-    private byte[] extractData(long[] len, SWIGTYPE_p_p_unsigned_char data) {
+    private byte[] extractData(int len, SWIGTYPE_p_p_unsigned_char data) {
         byte[] result;
-        result = new byte[(int) len[0]];
-        
+        result = new byte[len];
+
         byteArray d = OpenDiamond.deref_data_cookie(data);
         for (int i = 0; i < result.length; i++) {
             result[i] = (byte) d.getitem(i);
@@ -53,8 +55,8 @@ public class Result {
         return result;
     }
 
-    public List<byte[]> getKeys() {
-        List<byte[]> result = new ArrayList<byte[]>();
+    public List<String> getKeys() {
+        List<String> result = new ArrayList<String>();
 
         // make cookies
         SWIGTYPE_p_p_void cookie = null;
@@ -71,7 +73,7 @@ public class Result {
             int err = OpenDiamond.lf_first_attr(OpenDiamond
                     .deref_void_cookie(obj_handle), name, len, data, cookie);
             while (err == 0) {
-                result.add(extractData(len, name));
+                result.add(OpenDiamond.deref_char_cookie(name));
                 err = OpenDiamond
                         .lf_next_attr(
                                 OpenDiamond.deref_void_cookie(obj_handle),
@@ -86,25 +88,25 @@ public class Result {
         return result;
     }
 
-    private byte[] extractData(long[] len, SWIGTYPE_p_p_char name) {
-        String d = OpenDiamond.deref_char_cookie(name);
-        return d.getBytes();
-    }
-
     @Override
     protected void finalize() throws Throwable {
         OpenDiamond.ls_release_object(null, OpenDiamond
                 .deref_void_cookie(obj_handle));
         OpenDiamond.delete_void_cookie(obj_handle);
     }
-    
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Result [");
-        
-        for (byte[] data : getKeys()) {
-            sb.append(" '" + new String(data) + "'");
+
+        for (String name : getKeys()) {
+            sb.append(" '" + name + "'");
+            if (name.endsWith(".int")) {
+                sb.append(":" + Util.extractInt(getValue(name)));
+            } else if (name.endsWith("-Name")) {
+
+            }
         }
         sb.append(" ]");
         return sb.toString();

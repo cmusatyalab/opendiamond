@@ -6,9 +6,9 @@ import java.util.List;
 import edu.cmu.cs.diamond.opendiamond.glue.*;
 
 public class Result {
-    final private SWIGTYPE_p_p_void obj_handle;
+    final private SWIGTYPE_p_void obj_handle;
 
-    Result(SWIGTYPE_p_p_void obj_handle) {
+    Result(SWIGTYPE_p_void obj_handle) {
         this.obj_handle = obj_handle;
     }
 
@@ -25,12 +25,10 @@ public class Result {
             data = OpenDiamond.create_data_cookie();
 
             if (key == null) {
-                OpenDiamond.lf_next_block(OpenDiamond
-                        .deref_void_cookie(obj_handle), Integer.MAX_VALUE,
-                        lenp, data);
+                OpenDiamond.lf_next_block(obj_handle, Integer.MAX_VALUE, lenp,
+                        data);
             } else {
-                if (OpenDiamond.lf_ref_attr(OpenDiamond
-                        .deref_void_cookie(obj_handle), key, lenp, data) != 0) {
+                if (OpenDiamond.lf_ref_attr(obj_handle, key, lenp, data) != 0) {
                     // no such key
                     return null;
                 }
@@ -70,14 +68,12 @@ public class Result {
             long len[] = { 0 };
 
             // first
-            int err = OpenDiamond.lf_first_attr(OpenDiamond
-                    .deref_void_cookie(obj_handle), name, len, data, cookie);
+            int err = OpenDiamond.lf_first_attr(obj_handle, name, len, data,
+                    cookie);
             while (err == 0) {
                 result.add(OpenDiamond.deref_char_cookie(name));
-                err = OpenDiamond
-                        .lf_next_attr(
-                                OpenDiamond.deref_void_cookie(obj_handle),
-                                name, len, data, cookie);
+                err = OpenDiamond.lf_next_attr(obj_handle, name, len, data,
+                        cookie);
             }
         } finally {
             OpenDiamond.delete_void_cookie(cookie);
@@ -90,9 +86,7 @@ public class Result {
 
     @Override
     protected void finalize() throws Throwable {
-        OpenDiamond.ls_release_object(null, OpenDiamond
-                .deref_void_cookie(obj_handle));
-        OpenDiamond.delete_void_cookie(obj_handle);
+        OpenDiamond.ls_release_object(null, obj_handle);
     }
 
     @Override

@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
 
 public class Test {
 
@@ -38,8 +41,8 @@ public class Test {
             e.printStackTrace();
         }
 
-        // make a new search
-        Search search = new Search();
+        // init diamond
+        Search search = Search.getSearch();
         search.setScope(scope);
 
         // make a new searchlet
@@ -49,11 +52,11 @@ public class Test {
         search.setSearchlet(searchlet);
 
         Result r;
-        for (int ii = 0; ii < 10; ii++) {
+        for (int ii = 0; ii < 1; ii++) {
             // begin search
             search.startSearch();
 
-            // read 10 results
+            // read some results
             int count = 0;
             while ((r = search.getNextResult()) != null && count < 10) {
                 processResult(r);
@@ -63,9 +66,6 @@ public class Test {
 
             search.stopSearch();
         }
-
-        // disconnect
-        search.close();
     }
 
     private static void processResult(Result r) {
@@ -101,10 +101,11 @@ public class Test {
                 }
             }
 
-//            JFrame j = new JFrame();
-//            j.getContentPane().add(new JButton(new ImageIcon(img)));
-//            j.pack();
-            // j.setVisible(true);
+            JFrame j = new JFrame();
+            j.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            j.getContentPane().add(new JButton(new ImageIcon(img)));
+            j.pack();
+            j.setVisible(true);
         } catch (IOException e) {
             e.printStackTrace();
         }

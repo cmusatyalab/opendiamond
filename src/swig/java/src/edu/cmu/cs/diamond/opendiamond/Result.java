@@ -1,6 +1,7 @@
 package edu.cmu.cs.diamond.opendiamond;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import edu.cmu.cs.diamond.opendiamond.glue.*;
@@ -99,7 +100,9 @@ public class Result {
             if (name.endsWith(".int")) {
                 sb.append(":" + Util.extractInt(getValue(name)));
             } else if (name.endsWith("-Name")) {
-
+                sb.append(":'" + new String(getValue(name)) + "'");
+            } else if (name.endsWith(".time")) {
+                sb.append(":" + Util.extractLong(getValue(name)));
             }
         }
         sb.append(" ]");

@@ -1,7 +1,6 @@
 package edu.cmu.cs.diamond.opendiamond;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import edu.cmu.cs.diamond.opendiamond.glue.*;

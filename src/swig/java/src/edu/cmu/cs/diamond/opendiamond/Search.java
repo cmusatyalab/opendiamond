@@ -78,7 +78,7 @@ public class Search {
 
     public Result getNextResult() {
         if (OpenDiamond.ls_next_object(handle, obj_handle, 0) == 0) {
-            return new Result(OpenDiamond.deref_void_cookie(obj_handle));
+            return new ObjHandleResult(OpenDiamond.deref_void_cookie(obj_handle));
         } else {
             // no more objects
             return null;

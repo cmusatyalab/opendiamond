@@ -12,8 +12,12 @@ public class Result {
         this.obj_handle = obj_handle;
     }
 
+    private byte[] savedData;
     public byte[] getData() {
-        return getValue(null);
+        if (savedData == null) {
+            savedData = getValue(null);
+        }
+        return savedData;
     }
 
     public byte[] getValue(String key) {

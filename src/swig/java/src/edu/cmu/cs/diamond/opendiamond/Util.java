@@ -1,5 +1,9 @@
 package edu.cmu.cs.diamond.opendiamond;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+
 public class Util {
     private Util() {
     }
@@ -22,5 +26,44 @@ public class Util {
 
     public static double extractDouble(byte[] value) {
         return Double.longBitsToDouble(extractLong(value));
+    }
+
+    public static BufferedImage possiblyShrinkImage(BufferedImage img,
+            int maxW, int maxH) {
+        int h = img.getHeight(null);
+        int w = img.getWidth(null);
+    
+        double scale = 1.0;
+        
+        // XXX probably not quite right?
+        double maxAspect = (double) maxW / maxH;
+        double aspect = (double) w / h;
+        if (aspect > maxAspect) {
+            // more wide
+            if (w > maxW) {
+                scale = (double) maxW / h;
+            }
+        } else {
+            // more tall
+            if (h > maxH) {
+                scale = (double) maxH / h;
+            }
+        }
+    
+        if (scale == 1.0) {
+            return img;
+        } else {
+            BufferedImage newI = new BufferedImage((int) (w * scale),
+                    (int) (h * scale), img.getType());
+    
+            Graphics2D g = newI.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.scale(scale, scale);
+            g.drawImage(img, 0, 0, null);
+            g.dispose();
+    
+            return newI;
+        }
     }
 }

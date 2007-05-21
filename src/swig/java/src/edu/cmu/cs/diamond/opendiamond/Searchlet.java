@@ -17,7 +17,7 @@ public class Searchlet {
         System.arraycopy(dependencies, 0, this.dependencies, 0, dependencies.length);
     }
     
-    public File createFilterSpecFile() throws IOException {
+    File createFilterSpecFile() throws IOException {
         File out = File.createTempFile("filterspec", ".txt");
         out.deleteOnExit();
 
@@ -37,7 +37,7 @@ public class Searchlet {
         return out;
     }
     
-    public File[] createFilterFiles() throws IOException {
+    File[] createFilterFiles() throws IOException {
         File result[] = new File[filters.size()];
 
         int i = 0;

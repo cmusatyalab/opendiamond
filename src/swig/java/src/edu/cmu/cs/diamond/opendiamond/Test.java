@@ -25,7 +25,7 @@ public class Test {
         }
 
         // use first scope
-        Scope scope = scopes.get(0);
+        Scope scope = scopes.get(2);
 
         // set up the rgb filter
         Filter rgb = null;

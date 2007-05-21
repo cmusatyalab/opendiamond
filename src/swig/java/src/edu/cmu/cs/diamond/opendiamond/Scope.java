@@ -19,4 +19,6 @@ public abstract class Scope {
     int getGidsSize() {
         return gidsSize;
     }
+
+    abstract public String getName();
 }

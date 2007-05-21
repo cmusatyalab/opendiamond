@@ -19,4 +19,9 @@ public class NameScope extends Scope {
         sb.append(" ]");
         return sb.toString();
     }
+
+    @Override
+    public String getName() {
+        return name;
+    }
 }

@@ -9,14 +9,11 @@ public class NameScope extends Scope {
         super(gids, size);
         this.name = name;
     }
-    
+
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("scope: " + name + " [");
-        for (int i = 0; i < gidsSize; i++) {
-            sb.append(" " + gids.getitem(i));
-        }
-        sb.append(" ]");
+        StringBuilder sb = new StringBuilder("scope: " + name + " (gids: "
+                + getGidsSize() + ")");
         return sb.toString();
     }
 

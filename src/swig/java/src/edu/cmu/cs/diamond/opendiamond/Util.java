@@ -35,13 +35,13 @@ public class Util {
     
         double scale = 1.0;
         
-        // XXX probably not quite right?
-        double maxAspect = (double) maxW / maxH;
-        double aspect = (double) w / h;
-        if (aspect > maxAspect) {
+        double imgAspect = (double) w / h;
+        double targetAspect = (double) maxW / maxH;
+
+        if (imgAspect > targetAspect) {
             // more wide
             if (w > maxW) {
-                scale = (double) maxW / h;
+                scale = (double) maxW / w;
             }
         } else {
             // more tall

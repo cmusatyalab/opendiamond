@@ -164,4 +164,8 @@ public class Util {
         pCons.setConstraint(SpringLayout.SOUTH, y);
         pCons.setConstraint(SpringLayout.EAST, x);
     }
+
+    public static String extractString(byte[] value) {
+        return new String(value, 0, value.length - 1);
+    }
 }

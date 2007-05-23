@@ -13,7 +13,10 @@ public class ObjHandleResult extends Result {
     }
 
     private byte[] savedData;
-    /* (non-Javadoc)
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see edu.cmu.cs.diamond.opendiamond.IResult#getData()
      */
     @Override
@@ -24,7 +27,9 @@ public class ObjHandleResult extends Result {
         return savedData;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see edu.cmu.cs.diamond.opendiamond.IResult#getValue(java.lang.String)
      */
     @Override
@@ -66,7 +71,9 @@ public class ObjHandleResult extends Result {
         return result;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see edu.cmu.cs.diamond.opendiamond.IResult#getKeys()
      */
     @Override
@@ -116,7 +123,7 @@ public class ObjHandleResult extends Result {
             if (name.endsWith(".int")) {
                 sb.append(":" + Util.extractInt(getValue(name)));
             } else if (name.endsWith("-Name")) {
-                sb.append(":'" + new String(getValue(name)) + "'");
+                sb.append(":'" + Util.extractString(getValue(name)) + "'");
             } else if (name.endsWith(".time")) {
                 sb.append(":" + Util.extractLong(getValue(name)));
             }

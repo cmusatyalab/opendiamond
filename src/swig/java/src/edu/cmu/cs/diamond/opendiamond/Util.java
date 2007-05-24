@@ -53,14 +53,14 @@ public class Util {
 
         return scale;
     }
-    
+
     public static BufferedImage possiblyShrinkImage(BufferedImage img,
             int maxW, int maxH) {
         int w = img.getWidth();
         int h = img.getHeight();
 
         double scale = getScaleForResize(w, h, maxW, maxH);
-        
+
         if (scale == 1.0) {
             return img;
         } else {
@@ -69,18 +69,27 @@ public class Util {
     }
 
     public static BufferedImage scaleImage(BufferedImage img, double scale) {
+        return scaleImage(img, scale, null, true);
+    }
 
-        BufferedImage newI = new BufferedImage((int) (img.getWidth() * scale),
-                (int) (img.getHeight() * scale), img.getType());
+    public static BufferedImage scaleImage(BufferedImage img, double scale,
+            BufferedImage dest, boolean highQuality) {
 
-        Graphics2D g = newI.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        if (dest == null) {
+            dest = new BufferedImage((int) (img.getWidth() * scale), (int) (img
+                    .getHeight() * scale), img.getType());
+        }
+
+        Graphics2D g = dest.createGraphics();
+        if (highQuality) {
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        }
         g.scale(scale, scale);
         g.drawImage(img, 0, 0, null);
         g.dispose();
 
-        return newI;
+        return dest;
     }
 
     // http://java.sun.com/docs/books/tutorial/uiswing/examples/layout/SpringGridProject/src/layout/SpringUtilities.java

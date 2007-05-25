@@ -78,7 +78,6 @@ int nlkup_next_entry(char **name, void **cookie);
 
 int nlkup_lookup_collection(char *name, int *INOUT, groupidArray *gids);
 
-
 ls_search_handle_t ls_init_search(void);
 int ls_terminate_search(ls_search_handle_t handle); // stops search
 int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
@@ -96,9 +95,11 @@ int ls_release_object(ls_search_handle_t handle,
                       ls_obj_handle_t obj_handle);
 
 
+int ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t *handle_list,
+		    int *INOUT);
 int ls_get_dev_stats(ls_search_handle_t handle,
                      ls_dev_handle_t  dev_handle,
-                     dev_stats_t *dev_stats, int *stat_len);
+                     dev_stats_t *dev_stats, int *OUTPUT);
 
 
 typedef	void *	lf_obj_handle_t;

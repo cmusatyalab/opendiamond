@@ -2,6 +2,7 @@
 %include "arrays_java.i"
 %include "typemaps.i"
 %include "carrays.i"
+%include "various.i"
 
 %javaconst(1);
 
@@ -11,6 +12,32 @@
 #include "lib_dconfig.h"
 #include "lib_filter.h"
 #include "lib_searchlet.h"
+
+#define MAX_DEV_GROUPS          64
+
+typedef struct device_handle {
+        struct device_handle *          next;
+        uint32_t                        dev_id;
+        char *                          dev_name;
+        groupid_t                       dev_groups[MAX_DEV_GROUPS];
+        int                             num_groups;
+        unsigned int                    flags;
+        void *                          dev_handle;
+        int                             ver_no;
+        time_t                          start_time;
+        int                             remain_old;
+        int                             remain_mid;
+        int                             remain_new;
+        float                           done;
+        float                           delta;
+        float                           prate;
+        int                             obj_total;
+        float                           cur_credits;    /* credits for current iteration */
+        int                             credit_incr;    /* incremental credits to add */
+        int                             serviced;       /* times data removed */
+        struct                          search_context *        sc;
+} device_handle_t;
+
 
 void **create_void_cookie(void) {
   return (void**) malloc(sizeof(void *));
@@ -56,6 +83,24 @@ void delete_data_cookie(unsigned char **c) {
   free(c);
 }
 
+int get_dev_stats_size(int num_filters) {
+  return DEV_STATS_SIZE(num_filters);
+}
+
+dev_stats_t *create_dev_stats(int bytes) {
+  return malloc(bytes);
+}
+
+void delete_dev_stats(dev_stats_t *ds) {
+  free(ds);
+}
+
+void get_ipv4addr_from_dev_handle(ls_dev_handle_t dev, signed char addr[]) {
+  device_handle_t *dhandle = (device_handle_t *) dev;
+  int a = dhandle->dev_id;
+  *((int *) addr) = a;
+}
+
 %}
 
 %pragma(java) jniclasscode=%{
@@ -74,9 +119,13 @@ void delete_data_cookie(unsigned char **c) {
 int nlkup_first_entry(char **name, void **cookie);
 int nlkup_next_entry(char **name, void **cookie);
 
+typedef unsigned int uint32_t;
+
 %array_class(groupid_t, groupidArray);
+%array_class(uint32_t, uintArray);
 
 int nlkup_lookup_collection(char *name, int *INOUT, groupidArray *gids);
+int glkup_gid_hosts(groupid_t gid, int *INOUT, uintArray *hostids);
 
 ls_search_handle_t ls_init_search(void);
 int ls_terminate_search(ls_search_handle_t handle); // stops search
@@ -94,12 +143,12 @@ int ls_next_object(ls_search_handle_t handle,
 int ls_release_object(ls_search_handle_t handle,
                       ls_obj_handle_t obj_handle);
 
-
-int ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t *handle_list,
+%array_class(ls_dev_handle_t, devHandleArray);
+int ls_get_dev_list(ls_search_handle_t handle, devHandleArray *handle_list,
 		    int *INOUT);
 int ls_get_dev_stats(ls_search_handle_t handle,
-                     ls_dev_handle_t  dev_handle,
-                     dev_stats_t *dev_stats, int *OUTPUT);
+                     ls_dev_handle_t dev_handle,
+                     dev_stats_t *dev_stats, int *INOUT);
 
 
 typedef	void *	lf_obj_handle_t;
@@ -124,3 +173,7 @@ void delete_char_cookie(char **c);
 unsigned char **create_data_cookie(void);
 byteArray *deref_data_cookie(unsigned char **c);
 void delete_data_cookie(unsigned char **c);
+int get_dev_stats_size(int num_filters);
+dev_stats_t *create_dev_stats(int bytes);
+void delete_dev_stats(dev_stats_t *ds);
+void get_ipv4addr_from_dev_handle(ls_dev_handle_t dev, signed char addr[]);

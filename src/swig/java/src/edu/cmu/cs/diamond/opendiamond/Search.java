@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import edu.cmu.cs.diamond.opendiamond.glue.*;
 
@@ -24,6 +26,8 @@ public class Search {
             .create_void_cookie();
 
     private int maxDevices;
+
+    final private Set<SearchEventListener> searchEventListeners = new HashSet<SearchEventListener>();
 
     @Override
     protected void finalize() throws Throwable {
@@ -78,12 +82,28 @@ public class Search {
         // begin
         OpenDiamond.ls_start_search(handle);
 
-        isRunning = true;
+        setIsRunning(true);
     }
 
     public void stopSearch() {
-        isRunning = false;
         OpenDiamond.ls_terminate_search(handle);
+        setIsRunning(false);
+    }
+
+    private void setIsRunning(boolean running) {
+        isRunning = running;
+
+        // XXX make dispatch thread?
+        synchronized (searchEventListeners) {
+            for (SearchEventListener s : searchEventListeners) {
+                SearchEvent e = new SearchEvent(this);
+                if (isRunning) {
+                    s.searchStarted(e);
+                } else {
+                    s.searchStopped(e);
+                }
+            }
+        }
     }
 
     public Result getNextResult() {
@@ -91,7 +111,7 @@ public class Search {
             return new ObjHandleResult(OpenDiamond
                     .deref_void_cookie(obj_handle));
         } else {
-            // no more objects
+            setIsRunning(false);
             return null;
         }
     }
@@ -109,7 +129,7 @@ public class Search {
         // get device list
         int numDevices[] = { maxDevices };
         if (OpenDiamond.ls_get_dev_list(handle, devList, numDevices) != 0) {
-//            System.out.println(" *** bad ls_get_dev_list");
+            // System.out.println(" *** bad ls_get_dev_list");
             return noResult;
         }
 
@@ -134,13 +154,13 @@ public class Search {
                     dst = OpenDiamond.create_dev_stats(tmp[0]);
                 }
 
-//                System.out.println(" " + tmp[0]);
+                // System.out.println(" " + tmp[0]);
 
                 odResult = OpenDiamond.ls_get_dev_stats(handle, dev, dst, tmp);
                 if (odResult != 0) {
-//                    System.out.println(" *** bad ls_get_dev_stats");
-//                    System.out.println(" " + odResult);
-//                    System.out.println(" " + tmp[0]);
+                    // System.out.println(" *** bad ls_get_dev_stats");
+                    // System.out.println(" " + odResult);
+                    // System.out.println(" " + tmp[0]);
                     return noResult;
                 }
 
@@ -173,5 +193,21 @@ public class Search {
             numDev += tmp[0];
         }
         return numDev;
+    }
+
+    public boolean isRunning() {
+        return isRunning;
+    }
+
+    public void addSearchEventListener(SearchEventListener listener) {
+        synchronized (searchEventListeners) {
+            searchEventListeners.add(listener);
+        }
+    }
+
+    public void removeSearchEventListener(SearchEventListener listener) {
+        synchronized (searchEventListeners) {
+            searchEventListeners.remove(listener);
+        }
     }
 }

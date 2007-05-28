@@ -118,9 +118,6 @@ public class Search {
 
     public ServerStatistics[] getStatistics() {
         ServerStatistics noResult[] = new ServerStatistics[0];
-        if (!isRunning) {
-            return noResult;
-        }
 
         List<ServerStatistics> result = new ArrayList<ServerStatistics>();
 

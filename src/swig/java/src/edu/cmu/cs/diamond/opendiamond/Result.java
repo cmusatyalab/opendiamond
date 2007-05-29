@@ -8,4 +8,6 @@ public abstract class Result {
     public abstract byte[] getValue(String key);
 
     public abstract List<String> getKeys();
+    
+    public abstract String getServerName();
 }

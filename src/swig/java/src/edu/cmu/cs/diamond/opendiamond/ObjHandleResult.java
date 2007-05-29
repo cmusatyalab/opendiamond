@@ -132,8 +132,8 @@ public class ObjHandleResult extends Result {
         return sb.toString();
     }
 
-    public static Result getEmptyResult() {
-        // TODO Auto-generated method stub
-        return null;
+    @Override
+    public String getServerName() {
+        return Util.extractString(getValue("Device-Name"));
     }
 }

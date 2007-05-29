@@ -1,4 +1,4 @@
-SUBDIRS = common lib adiskd tools target debian swig
+SUBDIRS = common lib adiskd tools target debian
 
 
 EXTRA_DIST = CREDITS LICENSE INSTALL

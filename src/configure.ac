@@ -112,7 +112,6 @@ tools/slowdown/Makefile
 debian/Makefile
 target/Makefile
 target/bin/Makefile
-swig/Makefile
 opendiamond.pc
 ])
 AC_OUTPUT

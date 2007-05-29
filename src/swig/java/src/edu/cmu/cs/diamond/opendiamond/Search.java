@@ -91,16 +91,19 @@ public class Search {
     }
 
     private void setIsRunning(boolean running) {
-        isRunning = running;
+        boolean oldRunning = isRunning;
 
         // XXX make dispatch thread?
-        synchronized (searchEventListeners) {
-            for (SearchEventListener s : searchEventListeners) {
-                SearchEvent e = new SearchEvent(this);
-                if (isRunning) {
-                    s.searchStarted(e);
-                } else {
-                    s.searchStopped(e);
+        if (oldRunning != running) {
+            synchronized (searchEventListeners) {
+                isRunning = running;
+                for (SearchEventListener s : searchEventListeners) {
+                    SearchEvent e = new SearchEvent(this);
+                    if (isRunning) {
+                        s.searchStarted(e);
+                    } else {
+                        s.searchStopped(e);
+                    }
                 }
             }
         }

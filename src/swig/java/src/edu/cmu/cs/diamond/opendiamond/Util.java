@@ -64,21 +64,22 @@ public class Util {
         if (scale == 1.0) {
             return img;
         } else {
-            return scaleImage(img, scale);
+            return scaleImage(img, scale, img.getType());
         }
-    }
-
-    public static BufferedImage scaleImage(BufferedImage img, double scale) {
-        return scaleImage(img, scale, null, true);
     }
 
     public static BufferedImage scaleImage(BufferedImage img, double scale,
-            BufferedImage dest, boolean highQuality) {
+            int type) {
+        BufferedImage dest = new BufferedImage((int) (img.getWidth() * scale),
+                (int) (img.getHeight() * scale), type);
 
-        if (dest == null) {
-            dest = new BufferedImage((int) (img.getWidth() * scale), (int) (img
-                    .getHeight() * scale), img.getType());
-        }
+        return scaleImage(img, dest, true);
+    }
+
+    public static BufferedImage scaleImage(BufferedImage img,
+            BufferedImage dest, boolean highQuality) {
+        double scale = getScaleForResize(img.getWidth(), img.getHeight(), dest
+                .getWidth(), dest.getHeight());
 
         Graphics2D g = dest.createGraphics();
         if (highQuality) {

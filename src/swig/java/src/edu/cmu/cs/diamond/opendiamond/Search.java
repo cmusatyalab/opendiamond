@@ -109,9 +109,9 @@ public class Search {
         }
     }
 
-    public Result getNextResult() {
+    public Result getNextResult() throws InterruptedException {
         // notice: polling is v. bad, but we have to do it here
-        
+
         while (isRunning) {
             int r = OpenDiamond.ls_next_object(handle, obj_handle,
                     OpenDiamondConstants.LSEARCH_NO_BLOCK);
@@ -121,12 +121,8 @@ public class Search {
                         .deref_void_cookie(obj_handle));
 
             case OpenDiamondConstants.EWOULDBLOCK:
-                try {
-//                    System.out.println("sleeping on result");
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    return null;
-                }
+                // System.out.println("sleeping on result");
+                Thread.sleep(500);
                 continue;
 
             default:

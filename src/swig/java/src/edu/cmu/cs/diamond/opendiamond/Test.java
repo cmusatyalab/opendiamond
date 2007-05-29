@@ -58,10 +58,14 @@ public class Test {
 
             // read some results
             int count = 0;
-            while ((r = search.getNextResult()) != null && count < 10) {
-                processResult(r);
+            try {
+                while ((r = search.getNextResult()) != null && count < 10) {
+                    processResult(r);
 
-                count++;
+                    count++;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
 
             search.stop();

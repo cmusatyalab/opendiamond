@@ -42,7 +42,7 @@ public class Test {
         }
 
         // init diamond
-        Search search = Search.getSearch();
+        Search search = Search.getSharedInstance();
         search.setScope(scope);
 
         // make a new searchlet

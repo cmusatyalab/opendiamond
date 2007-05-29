@@ -34,7 +34,7 @@ public class Search {
         OpenDiamond.delete_void_cookie(obj_handle);
     }
 
-    public static Search getSearch() {
+    public static Search getSharedInstance() {
         if (singleton == null) {
             singleton = new Search();
         }

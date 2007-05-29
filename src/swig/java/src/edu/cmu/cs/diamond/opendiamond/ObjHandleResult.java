@@ -136,4 +136,9 @@ public class ObjHandleResult extends Result {
     public String getServerName() {
         return Util.extractString(getValue("Device-Name"));
     }
+
+    @Override
+    public String getObjectName() {
+        return Util.extractString(getValue("Display-Name"));
+    }
 }

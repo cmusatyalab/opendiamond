@@ -10,4 +10,6 @@ public abstract class Result {
     public abstract List<String> getKeys();
     
     public abstract String getServerName();
+    
+    public abstract String getObjectName();
 }

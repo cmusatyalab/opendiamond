@@ -54,7 +54,7 @@ public class Test {
         Result r;
         for (int ii = 0; ii < 1; ii++) {
             // begin search
-            search.startSearch();
+            search.start();
 
             // read some results
             int count = 0;
@@ -64,7 +64,7 @@ public class Test {
                 count++;
             }
 
-            search.stopSearch();
+            search.stop();
         }
     }
 

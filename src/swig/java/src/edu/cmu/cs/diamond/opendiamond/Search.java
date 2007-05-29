@@ -54,7 +54,7 @@ public class Search {
         this.searchlet = searchlet;
     }
 
-    public void startSearch() {
+    public void start() {
         // set scope
         OpenDiamond.ls_set_searchlist(handle, scope.getGidsSize(), scope
                 .getGids());
@@ -85,7 +85,7 @@ public class Search {
         setIsRunning(true);
     }
 
-    public void stopSearch() {
+    public void stop() {
         OpenDiamond.ls_terminate_search(handle);
         setIsRunning(false);
     }

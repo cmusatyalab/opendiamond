@@ -119,8 +119,8 @@ void get_ipv4addr_from_dev_handle(ls_dev_handle_t dev, signed char addr[]) {
 #define LSEARCH_NO_BLOCK        0x01
 
 // thanks for using errno
-%include "/usr/include/asm-generic/errno-base.h"
-%include "/usr/include/asm-generic/errno.h"
+#define EAGAIN      11
+#define EWOULDBLOCK EAGAIN
 
 
 int nlkup_first_entry(char **name, void **cookie);

@@ -116,6 +116,13 @@ void get_ipv4addr_from_dev_handle(ls_dev_handle_t dev, signed char addr[]) {
 %include "diamond_consts.h"
 %include "diamond_types.h"
 
+#define LSEARCH_NO_BLOCK        0x01
+
+// thanks for using errno
+%include "/usr/include/asm-generic/errno-base.h"
+%include "/usr/include/asm-generic/errno.h"
+
+
 int nlkup_first_entry(char **name, void **cookie);
 int nlkup_next_entry(char **name, void **cookie);
 

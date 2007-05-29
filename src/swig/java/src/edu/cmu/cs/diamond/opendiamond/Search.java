@@ -20,7 +20,7 @@ public class Search {
 
     private Scope scope;
 
-    private boolean isRunning;
+    volatile private boolean isRunning;
 
     final private SWIGTYPE_p_p_void obj_handle = OpenDiamond
             .create_void_cookie();
@@ -110,13 +110,31 @@ public class Search {
     }
 
     public Result getNextResult() {
-        if (OpenDiamond.ls_next_object(handle, obj_handle, 0) == 0) {
-            return new ObjHandleResult(OpenDiamond
-                    .deref_void_cookie(obj_handle));
-        } else {
-            setIsRunning(false);
-            return null;
+        // notice: polling is v. bad, but we have to do it here
+        
+        while (isRunning) {
+            int r = OpenDiamond.ls_next_object(handle, obj_handle,
+                    OpenDiamondConstants.LSEARCH_NO_BLOCK);
+            switch (r) {
+            case 0:
+                return new ObjHandleResult(OpenDiamond
+                        .deref_void_cookie(obj_handle));
+
+            case OpenDiamondConstants.EWOULDBLOCK:
+                try {
+//                    System.out.println("sleeping on result");
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    return null;
+                }
+                continue;
+
+            default:
+                setIsRunning(false);
+                return null;
+            }
         }
+        return null;
     }
 
     public ServerStatistics[] getStatistics() {
@@ -137,6 +155,7 @@ public class Search {
         for (int i = 0; i < numDevices[0]; i++) {
             dev_stats_t dst = null;
             try {
+                // XXX intensely ugly code, please delete when C API is fixed
                 SWIGTYPE_p_void dev = devList.getitem(i);
 
                 int odResult;
@@ -188,7 +207,6 @@ public class Search {
         for (int i = 0; i < scope.getGidsSize(); i++) {
             int tmp[] = { 0 };
 
-            // XXX intensely ugly code, please delete when C API is fixed
             OpenDiamond.glkup_gid_hosts(gids.getitem(i), tmp, null);
             numDev += tmp[0];
         }

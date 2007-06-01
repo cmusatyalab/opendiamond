@@ -78,16 +78,13 @@ public class Util {
 
     public static BufferedImage scaleImage(BufferedImage img,
             BufferedImage dest, boolean highQuality) {
-        double scale = getScaleForResize(img.getWidth(), img.getHeight(), dest
-                .getWidth(), dest.getHeight());
 
         Graphics2D g = dest.createGraphics();
         if (highQuality) {
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
                     RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         }
-        g.scale(scale, scale);
-        g.drawImage(img, 0, 0, null);
+        g.drawImage(img, 0, 0, dest.getWidth(), dest.getHeight(), null);
         g.dispose();
 
         return dest;

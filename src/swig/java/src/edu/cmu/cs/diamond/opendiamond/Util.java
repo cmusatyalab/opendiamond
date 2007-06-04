@@ -1,13 +1,12 @@
 package edu.cmu.cs.diamond.opendiamond;
 
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 
 import javax.swing.Spring;
 import javax.swing.SpringLayout;
+
+import org.jdesktop.swingx.graphics.GraphicsUtilities;
 
 public class Util {
     private Util() {
@@ -54,36 +53,31 @@ public class Util {
         return scale;
     }
 
-    public static BufferedImage possiblyShrinkImage(BufferedImage img,
-            int maxW, int maxH) {
-        int w = img.getWidth();
-        int h = img.getHeight();
+    public static BufferedImage scaleImage(BufferedImage img, double scale) {
+        BufferedImage dest = GraphicsUtilities
+                .createCompatibleImage(img, (int) (img.getWidth() * scale),
+                        (int) (img.getHeight() * scale));
 
-        double scale = getScaleForResize(w, h, maxW, maxH);
-
-        if (scale == 1.0) {
-            return img;
-        } else {
-            return scaleImage(img, scale, img.getType());
-        }
+        return scaleImage(img, dest);
     }
 
-    public static BufferedImage scaleImage(BufferedImage img, double scale,
-            int type) {
-        BufferedImage dest = new BufferedImage((int) (img.getWidth() * scale),
-                (int) (img.getHeight() * scale), type);
-
-        return scaleImage(img, dest, true);
-    }
-
-    public static BufferedImage scaleImage(BufferedImage img,
-            BufferedImage dest, boolean highQuality) {
+    private static BufferedImage scaleImage(BufferedImage img,
+            BufferedImage dest) {
 
         Graphics2D g = dest.createGraphics();
-        if (highQuality) {
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        }
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.drawImage(img, 0, 0, dest.getWidth(), dest.getHeight(), null);
+        g.dispose();
+
+        return dest;
+    }
+
+    public static BufferedImage scaleImageFast(BufferedImage img, double scale) {
+        BufferedImage dest = GraphicsUtilities
+                .createCompatibleImage(img, (int) (img.getWidth() * scale),
+                        (int) (img.getHeight() * scale));
+        Graphics2D g = dest.createGraphics();
         g.drawImage(img, 0, 0, dest.getWidth(), dest.getHeight(), null);
         g.dispose();
 

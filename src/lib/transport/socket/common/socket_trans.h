@@ -16,7 +16,6 @@
 #ifndef _SOCKET_TRANS_H_
 #define _SOCKET_TRANS_H_
 
-
 #define	CNTL_CMD_START			1
 #define	CNTL_CMD_STOP			2
 #define	CNTL_CMD_SET_SPEC		3
@@ -44,6 +43,7 @@
 #define	CNTL_CMD_SEND_OBJ		25
 #define	CNTL_CMD_SET_OBJ		26
 #define CNTL_CMD_SET_EXEC_MODE 	27
+#define CNTL_CMD_SET_USER_STATE 28
 
 
 /*
@@ -112,6 +112,9 @@ typedef struct fstats_subheader {
 	uint32_t	fss_objs_cache_dropped;
 	uint32_t	fss_objs_cache_passed;
 	uint32_t	fss_objs_compute;
+	uint32_t	fss_hits_inter_session;
+	uint32_t	fss_hits_inter_query;
+	uint32_t	fss_hits_intra_query;
 	uint64_t	fss_avg_exec_time;
 } fstats_subheader_t;
 
@@ -157,8 +160,21 @@ typedef struct {
 } offload_subheader_t;
 
 typedef struct {
-	uint32_t	mode;		/* filter execution mode */
+	uint32_t	mode;			/* filter execution mode */
 } exec_mode_subheader_t;
+
+typedef struct {
+	uint32_t	state;			/* user state */
+} user_state_subheader_t;
+
+typedef struct {
+	uint32_t	host_objs_received;
+	uint32_t	host_objs_queued;
+	uint32_t	host_objs_read;
+	uint32_t	app_objs_queued;
+	uint32_t	app_objs_presented;
+} stop_subheader_t;
+
 
 /*
  * Header that goes on the log buffers that are sent to the host.

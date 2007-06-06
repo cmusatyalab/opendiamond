@@ -48,7 +48,7 @@ void *	device_init(int id, uint32_t devid, void *hcookie,
                    hstub_cb_args_t *cbs, void *dctl_cookie,
                    void *log_cookie);
 
-int device_stop(void *dev, int id);
+int device_stop(void *dev, int id, host_stats_t *hstats);
 int device_terminate(void *dev, int id);
 int device_start(void *dev, int id);
 int device_set_lib(void *dev, int id, sig_val_t *sig);
@@ -71,7 +71,8 @@ void device_stop_obj(void *handle);
 void device_enable_obj(void *handle);
 int device_set_offload(void *handle, int id, uint64_t offload);
 int device_set_limit(void *handle, int limit);
-int device_set_exec_mode(void *handle, int mode);
+int device_set_exec_mode(void *handle, int id, uint32_t mode);
+int device_set_user_state(void *handle, int id, uint32_t state);
 obj_info_t * device_next_obj(void *handle);
 
 

@@ -81,6 +81,26 @@ ls_search_handle_t ls_init_search();
 int ls_terminate_search(ls_search_handle_t handle);
 
 /*!
+ * This function is called to terminate a search and clean up
+ * any state associated with the search.  After this call completes
+ * the search handle is released and is no-longer valid.  
+ *
+ * \param handle
+ *		the search handle to close.
+ *
+ * \param app_stats
+ *		pointer to an structure holding application statistics
+ *
+ * \return 0
+ *		the call succeeded and the handle is no longer valid.
+ *
+ * \return EINVAL
+ *		the handle was not valid.
+ */
+
+int ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as);
+
+/*!
  * This determines the set of objects we are going to search.  This takes
  * a list of group ID's that contain the set of objects we are going
  * to search.
@@ -351,6 +371,27 @@ int ls_abort_search(ls_search_handle_t handle);
 
 
 /*!
+ * This call terminates a currently running search.  When the call returns
+ * the search has been terminated from the applications perspective and the
+ * application is able to change the searchlet, etc. if it wishes.
+ *
+ * \param handle
+ *		the search handle returned by init_libsearchlet().
+ *
+ * \param app_stats
+ *		pointer to an structure holding application statistics
+ *
+ * \return 0
+ *		The search aborted cleanly.
+ *
+ * \return EINVAL
+ *		There was no active search or the handle is invalid.
+ */
+
+int ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as);
+
+
+/*!
  * This call gets the next object that matches the searchlet.  The flags specify
  * the behavior for blocking.  If no flags are passed, then the call will block
  * until the next object is available or the search has completed.  If the flag
@@ -544,6 +585,23 @@ int ls_get_dev_stats(ls_search_handle_t handle,
 
 int
 ls_num_objects(ls_search_handle_t handle, int *obj_cnt);
+
+
+/*!
+ * This call advises Diamond of the user's state.  
+ *
+ * \param handle
+ *		the search handle returned by init_libsearchlet().
+ *
+ * \return 0
+ *		The state was set successfully.
+ *
+ * \return EINVAL
+ *		There was no active search or the handle is invalid.
+ */
+
+int ls_set_user_state(ls_search_handle_t handle, user_state_t state);
+
 
 
 #ifdef __cplusplus

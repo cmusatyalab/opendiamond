@@ -67,7 +67,7 @@ main(int argc, char **argv)
 
 	err = inet_aton("127.0.0.1", &addr);
 
-	log_init(&log_cookie);
+	log_init("htest", NULL, &log_cookie);
 	dctl_init(&dctl_cookie);
 
 	/*

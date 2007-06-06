@@ -147,9 +147,17 @@ store_dev_stats(sdevice_state_t * dev, char *data_buf)
 		dstats->ds_filter_stats[i].fs_objs_compute =
 		    ntohl(fhead->fss_objs_compute);
 
+		dstats->ds_filter_stats[i].fs_hits_inter_session =
+		    ntohl(fhead->fss_hits_inter_session);
+		dstats->ds_filter_stats[i].fs_hits_inter_query =
+		    ntohl(fhead->fss_hits_inter_query);
+		dstats->ds_filter_stats[i].fs_hits_intra_query =
+		    ntohl(fhead->fss_hits_intra_query);
+
 		/*
 		 * XXX byte order !!! 
 		 */
+		
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
 		    fhead->fss_avg_exec_time;
 	}

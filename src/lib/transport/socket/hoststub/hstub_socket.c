@@ -223,82 +223,11 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	socket_non_block(cinfo->data_fd);
 
 	/*
-	 * Now we open the log socket and send the cookie on it.
-	 */
-	cinfo->log_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
-
-	/*
-	 * we reuse the sockaddr, just change the port number 
-	 */
-	sa.sin_port = htons(diamond_get_log_port());
-
-	err = connect(cinfo->log_fd, (struct sockaddr *) &sa, sizeof(sa));
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR, 
-		    "hstub: send on log port failed");
-		close(cinfo->control_fd);
-		close(cinfo->data_fd);
-		return (ENOENT);
-	}
-
-	/* authenticate connection */
-	if (auth_required) {
-		cinfo->la_handle = auth_conn_client(cinfo->log_fd);
-		if (cinfo->la_handle) {
-			/* encrypt the cookie */
-			len = auth_msg_encrypt(cinfo->la_handle,  
-							(char *) &cinfo->con_cookie, 
-							sizeof(cinfo->con_cookie),
-							buf, BUFSIZ);
-			if (len < 0) {
-				printf("failed to encrypt message");
-				close(cinfo->log_fd);
-				close(cinfo->control_fd);
-				close(cinfo->data_fd);
-				return (ENOENT);
-			}
-
-			/* send the cookie */
-			size = write(cinfo->log_fd, buf, len);
-			if (size == -1) {
-				log_message(LOGT_NET, LOGL_ERR, 
-		    				"hstub: send on  data port failed");
-				close(cinfo->log_fd);
-				close(cinfo->control_fd);
-				close(cinfo->data_fd);
-				return (ENOENT);
-			}
-		} else {
-			log_message(LOGT_NET, LOGL_ERR, 
-		    			"hstub: failed to read from socket");
-			close(cinfo->log_fd);
-			close(cinfo->control_fd);
-			close(cinfo->data_fd);
-			return (ENOENT);
-		}
-	} else {
-		/* write the cookie into the fd */
-		size = write(cinfo->log_fd, (char *) &cinfo->con_cookie,
-				     sizeof(cinfo->con_cookie));
-		if (size == -1) {
-			log_message(LOGT_NET, LOGL_ERR, 
-					    "hstub: write on log port failed");
-			close(cinfo->control_fd);
-			close(cinfo->data_fd);
-			close(cinfo->log_fd);
-			return (ENOENT);
-		}
-	}
-
-	socket_non_block(cinfo->log_fd);
-
-	/*
 	 * Set the state machines variables.
 	 */
 	cinfo->control_state = CONTROL_TX_NO_PENDING;
 	cinfo->control_rx_state = CONTROL_RX_NO_PENDING;
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
-	cinfo->log_rx_state = LOG_RX_NO_PENDING;
 
 	return (0);
 }

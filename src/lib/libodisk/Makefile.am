@@ -13,28 +13,28 @@ odisk_test_SOURCES = odisk_test.c
 odisk_test_LDADD = libodisk.la ../libtools/libtools.la \
 	../libdconfig/libdconfig.la \
 	../libdctl/libdctl.la ../liblog/liblog.la \
-	../libtools/libtools.la
+	../libtools/libtools.la ${GLIB2_LIBS}
 
 attr_test_SOURCES = attr_test.c
 attr_test_LDADD = libodisk.la ../libtools/libtools.la \
 	../libdconfig/libdconfig.la \
 	../libdctl/libdctl.la ../liblog/liblog.la \
-	../libtools/libtools.la
+	../libtools/libtools.la ${GLIB2_LIBS}
 
 odisk_idx_SOURCES = odisk_idx.c
 odisk_idx_LDADD = libodisk.la ../libtools/libtools.la \
 	../libdconfig/libdconfig.la \
 	../libdctl/libdctl.la ../liblog/liblog.la \
-	../libtools/libtools.la
+	../libtools/libtools.la ${GLIB2_LIBS}
 
 del_obj_SOURCES = del_obj.c
 del_obj_LDADD = libodisk.la ../libtools/libtools.la \
 	../libdconfig/libdconfig.la \
 	../libdctl/libdctl.la ../liblog/liblog.la \
-	../libtools/libtools.la
+	../libtools/libtools.la ${GLIB2_LIBS}
 
 odisk_setoid_SOURCES = odisk_setoid.c
 odisk_setoid_LDADD = libodisk.la ../libtools/libtools.la \
 	../libdconfig/libdconfig.la \
 	../libdctl/libdctl.la ../liblog/liblog.la \
-	../libtools/libtools.la
+	../libtools/libtools.la ${GLIB2_LIBS}

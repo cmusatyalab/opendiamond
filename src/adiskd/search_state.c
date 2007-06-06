@@ -29,6 +29,10 @@
 #include <string.h>
 #include <dirent.h>
 #include <assert.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
 #include "sig_calc.h"
 #include "ring.h"
 #include "rstat.h"
@@ -61,9 +65,12 @@ static void    *update_bypass(void *arg);
  */
 extern int      do_cleanup;
 extern int      do_fork;
+extern int 		do_background;
 extern int      active_searches;
 extern int      idle_background;
 extern pid_t    background_pid;
+
+int	background_search;
 
 /*
  * XXX move to seperate header file !!! 
@@ -82,7 +89,6 @@ typedef enum {
 } dev_op_type_t;
 
 
-
 typedef struct {
 	char           *fname;
 	void           *blob;
@@ -95,18 +101,23 @@ typedef struct {
 	sig_val_t	sig;
 	union {
 		dev_blob_data_t bdata;
+		host_stats_t    hdata;
 	} extra_data;
 } dev_cmd_data_t;
 
 int
-search_stop(void *app_cookie, int gen_num)
+search_stop(void *app_cookie, int gen_num, host_stats_t *hstats)
 {
 	dev_cmd_data_t *cmd;
 	search_state_t *sstate;
 	int             err;
 
-	sstate = (search_state_t *) app_cookie;
+	log_message(LOGT_DISK, LOGL_TRACE, "search_stop: gen %d", 
+				gen_num);
 
+	sstate = (search_state_t *) app_cookie;
+	sstate->user_state = USER_UNKNOWN;
+	
 	cmd = (dev_cmd_data_t *) malloc(sizeof(*cmd));
 	if (cmd == NULL) {
 		return (1);
@@ -114,6 +125,7 @@ search_stop(void *app_cookie, int gen_num)
 
 	cmd->cmd = DEV_STOP;
 	cmd->id = gen_num;
+	cmd->extra_data.hdata = *hstats;
 
 	err = ring_enq(sstate->control_ops, (void *) cmd);
 	if (err) {
@@ -131,8 +143,11 @@ search_term(void *app_cookie, int id)
 	search_state_t *sstate;
 	int             err;
 
-	sstate = (search_state_t *) app_cookie;
+	log_message(LOGT_DISK, LOGL_TRACE, "search_stop: id %d", id);
 
+	sstate = (search_state_t *) app_cookie;
+	sstate->user_state = USER_UNKNOWN;
+	
 	/*
 	 * Allocate a new command and put it onto the ring
 	 * of commands being processed.
@@ -181,8 +196,11 @@ search_start(void *app_cookie, int id)
 	/*
 	 * XXX start 
 	 */
+	log_message(LOGT_DISK, LOGL_TRACE, "search_start: id %d", id);
 
 	sstate = (search_state_t *) app_cookie;
+	sstate->user_state = USER_WAITING;
+	
 	cmd = (dev_cmd_data_t *) malloc(sizeof(*cmd));
 	if (cmd == NULL) {
 		return (1);
@@ -211,6 +229,10 @@ search_set_spec(void *app_cookie, int id, sig_val_t *spec_sig)
 	dev_cmd_data_t *cmd;
 	int             err;
 	search_state_t *sstate;
+
+	log_message(LOGT_DISK, LOGL_TRACE, 
+				"search_set_spec: id %d %s", 
+				id, sig_string(spec_sig));
 
 	sstate = (search_state_t *) app_cookie;
 
@@ -269,6 +291,9 @@ clear_ss_stats(search_state_t * sstate)
 	sstate->obj_dropped = 0;
 	sstate->obj_passed = 0;
 	sstate->obj_skipped = 0;
+	sstate->obj_bg_processed = 0;
+	sstate->obj_bg_dropped = 0;
+	sstate->obj_bg_passed = 0;
 	sstate->network_stalls = 0;
 	sstate->tx_full_stalls = 0;
 	sstate->tx_idles = 0;
@@ -283,7 +308,6 @@ static void
 sstats_drop(void *cookie)
 {
 	search_state_t *sstate = (search_state_t *) cookie;
-
 	sstate->obj_dropped++;
 }
 
@@ -303,6 +327,7 @@ static void
 dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 {
 	int             err;
+	query_info_t	qinfo;
 
 	switch (cmd->cmd) {
 	case DEV_STOP:
@@ -324,8 +349,24 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		 */
 		err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
 		assert(err == 0);
-
-		// usleep(1000);
+		
+		/*
+		 * dump search statistics 
+		 */
+		log_message(LOGT_DISK, LOGL_INFO, 
+					"object stats: dev processed %d passed %d dropped %d", 
+					sstate->obj_processed,
+					sstate->obj_passed,
+					sstate->obj_dropped); 
+		log_message(LOGT_DISK, LOGL_INFO,
+					"\thost objs received %d queued %d read %d",
+					cmd->extra_data.hdata.hs_objs_received,
+					cmd->extra_data.hdata.hs_objs_queued,
+					cmd->extra_data.hdata.hs_objs_read);
+		log_message(LOGT_DISK, LOGL_INFO,
+					"\tapp objs queued %d presented %d",
+					cmd->extra_data.hdata.hs_objs_uqueued,
+					cmd->extra_data.hdata.hs_objs_upresented);
 		break;
 
 	case DEV_TERM:
@@ -346,8 +387,11 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		 * JIAYING: for now, we calculate the signature for the
 		 * whole library and spec file 
 		 */
-		ceval_init_search(sstate->fdata, sstate->cstate);
+		qinfo.session = sstate->cinfo;
+		qinfo.query_id = cmd->id;
+		ceval_init_search(sstate->fdata, &qinfo, sstate->cstate);
 
+		// LBM - odisk group
 		err = odisk_reset(sstate->ostate);
 		if (err) {
 			/*
@@ -707,8 +751,12 @@ device_main(void *arg)
 	int             complete;
 	struct timespec timeout;
 	int             force_eval;
-	good_objs_t	gobj;
-
+	int				pass;
+	good_objs_t		gobj;
+	query_info_t	qinfo;
+	pid_t		wait_pid;
+	int		wait_status;
+	
 	sstate = (search_state_t *) arg;
 
 	init_good_objs(&gobj, sstate->ver_no);
@@ -716,16 +764,13 @@ device_main(void *arg)
 	log_thread_register(sstate->log_cookie);
 	dctl_thread_register(sstate->dctl_cookie);
 
+	log_message(LOGT_DISK, LOGL_DEBUG, "adiskd: device_main: 0x%x", arg);
+	
 	/*
 	 * XXX need to open comm channel with device
 	 */
-
-
 	while (1) {
 		any = 0;
-		/*
-		 * log_message(LOGT_DISK, LOGL_TRACE, "loop top"); 
-		 */
 		cmd = (dev_cmd_data_t *) ring_deq(sstate->control_ops);
 		if (cmd != NULL) {
 			any = 1;
@@ -745,7 +790,7 @@ device_main(void *arg)
 			/*
 			 * If we ever did lookahead to heat the cache
 			 * we now inject those names back into the processing
-			 * stages. If the lookehead was from a previous
+			 * stages. If the lookahead was from a previous
 			 * search we will just clean up otherwise tell
 			 * the cache eval code about the objects.
 			 */	
@@ -830,17 +875,19 @@ device_main(void *arg)
 				if ((sstate->obj_processed & 0xf) == 0xf) {
 					force_eval = 1;
 				}
-
-				err = ceval_filters2(new_obj, sstate->fdata,
+				
+				qinfo.session = sstate->cinfo;
+				qinfo.query_id = sstate->ver_no;
+				pass = ceval_filters2(new_obj, sstate->fdata,
 						   force_eval, sstate->exec_mode, 
-						   sstate, continue_fn);
+						   &qinfo, sstate, continue_fn);
 
-				if (err == 0) {
+				if (pass == 0) {
 					sstate->obj_dropped++;
 					search_free_obj(sstate, new_obj);
 				} else {
 					sstate->obj_passed++;
-					if (err == 1) {
+					if (pass == 1) {
 						complete = 0;
 					} else {
 						complete = 1;
@@ -876,9 +923,12 @@ device_main(void *arg)
 			if (err == 0) {
 				any = 1;	
 				lookahead = 1;
-				err = ceval_filters2(new_obj, sstate->fdata,
-					   1, sstate->exec_mode, sstate, NULL);
-				if (err == 0) {
+				qinfo.session = sstate->cinfo;
+				qinfo.query_id = sstate->ver_no;
+				pass = ceval_filters2(new_obj, sstate->fdata,
+					   1, sstate->exec_mode, &qinfo,
+					   sstate, NULL);
+				if (pass == 0) {
 					sstate->obj_dropped++;
 					sstate->obj_processed++;
 				} else {
@@ -891,6 +941,35 @@ device_main(void *arg)
 			}
 		} else if ((sstate->flags & DEV_FLAG_RUNNING)) {
 			sstate->tx_full_stalls++;
+		}
+
+		/*
+		 * intra-search background processing - 
+		 * clean up zombies from earlier processing
+		 */
+		if (background_pid != -1) {
+			wait_pid = waitpid(-1, &wait_status, WNOHANG | WUNTRACED);
+			if (wait_pid > 0) {
+				if (wait_pid == background_pid) {
+					background_pid = -1;
+					background_search = 0;
+				} 
+			}
+		}
+		
+		/*
+		 * start a new background search if enabled
+		 */
+		if (do_background && background_search && (background_pid == -1)) {
+			if (do_fork)  {
+				background_pid = fork();
+				if (background_pid == 0) {
+					start_background(1);
+					exit(0);
+				}
+			} else {
+				start_background(0);
+			}
 		}
 
 		/*
@@ -929,72 +1008,6 @@ search_log_done(void *app_cookie, char *buf, int len)
 }
 
 
-static void    *
-log_main(void *arg)
-{
-	search_state_t *sstate;
-	char           *log_buf;
-	int             err;
-	struct timeval  now;
-	struct timespec timeout;
-	struct timezone tz;
-	int             len;
-
-	tz.tz_minuteswest = 0;
-	tz.tz_dsttime = 0;
-
-	sstate = (search_state_t *) arg;
-	log_thread_register(sstate->log_cookie);
-	dctl_thread_register(sstate->dctl_cookie);
-
-	while (1) {
-
-		len = log_getbuf(&log_buf);
-		if (len > 0) {
-			/*
-			 * send the buffer 
-			 */
-			err =
-			    sstub_send_log(sstate->comm_cookie, log_buf, len);
-			if (err) {
-				/*
-				 * probably shouldn't happen
-				 * but we ignore and return the data
-				 */
-				log_advbuf(len);
-				continue;
-			}
-
-			/*
-			 * wait on cv for the send to complete 
-			 */
-			pthread_mutex_lock(&sstate->log_mutex);
-			pthread_cond_wait(&sstate->log_cond,
-					  &sstate->log_mutex);
-			pthread_mutex_unlock(&sstate->log_mutex);
-
-			/*
-			 * let the log library know this space can
-			 * be re-used.
-			 */
-			log_advbuf(len);
-		} else {
-			gettimeofday(&now, &tz);
-			pthread_mutex_lock(&sstate->log_mutex);
-			timeout.tv_sec = now.tv_sec + 1;
-			timeout.tv_nsec = now.tv_usec * 1000;
-
-			pthread_cond_timedwait(&sstate->log_cond,
-					       &sstate->log_mutex, &timeout);
-			pthread_mutex_unlock(&sstate->log_mutex);
-		}
-	}
-}
-
-
-
-
-
 /*
  * This is the callback that is called when a new connection
  * has been established at the network layer.  This creates
@@ -1007,22 +1020,21 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 {
 	search_state_t *sstate;
 	int             err;
-	pid_t		new_proc;
+	pid_t			new_proc;
 
 	/* kill any background processing if appropriate */
 	if ((idle_background) && (background_pid != -1)) {
 		kill(background_pid, SIGHUP);
 	}
 
-
 	/*
 	 * We have a new connection decide whether to fork or not
 	 */
 	if (do_fork) {
 		new_proc = fork();
-        } else {
+    } else {
 		new_proc = 0;
-        }
+    }
 	
 	if (new_proc != 0) {
 		active_searches++;
@@ -1040,13 +1052,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Set the return values to this "handle".
 	 */
 	*app_cookie = sstate;
-
-	/*
-	 * This is called in the new process, now we initializes it
-	 * log data.
-	 */
-
-	log_init(&sstate->log_cookie);
+	
 	dctl_init(&sstate->dctl_cookie);
 
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
@@ -1103,15 +1109,20 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 			   dctl_read_uint32, NULL,
 			   &sstate->smoothed_int_ratio);
 
-
-
 	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
 	dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
-
 	dctl_register_node(ROOT_PATH, DEV_OBJ_NODE);
-
 	dctl_register_node(ROOT_PATH, DEV_CACHE_NODE);
+	
+	/* 
+	 * Initialize the log for the new process 
+	 */
+	log_init(LOG_PREFIX, DEV_SEARCH_PATH, &sstate->log_cookie);
 
+	sstub_get_conn_info(comm_cookie, &sstate->cinfo);
+	log_message(LOGT_DISK, LOGL_INFO, 
+				"adiskd: new connection received from %s",
+				inet_ntoa(sstate->cinfo.clientaddr.sin_addr));
 
 	/*
 	 * initialize libfilterexec
@@ -1151,13 +1162,14 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->split_auto_step = SPLIT_DEFAULT_AUTO_STEP;
 	sstate->split_bp_thresh = SPLIT_DEFAULT_BP_THRESH;
 	sstate->split_mult = SPLIT_DEFAULT_MULT;
-
+	
+	sstate->exec_mode = FM_CURRENT;
+	sstate->user_state = USER_UNKNOWN;
 
 	/*
 	 * Create a new thread that handles the searches for this current
 	 * search.  (We probably want to make this a seperate process ??).
 	 */
-
 	err = pthread_create(&sstate->thread_id, PATTR_DEFAULT, device_main,
 			     (void *) sstate);
 	if (err) {
@@ -1167,25 +1179,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		free(sstate);
 		*app_cookie = NULL;
 		exit(1);
-	}
-
-	/*
-	 * Now we also setup a thread that handles getting the log
-	 * data and pusshing it to the host.
-	 */
-	pthread_cond_init(&sstate->log_cond, NULL);
-	pthread_mutex_init(&sstate->log_mutex, NULL);
-	err = pthread_create(&sstate->log_thread, PATTR_DEFAULT, log_main,
-			     (void *) sstate);
-	if (err) {
-		/*
-		 * XXX log 
-		 */
-		free(sstate);
-		/*
-		 * XXX what else 
-		 */
-		return (ENOENT);
 	}
 
 	/*
@@ -1199,8 +1192,8 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		 */
 		free(sstate);
 		*app_cookie = NULL;
-
 	}
+	
 	/*
 	 * Initialize our communications with the object
 	 * disk sub-system.
@@ -1224,7 +1217,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	}
 
 	err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
-			 sstats_drop, sstats_process);
+			 		sstats_drop, sstats_process, sstate->log_cookie);
 	return (0);
 }
 
@@ -1525,9 +1518,6 @@ search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 	fprintf(fp, "%llu\n", gid);
 	fclose(fp);
 	
-
-
-	
 	sstate = (search_state_t *) app_cookie;
 	err = odisk_set_gid(sstate->ostate, gid);
 	assert(err == 0);
@@ -1590,22 +1580,34 @@ search_set_blob(void *app_cookie, int gen_num, char *name,
 
 extern int      fexec_cpu_slowdown;
 
-/*
- * XXXX remove this 
- */
-int
-search_set_offload(void *app_cookie, int gen_num, uint64_t load)
-{
-	return (0);
-}
-
 int search_set_exec_mode(void *app_cookie, uint32_t mode)
 {
-	log_message(LOGT_DISK, LOGL_DEBUG, "search_set_exec_mode: %d", mode);
-	
 	search_state_t *sstate;
+	filter_exec_mode_t old_mode;
+	
+	log_message(LOGT_DISK, LOGL_TRACE, "search_set_exec_mode: %d", mode);
+	
 	sstate = (search_state_t *) app_cookie;
-	sstate->exec_mode = mode;
+	old_mode = sstate->exec_mode;
+	sstate->exec_mode = (filter_exec_mode_t) mode;
+	if (old_mode != FM_MODEL && sstate->exec_mode == FM_MODEL) {
+		/* enable background search */
+		background_search = 1;
+	} else if (old_mode == FM_MODEL && sstate->exec_mode != FM_MODEL) {
+		/* stop background search */
+		if (background_pid != -1) {
+			kill(background_pid, SIGHUP);
+		}
+	}
 	return(0);
 }
 
+int search_set_user_state(void *app_cookie, uint32_t state)
+{
+	log_message(LOGT_DISK, LOGL_TRACE, "search_set_user_state: %d", state);
+	
+	search_state_t *sstate;
+	sstate = (search_state_t *) app_cookie;
+	sstate->user_state = (user_state_t) state;
+	return(0);
+}

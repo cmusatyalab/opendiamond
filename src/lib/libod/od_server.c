@@ -40,7 +40,7 @@ init_disk()
 	void           *log_cookie;
 	void           *dctl_cookie;
 
-	log_init(&log_cookie);
+	log_init("od_server", NULL, &log_cookie);
 	dctl_init(&dctl_cookie);
 
 	err = odisk_init(&odata, NULL, dctl_cookie, log_cookie);

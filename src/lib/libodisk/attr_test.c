@@ -218,7 +218,7 @@ main(int argc, char **argv)
 	groupid_t       gid;
 	int             err;
 
-	log_init(&log_cookie);
+	log_init("attr_test", NULL, &log_cookie);
 	dctl_init(&dctl_cookie);
 
 	err = odisk_init(&odisk, "./test_dir", dctl_cookie, log_cookie);

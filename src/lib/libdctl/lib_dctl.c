@@ -216,11 +216,13 @@ dctl_init(void **cookie)
 
 	pthread_once(&root_node_once, root_key_alloc);
 
-	if (pthread_getspecific(root_node_key) != NULL) {
-#warning Hacked by Adam G
-	  //		return (ENOENT);	/* XXX different error ?? */
+	/*
+	 * make sure we haven't be initialized more than once 
+	 */
+	if ((root_node = pthread_getspecific(root_node_key)) != NULL) {
+		*cookie = root_node;		
+		return (0);
 	}
-
 	root_node = (dctl_node_t *) malloc(sizeof(*root_node));
 	if (root_node == NULL) {
 		return (ENOMEM);	/* XXX different error ?? */

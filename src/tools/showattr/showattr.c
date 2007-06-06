@@ -149,7 +149,7 @@ main(int argc , char **argv)
 	int		err;
 
 	dctl_init(&dctl_cookie);
-        log_init(&log_cookie);
+        log_init("showattr", NULL, &log_cookie);
 
         err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
         if (err) {
@@ -189,6 +189,7 @@ main(int argc , char **argv)
 		show_attr(odisk, attr_name);
 	}
 
+	log_term(log_cookie);
 	return (0);
 }
 

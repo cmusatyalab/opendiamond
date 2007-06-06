@@ -505,12 +505,15 @@ background_eval(void *arg)
 	search_state_t *sstate;
 	obj_data_t     *new_obj;
 	int             err;
+	int             pass;
 	int             any;
 	struct timespec timeout;
+	query_info_t    qinfo;
 
 	sstate = (search_state_t *) arg;
 	log_thread_register(sstate->log_cookie);
 	dctl_thread_register(sstate->dctl_cookie);
+ 	memset(&qinfo, 0, sizeof(query_info_t));
 
 	while (1) {
 		if (bg_shutdown) {
@@ -525,25 +528,34 @@ background_eval(void *arg)
 			 * clear the running and set the complete
 			 * flags.
 			 */
-			printf("eval_done: proc %u drop %u pass%u\n",
+			log_message(LOGT_DISK, LOGL_INFO, 
+					"objects processed %d passed %d dropped %d", 
 					sstate->obj_processed,
-					sstate->obj_dropped,
-					sstate->obj_passed);
+					sstate->obj_passed,
+					sstate->obj_dropped); 
+			log_message(LOGT_DISK, LOGL_INFO, 
+					"bg objects processed %d passed %d dropped %d", 
+					sstate->obj_bg_processed,
+					sstate->obj_bg_passed,
+					sstate->obj_bg_dropped); 
 			return;
 		} else if (err) {
 			continue;
 		} else {
 			any = 1;
 			sstate->obj_processed++;
+			sstate->obj_bg_processed++;
 
 			/* XXX force eval of desired filters */
-			err = ceval_filters2(new_obj, sstate->fdata, 1, sstate->exec_mode,
-						sstate, continue_fn);
+			pass = ceval_filters2(new_obj, sstate->fdata, 1, sstate->exec_mode,
+						&qinfo, sstate, continue_fn);
 
-			if (err == 0) {
+			if (pass == 0) {
 				sstate->obj_dropped++;
+				sstate->obj_bg_dropped++;
 			} else {
 				sstate->obj_passed++;
+				sstate->obj_bg_passed++;
 			}
 			bg_free_obj(sstate, new_obj);
 		}
@@ -567,6 +579,7 @@ bg_drop(void *cookie)
 {
         search_state_t *sstate = (search_state_t *) cookie;
         sstate->obj_dropped++;
+        sstate->obj_bg_dropped++;
 }
 
 
@@ -575,9 +588,8 @@ bg_process(void *cookie)
 {
         search_state_t *sstate = (search_state_t *) cookie;
 	sstate->obj_processed++;
+	sstate->obj_bg_processed++;
 }
-
-
 
 
 /*
@@ -591,6 +603,7 @@ static void
 bg_new_search(filter_opts_t *fops)
 {
 	search_state_t *sstate;
+	query_info_t qinfo;
 	int err,i;
 
 	sstate = (search_state_t *) malloc(sizeof(*sstate));
@@ -599,12 +612,8 @@ bg_new_search(filter_opts_t *fops)
 	}
 
 	memset((void *) sstate, 0, sizeof(*sstate));
-	/* Set the return values to this "handle".  */
+	memset(&qinfo, 0, sizeof(query_info_t));
 
-	/*
-	 *  Not sure if we need to do this.
-	 */
-	log_init(&sstate->log_cookie);
 	dctl_init(&sstate->dctl_cookie);
 
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
@@ -670,6 +679,8 @@ bg_new_search(filter_opts_t *fops)
 
 	dctl_register_node(ROOT_PATH, DEV_CACHE_NODE);
 
+	log_init(LOG_PREFIX, DEV_SEARCH_PATH, &sstate->log_cookie);
+	log_message(LOGT_DISK, LOGL_DEBUG, "adiskd: new background search");
 
 	/* initialize libfilterexec */
 	fexec_system_init();
@@ -704,14 +715,6 @@ bg_new_search(filter_opts_t *fops)
 	sstate->split_bp_thresh = SPLIT_DEFAULT_BP_THRESH;
 	sstate->split_mult = SPLIT_DEFAULT_MULT;
 
-	/*
-	 * Now we also setup a thread that handles getting the log
-	 * data and pusshing it to the host.
-	 */
-	pthread_cond_init(&sstate->log_cond, NULL);
-	pthread_mutex_init(&sstate->log_mutex, NULL);
-
-
 	err = odisk_init(&sstate->ostate, NULL, sstate->dctl_cookie,
 			 sstate->log_cookie);
 	if (err) {
@@ -719,6 +722,9 @@ bg_new_search(filter_opts_t *fops)
 		assert(0);
 		return;
 	}
+
+	sstate->exec_mode = FM_MODEL;
+	sstate->user_state = USER_UNKNOWN;
 
 	/*
 	 * JIAYING: add ocache_init 
@@ -731,7 +737,7 @@ bg_new_search(filter_opts_t *fops)
 	}
 
 	err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
-			 bg_drop, bg_process);
+			 bg_drop, bg_process, sstate->log_cookie);
 
 	sstate->ver_no = 1;
 	err = fexec_load_spec(&sstate->fdata, &fops->spec_sig);
@@ -760,8 +766,7 @@ bg_new_search(filter_opts_t *fops)
 
 	fexec_set_full_eval(sstate->fdata);
 
-	ceval_init_search(sstate->fdata, sstate->cstate);
-
+ 	ceval_init_search(sstate->fdata, &qinfo, sstate->cstate);
 
 	err = odisk_reset(sstate->ostate);
 	if (err) {

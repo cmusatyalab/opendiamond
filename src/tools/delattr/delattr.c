@@ -147,7 +147,7 @@ main(int argc , char **argv)
 	aname = argv[1];
 
 	dctl_init(&dctl_cookie);
-        log_init(&log_cookie);
+        log_init("del_attr", NULL, &log_cookie);
 
         err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
         if (err) {
@@ -187,6 +187,7 @@ main(int argc , char **argv)
 		del_attr(odisk, attr_name, aname);
 	}
 
+	log_term(log_cookie);
 	return (0);
 }
 

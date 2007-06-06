@@ -13,10 +13,6 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-/*
- * These file handles a lot of the device specific code.  For the current
- * version we have state for each of the devices.
- */
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -34,6 +30,7 @@
 #include <assert.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
+#include "lib_log.h"
 #include "lib_tools.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
@@ -165,14 +162,6 @@ shutdown_connection(listener_state_t * lstate, cstate_t * cstate)
 	}
 
 	/*
-	 * if there is a log socket, close it 
-	 */
-	if (cstate->flags & CSTATE_LOG_FD) {
-		close(cstate->log_fd);
-		cstate->flags &= ~CSTATE_LOG_FD;
-	}
-
-	/*
 	 * clear the established flag 
 	 */
 	cstate->flags &= ~CSTATE_ESTABLISHED;
@@ -276,10 +265,22 @@ have_full_conn(listener_state_t * list_state, int conn)
 	int             err;
 	void           *new_cookie;
 	cstate_t       *cstate;
-	int		parent;
+	int				parent;
+	unsigned int 	addr_len;
 
-
+	/* set up connection info */
 	cstate = &list_state->conns[conn];
+	cstate->cinfo.conn_idx = conn;
+	timerclear(&cstate->cinfo.connect_time);
+	gettimeofday(&cstate->cinfo.connect_time, NULL);
+	addr_len = sizeof(cstate->cinfo.clientaddr);
+	err = getpeername(cstate->control_fd, 
+					  &cstate->cinfo.clientaddr, &addr_len);
+	if (err) {
+ 	    log_message(LOGT_NET, LOGL_ERR, 
+					"Error %d while calling getpeername", err);
+	}
+
 	err = ring_2init(&cstate->complete_obj_ring, OBJ_RING_SIZE);
 	if (err) {
 		/*
@@ -316,14 +317,11 @@ have_full_conn(listener_state_t * list_state, int conn)
 		 */
 		list_state->conns[conn].app_cookie = new_cookie;
 
-
 		/*
 		 * Register the statistics with dctl.  This needs to be
 		 * done after the new_conn_cb()  !!!.
 		 */
 		register_stats(cstate);
-
-
 
 		cstate->attr_policy = DEFAULT_NW_ATTR_POLICY;
 		cstate->attr_threshold = RAND_MAX;
@@ -557,90 +555,6 @@ accept_data_conn(listener_state_t * list_state)
 }
 
 
-static void
-accept_log_conn(listener_state_t * list_state)
-{
-	struct sockaddr_in ca;
-	socklen_t       csize;
-	int             new_sock;
-	uint32_t        data;
-	ssize_t          size, dsize;
-	char			buf[BUFSIZ];
-
-	csize = sizeof(ca);
-	new_sock = accept(list_state->log_fd, (struct sockaddr *)
-			  &ca, &csize);
-
-	if (new_sock < 0) {
-		/*
-		 * XXX log 
-		 */
-		printf("XXX accept failed \n");
-	}
-
-	/* authenticate connection */
-	if (list_state->flags & LSTATE_AUTH_REQUIRED) {
-		list_state->la_handle = auth_conn_server(new_sock);
-		if (list_state->la_handle == NULL) {
-			close(new_sock);
-			printf("Authentication failed (log)\n");
-			return;
-		}
-		
-		/* read the encrypted cookie */
-		size = read(new_sock, &buf[0], BUFSIZ);
-		if (size == -1) {
-			printf("failed to read from socket");
-			close(new_sock);
-			return;
-		}
-	
-		printf("Read encrypted message of %d bytes\n", size);
-
-		/* decrypt the message */	
-		dsize = auth_msg_decrypt(list_state->la_handle, buf, size, 
-							(char *) &data, sizeof(data));		
-	} else {
-		dsize = read(new_sock, (char *) &data, sizeof(data));
-	}
-	if (dsize < 0) {
-		/*
-		 * XXX 
-		 */
-		printf("failed read cookie \n");
-		close(new_sock);
-		return;
-	}
-
-	if (data >= MAX_CONNS) {
-		/*
-		 * XXX 
-		 */
-		printf("data conn cookie out of range \n");
-		close(new_sock);
-		return;
-	}
-
-	if (!(list_state->conns[data].flags & CSTATE_ALLOCATED)) {
-		/*
-		 * XXX 
-		 */
-		printf("connection not on valid cookie \n");
-		close(new_sock);
-		return;
-	}
-
-
-	list_state->conns[data].flags |= CSTATE_LOG_FD;
-	list_state->conns[data].log_fd = new_sock;
-
-	if ((list_state->conns[data].flags & CSTATE_ALL_FD) == CSTATE_ALL_FD) {
-		have_full_conn(list_state, (int) data);
-	}
-	socket_non_block(new_sock);
-}
-
-
 /*
  * This is the main thread for the listener.  This listens for
  * new incoming connection requests and creats the new connection
@@ -657,17 +571,11 @@ sstub_listen(void *cookie)
 
 	list_state = (listener_state_t *) cookie;
 
-
 	max_fd = list_state->control_fd;
 	if (list_state->data_fd > max_fd) {
 		max_fd = list_state->data_fd;
 	}
-	if (list_state->log_fd > max_fd) {
-		max_fd = list_state->log_fd;
-	}
 	max_fd += 1;
-
-
 
 	FD_ZERO(&list_state->read_fds);
 	FD_ZERO(&list_state->write_fds);
@@ -675,8 +583,6 @@ sstub_listen(void *cookie)
 
 	FD_SET(list_state->control_fd, &list_state->read_fds);
 	FD_SET(list_state->data_fd, &list_state->read_fds);
-	FD_SET(list_state->log_fd, &list_state->read_fds);
-
 
 	now.tv_sec = 1;
 	now.tv_usec = 0;
@@ -710,12 +616,7 @@ sstub_listen(void *cookie)
 			     &list_state->read_fds)) {
 			accept_data_conn(list_state);
 		}
-		if (FD_ISSET(list_state->log_fd,
-			     &list_state->read_fds)) {
-			accept_log_conn(list_state);
-		}
 	}
 
 	return;	
-
 }

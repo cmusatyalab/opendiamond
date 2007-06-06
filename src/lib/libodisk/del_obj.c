@@ -73,7 +73,7 @@ main(int argc, char **argv)
 	obj_id_t        oid;
 	int             err;
 
-	log_init(&log_cookie);
+	log_init("del_obj", NULL, &log_cookie);
 	dctl_init(&dctl_cookie);
 
 	err = odisk_init(&odisk, "test_dir", dctl_cookie, log_cookie);

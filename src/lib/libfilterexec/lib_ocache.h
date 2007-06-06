@@ -47,6 +47,8 @@ struct cache_obj_s {
 	unsigned short		ahit_count; //how many times this filter is evaluated
 	cache_attr_set		iattr;
 	cache_attr_set		oattr;
+	query_info_t		qid;		// query that created entry
+	filter_exec_mode_t	exec_mode;  // exec mode when entry created
 	struct cache_obj_s	*next;
 };
 
@@ -68,6 +70,8 @@ typedef struct ceval_state {
 	void * cookie;
 	stats_drop stats_drop_fn;
 	stats_drop stats_process_fn;
+	query_info_t	*qinfo;			// state for current search
+	void *log_cookie;
 } ceval_state_t;
 
 typedef struct cache_obj_s cache_obj;
@@ -99,6 +103,8 @@ typedef struct {
 		cache_attr_entry	oattr;		/*add output attr*/
 		int			result;		/*end*/
 	} u;
+	query_info_t		qid;		// search that created entry
+	filter_exec_mode_t  exec_mode;  // mode when entry was created
 } cache_ring_entry;
 
 typedef struct {
@@ -126,7 +132,7 @@ void cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t *init_attr);
 
 int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
 	cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, 
-	sig_val_t *iattr_sig);
+	sig_val_t *iattr_sig, query_info_t *qinfo);
 
 int cache_lookup2(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
 	cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, 
@@ -142,22 +148,25 @@ int ocache_read_file(char *disk_path, sig_val_t *fsig,
 int ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table, 
 	sig_val_t *fsig);
 
-int ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf);
+int ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf, 
+				   query_info_t *qid, filter_exec_mode_t exec_mode);
 
 int combine_attr_set(cache_attr_set *attr1, cache_attr_set *attr2);
 
-int ceval_init_search(filter_data_t * fdata, struct ceval_state *cstate);
+int ceval_init_search(filter_data_t * fdata, query_info_t *qinfo,
+						struct ceval_state *cstate);
 
 int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk, 
 	void *cookie, stats_drop stats_drop_fn, 
-	stats_process stats_process_fn);
+	stats_process stats_process_fn, void *log_cookie);
 
 int ceval_start(filter_data_t * fdata);
 int ceval_stop(filter_data_t * fdata);
 
 int ceval_filters1(char * obj_name, filter_data_t * fdata, void *cookie);
 int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, 
-		int force_eval, int mode, void *cookie, int (*continue_cb)(void *cookie));
+		int force_eval, filter_exec_mode_t mode, query_info_t *qinfo,
+		void *cookie, int (*continue_cb)(void *cookie));
 
 void ceval_inject_names(char **nl, int nents);
 

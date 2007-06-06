@@ -142,7 +142,7 @@ main(int argc , char **argv)
 
 
 	dctl_init(&dctl_cookie);
-        log_init(&log_cookie);
+        log_init("initattr", NULL, &log_cookie);
 
         err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
         if (err) {
@@ -186,6 +186,7 @@ main(int argc , char **argv)
 		set_defattr(odisk, attr_name, base_name);
 	}
 
+	log_term(log_cookie);
 	return (0);
 }
 

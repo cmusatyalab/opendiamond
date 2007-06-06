@@ -598,12 +598,13 @@ bg_main(void *arg)
 						assert(0);
 					}
 
+					sc->host_stats.hs_objs_queued++;
+
 				    /*
 				     * change filter execution modes based on the
 				     * current mode and the number of objects in 
 				     * the proc_ring.
 				     */
-
 					int proc_ring_count = ring_count(sc->proc_ring);
 					int new_mode = sc->search_exec_mode;
 					
@@ -636,7 +637,8 @@ bg_main(void *arg)
 				    if (sc->search_exec_mode != new_mode) {			    
 						for (cur_dev = sc->dev_list; cur_dev != NULL;
 					    	 cur_dev = cur_dev->next) {
-					    	device_set_exec_mode(cur_dev->dev_handle, new_mode);
+					    	device_set_exec_mode(cur_dev->dev_handle, 
+					    					sc->cur_search_id, new_mode);
 					    }
 				    }
 				}
@@ -669,8 +671,6 @@ bg_main(void *arg)
 			 * There are no objects.  See if all devices
 			 * are done.
 			 */
-
-
 		}
 
 		/*
@@ -963,7 +963,6 @@ bg_set_blob(search_context_t * sc, int id, char *filter_name,
 	ring_enq(sc->bg_ops, (void *) cmd);
 	return (0);
 }
-
 
 
 /*

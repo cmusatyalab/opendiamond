@@ -79,6 +79,8 @@ unsigned int    use_cache_table = 1;
 unsigned int    use_cache_oattr = 1;
 unsigned int    cache_oattr_thresh = 10000;
 unsigned int    mdynamic_load = 1;
+unsigned int	add_cache_entries = 1;
+unsigned int	hybrid_mode_enabled = 1;
 
 /*
  * data structure to keep track of the good names we need to process
@@ -118,6 +120,8 @@ ceval_main(void *arg)
 	char           *new_name;
 	inject_names_t *names; 
 	int             err;
+
+	log_thread_register(cstate->log_cookie);
 
 	while (1) {
 		pthread_mutex_lock(&ceval_mutex);
@@ -212,7 +216,7 @@ ceval_reset_inject()
  * called when DEV_SEARCHLET 
  */
 int
-ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
+ceval_init_search(filter_data_t * fdata, query_info_t *qinfo, ceval_state_t * cstate)
 {
 	filter_id_t     fid;
 	filter_info_t  *cur_filt;
@@ -256,6 +260,7 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
 	}
 
 	cstate->fdata = fdata;
+	cstate->qinfo = qinfo;
 	pthread_mutex_unlock(&ceval_mutex);
 
 	return (0);
@@ -266,7 +271,8 @@ ceval_init_search(filter_data_t * fdata, ceval_state_t * cstate)
  */
 int
 ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
-	   stats_drop stats_drop_fn, stats_process stats_process_fn)
+	   stats_drop stats_drop_fn, stats_process stats_process_fn,
+	   void *log_cookie)
 {
 	int             err;
 	ceval_state_t  *new_state;
@@ -285,12 +291,19 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	dctl_register_leaf(DEV_CACHE_PATH, "mdynamic_load", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &mdynamic_load);
+	dctl_register_leaf(DEV_CACHE_PATH, "add_cache_entries", DCTL_DT_UINT32,
+			   dctl_read_uint32, dctl_write_uint32,
+			   &add_cache_entries);
+	dctl_register_leaf(DEV_CACHE_PATH, "hybrid_mode_enabled", DCTL_DT_UINT32,
+			   dctl_read_uint32, dctl_write_uint32,
+			   &hybrid_mode_enabled);
 
 	memset(new_state, 0, sizeof(*new_state));
 	new_state->odisk = odisk;
 	new_state->cookie = cookie;
 	new_state->stats_drop_fn = stats_drop_fn;
 	new_state->stats_process_fn = stats_process_fn;
+	new_state->log_cookie = log_cookie;
 
 	err = pthread_create(&new_state->ceval_thread_id, PATTR_DEFAULT,
 			     ceval_main, (void *) new_state);
@@ -415,6 +428,40 @@ generate_new_perm(const partial_order_t * po, permutation_t * copy, int fidx,
 	return (0);
 }
 
+void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
+					  cache_attr_set *change_attr,
+					  query_info_t *qinfo, query_info_t *einfo) 
+{
+	int found = 1;
+	int conf;
+	cache_attr_set *oattr_set;
+	sig_val_t isig;
+	query_info_t entry_info;
+	
+	if (einfo == NULL) {
+		// look up the cache entry
+		found = cache_lookup(oid_sig, &f->fi_sig,
+					     	f->cache_table,
+					     	change_attr, &conf, &oattr_set,
+					     	&isig, &entry_info);
+	} else {
+		entry_info = *einfo;
+	}
+
+	if (found) {
+		if (memcmp(qinfo, &entry_info, sizeof(query_info_t)) == 0) {
+			f->fi_hits_intra_query++;
+		} else if (memcmp(&qinfo->session, &entry_info.session, 
+					  		sizeof(session_info_t)) == 0) {
+			f->fi_hits_inter_query++;
+		} else {
+			f->fi_hits_inter_session++;
+		}
+	}
+	
+	return;
+}
+
 int
 ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 {
@@ -445,7 +492,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	int             perm_num;
 	permutation_t  *cur_perm, *new_perm = NULL;
 	char            buf[BUFSIZ];
-	char           *sig_str;
+	query_info_t    entry_info;
 
 	/*
 	 * XXX this used to be passed in and need to change before caching is 
@@ -453,10 +500,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	 */
 
 	sig_cal_str(objname, &id_sig);
-
-
-	sig_str = sig_string(&id_sig);
-	free(sig_str);
 
 	fdata->obj_counter++;
 
@@ -477,7 +520,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	}
 
 	if (fdata->fd_num_filters == 0) {
-		log_message(LOGT_FILT, LOGL_ERR, "eval_filters: no filters");
+		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters1: no filters");
 		return 1;
 	}
 
@@ -524,10 +567,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 			found = cache_lookup(&id_sig, &cur_filter->fi_sig,
 					     cur_filter->cache_table,
 					     &change_attr, &conf, &oattr_set,
-					     &isig);
+					     &isig, &entry_info);
 
 			if (found) {
 				/*
+				 * a hit!  a very palpable hit!
 				 * get the cached output attr set and 
 				 * modify changed attr set 
 				 */
@@ -542,9 +586,33 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 						    fi_called++;
 						fdata->fd_filters[j].
 						    fi_cache_pass++;
+						    
+						/* 
+				 		 * determine source of cache hit
+				 	 	 */
+						source_cache_hit(&fdata->fd_filters[j],
+										 &id_sig, 
+										 &change_attr,
+										 cstate->qinfo,
+										 NULL);
 					}
+
+					/* 
+					 * credit passes in ceval_filters2, 
+					 * so they are only counted once.
+					 */
 					cur_filter->fi_called++;
 					cur_filter->fi_cache_drop++;
+					cur_filter->fi_drop++;
+					
+					/* 
+				 	 * determine when this hit was created 
+				 	 * and update stats 
+				 	 */
+					source_cache_hit(cur_filter, &id_sig, 
+									 &change_attr,
+									 cstate->qinfo,
+									 &entry_info);
 				}
 
 				/*
@@ -571,30 +639,27 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 				}
 				rt_stop(&rt);
 				time_ns = rt_nanos(&rt);
-				log_message(LOGT_FILT, LOGL_TRACE,
-					    "eval_filters:  filter %s has val (%d) - threshold %d",
-					    cur_filter->fi_name, conf,
-					    cur_filter->fi_threshold);
 
+				fexec_update_prob(fdata, cur_fid,
+					  		pmArr(fdata->fd_perm), cur_fidx,
+					  		pass);
+				
+				log_message(LOGT_FILT, LOGL_TRACE,
+					    "ceval_filters1(%s): CACHE HIT filter %s -> %d (%d), %lld ns",
+					    sig_string(&id_sig), cur_filter->fi_name, conf,
+					    cur_filter->fi_threshold, time_ns);
 			} else {
 				hit = 0;
 				rt_stop(&rt);
 				time_ns = rt_nanos(&rt);
+				log_message(LOGT_FILT, LOGL_TRACE,
+					    "ceval_filters1(%s): CACHE MISS filter %s -> %d (%d), %lld ns",
+					    sig_string(&id_sig), cur_filter->fi_name, conf,
+					    cur_filter->fi_threshold, time_ns);
 			}
 
-			cur_filter->fi_time_ns += time_ns;	/* update
-								 * filter
-								 * stats */
+			cur_filter->fi_time_ns += time_ns;	
 			stack_ns += time_ns;
-			if (!pass) {
-				cur_filter->fi_drop++;
-			} else {
-				cur_filter->fi_pass++;
-			}
-
-			fexec_update_prob(fdata, cur_fid,
-					  pmArr(fdata->fd_perm), cur_fidx,
-					  pass);
 
 			if (!hit) {
 				break;
@@ -684,8 +749,9 @@ ceval_wattr_stats(off_t len)
 
 
 int
-ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
-	       int exec_mode, void *cookie, int (*continue_cb) (void *cookie))
+ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
+				filter_exec_mode_t exec_mode, query_info_t *qinfo,
+	       		void *cookie, int (*continue_cb) (void *cookie))
 {
 	filter_info_t  *cur_filter;
 	int             conf;
@@ -705,7 +771,8 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	u_int64_t       stack_ns;	/* time for whole filter stack */
 	cache_attr_set *oattr_set;
 
-	log_message(LOGT_FILT, LOGL_TRACE, "ceval_filters2: Entering");
+	log_message(LOGT_FILT, LOGL_DEBUG, "ceval_filters2(%s): Entering", 
+		sig_string(&obj_handle->id_sig));
 
 	if (fdata->fd_num_filters == 0) {
 		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters2: no filters");
@@ -727,18 +794,22 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);
 
-
+	/* save initial object attributes */
 	cache_set_init_attrs(&obj_handle->id_sig, &obj_handle->attr_info);
 
 	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm); cur_fidx++) {
 
-		if ((pass == 0) && (fdata->full_eval == 0) && (exec_mode != FM_HYBRID))
+		if ((pass == 0) && (fdata->full_eval == 0) && 
+			 (!hybrid_mode_enabled || (exec_mode != FM_HYBRID)))
 			break;
 		/*
-		 * in hybrid filter execution mode, execute tagged filters
-		 * even if the object is to be discarded for this search
+		 * in hybrid filter execution mode, continue
+		 * executing tagged filters even if the object
+		 * is to be discarded for this search
 		 */
-		if ((pass == 0) && (exec_mode == FM_HYBRID) && (fdata->hybrid_eval == 0))
+		if ((pass == 0) && 
+			hybrid_mode_enabled && (exec_mode == FM_HYBRID) && 
+			(fdata->hybrid_eval == 0))
 			continue;
 
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
@@ -747,21 +818,32 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 		oattr_set = NULL;
 
+		/*
+		 * See if the cache thread has already run this filter.
+		 * The cache thread queues passed objects and tags
+		 * them with a time attribute for each filter run.
+		 */
 		sprintf(timebuf, FLTRTIME_FN, cur_filter->fi_name);
 		asize = sizeof(time_ns);
 		err = obj_read_attr(&obj_handle->attr_info, timebuf,
 				    &asize, (void *) &time_ns);
-
-		/*
-		 * Look at the current filter bypass to see if we should 
-		 * actually run it or pass it.  For the non-auto 
-		 * partitioning, we still use the bypass values
-		 * to determine how much of the allocation to run.
-		 */
 		if (err == 0) {
 			cur_filter->fi_called++;
 			cur_filter->fi_cache_pass++;
+			cur_filter->fi_hits_intra_query++;
+			
+			log_message(LOGT_FILT, LOGL_TRACE,
+				    	"ceval_filters2(%s): CACHE HIT filter %s (%s) PASS",
+					    sig_string(&obj_handle->id_sig),
+					    cur_filter->fi_name, 
+					    sig_string(&cur_filter->fi_sig));
 		} else {
+			/*
+			 * Look at the current filter bypass to see if we should 
+			 * actually run it or pass it.  For the non-auto 
+			 * partitioning, we still use the bypass values
+			 * to determine how much of the allocation to run.
+			 */
 			if (force_eval == 0) {
 				if ((fexec_autopart_type == AUTO_PART_BYPASS)
 				    || (fexec_autopart_type ==
@@ -801,10 +883,12 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			/*
 			 * mark beginning of filter eval into cache ring 
 			 */
-			ocache_add_start(cur_filter->fi_name,
-					 &obj_handle->id_sig,
-					 cur_filter->cache_table,
-					 &cur_filter->fi_sig);
+			if (add_cache_entries) {
+				ocache_add_start(cur_filter->fi_name,
+					 			&obj_handle->id_sig,
+					 			cur_filter->cache_table,
+					 			&cur_filter->fi_sig);
+			}
 
 			conf = cur_filter->fi_eval_fp(obj_handle,
 						      cur_filter->
@@ -813,8 +897,11 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			/*
 			 * mark end of filter eval into cache ring 
 			 */
-			ocache_add_end(cur_filter->fi_name,
-				       &obj_handle->id_sig, conf);
+			if (add_cache_entries) {
+				ocache_add_end(cur_filter->fi_name, 
+								&obj_handle->id_sig, 
+				 	      		conf, qinfo, exec_mode);
+			}
 
 			cur_filter->fi_compute++;
 
@@ -833,9 +920,12 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			}
 
 			log_message(LOGT_FILT, LOGL_TRACE,
-				    "eval_filters: filter %s: ret (%d)- threshold %d",
-				    cur_filter->fi_name, conf,
-				    cur_filter->fi_threshold);
+				    	"ceval_filters2(%s): CACHE MISS filter %s (%s) %s, %lld ns",
+					    sig_string(&obj_handle->id_sig),
+					    cur_filter->fi_name, 
+					    sig_string(&cur_filter->fi_sig),
+					    pass?"PASS":"FAIL",
+					    time_ns);
 		}
 		cur_filter->fi_time_ns += time_ns;
 		stack_ns += time_ns;
@@ -871,8 +961,10 @@ ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 	fexec_active_filter = NULL;
 	log_message(LOGT_FILT, LOGL_TRACE,
-		    "eval_filters:  done - total time is %lld", stack_ns);
-
+		   		"ceval_filters2(%s): %s total time %lld",
+			    sig_string(&obj_handle->id_sig), 
+			    pass?"PASS":"FAIL",
+			    stack_ns);
 	/*
 	 * save the total time info attribute
 	 */

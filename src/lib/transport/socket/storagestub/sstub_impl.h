@@ -25,14 +25,12 @@
 #define	CSTATE_ALLOCATED	0x0001
 #define	CSTATE_CNTRL_FD		0x0002
 #define	CSTATE_DATA_FD		0x0004
-#define	CSTATE_LOG_FD		0x0008
-#define	CSTATE_ALL_FD		(CSTATE_CNTRL_FD|CSTATE_DATA_FD|CSTATE_LOG_FD)
+#define	CSTATE_ALL_FD		(CSTATE_CNTRL_FD|CSTATE_DATA_FD)
 #define	CSTATE_ESTABLISHED	0x0010
 #define	CSTATE_SHUTTING_DOWN	0x0020
 
 #define	CSTATE_CONTROL_DATA	0x0100	/* control messages pending */
 #define	CSTATE_OBJ_DATA		0x0200	/* data objects pending */
-#define	CSTATE_LOG_DATA		0x0400	/* log data pending */
 
 
 /*
@@ -93,12 +91,12 @@ typedef struct cstate {
 	pthread_t		    thread_id;
 	pthread_mutex_t		cmutex;
 	struct listener_state *lstate;
+	session_info_t		cinfo;
 	int			        control_fd;
 	int			        data_fd;
 	int			        pend_obj;
 	int			        have_start;
-	uint32_t		        start_gen;
-	int			log_fd;
+	uint32_t		    start_gen;
 	void *			app_cookie;
 	fd_set			read_fds;
 	fd_set			write_fds;
@@ -161,7 +159,6 @@ typedef struct listener_state {
 	pthread_t		thread_id;
 	int			control_fd;
 	int			data_fd;
-	int			log_fd;
 	unsigned int		flags;
 	fd_set			read_fds;
 	fd_set			write_fds;
@@ -191,9 +188,9 @@ typedef struct listener_state {
 	sstub_set_blob_fn	set_blob_cb;
 	sstub_set_offload_fn	set_offload_cb;
 	sstub_set_exec_mode_fn set_exec_mode_cb;
+	sstub_set_user_state_fn set_user_state_cb;
 	cstate_t		conns[MAX_CONNS];
 } listener_state_t;
-
 
 
 /*
@@ -206,7 +203,6 @@ typedef struct listener_state {
 #define	TEMP_DIR_NAME	"/tmp/"
 #define	TEMP_OBJ_NAME	"objfileXXXXXX"
 #define	TEMP_SPEC_NAME	"fspecXXXXXX"
-
 
 
 /*

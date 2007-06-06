@@ -371,12 +371,10 @@ fexec_init_search(filter_data_t * fdata)
 			save_blob_data(cur_filt->fi_blob_data,
 				       cur_filt->fi_blob_len,
 				       &cur_filt->fi_blob_sig);
-
 		}
 
 		/* 
 		 * look up this filter's history. 
-		 * XXX use a proper threshold for number of executions!
 		 */
 		fh = (filter_history_t *) 
 			g_hash_table_lookup(filter_histories, &cur_filt->fi_sig);
@@ -427,6 +425,23 @@ fexec_term_search(filter_data_t * fdata)
 	 */
 	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
 		cur_filt = &fdata->fd_filters[fid];
+		log_message(LOGT_FILT, LOGL_INFO, 
+				"filter stats: %s (%s), called %d bypassed %d time %lld ns",
+				cur_filt->fi_name, sig_string(&cur_filt->fi_sig),
+				cur_filt->fi_called, cur_filt->fi_bypassed, 
+				cur_filt->fi_time_ns);
+		log_message(LOGT_FILT, LOGL_INFO, 
+				"\tpassed %d dropped %d cache pass %d cache drop %d evals %d",
+				cur_filt->fi_pass, cur_filt->fi_drop,
+				cur_filt->fi_cache_pass, cur_filt->fi_cache_drop, 
+				cur_filt->fi_compute);	
+		log_message(LOGT_FILT, LOGL_INFO, 
+				"\trefs %d hits %d inter-session %d inter-query %d intra-query %d",
+				cur_filt->fi_called, 
+				cur_filt->fi_cache_pass + cur_filt->fi_cache_drop,
+				cur_filt->fi_hits_inter_session, cur_filt->fi_hits_inter_query, 
+				cur_filt->fi_hits_intra_query);	
+				
 		if (fid == fdata->fd_app_id) {
 			continue;
 		}
@@ -572,7 +587,7 @@ verify_filters(filter_data_t * fdata)
 
 	filter_id_t     fid;
 
-	log_message(LOGT_FILT, LOGL_TRACE, "verify_filters(): starting");
+	log_message(LOGT_FILT, LOGL_DEBUG, "verify_filters(): starting");
 
 
 	/*
@@ -1041,8 +1056,8 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	u_int64_t       time_ns;	/* time for one filter */
 	u_int64_t       stack_ns;	/* time for whole filter stack */
 
-
-	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters: Entering");
+	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters(%s): Entering, obj size=%lu",
+				sig_string(&obj_handle->id_sig), obj_handle->data_len);
 
 	fdata->obj_counter++;
 
@@ -1073,7 +1088,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		stack_ns = 0;
 	}
 
-
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);
 
@@ -1100,9 +1114,10 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 		 * has been run.
 		 */
 		if (err == 0) {
-			log_message(LOGT_FILT, LOGL_TRACE,
-				    "eval_filters: Filter %s has already been run",
-				    cur_filter->fi_name);
+			log_message(LOGT_FILT, LOGL_TRACE, 
+						"eval_filters(%s): Filter %s has already been run",
+						sig_string(&obj_handle->id_sig),
+						cur_filter->fi_name);
 			continue;
 		}
 
@@ -1172,10 +1187,13 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			} else if (val < cur_filter->fi_threshold) {
 				pass = 0;
 			}
-			log_message(LOGT_FILT, LOGL_TRACE,
-				    "eval_filters:  filter %s has val (%d) - threshold %d",
-				    cur_filter->fi_name, val,
-				    cur_filter->fi_threshold);
+			log_message(LOGT_FILT, LOGL_TRACE, 
+					"eval_filters(%s): filter %s (%s) %s, time %lld ns",  
+					sig_string(&obj_handle->id_sig),
+					cur_filter->fi_name, 
+					sig_string(&cur_filter->fi_sig),
+					pass?"PASS":"FAIL",
+					time_ns);
 		}
 
 		cur_filter->fi_time_ns += time_ns;	/* update filter
@@ -1205,9 +1223,11 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 	fexec_active_filter = NULL;
 
-	log_message(LOGT_FILT, LOGL_TRACE,
-		    "eval_filters:  done - total time is %lld", stack_ns);
-
+	log_message(LOGT_FILT, LOGL_TRACE, 
+				"eval_filters(%s): %s total time %lld ns",
+				sig_string(&obj_handle->id_sig),
+				pass?"PASS":"FAIL",
+				stack_ns);
 	/*
 	 * save the total time info attribute 
 	 */

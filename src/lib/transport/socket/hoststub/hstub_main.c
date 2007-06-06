@@ -161,9 +161,6 @@ hstub_main(void *arg)
 	if (cinfo->data_fd > max_fd) {
 		max_fd = cinfo->data_fd;
 	}
-	if (cinfo->log_fd > max_fd) {
-		max_fd = cinfo->log_fd;
-	}
 	max_fd += 1;
 
 	/*
@@ -211,7 +208,6 @@ hstub_main(void *arg)
 		FD_ZERO(&cinfo->except_fds);
 
 		FD_SET(cinfo->control_fd, &cinfo->read_fds);
-		FD_SET(cinfo->log_fd, &cinfo->read_fds);
 
 		if (!(cinfo->flags & CINFO_BLOCK_OBJ)) {
 			FD_SET(cinfo->data_fd, &cinfo->read_fds);
@@ -244,26 +240,17 @@ hstub_main(void *arg)
 			if (FD_ISSET(cinfo->data_fd, &cinfo->read_fds)) {
 				hstub_read_data(dev);
 			}
-			if (FD_ISSET(cinfo->log_fd, &cinfo->read_fds)) {
-				hstub_read_log(dev);
-			}
 			if (FD_ISSET(cinfo->control_fd, &cinfo->except_fds)) {
 				hstub_except_cntrl(dev);
 			}
 			if (FD_ISSET(cinfo->data_fd, &cinfo->except_fds)) {
 				hstub_except_data(dev);
 			}
-			if (FD_ISSET(cinfo->log_fd, &cinfo->except_fds)) {
-				hstub_except_log(dev);
-			}
 			if (FD_ISSET(cinfo->control_fd, &cinfo->write_fds)) {
 				hstub_write_cntrl(dev);
 			}
 			if (FD_ISSET(cinfo->data_fd, &cinfo->write_fds)) {
 				hstub_write_data(dev);
-			}
-			if (FD_ISSET(cinfo->log_fd, &cinfo->write_fds)) {
-				hstub_write_log(dev);
 			}
 		}
 

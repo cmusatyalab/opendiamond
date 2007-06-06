@@ -154,6 +154,12 @@ sstub_send_stats(void *cookie, dev_stats_t * stats, int len)
 		/*
 		 * XXX 64 bit byte order below 
 		 */
+		fhead->fss_hits_inter_session =
+		    ntohl(fstats->fs_hits_inter_session);
+		fhead->fss_hits_inter_query = 
+			ntohl(fstats->fs_hits_inter_query);
+		fhead->fss_hits_intra_query = 
+			ntohl(fstats->fs_hits_intra_query);
 		/*
 		 * XXX 64 bit byte order below 
 		 */
@@ -194,6 +200,17 @@ sstub_get_drate(void *cookie)
 	cstate = (cstate_t *) cookie;
 
 	return (ring_2drate(cstate->partial_obj_ring));
+}
+
+
+void sstub_get_conn_info(void *cookie, session_info_t *cinfo) {
+
+	cstate_t       *cstate;
+
+	cstate = (cstate_t *) cookie;
+	memcpy((void *)cinfo, (void *)&cstate->cinfo, sizeof(session_info_t));
+	
+	return;
 }
 
 
@@ -326,39 +343,6 @@ sstub_flush_objs(void *cookie, int ver_no)
 	return (0);
 }
 
-
-int
-sstub_send_log(void *cookie, char *data, int len)
-{
-
-	cstate_t       *cstate;
-
-	cstate = (cstate_t *) cookie;
-
-	/*
-	 * we not have any other send logs outstanding
-	 * at this point.  
-	 */
-	assert(cstate->log_tx_buf == NULL);
-	assert(len > 0);
-	assert(data != NULL);
-
-	pthread_mutex_lock(&cstate->cmutex);
-
-	cstate->log_tx_buf = data;
-	cstate->log_tx_len = len;
-	cstate->log_tx_offset = 0;
-
-	/*
-	 * Set a flag to indicate there is object
-	 * data associated with our connection.
-	 */
-	cstate->flags |= CSTATE_LOG_DATA;
-	pthread_mutex_unlock(&cstate->cmutex);
-
-
-	return (0);
-}
 
 int
 sstub_send_dev_char(void *cookie, device_char_t * dev_char)
@@ -540,8 +524,6 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	list_state->release_obj_cb = cb_args->release_obj_cb;
 	list_state->get_char_cb = cb_args->get_char_cb;
 	list_state->get_stats_cb = cb_args->get_stats_cb;
-	list_state->log_done_cb = cb_args->log_done_cb;
-	list_state->setlog_cb = cb_args->setlog_cb;
 	list_state->rleaf_cb = cb_args->rleaf_cb;
 	list_state->wleaf_cb = cb_args->wleaf_cb;
 	list_state->lleaf_cb = cb_args->lleaf_cb;
@@ -551,6 +533,7 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	list_state->set_blob_cb = cb_args->set_blob_cb;
 	list_state->set_offload_cb = cb_args->set_offload_cb;
 	list_state->set_exec_mode_cb = cb_args->set_exec_mode_cb;
+	list_state->set_user_state_cb = cb_args->set_user_state_cb;
 	
 	/*
 	 * save authentication state
@@ -562,8 +545,8 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	/*
 	 * Open the listner sockets for the different types of connections.
 	 */
-	err = sstub_new_sock(&list_state->control_fd,
-			     diamond_get_control_port(),
+	err = sstub_new_sock(&list_state->control_fd, 
+ 			     diamond_get_control_port(),
 			     bind_only_locally);
 	if (err) {
 		/*
@@ -574,7 +557,7 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 		return (NULL);
 	}
 
-	err = sstub_new_sock(&list_state->data_fd,
+	err = sstub_new_sock(&list_state->data_fd, 
 			     diamond_get_data_port(),
 			     bind_only_locally);
 	if (err) {
@@ -582,18 +565,6 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 		 * XXX log, 
 		 */
 		printf("failed to create data \n");
-		free(list_state);
-		return (NULL);
-	}
-
-	err = sstub_new_sock(&list_state->log_fd,
-			     diamond_get_log_port(),
-			     bind_only_locally);
-	if (err) {
-		/*
-		 * XXX log, 
-		 */
-		printf("failed to create log \n");
 		free(list_state);
 		return (NULL);
 	}

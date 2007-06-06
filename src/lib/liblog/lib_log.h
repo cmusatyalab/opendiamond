@@ -15,6 +15,7 @@
 #define	_LIB_LOG_H_	1
 
 #include <stdint.h>
+#include <pthread.h>
 
 
 /*
@@ -42,50 +43,39 @@
 #define LOGL_DEBUG  0x00000010  /* Debugging */
 #define	LOGL_ALL	0xFFFFFFFF	/* log all levels */
 
-
-typedef struct log_ent {
-	uint32_t 	le_level;	/* the level */
-	uint32_t 	le_type;	/* the type */
-	uint32_t 	le_dlen;	/* length of data */
-	uint32_t 	le_nextoff;	/* off set of the next record */
-	char		le_data[1];	/* where the string is stored */
-} log_ent_t;
-
-
-#ifndef offsetof
-#define offsetof(type, member) ( (int) & ((type*)0) -> member )
-#endif
-
-#define	LOG_ENT_BASE_SIZE	(offsetof(struct log_ent, le_data))
-
-
 /*
  * Defined the maximum message size for any given message.  Anything
  * longer than this will be truncated.
  */
 #define	MAX_LOG_ENTRY	256
-#define	MAX_LOG_STRING	(MAX_LOG_ENTRY - LOG_ENT_BASE_SIZE)
+
+typedef struct log_ent {
+	struct timeval le_ts;   /* timestamp */
+	pid_t		le_pid;		/* process id */
+	pthread_t	le_tid; 	/* thread id */
+	uint32_t 	le_level;	/* the level */
+	uint32_t 	le_type;	/* the type */
+	uint32_t 	le_dlen;	/* length of data */
+	char		le_data[MAX_LOG_ENTRY];	/* where the string is stored */
+} log_ent_t;
 
 /*
- * The total amount of space the we should buffer for logging.
+ * Define the maximum log file size.  The log file is rolled
+ * before the limit is exceeded.
  */
-#define	MAX_LOG_BUFFER	256*1024
-
-
+#define MAX_LOG_FILE_SIZE 1000000
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-void log_init(void **log_cookie);
-void log_thread_register(void *log_cookie);
+void log_init(char *prefix, char *control, void **cookie);
+void log_term(void *cookie);
+void log_thread_register(void *cookie);
 void log_setlevel(unsigned int level_mask);
 void log_settype(unsigned int type_mask);
-int  log_getdrops();
 void log_message(unsigned int type, unsigned int level, char *fmt, ...);
-int  log_getbuf(char **data);
-void  log_advbuf(int len);
 
 #ifdef __cplusplus
 }

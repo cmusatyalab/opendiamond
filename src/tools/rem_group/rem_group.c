@@ -164,7 +164,7 @@ main(int argc, char **argv)
 	}
 	path = dconf_get_indexdir();
 	dctl_init(&dctl_cookie);
-	log_init(&log_cookie);
+	log_init("rem_group", NULL, &log_cookie);
 
 	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
 	if (err) {
@@ -225,5 +225,6 @@ done:
 	cur_file = NULL;
 	rebuild_idx(odisk);
 
+	log_term(log_cookie);
 	exit(0);
 }

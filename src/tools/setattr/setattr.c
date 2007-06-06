@@ -151,7 +151,7 @@ main(int argc , char **argv)
 	odisk_state_t *		odisk;
 
 	dctl_init(&dctl_cookie);
-        log_init(&log_cookie);
+        log_init("setattr", NULL, &log_cookie);
         err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
         if (err) {
                 errno = err;
@@ -220,6 +220,7 @@ main(int argc , char **argv)
 		add_attr(odisk, attr_name, aname, data, datalen);
 	}
 
+	log_term(log_cookie);
 	return (0);
 }
 

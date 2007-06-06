@@ -443,7 +443,18 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		break;
 
 	case CNTL_CMD_STOP:
-		(*lstate->stop_cb) (cstate->app_cookie, gen);
+		{
+		host_stats_t hstats;
+		stop_subheader_t *shead;
+		
+		shead = (stop_subheader_t *) data;
+		hstats.hs_objs_received = ntohl(shead->host_objs_received);
+		hstats.hs_objs_queued = ntohl(shead->host_objs_queued);
+		hstats.hs_objs_read = ntohl(shead->host_objs_read);
+		hstats.hs_objs_uqueued = ntohl(shead->app_objs_queued);
+		hstats.hs_objs_upresented = ntohl(shead->app_objs_presented);
+		(*lstate->stop_cb) (cstate->app_cookie, gen, &hstats);
+		}
 		break;
 
 	case CNTL_CMD_SET_SPEC:
@@ -477,17 +488,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		(*lstate->get_char_cb) (cstate->app_cookie, gen);
 		break;
 
-	case CNTL_CMD_SETLOG:{
-			setlog_subheader_t *sheader;
-			assert(data != NULL);
-			sheader = (setlog_subheader_t *) data;
-			(*lstate->setlog_cb) (cstate->app_cookie,
-					      sheader->log_level,
-					      sheader->log_src);
-			free(data);
-			break;
-		}
-
 	case CNTL_CMD_READ_LEAF:{
 			dctl_subheader_t *shead;
 			int32_t         opid;
@@ -501,7 +501,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 			free(data);
 			break;
 		}
-
 
 	case CNTL_CMD_WRITE_LEAF:{
 			dctl_subheader_t *shead;
@@ -591,20 +590,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 			break;
 		}
 
-	case CNTL_CMD_SET_OFFLOAD:{
-			offload_subheader_t *shead;
-			uint64_t        val;
-
-			assert(data != NULL);
-			shead = (offload_subheader_t *) data;
-
-			val = shead->offl_data;	/* XXX 64bit bswap */
-			(*lstate->set_offload_cb) (cstate->app_cookie, gen,
-						   val);
-			free(data);
-			break;
-		}
-
 	case CNTL_CMD_SEND_OBJ:
 		assert(data != NULL);
 		process_object_message(lstate, cstate, data);
@@ -626,6 +611,16 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		free(data);
 		break;
 		}
+	case CNTL_CMD_SET_USER_STATE:
+		{
+		user_state_subheader_t *usheader;
+		
+		assert(data != NULL);
+		usheader = (user_state_subheader_t *) data;
+		(*lstate->set_user_state_cb) (cstate->app_cookie, usheader->state);
+		free(data);
+		break;
+		}
 	default:
 		printf("unknown command: %d \n", cmd);
 		if (data) {
@@ -633,7 +628,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		}
 		break;
 	}
-
 
 	return;
 }

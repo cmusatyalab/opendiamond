@@ -84,8 +84,10 @@ fexec_clear_stats(filter_data_t * fdata)
 		fdata->fd_filters[i].fi_cache_pass = 0;
 		fdata->fd_filters[i].fi_compute = 0;
 		fdata->fd_filters[i].fi_added_bytes = 0;
+		fdata->fd_filters[i].fi_hits_inter_session = 0;
+		fdata->fd_filters[i].fi_hits_inter_query = 0;
+		fdata->fd_filters[i].fi_hits_intra_query = 0;
 	}
-
 }
 
 /*
@@ -132,6 +134,10 @@ fexec_get_stats(filter_data_t * fdata, int max, filter_stats_t * fstats)
 		/*
 		 * JIAYING 
 		 */
+		cur_stat->fs_hits_inter_session = cur_filt->fi_hits_inter_session;
+	    cur_stat->fs_hits_inter_query = cur_filt->fi_hits_inter_query;
+	 	cur_stat->fs_hits_intra_query = cur_filt->fi_hits_intra_query;
+		
 		if (cur_filt->fi_called != 0) {
 			cur_stat->fs_avg_exec_time =
 			    cur_filt->fi_time_ns / cur_filt->fi_called;

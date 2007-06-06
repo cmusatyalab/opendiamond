@@ -16,7 +16,6 @@
 #define	_LIB_SSTUB_H_
 
 
-
 /*
  * Typedef's for the callback functions that are passed when initializing
  * the library.
@@ -25,7 +24,8 @@
 typedef	int (*sstub_new_conn_fn)(void *cookie, void **app_cookie);
 typedef	int (*sstub_close_conn_fn)(void *app_cookie);
 typedef	int (*sstub_start_fn)(void *app_cookie, int gen_num);
-typedef	int (*sstub_stop_fn)(void *app_cookie, int gen_num);
+typedef	int (*sstub_stop_fn)(void *app_cookie, int gen_num, 
+		host_stats_t *hstats);
 typedef	int (*sstub_set_filter_spec_fn)(void *app_cookie, int gen_num, 
 		sig_val_t *spec_sig);
 typedef	int (*sstub_set_filter_obj_fn)(void *app_cookie, int gen_num, 
@@ -50,8 +50,8 @@ typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,
                                  int blen, void *blob);
 typedef int (*sstub_set_offload_fn)(void *app_cookie, int gen_num,
                                     uint64_t load);
-typedef int (*sstub_set_exec_mode_fn)(void *app_cookie, int mode);
-
+typedef int (*sstub_set_exec_mode_fn)(void *app_cookie, uint32_t mode);
+typedef int (*sstub_set_user_state_fn)(void *app_cookie, uint32_t state);
 
 
 typedef struct {
@@ -73,12 +73,12 @@ typedef struct {
 	sstub_lleaf_fn	        	lleaf_cb;
 	sstub_lnode_fn	        	lnode_cb;
 	sstub_sgid_fn	        	sgid_cb;
-	sstub_clear_gids_fn		clear_gids_cb;
-	sstub_set_blob_fn		set_blob_cb;
-	sstub_set_offload_fn    set_offload_cb;
-	sstub_set_exec_mode_fn  set_exec_mode_cb;
+	sstub_clear_gids_fn			clear_gids_cb;
+	sstub_set_blob_fn			set_blob_cb;
+	sstub_set_offload_fn    	set_offload_cb;
+	sstub_set_exec_mode_fn 		set_exec_mode_cb;
+	sstub_set_user_state_fn 	set_user_state_cb;
 } sstub_cb_args_t;
-
 
 
 void * sstub_init(sstub_cb_args_t *cb_args);
@@ -103,6 +103,7 @@ int sstub_lnode_response(void *cookie, int err, int num_ents,
 float sstub_get_drate(void *cookie);
 int sstub_queued_objects(void *cookie);
 int sstub_get_obj(void *cookie, sig_val_t *sig);
+void sstub_get_conn_info(void *cookie, session_info_t *sinfo);
 
 #endif /* !_LIB_SSTUB_H_ */
 

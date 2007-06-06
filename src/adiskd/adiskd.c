@@ -170,8 +170,8 @@ main(int argc, char **argv)
 	cb_args.sgid_cb = search_set_gid;
 	cb_args.clear_gids_cb = search_clear_gids;
 	cb_args.set_blob_cb = search_set_blob;
-	cb_args.set_offload_cb = search_set_offload;
 	cb_args.set_exec_mode_cb = search_set_exec_mode;
+ 	cb_args.set_user_state_cb = search_set_user_state;
 
 	cookie = sstub_init_ext(&cb_args, bind_locally, do_authenticate);
 	if (cookie == NULL) { 
@@ -208,11 +208,11 @@ main(int argc, char **argv)
 			if (do_fork)  {
 				background_pid = fork();
 				if (background_pid == 0) {
-					start_background();
+					start_background(1);
 					exit(0);
 				}
 			} else {
-				start_background();
+				start_background(0);
 			}
 		}
 	}

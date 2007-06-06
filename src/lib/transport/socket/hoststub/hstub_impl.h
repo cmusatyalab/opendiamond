@@ -141,13 +141,6 @@ void * hstub_main(void *arg);
 void hstub_conn_down(sdevice_state_t *dev);
 
 /*
- * Functions available in hstub_log.c
- */
-void hstub_read_log(sdevice_state_t *dev);
-void hstub_except_log(sdevice_state_t *dev);
-void hstub_write_log(sdevice_state_t *dev);
-
-/*
  * Functions available in hstub_cntrl.c
  */
 void hstub_read_cntrl(sdevice_state_t *dev);

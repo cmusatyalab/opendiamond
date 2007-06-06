@@ -192,7 +192,7 @@ main(int argc, char **argv)
 	void           *dctl_cookie;
 	int             err;
 
-	log_init(&log_cookie);
+	log_init("odisk_test", NULL, &log_cookie);
 	dctl_init(&dctl_cookie);
 
 	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);

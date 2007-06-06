@@ -37,7 +37,6 @@
 #include "lib_log.h"
 #include "socket_trans.h"
 #include "obj_attr.h"
-#include "diamond_types.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
@@ -107,10 +106,11 @@ device_statistics(void *handle, dev_stats_t * dev_stats, int *stat_len)
  */
 
 int
-device_stop(void *handle, int id)
+device_stop(void *handle, int id, host_stats_t *hs)
 {
 	int             err;
 	control_header_t *cheader;
+	stop_subheader_t *sheader;
 	sdevice_state_t *dev;
 
 	dev = (sdevice_state_t *) handle;
@@ -122,10 +122,24 @@ device_stop(void *handle, int id)
 		return (EAGAIN);
 	}
 
+	sheader = (stop_subheader_t *) malloc(sizeof(*sheader));
+	if (sheader == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_stop: failed to malloc emheader");
+		free(cheader);
+		return (EAGAIN);
+	}
+
 	cheader->generation_number = htonl(id);
 	cheader->command = htonl(CNTL_CMD_STOP);
-	cheader->data_len = htonl(0);
-	cheader->spare = 0;
+	cheader->data_len = htonl(sizeof(*sheader));
+	cheader->spare = (uint32_t) sheader;
+	
+	sheader->host_objs_received = htonl(hs->hs_objs_received);	
+	sheader->host_objs_queued = htonl(hs->hs_objs_queued);
+	sheader->host_objs_read = htonl(hs->hs_objs_read);
+	sheader->app_objs_queued = htonl(hs->hs_objs_uqueued);
+	sheader->app_objs_presented = htonl(hs->hs_objs_upresented);
 
 	err = ring_enq(dev->device_ops, (void *) cheader);
 	if (err) {
@@ -909,7 +923,7 @@ device_set_limit(void *handle, int limit)
 }
 
 int
-device_set_exec_mode(void *handle, int mode) 
+device_set_exec_mode(void *handle, int id, uint32_t mode) 
 {
 	int             err;
 	control_header_t *cheader;
@@ -928,12 +942,12 @@ device_set_exec_mode(void *handle, int mode)
 	emheader = (exec_mode_subheader_t *) malloc(sizeof(*emheader));
 	if (emheader == NULL) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_exec_mode: failed to malloc emheader");
+		    "device_set_exec_mode: failed to malloc subheader");
 		free(cheader);
 		return (EAGAIN);
 	}
 
-	cheader->generation_number = htonl(0);	/* XXX */
+	cheader->generation_number = htonl(id);	
 	cheader->command = htonl(CNTL_CMD_SET_EXEC_MODE);
 	cheader->data_len = htonl(sizeof(*emheader));
 	cheader->spare = (uint32_t) emheader;
@@ -952,7 +966,53 @@ device_set_exec_mode(void *handle, int mode)
 	dev->con_data.flags |= CINFO_PENDING_CONTROL;
 	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
+}
+
+
+int
+device_set_user_state(void *handle, int id, uint32_t state) 
+{
+	int             err;
+	control_header_t *cheader;
+	sdevice_state_t *dev;
+	user_state_subheader_t *usheader;
+
+	dev = (sdevice_state_t *) handle;
+
+	cheader = (control_header_t *) malloc(sizeof(*cheader));
+	if (cheader == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_exec_mode: failed to malloc command");
+		return (EAGAIN);
+	}
 	
+	usheader = (user_state_subheader_t *) malloc(sizeof(*usheader));
+	if (usheader == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_user_state: failed to malloc subheader");
+		free(cheader);
+		return (EAGAIN);
+	}
+
+	cheader->generation_number = htonl(id);	
+	cheader->command = htonl(CNTL_CMD_SET_USER_STATE);
+	cheader->data_len = htonl(sizeof(*usheader));
+	cheader->spare = (uint32_t) usheader;
+	usheader->state = state;
+
+	err = ring_enq(dev->device_ops, (void *) cheader);
+	if (err) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_user_state: failed to enqueue command");
+		free(cheader);
+		free(usheader);
+		return (EAGAIN);
+	}
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_PENDING_CONTROL;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+	return (0);
 }
 
 
@@ -1018,8 +1078,6 @@ setup_stats(sdevice_state_t * dev, uint32_t devid)
 	err = dctl_register_node(HOST_NETWORK_PATH, node_name);
 	assert(err == 0);
 
-
-
 	dctl_register_leaf(path_name, "obj_rx", DCTL_DT_UINT32,
 			   dctl_read_uint32, NULL,
 			   &dev->con_data.stat_obj_rx);
@@ -1054,7 +1112,6 @@ setup_stats(sdevice_state_t * dev, uint32_t devid)
 	dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64,
 			   dctl_read_uint64, NULL,
 			   &dev->con_data.stat_log_byte_rx);
-
 }
 
 /*

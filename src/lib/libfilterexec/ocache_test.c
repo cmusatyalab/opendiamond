@@ -41,7 +41,7 @@ main(int argc, char **argv)
 	char            oattr_sig[16] = { "BNIMOWLOEMOKLWML" };
 	unsigned char   signature[16];
 
-	log_init(&log_cookie);
+	log_init("ocache_test", NULL, &log_cookie);
 	dctl_init(&dctl_cookie);
 
 	err = ocache_init(NULL, dctl_cookie, log_cookie);

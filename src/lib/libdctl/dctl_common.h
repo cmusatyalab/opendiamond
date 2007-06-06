@@ -29,15 +29,13 @@
 #define	HOST_NETWORK_NODE		"network"
 #define	HOST_NETWORK_PATH		"host.network"
 
-
+#define LOG_PATH			"log"
 
 #define	DEVICE_PATH			"devices"
 #define	HOST_DEVICE_PATH		"devices"
 
-
 #define	SEARCH_NAME			"cur_search"
 #define	DEV_SEARCH_PATH			"cur_search"
-
 
 #define	DEV_NETWORK_NODE		"network"
 #define	DEV_NETWORK_PATH		"network"

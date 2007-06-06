@@ -444,10 +444,12 @@ cache_get_init_attrs(sig_val_t * id_sig, cache_attr_set * init_set)
 	return found;
 }
 
+
 int
 cache_lookup(sig_val_t * id_sig, sig_val_t * fsig, void *fcache_table,
 	     cache_attr_set * change_attr, int *err,
-	     cache_attr_set ** oattr_set, sig_val_t * iattr_sig)
+	     cache_attr_set ** oattr_set, sig_val_t * iattr_sig, 
+	     query_info_t *qinfo)
 {
 	cache_obj      *cobj;
 	int             found = 0;
@@ -479,7 +481,8 @@ cache_lookup(sig_val_t * id_sig, sig_val_t * fsig, void *fcache_table,
 
 				memcpy(iattr_sig, &cobj->iattr_sig,
 				       sizeof(sig_val_t));
-
+				memcpy(qinfo, &cobj->qid, sizeof(query_info_t));
+				
 				/*
 				 * pass back the output attr set 
 				 */
@@ -593,7 +596,11 @@ ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
 		rsize +=
 		    (2 * sizeof(sig_val_t) + sizeof(int) +
 		     2 * sizeof(unsigned short));
-
+		     
+		read(fd, &cobj->qid, sizeof(query_info_t));
+		read(fd, &cobj->exec_mode, sizeof(filter_exec_mode_t));
+		rsize += sizeof(query_info_t) + sizeof(filter_exec_mode_t);
+		
 		read(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
 		rsize += sizeof(unsigned int);
 		cobj->iattr.entry_data =
@@ -733,7 +740,10 @@ ocache_write_file(char *disk_path, fcache_t * fcache)
 			write(fd, &count, sizeof(unsigned short));
 			count = cobj->hit_count + cobj->ahit_count;
 			write(fd, &count, sizeof(unsigned short));
-
+			
+			write(fd, &cobj->qid, sizeof(query_info_t));
+			write(fd, &cobj->exec_mode, sizeof(filter_exec_mode_t));
+			
 			write(fd, &cobj->iattr.entry_num,
 			      sizeof(unsigned int));
 			for (i = 0; i < cobj->iattr.entry_num; i++) {
@@ -1072,6 +1082,11 @@ ocache_read_file(char *disk_path, sig_val_t * fsig, void **fcache_table,
 		assert(rc == sizeof(unsigned short));
 		cobj->ahit_count = 0;
 
+		rc = read(fd, &cobj->qid, sizeof(query_info_t));
+		assert(rc == sizeof(query_info_t));
+		rc = read(fd, &cobj->exec_mode, sizeof(filter_exec_mode_t));
+		assert(rc == sizeof(filter_exec_mode_t));
+
 		rc = read(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
 		assert(rc == sizeof(unsigned int));
 		cobj->iattr.entry_data =
@@ -1377,7 +1392,8 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 }
 
 int
-ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf)
+ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf,
+				query_info_t *qid, filter_exec_mode_t exec_mode)
 {
 	cache_ring_entry *new_entry;
 	oattr_ring_entry *oattr_entry;
@@ -1390,6 +1406,8 @@ ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf)
 		new_entry->type = INSERT_END;
 		memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
 		new_entry->u.result = conf;
+		new_entry->qid = *qid;
+		new_entry->exec_mode = exec_mode;
 		ocache_ring_insert(new_entry);
 		sig_clear(&ocache_sig);
 	}
@@ -1432,7 +1450,6 @@ ocache_main(void *arg)
 
 	dctl_thread_register(cstate->dctl_cookie);
 	log_thread_register(cstate->log_cookie);
-
 
 	iattr = calloc(1, ATTR_ENTRY_NUM * sizeof(char *));
 	assert(iattr != NULL);
@@ -1561,6 +1578,8 @@ ocache_main(void *arg)
 						break;
 					}
 					cobj->result = tobj->u.result;
+					cobj->qid = tobj->qid;
+					cobj->exec_mode = tobj->exec_mode;
 					correct = 1;
 					free(tobj);
 					break;

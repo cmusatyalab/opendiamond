@@ -25,6 +25,8 @@
 /* do we try to continue evaluating objects when stalled */ 
 #define	SSTATE_DEFAULT_WORKAHEAD	1
 
+/* name to use for logs */
+#define LOG_PREFIX 	"adiskd"
 
 enum split_types_t {
 	SPLIT_TYPE_FIXED = 0,	/* Defined fixed ratio of work */
@@ -51,18 +53,21 @@ typedef struct search_state {
 	unsigned int    flags;
 	struct odisk_state *ostate;
 	struct ceval_state *cstate;
-	int             ver_no;
+	session_info_t		cinfo;			/* used for session id */
+	int             ver_no;			/* id of current search */
 	ring_data_t    *control_ops;
 	pthread_mutex_t log_mutex;
 	pthread_cond_t  log_cond;
-	pthread_t       log_thread;
 	pthread_t       bypass_id;
 	filter_data_t  *fdata;
 	uint            obj_total;
-	uint            obj_processed;
+	uint            obj_processed;		/* really objects read */
 	uint            obj_dropped;
 	uint            obj_passed;
 	uint            obj_skipped;
+	uint		obj_bg_processed;	
+	uint		obj_bg_dropped;
+	uint		obj_bg_passed;
 	uint            network_stalls;
 	uint            tx_full_stalls;
 	uint            tx_idles;
@@ -85,7 +90,8 @@ typedef struct search_state {
 	void           *dctl_cookie;
 	void           *log_cookie;
 	unsigned char  *sig;
-	int				exec_mode;  /* filter execution mode */
+	filter_exec_mode_t	exec_mode;  /* filter execution mode */
+	user_state_t	user_state; 
 } search_state_t;
 
 
@@ -97,7 +103,7 @@ typedef struct search_state {
 int             search_new_conn(void *cookie, void **app_cookie);
 int             search_close_conn(void *app_cookie);
 int             search_start(void *app_cookie, int gen_num);
-int             search_stop(void *app_cookie, int gen_num);
+int             search_stop(void *app_cookie, int gen_num, host_stats_t *hs);
 int             search_set_spec(void *app_cookie, int gen_num,
 		    sig_val_t *spec_sig);
 int             search_set_obj(void *app_cookie, int gen_num,
@@ -118,10 +124,9 @@ int             search_set_gid(void *app_cookie, int gen, groupid_t gid);
 int             search_clear_gids(void *app_cookie, int gen);
 int             search_set_blob(void *app_cookie, int gen, char *name,
 				int blob_len, void *blob_data);
-int             search_set_offload(void *app_cookie, int gen, uint64_t data);
-int				search_set_exec_mode(void *app_cookie, uint32_t mode);
+int		search_set_exec_mode(void *app_cookie, uint32_t mode);
+int		search_set_user_state(void *app_cookie, uint32_t state);
 
-
-void		start_background(void);
+void		start_background();
 
 #endif				/* ifndef _SEARCH_STATE_H_ */

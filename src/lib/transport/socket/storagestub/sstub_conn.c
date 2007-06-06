@@ -69,14 +69,9 @@ connection_main(listener_state_t * lstate, int conn)
 	if (cstate->data_fd > max_fd) {
 		max_fd = cstate->data_fd;
 	}
-	if (cstate->log_fd > max_fd) {
-		max_fd = cstate->log_fd;
-	}
 	max_fd += 1;
 
 	cstate->lstate = lstate;
-
-
 
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {
@@ -94,11 +89,9 @@ connection_main(listener_state_t * lstate, int conn)
 
 		FD_SET(cstate->control_fd, &cstate->read_fds);
 		FD_SET(cstate->data_fd, &cstate->read_fds);
-		FD_SET(cstate->log_fd, &cstate->read_fds);
 
 		FD_SET(cstate->control_fd, &cstate->except_fds);
 		FD_SET(cstate->data_fd, &cstate->except_fds);
-		FD_SET(cstate->log_fd, &cstate->except_fds);
 
 
 		pthread_mutex_lock(&cstate->cmutex);
@@ -112,9 +105,6 @@ connection_main(listener_state_t * lstate, int conn)
 		if (cstate->cc_credits == 0) {
 			// printf("block on no credits \n");
 			// XXX stats
-		}
-		if (cstate->flags & CSTATE_LOG_DATA) {
-			FD_SET(cstate->log_fd, &cstate->write_fds);
 		}
 		pthread_mutex_unlock(&cstate->cmutex);
 
@@ -151,9 +141,6 @@ connection_main(listener_state_t * lstate, int conn)
 			if (FD_ISSET(cstate->data_fd, &cstate->read_fds)) {
 				sstub_read_data(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->log_fd, &cstate->read_fds)) {
-				sstub_read_log(lstate, cstate);
-			}
 
 			/*
 			 * handle the exception conditions on the socket 
@@ -164,9 +151,6 @@ connection_main(listener_state_t * lstate, int conn)
 			if (FD_ISSET(cstate->data_fd, &cstate->except_fds)) {
 				sstub_except_data(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->log_fd, &cstate->except_fds)) {
-				sstub_except_log(lstate, cstate);
-			}
 
 			/*
 			 * handle writes on the sockets 
@@ -176,9 +160,6 @@ connection_main(listener_state_t * lstate, int conn)
 			}
 			if (FD_ISSET(cstate->data_fd, &cstate->write_fds)) {
 				sstub_write_data(lstate, cstate);
-			}
-			if (FD_ISSET(cstate->log_fd, &cstate->write_fds)) {
-				sstub_write_log(lstate, cstate);
 			}
 		}
 	}

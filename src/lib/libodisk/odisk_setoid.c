@@ -60,7 +60,7 @@ main(int argc, char **argv)
 
 	host_addr = argv[1];
 
-	log_init(&log_cookie);
+	log_init("odisk_setoid", NULL, &log_cookie);
 	dctl_init(&dctl_cookie);
 
 	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);

@@ -346,6 +346,7 @@ void log_init(char *log_prefix, char *control_prefix, void **cookie)
 	log_state_t *ls;
 	int		err;
 	char log_path[DCTL_NAME_LEN];
+	void *dc;
 	
 	pthread_once(&log_state_once, log_state_alloc);
 
@@ -373,16 +374,24 @@ void log_init(char *log_prefix, char *control_prefix, void **cookie)
 	err = pthread_mutex_init(&ls->log_mutex, NULL);
 
 	/* set up dynamic control of log content */
+        dctl_init(&dc);
 	if (control_prefix == NULL) {
-		err = dctl_register_node(ROOT_PATH, LOG_PATH);
+	  err = dctl_register_node(ROOT_PATH, LOG_PATH);
+	  assert(err == 0);
+	  err = dctl_register_node(LOG_PATH, log_prefix);
+	  assert(err == 0);
+	  snprintf(log_path, DCTL_NAME_LEN, "%s.%s", LOG_PATH, log_prefix);
 	} else {
-		err = dctl_register_node(control_prefix, LOG_PATH);
+	  err = dctl_register_node(control_prefix, LOG_PATH);
+	  assert(err == 0);
+	  snprintf(log_path, DCTL_NAME_LEN, "%s.%s", 
+		   control_prefix, LOG_PATH);
+	  err = dctl_register_node(log_path, log_prefix);
+	  assert(err == 0);
+	  snprintf(log_path, DCTL_NAME_LEN, "%s.%s.%s", 
+		   control_prefix, LOG_PATH, log_prefix);
 	}
-	assert(err == 0);
-	err = dctl_register_node(LOG_PATH, log_prefix);
-	assert(err == 0);
 	
-	snprintf(log_path, DCTL_NAME_LEN, "%s.%s", LOG_PATH, log_prefix);
 	err = dctl_register_leaf(log_path, "log_level",
 				 DCTL_DT_UINT32, dctl_read_uint32,
 				 dctl_write_uint32, &ls->level);

@@ -220,8 +220,8 @@ hstub_main(void *arg)
 			FD_SET(cinfo->data_fd, &cinfo->write_fds);
 		}
 
-		to.tv_sec = 0;
-		to.tv_usec = 1000;
+		to.tv_sec = 1;
+		to.tv_usec = 0;
 
 
 		err = select(max_fd, &cinfo->read_fds, &cinfo->write_fds,

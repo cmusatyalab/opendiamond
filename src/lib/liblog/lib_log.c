@@ -375,7 +375,8 @@ void log_init(char *log_prefix, char *control_prefix, void **cookie)
 
 	/* set up dynamic control of log content */
         dctl_init(&dc);
-	if (control_prefix == NULL) {
+	if (control_prefix == NULL ||
+		strcmp(control_prefix, ROOT_PATH) == 0) {
 	  err = dctl_register_node(ROOT_PATH, LOG_PATH);
 	  assert(err == 0);
 	  err = dctl_register_node(LOG_PATH, log_prefix);

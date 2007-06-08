@@ -108,8 +108,8 @@ connection_main(listener_state_t * lstate, int conn)
 		}
 		pthread_mutex_unlock(&cstate->cmutex);
 
-		to.tv_sec = 0;
-		to.tv_usec = 1000;
+		to.tv_sec = 1;
+		to.tv_usec = 0;
 
 		/*
 		 * Sleep on the set of sockets to see if anything

@@ -127,27 +127,27 @@ program OPENDIAMOND_PROG {
     diamond_rc_t device_set_exec_mode_x(int, unsigned int) = 15;
     diamond_rc_t device_set_user_state_x(int, unsigned int) = 16;
     diamond_rc_t request_chars_x(void) = 17;
-    diamond_rc_t request_stats(void) = 18;
+    diamond_rc_t request_stats_x(void) = 18;
 
 
     /* Server callbacks. These calls will disappear since they are
      * supposed to be synchronous anyway and we don't want to have a
      * TI-RPC server handling these in the Diamond client. */
 
-    diamond_rc_t sstub_send_stats(dev_stats_x) = 19;
-    diamond_rc_t sstub_send_dev_char(dev_char_x) = 20;
-    diamond_rc_t sstub_get_obj(sig_val_x) = 21;
-    diamond_rc_t sstub_wleaf_response(dctl_x) = 22;
-    diamond_rc_t sstub_rleaf_response(dctl_x) = 23;
-    diamond_rc_t sstub_lleaf_response(dctl_x) = 24;
-    diamond_rc_t sstub_lnode_response(dctl_x) = 25;
+    diamond_rc_t sstub_send_stats_x(dev_stats_x) = 19;
+    diamond_rc_t sstub_send_dev_char_x(dev_char_x) = 20;
+    diamond_rc_t sstub_get_obj_x(sig_val_x) = 21;
+    diamond_rc_t sstub_wleaf_response_x(dctl_x) = 22;
+    diamond_rc_t sstub_rleaf_response_x(dctl_x) = 23;
+    diamond_rc_t sstub_lleaf_response_x(dctl_x) = 24;
+    diamond_rc_t sstub_lnode_response_x(dctl_x) = 25;
 
 
     /* Client callbacks. This call will become a separate client call,
      * called after a device_set_lib call indicates the server does
      * not have the filter library. */
 
-    diamond_rc_t send_obj(int, send_obj_x) = 26;
+    diamond_rc_t send_obj_x(int, send_obj_x) = 26;
 
 
     /* There are 28 opcodes in socket_trans.h. CNTL_CMD_TERM_DONE and

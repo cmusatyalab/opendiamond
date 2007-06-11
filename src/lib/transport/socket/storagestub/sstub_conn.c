@@ -3,6 +3,7 @@
  *  Version 2
  *
  *  Copyright (c) 2002-2007 Intel Corporation
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -45,6 +46,120 @@ static char const cvsid[] =
     "$Header$";
 
 
+/*
+ * This sets up a TI-RPC server listening on a random port number.
+ */
+
+void *
+create_tirpc_server(void *arg) {
+    struct netconfig *nconf;
+    SVCXPRT *transp;
+    struct t_bind tbind;
+    struct sockaddr_in servaddr;
+    struct timeval t;
+    int rpcfd, local_port;
+    cstate_t       *cstate;
+
+    cstate = (cstate_t *) arg;
+
+    /* Choose a random TCP port between 10k and 65k to connect to the 
+     * TI-RPC server on.  Use high-order bits for improved randomness. */
+    
+    gettimeofday(&t, NULL);
+    srand(t.tv_sec);
+    local_port = 10000 + (int)(55000.0 * (rand()/(RAND_MAX + 1.0)));
+
+
+    nconf = getnetconfigent("tcp");
+    if(nconf == NULL) {
+      perror("getnetconfigent");
+      exit(EXIT_FAILURE);
+    }
+
+    if((rpcfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+      perror("socket");
+      exit(EXIT_FAILURE);
+    }
+  
+    bzero(&servaddr, sizeof(struct sockaddr_in));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);  /* only local conns */
+    servaddr.sin_port = htons(local_port);
+
+    tbind.qlen=8;
+    tbind.addr.maxlen = tbind.addr.len = sizeof(struct sockaddr_in);
+    tbind.addr.buf = &servaddr;
+    
+    transp = svc_tli_create(rpcfd, nconf, &tbind, BUFSIZ, BUFSIZ);
+    if (transp == NULL) {
+      fprintf (stderr, "%s", "cannot create tcp service.");
+      exit(1);
+    }
+    
+    svc_unreg(OPENDIAMOND_PROG, OPENDIAMOND_VERS);
+    
+    if (!svc_reg(transp, OPENDIAMOND_PROG, OPENDIAMOND_VERS, 
+		 opendiamond_prog_2, NULL)) {
+      fprintf(stderr, "%s", "unable to register (OPENDIAMOND_PROG=%X, "
+	      "OPENDIAMOND_VER=%X, tcp).", OPENDIAMOND_PROG, OPENDIAMOND_VER);
+      exit(1);
+    }
+
+    
+    cstate->tirpc_port = local_port; /* Signal the parent thread that
+				      * our TI-RPC server is ready to
+				      * accept connections. */
+    svc_run();
+
+    printf("XXX svc_run returned!\n");
+    exit(EXIT_FAILURE);
+}
+
+
+int
+create_tirpc_conn(cstate_t *cstate) {
+    int error, result, connfd;
+    char port_str[6];
+    struct addrinfo *info, hints;
+    pthread_t tirpc_thread;
+    
+    /* Create a thread which becomes a TI-RPC server. */
+    control_ready = 0;
+    bzero(&tirpc_thread, sizeof(pthread_t));
+    pthread_create(&tirpc_thread, PATTR_DEFAULT, create_tirpc_server, 
+		   (void *)cstate);
+    
+    
+    /* Wait for the control thread to finish initialization. */
+    while(control_ready == 0)
+      continue;
+    
+    
+    /* Create new connection to the TI-RPC server. */
+    if((connfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+      perror("socket");
+      exit(EXIT_FAILURE);
+    }
+    
+    bzero(&hints,  sizeof(struct addrinfo));
+    hints.ai_flags = AI_CANONNAME;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    snprintf(port_str, NI_MAXSERV, "%u", local_port);
+    
+    if((error = getaddrinfo("localhost", port_str, &hints, &info)) < 0) {
+      fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
+      exit(EXIT_FAILURE);
+    }
+    
+    if(connect(connfd, info->ai_addr, sizeof(struct sockaddr_in)) < 0) {
+      perror("connect");
+      exit(EXIT_FAILURE);
+    }
+    
+    return connfd;
+}
+
 
 /*
  * This is the loop that handles the socket communications for each
@@ -61,6 +176,13 @@ connection_main(listener_state_t * lstate, int conn)
 
 
 	cstate = &lstate->conns[conn];
+
+	/*
+	 * Create a TI-RPC server thread and then make a TCP
+	 * connection to it.
+	 */
+	cstate->tirpc_fd = create_tirpc_server(cstate);
+
 	/*
 	 * Compute the max fd for the set of file
 	 * descriptors that we care about.
@@ -68,6 +190,9 @@ connection_main(listener_state_t * lstate, int conn)
 	max_fd = cstate->control_fd;
 	if (cstate->data_fd > max_fd) {
 		max_fd = cstate->data_fd;
+	}
+	if (cstate->tirpc_fd > max_fd) {
+		max_fd = cstate->tirpc_fd;
 	}
 	max_fd += 1;
 
@@ -89,9 +214,11 @@ connection_main(listener_state_t * lstate, int conn)
 
 		FD_SET(cstate->control_fd, &cstate->read_fds);
 		FD_SET(cstate->data_fd, &cstate->read_fds);
+		FD_SET(cstate->tirpc_fd, &cstate->read_fds);
 
 		FD_SET(cstate->control_fd, &cstate->except_fds);
 		FD_SET(cstate->data_fd, &cstate->except_fds);
+		FD_SET(cstate->tirpc_fd, &cstate->except_fds);
 
 
 		pthread_mutex_lock(&cstate->cmutex);
@@ -141,7 +268,9 @@ connection_main(listener_state_t * lstate, int conn)
 			if (FD_ISSET(cstate->data_fd, &cstate->read_fds)) {
 				sstub_read_data(lstate, cstate);
 			}
-
+			if (FD_ISSET(cstate->tirpc_fd, &cstate->read_fds)) {
+				sstub_read_tirpc(lstate, cstate);
+			}
 			/*
 			 * handle the exception conditions on the socket 
 			 */
@@ -151,7 +280,9 @@ connection_main(listener_state_t * lstate, int conn)
 			if (FD_ISSET(cstate->data_fd, &cstate->except_fds)) {
 				sstub_except_data(lstate, cstate);
 			}
-
+			if (FD_ISSET(cstate->tirpc_fd, &cstate->tirpc_fds)) {
+				sstub_except_tirpc(lstate, cstate);
+			}
 			/*
 			 * handle writes on the sockets 
 			 */

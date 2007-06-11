@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -634,24 +635,15 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 
 
 /*
- * This reads data from the control socket.  If we get enough data to 
- * complete a full message, then we will get a full control
- * message, then we will pass the message to be processed.  Note
- * that this code relies on state stored in the cstate and we
- * must process data in order that it recieves, so this function should
- * only be called by a single thread.
+ * This reads data from the control socket and forwards it to the
+ * TI-RPC server.
  */
 
 void
 sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 {
-	int             dsize;
-	char           *data;
-	char           *data_buf = NULL;
-	int             remain_header,
-	                remain_data;
-	int             header_offset,
-	                data_offset;
+	int size_in, size_out, error;
+	char buf[4096];
 
 	/*
 	 * Handle the case where we are shutting down 
@@ -661,188 +653,25 @@ sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 		return;
 	}
 
-
-	/*
-	 * Handle the different cases where we may already
-	 * be processing data.
-	 */
-	if (cstate->control_rx_state == CONTROL_RX_NO_PENDING) {
-		remain_header = sizeof(cstate->control_rx_header);
-		header_offset = 0;
-		remain_data = 0;
-		data_offset = 0;
-
-	} else if (cstate->control_rx_state == CONTROL_RX_HEADER) {
-
-		header_offset = cstate->control_rx_offset;
-		remain_header = sizeof(cstate->control_rx_header) -
-		    header_offset;
-		remain_data = 0;
-		data_offset = 0;
-	} else {
-		assert(cstate->control_rx_state == CONTROL_RX_DATA);
-		remain_header = 0;
-		header_offset = 0;
-		data_offset = cstate->control_rx_offset;
-		remain_data = ntohl(cstate->control_rx_header.data_len) -
-		    data_offset;
-		data_buf = cstate->control_rx_data;
+	/* Attempt to process up to 4096 bytes of data. */
+	
+	size_in = read(cstate->control_fd, (void *)buf, 4096);
+	if(size_in < 0){
+	  perror("read");
+	  return;
+	}
+	
+	size_out = write(cstate->tirpc_fd, (void *)buf, size_in);
+	if(size_out < 0) {
+	  perror("write");
+	  return;
+	}
+	
+	if(size_in != size_out) {
+	  fprintf(stderr, "Somehow lost bytes, from %d in to %d out!\n", 
+		  size_in, size_out);
+	  return;
 	}
 
-
-
-	if (remain_header > 0) {
-		data = (char *) &cstate->control_rx_header;
-		dsize =
-		    recv(cstate->control_fd, (char *) &data[header_offset],
-			 remain_header, 0);
-
-		/*
-		 * Handle some of the different error cases.
-		 */
-		if (dsize < 1) {
-			/*
-			 * If we got here the select said there was data, but
-			 * the return is 0,  this indicates the connection has
-			 * been closed.  We need to shutdown the connection.
-			 */
-			if (dsize == 0) {
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-
-			/*
-			 * The call failed, the only possibility is that
-			 * we didn't have enough data for it.  In that
-			 * case we return and retry later.
-			 */
-			if (errno == EAGAIN) {
-				/*
-				 * nothing has happened, so we should not
-				 * need to update the state.
-				 */
-				return;
-			} else {
-				/*
-				 * some un-handled error happened, we
-				 * just shutdown the connection.
-				 */
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-		}
-
-
-		/*
-		 * Look at how much data we recieved, if we didn't get
-		 * enough to complete the header, then we store
-		 * the partial state and return, the next try will
-		 * get rest of the header.
-		 */
-		if (dsize != remain_header) {
-			cstate->control_rx_offset = header_offset + dsize;
-			cstate->control_rx_state = CONTROL_RX_HEADER;
-			return;
-		}
-
-		/*
-		 * If we fall through here, then we have the full header,
-		 * so we need to setup the parameters for reading the data
-		 * portion.
-		 */
-		data_offset = 0;
-		remain_data = ntohl(cstate->control_rx_header.data_len);
-
-		/*
-		 * get a buffer to store the data if appropriate 
-		 */
-		if (remain_data > 0) {
-			data_buf = (char *) malloc(remain_data);
-			if (data_buf == NULL) {
-				/*
-				 * XXX crap, how do I get out of this 
-				 */
-				printf("failed malloc on buffer \n");
-				exit(1);
-			}
-		}
-
-	}
-
-
-	/*
-	 * Now we try to get the remaining data associated with this
-	 * command.
-	 */
-	if (remain_data > 0) {
-		dsize = recv(cstate->control_fd, &data_buf[data_offset],
-			     remain_data, 0);
-
-		if (dsize < 1) {
-			/*
-			 * If we got here the select said there was data, but
-			 * the return is 0,  this indicates the connection has
-			 * been closed.  We need to shutdown the connection.
-			 */
-			if (dsize == 0) {
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-
-			/*
-			 * The call failed, the only possibility is that
-			 * we didn't have enough data for it.  In that
-			 * case we return and retry later.
-			 */
-			if (errno == EAGAIN) {
-				cstate->control_rx_offset = data_offset;
-				cstate->control_rx_data = data_buf;
-				cstate->control_rx_state = CONTROL_RX_DATA;
-				return;
-			} else {
-				/*
-				 * some un-handled error happened, we
-				 * just shutdown the connection.
-				 */
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-		}
-
-
-		/*
-		 * Look at how much data we recieved, if we didn't get
-		 * enough to complete the header, then we store
-		 * the partial state and return, the next try will
-		 * get rest of the header.
-		 */
-		if (dsize != remain_data) {
-			cstate->control_rx_offset = data_offset + dsize;
-			cstate->control_rx_data = data_buf;
-			cstate->control_rx_state = CONTROL_RX_DATA;
-			return;
-		}
-
-	}
-
-	/*
-	 * update stats 
-	 */
-	cstate->stats_control_rx++;
-	cstate->stats_control_bytes_rx += sizeof(cstate->control_rx_header) +
-	    ntohl(cstate->control_rx_header.data_len);
-
-	/*
-	 * Call the process control function.  The caller is responsible
-	 * for freeing the allocated data structures.
-	 */
-
-
-	process_control(lstate, cstate, data_buf);
-
-	/*
-	 * make sure the state is reset 
-	 */
-	cstate->control_rx_state = CONTROL_RX_NO_PENDING;
 	return;
 }

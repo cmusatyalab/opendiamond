@@ -94,6 +94,8 @@ typedef struct cstate {
 	session_info_t		cinfo;
 	int			        control_fd;
 	int			        data_fd;
+        int                             tirpc_fd;
+        int                             tirpc_port;
 	int			        pend_obj;
 	int			        have_start;
 	uint32_t		    start_gen;
@@ -231,6 +233,11 @@ void sstub_except_log(listener_state_t *lstate, cstate_t *cstate);
 void sstub_write_data(listener_state_t *lstate, cstate_t *cstate);
 void sstub_read_data(listener_state_t *lstate, cstate_t *cstate);
 void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
+
+/*
+ * Functions exported by sstub_tirpc.c
+ */
+void sstub_except_tirpc(listener_state_t *lstate, cstate_t *cstate);
 /*
  * Functions exported by sstub_conn.c
  */

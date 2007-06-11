@@ -117,7 +117,6 @@ program OPENDIAMOND_PROG {
     diamond_rc_t device_new_gid_x(int, groupid_x) = 5;
     diamond_rc_t device_set_offload_x(int, offload_x) = 6;
     diamond_rc_t device_set_spec_x(int, spec_file_x) = 7;
-    diamond_rc_t device_set_lib_x(int, sig_val_x) = 8;
     diamond_rc_t device_set_log_x(setlog_x) = 9;
     diamond_rc_t device_write_leaf_x(dctl_x) = 10;
     diamond_rc_t device_read_leaf_x(dctl_x) = 11;
@@ -130,29 +129,29 @@ program OPENDIAMOND_PROG {
     diamond_rc_t request_stats_x(void) = 18;
 
 
+    /* These three calls are related respectively by:
+     * client call->server callback->client callback
+     * Since we don't want to have to run a TI-RPC server in the client,
+     * the first call will become synchronous, and the latter two will
+     * merge into a new call. */
+
+    diamond_rc_t device_set_lib_x(int, sig_val_x) = 8;
+    //diamond_rc_t sstub_get_obj_x(sig_val_x) = 21;
+    //diamond_rc_t send_obj_x(int, send_obj_x) = 26;
+    
+    diamond_rc_t device_send_obj_x(int, send_obj_x) = 26;
+
+
     /* Server callbacks. These calls will disappear since they are
      * supposed to be synchronous anyway and we don't want to have a
      * TI-RPC server handling these in the Diamond client. */
 
     diamond_rc_t sstub_send_stats_x(dev_stats_x) = 19;
     diamond_rc_t sstub_send_dev_char_x(dev_char_x) = 20;
-    diamond_rc_t sstub_get_obj_x(sig_val_x) = 21;
     diamond_rc_t sstub_wleaf_response_x(dctl_x) = 22;
     diamond_rc_t sstub_rleaf_response_x(dctl_x) = 23;
     diamond_rc_t sstub_lleaf_response_x(dctl_x) = 24;
     diamond_rc_t sstub_lnode_response_x(dctl_x) = 25;
-
-
-    /* Client callbacks. This call will become a separate client call,
-     * called after a device_set_lib call indicates the server does
-     * not have the filter library. */
-
-    diamond_rc_t send_obj_x(int, send_obj_x) = 26;
-
-
-    /* There are 28 opcodes in socket_trans.h. CNTL_CMD_TERM_DONE and
-     * CNTL_CMD_SET_LIST were never used. So, at the moment we have 26
-     * calls listed. */
 
   } = 2;
 } = 0x2405E65E;  /* The leading "0x2" is required for "static"

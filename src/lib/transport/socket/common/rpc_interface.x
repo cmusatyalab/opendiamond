@@ -104,54 +104,55 @@ struct blob_x {
   opaque blob_data<>;	/* the data with the name followed by blob */
 };
 
+struct send_stats_return_x {
+  diamond_rc_t error;
+  dev_stats_x stats;
+};
+
+struct request_chars_return_x {
+  diamond_rc_t error;
+  dev_char_x chars;
+};
+
+struct dctl_return_x {
+  diamond_rc_t error;
+  dctl_x dctl;
+};
+
 program OPENDIAMOND_PROG {
   version OPENDIAMOND_VERS {
 
-
     /* Client calls. */
 
-    diamond_rc_t device_start_x(int) = 1;
-    diamond_rc_t device_stop_x(int, stop_x) = 2;
-    diamond_rc_t device_terminate_x(int) = 3;
-    diamond_rc_t device_clear_gids_x(int) = 4;
-    diamond_rc_t device_new_gid_x(int, groupid_x) = 5;
-    diamond_rc_t device_set_offload_x(int, offload_x) = 6;
-    diamond_rc_t device_set_spec_x(int, spec_file_x) = 7;
-    diamond_rc_t device_set_log_x(setlog_x) = 9;
-    diamond_rc_t device_write_leaf_x(dctl_x) = 10;
-    diamond_rc_t device_read_leaf_x(dctl_x) = 11;
-    diamond_rc_t device_list_nodes_x(dctl_x) = 12;
-    diamond_rc_t device_list_leafs_x(dctl_x) = 13;
-    diamond_rc_t device_set_blob_x(int, blob_x) = 14;
-    diamond_rc_t device_set_exec_mode_x(int, unsigned int) = 15;
-    diamond_rc_t device_set_user_state_x(int, unsigned int) = 16;
-    diamond_rc_t request_chars_x(void) = 17;
-    diamond_rc_t request_stats_x(void) = 18;
+    diamond_rc_t            device_start_x(int) = 1;
+    diamond_rc_t            device_stop_x(int, stop_x) = 2;
+    diamond_rc_t            device_terminate_x(int) = 3;
+    diamond_rc_t            device_clear_gids_x(int) = 4;
+    diamond_rc_t            device_new_gid_x(int, groupid_x) = 5;
+    diamond_rc_t            device_set_offload_x(int, offload_x) = 6;
+    diamond_rc_t            device_set_spec_x(int, spec_file_x) = 7;
+    diamond_rc_t            device_set_log_x(setlog_x) = 8;
+    dctl_return_x           device_write_leaf_x(dctl_x) = 9;
+    dctl_return_x           device_read_leaf_x(dctl_x) = 10;
+    dctl_return_x           device_list_nodes_x(dctl_x) = 11;
+    dctl_return_x           device_list_leafs_x(dctl_x) = 12;
+    diamond_rc_t            device_set_blob_x(int, blob_x) = 13;
+    diamond_rc_t            device_set_exec_mode_x(int, unsigned int) = 14;
+    diamond_rc_t            device_set_user_state_x(int, unsigned int) = 15;
+    request_chars_return_x  request_chars_x(void) = 16;
+    request_stats_return_x  request_stats_x(void) = 17;
 
 
-    /* These three calls are related respectively by:
-     * client call->server callback->client callback
-     * Since we don't want to have to run a TI-RPC server in the client,
-     * the first call will become synchronous, and the latter two will
-     * merge into a new call. */
+    /* The filter library passing calls are related respectively by:
+     * client call(SET_OBJ) -> server callback(GET_OBJ) -> 
+     *   client callback(SEND_OBJ)
+     *
+     * Since we don't want to have to run a TI-RPC server in the
+     * client, the first two calls will become a single synchronous
+     * call and the last will become a new call. */
 
-    diamond_rc_t device_set_lib_x(int, sig_val_x) = 8;
-    //diamond_rc_t sstub_get_obj_x(sig_val_x) = 21;
-    //diamond_rc_t send_obj_x(int, send_obj_x) = 26;
-    
-    diamond_rc_t device_send_obj_x(int, send_obj_x) = 26;
-
-
-    /* Server callbacks. These calls will disappear since they are
-     * supposed to be synchronous anyway and we don't want to have a
-     * TI-RPC server handling these in the Diamond client. */
-
-    diamond_rc_t sstub_send_stats_x(dev_stats_x) = 19;
-    diamond_rc_t sstub_send_dev_char_x(dev_char_x) = 20;
-    diamond_rc_t sstub_wleaf_response_x(dctl_x) = 22;
-    diamond_rc_t sstub_rleaf_response_x(dctl_x) = 23;
-    diamond_rc_t sstub_lleaf_response_x(dctl_x) = 24;
-    diamond_rc_t sstub_lnode_response_x(dctl_x) = 25;
+    diamond_rc_t device_set_lib_x(int, sig_val_x) = 18;
+    diamond_rc_t device_send_lib_x(int, send_obj_x) = 19;
 
   } = 2;
 } = 0x2405E65E;  /* The leading "0x2" is required for "static"

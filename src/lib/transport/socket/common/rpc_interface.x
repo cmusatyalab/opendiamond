@@ -15,7 +15,8 @@
 enum diamond_service_error_t {
   /* Sun RPC failure codes should be subsumed here. */
   DIAMOND_SUCCESS = 0,
-  DIAMOND_FAILURE = 1
+  DIAMOND_FAILEDSYSCALL,
+  DIAMOND_FAILURE
 };
 
 enum diamond_opcode_error_t {

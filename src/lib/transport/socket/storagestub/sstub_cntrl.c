@@ -480,8 +480,7 @@ diamond_rc_t *
 device_new_gid_x_2_svc(u_int gen, groupid_x arg2,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	groupid_t       gid;
-	uint64_t gid = arg2;
+	groupid_t       gid = arg2;
 	
 	(*tirpc_lstate->sgid_cb) (tirpc_cstate->app_cookie, gen, gid);
 
@@ -513,24 +512,16 @@ device_set_blob_x_2_svc(u_int gen, blob_x arg2, struct svc_req *rqstp)
 
 
 diamond_rc_t *
-device_set_spec_x_2_svc(int arg1, spec_file_x arg2,  struct svc_req *rqstp)
+device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	int                  gen = arg1;
-	uint32_t gen;
-	spec_subhead_t *shead;
-	int spec_len;
 	char specpath[PATH_MAX];
 	char * cache;
-	char * sig;
-	char *buf;
+	char *spec_sig, *spec_data;
+	int spec_len;
 	int fd;
-	int err;
 
-	gen = ntohl(cstate->control_rx_header.generation_number);
-
-	shead = (spec_subhead_t *) data;
-	spec_len = ntohl(shead->spec_len);
+	spec_len = arg2.data.data_len;
 
 	/*
 	 * create a file for storing the searchlet library.
@@ -538,33 +529,38 @@ device_set_spec_x_2_svc(int arg1, spec_file_x arg2,  struct svc_req *rqstp)
 	umask(0000);
 
 	cache = dconf_get_spec_cachedir();
-	sig = sig_string(&shead->spec_sig);
-	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, sig);
-	free(sig);
+	spec_sig = sig_string(arg2.sig);
+	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, spec_sig);
+	free(spec_sig);
 	free(cache);
 
-	buf = ((char *)shead) + sizeof(*shead);
-	
+	spec_data = arg2.data.data_val;
+
         /* create the new file */
 	file_get_lock(specpath);
 	fd = open(specpath, O_CREAT|O_EXCL|O_WRONLY, 0744);
        	if (fd < 0) {
+	        int err = errno;
 		file_release_lock(specpath);
-		if (errno == EEXIST) { 
+		if (err == EEXIST) { 
 			goto done; 
 		}
-		fprintf(stderr, "file %s failed on %d \n", specpath, errno); 
-		err = errno;
-		return;
+		fprintf(stderr, "file %s failed on %d \n", specpath, err); 
+		result.service_err = DIAMOND_FAILEDSYSCALL;
+		result.opcode_err = err;
+		return &result;
 	}
-	if (write(fd, buf, spec_len) != spec_len) {
+	if (write(fd, spec_data, spec_len) != spec_len) {
 		perror("write buffer file"); 
+		result.service_err = DIAMOND_FAILEDSYSCALL;
+		result.opcode_err = err;
+		return &result;
 	}
 	close(fd);
 	file_release_lock(specpath);
 
 done:
-	(*lstate->set_fspec_cb)(cstate->app_cookie, gen, &shead->spec_sig);
+	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, arg2.sig);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;

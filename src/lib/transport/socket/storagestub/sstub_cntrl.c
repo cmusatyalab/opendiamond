@@ -329,60 +329,6 @@ process_object_message(listener_state_t * lstate, cstate_t * cstate,
 }
 
 void
-process_spec_message(listener_state_t * lstate, cstate_t * cstate,
-			  char *data)
-{
-	uint32_t gen;
-	spec_subhead_t *shead;
-	int spec_len;
-	char specpath[PATH_MAX];
-	char * cache;
-	char * sig;
-	char *buf;
-	int fd;
-	int err;
-
-	gen = ntohl(cstate->control_rx_header.generation_number);
-
-	shead = (spec_subhead_t *) data;
-	spec_len = ntohl(shead->spec_len);
-
-	/*
-	 * create a file for storing the searchlet library.
-	 */
-	umask(0000);
-
-	cache = dconf_get_spec_cachedir();
-	sig = sig_string(&shead->spec_sig);
-	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, sig);
-	free(sig);
-	free(cache);
-
-	buf = ((char *)shead) + sizeof(*shead);
-	
-        /* create the new file */
-	file_get_lock(specpath);
-	fd = open(specpath, O_CREAT|O_EXCL|O_WRONLY, 0744);
-       	if (fd < 0) {
-		file_release_lock(specpath);
-		if (errno == EEXIST) { 
-			goto done; 
-		}
-		fprintf(stderr, "file %s failed on %d \n", specpath, errno); 
-		err = errno;
-		return;
-	}
-	if (write(fd, buf, spec_len) != spec_len) {
-		perror("write buffer file"); 
-	}
-	close(fd);
-	file_release_lock(specpath);
-
-done:
-	(*lstate->set_fspec_cb)(cstate->app_cookie, gen, &shead->spec_sig);
-}
-
-void
 process_obj_message(listener_state_t * lstate, cstate_t * cstate,
 			  char *data)
 {

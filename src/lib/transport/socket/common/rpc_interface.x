@@ -29,11 +29,11 @@ struct diamond_rc_t {
 };
 
 struct stop_x {
-  int		hs_objs_received;	
-  int 		hs_objs_queued;
-  int		hs_objs_read;
-  int		hs_objs_uqueued;
-  int		hs_objs_upresented;
+  int host_objs_received;
+  int host_objs_queued;
+  int host_objs_read;
+  int app_objs_queued;
+  int app_objs_presented;
 };
 
 /* "hyper" is the rpcgen type for a 64-bit quantity. */

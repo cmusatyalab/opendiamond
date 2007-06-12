@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006 Carnegie Mellon University
+ *  Copyright (c) 2006-2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -568,6 +568,9 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 		free(list_state);
 		return (NULL);
 	}
+
+	tirpc_cstate = NULL;
+	tirpc_lstate = NULL;
 
 	return ((void *) list_state);
 }

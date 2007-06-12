@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006 Carnegie Mellon University
+ *  Copyright (c) 2006-2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -17,6 +17,8 @@
 #define	_SSTUB_IMPL_H_
 
 
+extern cstate_t *tirpc_cstate;
+extern listener_state_t *tirpc_lstate;
 
 /* the max concurrent connections that we currently support */
 #define	MAX_CONNS		64

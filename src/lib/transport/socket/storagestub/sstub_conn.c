@@ -46,6 +46,9 @@ static char const cvsid[] =
     "$Header$";
 
 
+cstate_t *tirpc_cstate;
+listener_state_t *tirpc_lstate;
+
 /*
  * This sets up a TI-RPC server listening on a random port number.
  */
@@ -197,6 +200,9 @@ connection_main(listener_state_t * lstate, int conn)
 	max_fd += 1;
 
 	cstate->lstate = lstate;
+
+	tirpc_cstate = cstate;
+	tirpc_lstate = lstate;
 
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {

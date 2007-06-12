@@ -417,6 +417,48 @@ process_obj_message(listener_state_t * lstate, cstate_t * cstate,
 }
 
 
+diamond_rc_t *
+device_start_x_2_svc(int arg1,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	int gen;
+
+	gen = arg1;
+
+	fprintf(stderr, "have_start pend %d \n", cstate->pend_obj);
+	if (tirpc_cstate->pend_obj == 0) {
+	  (*tirpc_lstate->start_cb) (tirpc_cstate->app_cookie, gen);
+	} else {
+	  tirpc_cstate->have_start = 1;
+	  tirpc_cstate->start_gen = gen;
+	}
+
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+diamond_rc_t *
+device_stop_x_2_svc(int arg1, stop_x arg2,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	int gen_num;
+	host_stats_t hstats;
+	stop_subheader_t *shead;
+
+	gen = arg1;
+		
+	hstats.hs_objs_received = arg2.host_objs_received;
+	hstats.hs_objs_queued = arg2.host_objs_queued;
+	hstats.hs_objs_read = arg2.host_objs_read;
+	hstats.hs_objs_uqueued = arg2.app_objs_queued;
+	hstats.hs_objs_upresented = arg2.app_objs_presented;
+	(*tirpc_lstate->stop_cb) (tirpc_cstate->app_cookie, gen, &hstats);
+
+
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
 
 /*
  * This is called when we have an indication that data is ready
@@ -433,30 +475,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 	gen = ntohl(cstate->control_rx_header.generation_number);
 
 	switch (cmd) {
-	case CNTL_CMD_START:
-		fprintf(stderr, "have_start pend %d \n", cstate->pend_obj);
-		if (cstate->pend_obj == 0) {
-			(*lstate->start_cb) (cstate->app_cookie, gen);
-		} else {
-			cstate->have_start = 1;
-			cstate->start_gen = gen;
-		}
-		break;
-
-	case CNTL_CMD_STOP:
-		{
-		host_stats_t hstats;
-		stop_subheader_t *shead;
-		
-		shead = (stop_subheader_t *) data;
-		hstats.hs_objs_received = ntohl(shead->host_objs_received);
-		hstats.hs_objs_queued = ntohl(shead->host_objs_queued);
-		hstats.hs_objs_read = ntohl(shead->host_objs_read);
-		hstats.hs_objs_uqueued = ntohl(shead->app_objs_queued);
-		hstats.hs_objs_upresented = ntohl(shead->app_objs_presented);
-		(*lstate->stop_cb) (cstate->app_cookie, gen, &hstats);
-		}
-		break;
 
 	case CNTL_CMD_SET_SPEC:
 		assert(data != NULL);

@@ -1,0 +1,5 @@
+/dconf_test
+/name_test
+/diamond_config.c
+/group_lookup.c
+/name_lookup.c

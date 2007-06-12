@@ -98,7 +98,7 @@ struct send_obj_x {
 };
 
 struct blob_x {
-  string blob_name<>;
+  opaque blob_name<>;
   opaque blob_data<>;	/* the data with the name followed by blob */
 };
 

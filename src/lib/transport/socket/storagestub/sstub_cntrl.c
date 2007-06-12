@@ -421,9 +421,7 @@ diamond_rc_t *
 device_start_x_2_svc(int arg1,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	int gen;
-
-	gen = arg1;
+	int gen = arg1;
 
 	fprintf(stderr, "have_start pend %d \n", cstate->pend_obj);
 	if (tirpc_cstate->pend_obj == 0) {
@@ -441,12 +439,9 @@ diamond_rc_t *
 device_stop_x_2_svc(int arg1, stop_x arg2,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	int gen_num;
 	host_stats_t hstats;
-	stop_subheader_t *shead;
+	int gen = arg1;
 
-	gen = arg1;
-		
 	hstats.hs_objs_received = arg2.host_objs_received;
 	hstats.hs_objs_queued = arg2.host_objs_queued;
 	hstats.hs_objs_read = arg2.host_objs_read;
@@ -454,11 +449,68 @@ device_stop_x_2_svc(int arg1, stop_x arg2,  struct svc_req *rqstp)
 	hstats.hs_objs_upresented = arg2.app_objs_presented;
 	(*tirpc_lstate->stop_cb) (tirpc_cstate->app_cookie, gen, &hstats);
 
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+diamond_rc_t *
+device_terminate_x_2_svc(int arg1,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	int gen = arg1;
+
+	(*tirpc_lstate->terminate_cb) (tirpc_cstate->app_cookie, gen);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
 
+diamond_rc_t *
+device_clear_gids_x_2_svc(int arg1,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	int gen = arg1;
+
+	(*tirpc_lstate->clear_gids_cb) (tirpc_cstate->app_cookie, gen);				
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+diamond_rc_t *
+device_new_gid_x_2_svc(int arg1, groupid_x arg2,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	groupid_t       gid;
+	int gen = arg1;
+	uint64_t gid = arg2;
+	
+	(*tirpc_lstate->sgid_cb) (tirpc_cstate->app_cookie, gen, gid);
+
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+diamond_rc_t *
+device_set_blob_x_2_svc(int arg1, blob_x arg2, struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	void                *blob;
+	int                  blen;
+	int                  nlen;
+	char                *name;
+	int                  gen = arg1;
+	
+	nlen = arg2.blob_name.blob_name_len;
+	blen = arg2.blob_data.blob_data_len;
+	name = arg2.blob_name.blob_name_val;
+	blob = arg2.blob_data.blob_data_val;
+	
+	(*tirpc_lstate->set_blob_cb) (tirpc_cstate->app_cookie, gen, 
+				      name, blen, blob);
+
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
 
 /*
  * This is called when we have an indication that data is ready
@@ -493,10 +545,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		 * XXX this needs to be expanded 
 		 */
 		(*lstate->set_list_cb) (cstate->app_cookie, gen);
-		break;
-
-	case CNTL_CMD_TERMINATE:
-		(*lstate->terminate_cb) (cstate->app_cookie, gen);
 		break;
 
 	case CNTL_CMD_GET_STATS:
@@ -570,44 +618,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 			break;
 		}
 
-	case CNTL_CMD_ADD_GID:{
-			sgid_subheader_t *shead;
-			groupid_t       gid;
-
-			assert(data != NULL);
-			shead = (sgid_subheader_t *) data;
-
-			gid = shead->sgid_gid;	/* XXX 64bit bswap */
-			(*lstate->sgid_cb) (cstate->app_cookie, gen, gid);
-			free(data);
-			break;
-		}
-
-	case CNTL_CMD_CLEAR_GIDS:
-		assert(data == NULL);
-		(*lstate->clear_gids_cb) (cstate->app_cookie, gen);
-		break;
-
-	case CNTL_CMD_SET_BLOB:{
-			blob_subheader_t *shead;
-			void           *blob;
-			int             blen;
-			int             nlen;
-			char           *name;
-
-			assert(data != NULL);
-			shead = (blob_subheader_t *) data;
-
-			nlen = ntohl(shead->blob_nlen);
-			blen = ntohl(shead->blob_blen);
-			name = shead->blob_sdata;
-			blob = &shead->blob_sdata[nlen];
-
-			(*lstate->set_blob_cb) (cstate->app_cookie, gen, name,
-						blen, blob);
-			free(data);
-			break;
-		}
 
 	case CNTL_CMD_SEND_OBJ:
 		assert(data != NULL);

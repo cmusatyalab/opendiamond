@@ -21,7 +21,7 @@ enum diamond_service_error_t {
 
 enum diamond_opcode_error_t {
   DIAMOND_OPCODE_SUCCESS = 0,
-  DIAMOND_OPCODE_FAILURE = 1
+  DIAMOND_OPCODE_FAILURE
 };
 
 struct diamond_rc_t {
@@ -77,11 +77,6 @@ struct devchar_x {
   hyper	        dcs_mem;
 };
 
-struct setlog_x{
-  unsigned int log_level;
-  unsigned int log_src;
-};
-
 struct dctl_x {
   unsigned int	dctl_err;  
   int           dctl_opid;      
@@ -128,16 +123,15 @@ program OPENDIAMOND_PROG {
     diamond_rc_t            device_clear_gids_x(unsigned int gen) = 4;
     diamond_rc_t            device_new_gid_x(unsigned int gen, groupid_x) = 5;
     diamond_rc_t            device_set_spec_x(unsigned int gen, spec_file_x) = 6;
-    diamond_rc_t            device_set_log_x(setlog_x) = 7;
-    dctl_return_x           device_write_leaf_x(dctl_x) = 8;
-    dctl_return_x           device_read_leaf_x(dctl_x) = 9;
-    dctl_return_x           device_list_nodes_x(dctl_x) = 10;
-    dctl_return_x           device_list_leafs_x(dctl_x) = 11;
-    diamond_rc_t            device_set_blob_x(int, blob_x) = 12;
-    diamond_rc_t            device_set_exec_mode_x(int, unsigned int) = 13;
-    diamond_rc_t            device_set_user_state_x(int, unsigned int) = 14;
-    request_chars_return_x  request_chars_x(void) = 15;
-    request_stats_return_x  request_stats_x(void) = 16;
+    dctl_return_x           device_write_leaf_x(dctl_x) = 7;
+    dctl_return_x           device_read_leaf_x(dctl_x) = 8;
+    dctl_return_x           device_list_nodes_x(dctl_x) = 9;
+    dctl_return_x           device_list_leafs_x(dctl_x) = 10;
+    diamond_rc_t            device_set_blob_x(int, blob_x) = 11;
+    diamond_rc_t            device_set_exec_mode_x(int, unsigned int) = 12;
+    diamond_rc_t            device_set_user_state_x(int, unsigned int) = 13;
+    request_chars_return_x  request_chars_x(void) = 14;
+    request_stats_return_x  request_stats_x(void) = 15;
 
 
     /* The filter library passing calls are related respectively by:
@@ -148,8 +142,8 @@ program OPENDIAMOND_PROG {
      * client, the first two calls will become a single synchronous
      * call and the last will become a new call. */
 
-    diamond_rc_t device_set_lib_x(int, sig_val_x) = 17;
-    diamond_rc_t device_send_lib_x(int, send_obj_x) = 18;
+    diamond_rc_t device_set_lib_x(int, sig_val_x) = 16;
+    diamond_rc_t device_send_lib_x(int, send_obj_x) = 17;
 
   } = 2;
 } = 0x2405E65E;  /* The leading "0x2" is required for "static"

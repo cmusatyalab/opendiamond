@@ -127,7 +127,6 @@ program OPENDIAMOND_PROG {
     diamond_rc_t            device_terminate_x(int) = 3;
     diamond_rc_t            device_clear_gids_x(int) = 4;
     diamond_rc_t            device_new_gid_x(int, groupid_x) = 5;
-    diamond_rc_t            device_set_offload_x(int, offload_x) = 6;
     diamond_rc_t            device_set_spec_x(int, spec_file_x) = 7;
     diamond_rc_t            device_set_log_x(setlog_x) = 8;
     dctl_return_x           device_write_leaf_x(dctl_x) = 9;

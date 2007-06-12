@@ -418,10 +418,9 @@ process_obj_message(listener_state_t * lstate, cstate_t * cstate,
 
 
 diamond_rc_t *
-device_start_x_2_svc(int arg1,  struct svc_req *rqstp)
+device_start_x_2_svc(u_int gen,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	int gen = arg1;
 
 	fprintf(stderr, "have_start pend %d \n", cstate->pend_obj);
 	if (tirpc_cstate->pend_obj == 0) {
@@ -435,12 +434,12 @@ device_start_x_2_svc(int arg1,  struct svc_req *rqstp)
 	return &result;
 }
 
+
 diamond_rc_t *
-device_stop_x_2_svc(int arg1, stop_x arg2,  struct svc_req *rqstp)
+device_stop_x_2_svc(u_int gen, stop_x arg2,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 	host_stats_t hstats;
-	int gen = arg1;
 
 	hstats.hs_objs_received = arg2.host_objs_received;
 	hstats.hs_objs_queued = arg2.host_objs_queued;
@@ -453,11 +452,11 @@ device_stop_x_2_svc(int arg1, stop_x arg2,  struct svc_req *rqstp)
 	return &result;
 }
 
+
 diamond_rc_t *
-device_terminate_x_2_svc(int arg1,  struct svc_req *rqstp)
+device_terminate_x_2_svc(u_int gen,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	int gen = arg1;
 
 	(*tirpc_lstate->terminate_cb) (tirpc_cstate->app_cookie, gen);
 
@@ -465,23 +464,23 @@ device_terminate_x_2_svc(int arg1,  struct svc_req *rqstp)
 	return &result;
 }
 
+
 diamond_rc_t *
-device_clear_gids_x_2_svc(int arg1,  struct svc_req *rqstp)
+device_clear_gids_x_2_svc(u_int gen,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	int gen = arg1;
 
 	(*tirpc_lstate->clear_gids_cb) (tirpc_cstate->app_cookie, gen);				
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
 
+
 diamond_rc_t *
-device_new_gid_x_2_svc(int arg1, groupid_x arg2,  struct svc_req *rqstp)
+device_new_gid_x_2_svc(u_int gen, groupid_x arg2,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 	groupid_t       gid;
-	int gen = arg1;
 	uint64_t gid = arg2;
 	
 	(*tirpc_lstate->sgid_cb) (tirpc_cstate->app_cookie, gen, gid);
@@ -490,15 +489,15 @@ device_new_gid_x_2_svc(int arg1, groupid_x arg2,  struct svc_req *rqstp)
 	return &result;
 }
 
+
 diamond_rc_t *
-device_set_blob_x_2_svc(int arg1, blob_x arg2, struct svc_req *rqstp)
+device_set_blob_x_2_svc(u_int gen, blob_x arg2, struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 	void                *blob;
 	int                  blen;
 	int                  nlen;
 	char                *name;
-	int                  gen = arg1;
 	
 	nlen = arg2.blob_name.blob_name_len;
 	blen = arg2.blob_data.blob_data_len;
@@ -507,6 +506,65 @@ device_set_blob_x_2_svc(int arg1, blob_x arg2, struct svc_req *rqstp)
 	
 	(*tirpc_lstate->set_blob_cb) (tirpc_cstate->app_cookie, gen, 
 				      name, blen, blob);
+
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+
+diamond_rc_t *
+device_set_spec_x_2_svc(int arg1, spec_file_x arg2,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	int                  gen = arg1;
+	uint32_t gen;
+	spec_subhead_t *shead;
+	int spec_len;
+	char specpath[PATH_MAX];
+	char * cache;
+	char * sig;
+	char *buf;
+	int fd;
+	int err;
+
+	gen = ntohl(cstate->control_rx_header.generation_number);
+
+	shead = (spec_subhead_t *) data;
+	spec_len = ntohl(shead->spec_len);
+
+	/*
+	 * create a file for storing the searchlet library.
+	 */
+	umask(0000);
+
+	cache = dconf_get_spec_cachedir();
+	sig = sig_string(&shead->spec_sig);
+	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, sig);
+	free(sig);
+	free(cache);
+
+	buf = ((char *)shead) + sizeof(*shead);
+	
+        /* create the new file */
+	file_get_lock(specpath);
+	fd = open(specpath, O_CREAT|O_EXCL|O_WRONLY, 0744);
+       	if (fd < 0) {
+		file_release_lock(specpath);
+		if (errno == EEXIST) { 
+			goto done; 
+		}
+		fprintf(stderr, "file %s failed on %d \n", specpath, errno); 
+		err = errno;
+		return;
+	}
+	if (write(fd, buf, spec_len) != spec_len) {
+		perror("write buffer file"); 
+	}
+	close(fd);
+	file_release_lock(specpath);
+
+done:
+	(*lstate->set_fspec_cb)(cstate->app_cookie, gen, &shead->spec_sig);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;

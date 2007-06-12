@@ -121,22 +121,22 @@ program OPENDIAMOND_PROG {
 
     /* Client calls. */
 
-    diamond_rc_t            device_start_x(int) = 1;
-    diamond_rc_t            device_stop_x(int, stop_x) = 2;
-    diamond_rc_t            device_terminate_x(int) = 3;
-    diamond_rc_t            device_clear_gids_x(int) = 4;
-    diamond_rc_t            device_new_gid_x(int, groupid_x) = 5;
-    diamond_rc_t            device_set_spec_x(int, spec_file_x) = 7;
-    diamond_rc_t            device_set_log_x(setlog_x) = 8;
-    dctl_return_x           device_write_leaf_x(dctl_x) = 9;
-    dctl_return_x           device_read_leaf_x(dctl_x) = 10;
-    dctl_return_x           device_list_nodes_x(dctl_x) = 11;
-    dctl_return_x           device_list_leafs_x(dctl_x) = 12;
-    diamond_rc_t            device_set_blob_x(int, blob_x) = 13;
-    diamond_rc_t            device_set_exec_mode_x(int, unsigned int) = 14;
-    diamond_rc_t            device_set_user_state_x(int, unsigned int) = 15;
-    request_chars_return_x  request_chars_x(void) = 16;
-    request_stats_return_x  request_stats_x(void) = 17;
+    diamond_rc_t            device_start_x(unsigned int gen) = 1;
+    diamond_rc_t            device_stop_x(unsigned int gen, stop_x) = 2;
+    diamond_rc_t            device_terminate_x(unsigned int gen) = 3;
+    diamond_rc_t            device_clear_gids_x(unsigned int gen) = 4;
+    diamond_rc_t            device_new_gid_x(unsigned int gen, groupid_x) = 5;
+    diamond_rc_t            device_set_spec_x(unsigned int gen, spec_file_x) = 6;
+    diamond_rc_t            device_set_log_x(setlog_x) = 7;
+    dctl_return_x           device_write_leaf_x(dctl_x) = 8;
+    dctl_return_x           device_read_leaf_x(dctl_x) = 9;
+    dctl_return_x           device_list_nodes_x(dctl_x) = 10;
+    dctl_return_x           device_list_leafs_x(dctl_x) = 11;
+    diamond_rc_t            device_set_blob_x(int, blob_x) = 12;
+    diamond_rc_t            device_set_exec_mode_x(int, unsigned int) = 13;
+    diamond_rc_t            device_set_user_state_x(int, unsigned int) = 14;
+    request_chars_return_x  request_chars_x(void) = 15;
+    request_stats_return_x  request_stats_x(void) = 16;
 
 
     /* The filter library passing calls are related respectively by:
@@ -147,8 +147,8 @@ program OPENDIAMOND_PROG {
      * client, the first two calls will become a single synchronous
      * call and the last will become a new call. */
 
-    diamond_rc_t device_set_lib_x(int, sig_val_x) = 18;
-    diamond_rc_t device_send_lib_x(int, send_obj_x) = 19;
+    diamond_rc_t device_set_lib_x(int, sig_val_x) = 17;
+    diamond_rc_t device_send_lib_x(int, send_obj_x) = 18;
 
   } = 2;
 } = 0x2405E65E;  /* The leading "0x2" is required for "static"

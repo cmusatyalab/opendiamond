@@ -582,12 +582,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 
 	switch (cmd) {
 
-	case CNTL_CMD_SET_SPEC:
-		assert(data != NULL);
-		process_spec_message(lstate, cstate, data);
-		free(data);
-		break;
-
 	case CNTL_CMD_SET_OBJ:
 		assert(data != NULL);
 		process_obj_message(lstate, cstate, data);

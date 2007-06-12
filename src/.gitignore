@@ -2,6 +2,7 @@
 *.o
 *.lo
 *.la
+*.loT
 *.pc
 Makefile
 Makefile.in

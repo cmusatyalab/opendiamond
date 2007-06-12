@@ -38,7 +38,6 @@ struct stop_x {
 
 /* "hyper" is the rpcgen type for a 64-bit quantity. */
 typedef hyper    groupid_x;
-typedef hyper    offload_x;
 typedef opaque   spec_x<>;
 typedef opaque   sig_val_x[16];  /* SIG_SIZE == 16, defined in 
 				  * lib/libtools/sig_calc.h as 16 */

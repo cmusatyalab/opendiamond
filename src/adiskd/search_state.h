@@ -110,7 +110,7 @@ int             search_set_obj(void *app_cookie, int gen_num,
 		    sig_val_t *obj_sig);
 int             search_set_list(void *app_cookie, int gen_num);
 int             search_term(void *app_cookie, int gen_num);
-void            search_get_stats(void *app_cookie, int gen_num);
+dev_stats_t *   search_get_stats(void *app_cookie, int gen_num);
 int             search_release_obj(void *app_cookie, obj_data_t * obj);
 int             search_get_char(void *app_cookie, int gen_num);
 int             search_log_done(void *app_cookie, char *buf, int len);

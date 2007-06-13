@@ -17,9 +17,6 @@
 #define	_SSTUB_IMPL_H_
 
 
-extern cstate_t *tirpc_cstate;
-extern listener_state_t *tirpc_lstate;
-
 /* the max concurrent connections that we currently support */
 #define	MAX_CONNS		64
 
@@ -240,9 +237,13 @@ void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
  * Functions exported by sstub_tirpc.c
  */
 void sstub_except_tirpc(listener_state_t *lstate, cstate_t *cstate);
+
 /*
  * Functions exported by sstub_conn.c
  */
 void * connection_main(listener_state_t *lstate, int conn);
+
+extern cstate_t *tirpc_cstate;
+extern listener_state_t *tirpc_lstate;
 
 #endif /* !_SSTUB_IMPL_H_ */

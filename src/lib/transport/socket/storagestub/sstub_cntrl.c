@@ -43,7 +43,7 @@
 #include "lib_sstub.h"
 #include "lib_dconfig.h"
 #include "sstub_impl.h"
-
+#include "rpc_interface.h"
 
 static char const cvsid[] =
     "$Header$";
@@ -664,7 +664,7 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 void
 sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 {
-	int size_in, size_out, error;
+	int size_in, size_out;
 	char buf[4096];
 
 	/*

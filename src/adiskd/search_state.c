@@ -1302,10 +1302,11 @@ search_set_list(void *app_cookie, int gen_num)
 }
 
 /*
- * Get the current statistics on the system.
+ * Get the current statistics on the system.  The return value must 
+ * be freed by the caller.
  */
 
-void
+dev_stats_t *
 search_get_stats(void *app_cookie, int gen_num)
 {
 	search_state_t *sstate;
@@ -1359,18 +1360,7 @@ search_get_stats(void *app_cookie, int gen_num)
 		return;
 	}
 
-
-
-	/*
-	 * Send the stats.
-	 */
-	err = sstub_send_stats(sstate->comm_cookie, stats, len);
-	free(stats);
-	if (err) {
-		log_message(LOGT_DISK, LOGL_ERR,
-			    "search_get_stats: failed to send stats");
-	}
-	return;
+	return stats;
 }
 
 #define MAX_DBUF    1024

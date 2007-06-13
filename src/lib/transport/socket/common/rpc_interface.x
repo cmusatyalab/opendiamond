@@ -17,6 +17,7 @@ enum diamond_service_error_t {
   DIAMOND_SUCCESS = 0,
   DIAMOND_FAILEDSYSCALL,
   DIAMOND_NOMEM,
+  DIAMOND_OPERR,
   DIAMOND_FAILURE
 };
 

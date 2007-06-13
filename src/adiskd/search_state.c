@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University 
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -1222,29 +1223,29 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 }
 
 /*
- * a request to get the characteristics of the device.
+ * A request to get the characteristics of the device.  The caller must
+ * free the return argument.
  */
-int
+device_char_t *
 search_get_char(void *app_cookie, int gen_num)
 {
-	device_char_t   dev_char;
+	device_char_t   *dev_char;
 	search_state_t *sstate;
 	u_int64_t       val;
 	int             err;
 
-
+	if((dev_char = (dev_char_t *)malloc(sizeof(device_char_t))) == NULL) {
+	  perror("malloc");
+	  return NULL;
+	}
+	
 	sstate = (search_state_t *) app_cookie;
 
-	dev_char.dc_isa = DEV_ISA_IA32;
-	dev_char.dc_speed = (r_cpu_freq(&val) ? 0 : val);
-	dev_char.dc_mem = (r_freemem(&val) ? 0 : val);
+	dev_char->dc_isa = DEV_ISA_IA32;
+	dev_char->dc_speed = (r_cpu_freq(&val) ? 0 : val);
+	dev_char->dc_mem = (r_freemem(&val) ? 0 : val);
 
-	/*
-	 * XXX 
-	 */
-	err = sstub_send_dev_char(sstate->comm_cookie, &dev_char);
-
-	return 0;
+	return dev_char;
 }
 
 

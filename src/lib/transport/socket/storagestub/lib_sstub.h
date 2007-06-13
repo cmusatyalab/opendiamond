@@ -4,6 +4,8 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University 
+ *  
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -33,9 +35,9 @@ typedef	int (*sstub_set_filter_obj_fn)(void *app_cookie, int gen_num,
 
 typedef	int (*sstub_set_list_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_terminate_fn)(void *app_cookie, int gen_num);
-typedef	dev_stats_t * (*sstub_getstats_fn)(void *app_cookie, int gen_num);
+typedef	dev_stats_t *(*sstub_getstats_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_release_obj_fn)(void *app_cookie, obj_data_t * obj);
-typedef	int (*sstub_get_devchar_fn)(void *app_cookie, int gen_num);
+typedef	device_char_t *(*sstub_get_devchar_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_log_done_fn)(void *app_cookie, char *buf, int len);
 typedef	int (*sstub_set_log_fn)(void *app_cookie, uint32_t level, uint32_t src);
 

@@ -519,7 +519,11 @@ request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
   dev_stats_t *stats;
   int i;
 
-  stats = (*tirpc_lstate->get_stats_cb) (tirpc_cstate->app_cookie, gen);
+  if((stats = (*tirpc_lstate->get_stats_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
+    result.error.service_err = DIAMOND_OPERR;
+    result.error.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific?
+    return &result;
+  }
   
   result.ds_objs_total = stats->ds_objs_total;
   result.ds_objs_processed = stats->ds_objs_processed;
@@ -558,6 +562,28 @@ request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
   return &result;
 }
 
+request_chars_return_x *
+request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
+{
+  static request_chars_return_x  result;
+  device_char_t *chars;
+
+  if((chars = (*tirpc_lstate->get_char_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
+    result.error.service_err = DIAMOND_OPERR; 
+    result.error.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific? 
+    return &result; 
+  }
+  
+  result.chars.dcs_isa = chars->dc_isa;
+  result.chars.dc_speed = chars->dc_speed;
+  result.chars.dc_mem = chars->dc_mem;
+
+  free(chars);
+
+  result.error.service_err = DIAMOND_SUCCESS;
+  return &result;
+}
+
 
 /*
  * This is called when we have an indication that data is ready
@@ -586,10 +612,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		 * XXX this needs to be expanded 
 		 */
 		(*lstate->set_list_cb) (cstate->app_cookie, gen);
-		break;
-
-	case CNTL_CMD_GET_CHAR:
-		(*lstate->get_char_cb) (cstate->app_cookie, gen);
 		break;
 
 	case CNTL_CMD_READ_LEAF:{

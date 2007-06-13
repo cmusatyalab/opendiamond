@@ -512,6 +512,53 @@ done:
 	return &result;
 }
 
+request_stats_return_x *
+request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
+{
+  static request_stats_return_x  result;
+  dev_stats_t *stats;
+  int i;
+
+  stats = (*tirpc_lstate->get_stats_cb) (tirpc_cstate->app_cookie, gen);
+  
+  result.ds_objs_total = stats->ds_objs_total;
+  result.ds_objs_processed = stats->ds_objs_processed;
+  result.ds_objs_dropped = stats->ds_objs_dropped;
+  result.ds_objs_nproc = stats->ds_objs_nproc;
+  result.ds_system_load = stats->ds_system_load;
+  result.ds_avg_obj_time = stats->ds_avg_obj_time;
+  result.ds_filter_stats.filter_stats_len = stats->ds_num_filters;
+  
+  if((result.ds_filter_stats.filter_stats_val = (filter_stats_x *)malloc(stats->ds_num_filters * sizeof(filter_stats_x))) == NULL) {
+    perror("malloc");
+    result.error.service_err = DIAMOND_NOMEM;
+    return &result;
+  }
+  
+  for(i=0; i<stats->ds_num_filters; i++) {
+    if((result.ds_filter_stats.filter_stats_val[i].fs_name = strndup(stats->ds_filter_stats[i].fs_name, MAX_FILTER_NAME)) == NULL) {
+      perror("malloc"); 
+      result.error.service_err = DIAMOND_NOMEM; 
+      return &result; 
+    } 
+    result.ds_filter_stats.filter_stats_val[i].fs_objs_processed = stats->ds_filter_stats[i].fs_objs_processed;
+    result.ds_filter_stats.filter_stats_val[i].fs_objs_dropped = stats->ds_filter_stats[i].fs_objs_dropped;
+    result.ds_filter_stats.filter_stats_val[i].fs_objs_cache_dropped = stats->ds_filter_stats[i].fs_objs_cache_dropped;
+    result.ds_filter_stats.filter_stats_val[i].fs_objs_cache_passed = stats->ds_filter_stats[i].fs_objs_cache_passed;
+    result.ds_filter_stats.filter_stats_val[i].fs_objs_compute = stats->ds_filter_stats[i].fs_objs_compute;
+    result.ds_filter_stats.filter_stats_val[i].fs_hits_inter_session = stats->ds_filter_stats[i].fs_hits_inter_session;
+    result.ds_filter_stats.filter_stats_val[i].fs_hits_inter_query = stats->ds_filter_stats[i].fs_hits_inter_query;
+    result.ds_filter_stats.filter_stats_val[i].fs_hits_intra_query = stats->ds_filter_stats[i].fs_hits_intra_query;
+    result.ds_filter_stats.filter_stats_val[i].fs_avg_exec_time = stats->ds_filter_stats[i].fs_avg_exec_time;
+  }
+
+  free(stats);
+
+  result.error.service_err = DIAMOND_SUCCESS;
+  return &result;
+}
+
+
 /*
  * This is called when we have an indication that data is ready
  * on the control port.
@@ -539,10 +586,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		 * XXX this needs to be expanded 
 		 */
 		(*lstate->set_list_cb) (cstate->app_cookie, gen);
-		break;
-
-	case CNTL_CMD_GET_STATS:
-		(*lstate->get_stats_cb) (cstate->app_cookie, gen);
 		break;
 
 	case CNTL_CMD_GET_CHAR:

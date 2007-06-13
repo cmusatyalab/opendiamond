@@ -16,6 +16,7 @@ enum diamond_service_error_t {
   /* Sun RPC failure codes should be subsumed here. */
   DIAMOND_SUCCESS = 0,
   DIAMOND_FAILEDSYSCALL,
+  DIAMOND_NOMEM,
   DIAMOND_FAILURE
 };
 
@@ -130,7 +131,7 @@ program OPENDIAMOND_PROG {
     diamond_rc_t            device_set_blob_x(int, blob_x) = 11;
     diamond_rc_t            device_set_exec_mode_x(int, unsigned int) = 12;
     diamond_rc_t            device_set_user_state_x(int, unsigned int) = 13;
-    request_chars_return_x  request_chars_x(void) = 14;
+    request_chars_return_x  request_chars_x(unsigned int gen) = 14;
     request_stats_return_x  request_stats_x(void) = 15;
 
 

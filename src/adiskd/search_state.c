@@ -1430,36 +1430,42 @@ search_write_leaf(void *app_cookie, char *path, int len, char *data,
 	return err;
 }
 
-int
+dctl_lleaf_t *
 search_list_leafs(void *app_cookie, char *path, int32_t opid)
 {
 
 	/*
 	 * XXX hack for now 
 	 */
-	int             err,
-	                eno;
-	dctl_entry_t    ent_data[MAX_ENTS];
-	int             num_ents;
+	dctl_lleaf_t    *lt;
 	search_state_t *sstate;
 
 	sstate = (search_state_t *) app_cookie;
 
-	num_ents = MAX_ENTS;
-	err = dctl_list_leafs(path, &num_ents, ent_data);
+	if((lt = (dctl_lnode_t *)malloc(sizeof(dctl_lleaf_t))) == NULL) {
+	  perror("malloc");
+	  return NULL;
+	}
+
+	if((lt->ent_data = (dctl_entry_t *)malloc(sizeof(dctl_entry_t) * MAX_ENTS)) == NULL) {
+	  perror("malloc");
+	  return NULL;
+	}
+
+	lt->num_ents = MAX_ENTS;
+
+	lt->err = dctl_list_leafs(path, &(lt->num_ents), lt->ent_data);
 	/*
 	 * XXX deal with ENOSPC 
 	 */
 
-	if (err) {
-		num_ents = 0;
+	if (lt->err) {
+	  free(lt->ent_data);
+	  free(lt);
+	  return NULL;
 	}
 
-	eno = sstub_lleaf_response(sstate->comm_cookie, err, num_ents,
-				   ent_data, opid);
-	assert(eno == 0);
-
-	return (0);
+	return lt;
 }
 
 

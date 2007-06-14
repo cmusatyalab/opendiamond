@@ -43,8 +43,13 @@ typedef struct {
   int               err;
   int               num_ents;
   dctl_entry_t     *ent_data;
-} dctl_lnode_t;
+} dctl_lleaf_t;
 
+typedef struct {
+  int               err;
+  int               num_ents;
+  dctl_entry_t     *ent_data;
+} dctl_lnode_t;
 
 /* the maximum name of any dctl component (node or leaf) */
 #define	MAX_DCTL_COMP_NAME	64

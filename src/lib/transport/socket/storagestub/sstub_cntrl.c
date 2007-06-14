@@ -604,8 +604,8 @@ device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	result.dctl.dctl_plen = 0;          //XXX: or this one?
 	result.dctl.dctl_dtype = rt->dt;
 	result.dctl.dctl_data.dctl_data_len = rt->len;
-	result.dctl.dctl_data.dctl_data_val = rt->dbuf; /* TIRPC will free
-							 * (char *)dbuf */
+	result.dctl.dctl_data.dctl_data_val = rt->dbuf; /* TI-RPC will
+							 * free dbuf */
 
 	free(rt);
 
@@ -661,8 +661,6 @@ device_list_nodes_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	  return &result;
 	}
 
-	dlen = num_ents * sizeof(dctl_entry_t);
-
 	result.dctl.dctl_err = lt->err;
 	result.dctl.dctl_opid = arg1.dctl_opid;
 	result.dctl.dctl_plen = 0;
@@ -674,10 +672,37 @@ device_list_nodes_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 
 	free(lt);
 
+	/*
+	 * insert server code here
+	 */
 	result.error.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
 
+
+dctl_return_x *
+device_list_leafs_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+{
+	static dctl_return_x  result;
+
+	(*tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
+				   arg1.dctl_data.dctl_data_val, 
+				   arg1.dctl_opid);
+
+	arg1.dctl.dctl_err = err;
+	arg1.dctl.dctl_opid = opid;
+	arg1.dctl.dctl_plen = 0;
+	arg1.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
+	result.dctl.dctl_data.dctl_data_val = lt->ent_data;  /* ent_data
+							      * will be
+							      * freed by
+							      * TI-RPC. */
+	
+	free(lt);
+
+	result.error.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
 
 /*
  * This is called when we have an indication that data is ready
@@ -707,22 +732,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		 */
 		(*lstate->set_list_cb) (cstate->app_cookie, gen);
 		break;
-
-
-	case CNTL_CMD_LIST_LEAFS:{
-			dctl_subheader_t *shead;
-			int32_t         opid;
-			assert(data != NULL);
-
-			shead = (dctl_subheader_t *) data;
-			opid = ntohl(shead->dctl_opid);
-
-			(*lstate->lleaf_cb) (cstate->app_cookie,
-					     shead->dctl_data, opid);
-			free(data);
-			break;
-		}
-
 
 	case CNTL_CMD_SEND_OBJ:
 		assert(data != NULL);

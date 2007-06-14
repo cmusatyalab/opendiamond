@@ -93,8 +93,6 @@ int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum, int complete);
 int sstub_get_partial(void *cookie, obj_data_t **obj);
 int sstub_flush_objs(void *cookie, int vnum);
 int sstub_send_log(void *cookie, char *buf, int len);
-int sstub_lleaf_response(void *cookie, int err, int num_ents,
-                         dctl_entry_t *data, int32_t opid);
 float sstub_get_drate(void *cookie);
 int sstub_queued_objects(void *cookie);
 int sstub_get_obj(void *cookie, sig_val_t *sig);

@@ -1367,37 +1367,44 @@ search_get_stats(void *app_cookie, int gen_num)
 #define MAX_DBUF    1024
 #define MAX_ENTS    512
 
-int
+
+/*
+ * The caller must free the returned argument.
+ */
+
+dctl_rleaf_t *
 search_read_leaf(void *app_cookie, char *path, int32_t opid)
 {
-
-	/*
-	 * XXX hack for now 
-	 */
-	int             len;
-	char            data_buf[MAX_DBUF];
-	dctl_data_type_t dtype;
-	int             err,
-	                eno;
-	search_state_t *sstate;
+	dctl_rleaf_t      *dtype;
+	int                err,
+	                   eno;
+	search_state_t    *sstate;
 
 	sstate = (search_state_t *) app_cookie;
 
+	if((dtype = (dctl_rleaf_t *)malloc(sizeof(dctl_rleaf_t))) == NULL) {
+	  perror("malloc");
+	  return NULL;
+	}
+	if((dtype->dbuf = (char *)malloc(sizeof(char)*MAX_DBUF)) == NULL) {
+	  perror("malloc");
+	  return NULL;
+	}
+
 	len = MAX_DBUF;
-	err = dctl_read_leaf(path, &dtype, &len, data_buf);
+	err = dctl_read_leaf(path, &(dtype->dt), &(dtype->len), dtype->dbuf);
+
 	/*
 	 * XXX deal with ENOSPC 
 	 */
 
 	if (err) {
-		len = 0;
+	  fprintf(stderr, "dctl_read_leaf failed on: %s\n", path);
+	  free(dtype);
+	  return NULL;
 	}
 
-	eno = sstub_rleaf_response(sstate->comm_cookie, err, dtype, len,
-				   data_buf, opid);
-	assert(eno == 0);
-
-	return (0);
+	return dtype;
 }
 
 

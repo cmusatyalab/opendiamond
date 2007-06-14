@@ -584,6 +584,30 @@ request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
   return &result;
 }
 
+dctl_return_x *
+device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+{
+	static dctl_return_x  result;
+	dctl_read_t          *rt;
+
+	rt = (*tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
+					arg1->dctl_data, arg1->opid);
+	if(rt == NULL) {
+	  result.error.service_err = DIAMOND_OPERR;
+	  result.error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
+	  return &result;
+	}
+
+	result.dctl.dctl_err = 0;           //XXX: is this arg even necessary?
+	result.dctl.dctl_opid = arg1->opid; //XXX: or this one?
+	result.dctl.dctl_plen = 0;          //XXX: or this one?
+	result.dctl.dctl_dtype = dtype->dt;
+	result.dctl.dctl_data.dctl_data_len = dtype->len;
+	result.dctl.dctl_data.dctl_data_val = dtype->dbuf; //TIRPC will free
+
+	result.error.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
 
 /*
  * This is called when we have an indication that data is ready
@@ -613,20 +637,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		 */
 		(*lstate->set_list_cb) (cstate->app_cookie, gen);
 		break;
-
-	case CNTL_CMD_READ_LEAF:{
-			dctl_subheader_t *shead;
-			int32_t         opid;
-			assert(data != NULL);
-
-			shead = (dctl_subheader_t *) data;
-			opid = ntohl(shead->dctl_opid);
-
-			(*lstate->rleaf_cb) (cstate->app_cookie,
-					     shead->dctl_data, opid);
-			free(data);
-			break;
-		}
 
 	case CNTL_CMD_WRITE_LEAF:{
 			dctl_subheader_t *shead;

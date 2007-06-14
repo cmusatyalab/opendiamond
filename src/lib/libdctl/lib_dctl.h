@@ -3,6 +3,7 @@
  *  Version 2
  *
  *  Copyright (c) 2002-2005 Intel Corporation
+ *  Copyright (c) 2007 Carnegie Mellon University  
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -31,6 +32,12 @@ typedef enum {
     DCTL_DT_STRING,
     DCTL_DT_CHAR
 } dctl_data_type_t;
+
+typedef struct {
+  dctl_data_type_t dt;
+  int len;
+  char *dbuf;
+} dctl_rleaf_t;
 
 
 /* the maximum name of any dctl component (node or leaf) */

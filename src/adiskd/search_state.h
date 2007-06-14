@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University 
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -115,7 +116,7 @@ int             search_release_obj(void *app_cookie, obj_data_t * obj);
 int             search_get_char(void *app_cookie, int gen_num);
 int             search_log_done(void *app_cookie, char *buf, int len);
 int             search_setlog(void *app_cookie, uint32_t level, uint32_t src);
-int             search_read_leaf(void *app_cookie, char *path, int32_t opid);
+dctl_rleaf_t *  search_read_leaf(void *app_cookie, char *path, int32_t opid);
 int             search_write_leaf(void *app_cookie, char *path, int len,
 				  char *data, int32_t opid);
 int             search_list_nodes(void *app_cookie, char *path, int32_t opid);

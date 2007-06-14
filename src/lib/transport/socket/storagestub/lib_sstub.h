@@ -94,8 +94,6 @@ int sstub_get_partial(void *cookie, obj_data_t **obj);
 int sstub_flush_objs(void *cookie, int vnum);
 int sstub_send_log(void *cookie, char *buf, int len);
 int sstub_wleaf_response(void *cookie, int err, int32_t opid);
-int sstub_rleaf_response(void *cookie, int err, dctl_data_type_t dtype,
-                         int len, char *data, int32_t opid);
 int sstub_lleaf_response(void *cookie, int err, int num_ents,
                          dctl_entry_t *data, int32_t opid);
 int sstub_lnode_response(void *cookie, int err, int num_ents,

@@ -606,12 +606,11 @@ bg_new_search(filter_opts_t *fops)
 	query_info_t qinfo;
 	int err,i;
 
-	sstate = (search_state_t *) malloc(sizeof(*sstate));
+	sstate = (search_state_t *) calloc(1, sizeof(*sstate));
 	if (sstate == NULL) {
 		exit(1);
 	}
 
-	memset((void *) sstate, 0, sizeof(*sstate));
 	memset(&qinfo, 0, sizeof(query_info_t));
 
 	dctl_init(&sstate->dctl_cookie);

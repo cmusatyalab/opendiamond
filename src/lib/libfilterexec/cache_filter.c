@@ -277,7 +277,7 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	int             err;
 	ceval_state_t  *new_state;
 
-	new_state = (ceval_state_t *) malloc(sizeof(*new_state));
+	new_state = (ceval_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
 	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_table", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
@@ -298,7 +298,6 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &hybrid_mode_enabled);
 
-	memset(new_state, 0, sizeof(*new_state));
 	new_state->odisk = odisk;
 	new_state->cookie = cookie;
 	new_state->stats_drop_fn = stats_drop_fn;

@@ -499,16 +499,10 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	listener_state_t *list_state;
 	int             err;
 
-	list_state = (listener_state_t *) malloc(sizeof(*list_state));
+	list_state = (listener_state_t *) calloc(1, sizeof(*list_state));
 	if (list_state == NULL) {
 		return (NULL);
 	}
-
-	/*
-	 * clear out list state, this will also clear all the appropriate
-	 * flags.
-	 */
-	memset((char *) list_state, 0, sizeof(*list_state));
 
 	/*
 	 * Save all the callback functions.

@@ -1125,12 +1125,10 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list,
 	sdevice_state_t *new_dev;
 	int             err;
 
-	new_dev = (sdevice_state_t *) malloc(sizeof(*new_dev));
+	new_dev = (sdevice_state_t *) calloc(1, sizeof(*new_dev));
 	if (new_dev == NULL) {
 		return (NULL);
 	}
-
-	memset(new_dev, 0, sizeof(*new_dev));
 
 	new_dev->log_cookie = log_cookie;
 	new_dev->dctl_cookie = dctl_cookie;

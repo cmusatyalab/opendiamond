@@ -517,9 +517,8 @@ odisk_add_gid(odisk_state_t * odisk, obj_data_t * obj, groupid_t * gid)
 	len = 0;
 	err = obj_read_attr(&obj->attr_info, GIDLIST_NAME, &len, NULL);
 	if (err == ENOENT) {
-		glist = (gid_list_t *) malloc(GIDLIST_SIZE(4));
+		glist = (gid_list_t *) calloc(1, GIDLIST_SIZE(4));
 		assert(glist != NULL);
-		memset(glist, 0, GIDLIST_SIZE(4));
 	} else if (err != ENOMEM) {
 		return (err);
 	} else {
@@ -1226,10 +1225,8 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	ring_init(&obj_ring, OBJ_RING_SIZE);
 	ring_init(&obj_pr_ring, OBJ_PR_RING_SIZE);
 
-	new_state = (odisk_state_t *) malloc(sizeof(*new_state));
+	new_state = (odisk_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
-
-	memset(new_state, 0, sizeof(*new_state));
 
 	new_state->dctl_cookie = dctl_cookie;
 	new_state->log_cookie = log_cookie;

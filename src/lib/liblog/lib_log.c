@@ -358,14 +358,13 @@ void log_init(char *log_prefix, char *control_prefix, void **cookie)
 		return;
 	}
 
-	ls = (log_state_t *) malloc(sizeof(*ls));
+	ls = (log_state_t *) calloc(1, sizeof(*ls));
 	if (ls == NULL) {
 		/*
 		 * XXX don't know what to do and who to report it to
 		 */
 		return;
 	}
-	memset(ls, 0, sizeof(*ls));
 	ls->level = LOGL_CRIT|LOGL_ERR|LOGL_INFO;
 	ls->type = LOGT_ALL;
 	ls->buf = g_queue_new();

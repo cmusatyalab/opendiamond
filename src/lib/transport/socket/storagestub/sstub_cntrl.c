@@ -388,7 +388,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	umask(0000);
 
 	cache = dconf_get_spec_cachedir();
-	spec_sig = sig_string(sig);
+	spec_sig = sig_string(sent_sig);
 	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, spec_sig);
 	free(spec_sig);
 	free(cache);

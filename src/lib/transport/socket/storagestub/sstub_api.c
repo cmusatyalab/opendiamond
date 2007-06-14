@@ -203,57 +203,6 @@ sstub_flush_objs(void *cookie, int ver_no)
 }
 
 
-int
-sstub_get_obj(void *cookie, sig_val_t *sig)
-{
-
-	cstate_t       *cstate;
-	control_header_t *cheader;
-	get_obj_header_t *shead;
-	int             err;
-
-	cstate = (cstate_t *) cookie;
-
-
-	cheader = malloc(sizeof(*cheader));
-	assert(cheader != NULL);
-
-	shead = malloc(sizeof(*shead));
-	assert(shead != NULL);
-
-
-	cheader->generation_number = 0;	/* XXX ??? */
-	cheader->command = htonl(CNTL_CMD_GET_OBJ);
-	cheader->data_len = htonl(sizeof(*shead));
-	cheader->spare = (uint32_t) shead;
-
-	memcpy(&shead->obj_sig, sig, sizeof(*sig));
-
-
-	/*
-	 * mark the control state that there is a pending
-	 * control message to send.
-	 */
-
-	pthread_mutex_lock(&cstate->cmutex);
-	cstate->flags |= CSTATE_CONTROL_DATA;
-
-	err = ring_enq(cstate->control_tx_ring, (void *) cheader);
-	pthread_mutex_unlock(&cstate->cmutex);
-	if (err) {
-		/*
-		 * XXX 
-		 */
-		printf("can't enq message \n");
-		exit(1);
-	}
-
-
-	return (0);
-}
-
-
-
 /*
  * This is the initialization function that is
  * called by the searchlet library when we startup.

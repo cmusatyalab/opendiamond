@@ -603,7 +603,8 @@ device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	result.dctl.dctl_plen = 0;          //XXX: or this one?
 	result.dctl.dctl_dtype = rt->dt;
 	result.dctl.dctl_data.dctl_data_len = rt->len;
-	result.dctl.dctl_data.dctl_data_val = rt->dbuf; //TIRPC will free
+	result.dctl.dctl_data.dctl_data_val = rt->dbuf; /* TIRPC will free
+							 * char *dbuf */
 
 	free(rt);
 

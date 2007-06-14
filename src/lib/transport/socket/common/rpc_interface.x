@@ -124,15 +124,17 @@ program OPENDIAMOND_PROG {
     diamond_rc_t            device_clear_gids_x(unsigned int gen) = 4;
     diamond_rc_t            device_new_gid_x(unsigned int gen, groupid_x) = 5;
     diamond_rc_t            device_set_spec_x(unsigned int gen, spec_file_x) = 6;
-    dctl_return_x           device_write_leaf_x(dctl_x) = 7;
-    dctl_return_x           device_read_leaf_x(dctl_x) = 8;
-    dctl_return_x           device_list_nodes_x(dctl_x) = 9;
-    dctl_return_x           device_list_leafs_x(dctl_x) = 10;
-    diamond_rc_t            device_set_blob_x(int, blob_x) = 11;
-    diamond_rc_t            device_set_exec_mode_x(int, unsigned int) = 12;
-    diamond_rc_t            device_set_user_state_x(int, unsigned int) = 13;
+    dctl_return_x           device_write_leaf_x(unsigned int gen, dctl_x) = 7;
+    dctl_return_x           device_read_leaf_x(unsigned int gen, dctl_x) = 8;
+    dctl_return_x           device_list_nodes_x(unsigned int gen, dctl_x) = 9;
+    dctl_return_x           device_list_leafs_x(unsigned int gen, dctl_x) = 10;
+    diamond_rc_t            device_set_blob_x(unsigned int gen, blob_x) = 11;
+    diamond_rc_t            device_set_exec_mode_x(unsigned int gen, 
+						   unsigned int mode) = 12;
+    diamond_rc_t            device_set_user_state_x(unsigned int gen, 
+						    unsigned int state) = 13;
     request_chars_return_x  request_chars_x(unsigned int gen) = 14;
-    request_stats_return_x  request_stats_x(void) = 15;
+    request_stats_return_x  request_stats_x(unsigned int gen) = 15;
 
 
     /* The filter library passing calls are related respectively by:

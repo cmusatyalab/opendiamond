@@ -585,14 +585,14 @@ request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
 }
 
 dctl_return_x *
-device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+device_read_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
 	dctl_read_t          *rt;
 
 	rt = (*tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
-					arg1.dctl_data.dctl_data_val, 
-					arg1.opid);
+					arg2.dctl_data.dctl_data_val, 
+					arg2.opid);
 	if(rt == NULL) {
 	  result.error.service_err = DIAMOND_OPERR;
 	  result.error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
@@ -600,7 +600,7 @@ device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	}
 	
 	result.dctl.dctl_err = 0;           //XXX: is this arg even necessary?
-	result.dctl.dctl_opid = arg1.dctl_opid; //XXX: or this one?
+	result.dctl.dctl_opid = arg2.dctl_opid; //XXX: or this one?
 	result.dctl.dctl_plen = 0;          //XXX: or this one?
 	result.dctl.dctl_dtype = rt->dt;
 	result.dctl.dctl_data.dctl_data_len = rt->len;
@@ -615,7 +615,7 @@ device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 
 
 dctl_return_x *
-device_write_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+device_write_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
 	int32_t               opid;
@@ -623,13 +623,13 @@ device_write_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 
 
 	err = (*tirpc_lstate->wleaf_cb) (tirpc_cstate->app_cookie,
-			      arg1.dctl_data.dctl_data_val,
-			      arg1.dctl_data.dctl_data_len,
-			      &(arg1.dctl_data.dctl_data_val[arg1.dctl_plen]), 
-			      arg1.dctl_opid);
+			      arg2.dctl_data.dctl_data_val,
+			      arg2.dctl_data.dctl_data_len,
+			      &(arg2.dctl_data.dctl_data_val[arg2.dctl_plen]), 
+			      arg2.dctl_opid);
 	
 	result.dctl.dctl_err = err;
-	result.dctl.dctl_opid = arg1.dctl_opid;
+	result.dctl.dctl_opid = arg2.dctl_opid;
 	result.dctl.dctl_plen = 0;
 	result.dctl.dctl_data.dctl_data_len = 0;
 	result.dctl.dctl_data.dctl_data_val = NULL;
@@ -646,14 +646,14 @@ device_write_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 
 
 dctl_return_x *
-device_list_nodes_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+device_list_nodes_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
 	dctl_lnode_t *lt;
 
 	lt = (*tirpc_lstate->lnode_cb) (tirpc_cstate->app_cookie,
-				   arg1.dctl_data.dctl_data_val, 
-				   arg1.dctl_opid);
+				   arg2.dctl_data.dctl_data_val, 
+				   arg2.dctl_opid);
 
 	if(lt == NULL) {
 	  result.error.service_err = DIAMOND_OPERR;
@@ -662,7 +662,7 @@ device_list_nodes_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	}
 
 	result.dctl.dctl_err = lt->err;
-	result.dctl.dctl_opid = arg1.dctl_opid;
+	result.dctl.dctl_opid = arg2.dctl_opid;
 	result.dctl.dctl_plen = 0;
 	result.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
 	result.dctl.dctl_data.dctl_data_val = lt->ent_data;  /* ent_data
@@ -681,19 +681,19 @@ device_list_nodes_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 
 
 dctl_return_x *
-device_list_leafs_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+device_list_leafs_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
 	dctl_lnode_t *lt;
 
 	lt = (*tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
-					arg1.dctl_data.dctl_data_val, 
-					arg1.dctl_opid);
+					arg2.dctl_data.dctl_data_val, 
+					arg2.dctl_opid);
 
-	arg1.dctl.dctl_err = lt->err;
-	arg1.dctl.dctl_opid = arg1.dctl_opid;
-	arg1.dctl.dctl_plen = 0;
-	arg1.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
+	arg2.dctl.dctl_err = lt->err;
+	arg2.dctl.dctl_opid = arg2.dctl_opid;
+	arg2.dctl.dctl_plen = 0;
+	arg2.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
 	result.dctl.dctl_data.dctl_data_val = lt->ent_data;  /* ent_data
 							      * will be
 							      * freed by
@@ -704,6 +704,32 @@ device_list_leafs_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	result.error.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
+
+
+diamond_rc_t *
+device_set_exec_mode_x_2_svc(u_int gen, u_int mode,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+
+	emheader = (exec_mode_subheader_t *) data;
+	(*tirpc_lstate->set_exec_mode_cb) (tirpc_cstate->app_cookie, mode);
+
+	result.error.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+
+diamond_rc_t *
+device_set_user_state_x_2_svc(u_int gen, u_int state,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	
+88	(*tirpc_lstate->set_user_state_cb) (tirpc_cstate->app_cookie, state);
+
+	result.error.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
 
 /*
  * This is called when we have an indication that data is ready
@@ -745,26 +771,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		}
 		break;
 
-	case CNTL_CMD_SET_EXEC_MODE:
-		{
-		exec_mode_subheader_t *emheader;
-		
-		assert(data != NULL);
-		emheader = (exec_mode_subheader_t *) data;
-		(*lstate->set_exec_mode_cb) (cstate->app_cookie, emheader->mode);
-		free(data);
-		break;
-		}
-	case CNTL_CMD_SET_USER_STATE:
-		{
-		user_state_subheader_t *usheader;
-		
-		assert(data != NULL);
-		usheader = (user_state_subheader_t *) data;
-		(*lstate->set_user_state_cb) (cstate->app_cookie, usheader->state);
-		free(data);
-		break;
-		}
 	default:
 		printf("unknown command: %d \n", cmd);
 		if (data) {

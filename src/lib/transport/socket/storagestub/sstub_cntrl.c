@@ -645,6 +645,38 @@ device_write_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 }
 
 
+dctl_return_x *
+device_list_nodes_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+{
+	static dctl_return_x  result;
+	dctl_lnode_t *lt;
+
+	lt = (*tirpc_lstate->lnode_cb) (tirpc_cstate->app_cookie,
+				   arg1.dctl_data.dctl_data_val, 
+				   arg1.dctl_opid);
+
+	if(lt == NULL) {
+	  result.error.service_err = DIAMOND_OPERR;
+	  result.error.opcode_err = DIAMOND_FAILURE;
+	  return &result;
+	}
+
+	dlen = num_ents * sizeof(dctl_entry_t);
+
+	result.dctl.dctl_err = lt->err;
+	result.dctl.dctl_opid = arg1.dctl_opid;
+	result.dctl.dctl_plen = 0;
+	result.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
+	result.dctl.dctl_data.dctl_data_val = lt->ent_data;  /* ent_data
+							      * will be
+							      * freed by
+							      * TI-RPC. */
+
+	result.error.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+
 /*
  * This is called when we have an indication that data is ready
  * on the control port.
@@ -673,20 +705,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		 */
 		(*lstate->set_list_cb) (cstate->app_cookie, gen);
 		break;
-
-	case CNTL_CMD_LIST_NODES:{
-			dctl_subheader_t *shead;
-			int32_t         opid;
-			assert(data != NULL);
-
-			shead = (dctl_subheader_t *) data;
-			opid = ntohl(shead->dctl_opid);
-
-			(*lstate->lnode_cb) (cstate->app_cookie,
-					     shead->dctl_data, opid);
-			free(data);
-			break;
-		}
 
 
 	case CNTL_CMD_LIST_LEAFS:{

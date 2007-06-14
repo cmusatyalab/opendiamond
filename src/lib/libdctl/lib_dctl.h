@@ -34,10 +34,16 @@ typedef enum {
 } dctl_data_type_t;
 
 typedef struct {
-  dctl_data_type_t dt;
-  int len;
-  char *dbuf;
+  dctl_data_type_t  dt;
+  int               len;
+  char             *dbuf;
 } dctl_rleaf_t;
+
+typedef struct {
+  int               err;
+  int               num_ents;
+  dctl_entry_t     *ent_data;
+} dctl_lnode_t;
 
 
 /* the maximum name of any dctl component (node or leaf) */

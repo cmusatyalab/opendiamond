@@ -119,7 +119,7 @@ int             search_setlog(void *app_cookie, uint32_t level, uint32_t src);
 dctl_rleaf_t *  search_read_leaf(void *app_cookie, char *path, int32_t opid);
 int             search_write_leaf(void *app_cookie, char *path, int len,
 				  char *data, int32_t opid);
-int             search_list_nodes(void *app_cookie, char *path, int32_t opid);
+dctl_lnode_t *  search_list_nodes(void *app_cookie, char *path, int32_t opid);
 int             search_list_leafs(void *app_cookie, char *path, int32_t opid);
 int             search_set_gid(void *app_cookie, int gen, groupid_t gid);
 int             search_clear_gids(void *app_cookie, int gen);

@@ -89,8 +89,6 @@ void * sstub_init_ext(sstub_cb_args_t *cb_args,
 						int bind_only_locally,
 						int auth_required);
 void  sstub_listen(void * cookie);
-int sstub_send_stats(void *cookie, dev_stats_t *dstats, int len);
-int sstub_send_dev_char(void *cookie, device_char_t *dchar);
 int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum, int complete);
 int sstub_get_partial(void *cookie, obj_data_t **obj);
 int sstub_flush_objs(void *cookie, int vnum);

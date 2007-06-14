@@ -684,13 +684,14 @@ dctl_return_x *
 device_list_leafs_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
+	dctl_lnode_t *lt;
 
-	(*tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
-				   arg1.dctl_data.dctl_data_val, 
-				   arg1.dctl_opid);
+	lt = (*tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
+					arg1.dctl_data.dctl_data_val, 
+					arg1.dctl_opid);
 
-	arg1.dctl.dctl_err = err;
-	arg1.dctl.dctl_opid = opid;
+	arg1.dctl.dctl_err = lt->err;
+	arg1.dctl.dctl_opid = arg1.dctl_opid;
 	arg1.dctl.dctl_plen = 0;
 	arg1.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
 	result.dctl.dctl_data.dctl_data_val = lt->ent_data;  /* ent_data

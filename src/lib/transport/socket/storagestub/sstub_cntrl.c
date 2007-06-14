@@ -672,6 +672,8 @@ device_list_nodes_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 							      * freed by
 							      * TI-RPC. */
 
+	free(lt);
+
 	result.error.service_err = DIAMOND_SUCCESS;
 	return &result;
 }

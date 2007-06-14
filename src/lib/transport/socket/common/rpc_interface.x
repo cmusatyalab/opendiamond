@@ -23,6 +23,7 @@ enum diamond_service_error_t {
 
 enum diamond_opcode_error_t {
   DIAMOND_OPCODE_SUCCESS = 0,
+  DIAMOND_OPCODE_FCACHEMISS,
   DIAMOND_OPCODE_FAILURE
 };
 
@@ -88,8 +89,7 @@ struct dctl_x {
 };
 
 struct send_obj_x {
-  sig_val_t	obj_sig;
-  uint32_t	obj_len;
+  sig_val_x	obj_sig;
   opaque        obj_data<>; 
 };
 
@@ -137,7 +137,7 @@ program OPENDIAMOND_PROG {
     request_stats_return_x  request_stats_x(unsigned int gen) = 15;
 
 
-    /* The filter library passing calls are related respectively by:
+    /* The filter caching calls are related respectively by:
      * client call(SET_OBJ) -> server callback(GET_OBJ) -> 
      *   client callback(SEND_OBJ)
      *
@@ -145,8 +145,8 @@ program OPENDIAMOND_PROG {
      * client, the first two calls will become a single synchronous
      * call and the last will become a new call. */
 
-    diamond_rc_t device_set_lib_x(int, sig_val_x) = 16;
-    diamond_rc_t device_send_lib_x(int, send_obj_x) = 17;
+    diamond_rc_t device_set_obj_x(unsigned int gen, sig_val_x) = 16;
+    diamond_rc_t device_send_obj_x(unsigned int gen, send_obj_x) = 17;
 
   } = 2;
 } = 0x2405E65E;  /* The leading "0x2" is required for "static"

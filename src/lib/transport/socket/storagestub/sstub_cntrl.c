@@ -270,98 +270,6 @@ sstub_except_control(listener_state_t * lstate, cstate_t * cstate)
 	return;
 }
 
-void
-process_object_message(listener_state_t * lstate, cstate_t * cstate,
-			  char *data)
-{
-	send_obj_subhead_t *shead;
-	int objlen;
-	int fd;
-	char objname[PATH_MAX];
-	sig_val_t data_sig;
-	char * sig;
-	char *cache;
-	char *buf;
-	int err;
-	uint32_t gen;
-
-
-	shead = (send_obj_subhead_t *) data;
-
-	gen = ntohl(cstate->control_rx_header.generation_number);
-
-
-	/* get name to store the object */ 	
-	cache = dconf_get_binary_cachedir();
-	sig = sig_string(&shead->obj_sig);
-	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig);
-	free(sig);
-	free(cache);
-
-	buf = ((char *)shead) + sizeof(*shead);
-
-	objlen = ntohl(shead->obj_len);
-
-	sig_cal(buf, objlen, &data_sig);
-	if (memcmp(&data_sig, &shead->obj_sig, sizeof(data_sig)) != 0) {
-		fprintf(stderr, "data doesn't match sig\n");
-	}
-        /* create the new file */
-	file_get_lock(objname);
-	fd = open(objname, O_CREAT|O_EXCL|O_WRONLY, 0744);
-       	if (fd < 0) {
-		file_release_lock(objname);
-		if (errno == EEXIST) { 
-			return; 
-		}
-		fprintf(stderr, "file %s failed on %d \n", objname, errno); 
-		err = errno;
-		return;
-	} 
-	if (write(fd, buf, objlen) != objlen) {
-		perror("write buffer file"); 
-	}
-	close(fd);
-	file_release_lock(objname);
-
-	(*lstate->set_fobj_cb)(cstate->app_cookie, gen, &shead->obj_sig);
-
-}
-
-void
-process_obj_message(listener_state_t * lstate, cstate_t * cstate,
-			  char *data)
-{
-	uint32_t gen;
-	set_obj_header_t *ohead;
-	char objpath[PATH_MAX];
-	char * cache;
-	char * sig;
-
-	gen = ntohl(cstate->control_rx_header.generation_number);
-	ohead = (set_obj_header_t *) data;
-
-	/*
-	 * create a file for storing the searchlet library.
-	 */
-	umask(0000);
-
-	cache = dconf_get_binary_cachedir();
-	sig = sig_string(&ohead->obj_sig);
-	snprintf(objpath, PATH_MAX, OBJ_FORMAT, cache, sig);
-	free(sig);
-	free(cache);
-
-	if (file_exists(objpath)) {
-		(*lstate->set_fobj_cb)(cstate->app_cookie, gen, &ohead->obj_sig);
-
-	} else {
-		/* XXX ref count before start command */
-		cstate->pend_obj++;
-		sstub_get_obj(cstate, &ohead->obj_sig);
-	}
-}
-
 
 diamond_rc_t *
 device_start_x_2_svc(u_int gen,  struct svc_req *rqstp)
@@ -464,10 +372,15 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	char specpath[PATH_MAX];
 	char * cache;
 	char *spec_sig, *spec_data;
+	sig_val_t sent_sig;
 	int spec_len;
 	int fd;
 
 	spec_len = arg2.data.data_len;
+	memcpy(&sent_sig, &arg2.sig, sizeof(sig_val_t));  /* sig_val_x and
+							   * sig_val_t should
+							   * be identical
+							   * in size. */
 
 	/*
 	 * create a file for storing the searchlet library.
@@ -475,7 +388,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	umask(0000);
 
 	cache = dconf_get_spec_cachedir();
-	spec_sig = sig_string(arg2.sig);
+	spec_sig = sig_string(sig);
 	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, spec_sig);
 	free(spec_sig);
 	free(cache);
@@ -506,7 +419,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	file_release_lock(specpath);
 
 done:
-	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, arg2.sig);
+	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, sig);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
@@ -711,10 +624,9 @@ device_set_exec_mode_x_2_svc(u_int gen, u_int mode,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 
-	emheader = (exec_mode_subheader_t *) data;
 	(*tirpc_lstate->set_exec_mode_cb) (tirpc_cstate->app_cookie, mode);
 
-	result.error.service_err = DIAMOND_SUCCESS;
+	result.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
 
@@ -726,60 +638,124 @@ device_set_user_state_x_2_svc(u_int gen, u_int state,  struct svc_req *rqstp)
 	
 88	(*tirpc_lstate->set_user_state_cb) (tirpc_cstate->app_cookie, state);
 
-	result.error.service_err = DIAMOND_SUCCESS;
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
+}
+
+diamond_rc_t *
+device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
+{
+	static diamond_rc_t  result;
+	set_obj_header_t *ohead;
+	char objpath[PATH_MAX];
+	char * cache;
+	char * sig_str;
+	sig_val_t sent_sig;
+
+	memcpy(&sent_sig, &arg2, sizeof(sig_val_t));
+
+	/*
+	 * create a file for storing the searchlet library.
+	 */
+	umask(0000);
+
+	cache = dconf_get_binary_cachedir();
+	sig_str = sig_string(&sent_sig);
+	snprintf(objpath, PATH_MAX, OBJ_FORMAT, cache, sig_str);
+	free(sig_str);
+	free(cache);
+
+	if (file_exists(objpath)) {
+	  int err;
+	  err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
+					      &sent_sig);
+	  if(err) {
+	    result.service_err = DIAMOND_OPERR;
+	    result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific
+	    return &result;
+	  }
+
+	} else {
+	  tirpc_cstate->pend_obj++;
+	  result.service_err = DIAMOND_OPERR;
+	  result.opcode_err = DIAMOND_OPCODE_FCACHEMISS;
+	}
+
+	result.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
 
 
-/*
- * This is called when we have an indication that data is ready
- * on the control port.
- */
-
-static void
-process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
+diamond_rc_t *
+device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 {
-	uint32_t        cmd;
-	uint32_t        gen;
+	static diamond_rc_t  result;
+	int fd;
+	char objname[PATH_MAX];
+	sig_val_t calc_sig;
+	sig_val_t sent_sig;
+	char * sig_str;
+	char *cache;
+	int err;
 
-	cmd = ntohl(cstate->control_rx_header.command);
-	gen = ntohl(cstate->control_rx_header.generation_number);
+	memcpy(&sent_sig, &(arg2.obj_sig), sizeof(sig_val_t));
 
-	switch (cmd) {
+	/* get name to store the object */ 	
+	cache = dconf_get_binary_cachedir();
+	sig_str = sig_string(&sent_sig);
+	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig_str);
+	free(sig_str);
+	free(cache);
 
-	case CNTL_CMD_SET_OBJ:
-		assert(data != NULL);
-		process_obj_message(lstate, cstate, data);
-		free(data);
-		break;
-
-	case CNTL_CMD_SET_LIST:
-		/*
-		 * XXX this needs to be expanded 
-		 */
-		(*lstate->set_list_cb) (cstate->app_cookie, gen);
-		break;
-
-	case CNTL_CMD_SEND_OBJ:
-		assert(data != NULL);
-		process_object_message(lstate, cstate, data);
-		free(data);
-		cstate->pend_obj--;
-		if ((cstate->pend_obj== 0) && (cstate->have_start)) {
-			(*lstate->start_cb) (cstate->app_cookie, cstate->start_gen);
-			cstate->have_start = 0;
-		}
-		break;
-
-	default:
-		printf("unknown command: %d \n", cmd);
-		if (data) {
-			free(data);
-		}
-		break;
+	/* check whether the calculated signature matches the sent one */
+	sig_cal(arg2.obj_data.obj_data_val, arg2.obj_data.obj_data_len, 
+		&calc_sig);
+	if (memcmp(&calc_sig, &sent_sig, sizeof(sig_val_t)) != 0) {
+	  fprintf(stderr, "data doesn't match sig\n");
 	}
 
-	return;
+        /* create the new file */
+	file_get_lock(objname);
+	fd = open(objname, O_CREAT|O_EXCL|O_WRONLY, 0744);
+       	if (fd < 0) {
+		file_release_lock(objname);
+		if (errno == EEXIST) {
+		  result.service_err = DIAMOND_SUCCESS;
+		  return &result; 
+		}
+		fprintf(stderr, "file %s failed on %d \n", objname, errno); 
+		result.service_err = DIAMOND_FAILEDSYSCALL;
+		result.opcode_err = errno;
+		return &result;
+	} 
+	if (write(fd, arg2.obj_data.obj_data_val, arg2.obj_data.obj_data_len) !=  arg2.obj_data.obj_data_len) {
+		perror("write buffer file"); 
+		result.service_err = DIAMOND_FAILEDSYSCALL;
+		result.opcode_err = errno;
+		close(fd);
+		return &result;
+	}
+	close(fd);
+	file_release_lock(objname);
+	
+	err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
+					    &sent_sig);
+	if(err) {
+	  result.service_err = DIAMOND_OPERR;
+	  result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific
+	  return &result;
+	}
+
+	tirpc_cstate->pend_obj--;
+
+	if((tirpc_cstate->pend_obj== 0) && (tirpc_cstate->have_start)) {
+	  (*tirpc_lstate->start_cb) (tirpc_cstate->app_cookie, 
+				     tirpc_cstate->start_gen);
+	  tirpc_cstate->have_start = 0;
+	}
+
+	result.service_err = DIAMOND_SUCCESS;
+	return &result;
 }
 
 

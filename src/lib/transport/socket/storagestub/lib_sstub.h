@@ -33,7 +33,6 @@ typedef	int (*sstub_set_filter_spec_fn)(void *app_cookie, int gen_num,
 typedef	int (*sstub_set_filter_obj_fn)(void *app_cookie, int gen_num, 
 		sig_val_t *obj_sig);
 
-typedef	int (*sstub_set_list_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_terminate_fn)(void *app_cookie, int gen_num);
 typedef	dev_stats_t *(*sstub_getstats_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_release_obj_fn)(void *app_cookie, obj_data_t * obj);

@@ -1293,15 +1293,6 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 }
 
 
-int
-search_set_list(void *app_cookie, int gen_num)
-{
-	/*
-	 * printf("XXX set list \n"); 
-	 */
-	return (0);
-}
-
 /*
  * Get the current statistics on the system.  The return value must 
  * be freed by the caller.

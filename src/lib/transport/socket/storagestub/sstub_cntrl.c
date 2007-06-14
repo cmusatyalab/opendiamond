@@ -591,26 +591,59 @@ device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	dctl_read_t          *rt;
 
 	rt = (*tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
-					arg1->dctl_data, arg1->opid);
+					arg1.dctl_data.dctl_data_val, 
+					arg1.opid);
 	if(rt == NULL) {
 	  result.error.service_err = DIAMOND_OPERR;
 	  result.error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
 	  return &result;
 	}
-
+	
 	result.dctl.dctl_err = 0;           //XXX: is this arg even necessary?
-	result.dctl.dctl_opid = arg1->opid; //XXX: or this one?
+	result.dctl.dctl_opid = arg1.dctl_opid; //XXX: or this one?
 	result.dctl.dctl_plen = 0;          //XXX: or this one?
 	result.dctl.dctl_dtype = rt->dt;
 	result.dctl.dctl_data.dctl_data_len = rt->len;
 	result.dctl.dctl_data.dctl_data_val = rt->dbuf; /* TIRPC will free
-							 * char *dbuf */
+							 * (char *)dbuf */
 
 	free(rt);
 
 	result.error.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
+
+
+dctl_return_x *
+device_write_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
+{
+	static dctl_return_x  result;
+	int32_t               opid;
+	int                   err;
+
+
+	err = (*tirpc_lstate->wleaf_cb) (tirpc_cstate->app_cookie,
+			      arg1.dctl_data.dctl_data_val,
+			      arg1.dctl_data.dctl_data_len,
+			      &(arg1.dctl_data.dctl_data_val[arg1.dctl_plen]), 
+			      arg1.dctl_opid);
+	
+	result.dctl.dctl_err = err;
+	result.dctl.dctl_opid = arg1.dctl_opid;
+	result.dctl.dctl_plen = 0;
+	result.dctl.dctl_data.dctl_data_len = 0;
+	result.dctl.dctl_data.dctl_data_val = NULL;
+
+	if(err == 0)
+	  result.error.service_err = DIAMOND_SUCCESS;
+	else {
+	  result.error.service_err = DIAMOND_OPERR;
+	  result.error.opcode_err = DIAMOND_FAILURE;
+	}
+
+	return &result;
+}
+
 
 /*
  * This is called when we have an indication that data is ready
@@ -640,26 +673,6 @@ process_control(listener_state_t * lstate, cstate_t * cstate, char *data)
 		 */
 		(*lstate->set_list_cb) (cstate->app_cookie, gen);
 		break;
-
-	case CNTL_CMD_WRITE_LEAF:{
-			dctl_subheader_t *shead;
-			int32_t         opid;
-			int             dlen,
-			                plen;
-			assert(data != NULL);
-
-			shead = (dctl_subheader_t *) data;
-			opid = ntohl(shead->dctl_opid);
-			dlen = ntohl(shead->dctl_dlen);
-			plen = ntohl(shead->dctl_plen);
-
-			(*lstate->wleaf_cb) (cstate->app_cookie,
-					     shead->dctl_data, dlen,
-					     &shead->dctl_data[plen], opid);
-
-			free(data);
-			break;
-		}
 
 	case CNTL_CMD_LIST_NODES:{
 			dctl_subheader_t *shead;

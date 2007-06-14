@@ -1415,8 +1415,7 @@ search_write_leaf(void *app_cookie, char *path, int len, char *data,
 	/*
 	 * XXX hack for now 
 	 */
-	int             err,
-	                eno;
+	int             err;
 	search_state_t *sstate;
 	sstate = (search_state_t *) app_cookie;
 
@@ -1425,14 +1424,7 @@ search_write_leaf(void *app_cookie, char *path, int len, char *data,
 	 * XXX deal with ENOSPC 
 	 */
 
-	if (err) {
-		len = 0;
-	}
-
-	eno = sstub_wleaf_response(sstate->comm_cookie, err, opid);
-	assert(eno == 0);
-
-	return (0);
+	return err;
 }
 
 int

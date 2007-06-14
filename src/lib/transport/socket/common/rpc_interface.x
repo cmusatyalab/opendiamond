@@ -83,7 +83,6 @@ struct dctl_x {
   unsigned int	dctl_err;  
   int           dctl_opid;      
   unsigned int  dctl_plen;
-  unsigned int  dctl_dlen; 
   unsigned int  dctl_dtype;
   opaque 	dctl_data<>;
 };

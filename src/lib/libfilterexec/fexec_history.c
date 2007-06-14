@@ -187,8 +187,7 @@ void update_filter_history(GHashTable *histories, gboolean remove)
 				  g_hash_table_lookup(histories, (gconstpointer) &sigval);
 			
 			if (fh == NULL) {
-				fh = g_malloc(sizeof(filter_history_t));
-				memset(fh, 0, sizeof(filter_history_t));
+				fh = g_malloc0(sizeof(filter_history_t));
 				string_to_sig(fname, &fh->filter_sig);
 				g_hash_table_insert(histories, &fh->filter_sig, fh);				
 			}

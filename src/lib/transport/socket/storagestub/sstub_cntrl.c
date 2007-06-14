@@ -601,9 +601,11 @@ device_read_leaf_x_2_svc(dctl_x arg1,  struct svc_req *rqstp)
 	result.dctl.dctl_err = 0;           //XXX: is this arg even necessary?
 	result.dctl.dctl_opid = arg1->opid; //XXX: or this one?
 	result.dctl.dctl_plen = 0;          //XXX: or this one?
-	result.dctl.dctl_dtype = dtype->dt;
-	result.dctl.dctl_data.dctl_data_len = dtype->len;
-	result.dctl.dctl_data.dctl_data_val = dtype->dbuf; //TIRPC will free
+	result.dctl.dctl_dtype = rt->dt;
+	result.dctl.dctl_data.dctl_data_len = rt->len;
+	result.dctl.dctl_data.dctl_data_val = rt->dbuf; //TIRPC will free
+
+	free(rt);
 
 	result.error.service_err = DIAMOND_SUCCESS;
 	return &result;

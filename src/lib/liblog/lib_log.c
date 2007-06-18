@@ -279,7 +279,6 @@ char source_to_char(uint32_t source) {
  * log_writer - main loop logging thread
  */
 void *log_writer(void *arg) {
-	GTimeVal	    timeout;
 	log_ent_t		*ent;
 	size_t			file_len = 0;
 	size_t			wlen;
@@ -293,7 +292,6 @@ void *log_writer(void *arg) {
 	
 	ls = (log_state_t *) arg;
 	ls->fd = log_create(ls->prefix);
-	g_get_current_time(&timeout);
 	
 	while (1) {
 		pthread_mutex_lock(&ls->log_mutex);
@@ -335,8 +333,7 @@ void *log_writer(void *arg) {
 			}
 		}
 		pthread_testcancel();
-		g_get_current_time(&timeout);
-		g_time_val_add(&timeout, 1000000);  /* wait one second */
+		g_usleep(G_USEC_PER_SEC);  /* wait one second */
 	}
 	/* NOTREACHED */
 }

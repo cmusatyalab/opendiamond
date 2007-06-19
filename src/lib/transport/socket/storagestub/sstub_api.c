@@ -261,7 +261,6 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	list_state->stop_cb = cb_args->stop_cb;
 	list_state->set_fspec_cb = cb_args->set_fspec_cb;
 	list_state->set_fobj_cb = cb_args->set_fobj_cb;
-	list_state->set_list_cb = cb_args->set_list_cb;
 	list_state->terminate_cb = cb_args->terminate_cb;
 	list_state->release_obj_cb = cb_args->release_obj_cb;
 	list_state->get_char_cb = cb_args->get_char_cb;

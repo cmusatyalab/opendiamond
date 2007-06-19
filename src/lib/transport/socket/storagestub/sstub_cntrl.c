@@ -276,7 +276,7 @@ device_start_x_2_svc(u_int gen,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 
-	fprintf(stderr, "have_start pend %d \n", cstate->pend_obj);
+	fprintf(stderr, "have_start pend %d \n", tirpc_cstate->pend_obj);
 	if (tirpc_cstate->pend_obj == 0) {
 	  (*tirpc_lstate->start_cb) (tirpc_cstate->app_cookie, gen);
 	} else {
@@ -388,7 +388,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	umask(0000);
 
 	cache = dconf_get_spec_cachedir();
-	spec_sig = sig_string(sent_sig);
+	spec_sig = sig_string(&sent_sig);
 	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, spec_sig);
 	free(spec_sig);
 	free(cache);
@@ -412,14 +412,15 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	if (write(fd, spec_data, spec_len) != spec_len) {
 		perror("write buffer file"); 
 		result.service_err = DIAMOND_FAILEDSYSCALL;
-		result.opcode_err = err;
+		result.opcode_err = errno;
 		return &result;
 	}
 	close(fd);
 	file_release_lock(specpath);
 
 done:
-	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, sig);
+	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, 
+				      &sent_sig);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
@@ -438,35 +439,35 @@ request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
     return &result;
   }
   
-  result.ds_objs_total = stats->ds_objs_total;
-  result.ds_objs_processed = stats->ds_objs_processed;
-  result.ds_objs_dropped = stats->ds_objs_dropped;
-  result.ds_objs_nproc = stats->ds_objs_nproc;
-  result.ds_system_load = stats->ds_system_load;
-  result.ds_avg_obj_time = stats->ds_avg_obj_time;
-  result.ds_filter_stats.filter_stats_len = stats->ds_num_filters;
+  result.stats.ds_objs_total = stats->ds_objs_total;
+  result.stats.ds_objs_processed = stats->ds_objs_processed;
+  result.stats.ds_objs_dropped = stats->ds_objs_dropped;
+  result.stats.ds_objs_nproc = stats->ds_objs_nproc;
+  result.stats.ds_system_load = stats->ds_system_load;
+  result.stats.ds_avg_obj_time = stats->ds_avg_obj_time;
+  result.stats.ds_filter_stats.ds_filter_stats_len = stats->ds_num_filters;
   
-  if((result.ds_filter_stats.filter_stats_val = (filter_stats_x *)malloc(stats->ds_num_filters * sizeof(filter_stats_x))) == NULL) {
+  if((result.stats.ds_filter_stats.ds_filter_stats_val = (filter_stats_x *)malloc(stats->ds_num_filters * sizeof(filter_stats_x))) == NULL) {
     perror("malloc");
     result.error.service_err = DIAMOND_NOMEM;
     return &result;
   }
   
   for(i=0; i<stats->ds_num_filters; i++) {
-    if((result.ds_filter_stats.filter_stats_val[i].fs_name = strndup(stats->ds_filter_stats[i].fs_name, MAX_FILTER_NAME)) == NULL) {
+    if((result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_name = strdup(stats->ds_filter_stats[i].fs_name)) == NULL) {
       perror("malloc"); 
       result.error.service_err = DIAMOND_NOMEM; 
       return &result; 
     } 
-    result.ds_filter_stats.filter_stats_val[i].fs_objs_processed = stats->ds_filter_stats[i].fs_objs_processed;
-    result.ds_filter_stats.filter_stats_val[i].fs_objs_dropped = stats->ds_filter_stats[i].fs_objs_dropped;
-    result.ds_filter_stats.filter_stats_val[i].fs_objs_cache_dropped = stats->ds_filter_stats[i].fs_objs_cache_dropped;
-    result.ds_filter_stats.filter_stats_val[i].fs_objs_cache_passed = stats->ds_filter_stats[i].fs_objs_cache_passed;
-    result.ds_filter_stats.filter_stats_val[i].fs_objs_compute = stats->ds_filter_stats[i].fs_objs_compute;
-    result.ds_filter_stats.filter_stats_val[i].fs_hits_inter_session = stats->ds_filter_stats[i].fs_hits_inter_session;
-    result.ds_filter_stats.filter_stats_val[i].fs_hits_inter_query = stats->ds_filter_stats[i].fs_hits_inter_query;
-    result.ds_filter_stats.filter_stats_val[i].fs_hits_intra_query = stats->ds_filter_stats[i].fs_hits_intra_query;
-    result.ds_filter_stats.filter_stats_val[i].fs_avg_exec_time = stats->ds_filter_stats[i].fs_avg_exec_time;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed = stats->ds_filter_stats[i].fs_objs_processed;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped = stats->ds_filter_stats[i].fs_objs_dropped;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped = stats->ds_filter_stats[i].fs_objs_cache_dropped;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed = stats->ds_filter_stats[i].fs_objs_cache_passed;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute = stats->ds_filter_stats[i].fs_objs_compute;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session = stats->ds_filter_stats[i].fs_hits_inter_session;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query = stats->ds_filter_stats[i].fs_hits_inter_query;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query = stats->ds_filter_stats[i].fs_hits_intra_query;
+    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time = stats->ds_filter_stats[i].fs_avg_exec_time;
   }
 
   free(stats);
@@ -488,8 +489,8 @@ request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
   }
   
   result.chars.dcs_isa = chars->dc_isa;
-  result.chars.dc_speed = chars->dc_speed;
-  result.chars.dc_mem = chars->dc_mem;
+  result.chars.dcs_speed = chars->dc_speed;
+  result.chars.dcs_mem = chars->dc_mem;
 
   free(chars);
 
@@ -501,11 +502,11 @@ dctl_return_x *
 device_read_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
-	dctl_read_t          *rt;
-
-	rt = (*tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
-					arg2.dctl_data.dctl_data_val, 
-					arg2.opid);
+	dctl_rleaf_t          *rt;
+	
+	rt = (tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
+				       arg2.dctl_data.dctl_data_val, 
+				       arg2.dctl_opid);
 	if(rt == NULL) {
 	  result.error.service_err = DIAMOND_OPERR;
 	  result.error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
@@ -531,7 +532,6 @@ dctl_return_x *
 device_write_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
-	int32_t               opid;
 	int                   err;
 
 
@@ -564,9 +564,9 @@ device_list_nodes_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 	static dctl_return_x  result;
 	dctl_lnode_t *lt;
 
-	lt = (*tirpc_lstate->lnode_cb) (tirpc_cstate->app_cookie,
-				   arg2.dctl_data.dctl_data_val, 
-				   arg2.dctl_opid);
+	lt = (tirpc_lstate->lnode_cb) (tirpc_cstate->app_cookie,
+					arg2.dctl_data.dctl_data_val, 
+					arg2.dctl_opid);
 
 	if(lt == NULL) {
 	  result.error.service_err = DIAMOND_OPERR;
@@ -578,16 +578,12 @@ device_list_nodes_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 	result.dctl.dctl_opid = arg2.dctl_opid;
 	result.dctl.dctl_plen = 0;
 	result.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
-	result.dctl.dctl_data.dctl_data_val = lt->ent_data;  /* ent_data
-							      * will be
-							      * freed by
-							      * TI-RPC. */
+
+	/* ent_data will be freed by TI-RPC. */
+	result.dctl.dctl_data.dctl_data_val = (char *)lt->ent_data; 
 
 	free(lt);
 
-	/*
-	 * insert server code here
-	 */
 	result.error.service_err = DIAMOND_SUCCESS;
 	return &result;
 }
@@ -597,20 +593,19 @@ dctl_return_x *
 device_list_leafs_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
-	dctl_lnode_t *lt;
+	dctl_lleaf_t *lt;
 
-	lt = (*tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
-					arg2.dctl_data.dctl_data_val, 
-					arg2.dctl_opid);
+	lt = (tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
+				       arg2.dctl_data.dctl_data_val, 
+				       arg2.dctl_opid);
 
-	arg2.dctl.dctl_err = lt->err;
-	arg2.dctl.dctl_opid = arg2.dctl_opid;
-	arg2.dctl.dctl_plen = 0;
-	arg2.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
-	result.dctl.dctl_data.dctl_data_val = lt->ent_data;  /* ent_data
-							      * will be
-							      * freed by
-							      * TI-RPC. */
+	result.dctl.dctl_err = lt->err;
+	result.dctl.dctl_opid = arg2.dctl_opid;
+	result.dctl.dctl_plen = 0;
+	result.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
+
+	/* ent_data will be freed by TI-RPC. */
+	result.dctl.dctl_data.dctl_data_val = (char *)lt->ent_data;
 	
 	free(lt);
 
@@ -624,7 +619,7 @@ device_set_exec_mode_x_2_svc(u_int gen, u_int mode,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 
-	(*tirpc_lstate->set_exec_mode_cb) (tirpc_cstate->app_cookie, mode);
+	(tirpc_lstate->set_exec_mode_cb) (tirpc_cstate->app_cookie, mode);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
@@ -636,7 +631,7 @@ device_set_user_state_x_2_svc(u_int gen, u_int state,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 	
-88	(*tirpc_lstate->set_user_state_cb) (tirpc_cstate->app_cookie, state);
+	(tirpc_lstate->set_user_state_cb) (tirpc_cstate->app_cookie, state);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
@@ -646,7 +641,6 @@ diamond_rc_t *
 device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
-	set_obj_header_t *ohead;
 	char objpath[PATH_MAX];
 	char * cache;
 	char * sig_str;

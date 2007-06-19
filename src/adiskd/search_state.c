@@ -1232,9 +1232,8 @@ search_get_char(void *app_cookie, int gen_num)
 	device_char_t   *dev_char;
 	search_state_t *sstate;
 	u_int64_t       val;
-	int             err;
 
-	if((dev_char = (dev_char_t *)malloc(sizeof(device_char_t))) == NULL) {
+	if((dev_char = (device_char_t *)malloc(sizeof(device_char_t))) == NULL) {
 	  perror("malloc");
 	  return NULL;
 	}
@@ -1324,7 +1323,7 @@ search_get_stats(void *app_cookie, int gen_num)
 		 * one if we don't have enough state.
 		 */
 		log_message(LOGT_DISK, LOGL_ERR, "search_get_stats: no mem");
-		return;
+		return NULL;
 	}
 
 	/*
@@ -1349,7 +1348,7 @@ search_get_stats(void *app_cookie, int gen_num)
 		free(stats);
 		log_message(LOGT_DISK, LOGL_ERR,
 			    "search_get_stats: failed to get filter stats");
-		return;
+		return NULL;
 	}
 
 	return stats;
@@ -1370,8 +1369,7 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 	 * XXX hack for now 
 	 */
 	dctl_rleaf_t      *dtype;
-	int                err,
-	                   eno;
+	int                err;
 	search_state_t    *sstate;
 
 	sstate = (search_state_t *) app_cookie;
@@ -1385,7 +1383,6 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 	  return NULL;
 	}
 
-	len = MAX_DBUF;
 	err = dctl_read_leaf(path, &(dtype->dt), &(dtype->len), dtype->dbuf);
 
 	/*
@@ -1433,7 +1430,7 @@ search_list_leafs(void *app_cookie, char *path, int32_t opid)
 
 	sstate = (search_state_t *) app_cookie;
 
-	if((lt = (dctl_lnode_t *)malloc(sizeof(dctl_lleaf_t))) == NULL) {
+	if((lt = (dctl_lleaf_t *)malloc(sizeof(dctl_lleaf_t))) == NULL) {
 	  perror("malloc");
 	  return NULL;
 	}

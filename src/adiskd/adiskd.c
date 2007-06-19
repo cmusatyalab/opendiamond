@@ -155,7 +155,6 @@ main(int argc, char **argv)
 	cb_args.set_fspec_cb = search_set_spec;
 	cb_args.set_fobj_cb = search_set_obj;
 
-	cb_args.set_list_cb = search_set_list;
 	cb_args.terminate_cb = search_term;
 	cb_args.get_stats_cb = search_get_stats;
 	cb_args.release_obj_cb = search_release_obj;

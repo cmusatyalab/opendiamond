@@ -30,6 +30,13 @@
 #include <netdb.h>
 #include <string.h>
 #include <assert.h>
+
+#include <rpc/rpc.h>
+#include <tirpc/rpc/types.h>
+#include <rpc/xdr.h>
+#include <netconfig.h>
+#include <netinet/in.h>
+
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
@@ -40,14 +47,17 @@
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
-
+#include "rpc_interface.h"
+#include "xdr_shim.h"
 
 static char const cvsid[] =
     "$Header$";
 
-
+int control_ready, local_port;
 cstate_t *tirpc_cstate;
 listener_state_t *tirpc_lstate;
+void opendiamond_prog_2(struct svc_req *rqstp, register SVCXPRT *transp);
+
 
 /*
  * This sets up a TI-RPC server listening on a random port number.
@@ -103,8 +113,8 @@ create_tirpc_server(void *arg) {
     
     if (!svc_reg(transp, OPENDIAMOND_PROG, OPENDIAMOND_VERS, 
 		 opendiamond_prog_2, NULL)) {
-      fprintf(stderr, "%s", "unable to register (OPENDIAMOND_PROG=%X, "
-	      "OPENDIAMOND_VER=%X, tcp).", OPENDIAMOND_PROG, OPENDIAMOND_VER);
+      fprintf(stderr, "%s", "unable to register (OPENDIAMOND_PROG, "
+	      "OPENDIAMOND_VERS, tcp).");
       exit(1);
     }
 
@@ -121,7 +131,7 @@ create_tirpc_server(void *arg) {
 
 int
 create_tirpc_conn(cstate_t *cstate) {
-    int error, result, connfd;
+    int error, connfd;
     char port_str[6];
     struct addrinfo *info, hints;
     pthread_t tirpc_thread;
@@ -184,7 +194,7 @@ connection_main(listener_state_t * lstate, int conn)
 	 * Create a TI-RPC server thread and then make a TCP
 	 * connection to it.
 	 */
-	cstate->tirpc_fd = create_tirpc_server(cstate);
+	cstate->tirpc_fd = (int) create_tirpc_server(cstate);
 
 	/*
 	 * Compute the max fd for the set of file
@@ -286,7 +296,7 @@ connection_main(listener_state_t * lstate, int conn)
 			if (FD_ISSET(cstate->data_fd, &cstate->except_fds)) {
 				sstub_except_data(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->tirpc_fd, &cstate->tirpc_fds)) {
+			if (FD_ISSET(cstate->tirpc_fd, &cstate->except_fds)) {
 				sstub_except_tirpc(lstate, cstate);
 			}
 			/*

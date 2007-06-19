@@ -43,8 +43,7 @@ struct stop_x {
 /* "hyper" is the rpcgen type for a 64-bit quantity. */
 typedef hyper    groupid_x;
 typedef opaque   spec_x<>;
-typedef opaque   sig_val_x[16];  /* SIG_SIZE == 16, defined in 
-				  * lib/libtools/sig_calc.h as 16 */
+typedef opaque   sig_val_x<>;
 
 struct spec_file_x {
   sig_val_x sig;
@@ -74,7 +73,7 @@ struct dev_stats_x {
   filter_stats_x    ds_filter_stats<>;
 };
 
-struct devchar_x {
+struct dev_char_x {
   unsigned int	dcs_isa;
   unsigned int	dcs_speed;
   hyper	        dcs_mem;
@@ -98,7 +97,7 @@ struct blob_x {
   opaque blob_data<>;	/* the data with the name followed by blob */
 };
 
-struct send_stats_return_x {
+struct request_stats_return_x {
   diamond_rc_t error;
   dev_stats_x stats;
 };
@@ -138,7 +137,8 @@ program OPENDIAMOND_PROG {
 
 
     /* The filter caching calls are related respectively by:
-     * client call(SET_OBJ) -> server callback(GET_OBJ) -> 
+     * client call(SET_OBJ) ->
+     *  server callback(GET_OBJ) -> 
      *   client callback(SEND_OBJ)
      *
      * Since we don't want to have to run a TI-RPC server in the

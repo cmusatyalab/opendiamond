@@ -11,6 +11,30 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <netdb.h>
+#include <string.h>
+#include <assert.h>
+#include "diamond_consts.h"
+#include "diamond_types.h"
+#include "lib_tools.h"
+#include "obj_attr.h"
+#include "lib_odisk.h"
+#include "socket_trans.h"
+#include "lib_dctl.h"
+#include "lib_auth.h"
+#include "lib_sstub.h"
+#include "sstub_impl.h"
 
 void
 sstub_except_tirpc(listener_state_t * lstate, cstate_t * cstate)
@@ -35,7 +59,7 @@ sstub_except_tirpc(listener_state_t * lstate, cstate_t * cstate)
 void
 sstub_read_tirpc(listener_state_t * lstate, cstate_t * cstate)
 {
-  int size_in, size_out, error;
+  int size_in, size_out;
   char buf[4096];
 
   /*

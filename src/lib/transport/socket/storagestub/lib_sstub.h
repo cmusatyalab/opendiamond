@@ -40,11 +40,11 @@ typedef	device_char_t *(*sstub_get_devchar_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_log_done_fn)(void *app_cookie, char *buf, int len);
 typedef	int (*sstub_set_log_fn)(void *app_cookie, uint32_t level, uint32_t src);
 
-typedef	int (*sstub_rleaf_fn)(void *app_cookie, char *path, int32_t opid);
+typedef	dctl_rleaf_t *(*sstub_rleaf_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_wleaf_fn)(void *app_cookie, char *path, int len,
                               char *data, int32_t opid);
-typedef	int (*sstub_lleaf_fn)(void *app_cookie, char *path, int32_t opid);
-typedef	int (*sstub_lnode_fn)(void *app_cookie, char *path, int32_t opid);
+typedef	dctl_lleaf_t *(*sstub_lleaf_fn)(void *app_cookie, char *path, int32_t opid);
+typedef	dctl_lnode_t *(*sstub_lnode_fn)(void *app_cookie, char *path, int32_t opid);
 typedef	int (*sstub_sgid_fn)(void *app_cookie, int gen_num, groupid_t gid);
 typedef	int (*sstub_clear_gids_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,
@@ -62,7 +62,6 @@ typedef struct {
 	sstub_stop_fn 		    	stop_cb;
 	sstub_set_filter_spec_fn	set_fspec_cb;
 	sstub_set_filter_obj_fn		set_fobj_cb;
-	sstub_set_list_fn	    	set_list_cb;
 	sstub_terminate_fn	    	terminate_cb;
 	sstub_getstats_fn	    	get_stats_cb;
 	sstub_release_obj_fn		release_obj_cb;
@@ -90,6 +89,7 @@ void * sstub_init_ext(sstub_cb_args_t *cb_args,
 void  sstub_listen(void * cookie);
 int sstub_get_partial(void *cookie, obj_data_t **obj);
 int sstub_flush_objs(void *cookie, int vnum);
+int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum, int complete);
 int sstub_send_log(void *cookie, char *buf, int len);
 float sstub_get_drate(void *cookie);
 int sstub_queued_objects(void *cookie);

@@ -173,7 +173,6 @@ typedef struct listener_state {
 	sstub_stop_fn 		stop_cb;
 	sstub_set_filter_spec_fn set_fspec_cb;
 	sstub_set_filter_obj_fn set_fobj_cb;
-	sstub_set_list_fn	set_list_cb;
 	sstub_terminate_fn	terminate_cb;
 	sstub_getstats_fn	get_stats_cb;
 	sstub_release_obj_fn	release_obj_cb;
@@ -237,6 +236,7 @@ void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
  * Functions exported by sstub_tirpc.c
  */
 void sstub_except_tirpc(listener_state_t *lstate, cstate_t *cstate);
+void sstub_read_tirpc(listener_state_t *lstate, cstate_t *cstate);
 
 /*
  * Functions exported by sstub_conn.c

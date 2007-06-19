@@ -33,6 +33,16 @@ typedef enum {
     DCTL_DT_CHAR
 } dctl_data_type_t;
 
+/* the maximum name of any dctl component (node or leaf) */
+#define	MAX_DCTL_COMP_NAME	64
+
+
+typedef	struct {
+    dctl_data_type_t	entry_type;
+    char 			    entry_name[MAX_DCTL_COMP_NAME];
+} dctl_entry_t;
+
+
 typedef struct {
   dctl_data_type_t  dt;
   int               len;
@@ -50,15 +60,6 @@ typedef struct {
   int               num_ents;
   dctl_entry_t     *ent_data;
 } dctl_lnode_t;
-
-/* the maximum name of any dctl component (node or leaf) */
-#define	MAX_DCTL_COMP_NAME	64
-
-
-typedef	struct {
-    dctl_data_type_t	entry_type;
-    char 			    entry_name[MAX_DCTL_COMP_NAME];
-} dctl_entry_t;
 
 /*
  * These are the function prototypes that are associated with the

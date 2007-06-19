@@ -1042,13 +1042,12 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		return 1;
 	}
 
-	sstate = (search_state_t *) malloc(sizeof(*sstate));
+	sstate = (search_state_t *) calloc(1, sizeof(*sstate));
 	if (sstate == NULL) {
 		*app_cookie = NULL;
 		exit(1);
 	}
 
-	memset((void *) sstate, 0, sizeof(*sstate));
 	/*
 	 * Set the return values to this "handle".
 	 */

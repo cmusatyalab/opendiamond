@@ -17,5 +17,6 @@ Makefile.in
 /ylwrap
 /config.*
 /configure
+/compile
 /depcomp
 /install-sh

@@ -1845,8 +1845,6 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	new_state = (ocache_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
 
-	memset(new_state, 0, sizeof(*new_state));
-
 	new_state->dctl_cookie = dctl_cookie;
 	new_state->log_cookie = log_cookie;
 

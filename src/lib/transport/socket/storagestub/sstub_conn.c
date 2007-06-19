@@ -56,7 +56,7 @@ static char const cvsid[] =
 int control_ready, local_port;
 cstate_t *tirpc_cstate;
 listener_state_t *tirpc_lstate;
-void opendiamond_prog_2(struct svc_req *rqstp, register SVCXPRT *transp);
+
 
 
 /*

@@ -58,6 +58,32 @@ cstate_t *tirpc_cstate;
 listener_state_t *tirpc_lstate;
 
 
+void handle_requests(int fd) {
+  fd_set read_fds;
+
+  for( ; ; ) {
+    int err;
+
+    FD_ZERO(&read_fds);
+    FD_SET(fd, &read_fds);
+
+    err = select(fd+1, &read_fds, NULL, NULL, NULL);
+    switch(err) {
+
+    case -1:
+      perror("select");
+      return;
+
+    case 1:
+      svc_getreq_common(fd);
+
+    case 0:
+    default:
+      continue;
+    }
+  }
+}
+
 
 /*
  * This sets up a TI-RPC server listening on a random port number.
@@ -122,9 +148,15 @@ create_tirpc_server(void *arg) {
     cstate->tirpc_port = local_port; /* Signal the parent thread that
 				      * our TI-RPC server is ready to
 				      * accept connections. */
-    svc_run();
 
-    printf("XXX svc_run returned!\n");
+    /* Bugs were found in svc_run() in TI-RPC v0.1.7.  A bug report
+     * has been filed.  We are switching to our own loop around a
+     * lower-level call until it is fixed. */
+    //svc_run();
+
+    handle_requests(rpcfd);
+
+    printf("XXX handle_requests returned!\n");
     exit(EXIT_FAILURE);
 }
 

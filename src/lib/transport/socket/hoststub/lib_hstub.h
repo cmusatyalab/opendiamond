@@ -68,7 +68,6 @@ int device_clear_gids(void *handle, int id);
 int device_set_blob(void *handle, int id, char *name, int blob_len, void *blob);
 void device_stop_obj(void *handle);
 void device_enable_obj(void *handle);
-int device_set_offload(void *handle, int id, uint64_t offload);
 int device_set_limit(void *handle, int limit);
 int device_set_exec_mode(void *handle, int id, uint32_t mode);
 int device_set_user_state(void *handle, int id, uint32_t state);

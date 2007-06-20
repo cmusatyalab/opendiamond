@@ -38,7 +38,6 @@
 #define	CNTL_CMD_ADD_GID        	20
 #define	CNTL_CMD_CLEAR_GIDS     	21
 #define	CNTL_CMD_SET_BLOB 		22
-#define	CNTL_CMD_SET_OFFLOAD		23
 #define	CNTL_CMD_GET_OBJ		24
 #define	CNTL_CMD_SEND_OBJ		25
 #define	CNTL_CMD_SET_OBJ		26

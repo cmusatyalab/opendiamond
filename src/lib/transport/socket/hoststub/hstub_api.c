@@ -342,49 +342,6 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	return (0);
 }
 
-int
-device_set_offload(void *handle, int id, uint64_t offload)
-{
-	int             err;
-	control_header_t *cheader;
-	offload_subheader_t *offl;
-	sdevice_state_t *dev;
-
-	dev = (sdevice_state_t *) handle;
-
-	if ((cheader = (control_header_t *) malloc(sizeof(*cheader))) == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_offload: failed to malloc message");
-		return (EAGAIN);
-	}
-
-	if((offl = (offload_subheader_t *) malloc(sizeof(*offl))) == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_offload: failed to malloc message");
-		free(cheader);
-		return (EAGAIN);
-	}
-
-	offl->offl_data = offload;	/* XXX bswap */
-	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_SET_OFFLOAD);
-	cheader->data_len = htonl(sizeof(*offl));
-	cheader->spare = (uint32_t) offl;
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_offload: failed to enqueue message");
-		free(cheader);
-		free(offl);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
-	return (0);
-}
 
 /*
  * This builds the command to set the searchlet on the remote device.

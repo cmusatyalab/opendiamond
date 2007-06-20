@@ -186,7 +186,6 @@ typedef struct listener_state {
 	sstub_sgid_fn	        sgid_cb;
 	sstub_clear_gids_fn	clear_gids_cb;
 	sstub_set_blob_fn	set_blob_cb;
-	sstub_set_offload_fn	set_offload_cb;
 	sstub_set_exec_mode_fn set_exec_mode_cb;
 	sstub_set_user_state_fn set_user_state_cb;
 	cstate_t		conns[MAX_CONNS];

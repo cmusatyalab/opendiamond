@@ -266,7 +266,6 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	list_state->sgid_cb = cb_args->sgid_cb;
 	list_state->clear_gids_cb = cb_args->clear_gids_cb;
 	list_state->set_blob_cb = cb_args->set_blob_cb;
-	list_state->set_offload_cb = cb_args->set_offload_cb;
 	list_state->set_exec_mode_cb = cb_args->set_exec_mode_cb;
 	list_state->set_user_state_cb = cb_args->set_user_state_cb;
 	

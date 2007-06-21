@@ -1,30 +1,33 @@
 noinst_LTLIBRARIES = libdiamondrpc.la
 
-BUILT_SOURCES = rpc_interface_clnt.c rpc_interface_xdr.c \
-	rpc_interface.h rpc_interface_svc.c
+RPCROOTS = rpc_client_content rpc_client_scope rpc_content_scope rpc_scope_scope rpc_admin_content rpc_admin_scope
 
-libdiamondrpc_la_SOURCES = rpc_interface_xdr.c rpc_interface_svc.c \
-	rpc_interface_clnt.c
+BUILT_SOURCES = $(foreach file,$(RPCROOTS),$(file)_clnt.c $(file)_svc.c $(file)_xdr.c $(file).x $(file).h)
+
+CLEANFILES = $(BUILT_SOURCES) rpc_preamble.x
+
+libdiamondrpc_la_SOURCES = $(filter %.c,$(BUILT_SOURCES))
 
 AM_CPPFLAGS += -I/usr/include/tirpc -include xdr_shim.h
 libdiamondrpc_la_LIBADD = -ltirpc
 
 pkginclude_HEADERS = socket_trans.h
 
-CLEANFILES = rpc_interface_clnt.c rpc_interface_xdr.c rpc_interface.h \
-	rpc_interface_svc.c rpc_interface.x
+rpc_%_xdr.c: rpc_%.x
+	rpcgen -N -C -c -o $@ $<
 
-rpc_interface_xdr.c: rpc_interface.x
-	rpcgen -N -C -c -o rpc_interface_xdr.c rpc_interface.x
+rpc_%.h: rpc_%.x
+	rpcgen -N -C -h -o $@ $<
 
-rpc_interface.h: rpc_interface.x
-	rpcgen -N -C -h -o rpc_interface.h rpc_interface.x
+rpc_%_svc.c: rpc_%.x
+	rpcgen -N -C -m -o $@ $<
 
-rpc_interface_svc.c: rpc_interface.x
-	rpcgen -N -C -m -o rpc_interface_svc.c rpc_interface.x
+rpc_%_clnt.c: rpc_%.x
+	rpcgen -N -C -l -o $@ $<
 
-rpc_interface_clnt.c: rpc_interface.x
-	rpcgen -N -C -l -o rpc_interface_clnt.c rpc_interface.x
-
-rpc_interface.x: rpc_interface.x.in
+rpc_preamble.x: rpc_preamble.x.in
 	cp $< $@
+
+%.x: %.x.in rpc_preamble.x
+	cp $< $@
+

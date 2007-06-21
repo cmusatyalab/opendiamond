@@ -1,0 +1,48 @@
+/*
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 2
+ *
+ *  Copyright (c) 2007 Carnegie Mellon University
+ *  All rights reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+
+/* This file contains TIRPC definitions that are common to ALL
+   the Diamond interfaces.  It gets included by EVERY interface
+   definition file. Note that rpcgen is never directly run on this
+   file, so there is no rpc_preamble.h file etc generated */
+
+
+#ifdef RPC_HDR
+%#ifndef _RPCPREAMBLE_
+%#define _RPCPREAMBLE_
+#endif RPC_HDR
+
+enum diamond_service_error_t {
+  /* Sun RPC failure codes should be subsumed here. */
+  DIAMOND_SUCCESS = 0,
+  DIAMOND_FAILEDSYSCALL,
+  DIAMOND_NOMEM,
+  DIAMOND_OPERR,
+  DIAMOND_FAILURE
+};
+
+enum diamond_opcode_error_t {
+  DIAMOND_OPCODE_SUCCESS = 0,
+  DIAMOND_OPCODE_FCACHEMISS,
+  DIAMOND_OPCODE_FAILURE
+};
+
+struct diamond_rc_t {
+  diamond_service_error_t service_err;
+  diamond_opcode_error_t  opcode_err;
+};
+
+#ifdef RPC_HDR
+%#endif  /* _RPCPREAMBLE_ */
+#endif RPC_HDR

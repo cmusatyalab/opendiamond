@@ -47,7 +47,7 @@
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
-#include "rpc_interface.h"
+#include "rpc_client_content.h"
 #include "xdr_shim.h"
 
 static char const cvsid[] =

@@ -43,7 +43,7 @@
 #include "lib_sstub.h"
 #include "lib_dconfig.h"
 #include "sstub_impl.h"
-#include "rpc_interface.h"
+#include "rpc_client_content.h"
 
 static char const cvsid[] =
     "$Header$";

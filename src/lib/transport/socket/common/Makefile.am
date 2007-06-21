@@ -6,7 +6,15 @@ BUILT_SOURCES = $(foreach file,$(RPCROOTS),$(file)_clnt.c $(file)_svc.c $(file)_
 
 CLEANFILES = $(BUILT_SOURCES) rpc_preamble.x
 
-libdiamondrpc_la_SOURCES = $(filter %.c,$(BUILT_SOURCES))
+libdiamondrpc_la_SOURCES = rpc_client_content_svc.c rpc_client_scope_svc.c \
+		 rpc_content_scope_svc.c rpc_scope_scope_svc.c \
+		 rpc_admin_content_svc.c rpc_admin_scope_svc.c \
+		 rpc_client_content_clnt.c rpc_client_scope_clnt.c \
+		 rpc_content_scope_clnt.c rpc_scope_scope_clnt.c \
+		 rpc_admin_content_clnt.c rpc_admin_scope_clnt.c \
+		 rpc_client_content_xdr.c rpc_client_scope_xdr.c \
+		 rpc_content_scope_xdr.c rpc_scope_scope_xdr.c \
+		 rpc_admin_content_xdr.c rpc_admin_scope_xdr.c
 
 AM_CPPFLAGS += -I/usr/include/tirpc -include xdr_shim.h
 libdiamondrpc_la_LIBADD = -ltirpc

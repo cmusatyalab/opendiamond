@@ -23,6 +23,15 @@
 %#define _RPCPREAMBLE_
 #endif RPC_HDR
 
+/* This is a label put in the generated code to indicate 
+ * the beginning of the xdr routines.  Used to strip out
+ * duplicate xdr function definition caused by
+ * #include "rpc_preamble.x" */
+
+enum begin_preamble {
+	JUNK=0
+};
+
 enum diamond_service_error_t {
   /* Sun RPC failure codes should be subsumed here. */
   DIAMOND_SUCCESS = 0,
@@ -41,6 +50,14 @@ enum diamond_opcode_error_t {
 struct diamond_rc_t {
   diamond_service_error_t service_err;
   diamond_opcode_error_t  opcode_err;
+};
+
+
+/* This must always be the very last definition in this file 
+ * for sed to work correctly. */
+
+enum end_preamble {
+	ENDJUNK=0
 };
 
 #ifdef RPC_HDR

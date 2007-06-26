@@ -102,6 +102,7 @@ tools/dctl/Makefile
 tools/delattr/Makefile
 tools/dlog/Makefile
 tools/initattr/Makefile
+tools/potemkin/Makefile
 tools/rand_idx/Makefile
 tools/rem_group/Makefile
 tools/setattr/Makefile

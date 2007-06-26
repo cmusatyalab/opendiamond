@@ -1,2 +1,2 @@
-SUBDIRS = dctl delattr initattr rand_idx rem_group \
+SUBDIRS = dctl delattr initattr potemkin rand_idx rem_group \
 	setattr showattr showgid slowdown

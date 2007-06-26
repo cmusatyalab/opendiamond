@@ -61,7 +61,7 @@ typedef struct conn_info {
 	int	 		flags;
 	uint32_t		dev_id;
 	pthread_mutex_t		mutex;
-	uint32_t		con_cookie;
+	uint32_t		sessionid;
 	int			control_fd;
 	control_tx_state_t	control_state;
 	control_header_t *	control_header;

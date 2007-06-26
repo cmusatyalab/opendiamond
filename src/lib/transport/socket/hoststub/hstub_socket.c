@@ -84,63 +84,38 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	int				auth_required = 0;
 	char			buf[BUFSIZ];
 
-	pent = getprotobyname("tcp");
-	if (pent == NULL) {
-		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to find tcp");
-		return(ENOENT);
-	}
 
-	if ((cinfo->control_fd = socket(PF_INET, SOCK_STREAM,pent->p_proto))<0){
-		log_message(LOGT_NET, LOGL_ERR, 
-		    "hstub: failed to create socket");
-		return(ENOENT);
-	}
+	unsigned int connectionid;
+	int datafd;
 
-	sa.sin_family = AF_INET;
-	sa.sin_port = htons(diamond_get_control_port());
-	sa.sin_addr.s_addr = devid;
-
-	/*
-	 * save the device id for later use 
-	 */
+        uint16_t px = htons(diamond_get_control_port());
 	cinfo->dev_id = devid;
+	cinfo->control_fd = control_connect(devid, px, &cinfo->sessionid);
+	if (cinfo->control_fd < 0 ) {
+		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to initialize control connection");
+		return(ENOENT);
+	}
 
-	err = connect(cinfo->control_fd, (struct sockaddr *) &sa, sizeof(sa));
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR, 
-		    "hstub: connect failed");
-		return (ENOENT);
-	}
-	
-	/* wait for ack to our connect request */
-	size = read(cinfo->control_fd, (char *) &cinfo->con_cookie,
-		    sizeof(cinfo->con_cookie));
-	if (size == -1) {
-		log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub: failed to read from socket");
-		close(cinfo->control_fd);
-		return (ENOENT);
-	}
-	if ((int) cinfo->con_cookie < 0) {
+
+	if ((int) cinfo->sessionid < 0) {
 		/* authenticate */
 		cinfo->ca_handle = auth_conn_client(cinfo->control_fd);
 		if (cinfo->ca_handle) {
 			/* wait for ack to our connect request */
-			size = read(cinfo->control_fd, &buf[0], BUFSIZ);
+			size = readn(cinfo->control_fd, &buf[0], BUFSIZ);
 			if (size == -1) {
-				printf("failed to read from socket");
-				close(cinfo->control_fd);
-				return (ENOENT);
+			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to read encrypted sessionid");
+			  close(cinfo->control_fd);
+			  return (ENOENT);
 			}
 	
-			printf("Read encrypted message of %d bytes\n", size);
 
 			/* decrypt the message */	
 			len = auth_msg_decrypt(cinfo->ca_handle, buf, size, 
-									(char *) &cinfo->con_cookie, 
-									sizeof(cinfo->con_cookie));
+									(char *) &cinfo->sessionid, 
+									sizeof(cinfo->sessionid));
 			if (len < 0) {
-				printf("failed to decrypt message");
+			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to decrypt sessionid");
 				close(cinfo->control_fd);
 				return (ENOENT);
 			}
@@ -149,13 +124,12 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 			cinfo->flags |= CINFO_AUTHENTICATED;
 		} else {			
 			log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub: failed to read from socket");
+		    	"hstub_establish_connection: auth_conn_client() failed");
 			close(cinfo->control_fd);
 			return (ENOENT);
 		}
 	}
 
-	socket_non_block(cinfo->control_fd);
 
 	/*
 	 * Now we open the data socket and send the cookie on it.
@@ -230,4 +204,179 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 
 	return (0);
+}
+
+
+
+
+int
+create_tcp_connection(uint32_t devid, int port)
+{
+	int sockfd, error;
+	struct sockaddr sa;
+	char port_str[6];
+	
+	if((!devid) || ((port < 0) || (port > 65535)))
+	  return -1;
+
+	/* create TCP socket */
+	if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	  perror("socket");
+	  return -1;
+	}
+	
+	sa.sin_family = AF_INET;
+	sa.port = port;
+	sa.sin_addr = devid; 
+	
+	/* make connection */
+	if(connect(sockfd, &sa, sizeof(struct sockaddr_in)) < 0) {
+	  perror("connect");
+	  return -1;
+	}
+	
+	return sockfd;
+}
+
+
+CLIENT *
+tirpc_init(int connfd, unsigned int *cookie) {
+	struct sockaddr control_name;
+	unsigned int control_name_len = sizeof(struct sockaddr);
+	struct netconfig *nconf;
+	struct netbuf *tbind;
+	CLIENT *clnt;
+
+	nconf = getnetconfigent("tcp");
+	if(nconf == NULL) {
+	  perror("getnetconfigent");
+	  exit(EXIT_FAILURE);
+	}
+	
+	/* Transform sockaddr_in to netbuf */
+	tbind = (struct netbuf *) malloc(sizeof(struct netbuf));
+	if(tbind == NULL) {
+	  perror("malloc");
+	  exit(EXIT_FAILURE);
+	}
+	
+	tbind->buf = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
+	if(tbind->buf == NULL) {
+	  perror("malloc");
+	  exit(EXIT_FAILURE);
+	}
+	if(getsockname(connfd, &control_name, &control_name_len) < 0) {
+	  perror("getsockname");
+	  exit(EXIT_FAILURE);
+	}
+	memcpy(tbind->buf, &control_name, sizeof(struct sockaddr));
+	tbind->maxlen = tbind->len = sizeof(struct sockaddr);
+	
+	if ((clnt = clnt_tli_create(connfd,
+					      nconf,
+					      tbind, 
+					      OPENDIAMOND_PROG, 
+					      OPENDIAMOND_VERS, 
+					      BUFSIZ, BUFSIZ)) == NULL) {
+	  clnt_pcreateerror("clnt_tli_create");
+	  fprintf(stderr, "client: error creating TI-RPC tcp client\n");
+	  exit(EXIT_FAILURE);
+	}
+	
+	printf("TI-RPC client successfully created and connected!\n");
+
+	return clnt;
+}
+
+
+int 
+data_connect(uint32_t devid, uint16_t portnum, unsigned int sessionid) {
+	int connfd, size;
+
+	connfd = create_tcp_connection(devid, portnum);
+	if (connfd < 0){
+	  log_message(LOGT_NET, LOGL_ERR, "data_connect: create_tcp_connection() failed");
+	  return(-1);
+	}
+
+	/* Write the 32-bit sessionidback to the server. */
+	size = writen(connfd, (char *) &sessionid, sizeof(sessionid));
+	if (size < 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "data_connect: Failed writing sessionid");
+	  close(connfd);
+	  return(-1);
+	}
+
+	return connfd;
+}
+
+
+int
+control_connect(uint32_t devid, uint16_t portnum, unsigned int *sessionid) {
+	int connfd, size;
+	
+	connfd = create_tcp_connection(devid, portnum);
+	if (connfd < 0){
+	  log_message(LOGT_NET, LOGL_ERR, "control_connect: create_tcp_connection() failed");
+	  return(-1);
+	}
+	
+	/* Read 32-bit cookie from server. */
+	size = readn(connfd, sessionid, sizeof(*sessionid));
+	if (size < 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "control_connect: Failed reading sessionid");
+	  close(connfd);
+	  return(-1);
+	}
+	
+	return connfd;
+}
+
+ssize_t                         /* Read "n" bytes from a descriptor. */
+readn(int fd, void *vptr, size_t n)
+{
+  size_t  nleft;
+  ssize_t nread;
+  char   *ptr;
+
+  ptr = vptr;
+  nleft = n;
+
+  while (nleft > 0) {
+    if ( (nread = read(fd, ptr, nleft)) < 0) {
+      perror("read");
+      if (errno == EINTR)
+        nread = 0;      /* and call read() again */
+      else
+        return (-1);
+    } else if (nread == 0)
+      break;              /* EOF */
+
+    nleft -= nread;
+    ptr += nread;
+  }
+  return (n - nleft);         /* return >= 0 */
+}
+
+ssize_t                         /* Write "n" bytes to a descriptor. */
+writen(int fd, const void *vptr, size_t n)
+{
+  size_t nleft;
+  ssize_t nwritten;
+  const char *ptr;
+
+  ptr = vptr;
+  nleft = n;
+  while (nleft > 0) {
+    if ( (nwritten = write(fd, ptr, nleft)) <= 0) {
+      if (nwritten < 0 && errno == EINTR)
+        nwritten = 0;   /* and call write() again */
+      else
+        return (-1);    /* error */
+    }
+
+    nleft -= nwritten;
+    ptr += nwritten;
+  }
+  return (n);
 }

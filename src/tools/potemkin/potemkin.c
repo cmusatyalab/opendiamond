@@ -2,8 +2,6 @@
  *  The OpenDiamond Platform for Interactive Search
  *  Version 2
  *
- *  Copyright (c) 2002-2005 Intel Corporation
- *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
  *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *

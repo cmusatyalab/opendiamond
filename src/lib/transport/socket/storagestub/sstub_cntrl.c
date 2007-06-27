@@ -482,6 +482,8 @@ request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
   static request_chars_return_x  result;
   device_char_t *chars;
 
+  fprintf(stderr, "(TI-RPC server) Entering request characteristics call.\n");
+
   if((chars = (*tirpc_lstate->get_char_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
     result.error.service_err = DIAMOND_OPERR; 
     result.error.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific? 
@@ -493,6 +495,9 @@ request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
   result.chars.dcs_mem = chars->dc_mem;
 
   free(chars);
+
+  fprintf(stderr, "(TI-RPC server) Returning from request characteristics "
+	  "call.\n");
 
   result.error.service_err = DIAMOND_SUCCESS;
   return &result;

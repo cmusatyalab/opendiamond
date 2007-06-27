@@ -101,6 +101,8 @@ create_tirpc_server(void *arg) {
 
     cstate = (cstate_t *) arg;
 
+    fprintf(stderr, "(TI-RPC server) born\n");
+
     /* Choose a random TCP port between 10k and 65k to connect to the 
      * TI-RPC server on.  Use high-order bits for improved randomness. */
     
@@ -108,12 +110,15 @@ create_tirpc_server(void *arg) {
     srand(t.tv_sec);
     local_port = 10000 + (int)(55000.0 * (rand()/(RAND_MAX + 1.0)));
 
+    fprintf(stderr, "(TI-RPC server) initialized\n");
 
     nconf = getnetconfigent("tcp");
     if(nconf == NULL) {
       perror("getnetconfigent");
       exit(EXIT_FAILURE);
     }
+
+    fprintf(stderr, "(TI-RPC server) got TCP netconfig\n");
 
     if((rpcfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
@@ -135,6 +140,8 @@ create_tirpc_server(void *arg) {
       exit(1);
     }
     
+    fprintf(stderr, "(TI-RPC server) created server handle\n");
+
     svc_unreg(OPENDIAMOND_PROG, OPENDIAMOND_VERS);
     
     if (!svc_reg(transp, OPENDIAMOND_PROG, OPENDIAMOND_VERS, 
@@ -144,8 +151,9 @@ create_tirpc_server(void *arg) {
       exit(1);
     }
 
+    fprintf(stderr, "(TI-RPC server) registered program\n");
     
-    cstate->tirpc_port = local_port; /* Signal the parent thread that
+    cstate->tirpc_port = 12543; /* Signal the parent thread that
 				      * our TI-RPC server is ready to
 				      * accept connections. */
 
@@ -153,6 +161,10 @@ create_tirpc_server(void *arg) {
      * has been filed.  We are switching to our own loop around a
      * lower-level call until it is fixed. */
     //svc_run();
+
+    control_ready = 1;
+
+    fprintf(stderr, "(TI-RPC server) looping\n");
 
     handle_requests(rpcfd);
 
@@ -167,6 +179,7 @@ create_tirpc_conn(cstate_t *cstate) {
     char port_str[6];
     struct addrinfo *info, hints;
     pthread_t tirpc_thread;
+    struct timeval tv;
     
     /* Create a thread which becomes a TI-RPC server. */
     control_ready = 0;
@@ -174,12 +187,16 @@ create_tirpc_conn(cstate_t *cstate) {
     pthread_create(&tirpc_thread, PATTR_DEFAULT, create_tirpc_server, 
 		   (void *)cstate);
     
-    
+    fprintf(stderr, "(tunnel) TI-RPC server spawned\n");
+   
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+
     /* Wait for the control thread to finish initialization. */
-    while(control_ready == 0)
-      continue;
+    select(0, NULL, NULL, NULL, &tv);
     
-    
+    fprintf(stderr, "(tunnel) TI-RPC server indicated readiness\n");
+
     /* Create new connection to the TI-RPC server. */
     if((connfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
@@ -190,17 +207,21 @@ create_tirpc_conn(cstate_t *cstate) {
     hints.ai_flags = AI_CANONNAME;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    snprintf(port_str, NI_MAXSERV, "%u", local_port);
+    snprintf(port_str, NI_MAXSERV, "%u", 12543);
     
     if((error = getaddrinfo("localhost", port_str, &hints, &info)) < 0) {
       fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
       exit(EXIT_FAILURE);
     }
+
+    fprintf(stderr, "(tunnel) got localhost addrinfo\n");
     
     if(connect(connfd, info->ai_addr, sizeof(struct sockaddr_in)) < 0) {
       perror("connect");
       exit(EXIT_FAILURE);
     }
+
+    fprintf(stderr, "(tunnel) connected to TI-RPC server\n");
     
     return connfd;
 }
@@ -219,6 +240,7 @@ connection_main(listener_state_t * lstate, int conn)
 	int             max_fd;
 	int             err;
 
+	fprintf(stderr, "(tunnel) Entering connection_main()\n");
 
 	cstate = &lstate->conns[conn];
 
@@ -226,7 +248,9 @@ connection_main(listener_state_t * lstate, int conn)
 	 * Create a TI-RPC server thread and then make a TCP
 	 * connection to it.
 	 */
-	cstate->tirpc_fd = (int) create_tirpc_server(cstate);
+	control_ready = 0;
+	cstate->tirpc_fd = (int) create_tirpc_conn(cstate);
+
 
 	/*
 	 * Compute the max fd for the set of file
@@ -245,6 +269,8 @@ connection_main(listener_state_t * lstate, int conn)
 
 	tirpc_cstate = cstate;
 	tirpc_lstate = lstate;
+
+	fprintf(stderr, "(tunnel) Entering select() loop\n");
 
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {

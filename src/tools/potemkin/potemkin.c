@@ -197,6 +197,35 @@ control_connect(char *hostname, unsigned int *cookie) {
 	return connfd;
 }
 
+char *
+diamond_error(diamond_rc_t *rc) {
+	static char buf[128];
+
+	if(rc == NULL)
+	  return NULL;
+
+	switch(rc->service_err) {
+	case DIAMOND_SUCCESS:
+	  sprintf(buf, "Call succeeded.");
+	  break;
+	case DIAMOND_FAILURE:
+	  sprintf(buf,"Call failed generically.");
+	  break;  
+	case DIAMOND_NOMEM:
+	  sprintf(buf, "Call failed from an out-of-memory error.");
+	  break;
+	case DIAMOND_FAILEDSYSCALL:
+	  sprintf(buf, "Call failed from a failed system call: %s", 
+		  strerror(rc->opcode_err));
+	  break;
+	case DIAMOND_OPERR:
+	  sprintf(buf, "Call failed from an opcode-specific error.");
+	  break;
+	}
+
+	return buf;
+}
+
 
 /* For the moment, potemkin only makes raw TI-RPC calls to adiskd
  * rather than calling into the client-side (hoststub) library.
@@ -207,13 +236,15 @@ control_connect(char *hostname, unsigned int *cookie) {
 int
 main(int argc, char **argv)
 {
-	char *hostname;
 	CLIENT *clnt;
-	int controlfd, datafd;
 	diamond_rc_t *rc;
+	char *hostname, *errstr;
+	int controlfd, datafd;
 	u_int gen, mode, state;
 	unsigned int cookie;
+
 	stop_x stats;
+	request_chars_return_x *characteristics;
 
 	if(argc != 2) {
 	  printf("usage: %s [hostname]\n", argv[0]);
@@ -236,14 +267,16 @@ main(int argc, char **argv)
 	}
 	
 
-#if 0
 	gen = 100;
 
-	rc = request_chars_x_2(gen, clnt);
-	if (rc == (request_chars_return_x *) NULL) {
+	characteristics = request_chars_x_2(gen, clnt);
+	if (characteristics == (request_chars_return_x *) NULL) {
 	  clnt_perror (clnt, "call failed");
+	  return -1;
 	}
+	printf("%s\n", diamond_error(&characteristics->error));
 
+#if 0
 	test_dctl(gen);
 
 	rc = device_set_obj_x_2(gen, device_set_obj_x_2_arg2, clnt);

@@ -259,15 +259,10 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	/*
 	 * Now we open the data socket and send the cookie on it.
 	 */
-	cinfo->data_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
 
-	/*
-	 * we reuse the sockaddr, just change the port number 
-	 */
-	sa.sin_port = htons(diamond_get_data_port());
-
-	err = connect(cinfo->data_fd, (struct sockaddr *) &sa, sizeof(sa));
-	if (err) {
+        px = htons(diamond_get_data_port());
+        cinfo->data_fd = data_connect(devid, px, cinfo->session_nonce);
+	if (cinfo->data_fd <0) {
 		log_message(LOGT_NET, LOGL_ERR, 
 		    "hstub: connect data port failed");
 		close(cinfo->control_fd);
@@ -306,20 +301,9 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 			close(cinfo->data_fd);
 			return (ENOENT);
 		}
-	} else {
-		/* write the cookie into the fd */
-		size = write(cinfo->data_fd, (char *) &cinfo->session_nonce,
-		    sizeof(cinfo->session_nonce));
-		if (size == -1) {
-			log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub: send on  data port failed");
-			close(cinfo->data_fd);
-			close(cinfo->control_fd);
-			return (ENOENT);
-		}
-	}
+	} 
 
-	socket_non_block(cinfo->data_fd);
+
 
 	/*
 	 * Set the state machines variables.

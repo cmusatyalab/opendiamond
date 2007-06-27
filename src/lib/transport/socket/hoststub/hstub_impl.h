@@ -61,7 +61,7 @@ typedef struct conn_info {
 	int	 		flags;
 	uint32_t		dev_id;
 	pthread_mutex_t		mutex;
-	uint32_t		sessionid;
+        uint32_t		session_nonce; /* for pairing control and data conns */
 	int			control_fd;
 	control_tx_state_t	control_state;
 	control_header_t *	control_header;
@@ -159,6 +159,9 @@ void hstub_write_data(sdevice_state_t *dev);
  */
 int hstub_establish_connection(conn_info_t *cinfo, uint32_t devid);
 
+/* move readn() and writen() out to a more public place from hstub */
+ssize_t readn(int fd, void *vptr, size_t n); 
+ssize_t  writen(int fd, const void *vptr, size_t n); 
 
 #endif	/* !_LIB_HSTUB_IMPL_H_ */
 

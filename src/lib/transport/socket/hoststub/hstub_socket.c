@@ -31,6 +31,8 @@
 #include <netdb.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <tirpc/rpc/types.h>
+#include <rpc/rpc.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
@@ -43,6 +45,7 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 #include "ports.h"
+#include "rpc_client_content.h"
 
 
 static char const cvsid[] =
@@ -70,167 +73,26 @@ socket_non_block(int fd)
 }
 
 
-/*
- * Create and establish a socket with the other
- * side.
- */
-int
-hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
+static int
+create_tcp_connection(uint32_t devid, uint16_t port)
 {
-	struct protoent *pent;
+	int sockfd;
 	struct sockaddr_in sa;
-	int             err;
-	ssize_t         size, len;
-	int				auth_required = 0;
-	char			buf[BUFSIZ];
-
-
-	unsigned int connectionid;
-	int datafd;
-
-        uint16_t px = htons(diamond_get_control_port());
-	cinfo->dev_id = devid;
-	cinfo->control_fd = control_connect(devid, px, &cinfo->sessionid);
-	if (cinfo->control_fd < 0 ) {
-		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to initialize control connection");
-		return(ENOENT);
-	}
-
-
-	if ((int) cinfo->sessionid < 0) {
-		/* authenticate */
-		cinfo->ca_handle = auth_conn_client(cinfo->control_fd);
-		if (cinfo->ca_handle) {
-			/* wait for ack to our connect request */
-			size = readn(cinfo->control_fd, &buf[0], BUFSIZ);
-			if (size == -1) {
-			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to read encrypted sessionid");
-			  close(cinfo->control_fd);
-			  return (ENOENT);
-			}
 	
-
-			/* decrypt the message */	
-			len = auth_msg_decrypt(cinfo->ca_handle, buf, size, 
-									(char *) &cinfo->sessionid, 
-									sizeof(cinfo->sessionid));
-			if (len < 0) {
-			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to decrypt sessionid");
-				close(cinfo->control_fd);
-				return (ENOENT);
-			}
-			
-			auth_required = 1;
-			cinfo->flags |= CINFO_AUTHENTICATED;
-		} else {			
-			log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub_establish_connection: auth_conn_client() failed");
-			close(cinfo->control_fd);
-			return (ENOENT);
-		}
-	}
-
-
-	/*
-	 * Now we open the data socket and send the cookie on it.
-	 */
-	cinfo->data_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
-
-	/*
-	 * we reuse the sockaddr, just change the port number 
-	 */
-	sa.sin_port = htons(diamond_get_data_port());
-
-	err = connect(cinfo->data_fd, (struct sockaddr *) &sa, sizeof(sa));
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR, 
-		    "hstub: connect data port failed");
-		close(cinfo->control_fd);
-		return (ENOENT);
-	}
-
-	/* authenticate connection */
-	if (auth_required) {
-		cinfo->da_handle = auth_conn_client(cinfo->data_fd);
-		if (cinfo->da_handle) {
-			/* encrypt the cookie */
-			len = auth_msg_encrypt(cinfo->da_handle,  
-							(char *) &cinfo->con_cookie, 
-							sizeof(cinfo->con_cookie),
-							buf, BUFSIZ);
-			if (len < 0) {
-				printf("failed to encrypt message");
-				close(cinfo->control_fd);
-				close(cinfo->data_fd);
-				return (ENOENT);
-			}
-			
-			/* send the cookie */
-			size = write(cinfo->data_fd, buf, len);
-			if (size == -1) {
-				log_message(LOGT_NET, LOGL_ERR, 
-		    				"hstub: send on  data port failed");
-				close(cinfo->control_fd);
-				close(cinfo->data_fd);
-				return (ENOENT);
-			}
-		} else {
-			log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub: failed to read from socket");
-			close(cinfo->control_fd);
-			close(cinfo->data_fd);
-			return (ENOENT);
-		}
-	} else {
-		/* write the cookie into the fd */
-		size = write(cinfo->data_fd, (char *) &cinfo->con_cookie,
-		    sizeof(cinfo->con_cookie));
-		if (size == -1) {
-			log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub: send on  data port failed");
-			close(cinfo->data_fd);
-			close(cinfo->control_fd);
-			return (ENOENT);
-		}
-	}
-
-	socket_non_block(cinfo->data_fd);
-
-	/*
-	 * Set the state machines variables.
-	 */
-	cinfo->control_state = CONTROL_TX_NO_PENDING;
-	cinfo->control_rx_state = CONTROL_RX_NO_PENDING;
-	cinfo->data_rx_state = DATA_RX_NO_PENDING;
-
-	return (0);
-}
-
-
-
-
-int
-create_tcp_connection(uint32_t devid, int port)
-{
-	int sockfd, error;
-	struct sockaddr sa;
-	char port_str[6];
-	
-	if((!devid) || ((port < 0) || (port > 65535)))
-	  return -1;
+	if(!devid || !port) return -1;
 
 	/* create TCP socket */
 	if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 	  perror("socket");
 	  return -1;
 	}
-	
-	sa.sin_family = AF_INET;
-	sa.port = port;
-	sa.sin_addr = devid; 
+
+	/* define destination */	
+	sa.sin_port = port;
+	sa.sin_addr.s_addr = (in_addr_t) devid; /* already in network order */
 	
 	/* make connection */
-	if(connect(sockfd, &sa, sizeof(struct sockaddr_in)) < 0) {
+	if(connect(sockfd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	  perror("connect");
 	  return -1;
 	}
@@ -238,9 +100,11 @@ create_tcp_connection(uint32_t devid, int port)
 	return sockfd;
 }
 
+/* tirpc_init() takes an already-connected socket file descriptor and
+   makes it into a TI-RPC client handle */
 
-CLIENT *
-tirpc_init(int connfd, unsigned int *cookie) {
+static CLIENT *
+tirpc_init(int connfd) {
 	struct sockaddr control_name;
 	unsigned int control_name_len = sizeof(struct sockaddr);
 	struct netconfig *nconf;
@@ -289,8 +153,8 @@ tirpc_init(int connfd, unsigned int *cookie) {
 }
 
 
-int 
-data_connect(uint32_t devid, uint16_t portnum, unsigned int sessionid) {
+static int 
+data_connect(uint32_t devid, uint16_t portnum, unsigned int session_nonce) {
 	int connfd, size;
 
 	connfd = create_tcp_connection(devid, portnum);
@@ -299,10 +163,10 @@ data_connect(uint32_t devid, uint16_t portnum, unsigned int sessionid) {
 	  return(-1);
 	}
 
-	/* Write the 32-bit sessionidback to the server. */
-	size = writen(connfd, (char *) &sessionid, sizeof(sessionid));
+	/* Write the 32-bit session_nonceback to the server. */
+	size = writen(connfd, (char *) &session_nonce, sizeof(session_nonce));
 	if (size < 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "data_connect: Failed writing sessionid");
+	  log_message(LOGT_NET, LOGL_ERR, "data_connect: Failed writing session_nonce");
 	  close(connfd);
 	  return(-1);
 	}
@@ -311,8 +175,8 @@ data_connect(uint32_t devid, uint16_t portnum, unsigned int sessionid) {
 }
 
 
-int
-control_connect(uint32_t devid, uint16_t portnum, unsigned int *sessionid) {
+static int
+control_connect(uint32_t devid, uint16_t portnum, unsigned int *session_nonce) {
 	int connfd, size;
 	
 	connfd = create_tcp_connection(devid, portnum);
@@ -322,15 +186,151 @@ control_connect(uint32_t devid, uint16_t portnum, unsigned int *sessionid) {
 	}
 	
 	/* Read 32-bit cookie from server. */
-	size = readn(connfd, sessionid, sizeof(*sessionid));
+	size = readn(connfd, session_nonce, sizeof(*session_nonce));
 	if (size < 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "control_connect: Failed reading sessionid");
+	  log_message(LOGT_NET, LOGL_ERR, "control_connect: Failed reading session_nonce");
 	  close(connfd);
 	  return(-1);
 	}
 	
 	return connfd;
 }
+
+/*
+ * Create and establish a socket with the other
+ * side.
+ */
+int
+hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
+{
+	struct protoent *pent;
+	struct sockaddr_in sa;
+	int             err;
+	ssize_t         size, len;
+	int				auth_required = 0;
+	char			buf[BUFSIZ];
+
+
+
+        uint16_t px = htons(diamond_get_control_port());
+	cinfo->dev_id = devid;
+	cinfo->control_fd = control_connect(devid, px, &cinfo->session_nonce);
+	if (cinfo->control_fd < 0 ) {
+		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to initialize control connection");
+		return(ENOENT);
+	}
+
+
+	if ((int) cinfo->session_nonce < 0) {
+		/* authenticate */
+		cinfo->ca_handle = auth_conn_client(cinfo->control_fd);
+		if (cinfo->ca_handle) {
+			/* wait for ack to our connect request */
+			size = readn(cinfo->control_fd, &buf[0], BUFSIZ);
+			if (size == -1) {
+			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to read encrypted session_nonce");
+			  close(cinfo->control_fd);
+			  return (ENOENT);
+			}
+	
+
+			/* decrypt the message */	
+			len = auth_msg_decrypt(cinfo->ca_handle, buf, size, 
+									(char *) &cinfo->session_nonce, 
+									sizeof(cinfo->session_nonce));
+			if (len < 0) {
+			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to decrypt session_nonce");
+				close(cinfo->control_fd);
+				return (ENOENT);
+			}
+			
+			auth_required = 1;
+			cinfo->flags |= CINFO_AUTHENTICATED;
+		} else {			
+			log_message(LOGT_NET, LOGL_ERR, 
+		    	"hstub_establish_connection: auth_conn_client() failed");
+			close(cinfo->control_fd);
+			return (ENOENT);
+		}
+	}
+
+
+	/*
+	 * Now we open the data socket and send the cookie on it.
+	 */
+	cinfo->data_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
+
+	/*
+	 * we reuse the sockaddr, just change the port number 
+	 */
+	sa.sin_port = htons(diamond_get_data_port());
+
+	err = connect(cinfo->data_fd, (struct sockaddr *) &sa, sizeof(sa));
+	if (err) {
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: connect data port failed");
+		close(cinfo->control_fd);
+		return (ENOENT);
+	}
+
+	/* authenticate connection */
+	if (auth_required) {
+		cinfo->da_handle = auth_conn_client(cinfo->data_fd);
+		if (cinfo->da_handle) {
+			/* encrypt the cookie */
+			len = auth_msg_encrypt(cinfo->da_handle,  
+							(char *) &cinfo->session_nonce, 
+							sizeof(cinfo->session_nonce),
+							buf, BUFSIZ);
+			if (len < 0) {
+				printf("failed to encrypt message");
+				close(cinfo->control_fd);
+				close(cinfo->data_fd);
+				return (ENOENT);
+			}
+			
+			/* send the cookie */
+			size = write(cinfo->data_fd, buf, len);
+			if (size == -1) {
+				log_message(LOGT_NET, LOGL_ERR, 
+		    				"hstub: send on  data port failed");
+				close(cinfo->control_fd);
+				close(cinfo->data_fd);
+				return (ENOENT);
+			}
+		} else {
+			log_message(LOGT_NET, LOGL_ERR, 
+		    	"hstub: failed to read from socket");
+			close(cinfo->control_fd);
+			close(cinfo->data_fd);
+			return (ENOENT);
+		}
+	} else {
+		/* write the cookie into the fd */
+		size = write(cinfo->data_fd, (char *) &cinfo->session_nonce,
+		    sizeof(cinfo->session_nonce));
+		if (size == -1) {
+			log_message(LOGT_NET, LOGL_ERR, 
+		    	"hstub: send on  data port failed");
+			close(cinfo->data_fd);
+			close(cinfo->control_fd);
+			return (ENOENT);
+		}
+	}
+
+	socket_non_block(cinfo->data_fd);
+
+	/*
+	 * Set the state machines variables.
+	 */
+	cinfo->control_state = CONTROL_TX_NO_PENDING;
+	cinfo->control_rx_state = CONTROL_RX_NO_PENDING;
+	cinfo->data_rx_state = DATA_RX_NO_PENDING;
+
+	return (0);
+}
+
+
 
 ssize_t                         /* Read "n" bytes from a descriptor. */
 readn(int fd, void *vptr, size_t n)

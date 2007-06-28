@@ -172,6 +172,23 @@ main(int argc, char **argv)
 	  return -1;
 	}
 	printf("%s\n", diamond_error(&characteristics->error));
+	if(characteristics->error.service_err != DIAMOND_SUCCESS)
+	  exit(EXIT_FAILURE);
+
+	fprintf(stderr, "\tcharacteristic 'dcs_isa' =\t");
+	switch(characteristics->chars.dcs_isa) {
+	case DEV_ISA_IA32:
+	  fprintf(stderr, "IA32\n");
+	  break;
+	default:
+	  fprintf(stderr, "unknown\n");
+	  break;
+	}
+
+	fprintf(stderr, "\tcharacteristic 'dcs_speed' =\t%u HZ\n",
+		characteristics->chars.dcs_speed);
+	fprintf(stderr, "\tcharacteristic 'dcs_mem' =\t%u bytes free\n",
+		characteristics->chars.dcs_mem);
 
 #if 0
 	test_dctl(gen);

@@ -40,38 +40,6 @@
 #include "hstub_impl.h"
 #include "rpc_client_content.h"
 
-#define CONTROL_PORT 5872
-#define DATA_PORT 5873
-
-#if 0
-void
-test_dctl(u_int  gen) {
-	diamond_rc_t *rc;
-	dctl_x device_write_leaf_x_2_arg2;
-	dctl_x device_read_leaf_x_2_arg2;
-	
-	rc = device_write_leaf_x_2(gen, device_write_leaf_x_2_arg2, clnt);
-	if (rc == (dctl_return_x *) NULL) {
-	  clnt_perror (clnt, "call failed");
-	}
-	
-	rc = device_read_leaf_x_2(gen, device_read_leaf_x_2_arg2, clnt);
-	if (rc == (dctl_return_x *) NULL) {
-	  clnt_perror (clnt, "call failed");
-	}
-
-	rc = device_list_nodes_x_2(gen, device_list_nodes_x_2_arg2, clnt);
-	if (rc == (dctl_return_x *) NULL) {
-	  clnt_perror (clnt, "call failed");
-	}
-
-	rc = device_list_leafs_x_2(gen, device_list_leafs_x_2_arg2, clnt);
-	if (rc == (dctl_return_x *) NULL) {
-	  clnt_perror (clnt, "call failed");
-	}
-}
-#endif
-
 
 char *
 diamond_error(diamond_rc_t *rc) {
@@ -102,6 +70,122 @@ diamond_error(diamond_rc_t *rc) {
 	return buf;
 }
 
+/*
+  struct dctl_x {
+  unsigned int	dctl_err;  
+  int           dctl_opid;      
+  unsigned int  dctl_plen;
+  unsigned int  dctl_dtype;
+  opaque 	dctl_data<>;
+  };
+*/
+int
+test_dctl(CLIENT *clnt, u_int  gen) {
+	dctl_x arg;
+	dctl_return_x *drx;
+	char *key = "/path/to/leaf";
+	char *value = "here's your data";
+	char buf[512];
+	
+	strcpy(buf, key);
+	strcat(buf, value);
+	
+	fprintf(stderr, "(potemkin) Making \"write leaf\" distributed"
+		" control call.. ");
+	memset(&arg, 0, sizeof(dctl_x));
+	arg.dctl_err = 0;  
+	arg.dctl_opid = 1; /* not read by adiskd */
+	arg.dctl_plen = strlen(key);
+	arg.dctl_dtype = 0;
+	arg.dctl_data.dctl_data_val = buf;
+	arg.dctl_data.dctl_data_len = strlen(buf) + 1;
+        drx = device_write_leaf_x_2(gen, arg, clnt);
+	if (drx == (dctl_return_x *) NULL) {
+	  clnt_perror (clnt, "call failed");
+	  return -1;
+	}
+	fprintf(stderr, "%s\n", diamond_error(&drx->error));
+	if(drx->error.service_err != DIAMOND_SUCCESS)
+	  return -1;
+
+	fprintf(stderr, "(potemkin) Making \"read leaf\" distributed"
+		" control call.. ");
+	memset(&arg, 0, sizeof(dctl_x));
+	arg.dctl_opid = 1;
+	arg.dctl_data.dctl_data_val = key;
+	arg.dctl_data.dctl_data_len = strlen(key)+1;
+	drx = device_read_leaf_x_2(gen, arg, clnt);
+	if (drx == (dctl_return_x *) NULL) {
+	  clnt_perror (clnt, "call failed");
+	  return -1;
+	}
+	fprintf(stderr, "%s\n", diamond_error(&drx->error));
+	if(drx->error.service_err != DIAMOND_SUCCESS)
+	  return -1;
+	fprintf(stderr, "\treturned %s\n", drx->dctl.dctl_data.dctl_data_val);
+
+#if 0
+	fprintf(stderr, "(potemkin) Making \"list nodes\" distributed control"
+		" call.. ");
+	memset(&arg, 0, sizeof(dctl_x));
+	drx = device_list_nodes_x_2(gen, arg, clnt);
+	if (drx == (dctl_return_x *) NULL) {
+	  clnt_perror (clnt, "call failed");
+	  return -1;
+	}
+	fprintf(stderr, "%s\n", diamond_error(&drx->error));
+	if(drx->error.service_err != DIAMOND_SUCCESS)
+	  return -1;
+
+	fprintf(stderr, "(potemkin) Making \"list leafs (sic)\" distributed"
+		" control call.. ");
+	memset(&arg, 0, sizeof(dctl_x));
+	drx = device_list_leafs_x_2(gen, arg, clnt);
+	if (drx == (dctl_return_x *) NULL) {
+	  clnt_perror (clnt, "call failed");
+	  return -1;
+	}
+	fprintf(stderr, "%s\n", diamond_error(&drx->error));
+	if(drx->error.service_err != DIAMOND_SUCCESS)
+	  return -1;
+#endif
+
+	return 0;
+}
+
+
+int
+get_chars(CLIENT *clnt, u_int gen) {
+	request_chars_return_x *characteristics;
+
+	fprintf(stderr, "(potemkin) Making \"request_characteristics\""
+		" call.. ");
+	characteristics = request_chars_x_2(gen, clnt);
+	if (characteristics == (request_chars_return_x *) NULL) {
+	  clnt_perror (clnt, "call failed");
+	  return -1;
+	}
+	fprintf(stderr, "%s\n", diamond_error(&characteristics->error));
+	if(characteristics->error.service_err != DIAMOND_SUCCESS)
+	  return -1;
+
+	fprintf(stderr, "\tcharacteristic 'dcs_isa' =\t");
+	switch(characteristics->chars.dcs_isa) {
+	case DEV_ISA_IA32:
+	  fprintf(stderr, "IA32\n");
+	  break;
+	default:
+	  fprintf(stderr, "unknown\n");
+	  break;
+	}
+
+	fprintf(stderr, "\tcharacteristic 'dcs_speed' =\t%u HZ\n",
+		characteristics->chars.dcs_speed);
+	fprintf(stderr, "\tcharacteristic 'dcs_mem' =\t%llu bytes free\n",
+		characteristics->chars.dcs_mem);
+
+	return 0;
+}
 
 /* For the moment, potemkin only makes raw TI-RPC calls to adiskd
  * rather than calling into the client-side (hoststub) library.
@@ -122,7 +206,6 @@ main(int argc, char **argv)
 	struct hostent *hent;
 
 	stop_x stats;
-	request_chars_return_x *characteristics;
 
 	if(argc != 2) {
 	  fprintf(stderr, "usage: %s [hostname]\n", argv[0]);
@@ -150,7 +233,8 @@ main(int argc, char **argv)
 	}
 	clnt = cinfo.tirpc_client;
 	if(clnt == NULL) {
-	  fprintf(stderr, "(potemkin) failed initializing TI-RPC client handle.\n");
+	  fprintf(stderr, "(potemkin) failed initializing TI-RPC "
+		  "client handle.\n");
 	  exit(EXIT_FAILURE);
 	}
 	fprintf(stderr, "(potemkin) Connections established.\n");
@@ -165,33 +249,12 @@ main(int argc, char **argv)
 	/*
 	 * Start RPC test by asking for server's characteristics.
 	 */
-	fprintf(stderr, "(potemkin) Making \"request_characteristics\" call.. ");
-	characteristics = request_chars_x_2(gen, clnt);
-	if (characteristics == (request_chars_return_x *) NULL) {
-	  clnt_perror (clnt, "call failed");
-	  return -1;
-	}
-	printf("%s\n", diamond_error(&characteristics->error));
-	if(characteristics->error.service_err != DIAMOND_SUCCESS)
+	if(get_chars(clnt, gen) < 0)
 	  exit(EXIT_FAILURE);
 
-	fprintf(stderr, "\tcharacteristic 'dcs_isa' =\t");
-	switch(characteristics->chars.dcs_isa) {
-	case DEV_ISA_IA32:
-	  fprintf(stderr, "IA32\n");
-	  break;
-	default:
-	  fprintf(stderr, "unknown\n");
-	  break;
-	}
-
-	fprintf(stderr, "\tcharacteristic 'dcs_speed' =\t%u HZ\n",
-		characteristics->chars.dcs_speed);
-	fprintf(stderr, "\tcharacteristic 'dcs_mem' =\t%u bytes free\n",
-		characteristics->chars.dcs_mem);
+	test_dctl(clnt, gen);
 
 #if 0
-	test_dctl(gen);
 
 	rc = device_set_obj_x_2(gen, device_set_obj_x_2_arg2, clnt);
 	if (rc == (diamond_rc_t *) NULL) {
@@ -228,6 +291,7 @@ main(int argc, char **argv)
 	  clnt_perror (clnt, "call failed");
 	}
 
+	/* XXX - should this be during a search? */
 	rc = device_set_user_state_x_2(gen, state, clnt);
 	if (rc == (diamond_rc_t *) NULL) {
 	  clnt_perror (clnt, "call failed");

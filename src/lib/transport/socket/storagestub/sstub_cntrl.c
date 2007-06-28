@@ -335,7 +335,8 @@ device_write_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 
 	err = (*tirpc_lstate->wleaf_cb) (tirpc_cstate->app_cookie,
 			      arg2.dctl_data.dctl_data_val,
-			      arg2.dctl_data.dctl_data_len,
+					 (arg2.dctl_data.dctl_data_len -
+					  arg2.dctl_plen),
 			      &(arg2.dctl_data.dctl_data_val[arg2.dctl_plen]), 
 			      arg2.dctl_opid);
 	

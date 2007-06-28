@@ -124,11 +124,14 @@ tirpc_init(int connfd) {
 				    CLIENTCONTENT_VERS, 
 				    BUFSIZ, BUFSIZ)) == NULL) {
 	  clnt_pcreateerror("clnt_tli_create");
-	  fprintf(stderr, "client: error creating TI-RPC tcp client\n");
+	  fprintf(stderr, "(hoststub) error creating \"client to content\" "
+		  "program client handle (prognum=0x%x, versnum=%d, tcp)\n", 
+		  CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
 	  return NULL;
 	}
-	
-	printf("TI-RPC client successfully created and connected!\n");
+	fprintf(stderr, "(hoststub) created \"client to content\" "
+		"program client handle (prognum=0x%x, versnum=%d, tcp)\n", 
+		CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
 
 	return clnt;
 }

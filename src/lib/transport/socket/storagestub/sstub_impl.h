@@ -212,7 +212,6 @@ int sstub_new_sock(int *fd, int port, int bind_only_locally);
 /*
  * Functions exported by sstub_cntrl.c
  */
-void sstub_write_control(listener_state_t *lstate, cstate_t *cstate);
 void sstub_read_control(listener_state_t *lstate, cstate_t *cstate);
 void sstub_except_control(listener_state_t *lstate, cstate_t *cstate);
 
@@ -233,8 +232,8 @@ void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
 /*
  * Functions exported by sstub_tirpc.c
  */
-void sstub_except_tirpc(listener_state_t *lstate, cstate_t *cstate);
 void sstub_read_tirpc(listener_state_t *lstate, cstate_t *cstate);
+void sstub_except_tirpc(listener_state_t *lstate, cstate_t *cstate);
 
 /*
  * Functions exported by sstub_conn.c

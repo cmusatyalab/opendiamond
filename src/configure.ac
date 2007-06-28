@@ -67,6 +67,7 @@ AC_SEARCH_LIBS([pthread_create],
 	[pthread],, AC_MSG_FAILURE([cannot find pthread_create function]))
 AC_SEARCH_LIBS([OpenSSL_add_all_digests],
 	[ssl],, AC_MSG_FAILURE([cannot find ssl function]))
+AC_SEARCH_LIBS([clnt_tli_create], [tirpc],, AC_MSG_FAILURE([cannot find tirpc library]))
 
 
 

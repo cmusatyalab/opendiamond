@@ -139,7 +139,7 @@ create_tirpc_server(void *arg) {
     transp = svc_tli_create(rpcfd, nconf, &tbind, BUFSIZ, BUFSIZ);
     if (transp == NULL) {
       fprintf (stderr, "%s", "cannot create tcp service.");
-      exit(1);
+      exit(EXIT_FAILURE);
     }
     
     fprintf(stderr, "(TI-RPC server) created server handle on port %d.\n",
@@ -149,12 +149,15 @@ create_tirpc_server(void *arg) {
     
     if (!svc_reg(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
 		 clientcontent_prog_2, NULL)) {
-      fprintf(stderr, "%s", "unable to register (CLIENTCONTENT_PROG, "
-	      "CLIENTCONTENT_VERS, tcp).");
-      exit(1);
+      fprintf(stderr, "(TI-RPC server) unable to register \"client to "
+	      "content\" program (prognum=0x%x, versnum=%d, tcp)\n", 
+	      CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
+      exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "(TI-RPC server) registered program\n");
+    fprintf(stderr, "(TI-RPC server) registered \"client to content\" "
+	    "program (prognum=0x%x, versnum=%d, tcp)\n", CLIENTCONTENT_PROG,
+	    CLIENTCONTENT_VERS);
     
     *(data->control_ready) = 1;       /* Signal the parent thread that
 				       * our TI-RPC server is ready to
@@ -254,7 +257,7 @@ setup_tirpc(cstate_t *cstate) {
 
 /*
  * This is the loop that handles the socket communications for each
- * of the different "connectons" to the disk that exist.
+ * of the different "connections" to the disk that exist.
  */
 
 void           *

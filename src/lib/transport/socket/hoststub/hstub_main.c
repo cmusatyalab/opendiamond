@@ -234,9 +234,6 @@ hstub_main(void *arg)
 		}
 
 		if (err > 0) {
-			if (FD_ISSET(cinfo->control_fd, &cinfo->read_fds)) {
-				hstub_read_cntrl(dev);
-			}
 			if (FD_ISSET(cinfo->data_fd, &cinfo->read_fds)) {
 				hstub_read_data(dev);
 			}
@@ -245,9 +242,6 @@ hstub_main(void *arg)
 			}
 			if (FD_ISSET(cinfo->data_fd, &cinfo->except_fds)) {
 				hstub_except_data(dev);
-			}
-			if (FD_ISSET(cinfo->control_fd, &cinfo->write_fds)) {
-				hstub_write_cntrl(dev);
 			}
 			if (FD_ISSET(cinfo->data_fd, &cinfo->write_fds)) {
 				hstub_write_data(dev);

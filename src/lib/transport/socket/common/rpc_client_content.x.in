@@ -93,8 +93,8 @@ struct dctl_return_x {
   dctl_x dctl;
 };
 
-program OPENDIAMOND_PROG {
-  version OPENDIAMOND_VERS {
+program CLIENTCONTENT_PROG {
+  version CLIENTCONTENT_VERS {
 
     /* Client calls. */
 

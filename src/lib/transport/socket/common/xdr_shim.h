@@ -25,6 +25,6 @@
  */
 
 #define xdr_quad_t xdr_longlong_t
-void opendiamond_prog_2(struct svc_req *rqstp, register SVCXPRT *transp);
+void clientcontent_prog_2(struct svc_req *rqstp, register SVCXPRT *transp);
 
 #endif

@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006 Carnegie Mellon University
+ *  Copyright (c) 2006-2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -15,6 +15,9 @@
 
 #ifndef _SOCKET_TRANS_H_
 #define _SOCKET_TRANS_H_
+
+#include "diamond_consts.h"
+#include "sig_calc.h"
 
 #define	CNTL_CMD_START			1
 #define	CNTL_CMD_STOP			2
@@ -196,5 +199,8 @@ typedef struct credit_count_msg {
 	uint32_t	cc_count;	/* number of object can send */
 } credit_count_msg_t;
 
+
+ssize_t readn(int fd, void *vptr, size_t n); 
+ssize_t writen(int fd, const void *vptr, size_t n); 
 
 #endif /* _SOCKET_TRANS_H_ */

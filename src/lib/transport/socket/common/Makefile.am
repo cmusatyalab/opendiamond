@@ -15,7 +15,7 @@ libdiamondrpc_la_SOURCES = rpc_client_content_svc.c rpc_client_scope_svc.c \
 		 rpc_client_content_xdr.c rpc_client_scope_xdr.c \
 		 rpc_content_scope_xdr.c rpc_scope_scope_xdr.c \
 		 rpc_admin_content_xdr.c rpc_admin_scope_xdr.c \
-		 rpc_preamble_xdr.c
+		 rpc_preamble_xdr.c socket_trans.c
 
 AM_CPPFLAGS += -I/usr/include/tirpc -include xdr_shim.h
 libdiamondrpc_la_LIBADD = -ltirpc

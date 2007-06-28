@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -15,6 +16,9 @@
 #ifndef	_LIB_HSTUB_IMPL_H_
 #define	_LIB_HSTUB_IMPL_H_
 
+#include <tirpc/rpc/types.h>
+#include <rpc/rpc.h>
+#include "lib_auth.h"
 
 /*
  * This structure keeps track of the state associated with each
@@ -75,6 +79,7 @@ typedef struct conn_info {
 	obj_header_t		data_rx_header;
 	int			data_rx_offset;
 	obj_data_t *		data_rx_obj;
+	CLIENT *                tirpc_client;
 	log_rx_state_t		log_rx_state;
 	int			log_rx_offset;
 	char *			log_rx_data;
@@ -158,10 +163,6 @@ void hstub_write_data(sdevice_state_t *dev);
  * Functions available in hstub_socket.h.
  */
 int hstub_establish_connection(conn_info_t *cinfo, uint32_t devid);
-
-/* move readn() and writen() out to a more public place from hstub */
-ssize_t readn(int fd, void *vptr, size_t n); 
-ssize_t  writen(int fd, const void *vptr, size_t n); 
 
 #endif	/* !_LIB_HSTUB_IMPL_H_ */
 

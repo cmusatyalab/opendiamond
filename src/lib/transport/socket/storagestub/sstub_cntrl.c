@@ -49,213 +49,6 @@ static char const cvsid[] =
     "$Header$";
 
 
-
-void
-sstub_write_control(listener_state_t * lstate, cstate_t * cstate)
-{
-	control_header_t *cheader;
-	int             header_remain,
-	                header_offset;
-	int             data_remain,
-	                data_offset;
-	char           *data;
-	int             send_len;
-
-
-	/*
-	 * clear the flags for now, there is no more data 
-	 */
-
-	if (cstate->control_tx_state == CONTROL_TX_NO_PENDING) {
-		/*
-		 * If we get here we are are not currently sending
-		 * any message.  See if there is another item on the
-		 * ring.  If not, then we clear the CSTATE_CONTROL_DATA
-		 * to indicate we should not be called until more data
-		 * is queued.  Otherwise we setup the header and data
-		 * offsets and remain counters as appropriate.
-		 */
-		pthread_mutex_lock(&cstate->cmutex);
-		cheader =
-		    (control_header_t *) ring_deq(cstate->control_tx_ring);
-		if (cheader == NULL) {
-			cstate->flags &= ~CSTATE_CONTROL_DATA;
-			pthread_mutex_unlock(&cstate->cmutex);
-			return;
-		}
-		pthread_mutex_unlock(&cstate->cmutex);
-
-		header_remain = sizeof(*cheader);
-		header_offset = 0;
-		data_remain = ntohl(cheader->data_len);
-		data_offset = 0;
-
-	} else if (cstate->control_tx_state == CONTROL_TX_HEADER) {
-		/*
-		 * If we got here we were in the middle of sending
-		 * the control message header when we ran out of
-		 * buffer space in the socket.  Setup the offset and
-		 * remaining counts for the header and the data portion.\
-		 */
-
-		cheader = cstate->control_tx_header;
-		header_offset = cstate->control_tx_offset;
-		header_remain = sizeof(*cheader) - header_offset;
-		;
-		data_remain = ntohl(cheader->data_len);
-		data_offset = 0;
-
-
-	} else {
-		/*
-		 * If we get here, then we are in the middle of transmitting
-		 * the data associated with the command.  Setup the data
-		 * offsets and remain counters.
-		 */
-		assert(cstate->control_tx_state == CONTROL_TX_DATA);
-
-		cheader = cstate->control_tx_header;
-		header_offset = 0;
-		header_remain = 0;
-		data_offset = cstate->control_tx_offset;
-		data_remain = ntohl(cheader->data_len) - data_offset;
-	}
-
-
-	/*
-	 * If we have any header data remaining, then go ahead and send it.
-	 */
-	if (header_remain != 0) {
-		data = (char *) cheader;
-		send_len = send(cstate->control_fd, &data[header_offset],
-				header_remain, 0);
-
-		if (send_len < 1) {
-
-			/*
-			 * If we didn't send any data then the socket has
-			 * been closed by the other side, so we just close
-			 * this connection.
-			 */
-			if (send_len == 0) {
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-
-
-			/*
-			 * if we get EAGAIN, the connection is fine
-			 * but there is no space.  Keep track of our current
-			 * state so we can resume later.
-			 */
-			if (errno == EAGAIN) {
-				cstate->control_tx_header = cheader;
-				cstate->control_tx_offset = header_offset;
-				cstate->control_tx_state = CONTROL_TX_HEADER;
-				return;
-			} else {
-				/*
-				 * Other errors indicate the socket is 
-				 * no good because 
-				 * is no good.  
-				 */
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-		}
-
-
-
-		/*
-		 * If we didn't send the full amount of data, then
-		 * the socket buffer was full.  We save our state
-		 * to keep track of where we need to continue when
-		 * more space is available.
-		 */
-
-		if (send_len != header_remain) {
-			cstate->control_tx_header = cheader;
-			cstate->control_tx_offset = header_offset + send_len;
-			cstate->control_tx_state = CONTROL_TX_HEADER;
-			return;
-		}
-	}
-
-
-
-
-	if (data_remain != 0) {
-		data = (char *) cheader->spare;
-		send_len = send(cstate->control_fd, &data[data_offset],
-				data_remain, 0);
-
-		if (send_len < 1) {
-			/*
-			 * If we didn't send any data then the socket has
-			 * been closed by the other side, so we just close
-			 * this connection.
-			 */
-			if (send_len == 0) {
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-
-			/*
-			 * if we get EAGAIN, the connection is fine
-			 * but there is no space.  Keep track of our current
-			 * state so we can resume later.
-			 */
-			if (errno == EAGAIN) {
-				cstate->control_tx_header = cheader;
-				cstate->control_tx_offset = data_offset;
-				cstate->control_tx_state = CONTROL_TX_DATA;
-				return;
-			} else {
-				/*
-				 * Other erros indicate the sockets is
-				 * no good, (connection has been reset??
-				 */
-				shutdown_connection(lstate, cstate);
-				return;
-			}
-		}
-
-		/*
-		 * If we didn't send the full amount of data, then
-		 * the socket buffer was full.  We save our state
-		 * to keep track of where we need to continue when
-		 * more space is available.
-		 */
-		if (send_len != data_remain) {
-			cstate->control_tx_header = cheader;
-			cstate->control_tx_offset = data_offset + send_len;
-			cstate->control_tx_state = CONTROL_TX_DATA;
-			return;
-		}
-
-		/*
-		 * if we get here, then the data was sent 
-		 */
-		free(data);
-	}
-
-	/*
-	 * some stats 
-	 */
-	cstate->stats_control_tx++;
-	cstate->stats_control_bytes_tx += sizeof(*cheader) +
-	    ntohl(cheader->data_len);
-	/*
-	 * We sent the whole message so reset our state machine and
-	 * release the message header.
-	 */
-	cstate->control_tx_state = CONTROL_TX_NO_PENDING;
-	free(cheader);
-	return;
-}
-
-
-
 void
 sstub_except_control(listener_state_t * lstate, cstate_t * cstate)
 {
@@ -780,12 +573,18 @@ sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 	/* Attempt to process up to 4096 bytes of data. */
 	
 	size_in = read(cstate->control_fd, (void *)buf, 4096);
-	if(size_in < 0){
+	if(size_in < 0) {
 	  perror("read");
 	  return;
 	}
+	else if(size_in == 0) { /* EOF */
+	  close(cstate->control_fd);
+	  fprintf(stderr, "(tunnel) Client closed control connection\n");
+	  exit(EXIT_SUCCESS);	  
+	}
+
 	
-	size_out = write(cstate->tirpc_fd, (void *)buf, size_in);
+	size_out = writen(cstate->tirpc_fd, (void *)buf, size_in);
 	if(size_out < 0) {
 	  perror("write");
 	  return;
@@ -796,6 +595,7 @@ sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 		  size_in, size_out);
 	  return;
 	}
+	else printf("Forwarded %d control bytes.\n", size_in);
 
 	return;
 }

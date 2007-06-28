@@ -37,6 +37,7 @@
 #include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "lib_log.h"
+#include "hstub_impl.h"
 #include "rpc_client_content.h"
 
 #define CONTROL_PORT 5872
@@ -72,131 +73,6 @@ test_dctl(u_int  gen) {
 #endif
 
 
-int
-create_tcp_connection(char *hostname, int port)
-{
-	int sockfd, error;
-	struct addrinfo hints, *info;
-	char port_str[6];
-	
-	if((hostname == NULL) || ((port < 0) || (port > 65535)))
-	  return -1;
-
-	/* create TCP socket */
-	if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-	  perror("socket");
-	  return -1;
-	}
-	
-	/* get server information */
-	bzero(&hints,  sizeof(struct addrinfo));
-	hints.ai_flags = AI_CANONNAME;
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	snprintf(port_str, NI_MAXSERV, "%u", port);
-	
-	if((error =
-	    getaddrinfo(hostname, port_str, &hints, &info)) < 0) {
-	  fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
-	  return -1;
-	}
-	
-	/* make connection */
-	if(connect(sockfd, info->ai_addr, sizeof(struct sockaddr_in)) < 0) {
-	  perror("connect");
-	  return -1;
-	}
-	
-	freeaddrinfo(info);
-	
-	return sockfd;
-}
-
-
-CLIENT *
-tirpc_init(int connfd, unsigned int *cookie) {
-	struct sockaddr control_name;
-	unsigned int control_name_len = sizeof(struct sockaddr);
-	struct netconfig *nconf;
-	struct netbuf *tbind;
-	CLIENT *clnt;
-
-	nconf = getnetconfigent("tcp");
-	if(nconf == NULL) {
-	  perror("getnetconfigent");
-	  exit(EXIT_FAILURE);
-	}
-	
-	/* Transform sockaddr_in to netbuf */
-	tbind = (struct netbuf *) malloc(sizeof(struct netbuf));
-	if(tbind == NULL) {
-	  perror("malloc");
-	  exit(EXIT_FAILURE);
-	}
-	
-	tbind->buf = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
-	if(tbind->buf == NULL) {
-	  perror("malloc");
-	  exit(EXIT_FAILURE);
-	}
-	if(getsockname(connfd, &control_name, &control_name_len) < 0) {
-	  perror("getsockname");
-	  exit(EXIT_FAILURE);
-	}
-	memcpy(tbind->buf, &control_name, sizeof(struct sockaddr));
-	tbind->maxlen = tbind->len = sizeof(struct sockaddr);
-	
-	if ((clnt = clnt_tli_create(connfd,
-					      nconf,
-					      tbind, 
-					      OPENDIAMOND_PROG, 
-					      OPENDIAMOND_VERS, 
-					      BUFSIZ, BUFSIZ)) == NULL) {
-	  clnt_pcreateerror("clnt_tli_create");
-	  fprintf(stderr, "client: error creating TI-RPC tcp client\n");
-	  exit(EXIT_FAILURE);
-	}
-	
-	printf("TI-RPC client successfully created and connected!\n");
-
-	return clnt;
-}
-
-
-int 
-data_connect(char *hostname, unsigned int cookie) {
-	int connfd, size;
-
-	connfd = create_tcp_connection(hostname, DATA_PORT);
-
-	/* Write the 32-bit cookie back to the server. */
-	size = write(connfd, (char *) &cookie, sizeof(cookie));
-	if (size == -1) {
-	  close(connfd);
-	  return -1;
-	}
-
-	return connfd;
-}
-
-
-int
-control_connect(char *hostname, unsigned int *cookie) {
-	int connfd, size;
-	
-	connfd = create_tcp_connection(hostname, CONTROL_PORT);
-	
-	/* Read 32-bit cookie from server. */
-	size = read(connfd, (char *)cookie, sizeof(*cookie));
-	if (size == -1) {
-	  printf("Failed reading control connection cookie.\n");
-	  close(connfd);
-	  return -1;
-	}
-	
-	return connfd;
-}
-
 char *
 diamond_error(diamond_rc_t *rc) {
 	static char buf[128];
@@ -206,20 +82,20 @@ diamond_error(diamond_rc_t *rc) {
 
 	switch(rc->service_err) {
 	case DIAMOND_SUCCESS:
-	  sprintf(buf, "Call succeeded.");
+	  sprintf(buf, "RPC call succeeded.");
 	  break;
 	case DIAMOND_FAILURE:
-	  sprintf(buf,"Call failed generically.");
+	  sprintf(buf,"RPC call failed generically.");
 	  break;  
 	case DIAMOND_NOMEM:
-	  sprintf(buf, "Call failed from an out-of-memory error.");
+	  sprintf(buf, "RPC call failed from an out-of-memory error.");
 	  break;
 	case DIAMOND_FAILEDSYSCALL:
-	  sprintf(buf, "Call failed from a failed system call: %s", 
+	  sprintf(buf, "RPC call failed from a failed system call: %s", 
 		  strerror(rc->opcode_err));
 	  break;
 	case DIAMOND_OPERR:
-	  sprintf(buf, "Call failed from an opcode-specific error.");
+	  sprintf(buf, "RPC call failed from an opcode-specific error.");
 	  break;
 	}
 
@@ -236,39 +112,60 @@ diamond_error(diamond_rc_t *rc) {
 int
 main(int argc, char **argv)
 {
-	CLIENT *clnt;
 	diamond_rc_t *rc;
-	char *hostname, *errstr;
-	int controlfd, datafd;
+	char *hostname;
 	u_int gen, mode, state;
-	unsigned int cookie;
+	uint32_t devid;
+	struct in_addr **addr_list, in;
+	conn_info_t cinfo;
+	CLIENT *clnt;
+	struct hostent *hent;
 
 	stop_x stats;
 	request_chars_return_x *characteristics;
 
 	if(argc != 2) {
-	  printf("usage: %s [hostname]\n", argv[0]);
+	  fprintf(stderr, "usage: %s [hostname]\n", argv[0]);
 	  exit(EXIT_SUCCESS);
 	}
 	
 	hostname = argv[1];
-	if((controlfd = control_connect(hostname, &cookie)) < 0) {
-	  printf("Failed initializing control connection.\n");
-	  exit(EXIT_FAILURE);
-	}
-	if((datafd = data_connect(hostname, cookie)) < 0) {
-	  printf("Failed initializing control connection.\n");
-	  exit(EXIT_FAILURE);
-	}
-	if((clnt = tirpc_init(controlfd, &cookie)) == NULL) {
-	  printf("Failed mutating control connection into "
-		 "TI-RPC connection.\n");
-	  exit(EXIT_FAILURE);
-	}
-	
 
+	if((hent = gethostbyname(hostname)) == 0) {
+	  fprintf(stderr, "couldn't resolve hostname %s\n", hostname);
+	  exit(EXIT_FAILURE);
+	}
+	addr_list = (struct in_addr **) (hent->h_addr_list);
+	in = *(addr_list[0]);
+	devid = in.s_addr;
+
+	
+	/*
+	 * Test hoststub's connection pairing mechanisms.
+	 */
+	memset(&cinfo, 0, sizeof(conn_info_t));
+	if(hstub_establish_connection(&cinfo, devid) != 0) {
+	  fprintf(stderr, "(potemkin) failed establishing connections to server.\n");
+	  exit(EXIT_FAILURE);
+	}
+	clnt = cinfo.tirpc_client;
+	if(clnt == NULL) {
+	  fprintf(stderr, "(potemkin) failed initializing TI-RPC client handle.\n");
+	  exit(EXIT_FAILURE);
+	}
+	fprintf(stderr, "(potemkin) Connections established.\n");
+
+
+	/*
+	 * Not sure how gen is used just yet besides it increasing.
+	 */
 	gen = 100;
 
+
+	/*
+	 * Start RPC test by asking for server's characteristics.
+	 */
+	fprintf(stderr, "(potemkin) Making \"request_characteristics\" call.. ");
 	characteristics = request_chars_x_2(gen, clnt);
 	if (characteristics == (request_chars_return_x *) NULL) {
 	  clnt_perror (clnt, "call failed");
@@ -344,9 +241,6 @@ main(int argc, char **argv)
 
 	if(clnt != NULL)
 	  clnt_destroy (clnt);
-
-	close(controlfd);
-	close(datafd);
 	
 	return 0;
 }

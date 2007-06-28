@@ -52,27 +52,6 @@
 static char const cvsid[] =
     "$Header$";
 
-/*
- * set a socket to non-blocking 
- */
-static void
-socket_non_block(int fd)
-{
-	int             flags,
-	                err;
-
-	flags = fcntl(fd, F_GETFL, 0);
-	if (flags == -1) {
-		log_message(LOGT_NET, LOGL_ERR, "hstub: issue fcntl");
-		return;
-	}
-	err = fcntl(fd, F_SETFL, (flags | O_NONBLOCK));
-	if (err == -1) {
-		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to set fcntl");
-		return;
-	}
-}
-
 
 static int
 create_tcp_connection(uint32_t devid, uint16_t port)
@@ -89,6 +68,7 @@ create_tcp_connection(uint32_t devid, uint16_t port)
 	}
 
 	/* define destination */	
+	sa.sin_family = AF_INET;
 	sa.sin_port = port;
 	sa.sin_addr.s_addr = (in_addr_t) devid; /* already in network order */
 	
@@ -115,37 +95,37 @@ tirpc_init(int connfd) {
 	nconf = getnetconfigent("tcp");
 	if(nconf == NULL) {
 	  perror("getnetconfigent");
-	  exit(EXIT_FAILURE);
+	  return NULL;
 	}
 	
 	/* Transform sockaddr_in to netbuf */
 	tbind = (struct netbuf *) malloc(sizeof(struct netbuf));
 	if(tbind == NULL) {
 	  perror("malloc");
-	  exit(EXIT_FAILURE);
+	  return NULL;
 	}
 	
 	tbind->buf = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
 	if(tbind->buf == NULL) {
 	  perror("malloc");
-	  exit(EXIT_FAILURE);
+	  return NULL;
 	}
 	if(getsockname(connfd, &control_name, &control_name_len) < 0) {
 	  perror("getsockname");
-	  exit(EXIT_FAILURE);
+	  return NULL;
 	}
 	memcpy(tbind->buf, &control_name, sizeof(struct sockaddr));
 	tbind->maxlen = tbind->len = sizeof(struct sockaddr);
 	
 	if ((clnt = clnt_tli_create(connfd,
-					      nconf,
-					      tbind, 
-					      OPENDIAMOND_PROG, 
-					      OPENDIAMOND_VERS, 
-					      BUFSIZ, BUFSIZ)) == NULL) {
+				    nconf,
+				    tbind, 
+				    CLIENTCONTENT_PROG, 
+				    CLIENTCONTENT_VERS, 
+				    BUFSIZ, BUFSIZ)) == NULL) {
 	  clnt_pcreateerror("clnt_tli_create");
 	  fprintf(stderr, "client: error creating TI-RPC tcp client\n");
-	  exit(EXIT_FAILURE);
+	  return NULL;
 	}
 	
 	printf("TI-RPC client successfully created and connected!\n");
@@ -204,13 +184,9 @@ control_connect(uint32_t devid, uint16_t portnum, unsigned int *session_nonce) {
 int
 hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 {
-	struct protoent *pent;
-	struct sockaddr_in sa;
-	int             err;
 	ssize_t         size, len;
-	int				auth_required = 0;
-	char			buf[BUFSIZ];
-
+	int		auth_required = 0;
+	char		buf[BUFSIZ];
 
 
         uint16_t px = htons(diamond_get_control_port());
@@ -303,8 +279,14 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 		}
 	} 
 
-
-
+	cinfo->tirpc_client = tirpc_init(cinfo->control_fd);
+	if (cinfo->tirpc_client == NULL) {
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: TI-RPC initialization failed");
+		close(cinfo->control_fd);
+		close(cinfo->data_fd);
+		return (ENOENT);
+	}
 	/*
 	 * Set the state machines variables.
 	 */
@@ -313,55 +295,4 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 
 	return (0);
-}
-
-
-
-ssize_t                         /* Read "n" bytes from a descriptor. */
-readn(int fd, void *vptr, size_t n)
-{
-  size_t  nleft;
-  ssize_t nread;
-  char   *ptr;
-
-  ptr = vptr;
-  nleft = n;
-
-  while (nleft > 0) {
-    if ( (nread = read(fd, ptr, nleft)) < 0) {
-      perror("read");
-      if (errno == EINTR)
-        nread = 0;      /* and call read() again */
-      else
-        return (-1);
-    } else if (nread == 0)
-      break;              /* EOF */
-
-    nleft -= nread;
-    ptr += nread;
-  }
-  return (n - nleft);         /* return >= 0 */
-}
-
-ssize_t                         /* Write "n" bytes to a descriptor. */
-writen(int fd, const void *vptr, size_t n)
-{
-  size_t nleft;
-  ssize_t nwritten;
-  const char *ptr;
-
-  ptr = vptr;
-  nleft = n;
-  while (nleft > 0) {
-    if ( (nwritten = write(fd, ptr, nleft)) <= 0) {
-      if (nwritten < 0 && errno == EINTR)
-        nwritten = 0;   /* and call write() again */
-      else
-        return (-1);    /* error */
-    }
-
-    nleft -= nwritten;
-    ptr += nwritten;
-  }
-  return (n);
 }

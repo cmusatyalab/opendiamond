@@ -76,8 +76,13 @@ sstub_read_tirpc(listener_state_t * lstate, cstate_t * cstate)
     perror("read");
     return;
   }
+  else if(size_in == 0) { /* EOF */
+    close(cstate->control_fd);
+    fprintf(stderr, "(tunnel) The TI-RPC server closed its connection\n");
+    exit(EXIT_SUCCESS);	  
+  }
   
-  size_out = write(cstate->control_fd, (void *)buf, size_in);
+  size_out = writen(cstate->control_fd, (void *)buf, size_in);
   if(size_out < 0) {
     perror("write");
     return;
@@ -88,6 +93,7 @@ sstub_read_tirpc(listener_state_t * lstate, cstate_t * cstate)
 	    size_in, size_out);
     return;
   }
+  else printf("Forwarded %d TI-RPC bytes.\n", size_in);
 
   return;
 }

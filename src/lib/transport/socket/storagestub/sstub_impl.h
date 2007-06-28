@@ -94,7 +94,6 @@ typedef struct cstate {
 	int			        control_fd;
 	int			        data_fd;
         int                             tirpc_fd;
-        int                             tirpc_port;
 	int			        pend_obj;
 	int			        have_start;
 	uint32_t		    start_gen;

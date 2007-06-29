@@ -56,8 +56,6 @@ int device_set_spec(void *dev, int id, char *spec, sig_val_t *spec_sig);
 int device_characteristics(void *handle, device_char_t *dev_chars);
 int device_statistics(void *dev, dev_stats_t *dev_stats,
                       int *stat_len);
-int device_set_log(void *handle, uint32_t level, uint32_t src);
-
 int device_write_leaf(void *dev, char *path, int len, char *data,
                       int32_t opid);
 int device_read_leaf(void *dev, char *path, int32_t opid);

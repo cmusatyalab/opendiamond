@@ -422,59 +422,6 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	return (0);
 }
 
-int
-device_set_log(void *handle, uint32_t level, uint32_t src)
-{
-	int             err;
-	control_header_t *cheader;
-	sdevice_state_t *dev;
-	setlog_subheader_t *slheader;
-
-	dev = (sdevice_state_t *) handle;
-
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_log: failed to malloc command");
-		return (EAGAIN);
-	}
-
-	slheader = (setlog_subheader_t *) malloc(sizeof(*slheader));
-	if (slheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_log: failed to malloc slheader");
-		free(cheader);
-		return (EAGAIN);
-	}
-
-
-
-	cheader->generation_number = htonl(0);	/* XXX */
-	cheader->command = htonl(CNTL_CMD_SETLOG);
-	cheader->data_len = htonl(sizeof(*slheader));
-	cheader->spare = (uint32_t) slheader;
-
-	slheader->log_level = level;
-	slheader->log_src = src;
-
-
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_log: failed to enqueue command");
-		free(slheader);
-		free(cheader);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
-	return (0);
-}
-
-
 
 
 int

@@ -145,39 +145,22 @@ device_stop(void *handle, int id, host_stats_t *hs)
 int
 device_terminate(void *handle, int id)
 {
-	int             err;
-	control_header_t *cheader;
+	diamond_rc_t *rc;
 	sdevice_state_t *dev;
 
 	dev = (sdevice_state_t *) handle;
 
-
-
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_terminate: failed to malloc message");
-		return (EAGAIN);
+	rc = device_clear_gids_x_2(id, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  return -1;
+	}
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return -1;
 	}
 
-	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_TERMINATE);
-	cheader->data_len = htonl(0);
-	cheader->spare = 0;
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_terminate: failed to enqueue message");
-		free(cheader);
-		return (EAGAIN);
-	}
-	/*
-	 * XXX flags 
-	 */
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
 }
 

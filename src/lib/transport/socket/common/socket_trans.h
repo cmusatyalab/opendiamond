@@ -22,8 +22,6 @@
 
 #define	CNTL_CMD_SET_SPEC		3
 #define	CNTL_CMD_SET_LIST		4
-#define	CNTL_CMD_TERMINATE		5
-#define	CNTL_CMD_TERM_DONE		6
 #define	CNTL_CMD_WRITE_LEAF 		12
 #define	CNTL_CMD_READ_LEAF 	    	13
 #define	CNTL_CMD_LIST_NODES     	14

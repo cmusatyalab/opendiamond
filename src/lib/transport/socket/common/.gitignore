@@ -1,0 +1,5 @@
+/rpc_*_svc.c
+/rpc_*_clnt.c
+/rpc_*.h
+/rpc_*_xdr.c
+/rpc_*.x

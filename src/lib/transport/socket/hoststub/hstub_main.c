@@ -86,10 +86,12 @@ request_chars(sdevice_state_t * dev)
 	return;
 }
 
+
 /*
  * This stores caches the statistics to answer requests
  * from users.
  */
+
 static void
 request_stats(sdevice_state_t * dev)
 {

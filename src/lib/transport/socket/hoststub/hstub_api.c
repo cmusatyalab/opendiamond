@@ -43,7 +43,8 @@
 #include "lib_hstub.h"
 #include "lib_auth.h"
 #include "hstub_impl.h"
-
+#include "rpc_client_content.h"
+#include "rpc_preamble.h"
 
 static char const cvsid[] =
     "$Header$";
@@ -108,50 +109,29 @@ device_statistics(void *handle, dev_stats_t * dev_stats, int *stat_len)
 int
 device_stop(void *handle, int id, host_stats_t *hs)
 {
-	int             err;
-	control_header_t *cheader;
-	stop_subheader_t *sheader;
+	diamond_rc_t *rc;
+	stop_x sx;
 	sdevice_state_t *dev;
+
 
 	dev = (sdevice_state_t *) handle;
 
-
-	if ((cheader = (control_header_t *) malloc(sizeof(*cheader))) == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_stop: failed to malloc message");
-		return (EAGAIN);
+	rc = device_stop_x_2(id, sx, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
+	  return -1;
+	}
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return -1;
 	}
 
-	sheader = (stop_subheader_t *) malloc(sizeof(*sheader));
-	if (sheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_stop: failed to malloc emheader");
-		free(cheader);
-		return (EAGAIN);
-	}
-
-	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_STOP);
-	cheader->data_len = htonl(sizeof(*sheader));
-	cheader->spare = (uint32_t) sheader;
-	
-	sheader->host_objs_received = htonl(hs->hs_objs_received);	
-	sheader->host_objs_queued = htonl(hs->hs_objs_queued);
-	sheader->host_objs_read = htonl(hs->hs_objs_read);
-	sheader->app_objs_queued = htonl(hs->hs_objs_uqueued);
-	sheader->app_objs_presented = htonl(hs->hs_objs_upresented);
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_stop: failed to enqueue stop command");
-		free(cheader);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
+	sx.host_objs_received = hs->hs_objs_received;
+	sx.host_objs_queued = hs->hs_objs_queued;
+	sx.host_objs_read = hs->hs_objs_read;
+	sx.app_objs_queued = hs->hs_objs_uqueued;
+	sx.app_objs_presented = hs->hs_objs_upresented;
 
 	return (0);
 }
@@ -210,8 +190,7 @@ device_terminate(void *handle, int id)
 int
 device_start(void *handle, int id)
 {
-	int             err;
-	control_header_t *cheader;
+	diamond_rc_t *rc;
 	sdevice_state_t *dev;
 
 	dev = (sdevice_state_t *) handle;
@@ -219,29 +198,17 @@ device_start(void *handle, int id)
 	/* save the new start id */
 	dev->ver_no = id;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_start: failed to allocate message");
-		return (EAGAIN);
+	rc = device_start_x_2(id, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
+	  return;
+	}
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return;
 	}
 
-	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_START);
-	cheader->data_len = htonl(0);
-	cheader->spare = 0;
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_start: failed to enqueue message");
-		free(cheader);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
 }
 

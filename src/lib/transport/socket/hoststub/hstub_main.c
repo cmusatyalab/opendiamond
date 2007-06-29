@@ -54,6 +54,14 @@ static char const cvsid[] =
 #define		POLL_SECS	0
 #define		POLL_USECS	200000
 
+
+/*
+ * Take the device characteristics we recieved and
+ * store them as part of the device state.  We will use
+ * these to answer requests.  The freshness will be determined
+ * by how often we go an make the requests.
+ */
+
 static void
 request_chars(sdevice_state_t * dev)
 {
@@ -78,34 +86,93 @@ request_chars(sdevice_state_t * dev)
 	return;
 }
 
+/*
+ * This stores caches the statistics to answer requests
+ * from users.
+ */
 static void
 request_stats(sdevice_state_t * dev)
 {
-	int             err;
-	control_header_t *cheader;
+	request_stats_return_x *statistics;
+	dev_stats_t    *dstats;
+	int             len;
+	int             num_filt;
+	int             i;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		 log_message(LOGT_NET, LOGL_ERR, 
-		     "control message: malloc failed");
-		return;
+	statistics = request_stats_x_2(0, dev->con_data.tirpc_client);
+	if (statistics == (request_stats_return_x *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call sending failed");
+	  return;
+	}
+	if(statistics->error.service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics->error));
+	  return;
 	}
 
-	cheader->generation_number = htonl(0);
-	cheader->command = htonl(CNTL_CMD_GET_STATS);
-	cheader->data_len = htonl(0);
+	num_filt = statistics->stats.ds_filter_stats.ds_filter_stats_len;
+	len = DEV_STATS_SIZE(num_filt);
 
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		 log_message(LOGT_NET, LOGL_ERR, 
-		     "control message: queue overflow");
-		free(cheader);
-		return;
+
+	if (len > dev->stat_size) {
+		if (dev->dstats != NULL) {
+			free(dev->dstats);
+		}
+		dstats = (dev_stats_t *) malloc(len);
+		assert(dstats != NULL);
+		dev->dstats = dstats;
+		dev->stat_size = len;
+	} else {
+		dstats = dev->dstats;
+		dev->stat_size = len;
 	}
 
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
+
+	dstats->ds_objs_total = statistics->stats.ds_objs_total;
+	dstats->ds_objs_processed = statistics->stats.ds_objs_processed;
+	dstats->ds_objs_dropped = statistics->stats.ds_objs_dropped;
+	dstats->ds_objs_nproc = statistics->stats.ds_objs_nproc;
+	dstats->ds_system_load = statistics->stats.ds_system_load;
+	dstats->ds_avg_obj_time = statistics->stats.ds_avg_obj_time;
+	dstats->ds_num_filters = statistics->stats.ds_filter_stats.ds_filter_stats_len;
+
+	for (i = 0; i < num_filt; i++) {
+		strncpy(dstats->ds_filter_stats[i].fs_name,
+			statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_name, MAX_FILTER_NAME);
+		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME - 1] =
+		    '\0';
+
+		dstats->ds_filter_stats[i].fs_objs_processed =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed;
+
+		dstats->ds_filter_stats[i].fs_objs_dropped =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped;
+
+		/*
+		 * JIAYING 
+		 */
+		dstats->ds_filter_stats[i].fs_objs_cache_dropped =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped;
+		dstats->ds_filter_stats[i].fs_objs_cache_passed =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed;
+		dstats->ds_filter_stats[i].fs_objs_compute =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute;
+
+		dstats->ds_filter_stats[i].fs_hits_inter_session =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session;
+		dstats->ds_filter_stats[i].fs_hits_inter_query =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query;
+		dstats->ds_filter_stats[i].fs_hits_intra_query =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query;
+
+		/*
+		 * XXX byte order !!! 
+		 */
+		
+		dstats->ds_filter_stats[i].fs_avg_exec_time =
+		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
+	}
+
 	return;
 }
 

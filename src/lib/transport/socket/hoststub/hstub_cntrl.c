@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -48,96 +49,6 @@
 static char const cvsid[] =
     "$Header$";
 
-
-/*
- * This stores caches the statistics to answer requests
- * from users.
- */
-static void
-store_dev_stats(sdevice_state_t * dev, char *data_buf)
-{
-	dstats_subheader_t *shead;
-	fstats_subheader_t *fhead;
-	dev_stats_t    *dstats;
-	int             len;
-	int             num_filt;
-	int             offset;
-	int             i;
-
-	shead = (dstats_subheader_t *) data_buf;
-
-	num_filt = ntohl(shead->dss_num_filters);
-	len = DEV_STATS_SIZE(num_filt);
-
-
-	if (len > dev->stat_size) {
-		if (dev->dstats != NULL) {
-			free(dev->dstats);
-		}
-		dstats = (dev_stats_t *) malloc(len);
-		assert(dstats != NULL);
-		dev->dstats = dstats;
-		dev->stat_size = len;
-	} else {
-		dstats = dev->dstats;
-		dev->stat_size = len;
-	}
-
-
-	dstats->ds_objs_total = ntohl(shead->dss_total_objs);
-	dstats->ds_objs_processed = ntohl(shead->dss_objs_proc);
-	dstats->ds_objs_dropped = ntohl(shead->dss_objs_drop);
-	// printf("update stats: proc %d drop %d \n",
-	// dstats->ds_objs_processed,
-	// dstats->ds_objs_dropped);
-	dstats->ds_objs_nproc = ntohl(shead->dss_objs_bp);
-	dstats->ds_system_load = ntohl(shead->dss_system_load);
-	/*
-	 * XXX 64 bit ntohl 
-	 */
-	dstats->ds_avg_obj_time = shead->dss_avg_obj_time;
-	dstats->ds_num_filters = ntohl(shead->dss_num_filters);
-
-	for (i = 0; i < num_filt; i++) {
-		offset = sizeof(*shead) + (i * sizeof(*fhead));
-		fhead = (fstats_subheader_t *) & data_buf[offset];
-
-		strncpy(dstats->ds_filter_stats[i].fs_name,
-			fhead->fss_name, MAX_FILTER_NAME);
-		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME - 1] =
-		    '\0';
-
-		dstats->ds_filter_stats[i].fs_objs_processed =
-		    ntohl(fhead->fss_objs_processed);
-
-		dstats->ds_filter_stats[i].fs_objs_dropped =
-		    ntohl(fhead->fss_objs_dropped);
-
-		/*
-		 * JIAYING 
-		 */
-		dstats->ds_filter_stats[i].fs_objs_cache_dropped =
-		    ntohl(fhead->fss_objs_cache_dropped);
-		dstats->ds_filter_stats[i].fs_objs_cache_passed =
-		    ntohl(fhead->fss_objs_cache_passed);
-		dstats->ds_filter_stats[i].fs_objs_compute =
-		    ntohl(fhead->fss_objs_compute);
-
-		dstats->ds_filter_stats[i].fs_hits_inter_session =
-		    ntohl(fhead->fss_hits_inter_session);
-		dstats->ds_filter_stats[i].fs_hits_inter_query =
-		    ntohl(fhead->fss_hits_inter_query);
-		dstats->ds_filter_stats[i].fs_hits_intra_query =
-		    ntohl(fhead->fss_hits_intra_query);
-
-		/*
-		 * XXX byte order !!! 
-		 */
-		
-		dstats->ds_filter_stats[i].fs_avg_exec_time =
-		    fhead->fss_avg_exec_time;
-	}
-}
 
 static void
 write_leaf_done(sdevice_state_t * dev, char *data)
@@ -326,11 +237,6 @@ process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 	uint32_t        cmd = ntohl(cinfo->control_rx_header.command);
 
 	switch (cmd) {
-
-	case CNTL_CMD_RET_STATS:
-		store_dev_stats(dev, data_buf);
-		free(data_buf);
-		break;
 
 	case CNTL_CMD_WLEAF_DONE:
 		write_leaf_done(dev, data_buf);

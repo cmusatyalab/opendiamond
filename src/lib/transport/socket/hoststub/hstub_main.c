@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -42,7 +43,7 @@
 #include "lib_hstub.h"
 #include "lib_auth.h"
 #include "hstub_impl.h"
-
+#include "rpc_client_content.h"
 
 static char const cvsid[] =
     "$Header$";
@@ -56,31 +57,24 @@ static char const cvsid[] =
 static void
 request_chars(sdevice_state_t * dev)
 {
-	int             err;
-	control_header_t *cheader;
+	request_chars_return_x *characteristics;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		 log_message(LOGT_NET, LOGL_ERR, 
-		     "control message: malloc failed");
-		return;
+	characteristics = request_chars_x_2(0, dev->con_data.tirpc_client);
+	if (characteristics == (request_chars_return_x *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
+	  return;
+	}
+	if(characteristics->error.service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&characteristics->error));
+	  return;
 	}
 
-	cheader->generation_number = htonl(0);
-	cheader->command = htonl(CNTL_CMD_GET_CHAR);
-	cheader->data_len = htonl(0);
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		 log_message(LOGT_NET, LOGL_ERR, 
-		     "control message: queue overflow");
-		free(cheader);
-		return;
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
+	dev->dev_char.dc_isa = characteristics->chars.dcs_isa;
+	dev->dev_char.dc_speed = characteristics->chars.dcs_isa;
+	dev->dev_char.dc_mem = characteristics->chars.dcs_mem;
+	dev->dev_char.dc_devid = dev->con_data.dev_id;
+	
 	return;
 }
 

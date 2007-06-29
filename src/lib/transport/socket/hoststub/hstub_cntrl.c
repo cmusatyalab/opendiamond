@@ -48,30 +48,6 @@
 static char const cvsid[] =
     "$Header$";
 
-/*
- * Take the device characteristics we recieved and
- * store them as part of the device state.  We will use
- * these to answer requests.  The freshness will be determined
- * by how often we go an make the requests.
- */
-
-static void
-store_dev_char(sdevice_state_t * dev, char *data_buf)
-{
-	devchar_subhead_t *shead;
-
-	shead = (devchar_subhead_t *) data_buf;
-
-	dev->dev_char.dc_isa = ntohl(shead->dcs_isa);
-	/*
-	 * XXX byte swap when we get it working 
-	 */
-	dev->dev_char.dc_speed = shead->dcs_isa;
-	dev->dev_char.dc_mem = shead->dcs_mem;
-	dev->dev_char.dc_devid = dev->con_data.dev_id;
-}
-
-
 
 /*
  * This stores caches the statistics to answer requests
@@ -353,12 +329,6 @@ process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 
 	case CNTL_CMD_RET_STATS:
 		store_dev_stats(dev, data_buf);
-		free(data_buf);
-		break;
-
-
-	case CNTL_CMD_RET_CHAR:
-		store_dev_char(dev, data_buf);
 		free(data_buf);
 		break;
 

@@ -290,6 +290,7 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 		close(cinfo->data_fd);
 		return (ENOENT);
 	}
+
 	/*
 	 * Set the state machines variables.
 	 */

@@ -41,34 +41,6 @@
 #include "rpc_client_content.h"
 
 
-char *
-diamond_error(diamond_rc_t *rc) {
-	static char buf[128];
-
-	if(rc == NULL)
-	  return NULL;
-
-	switch(rc->service_err) {
-	case DIAMOND_SUCCESS:
-	  sprintf(buf, "RPC call succeeded.");
-	  break;
-	case DIAMOND_FAILURE:
-	  sprintf(buf,"RPC call failed generically.");
-	  break;  
-	case DIAMOND_NOMEM:
-	  sprintf(buf, "RPC call failed from an out-of-memory error.");
-	  break;
-	case DIAMOND_FAILEDSYSCALL:
-	  sprintf(buf, "RPC call failed from a failed system call: %s", 
-		  strerror(rc->opcode_err));
-	  break;
-	case DIAMOND_OPERR:
-	  sprintf(buf, "RPC call failed from an opcode-specific error.");
-	  break;
-	}
-
-	return buf;
-}
 
 /*
   struct dctl_x {

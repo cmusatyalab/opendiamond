@@ -18,6 +18,7 @@
 
 #include "diamond_consts.h"
 #include "sig_calc.h"
+#include "rpc_preamble.h"
 
 #define	CNTL_CMD_START			1
 #define	CNTL_CMD_STOP			2
@@ -27,8 +28,6 @@
 #define	CNTL_CMD_TERM_DONE		6
 #define	CNTL_CMD_GET_STATS		7
 #define	CNTL_CMD_RET_STATS		8
-#define	CNTL_CMD_GET_CHAR		9
-#define	CNTL_CMD_RET_CHAR		10
 #define	CNTL_CMD_SETLOG			11
 #define	CNTL_CMD_WRITE_LEAF 		12
 #define	CNTL_CMD_READ_LEAF 	    	13
@@ -202,5 +201,6 @@ typedef struct credit_count_msg {
 
 ssize_t readn(int fd, void *vptr, size_t n); 
 ssize_t writen(int fd, const void *vptr, size_t n); 
+char *  diamond_error(diamond_rc_t *rc);
 
 #endif /* _SOCKET_TRANS_H_ */

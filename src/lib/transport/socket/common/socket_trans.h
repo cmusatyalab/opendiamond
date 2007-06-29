@@ -20,14 +20,10 @@
 #include "sig_calc.h"
 #include "rpc_preamble.h"
 
-#define	CNTL_CMD_START			1
-#define	CNTL_CMD_STOP			2
 #define	CNTL_CMD_SET_SPEC		3
 #define	CNTL_CMD_SET_LIST		4
 #define	CNTL_CMD_TERMINATE		5
 #define	CNTL_CMD_TERM_DONE		6
-#define	CNTL_CMD_GET_STATS		7
-#define	CNTL_CMD_RET_STATS		8
 #define	CNTL_CMD_SETLOG			11
 #define	CNTL_CMD_WRITE_LEAF 		12
 #define	CNTL_CMD_READ_LEAF 	    	13
@@ -37,8 +33,6 @@
 #define	CNTL_CMD_RLEAF_DONE     	17
 #define	CNTL_CMD_LNODES_DONE    	18
 #define	CNTL_CMD_LLEAFS_DONE    	19
-#define	CNTL_CMD_ADD_GID        	20
-#define	CNTL_CMD_CLEAR_GIDS     	21
 #define	CNTL_CMD_SET_BLOB 		22
 #define	CNTL_CMD_GET_OBJ		24
 #define	CNTL_CMD_SEND_OBJ		25

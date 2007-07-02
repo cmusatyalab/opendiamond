@@ -42,6 +42,7 @@
 #include "dctl_common.h"
 #include "lib_hstub.h"
 #include "lib_auth.h"
+#include "lib_dconfig.h"
 #include "hstub_impl.h"
 #include "rpc_client_content.h"
 #include "rpc_preamble.h"
@@ -364,44 +365,106 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 int
 device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 {
-	int             err;
-	control_header_t *cheader;
-	set_obj_header_t *shead;
+	diamond_rc_t *rc;
 	sdevice_state_t *dev;
+	sig_val_x sx;
+	send_obj_x ox;
+	struct stat     stats;
+	ssize_t         rsize;
+	int		buf_len, err;
+	FILE           *cur_file;
+	char objname[PATH_MAX];
+	char *cache;
+	char *data;
+	char *sig;
+
 
 	dev = (sdevice_state_t *) handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed to malloc message");
-		return (EAGAIN);
+	memcpy(&sx, obj_sig, sizeof(*obj_sig));
+
+	rc = device_set_obj_x_2(id, sx, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
+	  return -1;
 	}
-
-	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_SET_OBJ);
-
-
-	cheader->data_len = htonl(sizeof(*shead));
-	shead = malloc(sizeof(*shead));
-	if (shead == NULL) {
-		free(cheader);
-		return (EAGAIN);
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  if(!((rc->service_err == DIAMOND_OPERR) && 
+	       (rc->opcode_err == DIAMOND_OPCODE_FCACHEMISS))) {
+	    log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
+	    log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	    return -1;
+	  }
 	}
+	else return 0;
 
-	memcpy(&shead->obj_sig, obj_sig, sizeof(*obj_sig));
+	/* If we've reached this point, the server does not have this
+	 * filter library and we need to make another send_obj call. */
 
-	cheader->spare = (uint32_t) shead;
-	err = ring_enq(dev->device_ops, (void *) cheader);
+	cache = dconf_get_binary_cachedir();
+	sig = sig_string(obj_sig);
+	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig);
+
+	assert(file_exists(objname));
+
+	err = stat(objname, &stats);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed to enqueue command");
-		free(cheader);
+		    "device_set_lib: failed stat spec file <%s>",  
+		    objname);
+		return (ENOENT);
+	}
+	buf_len = stats.st_size;
+
+
+	ox.obj_sig.sig_val_x_val = (char *)obj_sig;
+	ox.obj_sig.sig_val_x_len = sizeof(sig_val_t);
+
+	data = (char *)malloc(buf_len);
+	if(data == NULL) {
+	  perror("malloc");
+	  log_message(LOGT_NET, LOGL_ERR,
+		      "device_set_lib: failed malloc spec file <%s>",  
+		      objname);
+	  return ENOENT;
+	}
+
+
+	/*
+	 * set data to the beginning of the data portion  and
+	 * copy in the filter spec from the file.  NOTE: This is
+	 * currently blocks, we may want to do something else later.
+	 */
+
+	if ((cur_file = fopen(objname, "r")) == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_lib: failed open <%s>", objname);
+		return (ENOENT);
+	}
+	if ((rsize = fread(data, buf_len, 1, cur_file)) != 1) {
+		log_message(LOGT_NET, LOGL_ERR,
+		    "device_set_lib: failed read obj <%s>", objname);
 		return (EAGAIN);
 	}
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
+
+	fclose(cur_file);
+
+	ox.obj_data.obj_data_len = buf_len;
+	ox.obj_data.obj_data_val = data;
+
+	rc = device_send_obj_x_2(id, ox, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: send_obj call sending failed");
+	  free(data);
+	  return -1;
+	}
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: send_obj call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  free(data);
+	  return -1;
+	}
+
 	return (0);
 }
 

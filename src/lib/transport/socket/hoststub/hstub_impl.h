@@ -68,9 +68,7 @@ typedef struct conn_info {
         uint32_t		session_nonce; /* for pairing control and data conns */
 	int			control_fd;
 	control_tx_state_t	control_state;
-	control_header_t *	control_header;
 	int			control_offset;
-	control_header_t	control_rx_header;	/* hdr being recieved */
 	control_rx_state_t	control_rx_state;	/* recieve state */
 	int			control_rx_offset;	/* current rx offset  */
 	char *			control_rx_data;	/* rx data buffer */

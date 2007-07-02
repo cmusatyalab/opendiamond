@@ -104,12 +104,10 @@ typedef struct cstate {
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
 	control_rx_state_t	control_rx_state;
-	control_header_t	control_rx_header;
 	char *			control_rx_data;
 	int			control_rx_offset;
 	ring_data_t * 		control_tx_ring;
 	control_tx_state_t	control_tx_state;
-	control_header_t *	control_tx_header;
 	int			control_tx_offset;
 	char *			log_tx_buf;
 	int		        log_tx_len;

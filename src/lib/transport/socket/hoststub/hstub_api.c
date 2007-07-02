@@ -367,7 +367,8 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 
 	dev = (sdevice_state_t *) handle;
 
-	memcpy(&sx, obj_sig, sizeof(*obj_sig));
+	sx.sig_val_x_len = sizeof(sig_val_t);
+	sx.sig_val_x_val = obj_sig;
 
 	rc = device_set_obj_x_2(id, sx, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {

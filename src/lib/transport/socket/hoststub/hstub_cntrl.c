@@ -51,45 +51,6 @@ static char const cvsid[] =
 
 
 static void
-write_leaf_done(sdevice_state_t * dev, char *data)
-{
-	dctl_subheader_t *dsub;
-	int             err;
-	int32_t         opid;
-
-
-	dsub = (dctl_subheader_t *) data;
-
-	err = htonl(dsub->dctl_err);
-	opid = htonl(dsub->dctl_opid);
-
-	(*dev->hstub_wleaf_done_cb) (dev->hcookie, err, opid);
-
-
-}
-
-
-static void
-read_leaf_done(sdevice_state_t * dev, char *data)
-{
-	dctl_subheader_t *dsub;
-	int             err;
-	int32_t         opid;
-	int             dlen;
-	dctl_data_type_t dtype;
-
-	dsub = (dctl_subheader_t *) data;
-
-	err = htonl(dsub->dctl_err);
-	opid = htonl(dsub->dctl_opid);
-	dlen = htonl(dsub->dctl_dlen);
-	dtype = htonl(dsub->dctl_dtype);
-
-	(*dev->hstub_rleaf_done_cb) (dev->hcookie, err, dtype, dlen,
-				     dsub->dctl_data, opid);
-}
-
-static void
 list_nodes_done(sdevice_state_t * dev, char *data)
 {
 	dctl_subheader_t *dsub;
@@ -139,16 +100,6 @@ process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 	uint32_t        cmd = ntohl(cinfo->control_rx_header.command);
 
 	switch (cmd) {
-
-	case CNTL_CMD_WLEAF_DONE:
-		write_leaf_done(dev, data_buf);
-		free(data_buf);
-		break;
-
-	case CNTL_CMD_RLEAF_DONE:
-		read_leaf_done(dev, data_buf);
-		free(data_buf);
-		break;
 
 	case CNTL_CMD_LNODES_DONE:
 		list_nodes_done(dev, data_buf);

@@ -20,12 +20,8 @@
 #include "sig_calc.h"
 #include "rpc_preamble.h"
 
-#define	CNTL_CMD_WRITE_LEAF 		12
-#define	CNTL_CMD_READ_LEAF 	    	13
 #define	CNTL_CMD_LIST_NODES     	14
 #define	CNTL_CMD_LIST_LEAFS     	15
-#define	CNTL_CMD_WLEAF_DONE 		16
-#define	CNTL_CMD_RLEAF_DONE     	17
 #define	CNTL_CMD_LNODES_DONE    	18
 #define	CNTL_CMD_LLEAFS_DONE    	19
 

@@ -463,6 +463,10 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	dctl_x          dx;
 	int             plen;
 	diamond_rc_t    *rc;
+	dctl_return_x   *drx;
+	int             r_err;
+	int32_t         r_opid;
+
 
 	dev = (sdevice_state_t *) handle;
 
@@ -483,16 +487,23 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen+len;
 	dx.dctl_data.dctl_data_val = data;
 
-	rc = device_write_leaf_x_2(0, dx, dev->con_data.tirpc_client);
-	if (rc == (diamond_rc_t *) NULL) {
+	drx = device_write_leaf_x_2(0, dx, dev->con_data.tirpc_client);
+	if (drx == (dctl_return_x *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
 	  return -1;
 	}
+	rc = &drx->error;
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}
+
+
+	r_err = drx->dctl.dctl_err;
+	r_opid = drx->dctl.dctl_opid;
+
+	(*dev->hstub_wleaf_done_cb) (dev->hcookie, r_err, r_opid);
 
 	free(data);
 

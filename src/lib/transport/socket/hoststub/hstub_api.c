@@ -277,28 +277,16 @@ int
 device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 {
 	int             err;
-	control_header_t *cheader;
-	spec_subhead_t *shead;
 	char           *data;
-	int             total_len;
 	int             spec_len;
 	struct stat     stats;
 	ssize_t         rsize;
 	FILE           *cur_file;
 	sdevice_state_t *dev;
+	diamond_rc_t   *rc;
+	spec_file_x     sf;
 
 	dev = (sdevice_state_t *) handle;
-
-	cheader = malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed to malloc message");
-		return (EAGAIN);
-	}
-
-	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_SET_SPEC);
-
 
 	err = stat(spec, &stats);
 	if (err) {
@@ -309,56 +297,54 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	}
 	spec_len = stats.st_size;
 
-
-	total_len = sizeof(*shead) + spec_len;
-	cheader->data_len = htonl(total_len);
-
-	shead = malloc(total_len);
-	if (shead == NULL) {
-		free(cheader);
-		return (EAGAIN);
+	if ((data = malloc(spec_len)) == NULL) {
+	  log_message(LOGT_NET, LOGL_ERR,
+		      "device_set_searchlet: failed open spec <%s>", spec);
+	  return ENOENT;
 	}
-
-	shead->spec_len = htonl(spec_len);
-	memcpy(&shead->spec_sig, sig, sizeof(*sig));
 
 	/*
 	 * set data to the beginning of the data portion  and
 	 * copy in the filter spec from the file.  NOTE: This is
 	 * currently blocks, we may want to do something else later.
 	 */
-	data = (char *) shead + sizeof(*shead);
-
 	if ((cur_file = fopen(spec, "r")) == NULL) {
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_searchlet: failed open spec <%s>", spec);
-		free(cheader);
-		free(shead);
+		free(data);
 		return (ENOENT);
 	}
 	if ((rsize = fread(data, spec_len, 1, cur_file)) != 1) {
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_searchlet: failed read spec <%s>", 
 		    spec);
-		free(cheader);
-		free(shead);
+		free(data);
 		return (EAGAIN);
 	}
 
 	fclose(cur_file);
 
+	sf.sig.sig_val_x_len = sizeof(sig_val_t);
+	sf.sig.sig_val_x_val = (char *)sig;
 
-	cheader->spare = (uint32_t) shead;
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed to enqueue command");
-		free(cheader);
-		return (EAGAIN);
+	sf.data.data_len = spec_len;
+	sf.data.data_val = data;
+
+	rc = device_set_spec_x_2(id, sf, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
+	  free(data);
+	  return ENOENT;
 	}
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  free(data);
+	  return ENOENT;
+	}
+	
+	free(data);
+
 	return (0);
 }
 

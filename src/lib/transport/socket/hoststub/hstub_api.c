@@ -368,7 +368,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	dev = (sdevice_state_t *) handle;
 
 	sx.sig_val_x_len = sizeof(sig_val_t);
-	sx.sig_val_x_val = obj_sig;
+	sx.sig_val_x_val = (char *)obj_sig;
 
 	rc = device_set_obj_x_2(id, sx, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
@@ -567,64 +567,48 @@ int
 device_list_nodes(void *handle, char *path, int32_t opid)
 {
 	int             err;
-	control_header_t *cheader;
 	sdevice_state_t *dev;
-	dctl_subheader_t *dsub;
 	int             plen;
-	int             tot_len;
+	dctl_x          dx;
+	dctl_return_x   *drx;
+	int             r_err;
+	int32_t         r_opid;
+	int             r_dlen;
+	dctl_data_type_t r_dtype;
+	diamond_rc_t *rc;
+	int             ents;
 
 	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
-	tot_len = plen + sizeof(*dsub);
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_list_nodes: failed malloc command");
-		return (EAGAIN);
+	dx.dctl_err = 0;
+	dx.dctl_opid = opid;
+	dx.dctl_plen = plen;
+	dx.dctl_data.dctl_data_len = plen;
+	dx.dctl_data.dctl_data_val = path;
+
+	drx = device_list_nodes_x_2(0, dx, dev->con_data.tirpc_client);
+	if (drx == (dctl_return_x *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call sending failed");
+	  return -1;
+	}
+	rc = &drx->error;
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return -1;
 	}
 
-	dsub = (dctl_subheader_t *) malloc(tot_len);
-	if (dsub == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_list_nodes: failed malloc data");
-		free(cheader);
-		return (EAGAIN);
-	}
+	r_err = drx->dctl.dctl_err;
+	r_opid = drx->dctl.dctl_opid;
+	r_dlen = drx->dctl.dctl_data.dctl_data_len;
 
+	ents = r_dlen / (sizeof(dctl_entry_t));
 
-	/*
-	 * fill in the data 
-	 */
+	(*dev->hstub_lnode_done_cb) (dev->hcookie, r_err, ents,
+				     (dctl_entry_t *) drx->dctl.dctl_data.dctl_data_val, r_opid);
 
-	cheader->generation_number = htonl(0);
-	cheader->command = htonl(CNTL_CMD_LIST_NODES);
-	cheader->data_len = htonl(tot_len);
-	cheader->spare = (uint32_t) dsub;
-
-	/*
-	 * Fill in the subheader.
-	 */
-	dsub->dctl_err = htonl(0);
-	dsub->dctl_opid = htonl(opid);
-	dsub->dctl_plen = htonl(plen);
-	dsub->dctl_dlen = htonl(0);
-	memcpy(&dsub->dctl_data[0], path, plen);
-
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_list_nodes: failed enqueue command");
-		free(cheader);
-		free(dsub);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
 }
 

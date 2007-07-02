@@ -51,27 +51,6 @@ static char const cvsid[] =
 
 
 static void
-list_nodes_done(sdevice_state_t * dev, char *data)
-{
-	dctl_subheader_t *dsub;
-	int             err;
-	int32_t         opid;
-	int             dlen;
-	int             ents;
-
-	dsub = (dctl_subheader_t *) data;
-
-	err = htonl(dsub->dctl_err);
-	opid = htonl(dsub->dctl_opid);
-	dlen = htonl(dsub->dctl_dlen);
-
-	ents = dlen / (sizeof(dctl_entry_t));
-
-	(*dev->hstub_lnode_done_cb) (dev->hcookie, err, ents,
-				     (dctl_entry_t *) dsub->dctl_data, opid);
-}
-
-static void
 list_leafs_done(sdevice_state_t * dev, char *data)
 {
 	dctl_subheader_t *dsub;
@@ -100,11 +79,6 @@ process_control(sdevice_state_t * dev, conn_info_t * cinfo, char *data_buf)
 	uint32_t        cmd = ntohl(cinfo->control_rx_header.command);
 
 	switch (cmd) {
-
-	case CNTL_CMD_LNODES_DONE:
-		list_nodes_done(dev, data_buf);
-		free(data_buf);
-		break;
 
 	case CNTL_CMD_LLEAFS_DONE:
 		list_leafs_done(dev, data_buf);

@@ -487,16 +487,16 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 	int fd;
 	char objname[PATH_MAX];
 	sig_val_t calc_sig;
-	sig_val_t sent_sig;
+	sig_val_t *sent_sig;
 	char * sig_str;
 	char *cache;
 	int err;
 
-	memcpy(&sent_sig, &(arg2.obj_sig), sizeof(sig_val_t));
+	sent_sig = (sig_val_t *)arg2.obj_sig.sig_val_x_val;
 
 	/* get name to store the object */ 	
 	cache = dconf_get_binary_cachedir();
-	sig_str = sig_string(&sent_sig);
+	sig_str = sig_string(sent_sig);
 	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig_str);
 	free(sig_str);
 	free(cache);
@@ -504,7 +504,7 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 	/* check whether the calculated signature matches the sent one */
 	sig_cal(arg2.obj_data.obj_data_val, arg2.obj_data.obj_data_len, 
 		&calc_sig);
-	if (memcmp(&calc_sig, &sent_sig, sizeof(sig_val_t)) != 0) {
+	if (memcmp(&calc_sig, sent_sig, sizeof(sig_val_t)) != 0) {
 	  fprintf(stderr, "data doesn't match sig\n");
 	}
 
@@ -533,7 +533,7 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 	file_release_lock(objname);
 	
 	err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
-					    &sent_sig);
+					    sent_sig);
 	if(err) {
 	  result.service_err = DIAMOND_OPERR;
 	  result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific

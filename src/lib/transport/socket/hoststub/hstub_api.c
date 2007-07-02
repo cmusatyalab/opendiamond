@@ -459,66 +459,43 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 int
 device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 {
-	int             err;
-	control_header_t *cheader;
 	sdevice_state_t *dev;
-	dctl_subheader_t *dsub;
+	dctl_x          dx;
 	int             plen;
-	int             tot_len;
+	diamond_rc_t    *rc;
 
 	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
-	tot_len = plen + len + sizeof(*dsub);
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_write_leaf: failed malloc command");
-		return (EAGAIN);
+	if((data = malloc(plen+len)) == NULL) {
+	  log_message(LOGT_NET, LOGL_ERR,
+		      "device_write_leaf: failed malloc data");
+	  return (EAGAIN);
 	}
 
-	dsub = (dctl_subheader_t *) malloc(tot_len);
-	if (dsub == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_write_leaf: failed malloc data");
-		free(cheader);
-		return (EAGAIN);
+	memcpy(&data[0], path, plen);
+	memcpy(&data[plen], data, len);
+
+	dx.dctl_err = 0;
+	dx.dctl_opid = opid;
+	dx.dctl_plen = plen;
+	dx.dctl_data.dctl_data_len = plen+len;
+	dx.dctl_data.dctl_data_val = data;
+
+	rc = device_write_leaf_x_2(0, dx, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
+	  return -1;
+	}
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return -1;
 	}
 
+	free(data);
 
-	/*
-	 * fill in the data 
-	 */
-
-	cheader->generation_number = htonl(0);
-	cheader->command = htonl(CNTL_CMD_WRITE_LEAF);
-	cheader->data_len = htonl(tot_len);
-	cheader->spare = (uint32_t) dsub;
-
-	/*
-	 * Fill in the subheader.
-	 */
-	dsub->dctl_err = htonl(0);
-	dsub->dctl_opid = htonl(opid);
-	dsub->dctl_plen = htonl(plen);
-	dsub->dctl_dlen = htonl(len);
-	memcpy(&dsub->dctl_data[0], path, plen);
-	memcpy(&dsub->dctl_data[plen], data, len);
-
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_write_leaf: failed enqueue command");
-		free(cheader);
-		free(dsub);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
 }
 

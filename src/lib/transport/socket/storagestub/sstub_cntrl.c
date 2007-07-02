@@ -165,15 +165,12 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	char specpath[PATH_MAX];
 	char * cache;
 	char *spec_sig, *spec_data;
-	sig_val_t sent_sig;
+	sig_val_t *sent_sig;
 	int spec_len;
 	int fd;
 
 	spec_len = arg2.data.data_len;
-	memcpy(&sent_sig, &arg2.sig, sizeof(sig_val_t));  /* sig_val_x and
-							   * sig_val_t should
-							   * be identical
-							   * in size. */
+	sent_sig = (sig_val_t *)&arg2.sig.sig_val_x_val;
 
 	/*
 	 * create a file for storing the searchlet library.
@@ -181,7 +178,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	umask(0000);
 
 	cache = dconf_get_spec_cachedir();
-	spec_sig = sig_string(&sent_sig);
+	spec_sig = sig_string(sent_sig);
 	snprintf(specpath, PATH_MAX, SPEC_FORMAT, cache, spec_sig);
 	free(spec_sig);
 	free(cache);
@@ -213,7 +210,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 
 done:
 	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, 
-				      &sent_sig);
+				      sent_sig);
 
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
@@ -443,9 +440,9 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 	char objpath[PATH_MAX];
 	char * cache;
 	char * sig_str;
-	sig_val_t sent_sig;
+	sig_val_t *sent_sig;
 
-	memcpy(&sent_sig, &arg2, sizeof(sig_val_t));
+	sent_sig = (sig_val_t *)&arg2.sig_val_x_val;
 
 	/*
 	 * create a file for storing the searchlet library.
@@ -453,7 +450,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 	umask(0000);
 
 	cache = dconf_get_binary_cachedir();
-	sig_str = sig_string(&sent_sig);
+	sig_str = sig_string(sent_sig);
 	snprintf(objpath, PATH_MAX, OBJ_FORMAT, cache, sig_str);
 	free(sig_str);
 	free(cache);
@@ -461,7 +458,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 	if (file_exists(objpath)) {
 	  int err;
 	  err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
-					      &sent_sig);
+					      sent_sig);
 	  if(err) {
 	    result.service_err = DIAMOND_OPERR;
 	    result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific

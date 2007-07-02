@@ -489,12 +489,12 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 
 	drx = device_write_leaf_x_2(0, dx, dev->con_data.tirpc_client);
 	if (drx == (dctl_return_x *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call sending failed");
 	  return -1;
 	}
 	rc = &drx->error;
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}

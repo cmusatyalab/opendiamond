@@ -722,64 +722,28 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 int
 device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 {
-	int             err;
-	control_header_t *cheader;
 	sdevice_state_t *dev;
-	blob_subheader_t *bsub;
-	int             nlen;
-	int             tot_len;
+	blob_x           bx;
+	diamond_rc_t    *rc;
 
 	dev = (sdevice_state_t *) handle;
 
-	nlen = strlen(name) + 1;
-	tot_len = nlen + blob_len + sizeof(*bsub);
+	bx.blob_name.blob_name_len = strlen(name) + 1;
+	bx.blob_name.blob_name_val = name;
+	bx.blob_data.blob_data_len = blob_len;
+	bx.blob_data.blob_data_val = blob;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_blob: failed to malloc message");
-		return (EAGAIN);
+	rc = device_set_blob_x_2(id, bx, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: call sending failed");
+	  return -1;
+	}
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return -1;
 	}
 
-	bsub = (blob_subheader_t *) malloc(tot_len);
-	if (bsub == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_blob: failed to malloc data");
-		free(cheader);
-		return (EAGAIN);
-	}
-
-
-	/*
-	 * fill in the data 
-	 */
-
-	cheader->generation_number = htonl(id);
-	cheader->command = htonl(CNTL_CMD_SET_BLOB);
-	cheader->data_len = htonl(tot_len);
-	cheader->spare = (uint32_t) bsub;
-
-	/*
-	 * Fill in the subheader.
-	 */
-	bsub->blob_nlen = htonl(nlen);
-	bsub->blob_blen = htonl(blob_len);
-	memcpy(&bsub->blob_sdata[0], name, nlen);
-	memcpy(&bsub->blob_sdata[nlen], blob, blob_len);
-
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_blob: failed to enqueue data");
-		free(cheader);
-		free(bsub);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
 }
 
@@ -807,11 +771,11 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 
 	rc = device_set_exec_mode_x_2(id, mode, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: call sending failed");
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}
@@ -830,11 +794,11 @@ device_set_user_state(void *handle, int id, uint32_t state)
 
 	rc = device_set_user_state_x_2(id, state, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: call sending failed");
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}

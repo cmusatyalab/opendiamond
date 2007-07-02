@@ -28,7 +28,6 @@
 #define	CNTL_CMD_RLEAF_DONE     	17
 #define	CNTL_CMD_LNODES_DONE    	18
 #define	CNTL_CMD_LLEAFS_DONE    	19
-#define	CNTL_CMD_SET_BLOB 		22
 
 
 /*

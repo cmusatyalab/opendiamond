@@ -472,6 +472,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 	  tirpc_cstate->pend_obj++;
 	  result.service_err = DIAMOND_OPERR;
 	  result.opcode_err = DIAMOND_OPCODE_FCACHEMISS;
+	  return &result;
 	}
 
 	result.service_err = DIAMOND_SUCCESS;

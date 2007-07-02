@@ -29,8 +29,6 @@
 #define	CNTL_CMD_LNODES_DONE    	18
 #define	CNTL_CMD_LLEAFS_DONE    	19
 #define	CNTL_CMD_SET_BLOB 		22
-#define CNTL_CMD_SET_EXEC_MODE 	27
-#define CNTL_CMD_SET_USER_STATE 28
 
 
 /*

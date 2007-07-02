@@ -800,46 +800,22 @@ device_set_limit(void *handle, int limit)
 int
 device_set_exec_mode(void *handle, int id, uint32_t mode) 
 {
-	int             err;
-	control_header_t *cheader;
 	sdevice_state_t *dev;
-	exec_mode_subheader_t *emheader;
+	diamond_rc_t *rc;
 
 	dev = (sdevice_state_t *) handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_exec_mode: failed to malloc command");
-		return (EAGAIN);
+	rc = device_set_exec_mode_x_2(id, mode, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  return -1;
 	}
-	
-	emheader = (exec_mode_subheader_t *) malloc(sizeof(*emheader));
-	if (emheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_exec_mode: failed to malloc subheader");
-		free(cheader);
-		return (EAGAIN);
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return -1;
 	}
 
-	cheader->generation_number = htonl(id);	
-	cheader->command = htonl(CNTL_CMD_SET_EXEC_MODE);
-	cheader->data_len = htonl(sizeof(*emheader));
-	cheader->spare = (uint32_t) emheader;
-	emheader->mode = mode;
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_exec_mode: failed to enqueue command");
-		free(cheader);
-		free(emheader);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
 }
 
@@ -847,46 +823,22 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 int
 device_set_user_state(void *handle, int id, uint32_t state) 
 {
-	int             err;
-	control_header_t *cheader;
 	sdevice_state_t *dev;
-	user_state_subheader_t *usheader;
+	diamond_rc_t *rc;
 
 	dev = (sdevice_state_t *) handle;
 
-	cheader = (control_header_t *) malloc(sizeof(*cheader));
-	if (cheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_exec_mode: failed to malloc command");
-		return (EAGAIN);
+	rc = device_set_user_state_x_2(id, state, dev->con_data.tirpc_client);
+	if (rc == (diamond_rc_t *) NULL) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  return -1;
 	}
-	
-	usheader = (user_state_subheader_t *) malloc(sizeof(*usheader));
-	if (usheader == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_user_state: failed to malloc subheader");
-		free(cheader);
-		return (EAGAIN);
+	if(rc->service_err != DIAMOND_SUCCESS) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+	  return -1;
 	}
 
-	cheader->generation_number = htonl(id);	
-	cheader->command = htonl(CNTL_CMD_SET_USER_STATE);
-	cheader->data_len = htonl(sizeof(*usheader));
-	cheader->spare = (uint32_t) usheader;
-	usheader->state = state;
-
-	err = ring_enq(dev->device_ops, (void *) cheader);
-	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_user_state: failed to enqueue command");
-		free(cheader);
-		free(usheader);
-		return (EAGAIN);
-	}
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_PENDING_CONTROL;
-	pthread_mutex_unlock(&dev->con_data.mutex);
 	return (0);
 }
 

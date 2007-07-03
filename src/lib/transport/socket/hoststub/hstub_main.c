@@ -270,18 +270,15 @@ hstub_main(void *arg)
 		FD_ZERO(&cinfo->write_fds);
 		FD_ZERO(&cinfo->except_fds);
 
-		FD_SET(cinfo->control_fd, &cinfo->read_fds);
-
 		if (!(cinfo->flags & CINFO_BLOCK_OBJ)) {
 			FD_SET(cinfo->data_fd, &cinfo->read_fds);
 		}
 
-		if (cinfo->flags & CINFO_PENDING_CONTROL) {
-			FD_SET(cinfo->control_fd, &cinfo->write_fds);
-		}
 		if (cinfo->flags & CINFO_PENDING_CREDIT) {
 			FD_SET(cinfo->data_fd, &cinfo->write_fds);
 		}
+
+		FD_SET(cinfo->data_fd, &cinfo->except_fds);
 
 		to.tv_sec = 1;
 		to.tv_usec = 0;
@@ -299,9 +296,6 @@ hstub_main(void *arg)
 		if (err > 0) {
 			if (FD_ISSET(cinfo->data_fd, &cinfo->read_fds)) {
 				hstub_read_data(dev);
-			}
-			if (FD_ISSET(cinfo->control_fd, &cinfo->except_fds)) {
-				hstub_except_cntrl(dev);
 			}
 			if (FD_ISSET(cinfo->data_fd, &cinfo->except_fds)) {
 				hstub_except_data(dev);

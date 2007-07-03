@@ -93,7 +93,6 @@ sstub_read_tirpc(listener_state_t * lstate, cstate_t * cstate)
 	    size_in, size_out);
     return;
   }
-  else printf("Forwarded %d TI-RPC bytes.\n", size_in);
 
   return;
 }

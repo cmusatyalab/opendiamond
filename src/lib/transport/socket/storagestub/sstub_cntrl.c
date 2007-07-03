@@ -69,6 +69,8 @@ device_start_x_2_svc(u_int gen,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 
+	fprintf(stderr, "(TI-RPC server) Received search start call.\n");
+
 	fprintf(stderr, "have_start pend %d \n", tirpc_cstate->pend_obj);
 	if (tirpc_cstate->pend_obj == 0) {
 	  (*tirpc_lstate->start_cb) (tirpc_cstate->app_cookie, gen);
@@ -88,6 +90,8 @@ device_stop_x_2_svc(u_int gen, stop_x arg2,  struct svc_req *rqstp)
 	static diamond_rc_t  result;
 	host_stats_t hstats;
 
+	fprintf(stderr, "(TI-RPC server) Received search stop call.\n");
+
 	hstats.hs_objs_received = arg2.host_objs_received;
 	hstats.hs_objs_queued = arg2.host_objs_queued;
 	hstats.hs_objs_read = arg2.host_objs_read;
@@ -105,6 +109,8 @@ device_terminate_x_2_svc(u_int gen,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 
+	fprintf(stderr, "(TI-RPC server) Received search terminate call.\n");
+
 	(*tirpc_lstate->terminate_cb) (tirpc_cstate->app_cookie, gen);
 
 	result.service_err = DIAMOND_SUCCESS;
@@ -117,6 +123,8 @@ device_clear_gids_x_2_svc(u_int gen,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 
+	fprintf(stderr, "(TI-RPC server) Received clear gids call.\n");
+
 	(*tirpc_lstate->clear_gids_cb) (tirpc_cstate->app_cookie, gen);				
 	result.service_err = DIAMOND_SUCCESS;
 	return &result;
@@ -128,6 +136,8 @@ device_new_gid_x_2_svc(u_int gen, groupid_x arg2,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 	groupid_t       gid = arg2;
+
+	fprintf(stderr, "(TI-RPC server) Received new gid call.\n");
 	
 	(*tirpc_lstate->sgid_cb) (tirpc_cstate->app_cookie, gen, gid);
 
@@ -145,6 +155,8 @@ device_set_blob_x_2_svc(u_int gen, blob_x arg2, struct svc_req *rqstp)
 	int                  nlen;
 	char                *name;
 	
+	fprintf(stderr, "(TI-RPC server) Received set blob call.\n");
+
 	nlen = arg2.blob_name.blob_name_len;
 	blen = arg2.blob_data.blob_data_len;
 	name = arg2.blob_name.blob_name_val;
@@ -168,6 +180,8 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 	sig_val_t *sent_sig;
 	int spec_len;
 	int fd;
+
+	fprintf(stderr, "(TI-RPC server) Received set spec call.\n");
 
 	spec_len = arg2.data.data_len;
 	sent_sig = (sig_val_t *)&arg2.sig.sig_val_x_val;
@@ -223,6 +237,8 @@ request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
   dev_stats_t *stats;
   int i;
 
+  fprintf(stderr, "(TI-RPC server) Received request stats call.\n");
+
   if((stats = (*tirpc_lstate->get_stats_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
     result.error.service_err = DIAMOND_OPERR;
     result.error.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific?
@@ -272,7 +288,7 @@ request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
   static request_chars_return_x  result;
   device_char_t *chars;
 
-  fprintf(stderr, "(TI-RPC server) Entering request characteristics call.\n");
+  fprintf(stderr, "(TI-RPC server) Received request characteristics call.\n");
 
   if((chars = (*tirpc_lstate->get_char_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
     result.error.service_err = DIAMOND_OPERR; 
@@ -286,9 +302,6 @@ request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
 
   free(chars);
 
-  fprintf(stderr, "(TI-RPC server) Returning from request characteristics "
-	  "call.\n");
-
   result.error.service_err = DIAMOND_SUCCESS;
   return &result;
 }
@@ -298,6 +311,9 @@ device_read_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
 	dctl_rleaf_t          *rt;
+
+	fprintf(stderr, "(TI-RPC server) Received dctl read leaf call: %s\n",
+		arg2.dctl_data.dctl_data_val);
 	
 	rt = (tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
 				       arg2.dctl_data.dctl_data_val, 
@@ -329,6 +345,7 @@ device_write_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 	static dctl_return_x  result;
 	int                   err;
 
+	fprintf(stderr, "(TI-RPC server) Received dctl write leaf call.\n");
 
 	err = (*tirpc_lstate->wleaf_cb) (tirpc_cstate->app_cookie,
 			      arg2.dctl_data.dctl_data_val,
@@ -359,6 +376,8 @@ device_list_nodes_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 {
 	static dctl_return_x  result;
 	dctl_lnode_t *lt;
+
+	fprintf(stderr, "(TI-RPC server) Received dctl list nodes call.\n");
 
 	lt = (tirpc_lstate->lnode_cb) (tirpc_cstate->app_cookie,
 					arg2.dctl_data.dctl_data_val, 
@@ -391,6 +410,8 @@ device_list_leafs_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 	static dctl_return_x  result;
 	dctl_lleaf_t *lt;
 
+	fprintf(stderr, "(TI-RPC server) Received dctl list leafs call.\n");
+
 	lt = (tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
 				       arg2.dctl_data.dctl_data_val, 
 				       arg2.dctl_opid);
@@ -415,6 +436,8 @@ device_set_exec_mode_x_2_svc(u_int gen, u_int mode,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
 
+	fprintf(stderr, "(TI-RPC server) Received set exec mode call.\n");
+
 	(tirpc_lstate->set_exec_mode_cb) (tirpc_cstate->app_cookie, mode);
 
 	result.service_err = DIAMOND_SUCCESS;
@@ -426,6 +449,8 @@ diamond_rc_t *
 device_set_user_state_x_2_svc(u_int gen, u_int state,  struct svc_req *rqstp)
 {
 	static diamond_rc_t  result;
+
+	fprintf(stderr, "(TI-RPC server) Received set user state call.\n");
 	
 	(tirpc_lstate->set_user_state_cb) (tirpc_cstate->app_cookie, state);
 
@@ -442,7 +467,9 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 	char * sig_str;
 	sig_val_t *sent_sig;
 
-	sent_sig = (sig_val_t *)&arg2.sig_val_x_val;
+	fprintf(stderr, "(TI-RPC server) Received set object call.\n");
+
+	sent_sig = (sig_val_t *)(arg2.sig_val_x_val);
 
 	/*
 	 * create a file for storing the searchlet library.
@@ -460,12 +487,14 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 	  err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
 					      sent_sig);
 	  if(err) {
+	    fprintf(stderr, "(TI-RPC server) set_fobj_cb failed (%d)\n", err); 
 	    result.service_err = DIAMOND_OPERR;
 	    result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific
 	    return &result;
 	  }
 
 	} else {
+	  fprintf(stderr, "(TI-RPC server) Didn't have file %s\n", objpath); 
 	  tirpc_cstate->pend_obj++;
 	  result.service_err = DIAMOND_OPERR;
 	  result.opcode_err = DIAMOND_OPCODE_FCACHEMISS;
@@ -489,7 +518,9 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 	char *cache;
 	int err;
 
-	sent_sig = (sig_val_t *)arg2.obj_sig.sig_val_x_val;
+	fprintf(stderr, "(TI-RPC server) Received send object call.\n");
+
+	sent_sig = (sig_val_t *)(arg2.obj_sig.sig_val_x_val);
 
 	/* get name to store the object */ 	
 	cache = dconf_get_binary_cachedir();
@@ -511,6 +542,7 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
        	if (fd < 0) {
 		file_release_lock(objname);
 		if (errno == EEXIST) {
+		  fprintf(stderr, "File %s already exists!\n", objname); 
 		  result.service_err = DIAMOND_SUCCESS;
 		  return &result; 
 		}
@@ -519,27 +551,33 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 		result.opcode_err = errno;
 		return &result;
 	} 
-	if (write(fd, arg2.obj_data.obj_data_val, arg2.obj_data.obj_data_len) !=  arg2.obj_data.obj_data_len) {
+	if (writen(fd, arg2.obj_data.obj_data_val, arg2.obj_data.obj_data_len) !=  arg2.obj_data.obj_data_len) {
 		perror("write buffer file"); 
 		result.service_err = DIAMOND_FAILEDSYSCALL;
 		result.opcode_err = errno;
 		close(fd);
 		return &result;
 	}
+	fprintf(stderr, "(TI-RPC server) Wrote new lib to %s\n", objname);
 	close(fd);
 	file_release_lock(objname);
-	
+
 	err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
 					    sent_sig);
 	if(err) {
+	  fprintf(stderr, "(TI-RPC server) Failed (%d) in call to "
+		  "set_fobj_cb\n", err);
 	  result.service_err = DIAMOND_OPERR;
 	  result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific
 	  return &result;
 	}
 
+	fprintf(stderr, "(TI-RPC server) one less pending object!\n");
 	tirpc_cstate->pend_obj--;
 
 	if((tirpc_cstate->pend_obj== 0) && (tirpc_cstate->have_start)) {
+	  fprintf(stderr, "(TI-RPC server) Pending objects == 0; implicitly "
+		  "starting the search.\n");
 	  (*tirpc_lstate->start_cb) (tirpc_cstate->app_cookie, 
 				     tirpc_cstate->start_gen);
 	  tirpc_cstate->have_start = 0;
@@ -594,7 +632,6 @@ sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 		  size_in, size_out);
 	  return;
 	}
-	else printf("Forwarded %d control bytes.\n", size_in);
 
 	return;
 }

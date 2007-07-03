@@ -52,6 +52,27 @@
 static char const cvsid[] =
     "$Header$";
 
+/*
+ * set a socket to non-blocking 
+ */
+static void
+socket_non_block(int fd)
+{
+	int             flags,
+	                err;
+
+	flags = fcntl(fd, F_GETFL, 0);
+	if (flags == -1) {
+		log_message(LOGT_NET, LOGL_ERR, "hstub: issue fcntl");
+		return;
+	}
+	err = fcntl(fd, F_SETFL, (flags | O_NONBLOCK));
+	if (err == -1) {
+		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to set fcntl");
+		return;
+	}
+}
+
 
 static int
 create_tcp_connection(uint32_t devid, uint16_t port)
@@ -290,6 +311,8 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 		close(cinfo->data_fd);
 		return (ENOENT);
 	}
+
+	socket_non_block(cinfo->data_fd);
 
 	/*
 	 * Set the state machines variables.

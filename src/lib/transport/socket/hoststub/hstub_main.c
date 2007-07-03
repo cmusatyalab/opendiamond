@@ -252,8 +252,11 @@ hstub_main(void *arg)
 	     	    (this_time.tv_usec >= next_time.tv_usec)) ||
 		    (this_time.tv_sec > next_time.tv_sec)) {
 
+		  fprintf(stderr, "(tunnel) Requesting characteristics..\n");
 			request_chars(dev);
+		  fprintf(stderr, "(tunnel) Requesting statistics..\n");
 			request_stats(dev);
+		  fprintf(stderr, "(tunnel) Requests finished..\n");
 
 			assert(POLL_USECS < 1000000);
 			next_time.tv_sec = this_time.tv_sec + POLL_SECS;

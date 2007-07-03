@@ -545,12 +545,12 @@ accept_data_conn(listener_state_t * list_state)
 	list_state->conns[data].flags |= CSTATE_DATA_FD;
 	list_state->conns[data].data_fd = new_sock;
 
+	socket_non_block(new_sock);
+
 	if ((list_state->conns[data].flags & CSTATE_ALL_FD) == CSTATE_ALL_FD) {
 		have_full_conn(list_state, (int) data);
 
 	}
-
-	socket_non_block(new_sock);
 
 }
 

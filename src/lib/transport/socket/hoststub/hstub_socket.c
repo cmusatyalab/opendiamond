@@ -150,9 +150,6 @@ tirpc_init(int connfd) {
 		  CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
 	  return NULL;
 	}
-	fprintf(stderr, "(hoststub) created \"client to content\" "
-		"program client handle (prognum=0x%x, versnum=%d, tcp)\n", 
-		CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
 
 	return clnt;
 }

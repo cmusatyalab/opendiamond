@@ -66,7 +66,6 @@ void handle_requests(int fd) {
     FD_ZERO(&read_fds);
     FD_SET(fd, &read_fds);
 
-    fprintf(stderr, "(TI-RPC server) select()\n");
     err = select(fd+1, &read_fds, NULL, NULL, NULL);
     switch(err) {
 
@@ -75,9 +74,7 @@ void handle_requests(int fd) {
       return;
 
     case 1:
-      fprintf(stderr, "(TI-RPC server) an fd is ready..\n");
       svc_getreqset(&read_fds);
-      fprintf(stderr, "(TI-RPC server) returned from svc_getreqset\n");
 
     case 0:
     default:
@@ -107,20 +104,13 @@ create_tirpc_server(void *arg) {
 
     struct cts_args *data = (struct cts_args *)arg;
 
-    if(data == NULL) {
-      fprintf(stderr, "(TI-RPC server) born with no arguments. Dying..\n");
-      exit(EXIT_FAILURE);
-    }
-    else fprintf(stderr, "(TI-RPC server) born\n");
-
+    if(data == NULL) exit(EXIT_FAILURE);
 
     nconf = getnetconfigent("tcp");
     if(nconf == NULL) {
       perror("getnetconfigent");
       exit(EXIT_FAILURE);
     }
-
-    fprintf(stderr, "(TI-RPC server) got TCP netconfig\n");
 
     if((rpcfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
@@ -142,9 +132,6 @@ create_tirpc_server(void *arg) {
       exit(EXIT_FAILURE);
     }
     
-    fprintf(stderr, "(TI-RPC server) created server handle on port %d.\n",
-	    data->port);
-
     svc_unreg(CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
     
     if (!svc_reg(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
@@ -155,10 +142,6 @@ create_tirpc_server(void *arg) {
       exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "(TI-RPC server) registered \"client to content\" "
-	    "program (prognum=0x%x, versnum=%d, tcp)\n", CLIENTCONTENT_PROG,
-	    CLIENTCONTENT_VERS);
-    
     *(data->control_ready) = 1;       /* Signal the parent thread that
 				       * our TI-RPC server is ready to
 				       * accept connections. */
@@ -168,12 +151,9 @@ create_tirpc_server(void *arg) {
      * lower-level call until it is fixed. */
 
 
-    fprintf(stderr, "(TI-RPC server) looping\n");
-
     svc_run();
     //handle_requests(rpcfd);
 
-    fprintf(stderr, "XXX handle_requests returned!\n");
     exit(EXIT_FAILURE);
 }
 
@@ -218,12 +198,8 @@ setup_tirpc(cstate_t *cstate) {
     pthread_create(&tirpc_thread, PATTR_DEFAULT, create_tirpc_server, 
 		   (void *)args);
     
-    fprintf(stderr, "(tunnel) TI-RPC server spawned\n");
-
     while(control_ready == 0) continue;
     
-    fprintf(stderr, "(tunnel) TI-RPC server indicated readiness\n");
-
     /* Create new connection to the TI-RPC server. */
     if((connfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
@@ -241,15 +217,11 @@ setup_tirpc(cstate_t *cstate) {
       exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "(tunnel) got localhost addrinfo\n");
-    
     if(connect(connfd, info->ai_addr, sizeof(struct sockaddr_in)) < 0) {
       perror("connect");
       exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "(tunnel) connected to TI-RPC server\n");
-    
     free(args);
     return connfd;
 }
@@ -267,8 +239,6 @@ connection_main(listener_state_t * lstate, int conn)
 	struct timeval  to;
 	int             max_fd;
 	int             err;
-
-	fprintf(stderr, "(tunnel) Entering connection_main()\n");
 
 	cstate = &lstate->conns[conn];
 
@@ -298,8 +268,6 @@ connection_main(listener_state_t * lstate, int conn)
 
 	tirpc_cstate = cstate;
 	tirpc_lstate = lstate;
-
-	fprintf(stderr, "(tunnel) Entering select() loop\n");
 
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {
@@ -382,11 +350,9 @@ connection_main(listener_state_t * lstate, int conn)
 			 * handle outgoing data on the data connection
 			 */
 			if (FD_ISSET(cstate->data_fd, &cstate->read_fds)) {
-			  fprintf(stderr, "(tunnel) Data is ready to read\n");
 			  sstub_read_data(lstate, cstate);
 			}
 			if (FD_ISSET(cstate->data_fd, &cstate->write_fds)) {
-			  //			  fprintf(stderr, "(tunnel) Data is ready to write\n");
 			  sstub_write_data(lstate, cstate);
 			}
 

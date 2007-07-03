@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006 Carnegie Mellon University
+ *  Copyright (c) 2006-2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -314,8 +314,6 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 
 	if (header_remain > 0) {
 		data = (char *) &cstate->data_tx_oheader;
-		fprintf(stderr, "(storagestub) send()ing %d header bytes\n",
-			header_remain);
 		sent = send(cstate->data_fd, &data[header_offset],
 			    header_remain, 0);
 
@@ -349,8 +347,6 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
       more_attrs:
 
 	if (attr_remain) {
-		fprintf(stderr, "(storagestub) send()ing %d attr bytes\n",
-			attr_remain);
 		sent = send(cstate->data_fd, &cstate->attr_buf[attr_offset],
 			    attr_remain, 0);
 
@@ -404,8 +400,6 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 
 	if (data_remain) {
 		data = (char *) cstate->data_tx_obj->data;
-		fprintf(stderr, "(storagestub) send()ing %d data bytes\n",
-			data_remain);
 		sent = send(cstate->data_fd, &data[data_offset],
 			    data_remain, 0);
 

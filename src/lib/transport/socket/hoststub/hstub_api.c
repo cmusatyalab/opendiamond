@@ -119,12 +119,12 @@ device_stop(void *handle, int id, host_stats_t *hs)
 
 	rc = device_stop_x_2(id, sx, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_stop: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_stop"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_stop: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}
@@ -154,12 +154,12 @@ device_terminate(void *handle, int id)
 
 	rc = device_clear_gids_x_2(id, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_terminate"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}

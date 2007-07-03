@@ -104,7 +104,10 @@ create_tirpc_server(void *arg) {
 
     struct cts_args *data = (struct cts_args *)arg;
 
-    if(data == NULL) exit(EXIT_FAILURE);
+    if(data == NULL) {
+      fprintf(stderr, "create_tirpc_server: NULL arguments passed\n");
+      exit(EXIT_FAILURE);
+    }
 
     nconf = getnetconfigent("tcp");
     if(nconf == NULL) {
@@ -153,7 +156,7 @@ create_tirpc_server(void *arg) {
 
     svc_run();
     //handle_requests(rpcfd);
-
+    fprintf(stderr, "create_tirpc_server: svc_run returned!\n");
     exit(EXIT_FAILURE);
 }
 

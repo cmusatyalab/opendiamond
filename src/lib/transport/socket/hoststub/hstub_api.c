@@ -120,6 +120,7 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	rc = device_stop_x_2(id, sx, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_stop"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
@@ -154,6 +155,7 @@ device_terminate(void *handle, int id)
 	rc = device_clear_gids_x_2(id, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_terminate"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
@@ -185,6 +187,7 @@ device_start(void *handle, int id)
 	rc = device_start_x_2(id, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_start: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_start"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
@@ -207,6 +210,7 @@ device_clear_gids(void *handle, int id)
 	rc = device_clear_gids_x_2(id, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_clear_gids"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
@@ -254,6 +258,7 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	rc = device_new_gid_x_2(id, gix, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_new_gid"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
@@ -332,12 +337,13 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 
 	rc = device_set_spec_x_2(id, sf, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_set_spec"));
 	  free(data);
 	  return ENOENT;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  free(data);
 	  return ENOENT;
@@ -372,13 +378,14 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 
 	rc = device_set_obj_x_2(id, sx, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: set_obj call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_set_obj"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  if(!((rc->service_err == DIAMOND_OPERR) && 
 	       (rc->opcode_err == DIAMOND_OPCODE_FCACHEMISS))) {
-	    log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
+	    log_message(LOGT_NET, LOGL_ERR, "device_set_lib: call servicing failed");
 	    log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	    return -1;
 	  }
@@ -442,6 +449,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	rc = device_send_obj_x_2(id, ox, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: send_obj call sending failed");
+log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_send_obj"));
 	  free(data);
 	  return -1;
 	}
@@ -491,6 +499,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	drx = device_write_leaf_x_2(0, dx, dev->con_data.tirpc_client);
 	if (drx == (dctl_return_x *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_write_leaf"));
 	  free(data);
 	  return -1;
 	}
@@ -538,12 +547,13 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 
 	drx = device_read_leaf_x_2(0, dx, dev->con_data.tirpc_client);
 	if (drx == (dctl_return_x *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_read_leaf"));
 	  return -1;
 	}
 	rc = &drx->error;
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}
@@ -589,6 +599,7 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	drx = device_list_nodes_x_2(0, dx, dev->con_data.tirpc_client);
 	if (drx == (dctl_return_x *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_list_nodes"));
 	  return -1;
 	}
 	rc = &drx->error;
@@ -635,12 +646,13 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 
 	drx = device_list_leafs_x_2(0, dx, dev->con_data.tirpc_client);
 	if (drx == (dctl_return_x *) NULL) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_list_leafs"));
 	  return -1;
 	}
 	rc = &drx->error;
 	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call servicing failed");
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  return -1;
 	}
@@ -674,6 +686,7 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	rc = device_set_blob_x_2(id, bx, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_set_blob"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
@@ -710,6 +723,7 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 	rc = device_set_exec_mode_x_2(id, mode, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_set_exec_mode"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {
@@ -733,6 +747,7 @@ device_set_user_state(void *handle, int id, uint32_t state)
 	rc = device_set_user_state_x_2(id, state, dev->con_data.tirpc_client);
 	if (rc == (diamond_rc_t *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_set_user_state"));
 	  return -1;
 	}
 	if(rc->service_err != DIAMOND_SUCCESS) {

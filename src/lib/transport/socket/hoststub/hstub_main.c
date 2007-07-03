@@ -70,6 +70,7 @@ request_chars(sdevice_state_t * dev)
 	characteristics = request_chars_x_2(0, dev->con_data.tirpc_client);
 	if (characteristics == (request_chars_return_x *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("request_chars"));
 	  return;
 	}
 	if(characteristics->error.service_err != DIAMOND_SUCCESS) {
@@ -104,6 +105,7 @@ request_stats(sdevice_state_t * dev)
 	statistics = request_stats_x_2(0, dev->con_data.tirpc_client);
 	if (statistics == (request_stats_return_x *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call sending failed");
+	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("request_stats"));
 	  return;
 	}
 	if(statistics->error.service_err != DIAMOND_SUCCESS) {

@@ -275,7 +275,8 @@ have_full_conn(listener_state_t * list_state, int conn)
 	gettimeofday(&cstate->cinfo.connect_time, NULL);
 	addr_len = sizeof(cstate->cinfo.clientaddr);
 	err = getpeername(cstate->control_fd, 
-					  &cstate->cinfo.clientaddr, &addr_len);
+			  (struct sockaddr *)&cstate->cinfo.clientaddr,
+			  &addr_len);
 	if (err) {
  	    log_message(LOGT_NET, LOGL_ERR, 
 					"Error %d while calling getpeername", err);
@@ -453,7 +454,6 @@ accept_control_conn(listener_state_t * list_state)
 		}
 	}
 	
-	socket_non_block(new_sock);
 	return;
 }
 

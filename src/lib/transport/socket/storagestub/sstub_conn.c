@@ -382,9 +382,11 @@ connection_main(listener_state_t * lstate, int conn)
 			 * handle outgoing data on the data connection
 			 */
 			if (FD_ISSET(cstate->data_fd, &cstate->read_fds)) {
+			  fprintf(stderr, "(tunnel) Data is ready to read\n");
 			  sstub_read_data(lstate, cstate);
 			}
 			if (FD_ISSET(cstate->data_fd, &cstate->write_fds)) {
+			  //			  fprintf(stderr, "(tunnel) Data is ready to write\n");
 			  sstub_write_data(lstate, cstate);
 			}
 

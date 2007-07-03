@@ -146,6 +146,9 @@ hstub_read_data(sdevice_state_t * dev)
 			}
 		}
 
+		fprintf(stderr, "(hoststub) recv()'d %d header bytes\n",
+			rsize);
+
 		/*
 		 * XXX look for zero for shutdown connections 
 		 */
@@ -271,6 +274,9 @@ hstub_read_data(sdevice_state_t * dev)
 			}
 		}
 
+		fprintf(stderr, "(hoststub) recv()'d %d attr bytes\n",
+			rsize);
+
 		if (rsize != attr_remain) {
 			/*
 			 * XXX save partial results 
@@ -309,6 +315,10 @@ hstub_read_data(sdevice_state_t * dev)
 				return;
 			}
 		}
+
+		fprintf(stderr, "(hoststub) recv()'d %d data bytes\n",
+			rsize);
+
 
 		if (rsize != data_remain) {
 			/*

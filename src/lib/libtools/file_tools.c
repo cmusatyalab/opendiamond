@@ -1,6 +1,6 @@
 /*
  *  The OpenDiamond Platform for Interactive Search
- *  Version 2
+ *  Version 3
  *
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
  *  All rights reserved.

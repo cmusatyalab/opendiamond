@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
 #  The OpenDiamond Platform for Interactive Search
-#  Version 2
+#  Version 3 
 #
 #  Copyright (c) 2002-2005 Intel Corporation
 #  All rights reserved.

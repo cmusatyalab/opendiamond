@@ -1,5 +1,5 @@
 #  The OpenDiamond Platform for Interactive Search
-#  Version 2
+#  Version 3 
 #
 #  Copyright (c) 2007 Carnegie Mellon University
 #  All rights reserved.

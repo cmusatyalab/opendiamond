@@ -146,56 +146,42 @@ dconf_get_cachedir()
 	return(dir);
 }
 
+static char *concatpath (const char *prefix, const char *suffix)
+{
+	char *dir = malloc(PATH_MAX);
+	snprintf(dir, PATH_MAX, "%s/%s", prefix, suffix);
+	return(dir);
+}
+
 
 char *
 dconf_get_binary_cachedir()
 {
-	char *dir;
 	do_init();
-
-	dir = malloc(PATH_MAX);
-
-	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
-	    BINARY_DIAMOND_CACHE);
-	return(dir);
+	return(concatpath(dinfo->dconf_cachedir, BINARY_DIAMOND_CACHE));
 }
 
 char *
 dconf_get_filter_cachedir()
 {
-	char *dir;
 	do_init();
-
-	dir = malloc(PATH_MAX);
-
-	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
-	    FILTER_DIAMOND_CACHE);
-	return(dir);
+	return(concatpath(dinfo->dconf_cachedir, FILTER_DIAMOND_CACHE));
 }
+
 
 char *
 dconf_get_blob_cachedir()
 {
-	char *dir;
 	do_init();
-
-	dir = malloc(PATH_MAX);
-
-	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
-	    BLOB_DIAMOND_CACHE);
-	return(dir);
+	return(concatpath(dinfo->dconf_cachedir, BLOB_DIAMOND_CACHE));
 }
 
 
 char *
 dconf_get_spec_cachedir()
 {
-	char *dir;
 	do_init();
-	dir = malloc(PATH_MAX);
-	snprintf(dir, PATH_MAX, "%s/%s", dinfo->dconf_cachedir, 
-	    SPEC_DIAMOND_CACHE);
-	return(dir);
+	return(concatpath(dinfo->dconf_cachedir, SPEC_DIAMOND_CACHE));
 }
 
 static int
@@ -252,7 +238,6 @@ setup_dir(const char *dir)
 	if (err && (errno != EEXIST)) {
 		fprintf(stderr, "Failed to initialize dir %s \n", dir);
 	}
-	return(dir);
 }
 
 
@@ -269,7 +254,13 @@ do_init()
 	int ret;
 	char *dir;
 
+	/* use a mutex to ensure lexer is re-entrant */
+	static pthread_mutex_t lexlock = PTHREAD_MUTEX_INITIALIZER;
+
+	assert(pthread_mutex_lock(&lexlock) == 0);
+
 	if (dinfo != NULL) {
+		pthread_mutex_unlock(&lexlock);
 		return;	
 	}
 
@@ -297,29 +288,26 @@ do_init()
 	}
 
 	/* setup all the directories we need if they don't exist */
-	dir = dconf_get_cachedir();
-	setup_dir(dir);
-	free(dir);
-	
-	dir = dconf_get_logdir();
+	setup_dir(dinfo->dconf_logdir);
+
+	setup_dir(dinfo->dconf_cachedir);
+
+	dir = concatpath(dinfo->dconf_cachedir, SPEC_DIAMOND_CACHE);
 	setup_dir(dir);
 	free(dir);
 
-	dir = dconf_get_spec_cachedir();
+	dir = concatpath(dinfo->dconf_cachedir, BINARY_DIAMOND_CACHE);
 	setup_dir(dir);
 	free(dir);
 
-	dir = dconf_get_binary_cachedir();
+	dir = concatpath(dinfo->dconf_cachedir, FILTER_DIAMOND_CACHE);
 	setup_dir(dir);
 	free(dir);
 
-	dir = dconf_get_filter_cachedir();
+	dir = concatpath(dinfo->dconf_cachedir, BLOB_DIAMOND_CACHE);
 	setup_dir(dir);
 	free(dir);
 
-	dir = dconf_get_blob_cachedir();
-	setup_dir(dir);
-	free(dir);
-
+	pthread_mutex_unlock(&lexlock);
 	return;
 }

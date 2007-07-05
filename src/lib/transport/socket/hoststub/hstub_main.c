@@ -296,6 +296,8 @@ hstub_main(void *arg)
 			     &cinfo->except_fds, &to);
 
 		if (err == -1) {
+		 	log_message(LOGT_NET, LOGL_CRIT, 
+				    "hstub_main: broken socket");
 			hstub_conn_down(dev);
 		}
 

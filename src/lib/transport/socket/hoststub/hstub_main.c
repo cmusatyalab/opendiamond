@@ -62,7 +62,7 @@ static char const cvsid[] =
  * by how often we go an make the requests.
  */
 
-static void
+static int
 request_chars(sdevice_state_t * dev)
 {
 	request_chars_return_x *characteristics;
@@ -71,12 +71,12 @@ request_chars(sdevice_state_t * dev)
 	if (characteristics == (request_chars_return_x *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("request_chars"));
-	  return;
+	  return -1;
 	}
 	if(characteristics->error.service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&characteristics->error));
-	  return;
+	  return -1;
 	}
 
 	dev->dev_char.dc_isa = characteristics->chars.dcs_isa;
@@ -84,7 +84,7 @@ request_chars(sdevice_state_t * dev)
 	dev->dev_char.dc_mem = characteristics->chars.dcs_mem;
 	dev->dev_char.dc_devid = dev->con_data.dev_id;
 	
-	return;
+	return 0;
 }
 
 
@@ -93,7 +93,7 @@ request_chars(sdevice_state_t * dev)
  * from users.
  */
 
-static void
+static int
 request_stats(sdevice_state_t * dev)
 {
 	request_stats_return_x *statistics;
@@ -106,12 +106,12 @@ request_stats(sdevice_state_t * dev)
 	if (statistics == (request_stats_return_x *) NULL) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("request_stats"));
-	  return;
+	  return -1;
 	}
 	if(statistics->error.service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics->error));
-	  return;
+	  return -1;
 	}
 
 	num_filt = statistics->stats.ds_filter_stats.ds_filter_stats_len;
@@ -177,7 +177,7 @@ request_stats(sdevice_state_t * dev)
 		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
 	}
 
-	return;
+	return 0;
 }
 
 void
@@ -254,8 +254,11 @@ hstub_main(void *arg)
 	     	    (this_time.tv_usec >= next_time.tv_usec)) ||
 		    (this_time.tv_sec > next_time.tv_sec)) {
 
-			request_chars(dev);
-			request_stats(dev);
+			if((request_chars(dev) < 0) || (request_stats(dev) < 0)) {
+			  log_message(LOGT_NET, LOGL_CRIT, 
+				      "hstub_main: TI-RPC calls are failing. Killing thread..\n");
+			  pthread_exit(0);
+			}
 
 			assert(POLL_USECS < 1000000);
 			next_time.tv_sec = this_time.tv_sec + POLL_SECS;
@@ -290,8 +293,6 @@ hstub_main(void *arg)
 			     &cinfo->except_fds, &to);
 
 		if (err == -1) {
-		 	log_message(LOGT_NET, LOGL_CRIT, 
-			    "hstub_main: broken socket");
 			hstub_conn_down(dev);
 		}
 

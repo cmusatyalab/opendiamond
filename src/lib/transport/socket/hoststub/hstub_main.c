@@ -188,7 +188,9 @@ hstub_conn_down(sdevice_state_t * dev)
 
 	/* set the flag */
 	dev->con_data.flags |= CINFO_DOWN;
-	pthread_exit(0);
+	log_message(LOGT_NET, LOGL_CRIT, 
+	     "hstub_conn_down: Killing thread..\n");
+	pthread_exit(0); 
 }
 
 
@@ -241,7 +243,8 @@ hstub_main(void *arg)
 		 * TODO: future version should possibly start over.
 		 */
 		if (cinfo->flags & CINFO_DOWN) {
-			pthread_exit(0);
+		  log_message(LOGT_NET, LOGL_CRIT, 
+			      "hstub_main: conn marked down. Killing thread..\n");			pthread_exit(0);
 		}
 
 		gettimeofday(&this_time, &tz);
@@ -257,7 +260,7 @@ hstub_main(void *arg)
 			if((request_chars(dev) < 0) || (request_stats(dev) < 0)) {
 			  log_message(LOGT_NET, LOGL_CRIT, 
 				      "hstub_main: TI-RPC calls are failing. Killing thread..\n");
-			  pthread_exit(0);
+			  hstub_conn_down(dev); 
 			}
 
 			assert(POLL_USECS < 1000000);

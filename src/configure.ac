@@ -101,7 +101,6 @@ lib/transport/socket/storagestub/Makefile
 tools/Makefile
 tools/dctl/Makefile
 tools/delattr/Makefile
-tools/dlog/Makefile
 tools/initattr/Makefile
 tools/rand_idx/Makefile
 tools/rem_group/Makefile

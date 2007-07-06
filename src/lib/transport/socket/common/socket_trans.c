@@ -71,32 +71,60 @@ writen(int fd, const void *vptr, size_t n)
   return (n);
 }
 
+#define SERVICE_BUFSIZ 128
+#define OPCODE_BUFSIZ 128
 
 char *
 diamond_error(diamond_rc_t *rc) {
-	static char buf[128];
+	static char retbuf[SERVICE_BUFSIZ+OPCODE_BUFSIZ];
+	char servbuf[SERVICE_BUFSIZ];
+	char opbuf[OPCODE_BUFSIZ];
 
 	if(rc == NULL)
 	  return NULL;
 
-	switch(rc->service_err) {
+	servbuf[0] = '\0';
+
+ 	switch(rc->service_err) {
 	case DIAMOND_SUCCESS:
-	  sprintf(buf, "RPC call succeeded.");
+	  snprintf(servbuf, SERVICE_BUFSIZ, "RPC call succeeded.");
 	  break;
 	case DIAMOND_FAILURE:
-	  sprintf(buf,"RPC call failed generically.");
-	  break;  
+	  snprintf(servbuf, SERVICE_BUFSIZ, "RPC call failed generically.");
+	  break;
 	case DIAMOND_NOMEM:
-	  sprintf(buf, "RPC call failed from an out-of-memory error.");
+	  snprintf(servbuf, SERVICE_BUFSIZ, "RPC call failed from an "
+		   "out-of-memory error.");
 	  break;
 	case DIAMOND_FAILEDSYSCALL:
-	  sprintf(buf, "RPC call failed from a failed system call: %s", 
-		  strerror(rc->opcode_err));
+	  snprintf(servbuf, SERVICE_BUFSIZ, "RPC call failed from a failed "
+		   "system call: %s", strerror(rc->opcode_err));
 	  break;
 	case DIAMOND_OPERR:
-	  sprintf(buf, "RPC call failed from an opcode-specific error.");
+	  snprintf(servbuf, SERVICE_BUFSIZ, "RPC call failed from an "
+		   "call-specific error: ");
+	  break;
+	default:
+	  snprintf(servbuf, SERVICE_BUFSIZ, "RPC call failed with an unknown "
+		   "error code.");
+	}
+
+	opbuf[0] = '\0';
+
+	switch(rc->opcode_err) {
+	case DIAMOND_OPCODE_FAILURE:
+	  snprintf(opbuf, OPCODE_BUFSIZ, "Generic failure.");
+	  break;
+	case DIAMOND_OPCODE_FCACHEMISS:
+	  snprintf(opbuf, OPCODE_BUFSIZ, "The filter signature was not "
+		   "found in the cache.");
+	  break;
+	default:
 	  break;
 	}
 
-	return buf;
+	strncpy(retbuf, servbuf, SERVICE_BUFSIZ);
+	strncat(retbuf, opbuf, OPCODE_BUFSIZ);
+
+	return retbuf;
 }

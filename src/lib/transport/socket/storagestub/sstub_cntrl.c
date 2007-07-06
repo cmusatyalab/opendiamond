@@ -224,7 +224,7 @@ request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
 
   if((stats = (*tirpc_lstate->get_stats_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
     result.error.service_err = DIAMOND_OPERR;
-    result.error.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific?
+    result.error.opcode_err = DIAMOND_OPCODE_NOSTATSAVAIL;
     return &result;
   }
   

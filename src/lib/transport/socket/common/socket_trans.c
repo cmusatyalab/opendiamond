@@ -119,6 +119,10 @@ diamond_error(diamond_rc_t *rc) {
 	  snprintf(opbuf, OPCODE_BUFSIZ, "The filter signature was not "
 		   "found in the cache.");
 	  break;
+	case DIAMOND_OPCODE_STATSNOTAVAIL:
+	  snprintf(opbuf, OPCODE_BUFSIZ, "The filter statistics are not "
+		   "available at the moment. (Is a search running?)");
+	  break;
 	default:
 	  break;
 	}

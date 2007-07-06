@@ -43,6 +43,7 @@ enum diamond_service_error_t {
 enum diamond_opcode_error_t {
   DIAMOND_OPCODE_SUCCESS = 0,
   DIAMOND_OPCODE_FCACHEMISS,
+  DIAMOND_OPCODE_NOSTATSAVAIL,
   DIAMOND_OPCODE_FAILURE
 };
 

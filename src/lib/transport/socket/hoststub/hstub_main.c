@@ -109,6 +109,10 @@ request_stats(sdevice_state_t * dev)
 	  return -1;
 	}
 	if(statistics->error.service_err != DIAMOND_SUCCESS) {
+	  if((statistics->error.service_err == DIAMOND_OPERR) &&
+	     (statistics->error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL)) {
+	    return 0;  // we often ask for stats when no search is running
+	  }
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics->error));
 	  return -1;

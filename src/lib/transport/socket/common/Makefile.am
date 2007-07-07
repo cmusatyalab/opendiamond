@@ -32,7 +32,6 @@ libdiamondrpc_la_SOURCES = socket_trans.c socket_trans.h \
 	rpc_client_scope.x.in xdr_shim.h
 
 AM_CPPFLAGS += -I/usr/include/tirpc -include xdr_shim.h
-libdiamondrpc_la_LIBADD = -ltirpc
 
 pkginclude_HEADERS = socket_trans.h
 

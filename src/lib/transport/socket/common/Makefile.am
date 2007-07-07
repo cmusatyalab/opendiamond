@@ -1,12 +1,22 @@
 noinst_LTLIBRARIES = libdiamondrpc.la
 
-RPCROOTS = rpc_client_content rpc_client_scope rpc_content_scope rpc_scope_scope rpc_admin_content rpc_admin_scope
+BUILT_SOURCES = rpc_client_content_clnt.c rpc_client_content_svc.c \
+	rpc_client_content_xdr.c rpc_client_content.x rpc_client_content.h \
+	rpc_client_scope_clnt.c rpc_client_scope_svc.c \
+	rpc_client_scope_xdr.c rpc_client_scope.x rpc_client_scope.h \
+	rpc_content_scope_clnt.c rpc_content_scope_svc.c \
+	rpc_content_scope_xdr.c rpc_content_scope.x rpc_content_scope.h \
+	rpc_scope_scope_clnt.c rpc_scope_scope_svc.c \
+	rpc_scope_scope_xdr.c rpc_scope_scope.x rpc_scope_scope.h \
+	rpc_admin_content_clnt.c rpc_admin_content_svc.c \
+	rpc_admin_content_xdr.c rpc_admin_content.x rpc_admin_content.h \
+	rpc_admin_scope_clnt.c rpc_admin_scope_svc.c \
+	rpc_admin_scope_xdr.c rpc_admin_scope.x rpc_admin_scope.h \
+	rpc_preamble_xdr.c rpc_preamble.x rpc_preamble.h
 
-BUILT_SOURCES = $(foreach file,$(RPCROOTS),$(file)_clnt.c $(file)_svc.c $(file)_xdr.c $(file).x $(file).h)
+CLEANFILES = $(BUILT_SOURCES)
 
-CLEANFILES = $(BUILT_SOURCES) rpc_preamble.x rpc_preamble_xdr.c
-
-libdiamondrpc_la_SOURCES = rpc_client_content_svc.c rpc_client_scope_svc.c \
+nodist_libdiamondrpc_la_SOURCES = rpc_client_content_svc.c rpc_client_scope_svc.c \
 		 rpc_content_scope_svc.c rpc_scope_scope_svc.c \
 		 rpc_admin_content_svc.c rpc_admin_scope_svc.c \
 		 rpc_client_content_clnt.c rpc_client_scope_clnt.c \
@@ -15,7 +25,11 @@ libdiamondrpc_la_SOURCES = rpc_client_content_svc.c rpc_client_scope_svc.c \
 		 rpc_client_content_xdr.c rpc_client_scope_xdr.c \
 		 rpc_content_scope_xdr.c rpc_scope_scope_xdr.c \
 		 rpc_admin_content_xdr.c rpc_admin_scope_xdr.c \
-		 rpc_preamble_xdr.c socket_trans.c
+		 rpc_preamble_xdr.c
+libdiamondrpc_la_SOURCES = socket_trans.c socket_trans.h \
+	rpc_admin_content.x.in rpc_content_scope.x.in rpc_admin_scope.x.in \
+	rpc_preamble.x.in rpc_client_content.x.in rpc_scope_scope.x.in \
+	rpc_client_scope.x.in xdr_shim.h
 
 AM_CPPFLAGS += -I/usr/include/tirpc -include xdr_shim.h
 libdiamondrpc_la_LIBADD = -ltirpc

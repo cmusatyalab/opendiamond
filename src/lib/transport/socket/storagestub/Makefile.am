@@ -1,9 +1,7 @@
 noinst_LTLIBRARIES = libstoragestub.la
 
 libstoragestub_la_SOURCES = sstub_api.c sstub_cntrl.c sstub_conn.c \
-	sstub_data.c sstub_listen.c sstub_impl.h sstub_tirpc.c \
-	$(top_builddir)/lib/transport/socket/common/rpc_client_content.h \
-	$(top_builddir)/lib/transport/socket/common/xdr_shim.h
+	sstub_data.c sstub_listen.c sstub_impl.h sstub_tirpc.c
 
 AM_CPPFLAGS += -I/usr/include/tirpc -I$(top_builddir)/lib/transport/socket/common
 

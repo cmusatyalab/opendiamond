@@ -93,6 +93,11 @@ struct dctl_return_x {
   dctl_x dctl;
 };
 
+struct diamond_session_variables_x {
+  opaque name<>;
+  double value<>;
+};
+
 program CLIENTCONTENT_PROG {
   version CLIENTCONTENT_VERS {
 
@@ -128,6 +133,9 @@ program CLIENTCONTENT_PROG {
 
     diamond_rc_t device_set_obj_x(unsigned int gen, sig_val_x) = 16;
     diamond_rc_t device_send_obj_x(unsigned int gen, send_obj_x) = 17;
+
+    diamond_session_variables_x
+      session_variables_get_x(unsigned int gen) = 18;
 
   } = 2;
 } = 0x2405E65E;  /* The leading "0x2" is required for "static"

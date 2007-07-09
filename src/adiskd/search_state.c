@@ -1382,6 +1382,8 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 	  return NULL;
 	}
 
+	dctl_thread_register(sstate->dctl_cookie);
+
 	err = dctl_read_leaf(path, &(dtype->dt), &(dtype->len), dtype->dbuf);
 
 	/*
@@ -1408,6 +1410,8 @@ search_write_leaf(void *app_cookie, char *path, int len, char *data,
 	int             err;
 	search_state_t *sstate;
 	sstate = (search_state_t *) app_cookie;
+
+	dctl_thread_register(sstate->dctl_cookie);
 
 	err = dctl_write_leaf(path, len, data);
 	/*
@@ -1438,6 +1442,8 @@ search_list_leafs(void *app_cookie, char *path, int32_t opid)
 	  perror("malloc");
 	  return NULL;
 	}
+
+	dctl_thread_register(sstate->dctl_cookie);
 
 	lt->num_ents = MAX_ENTS;
 
@@ -1480,6 +1486,8 @@ search_list_nodes(void *app_cookie, char *path, int32_t opid)
 	  perror("malloc");
 	  return NULL;
 	}
+
+	dctl_thread_register(sstate->dctl_cookie);
 
 	lt->num_ents = MAX_ENTS;
 	lt->err = dctl_list_nodes(path, &(lt->num_ents), lt->ent_data);

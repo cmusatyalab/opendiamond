@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <dirent.h>
+#include <glib.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"

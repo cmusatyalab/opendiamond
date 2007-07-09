@@ -34,6 +34,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
+#include <glib.h>
 #include "sig_calc.h"
 #include "ring.h"
 #include "rstat.h"

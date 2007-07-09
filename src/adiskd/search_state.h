@@ -16,6 +16,7 @@
 #ifndef _SEARCH_STATE_H_
 #define _SEARCH_STATE_H_
 
+#include <glib.h>
 
 /*
  * some of the default constants for packet processing 

@@ -69,6 +69,7 @@ void device_enable_obj(void *handle);
 int device_set_limit(void *handle, int limit);
 int device_set_exec_mode(void *handle, int id, uint32_t mode);
 int device_set_user_state(void *handle, int id, uint32_t state);
+int device_get_session_variables(void *handle, device_session_vars_t **vars);
 obj_info_t * device_next_obj(void *handle);
 
 

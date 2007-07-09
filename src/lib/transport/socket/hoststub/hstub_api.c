@@ -803,6 +803,72 @@ device_set_user_state(void *handle, int id, uint32_t state)
 	return (0);
 }
 
+int
+device_get_session_variables(void *handle, device_session_vars_t **vars)
+{
+  sdevice_state_t *dev = (sdevice_state_t *) handle;
+
+  diamond_session_var_list_return_x *rc =
+    session_variables_get_x_2(0, dev->con_data.tirpc_client);
+
+  if (rc == NULL) {
+    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: call sending failed");
+    log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_get_session_variables"));
+    return -1;
+  }
+
+  if(rc->error.service_err != DIAMOND_SUCCESS) {
+    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: call servicing failed");
+    log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc->error));
+    return -1;
+  }
+
+  // allocate
+  *vars = calloc(sizeof(device_session_vars_t), 1);
+  if (*vars == NULL) {
+    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: no memory");
+    return -1;
+  }
+
+  // count length
+  int len = 0;
+  diamond_session_var_list_x *first = rc->l;
+  diamond_session_var_list_x *cur = first;
+
+  while (cur != NULL) {
+    cur = cur->next;
+    len++;
+  }
+
+  // allocate some more
+  (*vars)->len = len;
+  (*vars)->names = calloc(sizeof(char *), len);
+  (*vars)->values = calloc(sizeof(double), len);
+
+  // copy
+  int i = 0;
+  cur = first;
+  while (cur != NULL) {
+    (*vars)->names[i] = strdup(cur->name);
+    (*vars)->values[i] = cur->value;
+
+    cur = cur->next;
+    i++;
+  }
+
+  // deallocate old
+  cur = first;
+  while (cur != NULL) {
+    diamond_session_var_list_x *prev = cur;
+    free(cur->name);
+    cur = cur->next;
+    free(prev);
+  }
+  rc->l = NULL;
+
+  return 0;
+}
+
 
 void
 device_stop_obj(void *handle)

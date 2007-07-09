@@ -99,6 +99,11 @@ struct diamond_session_var_list_x {
   diamond_session_var_list_x *next;
 };
 
+struct diamond_session_var_list_return_x {
+  diamond_rc_t error;
+  diamond_session_var_list_x *l;
+};
+
 program CLIENTCONTENT_PROG {
   version CLIENTCONTENT_VERS {
 
@@ -135,7 +140,7 @@ program CLIENTCONTENT_PROG {
     diamond_rc_t device_set_obj_x(unsigned int gen, sig_val_x) = 16;
     diamond_rc_t device_send_obj_x(unsigned int gen, send_obj_x) = 17;
 
-    diamond_session_var_list_x
+    diamond_session_var_list_return_x
       session_variables_get_x(unsigned int gen) = 18;
 
   } = 2;

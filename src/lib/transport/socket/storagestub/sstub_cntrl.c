@@ -541,6 +541,12 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 }
 
 
+diamond_session_var_list_x *session_variables_get_x_2_svc(unsigned int gen, struct svc_req *rqstp) {
+
+}
+
+
+
 /*
  * This reads data from the control socket and forwards it to the
  * TI-RPC server.

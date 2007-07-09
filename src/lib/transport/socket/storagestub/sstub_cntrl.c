@@ -541,8 +541,57 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 }
 
 
-diamond_session_var_list_x *session_variables_get_x_2_svc(unsigned int gen, struct svc_req *rqstp) {
+diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int gen,
+								 struct svc_req *rqstp) {
+  int i;
+  diamond_session_var_list_return_x result;
+  result.l = NULL;
+  result.error.service_err = DIAMOND_SUCCESS;
 
+
+  device_session_vars_t *vars =
+    (*tirpc_lstate->get_session_vars_cb) (tirpc_cstate->app_cookie, gen);
+
+  if (vars == NULL) {
+    result.error.service_err = DIAMOND_NOMEM;
+    return &result;
+  }
+
+
+  // make into linked list
+  diamond_session_var_list_x *first = NULL;
+  diamond_session_var_list_x *prev = NULL;
+
+  for (i = 0; i < vars->len; i++) {
+    diamond_session_var_list_x *l = calloc(sizeof(diamond_session_var_list_x), 0);
+    if (l == NULL) {
+      // this will fall through and send something to the client,
+      // but also will let XDR free this structure for us
+      result.error.service_err = DIAMOND_NOMEM;
+      break;
+    }
+
+    if (i == 0) {
+      first = l;
+    } else {
+      prev->next = l;
+    }
+
+    // load values
+    l->name = strdup(vars->names[i]);
+    l->value = vars->values[i];
+
+    prev = l;
+  }
+
+  result.l = first;
+
+
+  // free
+  free(vars);
+
+  // return
+  return &result;
 }
 
 

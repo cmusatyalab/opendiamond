@@ -1220,6 +1220,14 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
 	err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
 			 		sstats_drop, sstats_process, sstate->log_cookie);
+
+
+	/*
+	 * Initialize session variables storage
+	 */
+	pthread_mutex_init(&sstate->session_variables_mutex, NULL);
+	sstate->session_variables = g_hash_table_new(g_str_hash, g_str_equal);
+
 	return (0);
 }
 

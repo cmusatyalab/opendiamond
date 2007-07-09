@@ -98,6 +98,14 @@ typedef struct dev_stats {
 	filter_stats_t	ds_filter_stats[0];	/* list of filter */
 } dev_stats_t;
 
+
+typedef struct {
+  int len;
+  char **names;
+  double *values;
+} device_session_vars_t;
+
+
 /* copy from lib_log.h */
 #ifndef offsetof
 #define offsetof(type, member) ( (int) & ((type*)0) -> member )

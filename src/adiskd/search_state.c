@@ -1625,3 +1625,57 @@ int search_set_user_state(void *app_cookie, uint32_t state)
 	sstate->user_state = (user_state_t) state;
 	return(0);
 }
+
+
+static
+void session_variables_unpack(gpointer key, gpointer value, gpointer user_value)
+{
+  device_session_vars_t *r = (device_session_vars_t *) user_value;
+  int i = r->len;   // tricky
+
+  r->names[i] = strdup(value);
+  r->values[i] = *((double *) value);
+
+  printf(" %d: %s -> %g\n", i, r->names[i], r->values[i]);
+
+  r->len++;
+}
+
+device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
+{
+  log_message(LOGT_DISK, LOGL_TRACE, "search_get_session_vars");
+
+  search_state_t *sstate = (search_state_t *) app_cookie;
+  GHashTable *ht = sstate->session_variables;
+
+  device_session_vars_t *result = calloc(sizeof(device_session_vars_t), 1);
+  if (result == NULL) {
+    return NULL;
+  }
+
+
+  // take the session vars lock
+  pthread_mutex_lock(&sstate->session_variables_mutex);
+
+  // alloc the result
+  result->len = g_hash_table_size(ht);
+  result->names = calloc(sizeof(char *), result->len);
+  result->values = calloc(sizeof(double), result->len);
+  if (result->names == NULL || result->values == NULL) {
+    free(result->names);
+    free(result->values);
+    free(result);
+    return NULL;
+  }
+
+  // unpack the hashtable
+  // tricky: use result->len as index to foreach
+  result->len = 0;
+  g_hash_table_foreach(ht, session_variables_unpack, result);
+  // now result->len is correct again
+
+  // unlock
+  pthread_mutex_unlock(&sstate->session_variables_mutex);
+
+  return result;
+}

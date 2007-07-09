@@ -131,6 +131,8 @@ int             search_set_blob(void *app_cookie, int gen, char *name,
 int		search_set_exec_mode(void *app_cookie, uint32_t mode);
 int		search_set_user_state(void *app_cookie, uint32_t state);
 
+device_session_vars_t * search_get_session_vars(void *app_cookie, int gen_num);
+
 void		start_background();
 
 #endif				/* ifndef _SEARCH_STATE_H_ */

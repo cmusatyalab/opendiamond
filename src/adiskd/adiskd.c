@@ -168,6 +168,7 @@ main(int argc, char **argv)
 	cb_args.set_blob_cb = search_set_blob;
 	cb_args.set_exec_mode_cb = search_set_exec_mode;
  	cb_args.set_user_state_cb = search_set_user_state;
+	cb_args.get_session_vars_cb = search_get_session_vars;
 
 	cookie = sstub_init_ext(&cb_args, bind_locally, do_authenticate);
 	if (cookie == NULL) { 

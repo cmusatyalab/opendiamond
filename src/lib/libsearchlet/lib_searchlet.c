@@ -1275,6 +1275,29 @@ ls_get_dev_stats(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 	return device_statistics(dev->dev_handle, dev_stats, stat_len);
 }
 
+int
+ls_get_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
+			     device_session_vars_t **vars)
+{
+  device_handle_t *dev;
+  search_context_t *sc;
+
+  sc = (search_context_t *) handle;
+  thread_setup(sc);
+
+  dev = (device_handle_t *) dev_handle;
+
+  /*
+   * check that this is a valid argument
+   */
+  if (dev == NULL) {
+    return (EINVAL);
+  }
+
+  return device_get_session_variables(dev->dev_handle, vars);
+}
+
+
 /*!
  * This call advises Diamond of the user's state.  
  *

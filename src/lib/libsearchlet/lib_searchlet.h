@@ -587,6 +587,12 @@ int
 ls_num_objects(ls_search_handle_t handle, int *obj_cnt);
 
 
+
+int
+ls_get_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
+			     device_session_vars_t **vars);
+
+
 /*!
  * This call advises Diamond of the user's state.  
  *

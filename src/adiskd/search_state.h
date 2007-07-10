@@ -96,9 +96,8 @@ typedef struct search_state {
 	user_state_t	user_state;
 
 	pthread_mutex_t session_variables_mutex;
-	GHashTable	*session_variables;
+	GHashTable     *session_variables;
 } search_state_t;
-
 
 
 /*

@@ -75,15 +75,16 @@ GHashTable *get_filter_history()
 	if (fp != NULL) {
 		while (1) {
 			filter_history_t *fh = g_malloc(sizeof(filter_history_t));
-	
+			char *sigstr;
+
 			cnt = fscanf(fp, "%s %u %u %u %u %u \n", 
-				fname, &fh->executions, &fh->search_objects,
+				sigstr, &fh->executions, &fh->search_objects,
 				&fh->filter_objects, &fh->drop_objects, 
 				&fh->last_run);
 			if (cnt != 6) {
 				break;
 			}
-			string_to_sig(fname, &fh->filter_sig);
+			string_to_sig(sigstr, &fh->filter_sig);
 			g_hash_table_insert(histories, &fh->filter_sig, fh);
 		}
 		fclose(fp);
@@ -188,7 +189,7 @@ void update_filter_history(GHashTable *histories, gboolean remove)
 			
 			if (fh == NULL) {
 				fh = g_malloc0(sizeof(filter_history_t));
-				string_to_sig(fname, &fh->filter_sig);
+				string_to_sig(sig, &fh->filter_sig);
 				g_hash_table_insert(histories, &fh->filter_sig, fh);				
 			}
 			fh->executions++;

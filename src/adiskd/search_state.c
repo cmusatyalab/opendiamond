@@ -1226,7 +1226,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Initialize session variables storage
 	 */
 	pthread_mutex_init(&sstate->session_variables_mutex, NULL);
-	sstate->session_variables = g_hash_table_new(g_str_hash, g_str_equal);
+	sstate->session_variables = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
 
 	return (0);
 }

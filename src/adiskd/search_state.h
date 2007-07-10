@@ -17,6 +17,7 @@
 #define _SEARCH_STATE_H_
 
 #include <glib.h>
+#include <stdbool.h>
 
 /*
  * some of the default constants for packet processing 
@@ -97,6 +98,7 @@ typedef struct search_state {
 
 	pthread_mutex_t session_variables_mutex;
 	GHashTable     *session_variables;
+	bool            session_variables_between_get_and_set;
 } search_state_t;
 
 

@@ -187,6 +187,7 @@ typedef struct device_char {
 typedef struct {
   double local_val;
   double global_val;
+  double between_get_and_set_val;
 } session_variable_value_t;
 
 

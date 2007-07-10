@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <string.h>
@@ -1657,6 +1658,10 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
   // take the session vars lock
   pthread_mutex_lock(&sstate->session_variables_mutex);
 
+  // we are now between get and set, so the accumulators will
+  // work a bit differently elsewhere
+  sstate->session_variables_between_get_and_set = true;
+
   // alloc the result
   result->len = g_hash_table_size(ht);
   result->names = calloc(sizeof(char *), result->len);
@@ -1691,6 +1696,9 @@ int search_set_session_vars(void *app_cookie, int gen_num,
   // take the session vars lock
   pthread_mutex_lock(&sstate->session_variables_mutex);
 
+  // we are no longer between get and set
+  sstate->session_variables_between_get_and_set = false;
+
   // update
   int len = vars->len;
   int i;
@@ -1704,9 +1712,16 @@ int search_set_session_vars(void *app_cookie, int gen_num,
       g_hash_table_replace(ht, strdup(key), val);
     }
 
-    // update
-    val->local_val = 0.0;
+    // set global val to new value from client
     val->global_val = vars->values[i];
+
+    // now reset our local_val to be the changes we accumulated while
+    // the client was busy contacting other servers
+    val->local_val = val->between_get_and_set_val;
+
+    // clear the "between" accumulator
+    val->between_get_and_set_val = 0.0;
+
     printf(" setting %d: \"%s\" -> %g\n", i, key, val->global_val);
   }
 

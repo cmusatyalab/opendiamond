@@ -1648,13 +1648,6 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
   search_state_t *sstate = (search_state_t *) app_cookie;
   GHashTable *ht = sstate->session_variables;
 
-  /*
-  char *key = strdup("hi");
-  double *val = malloc(sizeof(double));
-  *val = 42.0;
-  g_hash_table_replace(ht, key, val);
-  */
-
   device_session_vars_t *result = calloc(sizeof(device_session_vars_t), 1);
   if (result == NULL) {
     return NULL;

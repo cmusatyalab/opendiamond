@@ -22,10 +22,6 @@
 #include "lib_dctl.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 int             var = 1;
 
 #define	MAX_ENTS	128

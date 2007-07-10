@@ -20,9 +20,6 @@
 #include "lib_tools.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * XXXX move this else where 
  */

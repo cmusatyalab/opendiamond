@@ -21,9 +21,6 @@
 #include "sig_calc.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 static const EVP_MD *md;
 static int      done_sig_init = 0;
 

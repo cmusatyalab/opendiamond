@@ -31,7 +31,6 @@
 
 #include "centry.h"
 
-static char const cvsid[] = "$Header$";
 
 /*
  * Read and analyze the contents of a Diamond cache.

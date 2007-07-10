@@ -34,9 +34,6 @@
 #include "lib_log.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 int
 handle_new_obj(void *hcookie, obj_data_t * odata, int vno)
 {

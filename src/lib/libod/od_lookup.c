@@ -31,10 +31,6 @@
 
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 /*
  * number of buckets, must be power of 2 !! 
  */

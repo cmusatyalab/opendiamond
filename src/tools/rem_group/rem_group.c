@@ -31,8 +31,6 @@
 #include "lib_dconfig.h"
 
 
-static char const cvsid[] = "$Header$";
-
 int
 rebuild_idx(odisk_state_t *odisk)
 {

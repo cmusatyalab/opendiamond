@@ -22,8 +22,6 @@
 #include <string.h>
 
 
-static char const cvsid[] = "$Header$";
-
 #define	MAX_BUFFER	4096
 #define	SOCK_NAME	"/tmp/sock"
 

@@ -32,9 +32,6 @@
 #include "lib_dconfig.h"
 
 
-static char const cvsid[] = "$Header$";
-
-
 uint64_t
 parse_uint64_string(const char* s)
 {

@@ -27,9 +27,6 @@
 #include "dctl_socket.h"
 
 
-static char const cvsid[] = "$Header$";
-
-
 int
 sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 {

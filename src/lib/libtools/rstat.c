@@ -17,9 +17,6 @@
 #include "rstat.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * return NULL if not found 
  */

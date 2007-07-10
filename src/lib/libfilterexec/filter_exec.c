@@ -45,9 +45,6 @@
 #include "fexec_history.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * #define VERBOSE 1 
  */

@@ -47,9 +47,6 @@
 #include "rpc_client_content.h"
 #include "rpc_preamble.h"
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * XXX move to common header 
  */

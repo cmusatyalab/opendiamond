@@ -24,8 +24,6 @@
 #include <limits.h>
 #include "lib_tools.h"
 
-static char const cvsid[] =
-    "$Header$";
 
 /*  max time to wait for a file lock before deciding to break it */
 #define	MAX_LOCK_WAIT	5

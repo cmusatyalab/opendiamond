@@ -20,9 +20,6 @@
 #include "rcomb.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 // #define VERBOSE 1
 
 /*

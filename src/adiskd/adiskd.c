@@ -35,10 +35,6 @@
 #include "search_state.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 /*
  * The default behaviors are to create a new daemon at startup time
  * and to fork whenever a new connection is established.

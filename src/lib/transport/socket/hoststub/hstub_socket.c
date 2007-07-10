@@ -49,9 +49,6 @@
 #include "rpc_client_content.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * set a socket to non-blocking 
  */

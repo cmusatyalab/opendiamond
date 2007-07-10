@@ -22,11 +22,6 @@
 #include    "lib_dconfig.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
-
 #define	MAX_PATH				256
 
 

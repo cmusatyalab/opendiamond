@@ -43,7 +43,6 @@ typedef struct {
 	unsigned int	last_run;
 } filter_history_t;
 
-static char const cvsid[] = "$Header$";
 
 /*
  * Merge Diamond caches

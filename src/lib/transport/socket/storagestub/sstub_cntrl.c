@@ -45,10 +45,6 @@
 #include "sstub_impl.h"
 #include "rpc_client_content.h"
 
-static char const cvsid[] =
-    "$Header$";
-
-
 void
 sstub_except_control(listener_state_t * lstate, cstate_t * cstate)
 {

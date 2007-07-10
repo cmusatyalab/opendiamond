@@ -32,8 +32,6 @@
 #include "filter_priv.h"
 #include "fexec_stats.h"
 
-static char const cvsid[] =
-    "$Header$";
 
 // #define VERBOSE 1
 #ifdef VERBOSE

@@ -41,12 +41,6 @@
 #include "sstub_impl.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
-
-
 void
 sstub_write_log(listener_state_t * lstate, cstate_t * cstate)
 {

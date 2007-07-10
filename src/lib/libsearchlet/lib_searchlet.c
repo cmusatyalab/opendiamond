@@ -46,9 +46,6 @@
 #include "lib_filterexec.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 #define	PROC_RING_SIZE		1024
 #define	UNPROC_RING_SIZE	1024
 #define LOG_PREFIX			"diamond_client"

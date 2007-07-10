@@ -21,9 +21,6 @@
 #include    "diamond_types.h"
 #include    "lib_dconfig.h"
 
-static char const cvsid[] =
-    "$Header$";
-
 #define MAX_GIDS    64
 
 int

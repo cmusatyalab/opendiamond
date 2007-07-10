@@ -48,8 +48,6 @@
 #include "sys_attr.h"
 #include "obj_attr.h"
 
-static char const cvsid[] =
-    "$Header$";
 
 #define	SAMPLE_TIME_FLOAT	0.2
 #define	SAMPLE_TIME_NANO	200000000

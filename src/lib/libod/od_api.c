@@ -22,9 +22,6 @@
 #include "od_priv.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * call before calling the other library calls.
  *

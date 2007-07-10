@@ -33,10 +33,6 @@
 #include "fexec_stats.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 static int      host_cycles = 0;
 
 

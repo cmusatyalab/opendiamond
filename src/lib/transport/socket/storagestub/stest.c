@@ -34,10 +34,6 @@
 #include "lib_sstub.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 #define	DATA_LEN	1024*1024*4
 #define	ATTR_LEN	1024*1024*4
 

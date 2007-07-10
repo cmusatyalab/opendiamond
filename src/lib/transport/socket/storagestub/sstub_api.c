@@ -44,10 +44,6 @@
 #include "ports.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 /*
  * XXX do we manage the complete ring also?? 
  */

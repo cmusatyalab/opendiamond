@@ -31,7 +31,6 @@
 #include "lib_filterexec.h"
 #include "lib_ocache.h"
 
-static char const cvsid[] = "$Header$";
 
 /*
  * Read and dump cache files.

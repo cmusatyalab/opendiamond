@@ -23,9 +23,6 @@
 #include "lib_tools.h"
 #include "lib_searchlet.h"
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * XXX debug 
  */

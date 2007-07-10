@@ -42,9 +42,6 @@
 #include "lib_filterexec.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * XXX put later 
  */

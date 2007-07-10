@@ -43,9 +43,6 @@
 #include "lib_hstub.h"
 #include "dctl_common.h"
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  *  This function intializes the background processing thread that
  *  is used for taking data ariving from the storage devices

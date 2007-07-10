@@ -35,8 +35,6 @@
 #include "obj_attr.h"
 
 
-static char const cvsid[] = "$Header$";
-
 int
 set_defattr(odisk_state_t *odisk, char *attr_name, char *data_name)
 {

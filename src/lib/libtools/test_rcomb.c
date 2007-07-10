@@ -17,10 +17,6 @@
 #include "rcomb.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 int
 evaluate(const void *context, permutation_t * perm, int gen, int *score)
 {

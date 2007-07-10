@@ -36,8 +36,6 @@
 #include "lib_auth.h"
 #include "lib_auth_priv.h"
 
-static char const cvsid[] ="$Header$";
-
 auth_handle_t auth_conn_server(int sockfd) 
 {
     krb5_error_code retval;

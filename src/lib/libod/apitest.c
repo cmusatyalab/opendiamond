@@ -21,9 +21,6 @@
 #include "lib_od.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 // Modified by rahuls 2003.05.13 to be take a file and gid
 // from the command-line and insert it into the object database
 // 

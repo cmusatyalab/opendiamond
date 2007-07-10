@@ -35,9 +35,6 @@
 
 #define DCTL_NAME_LEN 128
 
-static char const cvsid[] =
-    "$Header$";
-
 typedef struct log_state {
 	unsigned int    level;
 	unsigned int    type;

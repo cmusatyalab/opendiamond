@@ -19,13 +19,6 @@
 #include "rgraph.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-/*
- ********************************************************************** */
-
-
 static void
 vec_init(edgelist_t * vec)
 {

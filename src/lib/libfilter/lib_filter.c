@@ -40,9 +40,6 @@
 #include "lib_filter_priv.h"
 #include "lib_log.h"
 
-static char const cvsid[] =
-    "$Header$";
-
 
 static read_attr_cb read_attr_fn = NULL;
 static write_attr_cb write_attr_fn = NULL;

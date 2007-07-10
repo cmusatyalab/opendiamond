@@ -32,9 +32,6 @@
 #include "odisk_priv.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 uint32_t
 get_devid(char *host_addr)
 {

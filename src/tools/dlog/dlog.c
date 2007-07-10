@@ -28,8 +28,6 @@
 #include "log_socket.h"
 
 
-static char const cvsid[] = "$Header$";
-
 #define	MAX_BUFFER	4096
 
 

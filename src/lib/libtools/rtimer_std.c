@@ -24,9 +24,6 @@
 #include "rtimer_std.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * warning: assumes appropriate locks are already held when calling these
  * functions 

@@ -20,8 +20,6 @@
 #include <errno.h>
 #include "lib_dctl.h"
 
-static char const cvsid[] =
-    "$Header$";
 
 /*
  * helper function that returns the value of the

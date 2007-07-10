@@ -50,9 +50,6 @@
 #include "rpc_client_content.h"
 #include "xdr_shim.h"
 
-static char const cvsid[] =
-    "$Header$";
-
 cstate_t *tirpc_cstate;
 listener_state_t *tirpc_lstate;
 

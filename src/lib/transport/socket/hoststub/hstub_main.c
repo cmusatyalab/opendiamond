@@ -45,9 +45,6 @@
 #include "hstub_impl.h"
 #include "rpc_client_content.h"
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * XXX constant config 
  */

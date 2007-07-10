@@ -17,9 +17,6 @@
 #include "rtimer_papi.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 pthread_attr_t *pattr_default = NULL;
 static rtimer_mode_t rtimer_mode = 0;
 

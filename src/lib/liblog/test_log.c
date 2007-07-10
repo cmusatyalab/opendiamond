@@ -25,9 +25,6 @@
 #include "lib_log.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 void
 string_test()
 {

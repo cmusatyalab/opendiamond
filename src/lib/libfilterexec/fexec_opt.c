@@ -27,9 +27,6 @@
 #include "fexec_stats.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 extern void     update_filter_order(filter_data_t * fdata,
 				    const permutation_t * perm);
 

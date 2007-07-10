@@ -24,8 +24,6 @@
 #include <assert.h>
 #include "ring.h"
 
-static char const cvsid[] =
-    "$Header$";
 
 /*
  * XXX move to common library 

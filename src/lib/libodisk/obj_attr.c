@@ -36,10 +36,6 @@
 #include "lib_log.h"
 #include "odisk_priv.h"
 
-static char const cvsid[] =
-    "$Header$";
-
-
 int
 obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)
 {

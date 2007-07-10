@@ -20,9 +20,6 @@
 #include "od.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 void
 messageprog_1(char *host)
 {

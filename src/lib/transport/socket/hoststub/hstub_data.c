@@ -44,9 +44,6 @@
 #include "hstub_impl.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
 /*
  * This is called when there is data waiting on
  * the object socket.

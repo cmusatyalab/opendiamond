@@ -27,10 +27,6 @@
 #include "odisk_priv.h"
 
 
-static char const cvsid[] =
-    "$Header$";
-
-
 int
 main(int argc, char **argv)
 {

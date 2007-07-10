@@ -42,10 +42,6 @@
 #include "dctl_socket.h"
 #include "lib_tools.h"
 
-static char const cvsid[] =
-    "$Header$";
-
-
 /*
  * linux specific flag 
  */

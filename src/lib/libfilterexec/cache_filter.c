@@ -41,8 +41,6 @@
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
 
-static char const cvsid[] =
-    "$Header$";
 
 #define	MAX_PERM_NUM	5
 

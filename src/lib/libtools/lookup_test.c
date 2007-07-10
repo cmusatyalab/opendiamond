@@ -11,8 +11,6 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-static char const cvsid[] =
-    "$Header$";
 
 extern int      read_gid_map(char *file);
 

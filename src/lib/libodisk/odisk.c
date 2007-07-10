@@ -1191,13 +1191,14 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	if (dirp == NULL) {
 		dataroot = dconf_get_dataroot();
 	} else {
-		dataroot = dirp;
+		dataroot = strdup(dirp);
 	}
 
 	if (strlen(dataroot) > (MAX_DIR_PATH - 1)) {
 		log_message(LOGT_DISK, LOGL_ERR,
 		    "odisk_init: dataroot (%s) exceeds MAX_DIR_PATH",
 		    dataroot);
+		free(dataroot);
 		return (EINVAL);
 	}
 
@@ -1206,6 +1207,8 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 		log_message(LOGT_DISK, LOGL_ERR,
 		    "odisk_init: indexdir (%s) exceeds MAX_DIR_PATH",
 		    indexdir);
+		free(dataroot);
+		free(indexdir);
 		return (EINVAL);
 	}
 
@@ -1251,6 +1254,9 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	 */
 	strcpy(new_state->odisk_dataroot, dataroot);
 	strcpy(new_state->odisk_indexdir, indexdir);
+
+	free(dataroot);
+	free(indexdir);
 
 	/*
 	 * get the host name 

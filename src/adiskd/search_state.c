@@ -229,9 +229,12 @@ search_set_spec(void *app_cookie, int id, sig_val_t *spec_sig)
 	int             err;
 	search_state_t *sstate;
 
-	log_message(LOGT_DISK, LOGL_TRACE, 
-				"search_set_spec: id %d %s", 
-				id, sig_string(spec_sig));
+	char *sig_str = sig_string(spec_sig);
+
+	log_message(LOGT_DISK, LOGL_TRACE,
+				"search_set_spec: id %d %s",
+				id, sig_str);
+	free(sig_str);
 
 	sstate = (search_state_t *) app_cookie;
 
@@ -1517,7 +1520,9 @@ search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 	fp = fopen(path, "a+");
 	fprintf(fp, "%llu\n", gid);
 	fclose(fp);
-	
+
+	free(prefix);
+
 	sstate = (search_state_t *) app_cookie;
 	err = odisk_set_gid(sstate->ostate, gid);
 	assert(err == 0);

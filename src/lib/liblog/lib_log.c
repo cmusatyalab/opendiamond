@@ -196,10 +196,12 @@ int log_create(char *prefix) {
 	int offset = 0;
 	struct tm *ltime;
 	char path[MAXPATHLEN];
-	
+	char *logdir = dconf_get_logdir();
+
 	gettimeofday(&now, NULL);
 	// open the new file in the log dir
-	len = sprintf(path, "%s/%s.", dconf_get_logdir(), prefix);
+	len = sprintf(path, "%s/%s.", logdir, prefix);
+	free(logdir);
 	offset += len;
 	
 	ltime = localtime(&now.tv_sec);

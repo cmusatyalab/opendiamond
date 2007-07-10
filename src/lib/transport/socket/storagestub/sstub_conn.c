@@ -226,6 +226,8 @@ setup_tirpc(cstate_t *cstate) {
       pthread_exit(0);
     }
 
+    freeaddrinfo(info);
+
     free(args);
     return connfd;
 }

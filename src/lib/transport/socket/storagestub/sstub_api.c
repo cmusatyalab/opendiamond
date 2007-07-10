@@ -265,6 +265,7 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 	list_state->set_exec_mode_cb = cb_args->set_exec_mode_cb;
 	list_state->set_user_state_cb = cb_args->set_user_state_cb;
 	list_state->get_session_vars_cb = cb_args->get_session_vars_cb;
+	list_state->set_session_vars_cb = cb_args->set_session_vars_cb;
 
 	/*
 	 * save authentication state

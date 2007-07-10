@@ -869,6 +869,66 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
   return 0;
 }
 
+int
+device_set_session_variables(void *handle, device_session_vars_t *vars)
+{
+  sdevice_state_t *dev = (sdevice_state_t *) handle;
+
+  diamond_session_var_list_x list;
+
+  // create list
+  diamond_session_var_list_x *first = NULL;
+  diamond_session_var_list_x *prev = NULL;
+
+  int i;
+  for (i = 0; i < vars->len; i++) {
+    diamond_session_var_list_x *l = calloc(sizeof(diamond_session_var_list_x), 1);
+    if (l == NULL) {
+      break;
+    }
+
+    if (i == 0) {
+      first = l;
+    } else {
+      prev->next = l;
+    }
+
+    // load values
+    l->name = vars->names[i];
+    l->value = vars->values[i];
+
+    printf(" %d: \"%s\" -> %g\n", i, l->name, l->value);
+
+    prev = l;
+  }
+
+  diamond_rc_t *rc = session_variables_set_x_2(0, list, dev->con_data.tirpc_client);
+
+  // free
+  diamond_session_var_list_x *cur = first;
+  while (cur != NULL) {
+    prev = cur;
+    cur = cur->next;
+    free(prev);
+  }
+
+
+  if (rc == NULL) {
+    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: call sending failed");
+    log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_set_session_variables"));
+    return -1;
+  }
+
+  if(rc->service_err != DIAMOND_SUCCESS) {
+    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: call servicing failed");
+    log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+    return -1;
+  }
+
+  return 0;
+}
+
+
 
 void
 device_stop_obj(void *handle)

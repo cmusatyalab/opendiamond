@@ -541,6 +541,7 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 }
 
 
+/* for anomaly detection */
 diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int gen,
 								 struct svc_req *rqstp) {
   int i;
@@ -593,6 +594,66 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
   free(vars);
 
   // return
+  return &result;
+}
+
+diamond_rc_t *session_variables_set_x_2_svc(unsigned int gen,
+					    diamond_session_var_list_x list,
+					    struct svc_req *rqstp)
+{
+  static diamond_rc_t result;
+
+  // fabricate the structure
+  device_session_vars_t *vars = calloc(sizeof(device_session_vars_t), 1);
+  if (vars == NULL) {
+    result.service_err = DIAMOND_NOMEM;
+    return &result;
+  }
+
+  // count length
+  int len = 0;
+  diamond_session_var_list_x *first = &list;
+  diamond_session_var_list_x *cur = first;
+
+  while (cur != NULL) {
+    cur = cur->next;
+    len++;
+  }
+
+  // allocate some more
+  vars->len = len;
+  vars->names = calloc(sizeof(char *), len);
+  vars->values = calloc(sizeof(double), len);
+
+  if (vars->names == NULL || vars->values == NULL) {
+    free(vars->names);
+    free(vars->values);
+    free(vars);
+    result.service_err = DIAMOND_NOMEM;
+    return &result;
+  }
+
+  // copy
+  int i = 0;
+  cur = first;
+  while (cur != NULL) {
+    vars->names[i] = strdup(cur->name);
+    vars->values[i] = cur->value;
+
+    cur = cur->next;
+    i++;
+  }
+
+  // call
+  (*tirpc_lstate->set_session_vars_cb) (tirpc_cstate->app_cookie, gen, vars);
+
+  // deallocate
+  free(vars->names);
+  free(vars->values);
+  free(vars);
+
+  // done
+  result.service_err = DIAMOND_SUCCESS;
   return &result;
 }
 

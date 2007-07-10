@@ -1686,3 +1686,38 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
 
   return result;
 }
+
+int search_set_session_vars(void *app_cookie, int gen_num,
+			    device_session_vars_t *vars)
+{
+  log_message(LOGT_DISK, LOGL_TRACE, "search_set_session_vars");
+
+  search_state_t *sstate = (search_state_t *) app_cookie;
+  GHashTable *ht = sstate->session_variables;
+
+  // take the session vars lock
+  pthread_mutex_lock(&sstate->session_variables_mutex);
+
+  // update
+  int len = vars->len;
+  int i;
+  for (i = 0; i < len; i++) {
+    char *key = vars->names[i];
+    session_variable_value_t *val = g_hash_table_lookup(ht, key);
+
+    if (val == NULL) {
+      // add it
+      val = calloc(sizeof(session_variable_value_t), 1);
+      g_hash_table_replace(ht, strdup(key), val);
+    }
+
+    // update
+    val->base_val = vars->values[i];
+    printf(" %d: \"%s\" -> %g\n", i, key, val->base_val);
+  }
+
+  // unlock
+  pthread_mutex_unlock(&sstate->session_variables_mutex);
+
+  return 0;
+}

@@ -140,8 +140,11 @@ program CLIENTCONTENT_PROG {
     diamond_rc_t device_set_obj_x(unsigned int gen, sig_val_x) = 16;
     diamond_rc_t device_send_obj_x(unsigned int gen, send_obj_x) = 17;
 
+    /* for anomaly detection */
     diamond_session_var_list_return_x
       session_variables_get_x(unsigned int gen) = 18;
+    diamond_rc_t session_variables_set_x(unsigned int gen,
+					 diamond_session_var_list_x list) = 19;
 
   } = 2;
 } = 0x2405E65E;  /* The leading "0x2" is required for "static"

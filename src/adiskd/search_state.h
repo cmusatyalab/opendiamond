@@ -132,6 +132,8 @@ int		search_set_exec_mode(void *app_cookie, uint32_t mode);
 int		search_set_user_state(void *app_cookie, uint32_t state);
 
 device_session_vars_t * search_get_session_vars(void *app_cookie, int gen_num);
+int		search_set_session_vars(void *app_cookie, int gen_num,
+					device_session_vars_t *vars);
 
 void		start_background();
 

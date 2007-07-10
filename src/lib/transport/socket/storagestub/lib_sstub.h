@@ -52,6 +52,8 @@ typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,
 typedef int (*sstub_set_exec_mode_fn)(void *app_cookie, uint32_t mode);
 typedef int (*sstub_set_user_state_fn)(void *app_cookie, uint32_t state);
 typedef device_session_vars_t *(*sstub_get_session_vars_fn)(void *app_cookie, int gen_num);
+typedef int (*sstub_set_session_vars_fn)(void *app_cookie, int gen_num,
+					 device_session_vars_t *vars);
 
 typedef struct {
 	sstub_new_conn_fn 	    	new_conn_cb;
@@ -76,6 +78,7 @@ typedef struct {
 	sstub_set_exec_mode_fn 		set_exec_mode_cb;
 	sstub_set_user_state_fn 	set_user_state_cb;
 	sstub_get_session_vars_fn	get_session_vars_cb;
+	sstub_set_session_vars_fn	set_session_vars_cb;
 } sstub_cb_args_t;
 
 

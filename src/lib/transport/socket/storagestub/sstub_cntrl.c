@@ -564,7 +564,7 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
   diamond_session_var_list_x *prev = NULL;
 
   for (i = 0; i < vars->len; i++) {
-    diamond_session_var_list_x *l = calloc(sizeof(diamond_session_var_list_x), 1);
+    diamond_session_var_list_x *l = calloc(1, sizeof(diamond_session_var_list_x));
     if (l == NULL) {
       // this will fall through and send something to the client,
       // but also will let XDR free this structure for us
@@ -606,7 +606,7 @@ diamond_rc_t *session_variables_set_x_2_svc(unsigned int gen,
   static diamond_rc_t result;
 
   // fabricate the structure
-  device_session_vars_t *vars = calloc(sizeof(device_session_vars_t), 1);
+  device_session_vars_t *vars = calloc(1, sizeof(device_session_vars_t));
   if (vars == NULL) {
     result.service_err = DIAMOND_NOMEM;
     return &result;
@@ -624,8 +624,8 @@ diamond_rc_t *session_variables_set_x_2_svc(unsigned int gen,
 
   // allocate some more
   vars->len = len;
-  vars->names = calloc(sizeof(char *), len);
-  vars->values = calloc(sizeof(double), len);
+  vars->names = calloc(len, sizeof(char *));
+  vars->values = calloc(len, sizeof(double));
 
   if (vars->names == NULL || vars->values == NULL) {
     free(vars->names);

@@ -1649,7 +1649,7 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
   search_state_t *sstate = (search_state_t *) app_cookie;
   GHashTable *ht = sstate->session_variables;
 
-  device_session_vars_t *result = calloc(sizeof(device_session_vars_t), 1);
+  device_session_vars_t *result = calloc(1, sizeof(device_session_vars_t));
   if (result == NULL) {
     return NULL;
   }
@@ -1664,8 +1664,8 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
 
   // alloc the result
   result->len = g_hash_table_size(ht);
-  result->names = calloc(sizeof(char *), result->len);
-  result->values = calloc(sizeof(double), result->len);
+  result->names = calloc(result->len, sizeof(char *));
+  result->values = calloc(result->len, sizeof(double));
   if (result->names == NULL || result->values == NULL) {
     free(result->names);
     free(result->values);
@@ -1708,7 +1708,7 @@ int search_set_session_vars(void *app_cookie, int gen_num,
 
     if (val == NULL) {
       // add it
-      val = calloc(sizeof(session_variable_value_t), 1);
+      val = calloc(1, sizeof(session_variable_value_t));
       g_hash_table_replace(ht, strdup(key), val);
     }
 

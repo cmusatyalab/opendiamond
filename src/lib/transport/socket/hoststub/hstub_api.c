@@ -824,7 +824,7 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
   }
 
   // allocate
-  *vars = calloc(sizeof(device_session_vars_t), 1);
+  *vars = calloc(1, sizeof(device_session_vars_t));
   if (*vars == NULL) {
     log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: no memory");
     return -1;
@@ -842,8 +842,8 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
 
   // allocate some more
   (*vars)->len = len;
-  (*vars)->names = calloc(sizeof(char *), len);
-  (*vars)->values = calloc(sizeof(double), len);
+  (*vars)->names = calloc(len, sizeof(char *));
+  (*vars)->values = calloc(len, sizeof(double));
 
   // copy
   int i = 0;
@@ -880,7 +880,7 @@ device_set_session_variables(void *handle, device_session_vars_t *vars)
 
   int i;
   for (i = 0; i < vars->len; i++) {
-    diamond_session_var_list_x *l = calloc(sizeof(diamond_session_var_list_x), 1);
+    diamond_session_var_list_x *l = calloc(1, sizeof(diamond_session_var_list_x));
     if (l == NULL) {
       break;
     }

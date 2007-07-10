@@ -1631,12 +1631,12 @@ static
 void session_variables_unpack(gpointer key, gpointer value, gpointer user_value)
 {
   device_session_vars_t *r = (device_session_vars_t *) user_value;
-  int i = r->len;   // tricky
+  const int i = r->len;   // tricky
 
-  r->names[i] = strdup(value);
+  r->names[i] = strdup(key);
   r->values[i] = *((double *) value);
 
-  printf(" %d: %s -> %g\n", i, r->names[i], r->values[i]);
+  printf(" %d: \"%s\" -> %g\n", i, r->names[i], r->values[i]);
 
   r->len++;
 }

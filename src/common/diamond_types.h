@@ -183,6 +183,14 @@ typedef struct device_char {
 } device_char_t;
 
 
+/* for anomaly detection */
+typedef struct {
+  double val;
+  double base_val;        /* default, or value from client */
+} session_variable_value_t;
+
+
+
 #ifdef __cplusplus
 }
 #endif

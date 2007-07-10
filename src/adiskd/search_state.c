@@ -1634,7 +1634,7 @@ void session_variables_unpack(gpointer key, gpointer value, gpointer user_value)
   const int i = r->len;   // tricky
 
   r->names[i] = strdup(key);
-  r->values[i] = *((double *) value);
+  r->values[i] = ((session_variable_value_t *) value)->val;
 
   printf(" %d: \"%s\" -> %g\n", i, r->names[i], r->values[i]);
 

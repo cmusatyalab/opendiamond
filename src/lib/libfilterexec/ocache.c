@@ -1807,7 +1807,7 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	if (dirp == NULL) {
 		dir_path = dconf_get_cachedir();
 	} else {
-		dir_path = dirp;
+		dir_path = strdup(dirp);
 	}
 	if (strlen(dir_path) > (MAX_DIR_PATH - 1)) {
 		return (EINVAL);
@@ -1816,6 +1816,7 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	if (err && errno != EEXIST) {
 		printf("fail to creat cache dir (%s), err %d\n", dir_path,
 		       errno);
+		free(dir_path);
 		return (EPERM);
 	}
 
@@ -1878,6 +1879,7 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 	 */
 	err = pthread_create(&new_state->o_thread_id, PATTR_DEFAULT,
 			     oattr_main, (void *) new_state);
+	free(dir_path);
 	return (0);
 }
 

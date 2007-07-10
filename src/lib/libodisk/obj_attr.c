@@ -660,10 +660,10 @@ obj_read_oattr(odisk_state_t * odisk, char *disk_path, sig_val_t * id_sig,
 
 	len = snprintf(attrbuf, MAX_ATTR_CACHE_NAME, "%s/%s/%s.%s",
 		       dirp, filt_str, id_str, iattr_str);
-
 	free(filt_str);
 	free(iattr_str);
 	free(id_str);
+	free(dirp);
 
 	assert(len < (MAX_ATTR_CACHE_NAME - 1));
 

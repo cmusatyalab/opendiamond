@@ -70,6 +70,7 @@ GHashTable *get_filter_history()
 
 	path = dconf_get_filter_cachedir();
 	snprintf(fname, PATH_MAX, "%s/filter_history", path);
+	free(path);
 
 	fp = fopen(fname, "r");
 	if (fp != NULL) {
@@ -203,6 +204,6 @@ void update_filter_history(GHashTable *histories, gboolean remove)
 	}
 	
 	closedir(dir);
+	free(path);
 	return;
 }
-

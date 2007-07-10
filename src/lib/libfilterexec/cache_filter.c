@@ -640,19 +640,23 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 				fexec_update_prob(fdata, cur_fid,
 					  		pmArr(fdata->fd_perm), cur_fidx,
 					  		pass);
-				
+
+				char *sig_str = sig_string(&id_sig);
 				log_message(LOGT_FILT, LOGL_TRACE,
 					    "ceval_filters1(%s): CACHE HIT filter %s -> %d (%d), %lld ns",
-					    sig_string(&id_sig), cur_filter->fi_name, conf,
+					    sig_str, cur_filter->fi_name, conf,
 					    cur_filter->fi_threshold, time_ns);
+				free(sig_str);
 			} else {
 				hit = 0;
 				rt_stop(&rt);
 				time_ns = rt_nanos(&rt);
+				char *sig_str = sig_string(&id_sig);
 				log_message(LOGT_FILT, LOGL_TRACE,
 					    "ceval_filters1(%s): CACHE MISS filter %s -> %d (%d), %lld ns",
-					    sig_string(&id_sig), cur_filter->fi_name, conf,
+					    sig_str, cur_filter->fi_name, conf,
 					    cur_filter->fi_threshold, time_ns);
+				free(sig_str);
 			}
 
 			cur_filter->fi_time_ns += time_ns;	
@@ -767,9 +771,12 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	u_int64_t       time_ns;	/* time for one filter */
 	u_int64_t       stack_ns;	/* time for whole filter stack */
 	cache_attr_set *oattr_set;
+	char           *sig_str;
 
-	log_message(LOGT_FILT, LOGL_DEBUG, "ceval_filters2(%s): Entering", 
-		sig_string(&obj_handle->id_sig));
+	sig_str = sig_string(&obj_handle->id_sig);
+	log_message(LOGT_FILT, LOGL_DEBUG, "ceval_filters2(%s): Entering",
+		    sig_str);
+	free(sig_str);
 
 	if (fdata->fd_num_filters == 0) {
 		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters2: no filters");
@@ -828,12 +835,16 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 			cur_filter->fi_called++;
 			cur_filter->fi_cache_pass++;
 			cur_filter->fi_hits_intra_query++;
-			
+
+			char *sig_str1 = sig_string(&obj_handle->id_sig);
+			char *sig_str2 = sig_string(&cur_filter->fi_sig);
 			log_message(LOGT_FILT, LOGL_TRACE,
-				    	"ceval_filters2(%s): CACHE HIT filter %s (%s) PASS",
-					    sig_string(&obj_handle->id_sig),
-					    cur_filter->fi_name, 
-					    sig_string(&cur_filter->fi_sig));
+				    "ceval_filters2(%s): CACHE HIT filter %s (%s) PASS",
+				    sig_str1,
+				    cur_filter->fi_name,
+				    sig_str2);
+			free(sig_str1);
+			free(sig_str2);
 		} else {
 			/*
 			 * Look at the current filter bypass to see if we should 
@@ -916,13 +927,17 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 				pass = 0;
 			}
 
+			char *sig_str1 = sig_string(&obj_handle->id_sig);
+			char *sig_str2 = sig_string(&cur_filter->fi_sig);
 			log_message(LOGT_FILT, LOGL_TRACE,
-				    	"ceval_filters2(%s): CACHE MISS filter %s (%s) %s, %lld ns",
-					    sig_string(&obj_handle->id_sig),
-					    cur_filter->fi_name, 
-					    sig_string(&cur_filter->fi_sig),
-					    pass?"PASS":"FAIL",
-					    time_ns);
+				    "ceval_filters2(%s): CACHE MISS filter %s (%s) %s, %lld ns",
+				    sig_str1,
+				    cur_filter->fi_name,
+				    sig_str2,
+				    pass?"PASS":"FAIL",
+				    time_ns);
+			free(sig_str1);
+			free(sig_str2);
 		}
 		cur_filter->fi_time_ns += time_ns;
 		stack_ns += time_ns;
@@ -957,11 +972,15 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	oattr_sample();
 
 	fexec_active_filter = NULL;
+
+	sig_str = sig_string(&obj_handle->id_sig);
 	log_message(LOGT_FILT, LOGL_TRACE,
-		   		"ceval_filters2(%s): %s total time %lld",
-			    sig_string(&obj_handle->id_sig), 
-			    pass?"PASS":"FAIL",
-			    stack_ns);
+		    "ceval_filters2(%s): %s total time %lld",
+		    sig_str,
+		    pass?"PASS":"FAIL",
+		    stack_ns);
+	free(sig_str);
+
 	/*
 	 * save the total time info attribute
 	 */

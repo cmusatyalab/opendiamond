@@ -579,7 +579,7 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
     }
 
     // load values
-    l->name = strdup(vars->names[i]);
+    l->name = vars->names[i]; // don't bother to strdup+free
     l->value = vars->values[i];
 
     printf(" %d: \"%s\" -> %g\n", i, l->name, l->value);
@@ -591,6 +591,8 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
 
 
   // free
+  free(vars->names);
+  free(vars->values);
   free(vars);
 
   // return

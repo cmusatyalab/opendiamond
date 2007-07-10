@@ -45,7 +45,6 @@ static read_attr_cb read_attr_fn = NULL;
 static write_attr_cb write_attr_fn = NULL;
 
 
-
 int
 lf_set_read_cb(read_attr_cb cb_fn)
 {
@@ -352,3 +351,13 @@ lf_next_attr(lf_obj_handle_t ohandle, char **name,
 	return (err);
 }
 
+
+int
+lf_get_session_variables(lf_obj_handle_t ohandle,
+			 lf_session_variable_t **list)
+{
+  
+}
+
+int lf_update_session_variables(lf_obj_handle_t ohandle,
+				lf_session_variable_t **list);

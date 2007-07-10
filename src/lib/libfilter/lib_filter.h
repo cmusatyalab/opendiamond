@@ -376,6 +376,17 @@ int lf_next_attr(lf_obj_handle_t ohandle, char **name,
 /* anomaly detection */
 typedef double (*session_variable_composer_fn)(double old, double new);
 
+typedef struct {
+  char *name;
+  session_variable_composer_fn composer;
+  double value;
+} lf_session_variable_t;
+
+int lf_get_session_variables(lf_obj_handle_t ohandle,
+			     lf_session_variable_t **list);
+
+int lf_update_session_variables(lf_obj_handle_t ohandle,
+				lf_session_variable_t **list);
 
 
 #ifdef __cplusplus

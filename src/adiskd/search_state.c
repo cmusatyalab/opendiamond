@@ -1636,7 +1636,7 @@ void session_variables_unpack(gpointer key, gpointer value, gpointer user_value)
   r->names[i] = strdup(key);
   r->values[i] = ((session_variable_value_t *) value)->val;
 
-  printf(" %d: \"%s\" -> %g\n", i, r->names[i], r->values[i]);
+  printf(" unpack %d: \"%s\" -> %g\n", i, r->names[i], r->values[i]);
 
   r->len++;
 }
@@ -1706,7 +1706,7 @@ int search_set_session_vars(void *app_cookie, int gen_num,
 
     // update
     val->base_val = vars->values[i];
-    printf(" %d: \"%s\" -> %g\n", i, key, val->base_val);
+    printf(" setting %d: \"%s\" -> %g\n", i, key, val->base_val);
   }
 
   // unlock

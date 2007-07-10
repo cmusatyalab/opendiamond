@@ -581,6 +581,8 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
     l->name = strdup(vars->names[i]);
     l->value = vars->values[i];
 
+    printf(" %d: \"%s\" -> %g\n", i, l->name, l->value);
+
     prev = l;
   }
 

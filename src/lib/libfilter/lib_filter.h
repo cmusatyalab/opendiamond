@@ -373,6 +373,11 @@ int lf_next_attr(lf_obj_handle_t ohandle, char **name,
 		size_t *len, unsigned char **data, void **cookie);
 
 
+/* anomaly detection */
+typedef double (*session_variable_composer_fn)(double old, double new);
+
+
+
 #ifdef __cplusplus
 }
 #endif

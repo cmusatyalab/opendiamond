@@ -874,8 +874,6 @@ device_set_session_variables(void *handle, device_session_vars_t *vars)
 {
   sdevice_state_t *dev = (sdevice_state_t *) handle;
 
-  diamond_session_var_list_x list;
-
   // create list
   diamond_session_var_list_x *first = NULL;
   diamond_session_var_list_x *prev = NULL;
@@ -897,12 +895,12 @@ device_set_session_variables(void *handle, device_session_vars_t *vars)
     l->name = vars->names[i];
     l->value = vars->values[i];
 
-    printf(" %d: \"%s\" -> %g\n", i, l->name, l->value);
+    printf(" device_set_session_variables %d: \"%s\" -> %g\n", i, l->name, l->value);
 
     prev = l;
   }
 
-  diamond_rc_t *rc = session_variables_set_x_2(0, list, dev->con_data.tirpc_client);
+  diamond_rc_t *rc = session_variables_set_x_2(0, *first, dev->con_data.tirpc_client);
 
   // free
   diamond_session_var_list_x *cur = first;

@@ -1634,7 +1634,7 @@ void session_variables_unpack(gpointer key, gpointer value, gpointer user_value)
   const int i = r->len;   // tricky
 
   r->names[i] = strdup(key);
-  r->values[i] = ((session_variable_value_t *) value)->val;
+  r->values[i] = ((session_variable_value_t *) value)->local_val;
 
   printf(" unpack %d: \"%s\" -> %g\n", i, r->names[i], r->values[i]);
 
@@ -1705,8 +1705,9 @@ int search_set_session_vars(void *app_cookie, int gen_num,
     }
 
     // update
-    val->base_val = vars->values[i];
-    printf(" setting %d: \"%s\" -> %g\n", i, key, val->base_val);
+    val->local_val = 0.0;
+    val->global_val = vars->values[i];
+    printf(" setting %d: \"%s\" -> %g\n", i, key, val->global_val);
   }
 
   // unlock

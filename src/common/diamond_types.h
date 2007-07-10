@@ -185,8 +185,8 @@ typedef struct device_char {
 
 /* for anomaly detection */
 typedef struct {
-  double val;
-  double base_val;        /* default, or value from client */
+  double local_val;
+  double global_val;
 } session_variable_value_t;
 
 

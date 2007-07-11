@@ -356,8 +356,59 @@ int
 lf_get_session_variables(lf_obj_handle_t ohandle,
 			 lf_session_variable_t **list)
 {
-  
+  obj_data_t *odata = (obj_data_t *) ohandle;
+  session_variables_state_t *sv = odata->session_variables_state;
+
+  pthread_mutex_lock(&sv->mutex);
+
+  // walk the list given, and fill in the values
+  lf_session_variable_t *cur;
+  for (cur = *list; cur != NULL; cur++) {
+    session_variable_value_t *svv = g_hash_table_lookup(sv->store, cur->name);
+    if (svv == NULL) {
+      cur->value = 0.0;
+      continue;
+    }
+
+    // combine all values (between_get_and_set val will be 0 when not between)
+    session_variable_composer_fn cf = cur->composer;
+    cur->value = cf(cf(svv->local_val, svv->global_val),
+		    svv->between_get_and_set_val);
+  }
+
+  pthread_mutex_unlock(&sv->mutex);
+  return 0;
 }
 
 int lf_update_session_variables(lf_obj_handle_t ohandle,
-				lf_session_variable_t **list);
+				lf_session_variable_t **list)
+{
+  obj_data_t *odata = (obj_data_t *) ohandle;
+  session_variables_state_t *sv = odata->session_variables_state;
+
+  pthread_mutex_lock(&sv->mutex);
+
+  // walk the list given, and update the values
+  lf_session_variable_t *cur;
+  for (cur = *list; cur != NULL; cur++) {
+    session_variable_value_t *svv = g_hash_table_lookup(sv->store, cur->name);
+    if (svv == NULL) {
+      svv = calloc(1, sizeof(session_variable_value_t));
+      g_hash_table_replace(sv->store, strdup(cur->name), svv);
+    }
+
+    session_variable_composer_fn cf = cur->composer;
+    if (sv->between_get_and_set) {
+      // the client has gotten local, but not set global
+      // in this case, we only update between_get_and_set
+      svv->between_get_and_set_val =
+	cf(svv->between_get_and_set_val, cur->value);
+    } else {
+      // we are in sync with other clients, update local
+      svv->local_val = cf(svv->local_val, cur->value);
+    }
+  }
+
+  pthread_mutex_unlock(&sv->mutex);
+  return 0;
+}

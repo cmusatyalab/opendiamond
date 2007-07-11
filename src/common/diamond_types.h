@@ -190,8 +190,6 @@ typedef struct {
   double between_get_and_set_val;
 } session_variable_value_t;
 
-
-
 #ifdef __cplusplus
 }
 #endif

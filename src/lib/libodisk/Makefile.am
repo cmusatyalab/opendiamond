@@ -6,7 +6,6 @@ libodisk_la_SOURCES = odisk.c read_text_attr.l obj_attr.c odisk_priv.h
 
 pkginclude_HEADERS = lib_odisk.h obj_attr.h
 
-
 noinst_PROGRAMS = odisk_test attr_test odisk_idx del_obj odisk_setoid
 
 odisk_test_SOURCES = odisk_test.c

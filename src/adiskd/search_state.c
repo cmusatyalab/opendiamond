@@ -1720,10 +1720,13 @@ int search_set_session_vars(void *app_cookie, int gen_num,
     }
 
     // set global val to new value from client
+    // (this already contains our local_val)
     val->global_val = vars->values[i];
 
     // now reset our local_val to be the changes we accumulated while
     // the client was busy contacting other servers
+    // (this is ok, because the client has fetched this value earlier,
+    //  and it is now part of global_val)
     val->local_val = val->between_get_and_set_val;
 
     // clear the "between" accumulator

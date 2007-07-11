@@ -362,8 +362,10 @@ lf_get_session_variables(lf_obj_handle_t ohandle,
   pthread_mutex_lock(&sv->mutex);
 
   // walk the list given, and fill in the values
-  lf_session_variable_t *cur;
-  for (cur = *list; cur != NULL; cur++) {
+  int i;
+  for (i = 0; list[i] != NULL; i++) {
+    lf_session_variable_t *cur = list[i];
+    printf(" looking up name: %s\n", cur->name);
     session_variable_value_t *svv = g_hash_table_lookup(sv->store, cur->name);
     if (svv == NULL) {
       cur->value = 0.0;
@@ -389,8 +391,9 @@ int lf_update_session_variables(lf_obj_handle_t ohandle,
   pthread_mutex_lock(&sv->mutex);
 
   // walk the list given, and update the values
-  lf_session_variable_t *cur;
-  for (cur = *list; cur != NULL; cur++) {
+  int i;
+  for (i = 0; list[i] != NULL; i++) {
+    lf_session_variable_t *cur = list[i];
     session_variable_value_t *svv = g_hash_table_lookup(sv->store, cur->name);
     if (svv == NULL) {
       svv = calloc(1, sizeof(session_variable_value_t));

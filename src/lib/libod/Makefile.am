@@ -3,8 +3,6 @@ noinst_LTLIBRARIES = libod.la
 nodist_libod_la_SOURCES = od_clnt.c od_xdr.c
 libod_la_SOURCES = od_api.c od_lookup.c od_priv.h od.x.in lib_od.h.in
 
-CFLAGS += ${GLIB2_CFLAGS}
-
 noinst_PROGRAMS = od_server otest apitest
 
 BUILT_SOURCES = od_clnt.c od_xdr.c od.h od_svc.c

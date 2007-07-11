@@ -4,8 +4,6 @@ libauth_la_SOURCES = lib_auth.c lib_auth_priv.h
 
 pkginclude_HEADERS = lib_auth.h
 
-CFLAGS += ${GLIB2_CFLAGS}
-
 noinst_PROGRAMS = actest astest
 
 actest_SOURCES = actest.c

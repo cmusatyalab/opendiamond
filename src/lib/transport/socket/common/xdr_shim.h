@@ -15,7 +15,6 @@
 #define XDR_SHIM_H
 
 #include <rpc/rpc.h>
-#include <tirpc/rpc/types.h>
 
 /*
  * The following defines a missing function that rpcgen calls in

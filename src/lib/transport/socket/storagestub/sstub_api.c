@@ -299,8 +299,8 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 		return (NULL);
 	}
 
-	tirpc_cstate = NULL;
-	tirpc_lstate = NULL;
+	rpc_cstate = NULL;
+	rpc_lstate = NULL;
 
 	return ((void *) list_state);
 }

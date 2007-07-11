@@ -73,12 +73,13 @@ device_start_x_2_svc(u_int gen, diamond_rc_t *result, struct svc_req *rqstp)
 {
 	memset ((char *)result, 0, sizeof(*result));
 
-	fprintf(stderr, "have_start pend %d \n", tirpc_cstate->pend_obj);
-	if (tirpc_cstate->pend_obj == 0) {
-	  (*tirpc_lstate->start_cb) (tirpc_cstate->app_cookie, gen);
+	fprintf(stderr, "svc call: start\n");
+	fprintf(stderr, "have_start pend %d \n", rpc_cstate->pend_obj);
+	if (rpc_cstate->pend_obj == 0) {
+	  (*rpc_lstate->start_cb) (rpc_cstate->app_cookie, gen);
 	} else {
-	  tirpc_cstate->have_start = 1;
-	  tirpc_cstate->start_gen = gen;
+	  rpc_cstate->have_start = 1;
+	  rpc_cstate->start_gen = gen;
 	}
 
 	result->service_err = DIAMOND_SUCCESS;
@@ -94,13 +95,15 @@ device_stop_x_2_svc(u_int gen, stop_x arg2, diamond_rc_t *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
+fprintf(stderr, "svc call: stop\n");
+
 	hstats.hs_objs_received = arg2.host_objs_received;
 	hstats.hs_objs_queued = arg2.host_objs_queued;
 	hstats.hs_objs_read = arg2.host_objs_read;
 	hstats.hs_objs_uqueued = arg2.app_objs_queued;
 	hstats.hs_objs_upresented = arg2.app_objs_presented;
 
-	(*tirpc_lstate->stop_cb) (tirpc_cstate->app_cookie, gen, &hstats);
+	(*rpc_lstate->stop_cb) (rpc_cstate->app_cookie, gen, &hstats);
 
 	result->service_err = DIAMOND_SUCCESS;
 	return 1;
@@ -113,7 +116,8 @@ device_terminate_x_2_svc(u_int gen, diamond_rc_t *result,
 {
 	memset ((char *)result, 0, sizeof(*result));
 
-	(*tirpc_lstate->terminate_cb) (tirpc_cstate->app_cookie, gen);
+fprintf(stderr, "svc call: terminate\n");
+	(*rpc_lstate->terminate_cb) (rpc_cstate->app_cookie, gen);
 
 	result->service_err = DIAMOND_SUCCESS;
 	return 1;
@@ -126,8 +130,8 @@ device_clear_gids_x_2_svc(u_int gen, diamond_rc_t *result,
 {
 	memset ((char *)result, 0, sizeof(*result));
 
-	(*tirpc_lstate->clear_gids_cb) (tirpc_cstate->app_cookie, gen);
-
+	fprintf(stderr, "svc call: cleargids\n");
+	(*rpc_lstate->clear_gids_cb) (rpc_cstate->app_cookie, gen);				
 	result->service_err = DIAMOND_SUCCESS;
 	return 1;
 }
@@ -141,7 +145,8 @@ device_new_gid_x_2_svc(u_int gen, groupid_x arg2, diamond_rc_t *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
-	(*tirpc_lstate->sgid_cb) (tirpc_cstate->app_cookie, gen, gid);
+fprintf(stderr, "svc call: newgid\n");
+	(*rpc_lstate->sgid_cb) (rpc_cstate->app_cookie, gen, gid);
 
 	result->service_err = DIAMOND_SUCCESS;
 	return 1;
@@ -159,12 +164,14 @@ device_set_blob_x_2_svc(u_int gen, blob_x arg2, diamond_rc_t *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 	
+fprintf(stderr, "svc call: setblob\n");	
+
 	nlen = arg2.blob_name.blob_name_len;
 	blen = arg2.blob_data.blob_data_len;
 	name = arg2.blob_name.blob_name_val;
 	blob = arg2.blob_data.blob_data_val;
 	
-	(*tirpc_lstate->set_blob_cb) (tirpc_cstate->app_cookie, gen, 
+	(*rpc_lstate->set_blob_cb) (rpc_cstate->app_cookie, gen, 
 				      name, blen, blob);
 
 	result->service_err = DIAMOND_SUCCESS;
@@ -185,6 +192,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2, diamond_rc_t *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
+fprintf(stderr, "svc call: setspec\n");
 	spec_len = arg2.data.data_len;
 	sent_sig = (sig_val_t *)&arg2.sig.sig_val_x_val;
 
@@ -224,7 +232,7 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2, diamond_rc_t *result,
 	file_release_lock(specpath);
 
 done:
-	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, 
+	(*rpc_lstate->set_fspec_cb)(rpc_cstate->app_cookie, gen, 
 				      sent_sig);
 
 	result->service_err = DIAMOND_SUCCESS;
@@ -241,7 +249,8 @@ request_stats_x_2_svc(u_int gen, request_stats_return_x *result,
 
   memset ((char *)result, 0, sizeof(*result));
 
-  if((stats = (*tirpc_lstate->get_stats_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
+fprintf(stderr, "svc call: stats\n");
+  if((stats = (*rpc_lstate->get_stats_cb) (rpc_cstate->app_cookie, gen)) == NULL) {
     result->error.service_err = DIAMOND_OPERR;
     result->error.opcode_err = DIAMOND_OPCODE_NOSTATSAVAIL;
     return 1;
@@ -293,7 +302,8 @@ request_chars_x_2_svc(u_int gen, request_chars_return_x *result,
 
   memset ((char *)result, 0, sizeof(*result));
 
-  if((chars = (*tirpc_lstate->get_char_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
+fprintf(stderr, "svc call: chars\n");
+  if((chars = (*rpc_lstate->get_char_cb) (rpc_cstate->app_cookie, gen)) == NULL) {
     result->error.service_err = DIAMOND_OPERR; 
     result->error.opcode_err = DIAMOND_OPCODE_FAILURE;//XXX: be more specific? 
     return 1;
@@ -317,9 +327,10 @@ device_read_leaf_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
-	rt = (tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
-				       arg2.dctl_data.dctl_data_val, 
-				       arg2.dctl_opid);
+	fprintf(stderr, "svc call: rleaf\n");
+	rt = (rpc_lstate->rleaf_cb) (rpc_cstate->app_cookie,
+				     arg2.dctl_data.dctl_data_val, 
+				     arg2.dctl_opid);
 	if(rt == NULL) {
 	  result->error.service_err = DIAMOND_OPERR;
 	  result->error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
@@ -348,12 +359,13 @@ device_write_leaf_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
-	err = (*tirpc_lstate->wleaf_cb) (tirpc_cstate->app_cookie,
-			      arg2.dctl_data.dctl_data_val,
-					 (arg2.dctl_data.dctl_data_len -
-					  arg2.dctl_plen),
-			      &(arg2.dctl_data.dctl_data_val[arg2.dctl_plen]), 
-			      arg2.dctl_opid);
+fprintf(stderr, "svc call: wleaf\n");
+	err = (*rpc_lstate->wleaf_cb) (rpc_cstate->app_cookie,
+				       arg2.dctl_data.dctl_data_val,
+				       (arg2.dctl_data.dctl_data_len -
+					arg2.dctl_plen),
+		       &(arg2.dctl_data.dctl_data_val[arg2.dctl_plen]), 
+				       arg2.dctl_opid);
 	
 	result->dctl.dctl_err = err;
 	result->dctl.dctl_opid = arg2.dctl_opid;
@@ -381,10 +393,10 @@ device_list_nodes_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
-	lt = (tirpc_lstate->lnode_cb) (tirpc_cstate->app_cookie,
-				       arg2.dctl_data.dctl_data_val, 
-				       arg2.dctl_opid);
-
+fprintf(stderr, "svc call: lnodes\n");
+	lt = (rpc_lstate->lnode_cb) (rpc_cstate->app_cookie,
+				     arg2.dctl_data.dctl_data_val, 
+				     arg2.dctl_opid);
 	if(lt == NULL) {
 	  result->error.service_err = DIAMOND_OPERR;
 	  result->error.opcode_err = DIAMOND_FAILURE;
@@ -420,9 +432,10 @@ device_list_leafs_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
-	lt = (tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
-				       arg2.dctl_data.dctl_data_val, 
-				       arg2.dctl_opid);
+fprintf(stderr, "svc call: lleafs\n");
+	lt = (rpc_lstate->lleaf_cb) (rpc_cstate->app_cookie,
+				     arg2.dctl_data.dctl_data_val, 
+				     arg2.dctl_opid);
 
 	result->dctl.dctl_err = lt->err;
 	result->dctl.dctl_opid = arg2.dctl_opid;
@@ -451,7 +464,8 @@ device_set_exec_mode_x_2_svc(u_int gen, u_int mode, diamond_rc_t *result,
 {
 	memset ((char *)result, 0, sizeof(*result));
 
-	(tirpc_lstate->set_exec_mode_cb) (tirpc_cstate->app_cookie, mode);
+fprintf(stderr, "svc call: execmode\n");
+	(rpc_lstate->set_exec_mode_cb) (rpc_cstate->app_cookie, mode);
 
 	result->service_err = DIAMOND_SUCCESS;
 	return 1;
@@ -464,7 +478,8 @@ device_set_user_state_x_2_svc(u_int gen, u_int state, diamond_rc_t *result,
 {
 	memset ((char *)result, 0, sizeof(*result));
 
-	(tirpc_lstate->set_user_state_cb) (tirpc_cstate->app_cookie, state);
+fprintf(stderr, "svc call: userstate\n");
+	(rpc_lstate->set_user_state_cb) (rpc_cstate->app_cookie, state);
 
 	result->service_err = DIAMOND_SUCCESS;
 	return 1;
@@ -481,6 +496,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2, diamond_rc_t *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
+fprintf(stderr, "svc call: setobj\n");
 	sent_sig = (sig_val_t *)(arg2.sig_val_x_val);
 
 	/*
@@ -496,7 +512,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2, diamond_rc_t *result,
 
 	if (file_exists(objpath)) {
 	  int err;
-	  err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
+	  err = (*rpc_lstate->set_fobj_cb) (rpc_cstate->app_cookie, gen, 
 					      sent_sig);
 	  if(err) {
 	    result->service_err = DIAMOND_OPERR;
@@ -505,7 +521,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2, diamond_rc_t *result,
 	  }
 
 	} else {
-	  tirpc_cstate->pend_obj++;
+	  rpc_cstate->pend_obj++;
 	  result->service_err = DIAMOND_OPERR;
 	  result->opcode_err = DIAMOND_OPCODE_FCACHEMISS;
 	  return 1;
@@ -530,6 +546,7 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2, diamond_rc_t *result,
 
 	memset ((char *)result, 0, sizeof(*result));
 
+fprintf(stderr, "svc call: sendobj\n");
 	sent_sig = (sig_val_t *)(arg2.obj_sig.sig_val_x_val);
 
 	/* get name to store the object */ 	
@@ -569,7 +586,7 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2, diamond_rc_t *result,
 	close(fd);
 	file_release_lock(objname);
 
-	err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
+	err = (*rpc_lstate->set_fobj_cb) (rpc_cstate->app_cookie, gen, 
 					    sent_sig);
 	if(err) {
 	  result->service_err = DIAMOND_OPERR;
@@ -577,12 +594,12 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2, diamond_rc_t *result,
 	  return 1;
 	}
 
-	tirpc_cstate->pend_obj--;
+	rpc_cstate->pend_obj--;
 
-	if((tirpc_cstate->pend_obj== 0) && (tirpc_cstate->have_start)) {
-	  (*tirpc_lstate->start_cb) (tirpc_cstate->app_cookie, 
-				     tirpc_cstate->start_gen);
-	  tirpc_cstate->have_start = 0;
+	if((rpc_cstate->pend_obj== 0) && (rpc_cstate->have_start)) {
+	  (*rpc_lstate->start_cb) (rpc_cstate->app_cookie, 
+				     rpc_cstate->start_gen);
+	  rpc_cstate->have_start = 0;
 	}
 
 	result->service_err = DIAMOND_SUCCESS;
@@ -618,11 +635,12 @@ sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 	}
 	else if(size_in == 0) { /* EOF */
 	  close(cstate->control_fd);
-	  exit(EXIT_SUCCESS);
+	  fprintf(stderr, "(storagestub) Reached EOF on control conn\n");
+	  pthread_exit(0);
 	}
 
 	
-	size_out = writen(cstate->tirpc_fd, (void *)buf, size_in);
+	size_out = writen(cstate->rpc_fd, (void *)buf, size_in);
 	if(size_out < 0) {
 	  perror("write");
 	  return;
@@ -633,6 +651,7 @@ sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 		  size_in, size_out);
 	  return;
 	}
+	else fprintf(stderr, "sent in %d bytes\n", size_in);
 
 	return;
 }

@@ -93,7 +93,7 @@ typedef struct cstate {
 	session_info_t		cinfo;
 	int			        control_fd;
 	int			        data_fd;
-        int                             tirpc_fd;
+        int                             rpc_fd;
 	int			        pend_obj;
 	int			        have_start;
 	uint32_t		    start_gen;
@@ -230,15 +230,15 @@ void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
 /*
  * Functions exported by sstub_tirpc.c
  */
-void sstub_read_tirpc(listener_state_t *lstate, cstate_t *cstate);
-void sstub_except_tirpc(listener_state_t *lstate, cstate_t *cstate);
+void sstub_read_rpc(listener_state_t *lstate, cstate_t *cstate);
+void sstub_except_rpc(listener_state_t *lstate, cstate_t *cstate);
 
 /*
  * Functions exported by sstub_conn.c
  */
 void * connection_main(listener_state_t *lstate, int conn);
 
-extern cstate_t *tirpc_cstate;
-extern listener_state_t *tirpc_lstate;
+extern cstate_t *rpc_cstate;
+extern listener_state_t *rpc_lstate;
 
 #endif /* !_SSTUB_IMPL_H_ */

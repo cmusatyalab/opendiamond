@@ -149,7 +149,6 @@ device_terminate(void *handle, int id)
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  return -1;
 	}
 	if(rc.service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call servicing failed");

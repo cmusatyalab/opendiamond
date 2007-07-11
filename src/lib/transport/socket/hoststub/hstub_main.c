@@ -263,7 +263,7 @@ hstub_main(void *arg)
 
 			if((request_chars(dev) < 0) || (request_stats(dev) < 0)) {
 			  log_message(LOGT_NET, LOGL_CRIT, 
-				      "hstub_main: TI-RPC calls are failing. Killing thread..\n");
+				      "hstub_main: TS-RPC calls are failing. Killing thread..\n");
 			  hstub_conn_down(dev); 
 			}
 

@@ -16,7 +16,6 @@
 #ifndef	_LIB_HSTUB_IMPL_H_
 #define	_LIB_HSTUB_IMPL_H_
 
-#include <tirpc/rpc/types.h>
 #include <rpc/rpc.h>
 #include "lib_auth.h"
 

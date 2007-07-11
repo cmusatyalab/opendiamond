@@ -374,7 +374,7 @@ int lf_next_attr(lf_obj_handle_t ohandle, char **name,
 
 
 /* anomaly detection */
-typedef double (*session_variable_composer_fn)(double old, double new);
+typedef double (*session_variable_composer_fn)(double a, double b);
 
 typedef struct {
   char *name;

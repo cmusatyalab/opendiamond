@@ -879,7 +879,12 @@ device_main(void *arg)
 				if ((sstate->obj_processed & 0xf) == 0xf) {
 					force_eval = 1;
 				}
-				
+
+				/*
+				 * XXX anomaly detection stuff, not in right place
+				 */
+				new_obj->session_variables_state = sstate->session_variables_state;
+
 				qinfo.session = sstate->cinfo;
 				qinfo.query_id = sstate->ver_no;
 				pass = ceval_filters2(new_obj, sstate->fdata,

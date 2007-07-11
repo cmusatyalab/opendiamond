@@ -93,7 +93,7 @@ typedef struct obj_data {
 	char *			data;
 	char *			base;
 	obj_attr_t		attr_info;
-	session_variables_state_t *session_variables;
+	session_variables_state_t *session_variables_state;
 } obj_data_t;
 
 typedef struct {

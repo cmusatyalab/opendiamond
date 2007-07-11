@@ -1906,7 +1906,7 @@ ocache_stop(char *dirp)
 	if (dirp == NULL) {
 		dir_path = dconf_get_cachedir();
 	} else {
-		dir_path = dirp;
+		dir_path = strdup(dirp);
 	}
 
 	pthread_mutex_lock(&shared_mutex);
@@ -1924,6 +1924,7 @@ ocache_stop(char *dirp)
 	}
 
 	ocache_init_write(dir_path);
+	free(dir_path);
 	return (0);
 }
 

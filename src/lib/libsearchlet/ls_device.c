@@ -161,8 +161,6 @@ lookup_dev_by_id(search_context_t * sc, uint32_t devid)
 
 typedef struct dctl_pending {
 	int             pend_allocated;
-	pthread_mutex_t pend_mutex;
-	pthread_cond_t  pend_cond;
 	int            *pend_len;
 	char           *pend_data;
 	dctl_data_type_t *pend_dtype;
@@ -179,14 +177,10 @@ allocate_pending()
 	int             i;
 
 	for (i = 0; i < MAX_PENDING; i++) {
-		pthread_mutex_lock(&pend_data[i].pend_mutex);
 
 		if (pend_data[i].pend_allocated == 0) {
 			pend_data[i].pend_allocated = 1;
-			pthread_mutex_unlock(&pend_data[i].pend_mutex);
 			return (i);
-		} else {
-			pthread_mutex_unlock(&pend_data[i].pend_mutex);
 		}
 	}
 	return (-1);
@@ -195,9 +189,7 @@ allocate_pending()
 static void
 free_pending(int idx)
 {
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
 	pend_data[idx].pend_allocated = 0;
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 
@@ -207,11 +199,8 @@ init_pending()
 {
 	int             i;
 
-	for (i = 0; i < MAX_PENDING; i++) {
-		pthread_cond_init(&pend_data[i].pend_cond, NULL);
-		pthread_mutex_init(&pend_data[i].pend_mutex, NULL);
+	for (i = 0; i < MAX_PENDING; i++)
 		pend_data[i].pend_allocated = 0;
-	}
 
 }
 
@@ -228,14 +217,7 @@ write_leaf_done_cb(void *cookie, int err, int32_t opid)
 	assert(idx >= 0);
 	assert(idx < MAX_PENDING);
 
-
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-
 	pend_data[idx].pend_err = err;
-
-	pthread_cond_signal(&pend_data[idx].pend_cond);
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
-
 }
 
 
@@ -253,28 +235,20 @@ remote_write_leaf(char *path, int len, char *data, void *cookie)
 		return (ENOSPC);
 	}
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-
 	/*
 	 * we don't care about keeping the data of len here 
 	 */
 	err = device_write_leaf(cur_dev->dev_handle, path, len, data, idx);
 	if (err) {
-		pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 		free_pending(idx);
 		return (err);
 	}
-
-
-	pthread_cond_wait(&pend_data[idx].pend_cond,
-			  &pend_data[idx].pend_mutex);
 
 	/*
 	 * get error from the request and save it 
 	 */
 	err = pend_data[idx].pend_err;
 
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 	free_pending(idx);
 
 	return (err);
@@ -293,9 +267,6 @@ read_leaf_done_cb(void *cookie, int err, dctl_data_type_t dtype,
 	assert(idx >= 0);
 	assert(idx < MAX_PENDING);
 
-
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-
 	if (err) {
 		pend_data[idx].pend_err = err;
 
@@ -312,8 +283,6 @@ read_leaf_done_cb(void *cookie, int err, dctl_data_type_t dtype,
 		}
 	}
 
-	pthread_cond_signal(&pend_data[idx].pend_cond);
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 
@@ -332,12 +301,9 @@ remote_read_leaf(char *path, dctl_data_type_t * dtype, int *len,
 		return (ENOSPC);
 	}
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-
 	pend_data[idx].pend_len = len;
 	pend_data[idx].pend_data = data;
 	pend_data[idx].pend_dtype = dtype;
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 
 	/*
 	 * we don't care about keeping the data of len here 
@@ -348,16 +314,11 @@ remote_read_leaf(char *path, dctl_data_type_t * dtype, int *len,
 		return (err);
 	}
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-	pthread_cond_wait(&pend_data[idx].pend_cond,
-			  &pend_data[idx].pend_mutex);
-
 	/*
 	 * get error from the request and save it 
 	 */
 	err = pend_data[idx].pend_err;
 
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 	free_pending(idx);
 
 	return (err);
@@ -375,8 +336,6 @@ lnodes_done_cb(void *cookie, int err, int num_ents, dctl_entry_t * data,
 	assert(idx >= 0);
 	assert(idx < MAX_PENDING);
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-
 	if (err) {
 		pend_data[idx].pend_err = err;
 
@@ -393,9 +352,6 @@ lnodes_done_cb(void *cookie, int err, int num_ents, dctl_entry_t * data,
 			       (num_ents * sizeof(dctl_entry_t)));
 		}
 	}
-
-	pthread_cond_signal(&pend_data[idx].pend_cond);
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 static int
@@ -413,11 +369,8 @@ remote_list_nodes(char *path, int *num_ents, dctl_entry_t * space,
 		return (ENOSPC);
 	}
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
 	pend_data[idx].pend_len = num_ents;
 	pend_data[idx].pend_data = (char *) space;
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
-
 
 	err = device_list_nodes(cur_dev->dev_handle, path, idx);
 	if (err) {
@@ -426,16 +379,11 @@ remote_list_nodes(char *path, int *num_ents, dctl_entry_t * space,
 	}
 
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-	pthread_cond_wait(&pend_data[idx].pend_cond,
-			  &pend_data[idx].pend_mutex);
-
 	/*
 	 * get error from the request and save it 
 	 */
 	err = pend_data[idx].pend_err;
 
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 	free_pending(idx);
 
 	return (err);
@@ -453,8 +401,6 @@ lleafs_done_cb(void *cookie, int err, int num_ents, dctl_entry_t * data,
 	assert(idx >= 0);
 	assert(idx < MAX_PENDING);
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-
 	if (err) {
 		pend_data[idx].pend_err = err;
 
@@ -471,9 +417,6 @@ lleafs_done_cb(void *cookie, int err, int num_ents, dctl_entry_t * data,
 			       (num_ents * sizeof(dctl_entry_t)));
 		}
 	}
-
-	pthread_cond_signal(&pend_data[idx].pend_cond);
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 }
 
 
@@ -493,10 +436,8 @@ remote_list_leafs(char *path, int *num_ents, dctl_entry_t * space,
 		return (ENOSPC);
 	}
 
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
 	pend_data[idx].pend_len = num_ents;
 	pend_data[idx].pend_data = (char *) space;
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 
 	err = device_list_leafs(cur_dev->dev_handle, path, idx);
 	if (err) {
@@ -504,17 +445,11 @@ remote_list_leafs(char *path, int *num_ents, dctl_entry_t * space,
 		return (err);
 	}
 
-
-	pthread_mutex_lock(&pend_data[idx].pend_mutex);
-	pthread_cond_wait(&pend_data[idx].pend_cond,
-			  &pend_data[idx].pend_mutex);
-
 	/*
 	 * get error from the request and save it 
 	 */
 	err = pend_data[idx].pend_err;
 
-	pthread_mutex_unlock(&pend_data[idx].pend_mutex);
 	free_pending(idx);
 
 	return (err);

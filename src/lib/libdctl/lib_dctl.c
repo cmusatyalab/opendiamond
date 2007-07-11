@@ -760,9 +760,8 @@ dctl_read_leaf(char *leaf_name, dctl_data_type_t * dtype, int *len,
 		token_data[clen] = 0;
 
 		pnode = lookup_child_node(pnode, token_data);
-		if (pnode == NULL) {
-			return (ENOENT);
-		}
+		if (pnode == NULL)
+		  return (ENOENT);
 
 		/*
 		 * See if this is a mount point.  If so,
@@ -780,11 +779,12 @@ dctl_read_leaf(char *leaf_name, dctl_data_type_t * dtype, int *len,
 	}
 
 	leaf = lookup_child_leaf(pnode, leaf_name);
-	if (leaf == NULL) {
+	if (leaf == NULL)
 		return (ENOENT);
-	}
+
 	*dtype = leaf->leaf_type;
 	err = (*leaf->leaf_read_cb) (leaf->leaf_cookie, len, data);
+
 	return (err);
 }
 

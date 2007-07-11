@@ -108,7 +108,6 @@ dctl_write_uint64(void *cookie, int len, char *data)
 		return (ENOMEM);
 	}
 
-
 	*(uint64_t *) cookie = *(uint64_t *) data;
 
 	return (0);

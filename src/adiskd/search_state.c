@@ -1234,6 +1234,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	session_variables_state_t *sv = malloc(sizeof(session_variables_state_t));
 	pthread_mutex_init(&sv->mutex, NULL);
 	sv->store = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+	sv->between_get_and_set = false;
 	sstate->session_variables_state = sv;
 
 	return (0);

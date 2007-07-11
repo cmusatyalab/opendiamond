@@ -446,9 +446,9 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 	/*
 	 * XXX do I need to lock 
 	 */
-	if (cstate->cc_credits > 0) {
-		cstate->cc_credits--;
-	}
+	if (cstate->cc_credits > 0)
+	  cstate->cc_credits--;
+
 	return;
 }
 
@@ -517,5 +517,6 @@ sstub_read_data(listener_state_t * lstate, cstate_t * cstate)
 	 * update the count 
 	 */
 	cstate->cc_credits = ntohl(cstate->cc_msg.cc_count);
+
 	return;
 }

@@ -566,7 +566,7 @@ sstub_read_control(listener_state_t * lstate, cstate_t * cstate)
 	}
 	else if(size_in == 0) { /* EOF */
 	  close(cstate->control_fd);
-	  exit(EXIT_SUCCESS);	  
+	  pthread_exit(-1);
 	}
 
 	

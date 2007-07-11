@@ -294,7 +294,6 @@ connection_main(listener_state_t * lstate, int conn)
 		FD_SET(cstate->tirpc_fd, &cstate->read_fds);
 
 		FD_SET(cstate->control_fd, &cstate->write_fds);
-		FD_SET(cstate->data_fd, &cstate->write_fds);
 		FD_SET(cstate->tirpc_fd, &cstate->write_fds);
 
 		FD_SET(cstate->control_fd, &cstate->except_fds);
@@ -302,17 +301,12 @@ connection_main(listener_state_t * lstate, int conn)
 		FD_SET(cstate->tirpc_fd, &cstate->except_fds);
 
 		pthread_mutex_lock(&cstate->cmutex);
-		if (cstate->flags & CSTATE_CONTROL_DATA) {
-			FD_SET(cstate->control_fd, &cstate->write_fds);
-		}
+
 		if ((cstate->flags & CSTATE_OBJ_DATA) &&
 		    (cstate->cc_credits > 0)) {
 			FD_SET(cstate->data_fd, &cstate->write_fds);
 		}
-		if (cstate->cc_credits == 0) {
-			// printf("block on no credits \n");
-			// XXX stats
-		}
+
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		to.tv_sec = 1;

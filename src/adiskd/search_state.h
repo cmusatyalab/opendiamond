@@ -95,10 +95,7 @@ typedef struct search_state {
 	unsigned char  *sig;
 	filter_exec_mode_t	exec_mode;  /* filter execution mode */
 	user_state_t	user_state;
-
-	pthread_mutex_t session_variables_mutex;
-	GHashTable     *session_variables;
-	bool            session_variables_between_get_and_set;
+	session_variables_state_t *session_variables_state;
 } search_state_t;
 
 

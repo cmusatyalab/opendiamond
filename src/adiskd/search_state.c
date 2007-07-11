@@ -1226,8 +1226,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	/*
 	 * Initialize session variables storage
 	 */
-	pthread_mutex_init(&sstate->session_variables_mutex, NULL);
-	sstate->session_variables = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+	session_variables_state_t *sv = malloc(sizeof(session_variables_state_t));
+	pthread_mutex_init(&sv->mutex, NULL);
+	sv->store = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+	sstate->session_variables_state = sv;
 
 	return (0);
 }
@@ -1647,7 +1649,7 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
   log_message(LOGT_DISK, LOGL_TRACE, "search_get_session_vars");
 
   search_state_t *sstate = (search_state_t *) app_cookie;
-  GHashTable *ht = sstate->session_variables;
+  GHashTable *ht = sstate->session_variables_state->store;
 
   device_session_vars_t *result = calloc(1, sizeof(device_session_vars_t));
   if (result == NULL) {
@@ -1656,11 +1658,11 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
 
 
   // take the session vars lock
-  pthread_mutex_lock(&sstate->session_variables_mutex);
+  pthread_mutex_lock(&sstate->session_variables_state->mutex);
 
   // we are now between get and set, so the accumulators will
   // work a bit differently elsewhere
-  sstate->session_variables_between_get_and_set = true;
+  sstate->session_variables_state->between_get_and_set = true;
 
   // alloc the result
   result->len = g_hash_table_size(ht);
@@ -1680,7 +1682,7 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
   // now result->len is correct again
 
   // unlock
-  pthread_mutex_unlock(&sstate->session_variables_mutex);
+  pthread_mutex_unlock(&sstate->session_variables_state->mutex);
 
   return result;
 }
@@ -1691,13 +1693,13 @@ int search_set_session_vars(void *app_cookie, int gen_num,
   log_message(LOGT_DISK, LOGL_TRACE, "search_set_session_vars");
 
   search_state_t *sstate = (search_state_t *) app_cookie;
-  GHashTable *ht = sstate->session_variables;
+  GHashTable *ht = sstate->session_variables_state->store;
 
   // take the session vars lock
-  pthread_mutex_lock(&sstate->session_variables_mutex);
+  pthread_mutex_lock(&sstate->session_variables_state->mutex);
 
   // we are no longer between get and set
-  sstate->session_variables_between_get_and_set = false;
+  sstate->session_variables_state->between_get_and_set = false;
 
   // update
   int len = vars->len;
@@ -1726,7 +1728,7 @@ int search_set_session_vars(void *app_cookie, int gen_num,
   }
 
   // unlock
-  pthread_mutex_unlock(&sstate->session_variables_mutex);
+  pthread_mutex_unlock(&sstate->session_variables_state->mutex);
 
   return 0;
 }

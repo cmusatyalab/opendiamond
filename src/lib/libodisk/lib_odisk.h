@@ -16,6 +16,8 @@
 
 #include <dirent.h>
 #include <unistd.h>
+#include <glib.h>
+#include <stdbool.h>
 #include "obj_attr.h"
 #include "diamond_consts.h"
 
@@ -68,6 +70,14 @@ typedef struct gid_list {
 
 #define GIDLIST_NAME        "gid_list"
 
+
+typedef struct {
+	pthread_mutex_t mutex;
+	GHashTable     *store;
+	bool            between_get_and_set;
+} session_variables_state_t;
+
+
 	/*
 	 * This is the state associated with the object
 	 */
@@ -83,6 +93,7 @@ typedef struct obj_data {
 	char *			data;
 	char *			base;
 	obj_attr_t		attr_info;
+	session_variables_state_t *session_variables;
 } obj_data_t;
 
 typedef struct {
@@ -100,6 +111,8 @@ typedef struct {
 	sig_val_t	iattrsig[MAX_FILTERS];
 	u_int64_t       stack_ns;
 } pr_obj_t;
+
+
 
 /*
  * These are the function prototypes for the device emulation

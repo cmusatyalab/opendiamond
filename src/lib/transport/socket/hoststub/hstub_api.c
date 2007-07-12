@@ -899,7 +899,7 @@ device_set_session_variables(void *handle, device_session_vars_t *vars)
     l->name = vars->names[i];
     l->value = vars->values[i];
 
-    printf(" device_set_session_variables %d: \"%s\" -> %g\n", i, l->name, l->value);
+    //printf(" device_set_session_variables %d: \"%s\" -> %g\n", i, l->name, l->value);
 
     prev = l;
   }

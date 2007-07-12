@@ -225,7 +225,7 @@ request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
     return &result;
   }
 
-  xdr_free(xdr_request_stats_return_x, &result);
+  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&result);
   
   result.stats.ds_objs_total = stats->ds_objs_total;
   result.stats.ds_objs_processed = stats->ds_objs_processed;

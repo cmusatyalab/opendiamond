@@ -123,7 +123,7 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_stop: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
@@ -133,7 +133,7 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	sx.app_objs_queued = hs->hs_objs_uqueued;
 	sx.app_objs_presented = hs->hs_objs_upresented;
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -161,11 +161,11 @@ device_terminate(void *handle, int id)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -196,11 +196,11 @@ device_start(void *handle, int id)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_start: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -222,11 +222,11 @@ device_clear_gids(void *handle, int id)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -273,11 +273,11 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -358,12 +358,12 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  free(data);
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return ENOENT;
 	}
 	
 	free(data);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -401,12 +401,12 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	       (rc->opcode_err == DIAMOND_OPCODE_FCACHEMISS))) {
 	    log_message(LOGT_NET, LOGL_ERR, "device_set_lib: call servicing failed");
 	    log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	    xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	    xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	    return -1;
 	  }
 	}
 	else {
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return 0;
 	}
 
@@ -424,7 +424,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_lib: failed stat spec file <%s>",  
 		    objname);
-		xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+		xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 		return (ENOENT);
 	}
 	buf_len = stats.st_size;
@@ -438,7 +438,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	  log_message(LOGT_NET, LOGL_ERR,
 		      "device_set_lib: failed malloc spec file <%s>",  
 		      objname);
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return ENOENT;
 	}
 
@@ -453,14 +453,14 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_lib: failed open <%s>", objname);
 		free(data);
-		xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+		xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 		return (ENOENT);
 	}
 	if ((rsize = fread(data, buf_len, 1, cur_file)) != 1) {
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_lib: failed read obj <%s>", objname);
 		free(data);
-		xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+		xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 		return (EAGAIN);
 	}
 
@@ -480,12 +480,12 @@ log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_send_obj"));
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: send_obj call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
 	  free(data);
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
 	free(data);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -534,7 +534,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 	  free(data);
 	  return -1;
 	}
@@ -546,7 +546,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	(*dev->hstub_wleaf_done_cb) (dev->hcookie, r_err, r_opid);
 
 	free(data);
-	xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 
 	return (0);
 }
@@ -584,7 +584,7 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 	  return -1;
 	}
 
@@ -597,7 +597,7 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 				     drx->dctl.dctl_data.dctl_data_val, 
 				     r_opid);
 
-	xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 
 	return (0);
 
@@ -637,7 +637,7 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 	  return -1;
 	}
 
@@ -649,7 +649,7 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 
 	(*dev->hstub_lnode_done_cb) (dev->hcookie, r_err, ents,
 				     (dctl_entry_t *) drx->dctl.dctl_data.dctl_data_val, r_opid);
-	xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 
 	return (0);
 }
@@ -687,7 +687,7 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 	  return -1;
 	}
 
@@ -699,7 +699,7 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 
 	(*dev->hstub_lleaf_done_cb) (dev->hcookie, r_err, ents,
 				     (dctl_entry_t *) drx->dctl.dctl_data.dctl_data_val, r_opid);
-	xdr_free((xdrproc_t)xdr_dctl_return_x, drx);
+	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)drx);
 
 	return (0);
 }
@@ -727,11 +727,11 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -767,11 +767,11 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }
@@ -794,11 +794,11 @@ device_set_user_state(void *handle, int id, uint32_t state)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 	  return -1;
 	}
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)rc);
 
 	return (0);
 }

@@ -376,6 +376,10 @@ lf_get_session_variables(lf_obj_handle_t ohandle,
     session_variable_composer_fn cf = cur->composer;
     cur->value = cf(cf(svv->local_val, svv->global_val),
 		    svv->between_get_and_set_val);
+    printf(" filter get '%s': %g # %g # %g -> %g\n",
+	   cur->name,
+	   svv->local_val, svv->global_val, svv->between_get_and_set_val,
+	   cur->value);
   }
 
   pthread_mutex_unlock(&sv->mutex);
@@ -404,11 +408,22 @@ int lf_update_session_variables(lf_obj_handle_t ohandle,
     if (sv->between_get_and_set) {
       // the client has gotten local, but not set global
       // in this case, we only update between_get_and_set
-      svv->between_get_and_set_val =
-	cf(svv->between_get_and_set_val, cur->value);
+      double val = cf(svv->between_get_and_set_val, cur->value);
+      printf(" filter set '%s': _ # %g # %g -> %g\n",
+	     cur->name,
+	     svv->between_get_and_set_val,
+	     cur->value,
+	     val);
+      svv->between_get_and_set_val = val;
     } else {
       // we are in sync with other clients, update local
-      svv->local_val = cf(svv->local_val, cur->value);
+      double val = cf(svv->local_val, cur->value);
+      printf(" filter set '%s': %g # _ # %g -> %g\n",
+	     cur->name,
+	     svv->local_val,
+	     cur->value,
+	     val);
+      svv->local_val = val;
     }
   }
 

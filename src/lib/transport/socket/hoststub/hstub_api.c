@@ -872,6 +872,10 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
 int
 device_set_session_variables(void *handle, device_session_vars_t *vars)
 {
+  if (vars->len == 0) {
+    return 0;
+  }
+
   sdevice_state_t *dev = (sdevice_state_t *) handle;
 
   // create list

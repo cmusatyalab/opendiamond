@@ -136,6 +136,8 @@ create_tirpc_server(void *arg) {
       fprintf (stderr, "%s", "cannot create tcp service.");
       pthread_exit(0);
     }
+
+    freenetconfigent(nconf);
     
     svc_unreg(CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
     

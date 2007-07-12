@@ -145,6 +145,10 @@ tirpc_init(int connfd) {
 	  return NULL;
 	}
 
+	free(tbind->buf);
+	free(tbind);
+	freenetconfigent(nconf);
+
 	return clnt;
 }
 

@@ -211,6 +211,7 @@ done:
 	return &result;
 }
 
+
 request_stats_return_x *
 request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
 {
@@ -223,6 +224,8 @@ request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
     result.error.opcode_err = DIAMOND_OPCODE_NOSTATSAVAIL;
     return &result;
   }
+
+  xdr_free(xdr_request_stats_return_x, &result);
   
   result.stats.ds_objs_total = stats->ds_objs_total;
   result.stats.ds_objs_processed = stats->ds_objs_processed;

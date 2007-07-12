@@ -81,6 +81,8 @@ request_chars(sdevice_state_t * dev)
 	dev->dev_char.dc_mem = characteristics->chars.dcs_mem;
 	dev->dev_char.dc_devid = dev->con_data.dev_id;
 	
+	xdr_free((xdrproc_t)xdr_request_chars_return_x, characteristics);
+
 	return 0;
 }
 
@@ -177,6 +179,8 @@ request_stats(sdevice_state_t * dev)
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
 		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
 	}
+
+	xdr_free((xdrproc_t)xdr_request_stats_return_x, statistics);
 
 	return 0;
 }

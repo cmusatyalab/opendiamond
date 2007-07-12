@@ -370,7 +370,8 @@ cache_file(char *oname, sig_val_t *sig)
 	if (fd < 0) {
 		file_release_lock(name_buf);
 		if (errno == EEXIST) {
-			return(0);
+		  err = 0;
+		  goto done;
 		}
 		fprintf(stderr, "file %s failed on %d \n",
 			name_buf, errno);
@@ -445,7 +446,8 @@ cache_spec(char *oname, sig_val_t *sig)
 	if (fd < 0) {
 		file_release_lock(name_buf);
 		if (errno == EEXIST) {
-			return(0);
+		  err = 0;
+		  goto done;
 		}
 		fprintf(stderr, "file %s failed on %d \n",
 			name_buf, errno);
@@ -999,7 +1001,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 	obj_info_t     *obj_info;
 	void           *data;
 	struct timespec timeout;
-
+	char	       *sigstr;
 
 	/*
 	 * XXX make sure search is running 
@@ -1064,10 +1066,13 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 	obj_data->cur_blocksize = 1024;
 
 	*obj_handle = (ls_obj_handle_t *) obj_data;
+	sigstr = sig_string(&obj_data->id_sig);
+	if(sigstr != NULL) {
+	  log_message(LOGT_BG, LOGL_TRACE, "ls_next_object: id %d --> %s", 
+		      sc->cur_search_id, sigstr);
+	  free(sigstr);
+	}
 
-	log_message(LOGT_BG, LOGL_TRACE, "ls_next_object: id %d --> %s", 
-				sc->cur_search_id, sig_string(&obj_data->id_sig));
-	
 	return (0);
 }
 

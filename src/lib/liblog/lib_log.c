@@ -330,6 +330,9 @@ void *log_writer(void *arg) {
 			if (wlen > 0) {
 				file_len += wlen;
 			}
+
+			/* free the now-unused log structure malloc'd in log_message() */
+			free(ent);
 		}
 		pthread_testcancel();
 		g_usleep(G_USEC_PER_SEC);  /* wait one second */

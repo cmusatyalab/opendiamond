@@ -591,20 +591,23 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2, diamond_rc_t *result,
 
 
 /* for anomaly detection */
-diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int gen,
-								 struct svc_req *rqstp) {
+bool_t
+session_variables_get_x_2_svc(unsigned int gen,
+			      diamond_session_var_list_return_x *result,
+			      struct svc_req *rqstp) {
   int i;
-  static diamond_session_var_list_return_x result;
-  result.l = NULL;
-  result.error.service_err = DIAMOND_SUCCESS;
+
+  memset ((char *)result, 0, sizeof(*result));
+
+  result->error.service_err = DIAMOND_SUCCESS;
 
 
   device_session_vars_t *vars =
     (*tirpc_lstate->get_session_vars_cb) (tirpc_cstate->app_cookie, gen);
 
   if (vars == NULL) {
-    result.error.service_err = DIAMOND_NOMEM;
-    return &result;
+    result->error.service_err = DIAMOND_NOMEM;
+    return 1;
   }
 
 
@@ -617,7 +620,7 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
     if (l == NULL) {
       // this will fall through and send something to the client,
       // but also will let XDR free this structure for us
-      result.error.service_err = DIAMOND_NOMEM;
+      result->error.service_err = DIAMOND_NOMEM;
       break;
     }
 
@@ -636,7 +639,7 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
     prev = l;
   }
 
-  result.l = first;
+  result->l = first;
 
 
   // free
@@ -645,20 +648,22 @@ diamond_session_var_list_return_x *session_variables_get_x_2_svc(unsigned int ge
   free(vars);
 
   // return
-  return &result;
+  return 1;
 }
 
-diamond_rc_t *session_variables_set_x_2_svc(unsigned int gen,
-					    diamond_session_var_list_x list,
-					    struct svc_req *rqstp)
+bool_t
+session_variables_set_x_2_svc(unsigned int gen,
+			      diamond_session_var_list_x list,
+			      diamond_rc_t *result,
+			      struct svc_req *rqstp)
 {
-  static diamond_rc_t result;
+  memset ((char *)result, 0, sizeof(*result));
 
   // fabricate the structure
   device_session_vars_t *vars = calloc(1, sizeof(device_session_vars_t));
   if (vars == NULL) {
-    result.service_err = DIAMOND_NOMEM;
-    return &result;
+    result->service_err = DIAMOND_NOMEM;
+    return 1;
   }
 
   // count length
@@ -680,8 +685,8 @@ diamond_rc_t *session_variables_set_x_2_svc(unsigned int gen,
     free(vars->names);
     free(vars->values);
     free(vars);
-    result.service_err = DIAMOND_NOMEM;
-    return &result;
+    result->service_err = DIAMOND_NOMEM;
+    return 1;
   }
 
   // copy
@@ -704,8 +709,8 @@ diamond_rc_t *session_variables_set_x_2_svc(unsigned int gen,
   free(vars);
 
   // done
-  result.service_err = DIAMOND_SUCCESS;
-  return &result;
+  result->service_err = DIAMOND_SUCCESS;
+  return 1;
 }
 
 

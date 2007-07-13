@@ -62,28 +62,27 @@
 static int
 request_chars(sdevice_state_t * dev)
 {
-	request_chars_return_x *characteristics;
+	enum clnt_stat retval;
+	request_chars_return_x characteristics;
 
-	characteristics = request_chars_x_2(0, dev->con_data.tirpc_client);
-	if (characteristics == (request_chars_return_x *) NULL) {
+	retval = request_chars_x_2(0, &characteristics,
+			       dev->con_data.tirpc_client);
+	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("request_chars"));
+	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
 	  return -1;
 	}
-	if(characteristics->error.service_err != DIAMOND_SUCCESS) {
+	if(characteristics.error.service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&characteristics->error));
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&characteristics.error));
 	  return -1;
 	}
 
-	dev->dev_char.dc_isa = characteristics->chars.dcs_isa;
-	dev->dev_char.dc_speed = characteristics->chars.dcs_isa;
-	dev->dev_char.dc_mem = characteristics->chars.dcs_mem;
+	dev->dev_char.dc_isa = characteristics.chars.dcs_isa;
+	dev->dev_char.dc_speed = characteristics.chars.dcs_isa;
+	dev->dev_char.dc_mem = characteristics.chars.dcs_mem;
 	dev->dev_char.dc_devid = dev->con_data.dev_id;
 	
-	xdr_free((xdrproc_t)xdr_request_chars_return_x,
-		 (char *)characteristics);
-
 	return 0;
 }
 
@@ -96,29 +95,30 @@ request_chars(sdevice_state_t * dev)
 static int
 request_stats(sdevice_state_t * dev)
 {
-	request_stats_return_x *statistics;
+	enum clnt_stat retval;
+	request_stats_return_x statistics;
 	dev_stats_t    *dstats;
 	int             len;
 	int             num_filt;
 	int             i;
 
-	statistics = request_stats_x_2(0, dev->con_data.tirpc_client);
-	if (statistics == (request_stats_return_x *) NULL) {
+	retval = request_stats_x_2(0, &statistics, dev->con_data.tirpc_client);
+	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("request_stats"));
+	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
 	  return -1;
 	}
-	if(statistics->error.service_err != DIAMOND_SUCCESS) {
-	  if((statistics->error.service_err == DIAMOND_OPERR) &&
-	     (statistics->error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL)) {
+	if(statistics.error.service_err != DIAMOND_SUCCESS) {
+	  if((statistics.error.service_err == DIAMOND_OPERR) &&
+	     (statistics.error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL)) {
 	    return 0;  // we often ask for stats when no search is running
 	  }
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics->error));
+	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics.error));
 	  return -1;
 	}
 
-	num_filt = statistics->stats.ds_filter_stats.ds_filter_stats_len;
+	num_filt = statistics.stats.ds_filter_stats.ds_filter_stats_len;
 	len = DEV_STATS_SIZE(num_filt);
 
 
@@ -136,52 +136,50 @@ request_stats(sdevice_state_t * dev)
 	}
 
 
-	dstats->ds_objs_total = statistics->stats.ds_objs_total;
-	dstats->ds_objs_processed = statistics->stats.ds_objs_processed;
-	dstats->ds_objs_dropped = statistics->stats.ds_objs_dropped;
-	dstats->ds_objs_nproc = statistics->stats.ds_objs_nproc;
-	dstats->ds_system_load = statistics->stats.ds_system_load;
-	dstats->ds_avg_obj_time = statistics->stats.ds_avg_obj_time;
-	dstats->ds_num_filters = statistics->stats.ds_filter_stats.ds_filter_stats_len;
+	dstats->ds_objs_total = statistics.stats.ds_objs_total;
+	dstats->ds_objs_processed = statistics.stats.ds_objs_processed;
+	dstats->ds_objs_dropped = statistics.stats.ds_objs_dropped;
+	dstats->ds_objs_nproc = statistics.stats.ds_objs_nproc;
+	dstats->ds_system_load = statistics.stats.ds_system_load;
+	dstats->ds_avg_obj_time = statistics.stats.ds_avg_obj_time;
+	dstats->ds_num_filters = statistics.stats.ds_filter_stats.ds_filter_stats_len;
 
 	for (i = 0; i < num_filt; i++) {
 		strncpy(dstats->ds_filter_stats[i].fs_name,
-			statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_name, MAX_FILTER_NAME);
+			statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_name, MAX_FILTER_NAME);
 		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME - 1] =
 		    '\0';
 
 		dstats->ds_filter_stats[i].fs_objs_processed =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed;
 
 		dstats->ds_filter_stats[i].fs_objs_dropped =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped;
 
 		/*
 		 * JIAYING 
 		 */
 		dstats->ds_filter_stats[i].fs_objs_cache_dropped =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped;
 		dstats->ds_filter_stats[i].fs_objs_cache_passed =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed;
 		dstats->ds_filter_stats[i].fs_objs_compute =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute;
 
 		dstats->ds_filter_stats[i].fs_hits_inter_session =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session;
 		dstats->ds_filter_stats[i].fs_hits_inter_query =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query;
 		dstats->ds_filter_stats[i].fs_hits_intra_query =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query;
 
 		/*
 		 * XXX byte order !!! 
 		 */
 		
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
-		    statistics->stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
+		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
 	}
-
-	xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)statistics);
 
 	return 0;
 }

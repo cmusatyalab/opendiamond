@@ -59,11 +59,19 @@ sstub_except_control(listener_state_t * lstate, cstate_t * cstate)
 	return;
 }
 
-
-diamond_rc_t *
-device_start_x_2_svc(u_int gen,  struct svc_req *rqstp)
+int
+clientcontent_prog_2_freeresult (SVCXPRT *transp, xdrproc_t xdr_result, 
+				 caddr_t result)
 {
-	static diamond_rc_t  result;
+        xdr_free (xdr_result, result);
+
+        return 1;
+}
+
+bool_t
+device_start_x_2_svc(u_int gen, diamond_rc_t *result, struct svc_req *rqstp)
+{
+	memset ((char *)result, 0, sizeof(*result));
 
 	fprintf(stderr, "have_start pend %d \n", tirpc_cstate->pend_obj);
 	if (tirpc_cstate->pend_obj == 0) {
@@ -73,73 +81,83 @@ device_start_x_2_svc(u_int gen,  struct svc_req *rqstp)
 	  tirpc_cstate->start_gen = gen;
 	}
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_stop_x_2_svc(u_int gen, stop_x arg2,  struct svc_req *rqstp)
+bool_t
+device_stop_x_2_svc(u_int gen, stop_x arg2, diamond_rc_t *result,
+		    struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
 	host_stats_t hstats;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	hstats.hs_objs_received = arg2.host_objs_received;
 	hstats.hs_objs_queued = arg2.host_objs_queued;
 	hstats.hs_objs_read = arg2.host_objs_read;
 	hstats.hs_objs_uqueued = arg2.app_objs_queued;
 	hstats.hs_objs_upresented = arg2.app_objs_presented;
+
 	(*tirpc_lstate->stop_cb) (tirpc_cstate->app_cookie, gen, &hstats);
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_terminate_x_2_svc(u_int gen,  struct svc_req *rqstp)
+bool_t
+device_terminate_x_2_svc(u_int gen, diamond_rc_t *result, 
+			 struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
+	memset ((char *)result, 0, sizeof(*result));
 
 	(*tirpc_lstate->terminate_cb) (tirpc_cstate->app_cookie, gen);
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_clear_gids_x_2_svc(u_int gen,  struct svc_req *rqstp)
+bool_t
+device_clear_gids_x_2_svc(u_int gen, diamond_rc_t *result, 
+			  struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
+	memset ((char *)result, 0, sizeof(*result));
 
-	(*tirpc_lstate->clear_gids_cb) (tirpc_cstate->app_cookie, gen);				
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	(*tirpc_lstate->clear_gids_cb) (tirpc_cstate->app_cookie, gen);
+
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_new_gid_x_2_svc(u_int gen, groupid_x arg2,  struct svc_req *rqstp)
+bool_t
+device_new_gid_x_2_svc(u_int gen, groupid_x arg2, diamond_rc_t *result,
+		       struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
 	groupid_t       gid = arg2;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	(*tirpc_lstate->sgid_cb) (tirpc_cstate->app_cookie, gen, gid);
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_set_blob_x_2_svc(u_int gen, blob_x arg2, struct svc_req *rqstp)
+bool_t
+device_set_blob_x_2_svc(u_int gen, blob_x arg2, diamond_rc_t *result,
+			struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
 	void                *blob;
 	int                  blen;
 	int                  nlen;
 	char                *name;
+
+	memset ((char *)result, 0, sizeof(*result));
 	
 	nlen = arg2.blob_name.blob_name_len;
 	blen = arg2.blob_data.blob_data_len;
@@ -149,21 +167,23 @@ device_set_blob_x_2_svc(u_int gen, blob_x arg2, struct svc_req *rqstp)
 	(*tirpc_lstate->set_blob_cb) (tirpc_cstate->app_cookie, gen, 
 				      name, blen, blob);
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
+bool_t
+device_set_spec_x_2_svc(u_int gen, spec_file_x arg2, diamond_rc_t *result,
+			struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
 	char specpath[PATH_MAX];
 	char * cache;
 	char *spec_sig, *spec_data;
 	sig_val_t *sent_sig;
 	int spec_len;
 	int fd;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	spec_len = arg2.data.data_len;
 	sent_sig = (sig_val_t *)&arg2.sig.sig_val_x_val;
@@ -190,15 +210,15 @@ device_set_spec_x_2_svc(u_int gen, spec_file_x arg2,  struct svc_req *rqstp)
 		if (err == EEXIST) { 
 			goto done; 
 		}
-		result.service_err = DIAMOND_FAILEDSYSCALL;
-		result.opcode_err = err;
-		return &result;
+		result->service_err = DIAMOND_FAILEDSYSCALL;
+		result->opcode_err = err;
+		return 1;
 	}
 	if (write(fd, spec_data, spec_len) != spec_len) {
 		perror("write buffer file"); 
-		result.service_err = DIAMOND_FAILEDSYSCALL;
-		result.opcode_err = errno;
-		return &result;
+		result->service_err = DIAMOND_FAILEDSYSCALL;
+		result->opcode_err = errno;
+		return 1;
 	}
 	close(fd);
 	file_release_lock(specpath);
@@ -207,120 +227,126 @@ done:
 	(*tirpc_lstate->set_fspec_cb)(tirpc_cstate->app_cookie, gen, 
 				      sent_sig);
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-request_stats_return_x *
-request_stats_x_2_svc(u_int gen, struct svc_req *rqstp)
+bool_t
+request_stats_x_2_svc(u_int gen, request_stats_return_x *result, 
+		      struct svc_req *rqstp)
 {
-  static request_stats_return_x  result;
   dev_stats_t *stats;
   int i;
 
+  memset ((char *)result, 0, sizeof(*result));
+
   if((stats = (*tirpc_lstate->get_stats_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
-    result.error.service_err = DIAMOND_OPERR;
-    result.error.opcode_err = DIAMOND_OPCODE_NOSTATSAVAIL;
-    return &result;
+    result->error.service_err = DIAMOND_OPERR;
+    result->error.opcode_err = DIAMOND_OPCODE_NOSTATSAVAIL;
+    return 1;
   }
 
-  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&result);
+  result->stats.ds_objs_total = stats->ds_objs_total;
+  result->stats.ds_objs_processed = stats->ds_objs_processed;
+  result->stats.ds_objs_dropped = stats->ds_objs_dropped;
+  result->stats.ds_objs_nproc = stats->ds_objs_nproc;
+  result->stats.ds_system_load = stats->ds_system_load;
+  result->stats.ds_avg_obj_time = stats->ds_avg_obj_time;
+  result->stats.ds_filter_stats.ds_filter_stats_len = stats->ds_num_filters;
   
-  result.stats.ds_objs_total = stats->ds_objs_total;
-  result.stats.ds_objs_processed = stats->ds_objs_processed;
-  result.stats.ds_objs_dropped = stats->ds_objs_dropped;
-  result.stats.ds_objs_nproc = stats->ds_objs_nproc;
-  result.stats.ds_system_load = stats->ds_system_load;
-  result.stats.ds_avg_obj_time = stats->ds_avg_obj_time;
-  result.stats.ds_filter_stats.ds_filter_stats_len = stats->ds_num_filters;
-  
-  if((result.stats.ds_filter_stats.ds_filter_stats_val = (filter_stats_x *)malloc(stats->ds_num_filters * sizeof(filter_stats_x))) == NULL) {
+  if((result->stats.ds_filter_stats.ds_filter_stats_val = (filter_stats_x *)malloc(stats->ds_num_filters * sizeof(filter_stats_x))) == NULL) {
     perror("malloc");
-    result.error.service_err = DIAMOND_NOMEM;
-    return &result;
+    result->error.service_err = DIAMOND_NOMEM;
+    return 1;
   }
   
   for(i=0; i<stats->ds_num_filters; i++) {
-    if((result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_name = strdup(stats->ds_filter_stats[i].fs_name)) == NULL) {
+    if((result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_name = strdup(stats->ds_filter_stats[i].fs_name)) == NULL) {
       perror("malloc"); 
-      result.error.service_err = DIAMOND_NOMEM; 
-      return &result; 
+      result->error.service_err = DIAMOND_NOMEM; 
+      return 1;
     } 
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed = stats->ds_filter_stats[i].fs_objs_processed;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped = stats->ds_filter_stats[i].fs_objs_dropped;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped = stats->ds_filter_stats[i].fs_objs_cache_dropped;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed = stats->ds_filter_stats[i].fs_objs_cache_passed;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute = stats->ds_filter_stats[i].fs_objs_compute;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session = stats->ds_filter_stats[i].fs_hits_inter_session;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query = stats->ds_filter_stats[i].fs_hits_inter_query;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query = stats->ds_filter_stats[i].fs_hits_intra_query;
-    result.stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time = stats->ds_filter_stats[i].fs_avg_exec_time;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed = stats->ds_filter_stats[i].fs_objs_processed;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped = stats->ds_filter_stats[i].fs_objs_dropped;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped = stats->ds_filter_stats[i].fs_objs_cache_dropped;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed = stats->ds_filter_stats[i].fs_objs_cache_passed;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute = stats->ds_filter_stats[i].fs_objs_compute;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session = stats->ds_filter_stats[i].fs_hits_inter_session;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query = stats->ds_filter_stats[i].fs_hits_inter_query;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query = stats->ds_filter_stats[i].fs_hits_intra_query;
+    result->stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time = stats->ds_filter_stats[i].fs_avg_exec_time;
   }
 
   free(stats);
 
-  result.error.service_err = DIAMOND_SUCCESS;
-  return &result;
+  result->error.service_err = DIAMOND_SUCCESS;
+  return 1;
 }
 
-request_chars_return_x *
-request_chars_x_2_svc(u_int gen,  struct svc_req *rqstp)
+
+bool_t
+request_chars_x_2_svc(u_int gen, request_chars_return_x *result, 
+		      struct svc_req *rqstp)
 {
-  static request_chars_return_x  result;
   device_char_t *chars;
 
+  memset ((char *)result, 0, sizeof(*result));
+
   if((chars = (*tirpc_lstate->get_char_cb) (tirpc_cstate->app_cookie, gen)) == NULL) {
-    result.error.service_err = DIAMOND_OPERR; 
-    result.error.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific? 
-    return &result; 
+    result->error.service_err = DIAMOND_OPERR; 
+    result->error.opcode_err = DIAMOND_OPCODE_FAILURE;//XXX: be more specific? 
+    return 1;
   }
   
-  result.chars.dcs_isa = chars->dc_isa;
-  result.chars.dcs_speed = chars->dc_speed;
-  result.chars.dcs_mem = chars->dc_mem;
+  result->chars.dcs_isa = chars->dc_isa;
+  result->chars.dcs_speed = chars->dc_speed;
+  result->chars.dcs_mem = chars->dc_mem;
 
   free(chars);
 
-  result.error.service_err = DIAMOND_SUCCESS;
-  return &result;
+  result->error.service_err = DIAMOND_SUCCESS;
+  return 1;
 }
 
-dctl_return_x *
-device_read_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
+bool_t
+device_read_leaf_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
+			 struct svc_req *rqstp)
 {
-	static dctl_return_x  result;
 	dctl_rleaf_t          *rt;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	rt = (tirpc_lstate->rleaf_cb) (tirpc_cstate->app_cookie,
 				       arg2.dctl_data.dctl_data_val, 
 				       arg2.dctl_opid);
 	if(rt == NULL) {
-	  result.error.service_err = DIAMOND_OPERR;
-	  result.error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
-	  return &result;
+	  result->error.service_err = DIAMOND_OPERR;
+	  result->error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
+	  return 1;
 	}
 	
-	result.dctl.dctl_err = 0;           //XXX: is this arg even necessary?
-	result.dctl.dctl_opid = arg2.dctl_opid; //XXX: or this one?
-	result.dctl.dctl_plen = 0;          //XXX: or this one?
-	result.dctl.dctl_dtype = rt->dt;
-	result.dctl.dctl_data.dctl_data_len = rt->len;
-	result.dctl.dctl_data.dctl_data_val = rt->dbuf; /* TI-RPC will
-							 * free dbuf */
+	result->dctl.dctl_err = 0;        
+	result->dctl.dctl_opid = arg2.dctl_opid;
+	result->dctl.dctl_plen = 0;       
+	result->dctl.dctl_dtype = rt->dt;
+	result->dctl.dctl_data.dctl_data_len = rt->len;
+	result->dctl.dctl_data.dctl_data_val = rt->dbuf;
 
 	free(rt);
 
-	result.error.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->error.service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-dctl_return_x *
-device_write_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
+bool_t
+device_write_leaf_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
+			  struct svc_req *rqstp)
 {
-	static dctl_return_x  result;
 	int                   err;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	err = (*tirpc_lstate->wleaf_cb) (tirpc_cstate->app_cookie,
 			      arg2.dctl_data.dctl_data_val,
@@ -329,110 +355,131 @@ device_write_leaf_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
 			      &(arg2.dctl_data.dctl_data_val[arg2.dctl_plen]), 
 			      arg2.dctl_opid);
 	
-	result.dctl.dctl_err = err;
-	result.dctl.dctl_opid = arg2.dctl_opid;
-	result.dctl.dctl_plen = 0;
-	result.dctl.dctl_data.dctl_data_len = 0;
-	result.dctl.dctl_data.dctl_data_val = NULL;
+	result->dctl.dctl_err = err;
+	result->dctl.dctl_opid = arg2.dctl_opid;
+	result->dctl.dctl_plen = 0;
+	result->dctl.dctl_data.dctl_data_len = 0;
+	result->dctl.dctl_data.dctl_data_val = NULL;
 
-	if(err == 0)
-	  result.error.service_err = DIAMOND_SUCCESS;
-	else {
-	  result.error.service_err = DIAMOND_OPERR;
-	  result.error.opcode_err = DIAMOND_FAILURE;
+	if(!err) {
+	  result->error.service_err = DIAMOND_SUCCESS;
+	  return 1;
 	}
-
-	return &result;
+	else {
+	  result->error.service_err = DIAMOND_OPERR;
+	  result->error.opcode_err = DIAMOND_OPCODE_FAILURE;
+	  return 1;
+	}
 }
 
 
-dctl_return_x *
-device_list_nodes_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
+bool_t
+device_list_nodes_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
+			  struct svc_req *rqstp)
 {
-	static dctl_return_x  result;
 	dctl_lnode_t *lt;
 
+	memset ((char *)result, 0, sizeof(*result));
+
 	lt = (tirpc_lstate->lnode_cb) (tirpc_cstate->app_cookie,
-					arg2.dctl_data.dctl_data_val, 
-					arg2.dctl_opid);
+				       arg2.dctl_data.dctl_data_val, 
+				       arg2.dctl_opid);
 
 	if(lt == NULL) {
-	  result.error.service_err = DIAMOND_OPERR;
-	  result.error.opcode_err = DIAMOND_FAILURE;
-	  return &result;
+	  result->error.service_err = DIAMOND_OPERR;
+	  result->error.opcode_err = DIAMOND_FAILURE;
+	  return 1;
 	}
 
-	result.dctl.dctl_err = lt->err;
-	result.dctl.dctl_opid = arg2.dctl_opid;
-	result.dctl.dctl_plen = 0;
-	result.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
+	result->dctl.dctl_err = lt->err;
+	result->dctl.dctl_opid = arg2.dctl_opid;
+	result->dctl.dctl_plen = 0;
+	result->dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
 
-	/* ent_data will be freed by TI-RPC. */
-	result.dctl.dctl_data.dctl_data_val = (char *)lt->ent_data; 
+	result->dctl.dctl_data.dctl_data_val = (char *)lt->ent_data; 
 
 	free(lt);
 
-	result.error.service_err = DIAMOND_SUCCESS;
-	return &result;
+	if(!result->dctl.dctl_err) {
+	  result->error.service_err = DIAMOND_SUCCESS;
+	  return 1;
+	}
+	else {
+	  result->error.service_err = DIAMOND_OPERR;
+	  result->error.opcode_err = DIAMOND_OPCODE_FAILURE;
+	  return 1;
+	}
 }
 
 
-dctl_return_x *
-device_list_leafs_x_2_svc(u_int gen, dctl_x arg2,  struct svc_req *rqstp)
+bool_t
+device_list_leafs_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
+			  struct svc_req *rqstp)
 {
-	static dctl_return_x  result;
 	dctl_lleaf_t *lt;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	lt = (tirpc_lstate->lleaf_cb) (tirpc_cstate->app_cookie,
 				       arg2.dctl_data.dctl_data_val, 
 				       arg2.dctl_opid);
 
-	result.dctl.dctl_err = lt->err;
-	result.dctl.dctl_opid = arg2.dctl_opid;
-	result.dctl.dctl_plen = 0;
-	result.dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
+	result->dctl.dctl_err = lt->err;
+	result->dctl.dctl_opid = arg2.dctl_opid;
+	result->dctl.dctl_plen = 0;
+	result->dctl.dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
 
-	/* ent_data will be freed by TI-RPC. */
-	result.dctl.dctl_data.dctl_data_val = (char *)lt->ent_data;
+	result->dctl.dctl_data.dctl_data_val = (char *)lt->ent_data;
 	
 	free(lt);
 
-	result.error.service_err = DIAMOND_SUCCESS;
-	return &result;
+	if(!result->dctl.dctl_err) {
+	  result->error.service_err = DIAMOND_SUCCESS;
+	  return 1;
+	}
+	else {
+	  result->error.service_err = DIAMOND_OPERR;
+	  result->error.opcode_err = DIAMOND_OPCODE_FAILURE;
+	  return 1;
+	}
 }
 
 
-diamond_rc_t *
-device_set_exec_mode_x_2_svc(u_int gen, u_int mode,  struct svc_req *rqstp)
+bool_t
+device_set_exec_mode_x_2_svc(u_int gen, u_int mode, diamond_rc_t *result,
+			     struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
+	memset ((char *)result, 0, sizeof(*result));
 
 	(tirpc_lstate->set_exec_mode_cb) (tirpc_cstate->app_cookie, mode);
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_set_user_state_x_2_svc(u_int gen, u_int state,  struct svc_req *rqstp)
+bool_t
+device_set_user_state_x_2_svc(u_int gen, u_int state, diamond_rc_t *result,
+			      struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
+	memset ((char *)result, 0, sizeof(*result));
 
 	(tirpc_lstate->set_user_state_cb) (tirpc_cstate->app_cookie, state);
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
-diamond_rc_t *
-device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
+bool_t
+device_set_obj_x_2_svc(u_int gen, sig_val_x arg2, diamond_rc_t *result,
+		       struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
 	char objpath[PATH_MAX];
 	char * cache;
 	char * sig_str;
 	sig_val_t *sent_sig;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	sent_sig = (sig_val_t *)(arg2.sig_val_x_val);
 
@@ -452,27 +499,27 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2,  struct svc_req *rqstp)
 	  err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
 					      sent_sig);
 	  if(err) {
-	    result.service_err = DIAMOND_OPERR;
-	    result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific
-	    return &result;
+	    result->service_err = DIAMOND_OPERR;
+	    result->opcode_err = DIAMOND_OPCODE_FAILURE;//XXX: be more specific
+	    return 1;
 	  }
 
 	} else {
 	  tirpc_cstate->pend_obj++;
-	  result.service_err = DIAMOND_OPERR;
-	  result.opcode_err = DIAMOND_OPCODE_FCACHEMISS;
-	  return &result;
+	  result->service_err = DIAMOND_OPERR;
+	  result->opcode_err = DIAMOND_OPCODE_FCACHEMISS;
+	  return 1;
 	}
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 
-diamond_rc_t *
-device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
+bool_t
+device_send_obj_x_2_svc(u_int gen, send_obj_x arg2, diamond_rc_t *result,
+			struct svc_req *rqstp)
 {
-	static diamond_rc_t  result;
 	int fd;
 	char objname[PATH_MAX];
 	sig_val_t calc_sig;
@@ -480,6 +527,8 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 	char * sig_str;
 	char *cache;
 	int err;
+
+	memset ((char *)result, 0, sizeof(*result));
 
 	sent_sig = (sig_val_t *)(arg2.obj_sig.sig_val_x_val);
 
@@ -503,19 +552,19 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
        	if (fd < 0) {
 		file_release_lock(objname);
 		if (errno == EEXIST) {
-		  result.service_err = DIAMOND_SUCCESS;
-		  return &result; 
+		  result->service_err = DIAMOND_SUCCESS;
+		  return 1;
 		}
-		result.service_err = DIAMOND_FAILEDSYSCALL;
-		result.opcode_err = errno;
-		return &result;
+		result->service_err = DIAMOND_FAILEDSYSCALL;
+		result->opcode_err = errno;
+		return 1;
 	} 
 	if (writen(fd, arg2.obj_data.obj_data_val, arg2.obj_data.obj_data_len) !=  arg2.obj_data.obj_data_len) {
 		perror("write buffer file"); 
-		result.service_err = DIAMOND_FAILEDSYSCALL;
-		result.opcode_err = errno;
+		result->service_err = DIAMOND_FAILEDSYSCALL;
+		result->opcode_err = errno;
 		close(fd);
-		return &result;
+		return 1;
 	}
 	close(fd);
 	file_release_lock(objname);
@@ -523,9 +572,9 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 	err = (*tirpc_lstate->set_fobj_cb) (tirpc_cstate->app_cookie, gen, 
 					    sent_sig);
 	if(err) {
-	  result.service_err = DIAMOND_OPERR;
-	  result.opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific
-	  return &result;
+	  result->service_err = DIAMOND_OPERR;
+	  result->opcode_err = DIAMOND_OPCODE_FAILURE; //XXX: be more specific
+	  return 1;
 	}
 
 	tirpc_cstate->pend_obj--;
@@ -536,8 +585,8 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2,  struct svc_req *rqstp)
 	  tirpc_cstate->have_start = 0;
 	}
 
-	result.service_err = DIAMOND_SUCCESS;
-	return &result;
+	result->service_err = DIAMOND_SUCCESS;
+	return 1;
 }
 
 

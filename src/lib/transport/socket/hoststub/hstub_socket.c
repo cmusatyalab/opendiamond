@@ -102,7 +102,7 @@ create_tcp_connection(uint32_t devid, uint16_t port)
    makes it into a TI-RPC client handle */
 
 static CLIENT *
-tirpc_init(int connfd) {
+rpc_init(int connfd) {
 	struct sockaddr_in control_name;
 	unsigned int control_name_len = sizeof(struct sockaddr);
 	CLIENT *clnt;
@@ -119,10 +119,6 @@ tirpc_init(int connfd) {
 	  clnt_pcreateerror("clnttcp_create");
 	  return NULL;
 	}
-
-	free(tbind->buf);
-	free(tbind);
-	freenetconfigent(nconf);
 
 	return clnt;
 }
@@ -273,8 +269,8 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 		}
 	} 
 
-	cinfo->tirpc_client = tirpc_init(cinfo->control_fd);
-	if (cinfo->tirpc_client == NULL) {
+	cinfo->rpc_client = rpc_init(cinfo->control_fd);
+	if (cinfo->rpc_client == NULL) {
 		log_message(LOGT_NET, LOGL_ERR, 
 		    "hstub: TI-RPC initialization failed");
 		close(cinfo->control_fd);

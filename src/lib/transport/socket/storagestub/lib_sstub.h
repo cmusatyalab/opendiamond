@@ -37,7 +37,6 @@ typedef	int (*sstub_terminate_fn)(void *app_cookie, int gen_num);
 typedef	dev_stats_t *(*sstub_getstats_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_release_obj_fn)(void *app_cookie, obj_data_t * obj);
 typedef	device_char_t *(*sstub_get_devchar_fn)(void *app_cookie, int gen_num);
-typedef	int (*sstub_log_done_fn)(void *app_cookie, char *buf, int len);
 typedef	int (*sstub_set_log_fn)(void *app_cookie, uint32_t level, uint32_t src);
 
 typedef	dctl_rleaf_t *(*sstub_rleaf_fn)(void *app_cookie, char *path, int32_t opid);
@@ -66,7 +65,6 @@ typedef struct {
 	sstub_getstats_fn	    	get_stats_cb;
 	sstub_release_obj_fn		release_obj_cb;
 	sstub_get_devchar_fn		get_char_cb;
-	sstub_log_done_fn	    	log_done_cb;
 	sstub_set_log_fn	    	setlog_cb;
 	sstub_rleaf_fn	        	rleaf_cb;
 	sstub_wleaf_fn	        	wleaf_cb;

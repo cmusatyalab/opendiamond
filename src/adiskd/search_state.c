@@ -995,28 +995,6 @@ device_main(void *arg)
 }
 
 
-
-/*
- * This is called when we have finished sending a log entry.  For the 
- * time being, we ignore the arguments because we only have one
- * request outstanding.  This sets a condition value to wake up
- * the main thread.
- */
-int
-search_log_done(void *app_cookie, char *buf, int len)
-{
-	search_state_t *sstate;
-
-	sstate = (search_state_t *) app_cookie;
-
-	pthread_mutex_lock(&sstate->log_mutex);
-	pthread_cond_signal(&sstate->log_cond);
-	pthread_mutex_unlock(&sstate->log_mutex);
-
-	return (0);
-}
-
-
 /*
  * This is the callback that is called when a new connection
  * has been established at the network layer.  This creates

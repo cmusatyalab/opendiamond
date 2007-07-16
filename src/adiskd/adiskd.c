@@ -157,7 +157,6 @@ main(int argc, char **argv)
 	cb_args.release_obj_cb = search_release_obj;
 	cb_args.get_char_cb = search_get_char;
 	cb_args.get_stats_cb = search_get_stats;
-	cb_args.log_done_cb = search_log_done;
 	cb_args.setlog_cb = search_setlog;
 	cb_args.rleaf_cb = search_read_leaf;
 	cb_args.wleaf_cb = search_write_leaf;

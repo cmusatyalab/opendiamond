@@ -109,11 +109,6 @@ typedef struct cstate {
 	ring_data_t * 		control_tx_ring;
 	control_tx_state_t	control_tx_state;
 	int			control_tx_offset;
-	char *			log_tx_buf;
-	int		        log_tx_len;
-	int		        log_tx_offset;
-	log_header_t		log_tx_header;
-	log_tx_state_t		log_tx_state;
 	obj_data_t *		data_tx_obj;
 	data_tx_state_t		data_tx_state;
 	int		        data_tx_offset;
@@ -174,7 +169,6 @@ typedef struct listener_state {
 	sstub_getstats_fn	get_stats_cb;
 	sstub_release_obj_fn	release_obj_cb;
 	sstub_get_devchar_fn	get_char_cb;
-	sstub_log_done_fn	log_done_cb;
 	sstub_set_log_fn	setlog_cb;
 	sstub_rleaf_fn	        rleaf_cb;
 	sstub_wleaf_fn	        wleaf_cb;

@@ -78,14 +78,9 @@ typedef struct conn_info {
 	obj_data_t *		data_rx_obj;
 	CLIENT *                rpc_client;
 	pthread_mutex_t         rpc_mutex;
-	log_rx_state_t		log_rx_state;
-	int			log_rx_offset;
-	char *			log_rx_data;
-	log_header_t		log_rx_header;
 	credit_count_msg_t 	cc_msg;
 	int			cc_counter;
 	int			obj_limit;
-	int			log_fd;		/* fd for the log connection */
 	fd_set			read_fds;
 	fd_set			write_fds;
 	fd_set			except_fds;

@@ -30,18 +30,6 @@ typedef struct object_header {
 	uint32_t	version_num;	/* search version number */
 } obj_header_t;
 
-
-/*
- * Header that goes on the log buffers that are sent to the host.
- */
-#define	LOG_MAGIC_HEADER	0x54122756
-
-typedef struct log_header {
-	uint32_t	log_magic;	/* for debugging */
-	uint32_t	log_len;	/* length log data */
-} log_header_t;
-
-
 /*
  * credit count state that is passed in the reverse direction
  * on the credit count channel.

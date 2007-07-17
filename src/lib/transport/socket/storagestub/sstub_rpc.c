@@ -93,7 +93,6 @@ sstub_read_rpc(listener_state_t * lstate, cstate_t * cstate)
 	    size_in, size_out);
     return;
   }
-  else fprintf(stderr, "sent out %d bytes\n", size_in);
 
   return;
 }

@@ -285,7 +285,6 @@ connection_main(listener_state_t * lstate, int conn)
 		FD_SET(cstate->rpc_fd, &cstate->read_fds);
 
 		FD_SET(cstate->control_fd, &cstate->write_fds);
-		FD_SET(cstate->data_fd, &cstate->write_fds);
 		FD_SET(cstate->rpc_fd, &cstate->write_fds);
 
 		FD_SET(cstate->control_fd, &cstate->except_fds);

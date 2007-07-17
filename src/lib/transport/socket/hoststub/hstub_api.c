@@ -120,7 +120,16 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	sx.app_objs_queued = hs->hs_objs_uqueued;
 	sx.app_objs_presented = hs->hs_objs_upresented;
 
-	retval = device_stop_x_2(id, sx, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_stop: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_stop_x_2(id, sx, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_stop: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_stop: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -145,7 +154,16 @@ device_terminate(void *handle, int id)
 
 	dev = (sdevice_state_t *) handle;
 
-	retval = device_clear_gids_x_2(id, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_clear_gids_x_2(id, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -177,7 +195,16 @@ device_start(void *handle, int id)
 	/* save the new start id */
 	dev->ver_no = id;
 
-	retval = device_start_x_2(id, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_start: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_start_x_2(id, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_start: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_start: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -201,7 +228,16 @@ device_clear_gids(void *handle, int id)
 
 	dev = (sdevice_state_t *) handle;
 
-	retval = device_clear_gids_x_2(id, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_clear_gids_x_2(id, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -250,7 +286,16 @@ device_new_gid(void *handle, int id, groupid_t gid)
 
 	gix = gid;
 
-	retval = device_new_gid_x_2(id, gix, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_new_gid_x_2(id, gix, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -331,7 +376,16 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	sf.data.data_len = spec_len;
 	sf.data.data_val = data;
 
-	retval = device_set_spec_x_2(id, sf, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_set_spec_x_2(id, sf, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -373,7 +427,16 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	sx.sig_val_x_len = sizeof(sig_val_t);
 	sx.sig_val_x_val = (char *)obj_sig;
 
-	retval = device_set_obj_x_2(id, sx, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_set_obj_x_2(id, sx, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: set_obj call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -445,7 +508,16 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	ox.obj_data.obj_data_len = buf_len;
 	ox.obj_data.obj_data_val = data;
 
-	retval = device_send_obj_x_2(id, ox, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_send_obj_x_2(id, ox, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: send_obj call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -498,8 +570,17 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen+len;
 	dx.dctl_data.dctl_data_val = data;
 
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: couldn't lock mutex");
+	  return -1;
+	}
 	retval = device_write_leaf_x_2(0, dx, &drx, 
-				       dev->con_data.tirpc_client);
+				       dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -548,7 +629,16 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen;
 	dx.dctl_data.dctl_data_val = path;
 
-	retval = device_read_leaf_x_2(0, dx, &drx, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_read_leaf_x_2(0, dx, &drx, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -586,6 +676,7 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	int             r_dlen;
 	diamond_rc_t   *rc;
 	int             ents;
+	enum clnt_stat retval;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -596,10 +687,18 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	dx.dctl_plen = plen;
 	dx.dctl_data.dctl_data_len = plen;
 	dx.dctl_data.dctl_data_val = path;
-	enum clnt_stat retval;
 
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: couldn't lock mutex");
+	  return -1;
+	}
 	retval = device_list_nodes_x_2(0, dx, &drx,
-				       dev->con_data.tirpc_client);
+				       dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -648,8 +747,17 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen;
 	dx.dctl_data.dctl_data_val = path;
 
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: couldn't lock mutex");
+	  return -1;
+	}
 	retval = device_list_leafs_x_2(0, dx, &drx, 
-				       dev->con_data.tirpc_client);
+				       dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -689,7 +797,16 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	bx.blob_data.blob_data_len = blob_len;
 	bx.blob_data.blob_data_val = blob;
 
-	retval = device_set_blob_x_2(id, bx, &rc, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: couldn't lock mutex");
+	  return -1;
+	}
+	retval = device_set_blob_x_2(id, bx, &rc, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -727,8 +844,17 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 
 	dev = (sdevice_state_t *) handle;
 
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: couldn't lock mutex");
+	  return -1;
+	}
 	retval = device_set_exec_mode_x_2(id, mode, &rc,
-					  dev->con_data.tirpc_client);
+					  dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -753,8 +879,17 @@ device_set_user_state(void *handle, int id, uint32_t state)
 
 	dev = (sdevice_state_t *) handle;
 
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: couldn't lock mutex");
+	  return -1;
+	}
 	retval = device_set_user_state_x_2(id, state, &rc, 
-					   dev->con_data.tirpc_client);
+					   dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));

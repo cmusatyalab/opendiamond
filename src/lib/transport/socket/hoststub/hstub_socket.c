@@ -98,8 +98,8 @@ create_tcp_connection(uint32_t devid, uint16_t port)
 	return sockfd;
 }
 
-/* tirpc_init() takes an already-connected socket file descriptor and
-   makes it into a TI-RPC client handle */
+/* rpc_init() takes an already-connected socket file descriptor and
+   makes it into a TS-RPC (Sun RPC) client handle */
 
 static CLIENT *
 rpc_init(int connfd) {
@@ -269,10 +269,18 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 		}
 	} 
 
+	if(pthread_mutex_init(&cinfo->rpc_mutex, NULL) != 0) {
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: Sun RPC mutex initialization failed");
+		close(cinfo->control_fd);
+		close(cinfo->data_fd);
+		return (ENOENT);
+	}
+
 	cinfo->rpc_client = rpc_init(cinfo->control_fd);
 	if (cinfo->rpc_client == NULL) {
 		log_message(LOGT_NET, LOGL_ERR, 
-		    "hstub: TI-RPC initialization failed");
+		    "hstub: Sun RPC initialization failed");
 		close(cinfo->control_fd);
 		close(cinfo->data_fd);
 		return (ENOENT);

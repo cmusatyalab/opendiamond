@@ -65,8 +65,17 @@ request_chars(sdevice_state_t * dev)
 	enum clnt_stat retval;
 	request_chars_return_x characteristics;
 
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
+	  return -1;
+	}
 	retval = request_chars_x_2(0, &characteristics,
-			       dev->con_data.tirpc_client);
+			       dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -102,7 +111,16 @@ request_stats(sdevice_state_t * dev)
 	int             num_filt;
 	int             i;
 
-	retval = request_stats_x_2(0, &statistics, dev->con_data.tirpc_client);
+	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_stats: couldn't lock mutex");
+	  return -1;
+	}
+	retval = request_stats_x_2(0, &statistics, dev->con_data.rpc_client);
+	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+	  log_message(LOGT_NET, LOGL_ERR, "request_stats: couldn't unlock mutex");
+	  return -1;
+	}
+
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
@@ -111,7 +129,7 @@ request_stats(sdevice_state_t * dev)
 	if(statistics.error.service_err != DIAMOND_SUCCESS) {
 	  if((statistics.error.service_err == DIAMOND_OPERR) &&
 	     (statistics.error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL)) {
-	    return 0;  // we often ask for stats when no search is running
+	    return 0;  // we often ask for stats when no filters are there
 	  }
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics.error));
@@ -257,6 +275,7 @@ hstub_main(void *arg)
 		 * periodically prove send device statistics and
 		 * device characteristic probes.
 		 */
+
 		if (((this_time.tv_sec == next_time.tv_sec) &&
 	     	    (this_time.tv_usec >= next_time.tv_usec)) ||
 		    (this_time.tv_sec > next_time.tv_sec)) {

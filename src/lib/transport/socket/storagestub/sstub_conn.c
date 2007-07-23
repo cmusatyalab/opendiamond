@@ -108,12 +108,12 @@ create_rpc_server(void *arg) {
 
     if(data == NULL) {
       fprintf(stderr, "create_rpc_server: NULL arguments passed\n");
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
 
     if((rpcfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
   
     bzero(&servaddr, sizeof(struct sockaddr_in));
@@ -124,23 +124,23 @@ create_rpc_server(void *arg) {
     if(bind(rpcfd, (struct sockaddr *) &servaddr, 
 	    sizeof(struct sockaddr_in)) < 0) {
       perror("bind");
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
 
     transp = svctcp_create(rpcfd, BUFSIZ, BUFSIZ);
     if (transp == NULL) {
       fprintf (stderr, "%s", "cannot create TS-RPC tcp service.");
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
 
     pmap_unset(CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
     
     if (!svc_register(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
-		 clientcontent_prog_2, NULL)) {
+		      clientcontent_prog_2, 0)) {
       fprintf(stderr, "(TS-RPC server) unable to register \"client to "
 	      "content\" program (prognum=0x%x, versnum=%d, tcp)\n", 
 	      CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
 
     *(data->control_ready) = 1;       /* Signal the parent thread that
@@ -149,7 +149,7 @@ create_rpc_server(void *arg) {
 
     svc_run();
     fprintf(stderr, "create_rpc_server: svc_run returned!\n");
-    pthread_exit(-1);
+    pthread_exit((void *)-1);
 }
 
 
@@ -198,7 +198,7 @@ setup_rpc(cstate_t *cstate) {
     /* Create new connection to the TS-RPC server. */
     if((connfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
     
     bzero(&hints,  sizeof(struct addrinfo));
@@ -209,12 +209,12 @@ setup_rpc(cstate_t *cstate) {
     
     if((error = getaddrinfo("localhost", port_str, &hints, &info)) < 0) {
       fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
 
     if(connect(connfd, info->ai_addr, sizeof(struct sockaddr_in)) < 0) {
       perror("sunrpc connect");
-      pthread_exit(-1);
+      pthread_exit((void *)-1);
     }
 
     freeaddrinfo(info);
@@ -273,7 +273,7 @@ connection_main(listener_state_t * lstate, int conn)
 			cstate->flags &= ~CSTATE_ALLOCATED;
 			pthread_mutex_unlock(&cstate->cmutex);
 			printf("exiting thread \n");
-			pthread_exit(0);
+			pthread_exit((void *)0);
 		}
 
 		FD_ZERO(&cstate->read_fds);

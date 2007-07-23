@@ -120,6 +120,7 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	sx.app_objs_queued = hs->hs_objs_uqueued;
 	sx.app_objs_presented = hs->hs_objs_upresented;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_stop: couldn't lock mutex");
 	  return -1;
@@ -154,6 +155,7 @@ device_terminate(void *handle, int id)
 
 	dev = (sdevice_state_t *) handle;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: couldn't lock mutex");
 	  return -1;
@@ -195,6 +197,7 @@ device_start(void *handle, int id)
 	/* save the new start id */
 	dev->ver_no = id;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_start: couldn't lock mutex");
 	  return -1;
@@ -228,6 +231,7 @@ device_clear_gids(void *handle, int id)
 
 	dev = (sdevice_state_t *) handle;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: couldn't lock mutex");
 	  return -1;
@@ -286,6 +290,7 @@ device_new_gid(void *handle, int id, groupid_t gid)
 
 	gix = gid;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: couldn't lock mutex");
 	  return -1;
@@ -376,6 +381,7 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	sf.data.data_len = spec_len;
 	sf.data.data_val = data;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
 	  return -1;
@@ -427,6 +433,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	sx.sig_val_x_len = sizeof(sig_val_t);
 	sx.sig_val_x_val = (char *)obj_sig;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: couldn't lock mutex");
 	  return -1;
@@ -508,6 +515,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	ox.obj_data.obj_data_len = buf_len;
 	ox.obj_data.obj_data_val = data;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
 	  return -1;
@@ -570,6 +578,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen+len;
 	dx.dctl_data.dctl_data_val = data;
 
+	memset(&drx, 0, sizeof(drx));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: couldn't lock mutex");
 	  return -1;
@@ -629,6 +638,7 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen;
 	dx.dctl_data.dctl_data_val = path;
 
+	memset(&drx, 0, sizeof(drx));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: couldn't lock mutex");
 	  return -1;
@@ -688,6 +698,7 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen;
 	dx.dctl_data.dctl_data_val = path;
 
+	memset(&drx, 0, sizeof(drx));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: couldn't lock mutex");
 	  return -1;
@@ -747,6 +758,7 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_len = plen;
 	dx.dctl_data.dctl_data_val = path;
 
+	memset(&drx, 0, sizeof(drx));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: couldn't lock mutex");
 	  return -1;
@@ -797,6 +809,7 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	bx.blob_data.blob_data_len = blob_len;
 	bx.blob_data.blob_data_val = blob;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: couldn't lock mutex");
 	  return -1;
@@ -844,6 +857,7 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 
 	dev = (sdevice_state_t *) handle;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: couldn't lock mutex");
 	  return -1;
@@ -879,6 +893,7 @@ device_set_user_state(void *handle, int id, uint32_t state)
 
 	dev = (sdevice_state_t *) handle;
 
+	memset(&rc, 0, sizeof(rc));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: couldn't lock mutex");
 	  return -1;

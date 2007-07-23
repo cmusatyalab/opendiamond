@@ -65,6 +65,8 @@ request_chars(sdevice_state_t * dev)
 	enum clnt_stat retval;
 	request_chars_return_x characteristics;
 
+	memset(&characteristics, 0, sizeof(characteristics));
+
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
 	  return -1;
@@ -111,6 +113,7 @@ request_stats(sdevice_state_t * dev)
 	int             num_filt;
 	int             i;
 
+	memset(&statistics, 0, sizeof(statistics));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: couldn't lock mutex");
 	  return -1;
@@ -251,6 +254,7 @@ hstub_main(void *arg)
 		max_fd = cinfo->data_fd;
 	}
 	max_fd += 1;
+
 
 	/*
 	 * This loop looks at the set of items that we need to handle.

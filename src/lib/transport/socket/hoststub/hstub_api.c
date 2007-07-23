@@ -909,8 +909,18 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
 {
   sdevice_state_t *dev = (sdevice_state_t *) handle;
   diamond_session_var_list_return_x rc;
-  enum clnt_stat retval = session_variables_get_x_2(0, &rc,
-						    dev->con_data.tirpc_client);
+  enum clnt_stat retval;
+
+  if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: couldn't lock mutex");
+    return -1;
+  }
+  retval = session_variables_get_x_2(0, &rc, dev->con_data.rpc_client);
+  if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: couldn't unlock mutex");
+    return -1;
+  }
+
 
   if (retval != RPC_SUCCESS) {
     log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: call sending failed");
@@ -1007,7 +1017,15 @@ device_set_session_variables(void *handle, device_session_vars_t *vars)
     prev = l;
   }
 
-  retval = session_variables_set_x_2(0, *first, &rc, dev->con_data.tirpc_client);
+  if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
+    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: couldn't lock mutex");
+    return -1;
+  }
+  retval = session_variables_set_x_2(0, *first, &rc, dev->con_data.rpc_client);
+  if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
+    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: couldn't unlock mutex");
+    return -1;
+  }
 
   // free
   diamond_session_var_list_x *cur = first;

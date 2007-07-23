@@ -601,7 +601,7 @@ session_variables_get_x_2_svc(unsigned int gen,
 
 
   device_session_vars_t *vars =
-    (*tirpc_lstate->get_session_vars_cb) (tirpc_cstate->app_cookie, gen);
+    (*rpc_lstate->get_session_vars_cb) (rpc_cstate->app_cookie, gen);
 
   if (vars == NULL) {
     result->error.service_err = DIAMOND_NOMEM;
@@ -699,7 +699,7 @@ session_variables_set_x_2_svc(unsigned int gen,
   }
 
   // call
-  (*tirpc_lstate->set_session_vars_cb) (tirpc_cstate->app_cookie, gen, vars);
+  (*rpc_lstate->set_session_vars_cb) (rpc_cstate->app_cookie, gen, vars);
 
   // deallocate
   free(vars->names);

@@ -32,7 +32,6 @@
 #include <netdb.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <tirpc/rpc/types.h>
 #include <rpc/rpc.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
@@ -99,55 +98,39 @@ create_tcp_connection(uint32_t devid, uint16_t port)
 	return sockfd;
 }
 
-/* tirpc_init() takes an already-connected socket file descriptor and
-   makes it into a TI-RPC client handle */
+/* rpc_init() takes an already-connected socket file descriptor and
+   makes it into a TS-RPC (Sun RPC) client handle */
 
 static CLIENT *
-tirpc_init(int connfd) {
-	struct sockaddr control_name;
+rpc_init(int connfd) {
+	struct sockaddr_in control_name;
+	struct timeval tv;
 	unsigned int control_name_len = sizeof(struct sockaddr);
-	struct netconfig *nconf;
-	struct netbuf *tbind;
 	CLIENT *clnt;
 
-	nconf = getnetconfigent("tcp");
-	if(nconf == NULL) {
-	  perror("getnetconfigent");
-	  return NULL;
-	}
-	
-	/* Transform sockaddr_in to netbuf */
-	tbind = (struct netbuf *) malloc(sizeof(struct netbuf));
-	if(tbind == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-	
-	tbind->buf = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
-	if(tbind->buf == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-	if(getsockname(connfd, &control_name, &control_name_len) < 0) {
+	if(getsockname(connfd, (struct sockaddr *)&control_name, 
+		       &control_name_len) < 0) {
 	  perror("getsockname");
 	  return NULL;
 	}
-	memcpy(tbind->buf, &control_name, sizeof(struct sockaddr));
-	tbind->maxlen = tbind->len = sizeof(struct sockaddr);
 	
-	if ((clnt = clnt_tli_create(connfd,
-				    nconf,
-				    tbind, 
-				    CLIENTCONTENT_PROG, 
-				    CLIENTCONTENT_VERS, 
-				    BUFSIZ, BUFSIZ)) == NULL) {
-	  clnt_pcreateerror("clnt_tli_create");
+	if ((clnt = clnttcp_create(&control_name,
+				   CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
+				   &connfd, BUFSIZ, BUFSIZ)) == NULL) {
+	  clnt_pcreateerror("clnttcp_create");
 	  return NULL;
 	}
 
-	free(tbind->buf);
-	free(tbind);
-	freenetconfigent(nconf);
+	tv.tv_sec = 30*60; /* I'd prefer if this were infinite, but Sun RPC
+			    * dereferences the timeval and therefore we
+			    * can't send NULL. */
+	tv.tv_usec = 0;
+
+	if(!clnt_control(clnt, CLSET_TIMEOUT, (char *)&tv)) {
+	  log_message(LOGT_NET, LOGL_ERR, "rpc_init: changing timeout failed");
+	  clnt_destroy(clnt);
+	  return NULL;
+	}
 
 	return clnt;
 }
@@ -298,10 +281,18 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 		}
 	} 
 
-	cinfo->tirpc_client = tirpc_init(cinfo->control_fd);
-	if (cinfo->tirpc_client == NULL) {
+	if(pthread_mutex_init(&cinfo->rpc_mutex, NULL) != 0) {
 		log_message(LOGT_NET, LOGL_ERR, 
-		    "hstub: TI-RPC initialization failed");
+		    "hstub: Sun RPC mutex initialization failed");
+		close(cinfo->control_fd);
+		close(cinfo->data_fd);
+		return (ENOENT);
+	}
+
+	cinfo->rpc_client = rpc_init(cinfo->control_fd);
+	if (cinfo->rpc_client == NULL) {
+		log_message(LOGT_NET, LOGL_ERR, 
+		    "hstub: Sun RPC initialization failed");
 		close(cinfo->control_fd);
 		close(cinfo->data_fd);
 		return (ENOENT);

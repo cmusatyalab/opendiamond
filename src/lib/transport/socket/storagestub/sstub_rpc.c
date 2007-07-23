@@ -37,9 +37,9 @@
 #include "sstub_impl.h"
 
 void
-sstub_except_tirpc(listener_state_t * lstate, cstate_t * cstate)
+sstub_except_rpc(listener_state_t * lstate, cstate_t * cstate)
 {
-  printf("XXX except_tirpc \n");
+  printf("XXX except_rpc \n");
   /*
    * Handle the case where we are shutting down 
    */
@@ -51,13 +51,13 @@ sstub_except_tirpc(listener_state_t * lstate, cstate_t * cstate)
 }
 
 /*
- * This function is called when we see that the TI-RPC server has
+ * This function is called when we see that the TS-RPC server has
  * written bytes back for a client to read.  We forward the bytes from
- * the TI-RPC connection to the control connection.
+ * the TS-RPC connection to the control connection.
  */
 
 void
-sstub_read_tirpc(listener_state_t * lstate, cstate_t * cstate)
+sstub_read_rpc(listener_state_t * lstate, cstate_t * cstate)
 {
   int size_in, size_out;
   char buf[4096];
@@ -71,7 +71,7 @@ sstub_read_tirpc(listener_state_t * lstate, cstate_t * cstate)
   
   /* Attempt to process up to 4096 bytes of data in this iteration. */
   
-  size_in = read(cstate->tirpc_fd, (void *)buf, 4096);
+  size_in = read(cstate->rpc_fd, (void *)buf, 4096);
   if(size_in < 0){
     perror("read");
     return;

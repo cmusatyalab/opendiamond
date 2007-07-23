@@ -32,9 +32,8 @@
 #include <assert.h>
 
 #include <rpc/rpc.h>
-#include <tirpc/rpc/types.h>
+#include <rpc/pmap_clnt.h>
 #include <rpc/xdr.h>
-#include <netconfig.h>
 #include <netinet/in.h>
 
 #include "diamond_consts.h"
@@ -50,8 +49,11 @@
 #include "rpc_client_content.h"
 #include "xdr_shim.h"
 
-cstate_t *tirpc_cstate;
-listener_state_t *tirpc_lstate;
+static char const cvsid[] =
+    "$Header$";
+
+cstate_t *rpc_cstate;
+listener_state_t *rpc_lstate;
 
 
 void handle_requests(void) {
@@ -87,7 +89,7 @@ void handle_requests(void) {
 
 
 /*
- * This sets up a TI-RPC server listening on a random port number.
+ * This sets up a TS-RPC server listening on a random port number.
  */
 
 struct cts_args {
@@ -97,29 +99,21 @@ struct cts_args {
 };
 
 void *
-create_tirpc_server(void *arg) {
-    struct netconfig *nconf;
+create_rpc_server(void *arg) {
     SVCXPRT *transp;
-    struct t_bind tbind;
     struct sockaddr_in servaddr;
     int rpcfd;
 
     struct cts_args *data = (struct cts_args *)arg;
 
     if(data == NULL) {
-      fprintf(stderr, "create_tirpc_server: NULL arguments passed\n");
-      pthread_exit(0);
-    }
-
-    nconf = getnetconfigent("tcp");
-    if(nconf == NULL) {
-      perror("getnetconfigent");
-      pthread_exit(0);
+      fprintf(stderr, "create_rpc_server: NULL arguments passed\n");
+      pthread_exit((void *)-1);
     }
 
     if((rpcfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
-      pthread_exit(0);
+      pthread_exit((void *)-1);
     }
   
     bzero(&servaddr, sizeof(struct sockaddr_in));
@@ -127,40 +121,35 @@ create_tirpc_server(void *arg) {
     servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);  /* only local conns */
     servaddr.sin_port = htons(data->port);
 
-    tbind.qlen=8;
-    tbind.addr.maxlen = tbind.addr.len = sizeof(struct sockaddr_in);
-    tbind.addr.buf = &servaddr;
-    
-    transp = svc_tli_create(rpcfd, nconf, &tbind, BUFSIZ, BUFSIZ);
-    if (transp == NULL) {
-      fprintf (stderr, "%s", "cannot create tcp service.");
-      pthread_exit(0);
+    if(bind(rpcfd, (struct sockaddr *) &servaddr, 
+	    sizeof(struct sockaddr_in)) < 0) {
+      perror("bind");
+      pthread_exit((void *)-1);
     }
 
-    freenetconfigent(nconf);
+    transp = svctcp_create(rpcfd, BUFSIZ, BUFSIZ);
+    if (transp == NULL) {
+      fprintf (stderr, "%s", "cannot create TS-RPC tcp service.");
+      pthread_exit((void *)-1);
+    }
+
+    pmap_unset(CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
     
-    svc_unreg(CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
-    
-    if (!svc_reg(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
-		 clientcontent_prog_2, NULL)) {
-      fprintf(stderr, "(TI-RPC server) unable to register \"client to "
+    if (!svc_register(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
+		      clientcontent_prog_2, 0)) {
+      fprintf(stderr, "(TS-RPC server) unable to register \"client to "
 	      "content\" program (prognum=0x%x, versnum=%d, tcp)\n", 
 	      CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
-      pthread_exit(0);
+      pthread_exit((void *)-1);
     }
 
     *(data->control_ready) = 1;       /* Signal the parent thread that
 				       * our TI-RPC server is ready to
 				       * accept connections. */
 
-    /* Bugs were found in svc_run() in TI-RPC v0.1.7.  A bug report
-     * has been filed.  We are switching to our own loop around a
-     * lower-level call until it is fixed. */
-
-
-    handle_requests();
-    fprintf(stderr, "create_tirpc_server: handle_requests returned!\n");
-    pthread_exit(0);
+    svc_run();
+    fprintf(stderr, "create_rpc_server: svc_run returned!\n");
+    pthread_exit((void *)-1);
 }
 
 
@@ -171,11 +160,11 @@ create_tirpc_server(void *arg) {
  */
 
 int
-setup_tirpc(cstate_t *cstate) {
+setup_rpc(cstate_t *cstate) {
     int error, connfd;
     char port_str[6];
     struct addrinfo *info, hints;
-    pthread_t tirpc_thread;
+    pthread_t rpc_thread;
     struct timeval t;
 
     volatile uint16_t control_ready = 0;
@@ -200,16 +189,16 @@ setup_tirpc(cstate_t *cstate) {
 
     /* Create a thread which becomes a TI-RPC server. */
 
-    bzero(&tirpc_thread, sizeof(pthread_t));
-    pthread_create(&tirpc_thread, PATTR_DEFAULT, create_tirpc_server, 
+    bzero(&rpc_thread, sizeof(pthread_t));
+    pthread_create(&rpc_thread, PATTR_DEFAULT, create_rpc_server, 
 		   (void *)args);
     
     while(control_ready == 0) continue;
     
-    /* Create new connection to the TI-RPC server. */
+    /* Create new connection to the TS-RPC server. */
     if((connfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
-	  pthread_exit(0);
+      pthread_exit((void *)-1);
     }
     
     bzero(&hints,  sizeof(struct addrinfo));
@@ -220,12 +209,12 @@ setup_tirpc(cstate_t *cstate) {
     
     if((error = getaddrinfo("localhost", port_str, &hints, &info)) < 0) {
       fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
-      pthread_exit(0);
+      pthread_exit((void *)-1);
     }
 
     if(connect(connfd, info->ai_addr, sizeof(struct sockaddr_in)) < 0) {
-      perror("connect");
-      pthread_exit(0);
+      perror("sunrpc connect");
+      pthread_exit((void *)-1);
     }
 
     freeaddrinfo(info);
@@ -256,7 +245,7 @@ connection_main(listener_state_t * lstate, int conn)
 	 * connection to it.
 	 */
 
-	cstate->tirpc_fd = setup_tirpc(cstate);
+	cstate->rpc_fd = setup_rpc(cstate);
 
 
 	/*
@@ -267,15 +256,15 @@ connection_main(listener_state_t * lstate, int conn)
 	if (cstate->data_fd > max_fd) {
 		max_fd = cstate->data_fd;
 	}
-	if (cstate->tirpc_fd > max_fd) {
-		max_fd = cstate->tirpc_fd;
+	if (cstate->rpc_fd > max_fd) {
+		max_fd = cstate->rpc_fd;
 	}
 	max_fd += 1;
 
 	cstate->lstate = lstate;
 
-	tirpc_cstate = cstate;
-	tirpc_lstate = lstate;
+	rpc_cstate = cstate;
+	rpc_lstate = lstate;
 
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {
@@ -284,7 +273,7 @@ connection_main(listener_state_t * lstate, int conn)
 			cstate->flags &= ~CSTATE_ALLOCATED;
 			pthread_mutex_unlock(&cstate->cmutex);
 			printf("exiting thread \n");
-			pthread_exit(0);
+			pthread_exit((void *)0);
 		}
 
 		FD_ZERO(&cstate->read_fds);
@@ -293,14 +282,14 @@ connection_main(listener_state_t * lstate, int conn)
 
 		FD_SET(cstate->control_fd, &cstate->read_fds);
 		FD_SET(cstate->data_fd, &cstate->read_fds);
-		FD_SET(cstate->tirpc_fd, &cstate->read_fds);
+		FD_SET(cstate->rpc_fd, &cstate->read_fds);
 
 		FD_SET(cstate->control_fd, &cstate->write_fds);
-		FD_SET(cstate->tirpc_fd, &cstate->write_fds);
+		FD_SET(cstate->rpc_fd, &cstate->write_fds);
 
 		FD_SET(cstate->control_fd, &cstate->except_fds);
 		FD_SET(cstate->data_fd, &cstate->except_fds);
-		FD_SET(cstate->tirpc_fd, &cstate->except_fds);
+		FD_SET(cstate->rpc_fd, &cstate->except_fds);
 
 		pthread_mutex_lock(&cstate->cmutex);
 
@@ -340,12 +329,12 @@ connection_main(listener_state_t * lstate, int conn)
 			 * handle data tunneling between control and ti-rpc
 			 */
 			if (FD_ISSET(cstate->control_fd, &cstate->read_fds) &&
-			    FD_ISSET(cstate->tirpc_fd, &cstate->write_fds)) {
+			    FD_ISSET(cstate->rpc_fd, &cstate->write_fds)) {
 			  sstub_read_control(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->tirpc_fd, &cstate->read_fds) &&
+			if (FD_ISSET(cstate->rpc_fd, &cstate->read_fds) &&
 			    FD_ISSET(cstate->control_fd, &cstate->write_fds)) {
-			  sstub_read_tirpc(lstate, cstate);
+			  sstub_read_rpc(lstate, cstate);
 			}
 			
 			/*
@@ -367,8 +356,8 @@ connection_main(listener_state_t * lstate, int conn)
 			if (FD_ISSET(cstate->data_fd, &cstate->except_fds)) {
 				sstub_except_data(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->tirpc_fd, &cstate->except_fds)) {
-				sstub_except_tirpc(lstate, cstate);
+			if (FD_ISSET(cstate->rpc_fd, &cstate->except_fds)) {
+				sstub_except_rpc(lstate, cstate);
 			}
 		}
 	}

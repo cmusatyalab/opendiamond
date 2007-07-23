@@ -75,17 +75,20 @@ request_chars(sdevice_state_t * dev)
 			       dev->con_data.rpc_client);
 	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't unlock mutex");
+	  xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
 	  return -1;
 	}
 
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
+	  xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
 	  return -1;
 	}
 	if(characteristics.error.service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&characteristics.error));
+	  xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
 	  return -1;
 	}
 
@@ -93,6 +96,8 @@ request_chars(sdevice_state_t * dev)
 	dev->dev_char.dc_speed = characteristics.chars.dcs_isa;
 	dev->dev_char.dc_mem = characteristics.chars.dcs_mem;
 	dev->dev_char.dc_devid = dev->con_data.dev_id;
+
+	xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
 	
 	return 0;
 }
@@ -121,21 +126,25 @@ request_stats(sdevice_state_t * dev)
 	retval = request_stats_x_2(0, &statistics, dev->con_data.rpc_client);
 	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: couldn't unlock mutex");
+	  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
 	  return -1;
 	}
 
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
+	  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
 	  return -1;
 	}
 	if(statistics.error.service_err != DIAMOND_SUCCESS) {
 	  if((statistics.error.service_err == DIAMOND_OPERR) &&
 	     (statistics.error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL)) {
+	    xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
 	    return 0;  // we often ask for stats when no filters are there
 	  }
 	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics.error));
+	  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
 	  return -1;
 	}
 
@@ -201,6 +210,8 @@ request_stats(sdevice_state_t * dev)
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
 		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
 	}
+
+	xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
 
 	return 0;
 }

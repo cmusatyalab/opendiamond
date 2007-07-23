@@ -104,6 +104,7 @@ create_tcp_connection(uint32_t devid, uint16_t port)
 static CLIENT *
 rpc_init(int connfd) {
 	struct sockaddr_in control_name;
+	struct timeval tv;
 	unsigned int control_name_len = sizeof(struct sockaddr);
 	CLIENT *clnt;
 
@@ -117,6 +118,17 @@ rpc_init(int connfd) {
 				   CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
 				   &connfd, BUFSIZ, BUFSIZ)) == NULL) {
 	  clnt_pcreateerror("clnttcp_create");
+	  return NULL;
+	}
+
+	tv.tv_sec = 30*60; /* I'd prefer if this were infinite, but Sun RPC
+			    * dereferences the timeval and therefore we
+			    * can't send NULL. */
+	tv.tv_usec = 0;
+
+	if(!clnt_control(clnt, CLSET_TIMEOUT, (char *)&tv)) {
+	  log_message(LOGT_NET, LOGL_ERR, "rpc_init: changing timeout failed");
+	  clnt_destroy(clnt);
 	  return NULL;
 	}
 

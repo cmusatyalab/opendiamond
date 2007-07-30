@@ -284,9 +284,6 @@ connection_main(listener_state_t * lstate, int conn)
 		FD_SET(cstate->data_fd, &cstate->read_fds);
 		FD_SET(cstate->rpc_fd, &cstate->read_fds);
 
-		FD_SET(cstate->control_fd, &cstate->write_fds);
-		FD_SET(cstate->rpc_fd, &cstate->write_fds);
-
 		FD_SET(cstate->control_fd, &cstate->except_fds);
 		FD_SET(cstate->data_fd, &cstate->except_fds);
 		FD_SET(cstate->rpc_fd, &cstate->except_fds);
@@ -318,7 +315,7 @@ connection_main(listener_state_t * lstate, int conn)
 			perror("XXX select failed ");
 			exit(1);
 		}
-
+		
 		/*
 		 * If err > 0 then there are some objects
 		 * that have data.
@@ -328,14 +325,11 @@ connection_main(listener_state_t * lstate, int conn)
 			/*
 			 * handle data tunneling between control and ti-rpc
 			 */
-			if (FD_ISSET(cstate->control_fd, &cstate->read_fds) &&
-			    FD_ISSET(cstate->rpc_fd, &cstate->write_fds)) {
+			if (FD_ISSET(cstate->control_fd, &cstate->read_fds))
 			  sstub_read_control(lstate, cstate);
-			}
-			if (FD_ISSET(cstate->rpc_fd, &cstate->read_fds) &&
-			    FD_ISSET(cstate->control_fd, &cstate->write_fds)) {
+
+			if (FD_ISSET(cstate->rpc_fd, &cstate->read_fds))
 			  sstub_read_rpc(lstate, cstate);
-			}
 			
 			/*
 			 * handle outgoing data on the data connection

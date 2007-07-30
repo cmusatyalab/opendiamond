@@ -98,18 +98,10 @@ register_stats(cstate_t * cstate)
 	dctl_register_leaf(DEV_NETWORK_PATH, "control_bytes_recv",
 			   DCTL_DT_UINT64, dctl_read_uint64, NULL,
 			   &cstate->stats_control_bytes_rx);
-	dctl_register_leaf(DEV_NETWORK_PATH, "log_sent", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &cstate->stats_log_tx);
-	dctl_register_leaf(DEV_NETWORK_PATH, "log_bytes_sent", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &cstate->stats_log_bytes_tx);
 
 	dctl_register_leaf(DEV_NETWORK_PATH, "attr_policy", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &cstate->attr_policy);
-	dctl_register_leaf(DEV_NETWORK_PATH, "attr_ratio", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &cstate->attr_ratio);
 	dctl_register_leaf(DEV_NETWORK_PATH, "attr_ratio", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &cstate->attr_ratio);

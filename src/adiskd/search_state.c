@@ -1403,6 +1403,7 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 
 	dctl_thread_register(sstate->dctl_cookie);
 
+	dtype->len = MAX_DBUF;
 	err = dctl_read_leaf(path, &(dtype->dt), &(dtype->len), dtype->dbuf);
 
 	/*

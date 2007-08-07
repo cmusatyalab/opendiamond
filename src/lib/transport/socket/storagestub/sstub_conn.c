@@ -162,7 +162,7 @@ create_rpc_server(void *arg) {
 int
 setup_rpc(cstate_t *cstate) {
     int error, connfd;
-    char port_str[6];
+    char port_str[NI_MAXSERV];
     struct addrinfo *info, hints;
     pthread_t rpc_thread;
     struct timeval t;

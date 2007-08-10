@@ -994,6 +994,7 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
   diamond_session_var_list_return_x rc;
   enum clnt_stat retval;
 
+  memset(&rc, 0, sizeof(rc));
   if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
     log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: couldn't lock mutex");
     return -1;
@@ -1100,6 +1101,7 @@ device_set_session_variables(void *handle, device_session_vars_t *vars)
     prev = l;
   }
 
+  memset(&rc, 0, sizeof(rc));
   if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
     log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: couldn't lock mutex");
     return -1;

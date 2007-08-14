@@ -107,6 +107,7 @@ tools/setattr/Makefile
 tools/showattr/Makefile
 tools/showgid/Makefile
 tools/slowdown/Makefile
+tools/volcano/Makefile
 debian/Makefile
 target/Makefile
 target/bin/Makefile

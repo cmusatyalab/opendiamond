@@ -15,3 +15,6 @@ int is_file(char *path);
 int is_dir(char *path);
 int binary_to_hex_string(int len, char *dest, int dest_len, 
 			 unsigned char *data, int data_len);
+char *strip_username(char *src);
+char *parse_extension(char *src);
+int insert_gid_colons(char *dest, char *src);

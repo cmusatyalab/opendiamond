@@ -28,7 +28,8 @@
 #include <unistd.h>
 #include "helper.h"
 
-#define HEXNAMELEN 16
+#define OBJHEXLEN (SHA_DIGEST_LENGTH*2) //*2 because bytes become 2 hex chars
+#define GIDHEXLEN 16
 #define SCRIPTNAME "distribute_objects.sh"
 
 struct object_node {
@@ -73,6 +74,28 @@ free_list(object_list_t *list) {
   return;
 }
 
+
+int
+check_ssh_cookies(int num_servers, char **hostname) {
+  int i;
+
+  if((num_servers < 1) || (hostname == NULL))
+	return -1;
+
+  for(i=0; i<num_servers; i++) {
+	char command[NCARGS];
+	snprintf(command, NCARGS, 
+			 "ssh -o PasswordAuthentication=no -f %s exit > /dev/null 2>&1", 
+			 hostname[i]);
+	if(system(command) == 65280) { //65280 fail code found by empirical testing
+	  fprintf(stderr, "There are no ssh cookies present for %s\n",
+			  hostname[i]);
+	  return -1;
+	}
+  }
+  
+  return 0;
+}
 
 
 /*
@@ -268,6 +291,7 @@ generate_object_names(object_list_t *list) {
   for(trav = list->head; trav != NULL; trav = trav->next) {
     int fd;
     unsigned char hash[SHA_DIGEST_LENGTH], *file;
+    char *ext;
     struct stat buf;
 
     if(stat(trav->old_filename, &buf) < 0) {
@@ -302,7 +326,7 @@ generate_object_names(object_list_t *list) {
       return -1;
     }
     
-    if(binary_to_hex_string(HEXNAMELEN, trav->new_filename, MAXPATHLEN, 
+    if(binary_to_hex_string(OBJHEXLEN, trav->new_filename, MAXPATHLEN, 
 			    hash, SHA_DIGEST_LENGTH) < 0) {
       fprintf(stderr, "Error converting hash to string!\n");
       pthread_mutex_unlock(&list->mutex);
@@ -310,6 +334,14 @@ generate_object_names(object_list_t *list) {
       close(fd);
       return -1;
     }
+
+
+    /* Add the extension back onto the filename, which helps some programs
+     * parse the contents of a file. */
+
+    if((ext = parse_extension(trav->old_filename)) != NULL)
+      strncat(trav->new_filename, ext, 
+	      ((MAXPATHLEN - 1) - strlen(trav->new_filename)));
 
     munmap(file, buf.st_size);
     close(fd);
@@ -358,7 +390,7 @@ generate_index_file(char *collection_name, object_list_t *list,
 	  ((unsigned long long)rand()<<32) + 
 	  ((unsigned long long)rand()<<16) + 
 	  ((unsigned long long)rand()));
-  if(binary_to_hex_string(HEXNAMELEN, gid, HEXNAMELEN+1, (unsigned char *)rdm, 
+  if(binary_to_hex_string(GIDHEXLEN, gid, GIDHEXLEN+1, (unsigned char *)rdm, 
 			  sizeof(unsigned long long)) < 0) {
     fprintf(stderr, "Failed creating a random group id.\n");
     return -1;
@@ -473,9 +505,35 @@ int
 store_provenance(char *collection_name, char *gid,
 		 object_list_t *list, int num_servers, content_server_t *srv) {
   sqlite3 *db = NULL;
-  char *errmsg, command[NCARGS], dbname[MAXPATHLEN];
+  char *errmsg, *timep;
+  char command[NCARGS], dbname[MAXPATHLEN], localhost[MAXPATHLEN];
+  char gidstr[MAXPATHLEN];
   object_node_t *trav;  
-  int cur_server = 0;
+  int cur_server = 0, i;
+  uid_t uid;
+  time_t tm;
+
+  if(time(&tm) < (time_t)0) {
+    perror("time");
+    return -1;
+  }
+  
+  if((timep = ctime(&tm)) == NULL) {
+    perror("ctime");
+    return -1;
+  }
+
+  uid = getuid();
+
+  if(gethostname(localhost, MAXPATHLEN) < 0) {
+    perror("gethostname");
+    return -1;
+  }
+
+  if(insert_gid_colons(gidstr, gid) < 0) {
+    fprintf(stderr, "Error inserting colons into group ID string.\n");
+    return -1;
+  }
 
   snprintf(dbname, MAXPATHLEN, "provenance-%s.db", collection_name);
 
@@ -485,7 +543,7 @@ store_provenance(char *collection_name, char *gid,
     return -1;
   }
 
-  if(sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS provenance "
+  if(sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS objects "
 		  "( groupid TEXT, server TEXT, oldpath TEXT,"
 		  " newpath TEXT );", callback, 0, &errmsg) != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", errmsg);
@@ -495,14 +553,48 @@ store_provenance(char *collection_name, char *gid,
   }
 
   for(trav = list->head; trav !=  NULL; trav = trav->next, cur_server++) {
-
+    char *hnam, dest[MAXPATHLEN];
     cur_server %= num_servers;
-
+    
+    snprintf(dest, MAXPATHLEN, "%s/%s/%s", srv[cur_server].dataroot,
+	     collection_name, trav->new_filename);
+    
+    hnam = strip_username(srv[cur_server].hostname);
+    if(hnam == NULL) hnam = srv[cur_server].hostname;
+    
     snprintf(command, NCARGS, 
-	     "INSERT INTO provenance VALUES (\"%s\", \"%s\", \"%s\", \"%s\");",
-	     gid, srv[cur_server].hostname, trav->old_filename, 
-	     trav->new_filename);
+	     "INSERT INTO objects VALUES (\"%s\", \"%s\", \"%s\", \"%s\");",
+	     gidstr, hnam, trav->old_filename, dest);
+    
+    if(sqlite3_exec(db, command, callback, 0, &errmsg) != SQLITE_OK) {
+      fprintf(stderr, "SQL error: %s\n", errmsg);
+      sqlite3_free(errmsg);
+      sqlite3_close(db);
+      return -1;
+    }
+  }
 
+  if(sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS collections "
+		  "( collection TEXT, groupid TEXT, "
+		  "localhost TEXT, uid INTEGER, time TEXT, server TEXT );", 
+		  callback, 0, &errmsg) != SQLITE_OK) {
+    fprintf(stderr, "SQL error: %s\n", errmsg);
+    sqlite3_free(errmsg);
+    sqlite3_close(db);
+    return -1;
+  }
+
+  for(i=0; i<num_servers; i++) {
+    char *hnam;
+
+    hnam = strip_username(srv[i].hostname);
+    if(hnam == NULL) hnam = srv[i].hostname;
+    
+    snprintf(command, NCARGS, 
+	     "INSERT INTO collections VALUES "
+	     "(\"%s\", \"%s\", \"%s\", \"%d\", \"%s\", \"%s\" );",
+	     collection_name, gidstr, localhost, uid, timep, hnam);
+    
     if(sqlite3_exec(db, command, callback, 0, &errmsg) != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", errmsg);
       sqlite3_free(errmsg);
@@ -520,8 +612,13 @@ int
 store_metadata(char *collection_name, char *gid,
 	       int num_servers, content_server_t *srv) {
   sqlite3 *db = NULL;
-  char *errmsg, command[NCARGS], dbname[MAXPATHLEN];
+  char *errmsg, command[NCARGS], dbname[MAXPATHLEN], gidstr[MAXPATHLEN];
   int cur_server;
+
+  if(insert_gid_colons(gidstr, gid) < 0) {
+    fprintf(stderr, "Error inserting colons into group ID string.\n");
+    return -1;
+  }
 
   snprintf(dbname, MAXPATHLEN, "metadata-%s.db", collection_name);
 
@@ -541,10 +638,10 @@ store_metadata(char *collection_name, char *gid,
   }
 
   for(cur_server = 0; cur_server < num_servers; cur_server++) {
-
+    
     snprintf(command, NCARGS, 
 	     "INSERT INTO metadata VALUES (\"%s\", \"%s\", \"%s\");",
-	     collection_name, gid, srv[cur_server].hostname);
+	     collection_name, gidstr, srv[cur_server].hostname);
 
     if(sqlite3_exec(db, command, callback, 0, &errmsg) != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", errmsg);
@@ -565,11 +662,16 @@ create_collection(char *name, char *listfile, int num_servers,
   object_list_t *list;
   content_server_t *srv;
   int i;
-  char gid[HEXNAMELEN+1];
+  char gid[GIDHEXLEN+1];
 
   if((srv = (content_server_t *)malloc(num_servers * sizeof(content_server_t))) == NULL) {
     perror("malloc");
     return -1;
+  }
+
+  if(check_ssh_cookies(num_servers, hostname) < 0) {
+	fprintf(stderr, "You need ssh cookies set up to run volcano.\n");
+	return -1;
   }
 
   for(i=0; i<num_servers; i++) {
@@ -669,7 +771,7 @@ int main(int argc, char *argv[]) {
 
     num_servers = argc - 4;
     if(num_servers <= 0) {
-      fprintf(stderr, "no servers specified\n");
+      fprintf(stderr, "No servers specified\n");
       usage_create();
       exit(EXIT_FAILURE);
     }
@@ -678,10 +780,8 @@ int main(int argc, char *argv[]) {
     listfile = argv[3];
     hostname = &argv[4];
 
-    if(create_collection(collname, listfile, num_servers, hostname) < 0) {
-	fprintf(stderr, "failed creating collection\n");
-	exit(EXIT_FAILURE);
-    }
+    if(create_collection(collname, listfile, num_servers, hostname) < 0)
+	  exit(EXIT_FAILURE);
   }
   else if(!strcmp(command, "remove")) {
     //TODO

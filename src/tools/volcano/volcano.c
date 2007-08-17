@@ -430,6 +430,7 @@ write_distribution_script(char *collection_name, char *gid,
   object_node_t *trav;  
   FILE *fp;
   int cur_server = 0, i;
+  char command[NCARGS];
 
   if((list == NULL) || (srv == NULL) || (num_servers < 1) || (gid == NULL))
     return -1;
@@ -439,20 +440,24 @@ write_distribution_script(char *collection_name, char *gid,
     return -1;
   }
 
+  snprintf(command, NCARGS, "rm -rf /tmp/%s\n", collection_name);
+  fwrite(command, strlen(command), 1, fp);
+
   /* make a directory for the collection on each server */
   for(i=0; i < num_servers; i++) {
-    char command[NCARGS];
 
-    snprintf(command, NCARGS, "echo \"mkdir %s/%s\" | ssh %s\n",
+    snprintf(command, NCARGS, "mkdir -p /tmp/%s/%s/%s\n", collection_name,
+	     srv[i].hostname, collection_name);
+    fwrite(command, strlen(command), 1, fp);
+
+    snprintf(command, NCARGS, "echo \"mkdir -p %s/%s\" | ssh %s\n",
              srv[i].dataroot, collection_name, srv[i].hostname);
-
     fwrite(command, strlen(command), 1, fp);
   }
 
   
   /* copy a GID index file to each server. */
   for(i=0; i < num_servers; i++) {
-    char command[NCARGS];
 
     snprintf(command, NCARGS, "scp -p GIDIDX%s-%s %s:%s/GIDIDX%s\n",
              gid, srv[i].hostname, srv[i].hostname, srv[i].indexdir, gid);
@@ -462,18 +467,27 @@ write_distribution_script(char *collection_name, char *gid,
 
   for(trav = list->head; trav !=  NULL; 
       trav = trav->next, cur_server++) {
-    char buf[NCARGS];
 
     cur_server %= num_servers;
 
-    snprintf(buf, NCARGS, "scp -p %s %s:%s/%s/%s\n", trav->old_filename, 
-	     srv[cur_server].hostname, srv[cur_server].dataroot,
+    snprintf(command, NCARGS, "ln %s /tmp/%s/%s/%s/%s || scp -p %s %s:%s/%s/%s\n", 
+	     trav->old_filename, collection_name, srv[cur_server].hostname, 
+	     collection_name, trav->new_filename, trav->old_filename, 
+	     srv[cur_server].hostname, srv[cur_server].dataroot, 
 	     collection_name, trav->new_filename);
 
-    fwrite(buf, strlen(buf), 1, fp);
+    fwrite(command, strlen(command), 1, fp);
   }
 
 
+  /* copy the objects to each server. */
+  for(i=0; i < num_servers; i++) {
+    snprintf(command, NCARGS, "rsync -r /tmp/%s/%s/%s %s:%s\n", 
+	     collection_name, srv[i].hostname, collection_name, 
+	     srv[i].hostname, srv[i].dataroot);
+    fwrite(command, strlen(command), 1, fp);
+  }  
+  
   /* Set mode bits to 0755 */
 
   if(chmod(SCRIPTNAME, 

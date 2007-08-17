@@ -60,6 +60,11 @@ PKG_CHECK_MODULES(GLIB2, [glib-2.0])
 AC_SUBST(GLIB2_CFLAGS)
 AC_SUBST(GLIB2_LIBS)
 
+# sqlite3
+PKG_CHECK_MODULES(SQLITE3, [sqlite3])
+AC_SUBST(SQLITE3_CFLAGS)
+AC_SUBST(SQLITE3_LIBS)
+
 # libs
 AC_SEARCH_LIBS([sqrt], [m],, AC_MSG_FAILURE([cannot find math library]))
 AC_SEARCH_LIBS([dlopen], [dl],, AC_MSG_FAILURE([cannot find dlopen function]))

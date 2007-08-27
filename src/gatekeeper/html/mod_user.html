@@ -1,0 +1,42 @@
+<!--  $Id: mod_user.html 290 2007-08-22 19:37:33Z rgass $ 
+/*  OpenDiamond Gatekeeper
+ *  An OpenDiamond application the generation of scoping files
+ *
+ *  Copyright (c) 2007  Intel Corporation
+ *  All Rights Reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+-->
+
+<html>
+<form action="index.php" method="GET"> 
+<input type="hidden" name="action" value="delete_user">
+<center>
+<table border=0 class=add_user>
+    <tr>
+        <td>
+            Delete a user 
+        </td>
+        <td>
+            <select name="username">
+            <?php foreach ($all_users as $user) { ?>
+            <option value="<?php echo $user ?>"><?php echo $user; ?></option>
+            <? } ?>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td colspan=2>
+            <center>
+            <input type=submit value="Delete User">
+            </center>
+        </td>
+    </tr>
+</table>
+</center>
+</form>
+</html>

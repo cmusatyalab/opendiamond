@@ -1,0 +1,57 @@
+<!--  $Id: add_user_to_group.html 290 2007-08-22 19:37:33Z rgass $
+/*  OpenDiamond Gatekeeper
+ *  An OpenDiamond application the generation of scoping files
+ *
+ *  Copyright (c) 2007  Intel Corporation
+ *  All Rights Reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+-->
+ 
+<html>
+
+<form action="index.php" method="GET"> 
+<input type="hidden" name="action" value="add_user">
+<center>
+<table border=1>
+    <tr>
+        <td>
+            Add a user to a group 
+        </td>
+        <td>
+            <select name="user">
+            <?php foreach ($all_users as $user) { ?>
+            <option value="<?php echo $user ?>"><?php echo $user; ?></option>
+            <? } ?>
+            </select>
+
+        </td>
+    </tr>
+    <tr>
+        <td>
+            Collection List
+        </td>
+        <td>
+            <?php for ($i = 0; $i < count($col_list); $i++) { ?> 
+                <input type=checkbox 
+                <?php print "name=\"add_col[$i]\" ";?> 
+                <?php print "value=\"$col_list[$i]\"> "; ?>
+                <?php print "$col_list[$i]"?><br>
+            <?php } ?>
+        </td>
+    </tr>
+    <tr>
+        <td colspan=2>
+            <center>
+            <input type=submit value="Add user">
+            </center>
+        </td>
+    </tr>
+</table>
+</center>
+</form>
+</html>

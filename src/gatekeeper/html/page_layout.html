@@ -1,0 +1,43 @@
+<!--  $Id: page_layout.html 290 2007-08-22 19:37:33Z rgass $ 
+/*  OpenDiamond Gatekeeper
+ *  An OpenDiamond application the generation of scoping files
+ *
+ *  Copyright (c) 2007  Intel Corporation
+ *  All Rights Reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+-->
+
+
+<?php echo $header;?>
+<?php $logo = $G['IMAGE_LIB'] ."/". $G['LOGO_MAIN']; ?>
+
+<table width=100%>
+    <tr>
+        <td class=header>
+            <div class=center>
+            <img src="<?php echo $logo ?>">
+            </div>
+        </td>
+    </tr>
+</table>
+<table class=gatekeeper border=0>
+    <tr>
+        <td class="tdleft">
+            <?php include ($left_menu); ?>
+        </td>
+
+        <td class="gatekeeper">
+            <div class=center>
+            <?php include ($main_content); ?>
+            </div>
+        </td>
+    </tr>
+</table>
+</html>
+
+<?php echo $footer;?>

@@ -1,0 +1,35 @@
+<!--  $Id: left_menu.html 290 2007-08-22 19:37:33Z rgass $ 
+/*  OpenDiamond Gatekeeper
+ *  An OpenDiamond application the generation of scoping files
+ *
+ *  Copyright (c) 2007  Intel Corporation
+ *  All Rights Reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+-->
+
+<table>
+    <tr>
+        <td>
+            <hr>
+            <a href=<?php echo $G['WEBROOT']?>>GateKeeper Main </a>
+            <hr>
+            <a href=<?php echo $G['WEBROOT']; ?>/index.php?action=define_scope>Define Scope</a><br>
+<?php if ($is_admin == 1) { ?>
+            <hr>
+            <a href=<?php echo $G['WEBROOT']; ?>/index.php?action=add_user>Add a User</a><br>
+            <a href=<?php echo $G['WEBROOT']; ?>/index.php?action=delete_user>Delete a User</a><br>
+            <a href=<?php echo $G['WEBROOT']; ?>/index.php?action=summary>User Summary</a><br>
+<?php } ?>
+            <hr>
+            <a href=http://diamond.cs.cmu.edu>OpenDiamond</a><br>
+            <a href=http://isads.intel-research.net>ISADS</a>
+            <hr>
+        </td>
+    </tr>
+</table>
+

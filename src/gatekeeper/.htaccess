@@ -1,0 +1,15 @@
+<Files ~ "^.*\.([Cc][Oo][Nn][Ff])">
+    Order allow,deny
+    Deny from all
+    Satisfy All
+</Files>
+
+AuthUserFile /homes/rgass/public_html/gatekeeper/.htpasswd
+#AuthUserFile /home/rgass/public_html/dermweb/results/.htpasswd
+AuthGroupFile /dev/null
+AuthName "GateKeeper"
+AuthType Basic
+#require user rgass
+#require user upmc
+require valid-user
+

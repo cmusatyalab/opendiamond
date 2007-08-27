@@ -1,0 +1,120 @@
+/*
+ *  OpenDiamond Gatekeeper
+ *  An OpenDiamond application the generation of scoping files
+ *
+ *  Copyright (c) 2007  Intel Corporation
+ *  All Rights Reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+/*
+ *  $Id: gatekeeper_main.css 287 2007-08-22 19:09:34Z rgass $
+ */
+
+/*  Setup defaults for page  */
+body,table,tr,td {
+    font-family : "lucida sans unicode", verdana, arial, sans-serif;
+    font-size : 12pt;
+    padding : 0;
+    background : #FFF;
+}
+a,a:visited  {
+    color : #475677;
+    text-decoration : none;
+}
+
+a:hover {
+    text-decoration : underline;
+}
+
+img {
+    border : 0;
+    padding : 0;
+    margin : 0;
+    text-align : center;
+}
+
+
+table.logbox {
+    width : 50%;
+    text-align : center;
+    border : solid #F6DDC4;
+}
+ 
+table.logbox td {
+    background-color : #FAF0E6;
+    -moz-border-radius: 6px 6px 6px 6px;
+
+}
+
+td.tdcenter {
+    text-align : center;
+}
+
+td.tdleft {
+    text-align : left;
+    vertical-align : top;
+    width : 25%;
+}
+td.tdmain{
+    text-align : left;
+    vertical-align : top;
+    padding : 10px 10px 10px 10px;
+    width : 75%;
+}
+
+td.footer {
+    width : 50%;
+    text-align : center;
+}
+
+td.header {
+    width : 100%;
+    text-align : center;
+    /* border : medium double blue; */
+}
+
+td.tdright {
+    text-align : right;
+}
+
+div.xxlarge {
+    font-size : xx-large;
+}
+
+div.large {
+    font-size : large;
+}
+
+div.center {
+    text-align : center;
+}
+
+table.gatekeeper{
+    width : 100%;
+    text-align : center;
+    /* border : medium double blue; */
+}
+
+td.gatekeeper{
+    text-align : center;
+}
+
+table.add_user {
+    border : medium double grey;
+    text-align : center;
+    vertical-align : center;
+    width : 400px;
+}
+table.scope {
+    width : 40%;
+    text-align : center;
+    border : medium double grey;
+}
+td.scope {
+    border-bottom : medium double blue;
+}

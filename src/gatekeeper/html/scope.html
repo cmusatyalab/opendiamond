@@ -1,0 +1,59 @@
+<!--  $Id: scope.html 290 2007-08-22 19:37:33Z rgass $  
+/*  OpenDiamond Gatekeeper
+ *  An OpenDiamond application the generation of scoping files
+ *
+ *  Copyright (c) 2007  Intel Corporation
+ *  All Rights Reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+-->
+
+<html>
+<center>
+<form action="index.php?action=define_scope" method="POST"> 
+<table border=0 class=scope>
+    <tr>
+        <td colspan=2>
+            Setup Scope
+        </td>
+    </tr>
+    <tr>
+        <td>
+            User 
+        </td>
+        <td>
+            Collection
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <?php print "$me"; ?><br>
+        </td>
+        <td align=right>
+
+            <?php 
+                $col_list = $a->member_of($me);
+                $i = 0;
+                foreach ($col_list as $col) { 
+                    print "$col";
+                    print "<input type=\"checkbox\" name=\"scope[$i]\" value=\"$col\"><br>";
+                    $i++;
+                }
+            ?>
+        </td>
+    </tr>
+    <tr>
+        <td colspan=2>
+            <center>
+            <input type=submit value="Generate Scope">
+            </center>
+        </td>
+    </tr>
+</table>
+</center>
+</form>
+</html>

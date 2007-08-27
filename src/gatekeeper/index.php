@@ -1,21 +1,19 @@
 <?php
 /*
- *  OpenDiamond Gatekeeper
- *  An OpenDiamond application the generation of scoping files
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 3
  *
- *  Copyright (c) 2007  Intel Corporation
- *  All Rights Reserved.
+ *  Copyright (c) 2007 Intel Corporation
+ *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
  *  License, Version 1.0 which can be found in the file named LICENSE.
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
-/*  $Id: index.php 288 2007-08-22 19:12:19Z rgass $  */
+/*  $Id:$  */
 
     //  Check if we are using https
-    //  Richard Gass <richard.gass@intel.com>
-    //  20070802
     if ((!isset($_SERVER['HTTPS'])) || $_SERVER["HTTPS"] != "on") {
         $bname = dirname($_SERVER['SCRIPT_NAME']);
         $secure_url = "https://" . $_SERVER["HTTP_HOST"] .  $bname;

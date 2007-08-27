@@ -1,18 +1,17 @@
 <?
 /*
- *  OpenDiamond Gatekeeper
- *  An OpenDiamond application the generation of scoping files
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 3
  *
- *  Copyright (c) 2007  Intel Corporation
- *  All Rights Reserved.
+ *  Copyright (c) 2007 Intel Corporation
+ *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
  *  License, Version 1.0 which can be found in the file named LICENSE.
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
-/*  $Id: functions.php 287 2007-08-22 19:09:34Z rgass $  */
-include ("compat.php");
+/*  $Id:$  */
 
 class admin {
     var $db_dir;

@@ -18,3 +18,4 @@ int binary_to_hex_string(int len, char *dest, int dest_len,
 char *strip_username(char *src);
 char *parse_extension(char *src);
 int insert_gid_colons(char *dest, char *src);
+int escape_shell_chars(char *str, int maxlen);

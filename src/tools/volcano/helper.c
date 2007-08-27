@@ -154,3 +154,99 @@ insert_gid_colons(char *dest, char *src) {
 
   return 0;
 }
+
+
+/*
+ * escape_bad_chars
+ *
+ * Replaces all instances of special metacharacters in a string with their
+ * 'escaped' counterparts, such that a shell will read them for their
+ * character data and not as a control symbol.  This also includes spaces,
+ * assuming they are part of a filename or pathname.
+ *
+ * The list of metacharacters comes from the WWW Security FAQ, referenced by
+ * http://www.dwheeler.com/secure-programs/Secure-Programs-HOWTO/handle-metacharacters.html
+ */
+
+int escape_shell_chars(char *str, int maxlen) {
+  int len, i;
+  char *newstr;
+
+  if(str == NULL || maxlen <= 0 )
+    return 1;
+
+  newstr = (char *) malloc(maxlen * sizeof(char));
+  if(newstr == NULL) { 
+    perror("malloc"); 
+    return -1; 
+  }
+   
+  strncpy(newstr, str, maxlen-1);
+  newstr[maxlen-1] = '\0';
+
+  len = strlen(str);
+  for(i = 0; (newstr[i] != '\0') && (len < (maxlen - 1)); i++) {
+
+    // newlines are a special case in bash
+    switch(newstr[i]) {
+      
+    case '\n':
+      
+      if((len + 2) < (maxlen - 1)) {
+	memmove(&(newstr[i+2]), &(newstr[i]), strlen(&(newstr[i])));
+	newstr[i++] = '\\';
+	newstr[i] = '\\';
+      }
+      else {
+	fprintf(stderr, "too many characters to escape in %s\n", str);
+	free(newstr);
+	return -1;
+      }
+      break;
+      
+    case '`':
+    case '\"':
+    case '\'':
+    case '[':
+    case ']':
+    case '{':
+    case '}':
+    case '(':
+    case ')':
+    case '~':
+    case '^':
+    case '<':
+    case '>':
+    case '&':
+    case '|':
+    case '?':
+    case '*':
+    case '$':
+    case ';':
+    case '\r':
+    case '\\':
+    case ' ':
+      
+      if((len + 1) < (maxlen - 1)) {
+	memmove(&(newstr[i+1]), &(newstr[i]), strlen(&(newstr[i])));
+	newstr[i++] = '\\';
+      }
+      else {
+	fprintf(stderr, "too many characters to escape in %s\n", str);
+	free(newstr);
+	return -1;
+      }
+      break;
+      
+    default:
+      continue;
+    }
+    
+    len = strlen(newstr);
+  }
+  
+  strcpy(str, newstr);
+  free(newstr);
+
+  return 0;
+}

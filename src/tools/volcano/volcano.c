@@ -217,7 +217,7 @@ get_content_server_config(content_server_t *conf) {
   strcpy(command, "scp ");
   strcat(command, conf->hostname);
   strcat(command, ":~/.diamond/diamond_config /tmp/diamond_config > /dev/null");
-  fprintf(stderr, "%s\n", command);
+
   if(system(command) == -1) { //system() annoying if no ssh keys set up
     perror("system");
     return -1;
@@ -254,7 +254,6 @@ get_content_server_config(content_server_t *conf) {
 	return -1;
       }
       strncpy(conf->dataroot, bufp, MAXPATHLEN);
-      fprintf(stderr, "%s's DATAROOT=%s\n", conf->hostname, conf->dataroot);
       datastat = 1;
     }
             
@@ -266,7 +265,6 @@ get_content_server_config(content_server_t *conf) {
 	return -1;
       }
       strncpy(conf->indexdir, bufp, MAXPATHLEN);
-      fprintf(stderr, "%s's INDEXDIR=%s\n", conf->hostname, conf->indexdir);
       indexstat = 1;
       continue;
     }
@@ -407,8 +405,11 @@ generate_index_file(char *collection_name, object_list_t *list,
   for(trav = list->head, i=0; trav !=  NULL; trav = trav->next, i++) {
     char buf[MAXPATHLEN];
     i%=num_servers;
-    snprintf(buf, MAXPATHLEN, "%s/%s/%s\n", srv[i].dataroot,
+    snprintf(buf, MAXPATHLEN, "%s/%s/%s", srv[i].dataroot,
 	     collection_name, trav->new_filename);
+    if(escape_shell_chars(buf, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+    strcat(buf, "\n");
     fwrite(buf, strlen(buf), 1, fp[i]);
   }
 
@@ -416,8 +417,6 @@ generate_index_file(char *collection_name, object_list_t *list,
     fclose(fp[i]);
 
   free(fp);
-
-  fprintf(stderr, "Generated group ID index file: %s\n", pathname);
 
   return 0;
 }
@@ -430,7 +429,7 @@ write_distribution_script(char *collection_name, char *gid,
   object_node_t *trav;  
   FILE *fp;
   int cur_server = 0, i;
-  char command[NCARGS];
+  char command[NCARGS], cname[MAXPATHLEN];
 
   if((list == NULL) || (srv == NULL) || (num_servers < 1) || (gid == NULL))
     return -1;
@@ -440,51 +439,92 @@ write_distribution_script(char *collection_name, char *gid,
     return -1;
   }
 
-  snprintf(command, NCARGS, "rm -rf /tmp/%s\n", collection_name);
+  snprintf(cname, MAXPATHLEN, "%s", collection_name);
+  if(escape_shell_chars(cname, MAXPATHLEN) < 0)
+    fprintf(stderr, "failed escaping characters! script may have errors.\n");
+
+  snprintf(command, NCARGS, "rm -rf /tmp/%s\n", cname);
   fwrite(command, strlen(command), 1, fp);
 
   /* make a directory for the collection on each server */
   for(i=0; i < num_servers; i++) {
+    char hostname[MAXPATHLEN], dataroot[MAXPATHLEN];
 
-    snprintf(command, NCARGS, "mkdir -p /tmp/%s/%s/%s\n", collection_name,
-	     srv[i].hostname, collection_name);
+    snprintf(hostname, MAXPATHLEN, "%s", srv[i].hostname);
+    if(escape_shell_chars(hostname, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+
+    snprintf(dataroot, MAXPATHLEN, "%s", srv[i].dataroot);
+    if(escape_shell_chars(dataroot, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+
+    snprintf(command, NCARGS, "mkdir -p /tmp/%s/%s/%s\n", cname, hostname,
+	     cname);
     fwrite(command, strlen(command), 1, fp);
 
     snprintf(command, NCARGS, "echo \"mkdir -p %s/%s\" | ssh %s\n",
-             srv[i].dataroot, collection_name, srv[i].hostname);
+             dataroot, cname, hostname);
     fwrite(command, strlen(command), 1, fp);
   }
 
   
   /* copy a GID index file to each server. */
   for(i=0; i < num_servers; i++) {
+    char hostname[MAXPATHLEN], indexdir[MAXPATHLEN];
+
+    snprintf(hostname, MAXPATHLEN, "%s", srv[i].hostname);
+    if(escape_shell_chars(hostname, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+
+    snprintf(indexdir, MAXPATHLEN, "%s", srv[i].indexdir);
+    if(escape_shell_chars(indexdir, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
 
     snprintf(command, NCARGS, "scp -p GIDIDX%s-%s %s:%s/GIDIDX%s\n",
-             gid, srv[i].hostname, srv[i].hostname, srv[i].indexdir, gid);
-
+             gid, hostname, hostname, indexdir, gid);
     fwrite(command, strlen(command), 1, fp);
   }  
 
   for(trav = list->head; trav !=  NULL; 
       trav = trav->next, cur_server++) {
+    char localdest[MAXPATHLEN], src[MAXPATHLEN], dest[MAXPATHLEN];
 
     cur_server %= num_servers;
 
-    snprintf(command, NCARGS, "ln %s /tmp/%s/%s/%s/%s || scp -p %s %s:%s/%s/%s\n", 
-	     trav->old_filename, collection_name, srv[cur_server].hostname, 
-	     collection_name, trav->new_filename, trav->old_filename, 
-	     srv[cur_server].hostname, srv[cur_server].dataroot, 
-	     collection_name, trav->new_filename);
+    snprintf(localdest, MAXPATHLEN, "/tmp/%s/%s/%s/%s", collection_name, 
+	     srv[cur_server].hostname, collection_name, trav->new_filename);
+    if(escape_shell_chars(localdest, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
 
+    snprintf(src, MAXPATHLEN, "%s", trav->old_filename);
+    if(escape_shell_chars(src, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+    
+    snprintf(dest, MAXPATHLEN, "%s:%s/%s/%s", srv[cur_server].hostname, 
+	     srv[cur_server].dataroot, collection_name, trav->new_filename);
+    if(escape_shell_chars(dest, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+
+    snprintf(command, NCARGS, "ln %s %s || scp -p %s %s\n", src, localdest, 
+	     src, dest);
     fwrite(command, strlen(command), 1, fp);
   }
 
 
   /* copy the objects to each server. */
   for(i=0; i < num_servers; i++) {
-    snprintf(command, NCARGS, "rsync -r /tmp/%s/%s/%s %s:%s\n", 
-	     collection_name, srv[i].hostname, collection_name, 
-	     srv[i].hostname, srv[i].dataroot);
+    char src[MAXPATHLEN], dest[MAXPATHLEN];
+
+    snprintf(src, MAXPATHLEN, "/tmp/%s/%s/%s", collection_name, 
+	     srv[i].hostname, collection_name);
+    if(escape_shell_chars(src, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+
+    snprintf(dest, MAXPATHLEN, "%s:%s", srv[i].hostname, srv[i].dataroot); 
+    if(escape_shell_chars(dest, MAXPATHLEN) < 0)
+      fprintf(stderr, "failed escaping characters! script may have errors.\n");
+
+    snprintf(command, NCARGS, "rsync -r %s %s\n", src, dest);
     fwrite(command, strlen(command), 1, fp);
   }  
   
@@ -743,9 +783,8 @@ create_collection(char *name, char *listfile, int num_servers,
 }
 
 void usage_create(void) {
-  fprintf(stderr, "usage: volcano create [collection-name] [object-list] "
-                  "[content-server-1]...\n");
-  //  fprintf(stderr, "Try volcano --help for help.\n");
+  fprintf(stderr, "usage: volcano create <collection-name> <index-file> "
+                  "<content-server-1> [content-server-2]...\n");
 }
 
 void usage_list(void) {
@@ -757,10 +796,18 @@ void usage_remove(void) {
 }
 
 void usage(void) {
-  fprintf(stderr, "usage: volcano [command] [options]\n");
+  fprintf(stderr, "usage: volcano <command> <parameters>\n");
   fprintf(stderr, "Try volcano --help for help.\n");
 }
 
+void help(void) {
+  fprintf(stderr, "usage: volcano <command> <parameters>\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "The only supported command at the moment is:\n"
+	  "  create \tCreate a new collection from a list of objects");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Try git <command> --help for command-specific help.\n");
+}
 
 int main(int argc, char *argv[]) {
   char *command = argv[1];
@@ -771,7 +818,7 @@ int main(int argc, char *argv[]) {
   }
   
   if(!strcmp(command, "--help")) {
-    usage(); //help() in the future
+    help();
     exit(EXIT_SUCCESS);
   }
   else if(!strcmp(command, "create")) {

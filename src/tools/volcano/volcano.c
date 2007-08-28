@@ -405,8 +405,7 @@ generate_index_file(char *collection_name, object_list_t *list,
   for(trav = list->head, i=0; trav !=  NULL; trav = trav->next, i++) {
     char buf[MAXPATHLEN];
     i%=num_servers;
-    snprintf(buf, MAXPATHLEN, "%s/%s/%s", srv[i].dataroot,
-	     collection_name, trav->new_filename);
+    snprintf(buf, MAXPATHLEN, "%s/%s", collection_name, trav->new_filename);
     if(escape_shell_chars(buf, MAXPATHLEN) < 0)
       fprintf(stderr, "failed escaping characters! script may have errors.\n");
     strcat(buf, "\n");

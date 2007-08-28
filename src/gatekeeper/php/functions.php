@@ -13,6 +13,8 @@
  */
 /*  $Id:$  */
 
+dl('sqlite3.so');
+
 class admin {
     var $db_dir;
     var $acl_file;
@@ -70,14 +72,47 @@ class admin {
      *  @return array with scope info
      */
     function get_scope ($collection) {
-        $query = "select * from metadata where collection = '$collection';";
-        $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
-       $handle =  sqlite3_open($collection_file);
-       $result = sqlite3_query($handle, $query);
-
-       $myarray = sqlite3_fetch_array ($result);
-       return $myarray;
+      $query = "select * from metadata where collection = '$collection';";
+      $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
+      $handle =  sqlite3_open($collection_file);
+      $result = sqlite3_query($handle, $query);
+      
+      $myarray = sqlite3_fetch_array ($result);
+      return $myarray;
     }
+
+    /**
+     *  Get the name to group ID info from the db files
+     *  @param collection
+     *  @return array with name_map info
+     */
+    function get_namemap_entry ($collection) {
+      $query = "select distinct collection,groupid from metadata where collection = '$collection';";
+      $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
+      $handle =  sqlite3_open($collection_file);
+      $result = sqlite3_query($handle, $query);
+
+      $myarray = sqlite3_fetch_array ($result);
+      return $myarray;
+    }
+
+
+    /**
+     *  Get the group ID to server info from the db files
+     *  @param collection
+     *  @param groupid
+     *  @return array with gid_map info
+     */
+    function get_gidmap_entry ($collection, $groupid) {
+      $query = "select distinct server from metadata where groupid='$groupid';";
+      $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
+      $handle =  sqlite3_open($collection_file);
+      $result = sqlite3_query($handle, $query);
+
+      $myarray = sqlite3_fetch_array ($result);
+      return $myarray;
+    }
+
 
     /**  
      *  Add a user

@@ -4,8 +4,7 @@
     Satisfy All
 </Files>
 
-AuthUserFile /homes/rgass/public_html/gatekeeper/.htpasswd
-#AuthUserFile /home/rgass/public_html/dermweb/results/.htpasswd
+AuthUserFile /root/.htpasswd
 AuthGroupFile /dev/null
 AuthName "GateKeeper"
 AuthType Basic

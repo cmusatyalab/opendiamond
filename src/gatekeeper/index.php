@@ -72,18 +72,31 @@
         $main_content = "html/scope.html";
         if (($scope != "") && ($me != "")) {
 
+	    $content = sizeof($scope) . "\n";
+	    $gids = 0;
+
             foreach ($scope as $coll) {
-                $scope_info = $a->get_scope($coll);
-                $content = $scope_info['collection'] . " ";
-                $content .= $scope_info['groupid'] . " ";
-                $content .= $scope_info['server'] . "\n";
+                $namemap_info = $a->get_namemap_entry($coll);
+                $content .= $namemap_info['collection'] . " ";
+                $content .= $namemap_info['groupid'] . "\n";
+		$gids = $gids + 1; 
             }
-            file_put_contents ("db/testfile.txt", $content);
+
+	    $content .= $gids . "\n";
+
+            foreach ($scope as $coll) {
+                $namemap_info = $a->get_namemap_entry($coll);
+		$gid = $namemap_info['groupid'];
+                $gidmap_info = $a->get_gidmap_entry($coll, $gid);
+                $content .= $gid . " ";
+		$servers = $gidmap_info['server'];
+		$content .= $servers . " ";
+                $content .= "\n";
+            }
+            file_put_contents ("testfile.txt", $content);
             $filename = "diamond_config_scope";
-            //  text/plain will allow you to select save or open
-            #header('Content-type: text/plain');
-            //  Use octet-stream if you want to only allow a user to save
-            header('Content-type: application/octet-stream');
+
+            header('Content-type: application/x-diamond-scope');
             header('Content-Disposition: attachment; filename="'.$filename.'"');
             echo $content;
             exit; 

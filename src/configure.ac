@@ -95,6 +95,7 @@ lib/libfilterexec/Makefile
 lib/liblog/Makefile
 lib/libod/Makefile
 lib/libodisk/Makefile
+lib/libscope/Makefile
 lib/libsearchlet/Makefile
 lib/libtools/Makefile
 lib/transport/Makefile

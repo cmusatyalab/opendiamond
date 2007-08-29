@@ -11,8 +11,8 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-#ifndef _LIB_SEARCHLET_H_
-#define	_LIB_SEARCHLET_H_
+#ifndef _LIB_SCOPE_H_
+#define	_LIB_SCOPE_H_
 
 /*!  
  * \defgroup scope  Metadata Scoping API
@@ -24,9 +24,24 @@
  * */
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*!
  * \file lib_scope.h
  * \ingroup scope
  * This defines the API that applications use to set the scope of
  * future searches in the OpenDiamond system.
  */
+
+int ls_define_scope(void);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#endif

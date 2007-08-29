@@ -89,11 +89,9 @@
             foreach ($scope as $coll) {
                 $namemap_info = $a->get_namemap_entry($coll);
 		$gid = $namemap_info['groupid'];
-                $gidmap_info = $a->get_gidmap_entry($coll, $gid);
-                $content .= $gid . " ";
-		$servers = $gidmap_info['server'];
-		$content .= $servers . " ";
-                $content .= "\n";
+                $servers = $a->get_gidmap_entry($coll, $gid);
+		$content .= $gid . " ";
+                $content .= $servers . "\n";
             }
             file_put_contents ("testfile.txt", $content);
             $filename = "diamond_config_scope";

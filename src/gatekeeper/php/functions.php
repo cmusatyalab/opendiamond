@@ -106,10 +106,12 @@ class admin {
       $query = "select distinct server from metadata where groupid='$groupid';";
       $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
       $handle =  sqlite3_open($collection_file);
-      $result = sqlite3_query($handle, $query);
-
-      $myarray = sqlite3_fetch_array ($result);
-      return $myarray;
+      $query_result = sqlite3_query($handle, $query);
+      $result = "";
+      while($myarray = sqlite3_fetch_array ($query_result)) {
+        $result .= $myarray['server'] . " ";
+      }
+      return $result;
     }
 
 

@@ -691,10 +691,14 @@ store_metadata(char *collection_name, char *gid,
   }
 
   for(cur_server = 0; cur_server < num_servers; cur_server++) {
-    
+    char *hnam;
+
+    hnam = strip_username(srv[cur_server].hostname);
+    if(hnam == NULL) hnam = srv[cur_server].hostname;
+   
     snprintf(command, NCARGS, 
 	     "INSERT INTO metadata VALUES (\"%s\", \"%s\", \"%s\");",
-	     collection_name, gidstr, srv[cur_server].hostname);
+	     collection_name, gidstr, hnam);
 
     if(sqlite3_exec(db, command, callback, 0, &errmsg) != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", errmsg);

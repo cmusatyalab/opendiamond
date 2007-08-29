@@ -13,8 +13,6 @@
  */
 /*  $Id:$  */
 
-dl('sqlite3.so');
-
 class admin {
     var $db_dir;
     var $acl_file;
@@ -36,6 +34,7 @@ class admin {
             $auth_array = file ($this->auth_file);
         }
         if ($this->auth_method = "webiso") {
+            $auth_array = file ($this->auth_file);
         }
 
         #if (in_array($username, $auth_array)) {
@@ -59,9 +58,9 @@ class admin {
 
         $results = $this->list_dir($handle);        
         foreach ($results as $val) {
-            $n1 = explode("-", $val);
-            $n = explode(".", $n1[1]);
-            array_push($collection, $n[0]);
+	    $n1 = (strlen($val) - 3) - 9; /* subtract "metadata-" and ".db" */
+	    $n = substr($val, 9, $n1);
+            array_push($collection, $n);
         }
         return $collection;
     }

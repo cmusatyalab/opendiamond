@@ -21,7 +21,7 @@
         exit;
     }
     //  Get current logged in user;
-    $me = (isset($_SERVER['PHP_AUTH_USER'])) ?  $_SERVER['PHP_AUTH_USER'] : NULL;
+    $me = (isset($_SERVER['REMOTE_USER'])) ?  $_SERVER['REMOTE_USER'] : NULL;
 
     include ("gatekeeper.conf");
     $G = init_globals();
@@ -72,17 +72,19 @@
         $main_content = "html/scope.html";
         if (($scope != "") && ($me != "")) {
 
-	    $content = sizeof($scope) . "\n";
+	    $content = "1\n";
 	    $gids = 0;
+
+
+            $content .= "collection ";
 
             foreach ($scope as $coll) {
                 $namemap_info = $a->get_namemap_entry($coll);
-                $content .= $namemap_info['collection'] . " ";
-                $content .= $namemap_info['groupid'] . "\n";
+                $content .= $namemap_info['groupid'] . " ";
 		$gids = $gids + 1; 
             }
 
-	    $content .= $gids . "\n";
+	    $content .= "\n" . $gids . "\n";
 
             foreach ($scope as $coll) {
                 $namemap_info = $a->get_namemap_entry($coll);

@@ -27,22 +27,30 @@
 int
 ls_define_scope(void) {
   FILE *fp = NULL, *np = NULL, *gp = NULL;
-  char ns[INT_CHARSIZE], gs[INT_CHARSIZE];
+  char ns[INT_CHARSIZE], gs[INT_CHARSIZE], path[MAXPATHLEN], *user;
   unsigned int namemap_size, gidmap_size;
   int i;
 
-  if((fp = fopen("~/.diamond/NEWSCOPE", "r")) == NULL) {
-	fprintf(stderr, "couldn't find NEWSCOPE!\n");
+  if((user = getenv("USER")) == NULL) {
+	fprintf(stderr, "Couldn't get user!\n");
+	return -1;
+  }
+
+  snprintf(path, MAXPATHLEN, "/home/%s/.diamond/NEWSCOPE", user);
+  if((fp = fopen(path, "r")) == NULL) {
+	fprintf(stderr, "couldn't open %s!\n", path);
 	goto exit_failure;
   }
 
-  if((np = fopen("~/.diamond/name_map", "w+")) == NULL) {
-	fprintf(stderr, "couldn't open name_map!\n");
+  snprintf(path, MAXPATHLEN, "/home/%s/.diamond/name_map", user);
+  if((np = fopen(path, "w")) == NULL) {
+	fprintf(stderr, "couldn't open %s!\n", path);
 	goto exit_failure;
   }
 
-  if((gp = fopen("~/.diamond/gid_map", "w+")) == NULL) {
-	fprintf(stderr, "couldn't open gid_map!\n");
+  snprintf(path, MAXPATHLEN, "/home/%s/.diamond/gid_map", user);
+  if((gp = fopen(path, "w")) == NULL) {
+	fprintf(stderr, "couldn't open %s!\n", path);
 	goto exit_failure;
   }
 
@@ -103,18 +111,18 @@ for(i=0; i<gidmap_size; i++) {
   }
 
 
-  fclose(fp);
-  fclose(np);
-  fclose(gp);
+  if(fp) fclose(fp);
+  if(np) fclose(np);
+  if(gp) fclose(gp);
 
   return 0;
 
 
  exit_failure:
 
-  fclose(fp);
-  fclose(np);
-  fclose(gp);
+  if(fp) fclose(fp);
+  if(np) fclose(np);
+  if(gp) fclose(gp);
 
   return -1;
 }

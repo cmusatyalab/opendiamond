@@ -49,8 +49,12 @@ Create a gatekeeper.acl file and make it writable by the webserver
 
 Create an admin.acl file and add an admin user per line
 
-Modify the .htaccess and correct the path to the .htpasswd file(If using this 
-authentication method).
+If using the htpasswd authentication method:
+	Modify the .htaccess and correct the path to the .htpasswd file.
+
+If using the WebISO/Pubcookie authentication method:
+	Modify the .htaccess to use Pubcookie and add users of the form
+    user@DOMAIN.EDU, which is how the Apache Pubcookie module presents them.
 
 FAQ
 ===============================================================================

@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+#  The OpenDiamond Platform for Interactive Search
+#  Version 3
+#
+#  Copyright (c) 2007 Carnegie Mellon University
+#  All rights reserved.
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+#
+#
+#  This script is executed by a web browser when the gatekeeper sends
+#  a new scope definition file.  Its current function is to place the
+#  scope file into ~/.diamond/ for libscope to read and parse.
+#
+
+
+# Remove All Blank Lines
+sed -i '/^$/d' $1
+
+# Move NEWSCOPE into place
+cp $1 ~/.diamond/NEWSCOPE
+
+# Set permissions
+chmod 644 ~/.diamond/NEWSCOPE 
+

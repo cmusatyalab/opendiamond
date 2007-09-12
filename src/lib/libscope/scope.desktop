@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Encoding=UTF-8
+Name=Diamond Scope Handler
+Exec=newscope %f
+Icon=gnome-terminal.png
+MimeType=application/x-diamond-scope;

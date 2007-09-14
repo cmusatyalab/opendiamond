@@ -20,13 +20,19 @@
         header("Location: $secure_url");
         exit;
     }
-    //  Get current logged in user;
-    $me = (isset($_SERVER['REMOTE_USER'])) ?  $_SERVER['REMOTE_USER'] : NULL;
-
     include ("gatekeeper.conf");
     $G = init_globals();
 
     include ("php/functions.php");
+
+    //  Get current logged in user
+    if($G['AUTH_METHOD'] == "webiso") {
+        $me = $_SERVER['REMOTE_USER'];
+    }
+    else if($G['AUTH_METHOD'] == "htaccess") {
+        $me = $_SERVER['PHP_AUTH_USER'];
+    }
+
 
     //  Layout the page
     $left_menu = "html/left_menu.html";

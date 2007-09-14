@@ -248,10 +248,11 @@ nlkup_first_entry(char **namep, void **cookiep)
      * This is pretty ugly, we probably want to keep it
      * global.
      */
-    if (nroot == NULL) {
-        /* XXX */
-        nroot = read_name_map("name_map");
-    }
+
+    if(nroot != NULL)
+      free(nroot);
+
+    nroot = read_name_map("name_map");
 
     if (nroot == NULL) {
         fprintf(stderr, "Unable to find name_map \n");

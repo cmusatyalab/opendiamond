@@ -1,5 +1,5 @@
 noinst_LTLIBRARIES = libscope.la
-dist_bin_SCRIPTS = newscope
+dist_bin_SCRIPTS = diamond-newscope
 
 install-exec-hook:
 	desktop-file-install --rebuild-mime-info-cache --vendor diamond scope.desktop

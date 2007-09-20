@@ -56,7 +56,6 @@
  * XXX other place 
  */
 extern int      do_cleanup;
-extern int      do_fork;
 extern int      active_searches;
 
 /*

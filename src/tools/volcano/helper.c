@@ -115,11 +115,19 @@ strip_username(char *src) {
 /* 
  * Looks for the first '.' in the basename of the filename.
  */
+
 char *
 parse_extension(char *src) {
   char *travp;
+  int len;
+  
+  if(src == NULL) return NULL;
+  len = strlen(src);
 
-  for(travp = src; (travp[0] != '.') && (travp < (src + strlen(src))); travp++)
+  for(travp = src + (len-1); (travp > src) && (travp[0] != '/'); travp--)
+    continue;
+    
+  for(; (travp < (src+len)) && (travp[0] != '.'); travp++)
     continue;
 
   if(travp >= (src + strlen(src)))

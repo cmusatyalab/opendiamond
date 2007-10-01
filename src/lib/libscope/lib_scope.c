@@ -27,30 +27,30 @@
 int
 ls_define_scope(void) {
   FILE *fp = NULL, *np = NULL, *gp = NULL;
-  char ns[INT_CHARSIZE], gs[INT_CHARSIZE], path[MAXPATHLEN], *user;
+  char ns[INT_CHARSIZE], gs[INT_CHARSIZE], path[MAXPATHLEN], *home;
   unsigned int namemap_size, gidmap_size;
   int i;
 
-  if((user = getenv("USER")) == NULL) {
-	fprintf(stderr, "Couldn't get user!\n");
+  if((home = getenv("HOME")) == NULL) {
+	fprintf(stderr, "Couldn't get user's home directory!\n");
 	return -1;
   }
 
-  snprintf(path, MAXPATHLEN, "/home/%s/.diamond/NEWSCOPE", user);
+  snprintf(path, MAXPATHLEN, "%s/.diamond/NEWSCOPE", home);
   if((fp = fopen(path, "r")) == NULL) {
-	fprintf(stderr, "couldn't open %s!\n", path);
+	fprintf(stderr, "Couldn't open scope file %s!\n", path);
 	goto exit_failure;
   }
 
-  snprintf(path, MAXPATHLEN, "/home/%s/.diamond/name_map", user);
+  snprintf(path, MAXPATHLEN, "%s/.diamond/name_map", home);
   if((np = fopen(path, "w")) == NULL) {
-	fprintf(stderr, "couldn't open %s!\n", path);
+	fprintf(stderr, "Couldn't open %s!\n", path);
 	goto exit_failure;
   }
 
-  snprintf(path, MAXPATHLEN, "/home/%s/.diamond/gid_map", user);
+  snprintf(path, MAXPATHLEN, "%s/.diamond/gid_map", home);
   if((gp = fopen(path, "w")) == NULL) {
-	fprintf(stderr, "couldn't open %s!\n", path);
+	fprintf(stderr, "Couldn't open %s!\n", path);
 	goto exit_failure;
   }
 

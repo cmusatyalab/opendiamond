@@ -36,7 +36,7 @@
 
     //  Layout the page
     $left_menu = "html/left_menu.html";
-    $main_content = "html/front_page.html";
+    $main_content = "html/scope.html";
 
     include ("include/framing.php");
     $header = simple_header($G);
@@ -58,7 +58,7 @@
 
     //  Default setting 
     if ($action == "front_page") {
-        $main_content = "html/front_page.html";
+        $main_content = "html/scope.html";
     }
     //  Get listing of all users
     $all_users = $a->list_users();

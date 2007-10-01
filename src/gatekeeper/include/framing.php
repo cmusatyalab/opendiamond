@@ -47,17 +47,19 @@
 
         $f .= "<table class=footer>";
         $f .= "    <tr>";
-        for ($i = 0; $i < count($G['LOGO']); $i++) {
-            $val = explode ("|", $G['LOGO'][$i]);
-            $imagename = $val[0];
-            $url = $val[1];
-        $f .= "        <td>\n";
-        $f .= "        <a href=$url>\n";
-        $f .= "            <img src=$imagelib/$imagename>\n";
-        $f .= "        </a>\n";
-        $f .= "        </td>\n";
+        if(isset($G['LOGO'])) {
+                for ($i = 0; $i < count($G['LOGO']); $i++) {
+                    $val = explode ("|", $G['LOGO'][$i]);
+                    $imagename = $val[0];
+                    $url = $val[1];
+                    $f .= "        <td>\n";
+                    $f .= "        <a href=$url>\n";
+                    $f .= "            <img src=$imagelib/$imagename>\n";
+                    $f .= "        </a>\n";
+                    $f .= "        </td>\n";
+                }
         }
-        $f .= "    </tr>";
+		$f .= "    </tr>";
         $f .= "</table>";
 
 

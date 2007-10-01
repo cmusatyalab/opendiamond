@@ -50,8 +50,7 @@ function init_globals () {
     //  format is 
     //  E.G. $G['LOGO'][X] = "logoname|http://www.url.com";
     //  $G['LOGO'][0] = "intel_logo.gif|http://www.intel-research.net";
-
-    $G['LOGO'][0] = "officialpenguin.gif|http://www.linux.org";
+    //  $G['LOGO'][1] = "officialpenguin.gif|http://www.linux.org";
 
 
     //  Page Title

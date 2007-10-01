@@ -26,15 +26,85 @@
 
 int
 ls_define_scope(void) {
-  FILE *fp = NULL, *np = NULL, *gp = NULL;
+  FILE *fp, *np = NULL, *gp = NULL, *rot;
   char ns[INT_CHARSIZE], gs[INT_CHARSIZE], path[MAXPATHLEN], *home;
+  char command[NCARGS];
   unsigned int namemap_size, gidmap_size;
   int i;
+
 
   if((home = getenv("HOME")) == NULL) {
 	fprintf(stderr, "Couldn't get user's home directory!\n");
 	return -1;
   }
+
+
+  /* Rotate old name_map files out of the way. */
+
+  i=1, rot = NULL;
+  do {
+    if(rot != NULL) fclose(rot);
+    snprintf(path, MAXPATHLEN, "%s/.diamond/name_map-%d", home, i);
+    rot = fopen(path, "r");
+    i++;
+  }
+  while(rot != NULL);
+  
+  for(; i>1; i--) {
+    snprintf(command, NCARGS,
+	     "mv %s/.diamond/name_map-%d %s/.diamond/name_map-%d",
+	     home, i-1, home, i);
+    if(system(command) < 0) {
+      fprintf(stderr, "Failed executing:\n\t%s\n", command);
+      return -1;
+    }
+  }
+  snprintf(path, MAXPATHLEN, "%s/.diamond/name_map", home);
+  if((rot = fopen(path, "r")) != NULL) {
+    fclose(rot);
+    snprintf(command, NCARGS,
+	     "mv %s/.diamond/name_map %s/.diamond/name_map-1", home, home);
+    if(system(command) < 0) {
+      fprintf(stderr, "Failed executing:\n\t%s\n", command);
+      return -1;
+    }
+  }
+
+
+  /* Rotate old gid_map files out of the way. */
+
+  i=1, rot = NULL;
+  do {
+    if(rot != NULL) fclose(rot);
+    snprintf(path, MAXPATHLEN, "%s/.diamond/gid_map-%d", home, i);
+    rot = fopen(path, "r");
+    i++;
+  }
+  while(rot != NULL);
+  
+  for(; i>1; i--) {
+    char command[NCARGS];
+    snprintf(command, NCARGS,
+	     "mv %s/.diamond/gid_map-%d %s/.diamond/gid_map-%d",
+	     home, i-1, home, i);
+    if(system(command) < 0) {
+      fprintf(stderr, "Failed executing:\n\t%s\n", command);
+      return -1;
+    }
+  }
+  snprintf(path, MAXPATHLEN, "%s/.diamond/gid_map", home);
+  if((rot = fopen(path, "r")) != NULL) {
+    snprintf(command, NCARGS,
+	     "mv %s/.diamond/gid_map %s/.diamond/gid_map-1", home, home);
+    if(system(command) < 0) {
+      fprintf(stderr, "Failed executing:\n\t%s\n", command);
+      return -1;
+    }
+  }
+
+
+  /* Now that we have created space, parse the NEWSCOPE file and write
+   * out new name_map and gid_map files for the Diamond application to read. */
 
   snprintf(path, MAXPATHLEN, "%s/.diamond/NEWSCOPE", home);
   if((fp = fopen(path, "r")) == NULL) {
@@ -96,7 +166,7 @@ ls_define_scope(void) {
 
   gidmap_size = atoi(gs);
 
-for(i=0; i<gidmap_size; i++) {
+  for(i=0; i<gidmap_size; i++) {
 	char line[NCARGS];
 
 	if(fgets(line, NCARGS, fp) == NULL) {

@@ -34,9 +34,20 @@ ls_define_scope(void) {
 
 
   if((home = getenv("HOME")) == NULL) {
-	fprintf(stderr, "Couldn't get user's home directory!\n");
-	return -1;
+    fprintf(stderr, "libscope: Couldn't get user's home directory!\n");
+    return -1;
   }
+
+
+  /* If there is no NEWSCOPE file, punt early and don't screw up
+     the rotated map file history. */
+
+  snprintf(path, MAXPATHLEN, "%s/.diamond/NEWSCOPE", home);
+  if((fp = fopen(path, "r")) == NULL) {
+    fprintf(stderr, "libscope: Couldn't open %s!\n", path);
+    return 0;
+  }
+  fclose(fp); fp = NULL;
 
 
   /* Rotate old name_map files out of the way. */
@@ -45,8 +56,8 @@ ls_define_scope(void) {
   do {
     if(rot != NULL) fclose(rot);
     snprintf(path, MAXPATHLEN, "%s/.diamond/name_map-%d", home, i);
-    rot = fopen(path, "r");
-    i++;
+    if((rot = fopen(path, "r")) != NULL)
+      i++;
   }
   while(rot != NULL);
   
@@ -78,7 +89,8 @@ ls_define_scope(void) {
     if(rot != NULL) fclose(rot);
     snprintf(path, MAXPATHLEN, "%s/.diamond/gid_map-%d", home, i);
     rot = fopen(path, "r");
-    i++;
+    if((rot = fopen(path, "r")) != NULL)
+      i++;
   }
   while(rot != NULL);
   
@@ -108,76 +120,76 @@ ls_define_scope(void) {
 
   snprintf(path, MAXPATHLEN, "%s/.diamond/NEWSCOPE", home);
   if((fp = fopen(path, "r")) == NULL) {
-	fprintf(stderr, "Couldn't open scope file %s!\n", path);
-	goto exit_failure;
+    fprintf(stderr, "Couldn't open scope file %s!\n", path);
+    goto exit_failure;
   }
 
   snprintf(path, MAXPATHLEN, "%s/.diamond/name_map", home);
   if((np = fopen(path, "w")) == NULL) {
-	fprintf(stderr, "Couldn't open %s!\n", path);
-	goto exit_failure;
+    fprintf(stderr, "Couldn't open %s!\n", path);
+    goto exit_failure;
   }
 
   snprintf(path, MAXPATHLEN, "%s/.diamond/gid_map", home);
   if((gp = fopen(path, "w")) == NULL) {
-	fprintf(stderr, "Couldn't open %s!\n", path);
-	goto exit_failure;
+    fprintf(stderr, "Couldn't open %s!\n", path);
+    goto exit_failure;
   }
 
 
   /* Read name_map size and data. */
 
   if(fgets(ns, INT_CHARSIZE, fp) == NULL) {
-	fprintf(stderr, "couldn't read name_map size\n");
-	goto exit_failure;
+    fprintf(stderr, "couldn't read name_map size\n");
+    goto exit_failure;
   }
   else {
-	int len = strlen(ns);
-	ns[len-1]='\0';  //remove '\n'
+    int len = strlen(ns);
+    ns[len-1]='\0';  //remove '\n'
   }
 
   namemap_size = atoi(ns);
 
   for(i=0; i<namemap_size; i++) {
-	char line[NCARGS];
-
-	if(fgets(line, NCARGS, fp) == NULL) {
-	  fprintf(stderr, "couldn't read name_map data\n");
-	  goto exit_failure;
-	}
-
-	if((fwrite(line, strlen(line), 1, np)) != 1) {
-	  fprintf(stderr, "couldn't write name_map data\n");
-	  goto exit_failure;
-	}
+    char line[NCARGS];
+    
+    if(fgets(line, NCARGS, fp) == NULL) {
+      fprintf(stderr, "couldn't read name_map data\n");
+      goto exit_failure;
+    }
+    
+    if((fwrite(line, strlen(line), 1, np)) != 1) {
+      fprintf(stderr, "couldn't write name_map data\n");
+      goto exit_failure;
+    }
   }
 
 
   /* Read gid_map size and data. */
 
   if(fgets(gs, INT_CHARSIZE, fp) == NULL) {
-	fprintf(stderr, "couldn't read gid_map size\n");
-	goto exit_failure;
+    fprintf(stderr, "couldn't read gid_map size\n");
+    goto exit_failure;
   }
   else {
-	int len = strlen(gs);
-	gs[len-1]='\0';  //remove '\n'
+    int len = strlen(gs);
+    gs[len-1]='\0';  //remove '\n'
   }
-
+  
   gidmap_size = atoi(gs);
 
   for(i=0; i<gidmap_size; i++) {
-	char line[NCARGS];
+    char line[NCARGS];
+    
+    if(fgets(line, NCARGS, fp) == NULL) {
+      fprintf(stderr, "couldn't read name_map data\n");
+      goto exit_failure;
+    }
 
-	if(fgets(line, NCARGS, fp) == NULL) {
-	  fprintf(stderr, "couldn't read name_map data\n");
-	  goto exit_failure;
-	}
-
-	if((fwrite(line, strlen(line), 1, gp)) != 1) {
-	  fprintf(stderr, "couldn't write name_map data\n");
-	  goto exit_failure;
-	}
+    if((fwrite(line, strlen(line), 1, gp)) != 1) {
+      fprintf(stderr, "couldn't write name_map data\n");
+      goto exit_failure;
+    }
   }
 
 

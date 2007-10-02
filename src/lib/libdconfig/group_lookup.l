@@ -298,11 +298,10 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 	gid_map_t *		cur_map;
 	int			i;
 
+	if(gid_map != NULL)
+	  free(gid_map);
 
-	if (gid_map == NULL) {
-		/* XXX */
-		gid_map = read_gid_map("gid_map");
-	}
+	gid_map = read_gid_map("gid_map");
 
 	if (gid_map == NULL) {
         fprintf(stderr, "Unable to find gid_map \n");

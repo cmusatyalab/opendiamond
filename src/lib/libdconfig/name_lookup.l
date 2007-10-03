@@ -192,35 +192,32 @@ have_name()
 int
 nlkup_lookup_collection(char *name, int *num_gids, groupid_t *gids)
 {
-    name_map_t *         cur_map;
-    int                 i;
+	name_map_t *        cur_map, *tmp_map = NULL;
+	int			i;
 
-    /*
-     * This is pretty ugly, we probably want to keep it
-     * global.
-     */
-    if (nroot == NULL) {
-        /* XXX */
-        nroot = read_name_map("name_map");
-    }
-
-    if (nroot == NULL) {
-        fprintf(stderr, "Unable to find name_map \n");
-        assert(0);
-
-        *num_gids = 0;
-        return(ENOENT);
-    }
-
-
-    for (cur_map = nroot; cur_map != NULL; cur_map = cur_map->next) {
-        if (strcmp(name, cur_map->name) == 0) {
-			break;
-		}
+	if (nroot != NULL) {   /* XXX if accessed concurrently with
+				* nlkup_*_entry by two or more threads. */
+		tmp_map = nroot;
+	        nroot = read_name_map("name_map");
 	}
+	else if (nroot == NULL)
+		nroot = read_name_map("name_map");
+	
+	if (nroot == NULL) {
+	        fprintf(stderr, "Unable to find name_map \n");
+	        *num_gids = 0;
+		if(tmp_map) nroot = tmp_map;
+	        return(ENOENT);
+	}
+
+
+	for (cur_map = nroot; cur_map != NULL; cur_map = cur_map->next)
+	        if (strcmp(name, cur_map->name) == 0)
+			break;
 
 	if (cur_map == NULL) {
 		*num_gids = 0;
+		if(tmp_map) nroot = tmp_map;
 		return(ENOENT);
 	}
 
@@ -228,6 +225,7 @@ nlkup_lookup_collection(char *name, int *num_gids, groupid_t *gids)
 	if (cur_map->num_gids > *num_gids) {
 		/* XXX log */
 		*num_gids = cur_map->num_gids;
+		if(tmp_map) nroot = tmp_map;
 		return(ENOMEM);
 	}
 
@@ -236,35 +234,30 @@ nlkup_lookup_collection(char *name, int *num_gids, groupid_t *gids)
 	}
 	*num_gids = cur_map->num_gids;
 
+	if(tmp_map) 
+		nroot = tmp_map;
+
 	return(0);
 }
 
 int
 nlkup_first_entry(char **namep, void **cookiep)
 {
-    name_map_t *         cur_map;
-
-    /*
-     * This is pretty ugly, we probably want to keep it
-     * global.
-     */
-
-    if(nroot != NULL)
-      free(nroot);
+    if(nroot != NULL) {
+      free_name_map(nroot);
+      nroot = NULL;
+    }
 
     nroot = read_name_map("name_map");
-
     if (nroot == NULL) {
-        fprintf(stderr, "Unable to find name_map \n");
-        assert(0);
+        fprintf(stderr, "Unable to read name_map \n");
+	*namep = NULL, *cookiep = NULL;
         return(ENOENT);
     }
 
 
-    cur_map = nroot;
-
-    *namep = cur_map->name;
-    *cookiep = cur_map;
+    *namep = nroot->name;
+    *cookiep = nroot;
 
     return(0);
 }
@@ -279,17 +272,8 @@ nlkup_next_entry(char **namep, void **cookiep)
      * This is pretty ugly, we probably want to keep it
      * global.
      */
-    if (nroot == NULL) {
-        /* XXX */
-        nroot = read_name_map("name_map");
-    }
-
-    if (nroot == NULL) {
-        fprintf(stderr, "Unable to find name_map \n");
-        assert(0);
-        return(ENOENT);
-    }
-
+    if (nroot == NULL)
+	return nlkup_first_entry(namep, cookiep);
 
     last_map = (name_map_t *) *cookiep;
     cur_map = last_map->next;
@@ -320,21 +304,34 @@ read_name_map(char *map_file)
 	yyin = dconfig_open_config_file(map_file);
 	if (yyin == NULL) {
 		/* XXX log */
-		fprintf(stderr, "failed to open map file \n");
-		exit(1);
+		fprintf(stderr, "failed to open name_map file \n");
+		return NULL;
 	}
 
 	ret = nlkuplex();
 	if (ret) {
-		/* printf("error from yylex\n"); */
-        free(ninfo.ni_fname);
-		exit(1);
+		fprintf(stderr, "error from yylex\n");
+	        free(ninfo.ni_fname);
+		return NULL;
 	}
 
 	if (err) {
-		/* XXX clean up list */
-		return(NULL);
+		fprintf(stderr, "error from yylex\n");
+		free_name_map(nroot);
+		nroot = NULL;
+		return NULL;
 	}
 
 	return(nroot);
+}
+
+
+void
+free_name_map(name_map_t *map) {
+	name_map_t *trav, *next;
+
+	for(trav = map; trav != NULL; trav = next) {
+		 next = trav->next;
+		 free(trav);
+	}
 }

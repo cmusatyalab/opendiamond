@@ -35,6 +35,7 @@ typedef struct name_info
 name_info_t;
 
 name_map_t     *read_name_map(char *mapfile);
+void		free_name_map(name_map_t     *);
 
 int             nlkup_lookup_collection(char *name, int *num_gids,
                                         groupid_t * gids);

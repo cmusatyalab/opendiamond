@@ -294,33 +294,19 @@ glkupwrap()
 int
 glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 {
-	static gid_map_t *	gid_map = NULL;
-	gid_map_t *		cur_map;
-	int			i;
+	gid_map_t	*cur_map;
+	int		 i;
 
-	if(gid_map != NULL)
-	  free(gid_map);
-
-	gid_map = read_gid_map("gid_map");
-
-	if (gid_map == NULL) {
-        fprintf(stderr, "Unable to find gid_map \n");
-        assert(0);
-
+	cur_map = read_gid_map("gid_map");
+	if (cur_map == NULL) {
+		fprintf(stderr, "Unable to read gid_map \n");
 		*num_hosts = 0;
 		return(ENOENT);
 	}
 
-
-	cur_map = gid_map;
-	while (cur_map != NULL) {
-		if (cur_map->gid == gid) {
+	for(; cur_map != NULL; cur_map = cur_map->next)
+		if (cur_map->gid == gid)
 			break;
-		}
-
-		cur_map = cur_map->next;
-	}
-
 
 	if (cur_map == NULL) {
 		*num_hosts = 0;
@@ -335,14 +321,18 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 	}
 
 	for (i = 0; i < cur_map->num_dev; i++) {
-        if (cur_map->devs[i].dev_id == 0) {
-            fprintf(stderr, "unable to resolve %s \n", 
-                cur_map->devs[i].dev_name);
-            return(ENOENT);
-        }
+	        if (cur_map->devs[i].dev_id == 0) {
+		    fprintf(stderr, "unable to resolve %s \n", 
+			    cur_map->devs[i].dev_name);
+	            return(ENOENT);
+	        }
 		hostids[i] = cur_map->devs[i].dev_id;
 	}
 	*num_hosts = cur_map->num_dev;
+
+	free_gid_map(groot);
+	groot = NULL;
+
 	return(0);
 }
 
@@ -353,25 +343,35 @@ read_gid_map(char *map_file)
 {
 	int ret;
 
-	printf("reading gid map (%s)...\n", map_file);
 	yyin = dconfig_open_config_file(map_file);
 	if (yyin == NULL) {
 		/* XXX log */
-		fprintf(stderr, "failed to open map file ");
-		exit(1);
+		fprintf(stderr, "failed to open gid_map file ");
+		return NULL;
 	}
 	ret = yylex();
 	if (ret) {
-		/* printf("error from yylex\n"); */
-		exit(1);
+		fprintf(stderr, "error from yylex\n");
+		return NULL;
 	}
 
 
 	if (err) {
-		/* XXX clean up list */
-		return(NULL);
+		fprintf(stderr, "error from yylex\n");
+		free_gid_map(groot);
+		groot = NULL;
+		return NULL;
 	}	
 
 	return(groot);
-	return(0);
+}
+
+void
+free_gid_map(gid_map_t *map) {
+	gid_map_t *trav, *next;
+
+	for(trav = map; trav != NULL; trav = next) {
+		 next = trav->next;
+		 free(trav);
+	}
 }

@@ -3,6 +3,7 @@
  *  Version 3
  *
  *  Copyright (c) 2002-2005 Intel Corporation
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -132,10 +133,6 @@ void cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t *init_attr);
 int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
 	cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, 
 	sig_val_t *iattr_sig, query_info_t *qinfo);
-
-int cache_lookup2(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
-	cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, 
-	int *oattr_flag, int flag);
 
 int ocache_init(char *path_name);
 int ocache_start();

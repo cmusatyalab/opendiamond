@@ -495,58 +495,6 @@ cache_lookup(sig_val_t * id_sig, sig_val_t * fsig, void *fcache_table,
 	return found;
 }
 
-int
-cache_lookup2(sig_val_t * id_sig, sig_val_t * fsig, void *fcache_table,
-	      cache_attr_set * change_attr, int *conf,
-	      cache_attr_set ** oattr_set, int *oattr_flag, int flag)
-{
-	cache_obj      *cobj;
-	unsigned int    index;
-	int             err = ENOENT;
-	unsigned int    oattr_count = 1;
-	cache_obj     **cache_table = (cache_obj **) fcache_table;
-
-	if (cache_table == NULL)
-		return err;
-	if (search_done == 1) {
-		return (ENOENT);
-	}
-	pthread_mutex_lock(&shared_mutex);
-	index = sig_hash(id_sig) % CACHE_ENTRY_NUM;
-	cobj = cache_table[index];
-	*oattr_flag = 0;
-	/*
-	 * cache hit if there is a (id_sig, filter sig, input attr sig) match 
-	 */
-	while (cobj != NULL) {
-		if (sig_match(&cobj->id_sig, id_sig)) {
-			/*
-			 * compare change_attr set with input attr set 
-			 */
-			if (!compare_attr_set(&cobj->iattr, change_attr)) {
-				cobj->aeval_count++;
-				oattr_count =
-				    cobj->eval_count + cobj->aeval_count;
-				*oattr_set = &cobj->oattr;
-				*conf = cobj->result;
-				err = 0;
-				break;
-			}
-		}
-		cobj = cobj->next;
-	}
-
-	if (if_cache_oattr) {
-		if ((oattr_count >= count_thresh) && flag) {
-			*oattr_flag = 1;
-		}
-	}
-
-	pthread_mutex_unlock(&shared_mutex);
-	return (err);
-}
-
-
 static int
 time_after(struct timeval *time1, struct timeval *time2)
 {

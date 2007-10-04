@@ -28,7 +28,6 @@ int
 ls_define_scope(void) {
   FILE *fp, *np = NULL, *gp = NULL, *rot;
   char ns[INT_CHARSIZE], gs[INT_CHARSIZE], path[MAXPATHLEN], *home;
-  char command[NCARGS];
   unsigned int namemap_size, gidmap_size;
   int i;
 
@@ -62,22 +61,30 @@ ls_define_scope(void) {
   while(rot != NULL);
   
   for(; i>1; i--) {
-    snprintf(command, NCARGS,
-	     "mv %s/.diamond/name_map-%d %s/.diamond/name_map-%d",
-	     home, i-1, home, i);
-    if(system(command) < 0) {
-      fprintf(stderr, "Failed executing:\n\t%s\n", command);
-      return -1;
+    char oldpath[MAXPATHLEN], newpath[MAXPATHLEN];
+
+    snprintf(oldpath, MAXPATHLEN, "%s/.diamond/name_map-%d", home, i-1);
+    snprintf(newpath, MAXPATHLEN, "%s/.diamond/name_map-%d", home, i);
+
+    if(rename(oldpath, newpath) < 0) {
+      perror("rename");
+      fprintf(stderr, "Failed executing rename from %s to %s\n", 
+	      oldpath, newpath);
     }
   }
   snprintf(path, MAXPATHLEN, "%s/.diamond/name_map", home);
   if((rot = fopen(path, "r")) != NULL) {
+    char oldpath[MAXPATHLEN], newpath[MAXPATHLEN];
+
     fclose(rot);
-    snprintf(command, NCARGS,
-	     "mv %s/.diamond/name_map %s/.diamond/name_map-1", home, home);
-    if(system(command) < 0) {
-      fprintf(stderr, "Failed executing:\n\t%s\n", command);
-      return -1;
+
+    snprintf(oldpath, MAXPATHLEN, "%s/.diamond/name_map", home);
+    snprintf(newpath, MAXPATHLEN, "%s/.diamond/name_map-1", home);
+
+    if(rename(oldpath, newpath) < 0) {
+      perror("rename");
+      fprintf(stderr, "Failed executing rename from %s to %s\n", 
+	      oldpath, newpath);
     }
   }
 
@@ -95,22 +102,28 @@ ls_define_scope(void) {
   while(rot != NULL);
   
   for(; i>1; i--) {
-    char command[NCARGS];
-    snprintf(command, NCARGS,
-	     "mv %s/.diamond/gid_map-%d %s/.diamond/gid_map-%d",
-	     home, i-1, home, i);
-    if(system(command) < 0) {
-      fprintf(stderr, "Failed executing:\n\t%s\n", command);
-      return -1;
+    char oldpath[MAXPATHLEN], newpath[MAXPATHLEN];
+
+    snprintf(oldpath, MAXPATHLEN, "%s/.diamond/gid_map-%d", home, i-1);
+    snprintf(newpath, MAXPATHLEN, "%s/.diamond/gid_map-%d", home, i);
+
+    if(rename(oldpath, newpath) < 0) {
+      perror("rename");
+      fprintf(stderr, "Failed executing rename from %s to %s\n", 
+	      oldpath, newpath);
     }
   }
   snprintf(path, MAXPATHLEN, "%s/.diamond/gid_map", home);
   if((rot = fopen(path, "r")) != NULL) {
-    snprintf(command, NCARGS,
-	     "mv %s/.diamond/gid_map %s/.diamond/gid_map-1", home, home);
-    if(system(command) < 0) {
-      fprintf(stderr, "Failed executing:\n\t%s\n", command);
-      return -1;
+    char oldpath[MAXPATHLEN], newpath[MAXPATHLEN];
+
+    snprintf(oldpath, MAXPATHLEN, "%s/.diamond/gid_map", home);
+    snprintf(newpath, MAXPATHLEN, "%s/.diamond/gid_map-1", home);
+
+    if(rename(oldpath, newpath) < 0) {
+      perror("rename");
+      fprintf(stderr, "Failed executing rename from %s to %s\n", 
+	      oldpath, newpath);
     }
   }
 

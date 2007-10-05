@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -28,7 +29,7 @@ int
 sig_cal_init()
 {
 	/*
-	 * make sure we only call once 
+	 * make sure we only call once
 	 */
 	if (done_sig_init) {
 		return (0);
@@ -41,44 +42,51 @@ sig_cal_init()
 		assert(md != NULL);
 		// exit(1);
 	}
+
+	/* make sure the digest will fit in our sig_val_t buffer */
+	assert(EVP_MD_size(md) == SIG_SIZE);
 	done_sig_init = 1;
 	return (0);
+}
+
+void
+sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature)
+{
+	EVP_MD_CTX mdctx;
+	unsigned int i;
+
+	assert(done_sig_init == 1);
+
+	EVP_MD_CTX_init(&mdctx);
+	EVP_DigestInit_ex(&mdctx, md, NULL);
+
+	for (i = 0; i < iovcnt; i++)
+		EVP_DigestUpdate(&mdctx, iov[i].iov_base, iov[i].iov_len);
+
+	EVP_DigestFinal_ex(&mdctx, signature->sig, NULL);
+	EVP_MD_CTX_cleanup(&mdctx);
 }
 
 int
 sig_cal(const void *buf, off_t buflen, sig_val_t * sig_val)
 {
-	EVP_MD_CTX      mdctx;
-	unsigned char  *md_value;
-	unsigned int	md_len = 0;
-
-	assert(done_sig_init == 1);
-
-	md_value = sig_val->sig;
-
-	EVP_MD_CTX_init(&mdctx);
-	EVP_DigestInit_ex(&mdctx, md, NULL);
-
-	EVP_DigestUpdate(&mdctx, buf, buflen);
-
-	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
-	EVP_MD_CTX_cleanup(&mdctx);
-	/*
-	 * printf("Digest is: "); for(i = 0; i < md_len; i++) printf("%x",
-	 * md_value[i]); printf("\n"); 
-	 */
-	return (0);
+	struct ciovec iov = {
+		.iov_base = buf,
+		.iov_len = buflen,
+	};
+	sig_cal_vec(&iov, 1, sig_val);
+	return 0;
 }
-
 
 int
 sig_cal_str(const char *buf, sig_val_t * sig_val)
 {
-	off_t           len = strlen(buf);
-	int             err;
-
-	err = sig_cal(buf, len, sig_val);
-	return (err);
+	struct ciovec iov = {
+		.iov_base = buf,
+		.iov_len = strlen(buf),
+	};
+	sig_cal_vec(&iov, 1, sig_val);
+	return 0;
 }
 
 char           *

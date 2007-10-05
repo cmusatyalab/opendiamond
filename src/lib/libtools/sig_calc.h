@@ -3,6 +3,7 @@
  *  Version 3
  *
  *  Copyright (c) 2002-2005 Intel Corporation
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -24,6 +25,16 @@ typedef	struct sig_val {
  * Must be called once before using the library.
  */
 int sig_cal_init();
+
+/*
+ * Compute the signature for a scatter-gather list of byte ranges
+ */
+/* 'const'-version of struct iovec (sys/uio.h) */
+struct ciovec {
+	const void *iov_base;
+	size_t iov_len;
+};
+void sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature);
 
 /*
  * Compute the signature of a single range of bytes.

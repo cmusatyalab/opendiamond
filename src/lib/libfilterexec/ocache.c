@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2007 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -27,7 +28,6 @@
 #include <assert.h>
 #include <sys/uio.h>
 #include <limits.h>
-#include <openssl/evp.h>
 
 #include "diamond_consts.h"
 #include "diamond_types.h"
@@ -110,108 +110,81 @@ static char     iattr_buf[MAX_IATTR_SIZE];
 static int      iattr_buflen = -1;
 
 /*
- * This should be in the support library XXX
+ * This could be moved to a support library XXX
  */
-
 int
 digest_cal(filter_data_t * fdata, char *fn_name, int numarg, char **filt_args,
 	   int blob_len, void *blob, sig_val_t * signature)
 {
-	EVP_MD_CTX      mdctx;
-	const EVP_MD   *md;
-	unsigned char  *md_value;
-	unsigned int	md_len = 0, i, len;
+	struct ciovec *iov;
+	unsigned int i, len, n = 0;
 
-	OpenSSL_add_all_digests();
-	md = EVP_get_digestbyname("md5");
-	if (!md) {
-		printf("Unknown message digest md5\n");
-		assert(md != NULL);
-	}
+	len =	fdata->num_libs +	/* library_signatures */
+		1 +			/* filter name */
+		numarg +		/* filter arguments */
+		1;			/* optional binary blob */
 
+	iov = (struct ciovec *)malloc(len * sizeof(struct ciovec));
+	assert(iov != NULL);
 
-	EVP_MD_CTX_init(&mdctx);
-	EVP_DigestInit_ex(&mdctx, md, NULL);
-
-	/*
-	 * include all the library signatures 
-	 */
+	/* include the library signatures */
 	for (i = 0; i < fdata->num_libs; i++) {
-		EVP_DigestUpdate(&mdctx, &fdata->lib_info[i].lib_sig,
-		    sizeof(sig_val_t));
+		iov[n].iov_base = &fdata->lib_info[i].lib_sig;
+		iov[n].iov_len = sizeof(sig_val_t);
+		n++;
 	}
 
-	EVP_DigestUpdate(&mdctx, fn_name, strlen(fn_name));
+	iov[n].iov_base = fn_name;
+	iov[n].iov_len = strlen(fn_name);
+	n++;
 
-	/*
-	 * Put all the args in the signature 
-	 */
-
+	/* include the args */
 	for (i = 0; i < numarg; i++) {
-		if (filt_args[i] != NULL)
-			len = strlen(filt_args[i]);
-		else
-			len = 0;
-		if (len >= MAX_FILTER_ARG_NAME) {
+		if (filt_args[i] == NULL)
+			continue;
+
+		len = strlen(filt_args[i]);
+		if (len >= MAX_FILTER_ARG_NAME)
 			return (EINVAL);
-		}
-		EVP_DigestUpdate(&mdctx, filt_args[i], len);
+
+		iov[n].iov_base = filt_args[i];
+		iov[n].iov_len = len;
+		n++;
 	}
 
-	if (blob_len > 0)
-		EVP_DigestUpdate(&mdctx, blob, blob_len);
+	/* include binary blob */
+	if (blob_len > 0) {
+		iov[n].iov_base = blob;
+		iov[n].iov_len = blob_len;
+		n++;
+	}
 
-	md_value = signature->sig;
-	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
-	EVP_MD_CTX_cleanup(&mdctx);
-
-	if (md_len == 16)
-		return (0);
-	else
-		return (EINVAL);
+	sig_cal_vec(iov, n, signature);
+	free(iov);
+	return 0;
 }
-
 
 /*
- * This should be in the libtools sigcalc tools. XXX
+ * This is only used in this file, maybe there is a duplicate implementation
+ * in another places?
  */
-
-static int
+static void
 sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 {
-	EVP_MD_CTX      mdctx;
-	const EVP_MD   *md;
-	unsigned char  *md_value;
-	unsigned int	md_len = 0;
-	int		i;
+	struct ciovec *iov;
+	int i;
 
-	OpenSSL_add_all_digests();
-	md = EVP_get_digestbyname("md5");
-	if (!md) {
-		printf("Unknown message digest md5\n");
-		assert(md != NULL);
-	}
-
-	md_value = sig->sig;
-
-	EVP_MD_CTX_init(&mdctx);
-	EVP_DigestInit_ex(&mdctx, md, NULL);
+	iov = (struct ciovec *)malloc(iattr->entry_num * sizeof(struct ciovec));
+	assert(iov != NULL);
 
 	for (i = 0; i < iattr->entry_num; i++) {
-		EVP_DigestUpdate(&mdctx, iattr->entry_data[i],
-				 sizeof(cache_attr_entry));
+		iov[i].iov_base = iattr->entry_data[i];
+		iov[i].iov_len = sizeof(cache_attr_entry);
 	}
 
-	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
-	EVP_MD_CTX_cleanup(&mdctx);
-
-	if (md_len == 16) {
-		return (0);
-	} else {
-		return (EINVAL);
-	}
+	sig_cal_vec(iov, iattr->entry_num, sig);
+	free(iov);
 }
-
 
 static int
 attr_in_set(cache_attr_entry * inattr, cache_attr_set * set)

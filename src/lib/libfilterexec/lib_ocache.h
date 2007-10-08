@@ -28,9 +28,9 @@ extern "C"
 struct ocache_state;
 
 typedef struct {
-	unsigned int  	name_len;
+	unsigned int	name_len;
 	char		the_attr_name[MAX_ATTR_NAME];
-	sig_val_t  	attr_sig;
+	sig_val_t	attr_sig;
 } cache_attr_entry;
 
 typedef struct {
@@ -91,37 +91,9 @@ typedef struct {
 #define		INSERT_END	3
 
 typedef struct {
-	void *			cache_table;
-} cache_start_entry;
-
-typedef struct {
-	int			type;
-	sig_val_t		id_sig;
-	union {
-		cache_start_entry	start;
-		cache_attr_entry	iattr;		/*add input attr*/
-		cache_attr_entry	oattr;		/*add output attr*/
-		int			result;		/*end*/
-	} u;
-	query_info_t		qid;		// search that created entry
-	filter_exec_mode_t  exec_mode;  // mode when entry was created
-} cache_ring_entry;
-
-typedef struct {
 	attr_record_t*	arec;
 	obj_data_t *	obj;
 } cache_attr_t;
-
-typedef struct {
-	int				type;
-	sig_val_t			id_sig;
-	union {
-		char            *file_name;     /* the file name to cache oattr */
-		cache_attr_t		oattr;		/*add output attr*/
-		sig_val_t		iattr_sig;
-		sig_val_t 		fsig; /* filter signature */
-	} u;
-} oattr_ring_entry;
 
 int digest_cal(filter_data_t *fdata, char *fn_name, int numarg, 
 	char **filt_args, int blob_len, void *blob, sig_val_t * signature);

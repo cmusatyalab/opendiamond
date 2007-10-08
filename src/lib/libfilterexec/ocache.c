@@ -59,39 +59,71 @@ static unsigned int    count_thresh = 0;
 
 static int      search_active = 0;
 static int      search_done = 0;
-static ring_data_t *cache_ring;
-static ring_data_t *oattr_ring;
+
+static GAsyncQueue *ocache_queue;
+static GAsyncQueue *oattr_queue;
+
+struct ocache_start_entry {
+	void *cache_table;
+};
+
+struct ocache_end_entry {
+	int result;
+	query_info_t qid;		/* search that created entry */
+	filter_exec_mode_t exec_mode;	/* mode when entry was created */
+};
+
+struct ocache_ring_entry {
+	int type;
+	sig_val_t id_sig;
+	union {
+		struct ocache_start_entry start;/* INSERT_START */
+		cache_attr_entry iattr;		/* INSERT_IATTR */
+		cache_attr_entry oattr;		/* INSERT_OATTR */
+		struct ocache_end_entry end;	/* INSERT_END */
+	} u;
+};
+
+struct oattr_ring_entry {
+	int type;
+	sig_val_t id_sig;
+	union {
+		char *file_name;	/* the file name to cache oattr */
+		cache_attr_t oattr;	/*add output attr*/
+		sig_val_t iattr_sig;
+		sig_val_t fsig;		/* filter signature */
+	} u;
+};
+
+/* wrappers around g_async_queue_push and pop to get type checking */
+static void ocache_queue_push(struct ocache_ring_entry *data)
+{
+	g_async_queue_push(ocache_queue, (gpointer)data);
+}
+
+static struct ocache_ring_entry *ocache_queue_pop(void)
+{
+	return (struct ocache_ring_entry *)g_async_queue_pop(ocache_queue);
+}
+
+static void oattr_queue_push(struct oattr_ring_entry *data)
+{
+	g_async_queue_push(oattr_queue, (gpointer)data);
+}
+
+static struct oattr_ring_entry *oattr_queue_pop(void)
+{
+	return (struct oattr_ring_entry *)g_async_queue_pop(oattr_queue);
+}
 
 
 static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
 /*
- * queue empty 
- */
-static pthread_cond_t fg_data_cv = PTHREAD_COND_INITIALIZER;
-/*
  * active 
  */
 static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
-/*
- * queue full 
- */
-static pthread_cond_t bg_queue_cv = PTHREAD_COND_INITIALIZER;
 
-/*
- * queue non-empty 
- */
-static pthread_cond_t nem_queue_cv = PTHREAD_COND_INITIALIZER;
-/*
- * queue non empty 
- */
-static pthread_cond_t oattr_cv = PTHREAD_COND_INITIALIZER;
-/*
- * queue non empty 
- */
-static pthread_cond_t oattr_bg_cv = PTHREAD_COND_INITIALIZER;
 
-#define	CACHE_RING_SIZE	128
-#define	OATTR_RING_SIZE	128
 #define SIG_BUF_SIZE	256
 #define MAX_FILTER_ARG_NAME 256
 #define CACHE_ENTRY_NUM 4096
@@ -1080,122 +1112,37 @@ ocache_read_file(char *disk_path, sig_val_t * fsig, void **fcache_table,
 	return (0);
 }
 
-static int
-ocache_lookup_next(cache_ring_entry ** cobj, ocache_state_t * ocache)
-{
-	pthread_mutex_lock(&shared_mutex);
-	while (1) {
-		if (!ring_empty(cache_ring)) {
-			*cobj = ring_deq(cache_ring);
-			pthread_cond_signal(&bg_queue_cv);
-			pthread_mutex_unlock(&shared_mutex);
-			return (0);
-		} else {
-			pthread_cond_signal(&nem_queue_cv);
-			pthread_cond_wait(&fg_data_cv, &shared_mutex);
-		}
-	}
-}
-
-static int
-oattr_lookup_next(oattr_ring_entry ** cobj, ocache_state_t * ocache)
-{
-	pthread_mutex_lock(&shared_mutex);
-	while (1) {
-		if (!ring_empty(oattr_ring)) {
-			*cobj = ring_deq(oattr_ring);
-			pthread_cond_signal(&oattr_bg_cv);
-			pthread_mutex_unlock(&shared_mutex);
-			return (1);
-		} else {
-			pthread_cond_wait(&oattr_cv, &shared_mutex);
-		}
-	}
-}
-
-static int
-ocache_ring_insert(cache_ring_entry * cobj)
-{
-	pthread_mutex_lock(&shared_mutex);
-	while (1) {
-		if (!ring_full(cache_ring)) {
-			ring_enq(cache_ring, cobj);
-			break;
-		} else {
-			pthread_cond_wait(&bg_queue_cv, &shared_mutex);
-		}
-	}
-	pthread_cond_signal(&fg_data_cv);
-	pthread_mutex_unlock(&shared_mutex);
-	return (0);
-}
-
-
-static int
-oattr_ring_insert(oattr_ring_entry * cobj)
-{
-	pthread_mutex_lock(&shared_mutex);
-	/*
-	 * we do not wait if ring full. just drop it 
-	 if (!ring_full(oattr_ring)) {
-	 ring_enq(oattr_ring, cobj);
-	 } else {
-	 if (cobj->type == INSERT_OATTR) {
-	 odisk_release_obj(cobj->u.oattr.obj);
-	 free(cobj);
-	 } else if (cobj->type == INSERT_START) {
-	 free(cobj->u.file_name);
-	 free(cobj);
-	 } else {
-	 free(cobj);
-	 }
-	 }
-	 */
-	while (1) {
-		if (!ring_full(oattr_ring)) {
-			ring_enq(oattr_ring, cobj);
-			break;
-		} else {
-			pthread_cond_wait(&oattr_bg_cv, &shared_mutex);
-		}
-	}
-
-	pthread_cond_signal(&oattr_cv);
-	pthread_mutex_unlock(&shared_mutex);
-	return (0);
-}
-
 int
 ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table,
 		 sig_val_t * fsig)
 {
-	cache_ring_entry *new_entry;
-	oattr_ring_entry *oattr_entry;
+	struct ocache_ring_entry *new_entry;
+	struct oattr_ring_entry *oattr_entry;
 
 	if (if_cache_table) {
 		if (cache_table != NULL) {
 			memcpy(&ocache_sig, id_sig, sizeof(sig_val_t));
-			new_entry =
-			    (cache_ring_entry *) calloc(1,
-							sizeof(*new_entry));
+			new_entry = (struct ocache_ring_entry *)
+				calloc(1, sizeof(*new_entry));
 			assert(new_entry != NULL);
 			new_entry->type = INSERT_START;
 			memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
 			new_entry->u.start.cache_table = cache_table;
-			ocache_ring_insert(new_entry);
+
+			ocache_queue_push(new_entry);
 		}
 	}
 
 	if (if_cache_oattr) {
 		memcpy(&oattr_sig, id_sig, sizeof(sig_val_t));
-		oattr_entry =
-		    (oattr_ring_entry *) calloc(1, sizeof(*oattr_entry));
+		oattr_entry = (struct oattr_ring_entry *)
+			calloc(1, sizeof(*oattr_entry));
 		assert(oattr_entry != NULL);
 		oattr_entry->type = INSERT_START;
 		memcpy(&oattr_entry->id_sig, id_sig, sizeof(sig_val_t));
 		memcpy(&oattr_entry->u.fsig, fsig, sizeof(sig_val_t));
 		iattr_buflen = 0;
-		oattr_ring_insert(oattr_entry);
+		oattr_queue_push(oattr_entry);
 	}
 
 	return (0);
@@ -1205,14 +1152,14 @@ static void
 ocache_add_iattr(lf_obj_handle_t ohandle,
 		 const char *name, off_t len, const unsigned char *data)
 {
-	cache_ring_entry *new_entry;
+	struct ocache_ring_entry *new_entry;
 	unsigned int    name_len;
 	unsigned int    new_len;
 	obj_data_t     *obj = (obj_data_t *) ohandle;
 
 	if ((if_cache_table) && sig_match(&ocache_sig, &obj->id_sig)) {
-		new_entry =
-		    (cache_ring_entry *) calloc(1, sizeof(*new_entry));
+		new_entry = (struct ocache_ring_entry *)
+			calloc(1, sizeof(*new_entry));
 		assert(new_entry != NULL);
 		new_entry->type = INSERT_IATTR;
 		memcpy(&new_entry->id_sig, &obj->id_sig, sizeof(sig_val_t));
@@ -1238,7 +1185,7 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 				sig_clear(&oattr_sig);
 			}
 		}
-		ocache_ring_insert(new_entry);
+		ocache_queue_push(new_entry);
 	}
 
 	return;
@@ -1248,12 +1195,11 @@ static void
 ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 		 off_t len, const unsigned char *data)
 {
-	cache_ring_entry *new_entry;
-	oattr_ring_entry *oattr_entry;
+	struct ocache_ring_entry *new_entry;
+	struct oattr_ring_entry *oattr_entry;
 	unsigned int    name_len;
 	obj_data_t     *obj = (obj_data_t *) ohandle;
 	int             err;
-
 
 	/*
 	 * call function to update stats 
@@ -1262,8 +1208,8 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 
 	if (if_cache_table) {
 		if (sig_match(&ocache_sig, &obj->id_sig)) {
-			new_entry = (cache_ring_entry *)
-			    calloc(1, sizeof(*new_entry));
+			new_entry = (struct ocache_ring_entry *)
+				calloc(1, sizeof(*new_entry));
 
 			assert(new_entry != NULL);
 			new_entry->type = INSERT_OATTR;
@@ -1278,10 +1224,9 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 			strncpy(new_entry->u.oattr.the_attr_name, name,
 				MAX_ATTR_NAME);
 
-			err =
-			    odisk_get_attr_sig(obj, name,
-					       &new_entry->u.oattr.attr_sig);
-			ocache_ring_insert(new_entry);
+			err = odisk_get_attr_sig(obj, name,
+						 &new_entry->u.oattr.attr_sig);
+			ocache_queue_push(new_entry);
 		}
 	}
 
@@ -1292,8 +1237,8 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 			return;
 		}
 
-		oattr_entry = (oattr_ring_entry *)
-		    calloc(1, sizeof(*oattr_entry));
+		oattr_entry = (struct oattr_ring_entry *)
+			calloc(1, sizeof(*oattr_entry));
 		assert(oattr_entry != NULL);
 
 		oattr_entry->type = INSERT_OATTR;
@@ -1305,7 +1250,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 		oattr_entry->u.oattr.arec = arec;
 		oattr_entry->u.oattr.obj = obj;
 
-		oattr_ring_insert(oattr_entry);
+		oattr_queue_push(oattr_entry);
 	}
 }
 
@@ -1313,27 +1258,28 @@ int
 ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf,
 				query_info_t *qid, filter_exec_mode_t exec_mode)
 {
-	cache_ring_entry *new_entry;
-	oattr_ring_entry *oattr_entry;
+	struct ocache_ring_entry *new_entry;
+	struct oattr_ring_entry *oattr_entry;
 	sig_val_t       sig;
 
 	if ((if_cache_table) && (sig_match(&ocache_sig, id_sig))) {
-		new_entry = (cache_ring_entry *)
-		    calloc(1, sizeof(*new_entry));
+		new_entry = (struct ocache_ring_entry *)
+			calloc(1, sizeof(*new_entry));
 		assert(new_entry != NULL);
 		new_entry->type = INSERT_END;
 		memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
-		new_entry->u.result = conf;
-		new_entry->qid = *qid;
-		new_entry->exec_mode = exec_mode;
-		ocache_ring_insert(new_entry);
+		new_entry->u.end.result = conf;
+		new_entry->u.end.qid = *qid;
+		new_entry->u.end.exec_mode = exec_mode;
+
+		ocache_queue_push(new_entry);
 		sig_clear(&ocache_sig);
 	}
 
 	if ((if_cache_oattr) && sig_match(&oattr_sig, id_sig)) {
 		sig_clear(&oattr_sig);
-		oattr_entry = (oattr_ring_entry *)
-		    calloc(1, sizeof(*oattr_entry));
+		oattr_entry = (struct oattr_ring_entry *)
+			calloc(1, sizeof(*oattr_entry));
 		assert(oattr_entry != NULL);
 		oattr_entry->type = INSERT_END;
 		memcpy(&oattr_entry->id_sig, id_sig, sizeof(sig_val_t));
@@ -1343,7 +1289,7 @@ ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf,
 			       sizeof(sig_val_t));
 			iattr_buflen = -1;
 		}
-		oattr_ring_insert(oattr_entry);
+		oattr_queue_push(oattr_entry);
 	}
 	return (0);
 }
@@ -1353,7 +1299,7 @@ ocache_main(void *arg)
 {
 	ocache_state_t *cstate = (ocache_state_t *) arg;
 	int             err;
-	cache_ring_entry *tobj;
+	struct ocache_ring_entry *tobj;
 	cache_obj      *cobj;
 	cache_obj      *p,
 	               *q;
@@ -1385,8 +1331,8 @@ ocache_main(void *arg)
 		 * get the next lookup object 
 		 */
 		cache_table = NULL;
-		err = ocache_lookup_next(&tobj, cstate);
 
+		tobj = ocache_queue_pop();
 		if (tobj == NULL) {
 			continue;
 		}
@@ -1416,7 +1362,7 @@ ocache_main(void *arg)
 			free(tobj);
 
 			while (1) {
-				err = ocache_lookup_next(&tobj, cstate);
+				tobj = ocache_queue_pop();
 				if (tobj->type == INSERT_IATTR) {
 					if (!sig_match
 					    (&cobj->id_sig, &tobj->id_sig)) {
@@ -1492,9 +1438,9 @@ ocache_main(void *arg)
 						free(tobj);
 						break;
 					}
-					cobj->result = tobj->u.result;
-					cobj->qid = tobj->qid;
-					cobj->exec_mode = tobj->exec_mode;
+					cobj->result = tobj->u.end.result;
+					cobj->qid = tobj->u.end.qid;
+					cobj->exec_mode = tobj->u.end.exec_mode;
 					correct = 1;
 					free(tobj);
 					break;
@@ -1574,7 +1520,7 @@ static void    *
 oattr_main(void *arg)
 {
 	ocache_state_t *cstate = (ocache_state_t *) arg;
-	oattr_ring_entry *tobj;
+	struct oattr_ring_entry *tobj;
 	sig_val_t       id_sig;
 	int             fd;
 	char            attrbuf[PATH_MAX];
@@ -1593,8 +1539,8 @@ oattr_main(void *arg)
 		/*
 		 * If there is no search don't do anything 
 		 */
-		err = oattr_lookup_next(&tobj, cstate);
-		if (err != 1)
+		tobj = oattr_queue_pop();
+		if (tobj == NULL)
 			continue;
 
 		if (tobj->type != INSERT_START) {
@@ -1636,10 +1582,10 @@ oattr_main(void *arg)
 
 		wcount = 0;
 		while (1) {
-			err = oattr_lookup_next(&tobj, cstate);
-			if (err != 1) {
+			tobj = oattr_queue_pop();
+			if (tobj == NULL) {
 				printf
-				    ("something wrong from oattr_lookup_next\n");
+				    ("something wrong from oattr_queue_pop\n");
 				break;
 			}
 			if (!sig_match(&id_sig, &tobj->id_sig)) {
@@ -1738,6 +1684,8 @@ ocache_init(char *dirp)
 		return (EPERM);
 	}
 
+	if (!g_thread_supported()) g_thread_init(NULL);
+
 	/*
 	 * dctl control 
 	 */
@@ -1750,13 +1698,9 @@ ocache_init(char *dirp)
 	dctl_register_leaf(DEV_CACHE_PATH, "cache_thresh_hold",
 			   DCTL_DT_UINT32, dctl_read_uint32,
 			   dctl_write_uint32, &count_thresh);
-	ring_init(&cache_ring, CACHE_RING_SIZE);
 
-
-	/*
-	 * creat output attr ring 
-	 */
-	ring_init(&oattr_ring, OATTR_RING_SIZE);
+	ocache_queue = g_async_queue_new();
+	oattr_queue = g_async_queue_new();
 
 	new_state = (ocache_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);

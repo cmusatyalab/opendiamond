@@ -809,7 +809,7 @@ void help(void) {
   fprintf(stderr, "The only supported command at the moment is:\n"
 	  "  create \tCreate a new collection from a list of objects");
   fprintf(stderr, "\n");
-  fprintf(stderr, "Try git <command> --help for command-specific help.\n");
+  fprintf(stderr, "Try volcano <command> --help for command-specific help.\n");
 }
 
 int main(int argc, char *argv[]) {

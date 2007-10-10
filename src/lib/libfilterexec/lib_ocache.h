@@ -25,8 +25,6 @@ extern "C"
 
 #define ATTR_ENTRY_NUM  200
 
-struct ocache_state;
-
 typedef struct {
 	unsigned int	name_len;
 	char		the_attr_name[MAX_ATTR_NAME];
@@ -89,11 +87,6 @@ typedef struct {
 #define		INSERT_IATTR	1
 #define		INSERT_OATTR	2
 #define		INSERT_END	3
-
-typedef struct {
-	attr_record_t*	arec;
-	obj_data_t *	obj;
-} cache_attr_t;
 
 int digest_cal(filter_data_t *fdata, char *fn_name, int numarg, 
 	char **filt_args, int blob_len, void *blob, sig_val_t * signature);

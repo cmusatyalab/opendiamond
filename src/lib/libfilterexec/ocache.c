@@ -55,7 +55,6 @@
  */
 static unsigned int    if_cache_table = 1;
 static unsigned int    if_cache_oattr = 0;
-static unsigned int    count_thresh = 0;
 
 static int      search_active = 0;
 static int      search_done = 0;
@@ -1704,9 +1703,6 @@ ocache_init(char *dirp)
 	dctl_register_leaf(DEV_CACHE_PATH, "cache_oattr", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &if_cache_oattr);
-	dctl_register_leaf(DEV_CACHE_PATH, "cache_thresh_hold",
-			   DCTL_DT_UINT32, dctl_read_uint32,
-			   dctl_write_uint32, &count_thresh);
 
 	ocache_queue = g_async_queue_new();
 	oattr_queue = g_async_queue_new();

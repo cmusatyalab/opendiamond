@@ -1331,168 +1331,165 @@ ocache_main(void *arg)
 		 * for one thread case, we could do it in this simple way. XXX: do we 
 		 * need to change this later? 
 		 */
-		if (tobj->type == INSERT_START) {
-			correct = 0;
-			cobj = (cache_obj *) calloc(1, sizeof(*cobj));
-			assert(cobj != NULL);
-			memcpy(&cobj->id_sig, &tobj->id_sig,
-			       sizeof(sig_val_t));
-			cobj->eval_count = 0;
-			cobj->aeval_count = 1;
-			cobj->hit_count = 0;
-			cobj->ahit_count = 1;
-			cache_table =
-			    (cache_obj **) tobj->u.start.cache_table;
-			cobj->iattr.entry_num = 0;
-			cobj->oattr.entry_num = 0;
-			free(tobj);
+		correct = 0;
+		cobj = (cache_obj *) calloc(1, sizeof(*cobj));
+		assert(cobj != NULL);
+		memcpy(&cobj->id_sig, &tobj->id_sig,
+			sizeof(sig_val_t));
+		cobj->eval_count = 0;
+		cobj->aeval_count = 1;
+		cobj->hit_count = 0;
+		cobj->ahit_count = 1;
+		cache_table = tobj->u.start.cache_table;
+		cobj->iattr.entry_num = 0;
+		cobj->oattr.entry_num = 0;
+		free(tobj);
 
-			while (1) {
-				tobj = ocache_queue_pop();
-				if (tobj->type == INSERT_IATTR) {
-					if (!sig_match
-					    (&cobj->id_sig, &tobj->id_sig)) {
-						free(tobj);
-						break;
-					}
-					attr_entry = (cache_attr_entry *)
-					    calloc(1,
-						   sizeof(cache_attr_entry));
-					assert(attr_entry != NULL);
-					memcpy(attr_entry, &tobj->u.attr,
-					       sizeof(cache_attr_entry));
-
-					iattr[cobj->iattr.entry_num] =
-					    attr_entry;
-					cobj->iattr.entry_num++;
-					if ((cobj->iattr.entry_num %
-					     ATTR_ENTRY_NUM) == 0) {
-						tmp =
-						    calloc(1,
-							   (cobj->iattr.
-							    entry_num +
-							    ATTR_ENTRY_NUM) *
-							   sizeof(char *));
-						assert(tmp != NULL);
-						memcpy(tmp, iattr,
-						       cobj->iattr.entry_num *
-						       sizeof(char *));
-						free(iattr);
-						iattr = tmp;
-					}
-					free(tobj);
-					continue;
-				}
-				if (tobj->type == INSERT_OATTR) {
-					if (!sig_match
-					    (&cobj->id_sig, &tobj->id_sig)) {
-						free(tobj);
-						break;
-					}
-					attr_entry = (cache_attr_entry *)
-					    calloc(1,
-						   sizeof(cache_attr_entry));
-					assert(attr_entry != NULL);
-
-					memcpy(attr_entry, &tobj->u.attr,
-					       sizeof(cache_attr_entry));
-					oattr[cobj->oattr.entry_num] =
-					    attr_entry;
-					cobj->oattr.entry_num++;
-
-					if ((cobj->oattr.entry_num %
-					     ATTR_ENTRY_NUM) == 0) {
-						tmp =
-						    calloc(1,
-							   (cobj->oattr.
-							    entry_num +
-							    ATTR_ENTRY_NUM) *
-							   sizeof(char *));
-						assert(tmp != NULL);
-						memcpy(tmp, oattr,
-						       cobj->oattr.entry_num *
-						       sizeof(char *));
-						free(oattr);
-						oattr = tmp;
-					}
-					free(tobj);
-					continue;
-				}
-				if (tobj->type == INSERT_END) {
-					if (!sig_match
-					    (&cobj->id_sig, &tobj->id_sig)) {
-						free(tobj);
-						break;
-					}
-					cobj->result = tobj->u.end.result;
-					cobj->qid = tobj->u.end.qid;
-					cobj->exec_mode = tobj->u.end.exec_mode;
-					correct = 1;
+		while (1) {
+			tobj = ocache_queue_pop();
+			if (tobj->type == INSERT_IATTR) {
+				if (!sig_match
+				    (&cobj->id_sig, &tobj->id_sig)) {
 					free(tobj);
 					break;
 				}
-			}
-			/*
-			 * insert into cache table 
-			 */
-			if (cobj->iattr.entry_num > 0) {
-				cobj->iattr.entry_data =
+				attr_entry = (cache_attr_entry *)
 				    calloc(1,
-					   cobj->iattr.entry_num *
-					   sizeof(char *));
-				assert(cobj->iattr.entry_data != NULL);
-				memcpy(cobj->iattr.entry_data, iattr,
-				       cobj->iattr.entry_num *
-				       sizeof(char *));
-			} else {
-				cobj->iattr.entry_data = NULL;
+					    sizeof(cache_attr_entry));
+				assert(attr_entry != NULL);
+				memcpy(attr_entry, &tobj->u.attr,
+					sizeof(cache_attr_entry));
+
+				iattr[cobj->iattr.entry_num] =
+				    attr_entry;
+				cobj->iattr.entry_num++;
+				if ((cobj->iattr.entry_num %
+					ATTR_ENTRY_NUM) == 0) {
+					tmp =
+					    calloc(1,
+						    (cobj->iattr.
+						    entry_num +
+						    ATTR_ENTRY_NUM) *
+						    sizeof(char *));
+					assert(tmp != NULL);
+					memcpy(tmp, iattr,
+						cobj->iattr.entry_num *
+						sizeof(char *));
+					free(iattr);
+					iattr = tmp;
+				}
+				free(tobj);
+				continue;
 			}
-			if (cobj->oattr.entry_num > 0) {
-				cobj->oattr.entry_data =
+			if (tobj->type == INSERT_OATTR) {
+				if (!sig_match
+				    (&cobj->id_sig, &tobj->id_sig)) {
+					free(tobj);
+					break;
+				}
+				attr_entry = (cache_attr_entry *)
 				    calloc(1,
-					   cobj->oattr.entry_num *
-					   sizeof(char *));
-				assert(cobj->oattr.entry_data != NULL);
-				memcpy(cobj->oattr.entry_data, oattr,
-				       cobj->oattr.entry_num *
-				       sizeof(char *));
-			} else {
-				cobj->oattr.entry_data = NULL;
+					    sizeof(cache_attr_entry));
+				assert(attr_entry != NULL);
+
+				memcpy(attr_entry, &tobj->u.attr,
+					sizeof(cache_attr_entry));
+				oattr[cobj->oattr.entry_num] =
+				    attr_entry;
+				cobj->oattr.entry_num++;
+
+				if ((cobj->oattr.entry_num %
+					ATTR_ENTRY_NUM) == 0) {
+					tmp =
+					    calloc(1,
+						    (cobj->oattr.
+						    entry_num +
+						    ATTR_ENTRY_NUM) *
+						    sizeof(char *));
+					assert(tmp != NULL);
+					memcpy(tmp, oattr,
+						cobj->oattr.entry_num *
+						sizeof(char *));
+					free(oattr);
+					oattr = tmp;
+				}
+				free(tobj);
+				continue;
 			}
-
-			if ((correct == 1)
-			    && (cache_entry_num < MAX_ENTRY_NUM)) {
-				if (cache_table == NULL) {
-					ocache_entry_free(cobj);
-					continue;
+			if (tobj->type == INSERT_END) {
+				if (!sig_match
+				    (&cobj->id_sig, &tobj->id_sig)) {
+					free(tobj);
+					break;
 				}
-				sig_iattr(&cobj->iattr, &sig);
-				memcpy(&cobj->iattr_sig, &sig,
-				       sizeof(sig_val_t));
+				cobj->result = tobj->u.end.result;
+				cobj->qid = tobj->u.end.qid;
+				cobj->exec_mode = tobj->u.end.exec_mode;
+				correct = 1;
+				free(tobj);
+				break;
+			}
+		}
+		/*
+		    * insert into cache table 
+		    */
+		if (cobj->iattr.entry_num > 0) {
+			cobj->iattr.entry_data =
+			    calloc(1,
+				    cobj->iattr.entry_num *
+				    sizeof(char *));
+			assert(cobj->iattr.entry_data != NULL);
+			memcpy(cobj->iattr.entry_data, iattr,
+				cobj->iattr.entry_num *
+				sizeof(char *));
+		} else {
+			cobj->iattr.entry_data = NULL;
+		}
+		if (cobj->oattr.entry_num > 0) {
+			cobj->oattr.entry_data =
+			    calloc(1,
+				    cobj->oattr.entry_num *
+				    sizeof(char *));
+			assert(cobj->oattr.entry_data != NULL);
+			memcpy(cobj->oattr.entry_data, oattr,
+				cobj->oattr.entry_num *
+				sizeof(char *));
+		} else {
+			cobj->oattr.entry_data = NULL;
+		}
 
-				cobj->next = NULL;
-				index =
-				    sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
-
-				pthread_mutex_lock(&shared_mutex);
-				if (cache_table[index] == NULL) {
-					cache_table[index] = cobj;
-				} else {
-					p = cache_table[index];
-					while (p != NULL) {
-						q = p;
-						p = p->next;
-					}
-					q->next = cobj;
-				}
-				cache_entry_num++;
-				pthread_mutex_unlock(&shared_mutex);
-			} else {
+		if ((correct == 1)
+		    && (cache_entry_num < MAX_ENTRY_NUM)) {
+			if (cache_table == NULL) {
 				ocache_entry_free(cobj);
+				continue;
 			}
-			if (cache_entry_num >= MAX_ENTRY_NUM) {
-				free_fcache_entry(cstate->ocache_path);
+			sig_iattr(&cobj->iattr, &sig);
+			memcpy(&cobj->iattr_sig, &sig,
+				sizeof(sig_val_t));
+
+			cobj->next = NULL;
+			index =
+			    sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
+
+			pthread_mutex_lock(&shared_mutex);
+			if (cache_table[index] == NULL) {
+				cache_table[index] = cobj;
+			} else {
+				p = cache_table[index];
+				while (p != NULL) {
+					q = p;
+					p = p->next;
+				}
+				q->next = cobj;
 			}
+			cache_entry_num++;
+			pthread_mutex_unlock(&shared_mutex);
+		} else {
+			ocache_entry_free(cobj);
+		}
+		if (cache_entry_num >= MAX_ENTRY_NUM) {
+			free_fcache_entry(cstate->ocache_path);
 		}
 	}
 	free(iattr);

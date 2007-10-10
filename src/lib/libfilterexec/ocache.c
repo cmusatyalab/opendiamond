@@ -735,7 +735,7 @@ free_fcache_entry(char *disk_path)
 	fcache_t       *oldest = NULL;
 	int             found = -1;
 
-	while (cache_entry_num >= MAX_CACHE_ENTRY_NUM) {
+	do {
 		for (i = 0; i < FCACHE_NUM; i++) {
 			if (filter_cache_table[i] == NULL)
 				continue;
@@ -763,6 +763,8 @@ free_fcache_entry(char *disk_path)
 			oldest = NULL;
 		}
 	}
+	while (cache_entry_num >= MAX_CACHE_ENTRY_NUM);
+
 	return (found);
 }
 

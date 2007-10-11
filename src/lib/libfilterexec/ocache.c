@@ -1460,39 +1460,22 @@ ocache_main(void *arg)
 			cobj->oattr.entry_data = NULL;
 		}
 
-		if ((correct == 1)
-		    && (cache_entry_num < MAX_ENTRY_NUM)) {
-			if (cache_table == NULL) {
-				ocache_entry_free(cobj);
-				continue;
-			}
-			sig_iattr(&cobj->iattr, &sig);
-			memcpy(&cobj->iattr_sig, &sig,
-				sizeof(sig_val_t));
+		if (correct && cache_entry_num < MAX_ENTRY_NUM && cache_table)
+		{
+			sig_iattr(&cobj->iattr, &cobj->iattr_sig);
 
-			cobj->next = NULL;
-			index =
-			    sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
+			index = sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
 
 			pthread_mutex_lock(&shared_mutex);
-			if (cache_table[index] == NULL) {
-				cache_table[index] = cobj;
-			} else {
-				p = cache_table[index];
-				while (p != NULL) {
-					q = p;
-					p = p->next;
-				}
-				q->next = cobj;
-			}
+			cobj->next = cache_table[index];
+			cache_table[index] = cobj;
 			cache_entry_num++;
 			pthread_mutex_unlock(&shared_mutex);
-		} else {
+		} else
 			ocache_entry_free(cobj);
-		}
-		if (cache_entry_num >= MAX_ENTRY_NUM) {
+
+		if (cache_entry_num >= MAX_ENTRY_NUM)
 			free_fcache_entry(cstate->ocache_path);
-		}
 	}
 	free(iattr);
 	free(oattr);

@@ -44,8 +44,6 @@
 
     $a = new admin($G);
 
-    $col_list = $a->get_collections();
-
     $is_admin = $a->is_admin($me);
     //  Get POST vars
 
@@ -64,6 +62,8 @@
     $all_users = $a->list_users();
     //  Add the user to the selected collections
     if ($action == "add_user") {
+        $col_array = $a->get_collections();
+	$col_list = array_keys($col_array);
         $main_content = "html/add_user.html";
         if (($add_col != "") && ($username != "")) {
             //  Print the add user admin stuff
@@ -75,7 +75,12 @@
 
     //  Define the scope 
     if ($action == "define_scope") {
+
+        $col_array = $a->get_collections();
+        $col_list = array_keys($col_array);
+
         $main_content = "html/scope.html";
+
         if (($scope != "") && ($me != "")) {
 
 	    $content = "1\n";
@@ -85,7 +90,7 @@
             $content .= "collection ";
 
             foreach ($scope as $coll) {
-                $namemap_info = $a->get_namemap_entry($coll);
+                $namemap_info = $a->get_namemap_entry($col_array[$coll], $coll);
                 $content .= $namemap_info['groupid'] . " ";
 		$gids = $gids + 1; 
             }
@@ -93,9 +98,10 @@
 	    $content .= "\n" . $gids . "\n";
 
             foreach ($scope as $coll) {
-                $namemap_info = $a->get_namemap_entry($coll);
+		$dbfile = $col_array[(string)$coll];
+                $namemap_info = $a->get_namemap_entry($dbfile, $coll);
 		$gid = $namemap_info['groupid'];
-                $servers = $a->get_gidmap_entry($coll, $gid);
+                $servers = $a->get_gidmap_entry($dbfile, $coll, $gid);
 		$content .= $gid . " ";
                 $content .= $servers . "\n";
             }
@@ -130,7 +136,6 @@
         //  Print out the summary  
         if ($action == "summary") {
             //  List the users;
-            //$member_list = $a->member_of("rgass");
             $main_content = "html/summary.html";
         }
 

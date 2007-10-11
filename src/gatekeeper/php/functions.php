@@ -53,46 +53,47 @@ class admin {
      *  @return list of collection array
      */
     function get_collections () {
-        $handle = opendir($this->db_dir);
-        $collection = array();
+        $dir_handle = opendir($this->db_dir);
+        $collections = array();
 
-        $results = $this->list_dir($handle);        
-        foreach ($results as $val) {
-	    $n1 = (strlen($val) - 3) - 9; /* subtract "metadata-" and ".db" */
-	    $n = substr($val, 9, $n1);
-            array_push($collection, $n);
+        $dirents = $this->list_dir($dir_handle);        
+        foreach ($dirents as $entry) {
+            $query = "select distinct collection from metadata;";
+
+            $db_file = $this->db_dir . '/' . $entry;
+            $db_handle =  sqlite3_open($db_file);
+            $query_handle = sqlite3_query($db_handle, $query);
+            if($query_handle == FALSE) {
+		echo "sqlite3 error opening $db_file: " . sqlite3_error($db_handle);
+                echo "<br />";
+                sqlite3_close($db_handle);
+                continue;
+            }
+
+            while($row = sqlite3_fetch_array($query_handle)) {
+		$keys = array_keys($row);
+		$coll = $row['collection'];
+		$collections[$coll] = $db_file;
+            }
         }
-        return $collection;
+
+        return $collections;
     }
 
-    /**
-     *  Get the Scope info from the db files
-     *  @param collection
-     *  @return array with scope info
-     */
-    function get_scope ($collection) {
-      $query = "select * from metadata where collection = '$collection';";
-      $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
-      $handle =  sqlite3_open($collection_file);
-      $result = sqlite3_query($handle, $query);
-      
-      $myarray = sqlite3_fetch_array ($result);
-      return $myarray;
-    }
 
     /**
      *  Get the name to group ID info from the db files
      *  @param collection
      *  @return array with name_map info
      */
-    function get_namemap_entry ($collection) {
+    function get_namemap_entry ($db_file, $collection) {
       $query = "select distinct collection,groupid from metadata where collection = '$collection';";
-      $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
-      $handle =  sqlite3_open($collection_file);
-      $result = sqlite3_query($handle, $query);
 
-      $myarray = sqlite3_fetch_array ($result);
-      return $myarray;
+      $db_handle =  sqlite3_open($db_file);
+      $query_handle = sqlite3_query($db_handle, $query);
+      $result = sqlite3_fetch_array ($query_handle);
+
+      return $result;
     }
 
 
@@ -102,15 +103,17 @@ class admin {
      *  @param groupid
      *  @return array with gid_map info
      */
-    function get_gidmap_entry ($collection, $groupid) {
+    function get_gidmap_entry ($db_file, $collection, $groupid) {
       $query = "select distinct server from metadata where groupid='$groupid';";
-      $collection_file = $this->db_dir . "/metadata-" . $collection . ".db";
-      $handle =  sqlite3_open($collection_file);
-      $query_result = sqlite3_query($handle, $query);
+
+      $db_handle = sqlite3_open($db_file);
+      $query_handle = sqlite3_query($db_handle, $query);
+
       $result = "";
-      while($myarray = sqlite3_fetch_array ($query_result)) {
+      while($myarray = sqlite3_fetch_array ($query_handle)) {
         $result .= $myarray['server'] . " ";
       }
+
       return $result;
     }
 

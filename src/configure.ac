@@ -56,7 +56,7 @@ AC_SEARCH_LIBS([krb5_init_context],
 
 
 # glib
-PKG_CHECK_MODULES(GLIB2, [glib-2.0])
+PKG_CHECK_MODULES(GLIB2, [glib-2.0, gthread-2.0])
 AC_SUBST(GLIB2_CFLAGS)
 AC_SUBST(GLIB2_LIBS)
 

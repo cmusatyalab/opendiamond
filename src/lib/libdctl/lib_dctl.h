@@ -91,9 +91,7 @@ typedef	struct {
 } dctl_fwd_cbs_t;
 
 
-int dctl_init(void **cookie);
 int dctl_register_node(char *path, char *node_name);
-void dctl_thread_register(void *cookie);
 int dctl_unregister_node(char *path, char *node_name);
 int dctl_register_leaf(char *path, char *leaf_name,
        dctl_data_type_t dctl_data_t, dctl_read_fn read_cb,

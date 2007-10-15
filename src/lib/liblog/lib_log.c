@@ -312,7 +312,6 @@ void log_init(char *log_prefix, char *control_prefix)
 {
 	int		err;
 	char log_path[DCTL_NAME_LEN];
-	void *dc;
 	
 	/*
 	 * make sure we haven't be initialized more than once 
@@ -376,7 +375,7 @@ void log_term() {
 		return;
 
 	// shutdown the thread and wait
-	g_async_queue_push(log_state->queue, log_eof);
+	g_async_queue_push(log_state->queue, (gpointer)log_eof);
 	pthread_join(log_state->writer, NULL);
 
 	g_async_queue_unref(log_state->queue);

@@ -53,9 +53,6 @@ string_test()
 int
 main(int argc, char **argv)
 {
-	pthread_t	log_thread;
-	int 		err;
-
 	log_init("testlog", NULL);
 	string_test();
 	sleep(5);

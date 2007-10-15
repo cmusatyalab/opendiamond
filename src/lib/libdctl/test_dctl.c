@@ -220,8 +220,6 @@ simple_test()
 int
 main(int argc, char **argv)
 {
-	void           *cookie;
-
 	simple_test();
 
 	return (0);

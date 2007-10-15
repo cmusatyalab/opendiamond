@@ -90,8 +90,6 @@ typedef struct search_state {
 	float           smoothed_ratio;	/* smoothed value */
 	uint            old_proc;	/* last number run */
 	float           avg_ratio;	/* floating point avg ratio */
-	void           *dctl_cookie;
-	void           *log_cookie;
 	unsigned char  *sig;
 	filter_exec_mode_t	exec_mode;  /* filter execution mode */
 	user_state_t	user_state;

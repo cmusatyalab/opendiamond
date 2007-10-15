@@ -71,7 +71,6 @@ typedef struct ceval_state {
 	stats_drop stats_drop_fn;
 	stats_drop stats_process_fn;
 	query_info_t	*qinfo;			// state for current search
-	void *log_cookie;
 } ceval_state_t;
 
 typedef struct cache_obj_s cache_obj;
@@ -138,7 +137,7 @@ int cache_lookup2(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table,
 	cache_attr_set *change_attr, int *conf, cache_attr_set **oattr_set, 
 	int *oattr_flag, int flag);
 
-int ocache_init(char *path_name, void *dctl_cookie, void * log_cookie);
+int ocache_init(char *path_name);
 int ocache_start();
 int ocache_stop(char *path_name);
 int ocache_stop_search(sig_val_t *fsig);
@@ -158,7 +157,7 @@ int ceval_init_search(filter_data_t * fdata, query_info_t *qinfo,
 
 int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk, 
 	void *cookie, stats_drop stats_drop_fn, 
-	stats_process stats_process_fn, void *log_cookie);
+	stats_process stats_process_fn);
 
 int ceval_start(filter_data_t * fdata);
 int ceval_stop(filter_data_t * fdata);

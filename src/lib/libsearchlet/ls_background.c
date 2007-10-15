@@ -80,13 +80,6 @@ typedef struct {
 } bg_cmd_data_t;
 
 
-static void
-thread_setup(search_context_t * sc)
-{
-	log_thread_register(sc->log_cookie);
-	dctl_thread_register(sc->dctl_cookie);
-}
-
 void
 update_dev_stats(search_context_t * sc)
 {
@@ -95,8 +88,6 @@ update_dev_stats(search_context_t * sc)
 	dev_stats_t    *dstats;
 	int             size;
 	int             remain;
-
-	thread_setup(sc);
 
 	dstats = (dev_stats_t *) malloc(DEV_STATS_SIZE(20));
 	assert(dstats != NULL);
@@ -131,7 +122,6 @@ void
 update_device_queue(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
-	thread_setup(sc);
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		if (cur_dev->flags & DEV_FLAG_DOWN)
 			continue;
@@ -478,9 +468,6 @@ bg_main(void *arg)
 	uint32_t		exec_mode_thresh_high = MAXINT;
 
 	sc = (search_context_t *) arg;
-
-	dctl_thread_register(sc->dctl_cookie);
-	log_thread_register(sc->log_cookie);
 
 	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
 	assert(err == 0);

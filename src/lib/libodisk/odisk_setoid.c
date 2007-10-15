@@ -50,17 +50,14 @@ main(int argc, char **argv)
 	odisk_state_t  *odisk;
 	int             err;
 	uint32_t        devid;
-	void           *log_cookie;
-	void           *dctl_cookie;
 	char           *host_addr;
 
 
 	host_addr = argv[1];
 
-	log_init("odisk_setoid", NULL, &log_cookie);
-	dctl_init(&dctl_cookie);
+	log_init("odisk_setoid", NULL);
 
-	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
+	err = odisk_init(&odisk, NULL);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

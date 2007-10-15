@@ -508,8 +508,6 @@ background_eval(void *arg)
 	query_info_t    qinfo;
 
 	sstate = (search_state_t *) arg;
-	log_thread_register(sstate->log_cookie);
-	dctl_thread_register(sstate->dctl_cookie);
  	memset(&qinfo, 0, sizeof(query_info_t));
 
 	while (1) {
@@ -610,8 +608,6 @@ bg_new_search(filter_opts_t *fops)
 
 	memset(&qinfo, 0, sizeof(query_info_t));
 
-	dctl_init(&sstate->dctl_cookie);
-
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
 
 	dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
@@ -675,7 +671,7 @@ bg_new_search(filter_opts_t *fops)
 
 	dctl_register_node(ROOT_PATH, DEV_CACHE_NODE);
 
-	log_init(LOG_PREFIX, DEV_SEARCH_PATH, &sstate->log_cookie);
+	log_init(LOG_PREFIX, DEV_SEARCH_PATH);
 	log_message(LOGT_DISK, LOGL_DEBUG, "adiskd: new background search");
 
 	/* initialize libfilterexec */
@@ -711,8 +707,7 @@ bg_new_search(filter_opts_t *fops)
 	sstate->split_bp_thresh = SPLIT_DEFAULT_BP_THRESH;
 	sstate->split_mult = SPLIT_DEFAULT_MULT;
 
-	err = odisk_init(&sstate->ostate, NULL, sstate->dctl_cookie,
-			 sstate->log_cookie);
+	err = odisk_init(&sstate->ostate, NULL);
 	if (err) {
 		fprintf(stderr, "Failed to init the object disk \n");
 		assert(0);
@@ -725,7 +720,7 @@ bg_new_search(filter_opts_t *fops)
 	/*
 	 * JIAYING: add ocache_init 
 	 */
-	err = ocache_init(NULL, sstate->dctl_cookie, sstate->log_cookie);
+	err = ocache_init(NULL);
 	if (err) {
 		fprintf(stderr, "Failed to init the object cache \n");
 		assert(0);
@@ -733,7 +728,7 @@ bg_new_search(filter_opts_t *fops)
 	}
 
 	err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
-			 bg_drop, bg_process, sstate->log_cookie);
+			 bg_drop, bg_process);
 
 	sstate->ver_no = 1;
 	err = fexec_load_spec(&sstate->fdata, &fops->spec_sig);

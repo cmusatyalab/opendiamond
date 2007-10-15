@@ -222,8 +222,6 @@ main(int argc, char **argv)
 {
 	void           *cookie;
 
-	dctl_init(&cookie);
-
 	simple_test();
 
 	return (0);

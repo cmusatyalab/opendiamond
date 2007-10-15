@@ -54,8 +54,6 @@ typedef struct odisk_state {
 	int             open_flags;
 	pthread_t       thread_id;
 	DIR *           odisk_dir;
-	void *          dctl_cookie;
-	void *          log_cookie;
 	uint32_t        obj_load;
 	uint32_t        next_blocked;
 	uint32_t        readahead_full;
@@ -120,8 +118,7 @@ typedef struct {
  */
 int odisk_term(struct odisk_state *odisk);
 int odisk_continue();
-int odisk_init(struct odisk_state **odisk, char *path_name,
-	       void *dctl_cookie, void * log_cookie);
+int odisk_init(struct odisk_state **odisk, char *path_name);
 int odisk_get_obj_cnt(struct odisk_state *odisk);
 int odisk_next_obj(obj_data_t **new_obj, struct odisk_state *odisk);
 

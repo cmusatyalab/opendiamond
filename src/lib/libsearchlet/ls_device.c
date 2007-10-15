@@ -615,7 +615,7 @@ create_new_device(search_context_t * sc, uint32_t devid)
 
 
 	new_dev->dev_handle = device_init(sc->cur_search_id, devid,
-	    (void *) new_dev, &cb_data, sc->dctl_cookie, sc->log_cookie);
+	    (void *) new_dev, &cb_data);
 
 	if (new_dev->dev_handle == NULL) {
 		log_message(LOGT_BG, LOGL_CRIT, 

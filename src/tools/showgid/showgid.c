@@ -82,7 +82,7 @@ main(int argc , char **argv)
 	size_t           len;
 	obj_data_t  *ohandle;
 
-	odisk_init(&odisk, ".", NULL, NULL);
+	odisk_init(&odisk, ".");
 
 
 	while (argc != i) {

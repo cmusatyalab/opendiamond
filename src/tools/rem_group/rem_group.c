@@ -110,8 +110,6 @@ main(int argc, char **argv)
 	int			count = 0;
 	data_type_t		dtype;
 	extern char *	optarg;
-	void *		dctl_cookie;
-	void *		log_cookie;
 
 
 	/*
@@ -161,10 +159,9 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	path = dconf_get_indexdir();
-	dctl_init(&dctl_cookie);
-	log_init("rem_group", NULL, &log_cookie);
+	log_init("rem_group", NULL);
 
-	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
+	err = odisk_init(&odisk, NULL);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");
@@ -223,6 +220,6 @@ done:
 	cur_file = NULL;
 	rebuild_idx(odisk);
 
-	log_term(log_cookie);
+	log_term();
 	exit(0);
 }

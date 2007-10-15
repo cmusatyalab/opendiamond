@@ -1445,9 +1445,6 @@ ocache_main(void *arg)
 	              **tmp;
 	cache_attr_entry *attr_entry;
 
-	dctl_thread_register(cstate->dctl_cookie);
-	log_thread_register(cstate->log_cookie);
-
 	iattr = calloc(1, ATTR_ENTRY_NUM * sizeof(char *));
 	assert(iattr != NULL);
 	oattr = calloc(1, ATTR_ENTRY_NUM * sizeof(char *));
@@ -1797,7 +1794,7 @@ oattr_main(void *arg)
 }
 
 int
-ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
+ocache_init(char *dirp)
 {
 	ocache_state_t *new_state;
 	int             err;
@@ -1842,9 +1839,6 @@ ocache_init(char *dirp, void *dctl_cookie, void *log_cookie)
 
 	new_state = (ocache_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
-
-	new_state->dctl_cookie = dctl_cookie;
-	new_state->log_cookie = log_cookie;
 
 	/*
 	 * set callback functions so we get notifice on read/and writes

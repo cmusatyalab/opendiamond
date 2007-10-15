@@ -1008,9 +1008,6 @@ odisk_main(void *arg)
 	obj_data_t     *nobj = NULL;
 	int             err;
 
-	dctl_thread_register(ostate->dctl_cookie);
-	log_thread_register(ostate->log_cookie);
-
 	while (1) {
 		/* If there is no search is active we hang out for a while */
 		while (search_active == 0) {
@@ -1179,8 +1176,7 @@ odisk_setup_open_flags(odisk_state_t * odisk)
 
 
 int
-odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
-	   void *log_cookie)
+odisk_init(odisk_state_t ** odisk, char *dirp)
 {
 	odisk_state_t  *new_state;
 	int             err;
@@ -1228,26 +1224,21 @@ odisk_init(odisk_state_t ** odisk, char *dirp, void *dctl_cookie,
 	new_state = (odisk_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
 
-	new_state->dctl_cookie = dctl_cookie;
-	new_state->log_cookie = log_cookie;
-
-	if (dctl_cookie != NULL) {
-		dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
-				   dctl_read_uint32, NULL,
-				   &new_state->obj_load);
-		dctl_register_leaf(DEV_OBJ_PATH, "next_blocked",
-				   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-				   &new_state->next_blocked);
-		dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked",
-				   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-				   &new_state->readahead_full);
-		dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load",
-				   DCTL_DT_UINT32, dctl_read_uint32,
-				   dctl_write_uint32, &dynamic_load);
-		dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load_depth",
-				   DCTL_DT_UINT32, dctl_read_uint32,
-				   dctl_write_uint32, &dynamic_load_depth);
-	}
+	dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
+			   dctl_read_uint32, NULL,
+			   &new_state->obj_load);
+	dctl_register_leaf(DEV_OBJ_PATH, "next_blocked",
+			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
+			   &new_state->next_blocked);
+	dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked",
+			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
+			   &new_state->readahead_full);
+	dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load",
+			   DCTL_DT_UINT32, dctl_read_uint32,
+			   dctl_write_uint32, &dynamic_load);
+	dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load_depth",
+			   DCTL_DT_UINT32, dctl_read_uint32,
+			   dctl_write_uint32, &dynamic_load_depth);
 
 	/*
 	 * the length has already been tested above 

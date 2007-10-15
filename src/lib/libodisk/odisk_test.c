@@ -184,14 +184,9 @@ main(int argc, char **argv)
 {
 	odisk_state_t  *odisk;
 	obj_data_t     *new_obj;
-	void           *log_cookie;
-	void           *dctl_cookie;
 	int             err;
 
-	log_init("odisk_test", NULL, &log_cookie);
-	dctl_init(&dctl_cookie);
-
-	err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
+	err = odisk_init(&odisk, NULL);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

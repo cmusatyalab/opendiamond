@@ -116,8 +116,6 @@ typedef struct search_context {
 	struct filter_data *	bg_fdata; 	/* filter_data_t  */
 	int			pend_lw;	/* pending lw mark */
 	int			dev_queue_limit; /* # objs queued at dev*/
-	void *			dctl_cookie;	/* cookie for dctl library */
-	void *			log_cookie;	/* cookie for log library */
 	int 		search_exec_mode;  /* a search_mode_t */
 	host_stats_t	host_stats;		/* object stats for this search */
 } search_context_t;

@@ -119,8 +119,6 @@ ceval_main(void *arg)
 	inject_names_t *names; 
 	int             err;
 
-	log_thread_register(cstate->log_cookie);
-
 	while (1) {
 		pthread_mutex_lock(&ceval_mutex);
 		while (search_active == 0) {
@@ -269,8 +267,7 @@ ceval_init_search(filter_data_t * fdata, query_info_t *qinfo, ceval_state_t * cs
  */
 int
 ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
-	   stats_drop stats_drop_fn, stats_process stats_process_fn,
-	   void *log_cookie)
+	   stats_drop stats_drop_fn, stats_process stats_process_fn)
 {
 	int             err;
 	ceval_state_t  *new_state;
@@ -300,7 +297,6 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	new_state->cookie = cookie;
 	new_state->stats_drop_fn = stats_drop_fn;
 	new_state->stats_process_fn = stats_process_fn;
-	new_state->log_cookie = log_cookie;
 
 	err = pthread_create(&new_state->ceval_thread_id, PATTR_DEFAULT,
 			     ceval_main, (void *) new_state);

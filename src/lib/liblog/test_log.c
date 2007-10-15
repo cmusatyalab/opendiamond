@@ -53,13 +53,12 @@ string_test()
 int
 main(int argc, char **argv)
 {
-	void        *foo;
 	pthread_t	log_thread;
 	int 		err;
 
-	log_init("testlog", NULL, &foo);
+	log_init("testlog", NULL);
 	string_test();
 	sleep(5);
-	log_term(foo);
+	log_term();
 	return (0);
 }

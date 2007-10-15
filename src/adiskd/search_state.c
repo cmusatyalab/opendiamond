@@ -765,9 +765,6 @@ device_main(void *arg)
 
 	init_good_objs(&gobj, sstate->ver_no);
 
-	log_thread_register(sstate->log_cookie);
-	dctl_thread_register(sstate->dctl_cookie);
-
 	log_message(LOGT_DISK, LOGL_DEBUG, "adiskd: device_main: 0x%x", arg);
 	
 	/*
@@ -1038,8 +1035,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Set the return values to this "handle".
 	 */
 	*app_cookie = sstate;
-	
-	dctl_init(&sstate->dctl_cookie);
 
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
 
@@ -1103,7 +1098,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	/* 
 	 * Initialize the log for the new process 
 	 */
-	log_init(LOG_PREFIX, DEV_SEARCH_PATH, &sstate->log_cookie);
+	log_init(LOG_PREFIX, DEV_SEARCH_PATH);
 
 	sstub_get_conn_info(comm_cookie, &sstate->cinfo);
 	log_message(LOGT_DISK, LOGL_INFO, 
@@ -1184,8 +1179,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Initialize our communications with the object
 	 * disk sub-system.
 	 */
-	err = odisk_init(&sstate->ostate, NULL, sstate->dctl_cookie,
-			 sstate->log_cookie);
+	err = odisk_init(&sstate->ostate, NULL);
 	if (err) {
 		fprintf(stderr, "Failed to init the object disk \n");
 		assert(0);
@@ -1195,7 +1189,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	/*
 	 * JIAYING: add ocache_init 
 	 */
-	err = ocache_init(NULL, sstate->dctl_cookie, sstate->log_cookie);
+	err = ocache_init(NULL);
 	if (err) {
 		fprintf(stderr, "Failed to init the object cache \n");
 		assert(0);
@@ -1203,7 +1197,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	}
 
 	err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
-			 		sstats_drop, sstats_process, sstate->log_cookie);
+			 		sstats_drop, sstats_process);
 
 
 	/*
@@ -1379,8 +1373,6 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 	  return NULL;
 	}
 
-	dctl_thread_register(sstate->dctl_cookie);
-
 	dtype->len = MAX_DBUF;
 	err = dctl_read_leaf(path, &(dtype->dt), &(dtype->len), dtype->dbuf);
 
@@ -1408,8 +1400,6 @@ search_write_leaf(void *app_cookie, char *path, int len, char *data,
 	int             err;
 	search_state_t *sstate;
 	sstate = (search_state_t *) app_cookie;
-
-	dctl_thread_register(sstate->dctl_cookie);
 
 	err = dctl_write_leaf(path, len, data);
 	/*
@@ -1440,8 +1430,6 @@ search_list_leafs(void *app_cookie, char *path, int32_t opid)
 	  perror("malloc");
 	  return NULL;
 	}
-
-	dctl_thread_register(sstate->dctl_cookie);
 
 	lt->num_ents = MAX_ENTS;
 
@@ -1484,8 +1472,6 @@ search_list_nodes(void *app_cookie, char *path, int32_t opid)
 	  perror("malloc");
 	  return NULL;
 	}
-
-	dctl_thread_register(sstate->dctl_cookie);
 
 	lt->num_ents = MAX_ENTS;
 	lt->err = dctl_list_nodes(path, &(lt->num_ents), lt->ent_data);

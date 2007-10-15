@@ -33,7 +33,7 @@ main(int argc, char **argv)
 	odisk_state_t  *odisk;
 	int             err;
 
-	err = odisk_init(&odisk, NULL, NULL, NULL);
+	err = odisk_init(&odisk, NULL);
 	if (err) {
 		errno = err;
 		perror("failed to init odisk");

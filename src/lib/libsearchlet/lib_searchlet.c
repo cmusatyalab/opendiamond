@@ -55,24 +55,6 @@
  */
 
 /*
- * this is a helper function that is called before every
- * API call.  We need to make sure that the thread local
- * state is initialized correctly since we don't know anything
- * about how the application is calling us. 
- *
- * XXX it may be overkill to do this for every call, but
- * just the ones that touch state the uses the thread
- * specific data. 
- */
-
-static void
-thread_setup(search_context_t * sc)
-{
-	log_thread_register(sc->log_cookie);
-	dctl_thread_register(sc->dctl_cookie);
-}
-
-/*
  * This funciton initilizes the search state and returns the handle
  * used for other calls.
  */
@@ -94,9 +76,6 @@ ls_init_search()
 	/*
 	 * Initialize the logging on the local host.
 	 */
-	err = dctl_init(&sc->dctl_cookie);
-	assert(err == 0);
-
 	err = dctl_register_node(ROOT_PATH, HOST_PATH);
 	assert(err == 0);
 
@@ -106,7 +85,7 @@ ls_init_search()
 	err = dctl_register_node(HOST_PATH, HOST_NETWORK_NODE);
 	assert(err == 0);
 
-	log_init(LOG_PREFIX, ROOT_PATH, &sc->log_cookie);
+	log_init(LOG_PREFIX, ROOT_PATH);
 
 	sc->cur_search_id = 1;	/* XXX should we randomize ??? */
 	sc->dev_list = NULL;
@@ -160,7 +139,6 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 	int             err;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	log_message(LOGT_BG, LOGL_TRACE, "ls_terminate_search: id %d", 
 				sc->cur_search_id);
@@ -262,7 +240,6 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	char 			buf[MAX_LOG_ENTRY], gbuf[MAX_GID_NAME];
 	
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	buf[0]='\0';
 	for (i = 0; i < num_groups; i++) {
@@ -483,7 +460,6 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	sig_val_t	spec_sig;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	/*
 	 * XXX do something with the isa_type !! 
@@ -584,7 +560,6 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 	sig_val_t	obj_sig;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	/*
 	 * XXX do something with the isa_type !! 
@@ -699,7 +674,6 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 	int             err;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	if (sc->cur_status == SS_ACTIVE) {
 		/*
@@ -799,7 +773,6 @@ ls_start_search(ls_search_handle_t handle)
 	time_t          cur_time;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	/*
 	 * if state isn't idle, then we haven't set the searchlet on
@@ -910,7 +883,6 @@ ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as)
 	int             ret_err;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	/*
 	 * If no search is currently active (or just completed) then
@@ -1007,7 +979,6 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 	 * XXX make sure search is running 
 	 */
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	log_message(LOGT_BG, LOGL_TRACE, "ls_next_object: id %d", 
 				sc->cur_search_id);	
@@ -1087,7 +1058,6 @@ ls_num_objects(ls_search_handle_t handle, int *obj_cnt)
 	 */
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	*obj_cnt = ring_count(sc->proc_ring);
 
@@ -1161,7 +1131,6 @@ ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t * handle_list,
 		return EINVAL;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 	/*
 	 * XXX check for active? 
 	 */
@@ -1209,7 +1178,6 @@ ls_dev_characteristics(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 	search_context_t *sc;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	dev = (device_handle_t *) dev_handle;
 	/*
@@ -1261,7 +1229,6 @@ ls_get_dev_stats(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 	search_context_t *sc;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	dev = (device_handle_t *) dev_handle;
 
@@ -1283,7 +1250,6 @@ ls_get_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_hand
   search_context_t *sc;
 
   sc = (search_context_t *) handle;
-  thread_setup(sc);
 
   dev = (device_handle_t *) dev_handle;
 
@@ -1305,7 +1271,6 @@ ls_set_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_hand
   search_context_t *sc;
 
   sc = (search_context_t *) handle;
-  thread_setup(sc);
 
   dev = (device_handle_t *) dev_handle;
 
@@ -1341,7 +1306,6 @@ int ls_set_user_state(ls_search_handle_t handle, user_state_t state) {
 	filter_exec_mode_t new_mode;
 
 	sc = (search_context_t *) handle;
-	thread_setup(sc);
 
 	log_message(LOGT_BG, LOGL_TRACE, 
 				"ls_set_user_state: id %d state %s", 

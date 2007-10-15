@@ -250,9 +250,6 @@ hstub_main(void *arg)
 
 	dev = (sdevice_state_t *) arg;
 
-	dctl_thread_register(dev->dctl_cookie);
-	log_thread_register(dev->log_cookie);
-
 	signal(SIGPIPE, SIG_IGN);
 
 	/*

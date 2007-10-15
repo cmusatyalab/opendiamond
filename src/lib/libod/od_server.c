@@ -33,13 +33,10 @@ void
 init_disk()
 {
 	int             err;
-	void           *log_cookie;
-	void           *dctl_cookie;
 
-	log_init("od_server", NULL, &log_cookie);
-	dctl_init(&dctl_cookie);
+	log_init("od_server", NULL);
 
-	err = odisk_init(&odata, NULL, dctl_cookie, log_cookie);
+	err = odisk_init(&odata, NULL);
 	if (err) {
 		odata = NULL;
 		fprintf(stderr, "unable to initialize odisk \n");

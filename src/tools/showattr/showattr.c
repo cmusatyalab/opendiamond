@@ -141,15 +141,12 @@ main(int argc , char **argv)
 	int			flen;
 	int			extlen;
 	int			is_attr = 0;
-	void *          dctl_cookie;
-        void *          log_cookie;
 	odisk_state_t *	odisk;
 	int		err;
 
-	dctl_init(&dctl_cookie);
-        log_init("showattr", NULL, &log_cookie);
+        log_init("showattr", NULL);
 
-        err = odisk_init(&odisk, NULL, dctl_cookie, log_cookie);
+        err = odisk_init(&odisk, NULL);
         if (err) {
                 errno = err;
                 perror("failed to init odisk");
@@ -187,7 +184,7 @@ main(int argc , char **argv)
 		show_attr(odisk, attr_name);
 	}
 
-	log_term(log_cookie);
+	log_term();
 	return (0);
 }
 

@@ -35,36 +35,31 @@
 
 #define DCTL_NAME_LEN 128
 
+typedef struct log_ent {
+	struct timeval le_ts;   /* timestamp */
+	pid_t		le_pid;		/* process id */
+	pthread_t	le_tid; 	/* thread id */
+	uint32_t 	le_level;	/* the level */
+	uint32_t 	le_type;	/* the type */
+	uint32_t 	le_dlen;	/* length of data */
+	char		le_data[MAX_LOG_ENTRY];	/* where the string is stored */
+} log_ent_t;
+
+
 typedef struct log_state {
-	unsigned int    level;
-	unsigned int    type;
-	pthread_mutex_t log_mutex;
-	GQueue		   *buf;
-	pthread_t		writer;
-	char *			prefix;
-	int				fd;
+  unsigned int    level;
+  unsigned int    type;
+  GAsyncQueue *   queue;
+  pthread_t	  writer;
+  char *          prefix;
+  int             fd;
 } log_state_t;
 
-/*
- * some state for handling our multiple instantiations 
- */
-static pthread_key_t log_state_key;
-static pthread_once_t log_state_once = PTHREAD_ONCE_INIT;
+/* our 1 static state */
+static log_state_t *log_state;
 
-
-/*
- * get the log state.
- */
-static log_state_t *
-log_get_state()
-{
-	log_state_t    *ls;
-
-	ls = (log_state_t *) pthread_getspecific(log_state_key);
-	// XXX ??? assert(ls != NULL);
-	return (ls);
-}
-
+/* special EOF symbol */
+static const void *log_eof = &log_eof;
 
 /*
  * Set the mask that corresponds to the level of events we are
@@ -74,17 +69,10 @@ log_get_state()
 void
 log_setlevel(unsigned int level_mask)
 {
-	log_state_t    *ls;
-	/*
-	 * If we haven't been initialized then there is nothing
-	 * that we can do.
-	 */
-	ls = log_get_state();
-	if (ls == NULL) {
-		return;
-	}
-
-	ls->level = level_mask;
+  if (log_state == NULL) {
+    return;
+  }
+  log_state->level = level_mask;
 }
 
 
@@ -96,31 +84,12 @@ log_setlevel(unsigned int level_mask)
 void
 log_settype(unsigned int type_mask)
 {
-	log_state_t    *ls;
-	/*
-	 * If we haven't been initialized then there is nothing
-	 * that we can do.
-	 */
-	ls = log_get_state();
-	if (ls == NULL) {
-		return;
-	}
+  if (log_state == NULL) {
+    return;
+  }
 
-	ls->type = type_mask;
+  log_state->type = type_mask;
 }
-
-static void
-log_state_alloc()
-{
-	pthread_key_create(&log_state_key, NULL);
-}
-
-void
-log_thread_register(void *cookie)
-{
-	pthread_setspecific(log_state_key, (char *) cookie);
-}
-
 
 /*
  * This will save the log message to the log buffer
@@ -134,24 +103,22 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	va_list         new_ap;
 	int             num;
 	log_ent_t      *ent;
-	log_state_t    *ls;
 
-	ls = log_get_state();
 	/*
-	 * if ls == NULL, the we haven't initalized yet, so return 
+	 * if log_state == NULL, the we haven't initalized yet, so return 
 	 */
-	if (ls == NULL) {
+	if (log_state == NULL) {
 		return;
 	}
 
 	/*
 	 * If we aren't logging this level or type, then just return.
 	 */
-	if (((ls->type & type) == 0) || ((ls->level & level) == 0)) {
+	if (((log_state->type & type) == 0) || ((log_state->level & level) == 0)) {
 		return;
 	}
 	
-	ent = (log_ent_t *) malloc(sizeof(log_ent_t));
+	ent = (log_ent_t *) malloc(sizeof(*ent));
 	gettimeofday(&ent->le_ts, NULL);
 	ent->le_pid = getpid();
 	ent->le_tid = pthread_self();
@@ -180,9 +147,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 	}
 	ent->le_dlen = num;
 
-	pthread_mutex_lock(&ls->log_mutex);
-	g_queue_push_tail(ls->buf, (gpointer) ent);
-	pthread_mutex_unlock(&ls->log_mutex);
+	g_async_queue_push(log_state->queue, (gpointer) ent);
 }
 
 
@@ -287,92 +252,92 @@ void *log_writer(void *arg) {
 	struct tm	   *ltime;
 	char			source;
 	char			level;
-	log_state_t	   *ls;
 	
-	ls = (log_state_t *) arg;
-	ls->fd = log_create(ls->prefix);
+	log_state->fd = log_create(log_state->prefix);
 	
 	while (1) {
-		pthread_mutex_lock(&ls->log_mutex);
-		ent = (log_ent_t *) g_queue_pop_head(ls->buf);
-		pthread_mutex_unlock(&ls->log_mutex);
-		if (ent != NULL) {	
-			offset = 0;		
-			ltime = localtime(&ent->le_ts.tv_sec);
-			len = strftime(&buf[0], MAX_LOG_ENTRY, 
-						   "\n%b %d %y %H:%M:%S", ltime);
-			offset += len;
-			
-			source = source_to_char(ent->le_type);
-			level = level_to_char(ent->le_level);
-			len = snprintf(&buf[offset], MAX_LOG_ENTRY-offset, 
-							".%06d [%d.%u] %c %c ",
-							(int) ent->le_ts.tv_usec,
-							(int) ent->le_pid, 
-							(int) ent->le_tid,
-							source, level);
-			offset += len;
-			
-			if (offset + ent->le_dlen > MAX_LOG_ENTRY) {
-				ent->le_dlen = MAX_LOG_ENTRY-offset;
-			}
-			strncpy(&buf[offset], &ent->le_data[0], ent->le_dlen);
-			len = offset + ent->le_dlen;  
-			/* message is ready */
-			
-			/* check the file size */
-			if (file_len + len > MAX_LOG_FILE_SIZE) {
-				/* XXX roll the log over here */
-			}
-			
-			/* write the record text */
-			wlen = write(ls->fd, buf, len);
-			if (wlen > 0) {
-				file_len += wlen;
-			}
+		// block on queue, waiting for message
+		ent = (log_ent_t *) g_async_queue_pop(log_state->queue);
 
-			/* free the now-unused log structure malloc'd in log_message() */
-			free(ent);
+		if (ent == log_eof) {
+		  // shutdown message received
+		  break;
 		}
-		pthread_testcancel();
-		g_usleep(G_USEC_PER_SEC);  /* wait one second */
+
+		// real data received
+		offset = 0;
+		ltime = localtime(&ent->le_ts.tv_sec);
+		len = strftime(&buf[0], MAX_LOG_ENTRY,
+			       "\n%b %d %y %H:%M:%S", ltime);
+		offset += len;
+
+		source = source_to_char(ent->le_type);
+		level = level_to_char(ent->le_level);
+		len = snprintf(&buf[offset], MAX_LOG_ENTRY-offset,
+			       ".%06d [%d.%u] %c %c ",
+			       (int) ent->le_ts.tv_usec,
+			       (int) ent->le_pid,
+			       (int) ent->le_tid,
+			       source, level);
+		offset += len;
+
+		if (offset + ent->le_dlen > MAX_LOG_ENTRY) {
+		  ent->le_dlen = MAX_LOG_ENTRY-offset;
+		}
+		strncpy(&buf[offset], &ent->le_data[0], ent->le_dlen);
+		len = offset + ent->le_dlen;
+		/* message is ready */
+
+		/* check the file size */
+		if (file_len + len > MAX_LOG_FILE_SIZE) {
+		  /* XXX roll the log over here */
+		}
+
+		/* write the record text */
+		wlen = write(log_state->fd, buf, len);
+		if (wlen > 0) {
+		  file_len += wlen;
+		}
+
+		/* free the now-unused log structure malloc'd in log_message() */
+		free(ent);
 	}
-	/* NOTREACHED */
+
+	// we are done
+	close(log_state->fd);
+	return NULL;
 }
 
-void log_init(char *log_prefix, char *control_prefix, void **cookie)
+void log_init(char *log_prefix, char *control_prefix)
 {
-	log_state_t *ls;
 	int		err;
 	char log_path[DCTL_NAME_LEN];
 	void *dc;
 	
-	pthread_once(&log_state_once, log_state_alloc);
-
 	/*
 	 * make sure we haven't be initialized more than once 
 	 */
-	if ((ls = pthread_getspecific(log_state_key)) != NULL) {
-		*cookie = ls;		
+	if (log_state != NULL) {
 		return;
 	}
 
-	ls = (log_state_t *) calloc(1, sizeof(*ls));
-	if (ls == NULL) {
+	if (!g_thread_supported()) g_thread_init(NULL);
+
+
+	log_state = (log_state_t *) calloc(1, sizeof(*log_state));
+	if (log_state == NULL) {
 		/*
 		 * XXX don't know what to do and who to report it to
 		 */
 		return;
 	}
-	ls->level = LOGL_CRIT|LOGL_ERR|LOGL_INFO;
-	ls->type = LOGT_ALL;
-	ls->buf = g_queue_new();
-	ls->prefix = malloc(strlen(log_prefix)+1);
-	strcpy(ls->prefix, log_prefix);
-	err = pthread_mutex_init(&ls->log_mutex, NULL);
+	log_state->level = LOGL_CRIT|LOGL_ERR|LOGL_INFO;
+	log_state->type = LOGT_ALL;
+	log_state->queue = g_async_queue_new();
+	log_state->prefix = malloc(strlen(log_prefix)+1);
+	strcpy(log_state->prefix, log_prefix);
 
 	/* set up dynamic control of log content */
-        dctl_init(&dc);
 	if (control_prefix == NULL ||
 		strcmp(control_prefix, ROOT_PATH) == 0) {
 	  err = dctl_register_node(ROOT_PATH, LOG_PATH);
@@ -393,29 +358,29 @@ void log_init(char *log_prefix, char *control_prefix, void **cookie)
 	
 	err = dctl_register_leaf(log_path, "log_level",
 				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &ls->level);
+				 dctl_write_uint32, &log_state->level);
 	assert(err == 0);
 	dctl_register_leaf(log_path, "log_type",
 				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &ls->type);
+				 dctl_write_uint32, &log_state->type);
 	assert(err == 0);
-				 
-	pthread_setspecific(log_state_key, (char *) ls);
-	err = pthread_create(&ls->writer, NULL, log_writer,	(void *) ls);
-	*cookie = ls;
-	
+
+	/* start the thread */
+	err = pthread_create(&log_state->writer, NULL, log_writer, NULL);
 	assert(err == 0);
 }
 
 
-void log_term(void *cookie) {
-	log_state_t *ls;
-
-	ls = (log_state_t *) cookie;
-	if (ls == NULL)
+void log_term() {
+	if (log_state == NULL) 
 		return;
-		
-	pthread_cancel(ls->writer);
-	close(ls->fd);
-}
 
+	// shutdown the thread and wait
+	g_async_queue_push(log_state->queue, log_eof);
+	pthread_join(log_state->writer, NULL);
+
+	g_async_queue_unref(log_state->queue);
+	free(log_state->prefix);
+	free(log_state);
+	log_state = NULL;
+}

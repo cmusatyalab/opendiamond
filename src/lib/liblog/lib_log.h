@@ -49,16 +49,6 @@
  */
 #define	MAX_LOG_ENTRY	256
 
-typedef struct log_ent {
-	struct timeval le_ts;   /* timestamp */
-	pid_t		le_pid;		/* process id */
-	pthread_t	le_tid; 	/* thread id */
-	uint32_t 	le_level;	/* the level */
-	uint32_t 	le_type;	/* the type */
-	uint32_t 	le_dlen;	/* length of data */
-	char		le_data[MAX_LOG_ENTRY];	/* where the string is stored */
-} log_ent_t;
-
 /*
  * Define the maximum log file size.  The log file is rolled
  * before the limit is exceeded.
@@ -70,9 +60,8 @@ extern "C"
 {
 #endif
 
-void log_init(char *prefix, char *control, void **cookie);
-void log_term(void *cookie);
-void log_thread_register(void *cookie);
+void log_init(char *prefix, char *control);
+void log_term();
 void log_setlevel(unsigned int level_mask);
 void log_settype(unsigned int type_mask);
 void log_message(unsigned int type, unsigned int level, char *fmt, ...);

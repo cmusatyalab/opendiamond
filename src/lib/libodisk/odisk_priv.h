@@ -23,27 +23,6 @@ struct odisk_state;
  * visible.
  */
 
-/* for now, moved this to lib_odisk. but do we want to keep in private?
-#define	MAX_DIR_PATH	128
-#define	MAX_GID_FILTER	64
-typedef struct odisk_state {
-	char		odisk_path[MAX_DIR_PATH];
-	groupid_t	gid_list[MAX_GID_FILTER];
-	FILE *		index_files[MAX_GID_FILTER];
-	int		num_gids;
-	int		max_files;
-	int		cur_file;
-	pthread_t	thread_id;
-	DIR *		odisk_dir;
-	void *		dctl_cookie;
-	void *		log_cookie;
-	uint32_t	obj_load;
-	uint32_t	next_blocked;
-	uint32_t	readahead_full;
-} odisk_state_t;
-*/
-
-
 /*
  * Some macros for using the O_DIRECT call for aligned buffer
  * management.

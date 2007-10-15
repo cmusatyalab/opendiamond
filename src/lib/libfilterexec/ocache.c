@@ -63,7 +63,13 @@ static GAsyncQueue *ocache_queue;
 static GAsyncQueue *oattr_queue;
 
 struct ocache_start_entry {
-	void *cache_table;
+	void *cache_table;	/* ocache */
+};
+
+struct ocache_attr_entry {
+	obj_data_t *	obj;
+	unsigned int	name_len;
+	char		name[MAX_ATTR_NAME];
 };
 
 struct ocache_end_entry {
@@ -77,14 +83,10 @@ struct ocache_ring_entry {
 	sig_val_t id_sig;
 	union {
 		struct ocache_start_entry start;/* INSERT_START */
-		cache_attr_entry attr;		/* INSERT_IATTR/INSERT_OATTR */
+		cache_attr_entry iattr;		/* INSERT_IATTR */
+		struct ocache_attr_entry oattr;	/* INSERT_OATTR */
 		struct ocache_end_entry end;	/* INSERT_END */
 	} u;
-};
-
-struct cache_attr {
-	attr_record_t*	arec;
-	obj_data_t *	obj;
 };
 
 struct oattr_ring_entry {
@@ -93,7 +95,7 @@ struct oattr_ring_entry {
 	union {
 		sig_val_t fsig;		/* INSERT_START filter signature */
 		cache_attr_entry iattr;	/* INSERT_IATTR */
-		struct cache_attr oattr; /* INSERT_OATTR add output attr*/
+		struct ocache_attr_entry oattr; /* INSERT_OATTR */
 	} u;
 };
 
@@ -1174,8 +1176,7 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 		assert(new_entry != NULL);
 		new_entry->type = INSERT_IATTR;
 		memcpy(&new_entry->id_sig, &obj->id_sig, sizeof(sig_val_t));
-
-		memcpy(&new_entry->u.attr, &iattr, sizeof(cache_attr_entry));
+		memcpy(&new_entry->u.iattr, &iattr, sizeof(cache_attr_entry));
 
 		ocache_queue_push(new_entry);
 	}
@@ -1199,7 +1200,6 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 	struct ocache_ring_entry *new_entry;
 	struct oattr_ring_entry *oattr_entry;
 	obj_data_t     *obj = (obj_data_t *) ohandle;
-	int             err;
 
 	/*
 	 * call function to update stats 
@@ -1215,17 +1215,15 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 		memcpy(&new_entry->id_sig, &obj->id_sig,
 			sizeof(sig_val_t));
 
-		new_entry->u.attr.name_len = name ? strlen(name) + 1 : 0;
-		strncpy(new_entry->u.attr.the_attr_name, name,
-			MAX_ATTR_NAME);
-		err = odisk_get_attr_sig(obj, name,
-					 &new_entry->u.attr.attr_sig);
+		odisk_ref_obj(obj);
+		new_entry->u.oattr.obj = obj;
+		new_entry->u.oattr.name_len = name ? strlen(name) + 1 : 0;
+		strncpy(new_entry->u.oattr.name, name, MAX_ATTR_NAME);
 
 		ocache_queue_push(new_entry);
 	}
 
 	if (if_cache_oattr && sig_match(&oattr_sig, &obj->id_sig)) {
-		attr_record_t  *arec;
 		if ((name == NULL) || (len < 0)) {
 			printf("invalid oattr entry\n");
 			return;
@@ -1238,11 +1236,10 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 		oattr_entry->type = INSERT_OATTR;
 		memcpy(&oattr_entry->id_sig, &obj->id_sig, sizeof(sig_val_t));
 
-		arec = odisk_get_arec(obj, name);
-		assert(arec != NULL);
 		odisk_ref_obj(obj);
-		oattr_entry->u.oattr.arec = arec;
 		oattr_entry->u.oattr.obj = obj;
+		oattr_entry->u.oattr.name_len = name ? strlen(name) + 1 : 0;
+		strncpy(oattr_entry->u.oattr.name, name, MAX_ATTR_NAME);
 
 		oattr_queue_push(oattr_entry);
 	}
@@ -1291,8 +1288,8 @@ ocache_main(void *arg)
 	unsigned int    index;
 	int             correct;
 	cache_obj     **cache_table;
-	cache_attr_entry **tmp;
-	cache_attr_set *attr;
+	cache_attr_entry **tmp, *src_attr, attr;
+	cache_attr_set *attr_set;
 
 	while (1) {
 		/*
@@ -1309,6 +1306,8 @@ ocache_main(void *arg)
 		 */
 		tobj = ocache_queue_pop();
 		if (tobj->type != INSERT_START || !tobj->u.start.cache_table) {
+			if (tobj->type == INSERT_OATTR)
+				odisk_release_obj(tobj->u.oattr.obj);
 			free(tobj);
 			continue;
 		}
@@ -1333,6 +1332,8 @@ ocache_main(void *arg)
 			if (!sig_match(&cobj->id_sig, &tobj->id_sig) ||
 			    tobj->type == INSERT_START)
 			{
+				if (tobj->type == INSERT_OATTR)
+					odisk_release_obj(tobj->u.oattr.obj);
 				free(tobj);
 				break;
 			}
@@ -1346,30 +1347,44 @@ ocache_main(void *arg)
 				break;
 			}
 
-			/* obj->type == INSERT_IATTR or INSERT_OATTR */
-			if (tobj->type == INSERT_IATTR)
-				attr = &cobj->iattr;
-			else
-				attr = &cobj->oattr;
+			/* tobj->type == INSERT_IATTR or INSERT_OATTR */
 
-			if ((attr->entry_num % ATTR_ENTRY_NUM) == 0) {
-				tmp = calloc(attr->entry_num + ATTR_ENTRY_NUM,
-					     sizeof(cache_attr_entry *));
-				assert(tmp != NULL);
-				if (attr->entry_data != NULL) {
-					memcpy(tmp, attr->entry_data,
-					       attr->entry_num *
-					       sizeof(cache_attr_entry *));
-					free(attr->entry_data);
-				}
-				attr->entry_data = tmp;
+			if (tobj->type == INSERT_OATTR) {
+				memset(&attr, 0, sizeof(attr));
+				attr.name_len = tobj->u.oattr.name_len;
+				strncpy(attr.the_attr_name, tobj->u.oattr.name,
+					MAX_ATTR_NAME);
+				odisk_get_attr_sig(tobj->u.oattr.obj,
+						   tobj->u.oattr.name,
+						   &attr.attr_sig);
+				odisk_release_obj(tobj->u.oattr.obj);
+
+				src_attr = &attr;
+				attr_set = &cobj->iattr;
+			} else {
+				src_attr = &tobj->u.iattr;
+				attr_set = &cobj->oattr;
 			}
 
-			tmp = &attr->entry_data[attr->entry_num];
+			if ((attr_set->entry_num % ATTR_ENTRY_NUM) == 0) {
+				tmp = calloc(attr_set->entry_num +
+					     ATTR_ENTRY_NUM,
+					     sizeof(cache_attr_entry *));
+				assert(tmp != NULL);
+				if (attr_set->entry_data != NULL) {
+					memcpy(tmp, attr_set->entry_data,
+					       attr_set->entry_num *
+					       sizeof(cache_attr_entry *));
+					free(attr_set->entry_data);
+				}
+				attr_set->entry_data = tmp;
+			}
+
+			tmp = &attr_set->entry_data[attr_set->entry_num];
 			*tmp = calloc(1, sizeof(cache_attr_entry));
 			assert(*tmp != NULL);
-			memcpy(*tmp, &tobj->u.attr, sizeof(cache_attr_entry));
-			attr->entry_num++;
+			memcpy(*tmp, src_attr, sizeof(cache_attr_entry));
+			attr_set->entry_num++;
 			free(tobj);
 		}
 
@@ -1428,9 +1443,8 @@ oattr_main(void *arg)
 
 		if (tobj->type != INSERT_START) {
 			printf("LH not start \n");
-			if (tobj->type == INSERT_OATTR) {
+			if (tobj->type == INSERT_OATTR)
 				odisk_release_obj(tobj->u.oattr.obj);
-			}
 			free(tobj);
 			continue;
 		}
@@ -1474,6 +1488,8 @@ oattr_main(void *arg)
 				break;
 			}
 			if (!sig_match(&id_sig, &tobj->id_sig)) {
+				if (tobj->type == INSERT_OATTR)
+					odisk_release_obj(tobj->u.oattr.obj);
 				free(tobj);
 				break;
 			}
@@ -1525,12 +1541,20 @@ oattr_main(void *arg)
 			/*
 			 * put this record on the list to process 
 			 */
-			wvec[wcount].iov_base = tobj->u.oattr.arec;
-			wvec[wcount].iov_len = tobj->u.oattr.arec->rec_len;
+			attr_record_t *arec;
+			arec = odisk_get_arec(tobj->u.oattr.obj,
+					      tobj->u.oattr.name);
+			if (arec == NULL) {
+				odisk_release_obj(tobj->u.oattr.obj);
+				free(tobj);
+				continue;
+			}
+
+			wvec[wcount].iov_base = arec;
+			wvec[wcount].iov_len = arec->rec_len;
 			ovec[wcount] = tobj->u.oattr.obj;
 			wcount++;
 			free(tobj);
-
 
 			/*
 			 * if the vector is full then flush it 

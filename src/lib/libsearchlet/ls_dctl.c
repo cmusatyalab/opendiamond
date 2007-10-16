@@ -323,7 +323,7 @@ dctl_start(search_context_t * sc)
 	 * Create a thread to handle background processing.
 	 */
 	err =
-	    pthread_create(&thread_id, PATTR_DEFAULT, dctl_main, (void *) sc);
+	    pthread_create(&thread_id, NULL, dctl_main, (void *) sc);
 	if (err) {
 		/*
 		 * XXX log 

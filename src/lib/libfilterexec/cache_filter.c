@@ -298,7 +298,7 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	new_state->stats_drop_fn = stats_drop_fn;
 	new_state->stats_process_fn = stats_process_fn;
 
-	err = pthread_create(&new_state->ceval_thread_id, PATTR_DEFAULT,
+	err = pthread_create(&new_state->ceval_thread_id, NULL,
 			     ceval_main, (void *) new_state);
 
 	*cstate = new_state;

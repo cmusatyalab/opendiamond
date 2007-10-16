@@ -190,7 +190,7 @@ setup_rpc(cstate_t *cstate) {
     /* Create a thread which becomes a TI-RPC server. */
 
     bzero(&rpc_thread, sizeof(pthread_t));
-    pthread_create(&rpc_thread, PATTR_DEFAULT, create_rpc_server, 
+    pthread_create(&rpc_thread, NULL, create_rpc_server, 
 		   (void *)args);
     
     while(control_ready == 0) continue;

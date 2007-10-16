@@ -1865,13 +1865,13 @@ ocache_init(char *dirp)
 	/*
 	 * create thread to process inserted entries for cache table 
 	 */
-	err = pthread_create(&new_state->c_thread_id, PATTR_DEFAULT,
+	err = pthread_create(&new_state->c_thread_id, NULL,
 			     ocache_main, (void *) new_state);
 
 	/*
 	 * create thread to process inserted output attrs 
 	 */
-	err = pthread_create(&new_state->o_thread_id, PATTR_DEFAULT,
+	err = pthread_create(&new_state->o_thread_id, NULL,
 			     oattr_main, (void *) new_state);
 	free(dir_path);
 	return (0);

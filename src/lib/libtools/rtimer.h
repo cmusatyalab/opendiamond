@@ -87,10 +87,6 @@ extern          "C"
 	} rtimer_mode_t;
 
 	void            rtimer_system_init(rtimer_mode_t mode);
-
-	extern pthread_attr_t *pattr_default;
-#define PATTR_DEFAULT pattr_default
-
 	void     rt_init(rtimer_t * rt);
 	void     rt_start(rtimer_t * rt);
 	void     rt_stop(rtimer_t * rt);

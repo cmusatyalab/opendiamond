@@ -17,7 +17,6 @@
 #include "rtimer_papi.h"
 
 
-pthread_attr_t *pattr_default = NULL;
 static rtimer_mode_t rtimer_mode = 0;
 
 /*

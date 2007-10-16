@@ -1151,7 +1151,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 * Create a new thread that handles the searches for this current
 	 * search.  (We probably want to make this a seperate process ??).
 	 */
-	err = pthread_create(&sstate->thread_id, PATTR_DEFAULT, device_main,
+	err = pthread_create(&sstate->thread_id, NULL, device_main,
 			     (void *) sstate);
 	if (err) {
 		/*
@@ -1165,7 +1165,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	/*
 	 * thread to update the ration 
 	 */
-	err = pthread_create(&sstate->bypass_id, PATTR_DEFAULT, update_bypass,
+	err = pthread_create(&sstate->bypass_id, NULL, update_bypass,
 			     (void *) sstate);
 	if (err) {
 		/*

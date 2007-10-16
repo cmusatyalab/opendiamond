@@ -1309,7 +1309,7 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list)
 	 * from the device.
 	 */
 
-	err = pthread_create(&new_dev->thread_id, PATTR_DEFAULT, hstub_main,
+	err = pthread_create(&new_dev->thread_id, NULL, hstub_main,
 			     (void *) new_dev);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,

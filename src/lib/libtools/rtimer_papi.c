@@ -80,9 +80,6 @@ rt_papi_global_init()
 {
 	static int      inited = 0;
 	int             err;
-	extern pthread_attr_t *pattr_default;
-
-	pattr_default = NULL;
 
 	if (inited) {
 		return 0;
@@ -111,35 +108,6 @@ rt_papi_global_init()
 		return 1;
 	}
 	fprintf(stderr, "papi thread init OK\n");
-
-	/*
-	 * pthread attr init 
-	 */
-
-	pattr_default = (pthread_attr_t *) malloc(sizeof(pthread_attr_t));	/* not
-										 * *
-										 * free'd 
-										 * *
-										 * XXX */
-	if (!pattr_default) {
-		report_error(__FILE__, __LINE__, "malloc", 0);
-		return 1;
-	}
-
-	pthread_attr_init(pattr_default);
-#ifdef PTHREAD_CREATE_UNDETACHED
-
-	pthread_attr_setdetachstate(pattr_default, PTHREAD_CREATE_UNDETACHED);
-#endif
-#ifdef PTHREAD_SCOPE_SYSTEM
-
-	err = pthread_attr_setscope(pattr_default, PTHREAD_SCOPE_SYSTEM);
-	if (err != 0) {
-		report_error(__FILE__, __LINE__, "pthread_attr_setscope",
-			     err);
-		return 1;
-	}
-#endif
 
 	inited = 1;
 	return 0;

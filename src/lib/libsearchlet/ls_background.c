@@ -976,7 +976,7 @@ bg_init(search_context_t * sc, int id)
 	/*
 	 * Create a thread to handle background processing.
 	 */
-	err = pthread_create(&thread_id, PATTR_DEFAULT, bg_main, (void *) sc);
+	err = pthread_create(&thread_id, NULL, bg_main, (void *) sc);
 	if (err) {
 		/*
 		 * XXX log 

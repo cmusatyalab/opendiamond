@@ -53,9 +53,9 @@
 /*
  * dctl variables 
  */
-unsigned int    if_cache_table = 1;
-unsigned int    if_cache_oattr = 0;
-unsigned int    count_thresh = 0;
+static unsigned int    if_cache_table = 1;
+static unsigned int    if_cache_oattr = 0;
+static unsigned int    count_thresh = 0;
 
 static int      search_active = 0;
 static int      search_done = 0;

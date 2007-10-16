@@ -95,11 +95,11 @@ static opt_policy_t policy_arr[] = {
  */
 int             fexec_bypass_type = BP_NONE;
 int             fexec_autopart_type = AUTO_PART_NONE;
-int             fexec_cpu_slowdown = 0;	/* percentage slowdown for CPU */
-int				fexec_frequency_threshold = 1;  /* threshold for filter history */
+static int             fexec_cpu_slowdown = 0;	/* percentage slowdown for CPU */
+static int				fexec_frequency_threshold = 1;  /* threshold for filter history */
 
-char            ratio[40];
-char            pid_str[40];
+static char            ratio[40];
+static char            pid_str[40];
 
 int
 fexec_set_slowdown(void *cookie, int data_len, char *val)

@@ -54,7 +54,7 @@ static int  filter_error();
 #define         DATA_INCR           16    
 static int cur_filt_id = -1;
 
-filter_data_t   *fdata;
+static filter_data_t   *fdata;
 
 %}
 %array

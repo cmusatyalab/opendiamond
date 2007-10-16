@@ -168,7 +168,7 @@ typedef struct dctl_pending {
 } dctl_pending_t;
 
 
-dctl_pending_t  pend_data[MAX_PENDING];
+static dctl_pending_t  pend_data[MAX_PENDING];
 
 
 static int

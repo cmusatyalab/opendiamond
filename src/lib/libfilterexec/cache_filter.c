@@ -73,12 +73,12 @@ static opt_policy_t policy_arr[] = {
 	{NULL_POLICY, NULL, NULL, NULL, NULL}
 };
 
-unsigned int    use_cache_table = 1;
-unsigned int    use_cache_oattr = 1;
-unsigned int    cache_oattr_thresh = 10000;
-unsigned int    mdynamic_load = 1;
-unsigned int	add_cache_entries = 1;
-unsigned int	hybrid_mode_enabled = 1;
+static unsigned int    use_cache_table = 1;
+static unsigned int    use_cache_oattr = 1;
+static unsigned int    cache_oattr_thresh = 10000;
+static unsigned int    mdynamic_load = 1;
+static unsigned int	add_cache_entries = 1;
+static unsigned int	hybrid_mode_enabled = 1;
 
 /*
  * data structure to keep track of the good names we need to process
@@ -1013,14 +1013,14 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 #define SAMPLE_NUM		100
 // #define AJUST_RATE 5
 
-unsigned int    sample_counter = 0;
-int             oattr_percent = 80;	// start with using rate 50%
-double          opt_time = 1000000.0;	// initialize to an extrme large
+static unsigned int    sample_counter = 0;
+static int             oattr_percent = 80;	// start with using rate 50%
+static double          opt_time = 1000000.0;	// initialize to an extrme large
 					// value
-struct timeval  sample_start_time,
-                sample_end_time;
-int             direction = -1;
-int             adjust = 5 * 4;
+static struct timeval  sample_start_time;
+static struct timeval  sample_end_time;
+static int             direction = -1;
+static int             adjust = 5 * 4;
 
 static void
 sample_init()

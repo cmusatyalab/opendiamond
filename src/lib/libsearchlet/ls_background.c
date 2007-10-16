@@ -54,7 +54,7 @@
 /*
  * XXX debug for now, enables cpu based load splitting 
  */
-uint32_t        do_cpu_update = 0;
+static uint32_t        do_cpu_update = 0;
 
 typedef enum {
 	BG_STOP,

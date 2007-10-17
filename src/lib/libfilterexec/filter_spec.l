@@ -1,4 +1,4 @@
-%option nounput noyywrap
+%option nounput noyywrap reentrant
 %option prefix="fspec"
 %{
 /*
@@ -13,8 +13,6 @@
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
-
-#include <pthread.h>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -36,47 +34,49 @@
 #include "filter_priv.h"
 #include <assert.h>
 
-static void new_filter();
-static void filter_threshold();
-static void filter_merit();
-static void filter_threshhold();
-static void filter_args();
-static void filter_eval_fn();
-static void filter_init_fn();
-static void filter_fini_fn();
-static void filter_dependency();
-static void filter_in_obj();
-static void filter_out_obj();
-static int  filter_error();
+static void new_filter(yyscan_t scanner);
+static void filter_threshold(yyscan_t scanner);
+static void filter_merit(yyscan_t scanner);
+static void filter_threshhold(void);
+static void filter_args(yyscan_t scanner);
+static void filter_eval_fn(yyscan_t scanner);
+static void filter_init_fn(yyscan_t scanner);
+static void filter_fini_fn(yyscan_t scanner);
+static void filter_dependency(yyscan_t scanner);
+static void filter_in_obj(yyscan_t scanner);
+static void filter_out_obj(filter_output_type_t type, yyscan_t scanner);
+static int  filter_error(yyscan_t scanner);
 
 /* #define VERBOSE */
 
 #define         DATA_INCR           16    
-static int cur_filt_id = -1;
 
-static filter_data_t   *fdata;
+struct filter_spec_lex {
+  int cur_filt_id;
+  filter_data_t *fdata;
+};
 
 %}
 ID      [a-zA-Z][-a-zA-Z0-9_]*
 %%
 #.*\n
-ARG[ \t]+[[:graph:]]+			        {filter_args(); }
-FILTER[ \t]+{ID}			            {new_filter(); }
-THRESHOLD[ \t]+[0-9]+ 			        {filter_threshold(); }
+ARG[ \t]+[[:graph:]]+			        {filter_args(yyscanner); }
+FILTER[ \t]+{ID}			            {new_filter(yyscanner); }
+THRESHOLD[ \t]+[0-9]+ 			        {filter_threshold(yyscanner); }
 THRESHHOLD[ \t]+[0-9]+ 			        {filter_threshhold(); }
-EVAL_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_eval_fn(); }
-INIT_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_init_fn(); }
-FINI_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_fini_fn(); }
-REQUIRES[ \t]+{ID}			            {filter_dependency(); }
-IN_OBJECT[ \t]+[0-9]+			        {filter_in_obj(); }
-OUT_OBJECT[ \t]+UNMODIFIED[ \t]+[0-9]+	{filter_out_obj(FO_UNMODIFIED); }
-OUT_OBJECT[ \t]+NEW[ \t]+[0-9]+		    {filter_out_obj(FO_NEW); }
-OUT_OBJECT[ \t]+CLONE[ \t]+[0-9]+	    {filter_out_obj(FO_CLONE); }
-OUT_OBJECT[ \t]+COPY_ATTR[ \t]+[0-9]+	{filter_out_obj(FO_COPY_ATTR); }
-MERIT[ \t]+[0-9]+			            {filter_merit(); }
+EVAL_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_eval_fn(yyscanner); }
+INIT_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_init_fn(yyscanner); }
+FINI_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_fini_fn(yyscanner); }
+REQUIRES[ \t]+{ID}			            {filter_dependency(yyscanner); }
+IN_OBJECT[ \t]+[0-9]+			        {filter_in_obj(yyscanner); }
+OUT_OBJECT[ \t]+UNMODIFIED[ \t]+[0-9]+	{filter_out_obj(FO_UNMODIFIED, yyscanner); }
+OUT_OBJECT[ \t]+NEW[ \t]+[0-9]+		    {filter_out_obj(FO_NEW, yyscanner); }
+OUT_OBJECT[ \t]+CLONE[ \t]+[0-9]+	    {filter_out_obj(FO_CLONE, yyscanner); }
+OUT_OBJECT[ \t]+COPY_ATTR[ \t]+[0-9]+	{filter_out_obj(FO_COPY_ATTR, yyscanner); }
+MERIT[ \t]+[0-9]+			            {filter_merit(yyscanner); }
 [[:blank:]]
 \n
-.					{ filter_error(); }
+.					{ filter_error(yyscanner); }
 %%
 
 
@@ -105,86 +105,90 @@ eat_token(char *str)
  */
 
 static void
-new_filter()
+new_filter(yyscan_t scanner)
 {
-	char * name;
-	char ** arg_data;
-	name = eat_token(yytext); 
+    char * name;
+    char ** arg_data;
+    struct filter_spec_lex *extra =
+      (struct filter_spec_lex *) yyget_extra(scanner);
+
+    name = eat_token(yyget_text(scanner));
 #ifdef VERBOSE
-	printf("filter name <%s> \n", name);
+    printf("filter name <%s> \n", name);
 #endif
-	if (strlen(name) >= MAX_FILTER_NAME) {
+    if (strlen(name) >= MAX_FILTER_NAME) {
 		/* XXX error */
-		return;
-	}
+       	return;
+    }
 
  
     /*
      * Make sure we have enough space for this filters, otherwise,
      * allocate some more space.
      */
-    if (fdata->fd_num_filters == fdata->fd_max_filters) {
+    if (extra->fdata->fd_num_filters == extra->fdata->fd_max_filters) {
         int     new_size;
         int     new_num;
 
-        new_num = fdata->fd_max_filters + DATA_INCR;
-        new_size = sizeof(*fdata) + (new_num * sizeof(filter_info_t));
+        new_num = extra->fdata->fd_max_filters + DATA_INCR;
+        new_size = sizeof(*extra->fdata) + (new_num * sizeof(filter_info_t));
 
-        fdata = realloc(fdata, new_size);
-        assert(fdata != NULL);
-        fdata->fd_max_filters = new_num;
+        extra->fdata = realloc(extra->fdata, new_size);
+        assert(extra->fdata != NULL);
+        extra->fdata->fd_max_filters = new_num;
     }
   
 #ifdef VERBOSE
-    printf("fdata %p num_filt %d max %d \n", fdata, fdata->fd_num_filters,
-	   fdata->fd_max_filters);
+    printf("fdata %p num_filt %d max %d \n", extra->fdata,
+	   extra->fdata->fd_num_filters,
+	   extra->fdata->fd_max_filters);
 #endif
 
-    cur_filt_id = fdata->fd_num_filters;
-    fdata->fd_num_filters++;
+    extra->cur_filt_id = extra->fdata->fd_num_filters;
+    extra->fdata->fd_num_filters++;
 
-    memset(&fdata->fd_filters[cur_filt_id], 0, sizeof(filter_info_t));
+    memset(&extra->fdata->fd_filters[extra->cur_filt_id], 0, sizeof(filter_info_t));
 
-    strcpy(fdata->fd_filters[cur_filt_id].fi_name, name);
+    strcpy(extra->fdata->fd_filters[extra->cur_filt_id].fi_name, name);
 
 #ifdef VERBOSE
-    printf(" id %d name %s \n", cur_filt_id, fdata->fd_filters[cur_filt_id].fi_name);
+    printf(" id %d name %s \n", extra->cur_filt_id, extra->fdata->fd_filters[extra->cur_filt_id].fi_name);
 #endif
-    fdata->fd_filters[cur_filt_id].fi_threshold = -1;
-    fdata->fd_filters[cur_filt_id].fi_merit = 0;
-    fdata->fd_filters[cur_filt_id].fi_filterid = cur_filt_id;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_threshold = -1;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_merit = 0;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_filterid = extra->cur_filt_id;
 
-    fdata->fd_filters[cur_filt_id].fi_numargs = 0;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_numargs = 0;
 
 	arg_data = (char **)malloc(sizeof(char *) * ARG_CHUNK);
 	assert(arg_data != NULL);
-    fdata->fd_filters[cur_filt_id].fi_maxargs = ARG_CHUNK;
-    fdata->fd_filters[cur_filt_id].fi_arglist = arg_data;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_maxargs = ARG_CHUNK;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_arglist = arg_data;
 
     /*
      * Default values is to run all filters on the storage
      * device.
      */
-    fdata->fd_filters[cur_filt_id].fi_bpthresh = RAND_MAX;
-    fdata->fd_filters[cur_filt_id].fi_added_bytes = 0;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_bpthresh = RAND_MAX;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_added_bytes = 0;
    
     if (strcmp(name, "APPLICATION") == 0) {
-        fdata->fd_app_id = cur_filt_id;
+        extra->fdata->fd_app_id = extra->cur_filt_id;
     }
     /* XXX save application name */
 }
 
 
 int 
-filter_error()
+filter_error(yyscan_t scanner)
 {
-	fprintf(stderr, "unknown text %s\n", yytext);
+	fprintf(stderr, "unknown text %s\n", yyget_text(scanner));
 	assert(0);
 	exit(1);
 }
 
 static void
-filter_threshhold()
+filter_threshhold(void)
 {
 
 	fprintf(stderr, "please rename THRESHHOLD -> THRESHOLD\n");
@@ -193,18 +197,20 @@ filter_threshhold()
 }
 
 static void
-filter_threshold()
+filter_threshold(yyscan_t scanner)
 {
-	char *th_str;
-	th_str = eat_token(yytext); 
+    char *th_str;
+    th_str = eat_token(yyget_text(scanner));
+    struct filter_spec_lex *extra =
+      (struct filter_spec_lex *) yyget_extra(scanner);
 
-    if (cur_filt_id == -1) {
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
     
-	fdata->fd_filters[cur_filt_id].fi_threshold = atoi(th_str);
+	extra->fdata->fd_filters[extra->cur_filt_id].fi_threshold = atoi(th_str);
 
 #ifdef VERBOSE
 	printf("filter threshold <%d> \n", cur_filter->fi_threshold);
@@ -215,18 +221,20 @@ filter_threshold()
 
 
 static void
-filter_merit()
+filter_merit(yyscan_t scanner)
 {
-	char *val_str;
-	val_str = eat_token(yytext); 
+    char *val_str;
+    val_str = eat_token(yyget_text(scanner));
+    struct filter_spec_lex *extra =
+      (struct filter_spec_lex *) yyget_extra(scanner);
 
-    if (cur_filt_id == -1) {
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
     
-	fdata->fd_filters[cur_filt_id].fi_merit = atoi(val_str);
+	extra->fdata->fd_filters[extra->cur_filt_id].fi_merit = atoi(val_str);
 
 #ifdef VERBOSE
 	printf("filter merit <%d> \n", cur_filter->fi_merit);
@@ -235,22 +243,25 @@ filter_merit()
 }
 
 static void
-filter_args()
+filter_args(yyscan_t scanner)
 {
-	char *          arg_str;
-	char *          arg_data;
-	int             len;
+    char *          arg_str;
+    char *          arg_data;
+    int             len;
     filter_info_t*  this_filter;
 
-	arg_str = eat_token(yytext); 
+    arg_str = eat_token(yyget_text(scanner)); 
 
-    if (cur_filt_id == -1) {
+    struct filter_spec_lex *extra =
+      (struct filter_spec_lex *) yyget_extra(scanner);
+
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
 
-	this_filter = &fdata->fd_filters[cur_filt_id];
+	this_filter = &extra->fdata->fd_filters[extra->cur_filt_id];
     
 
 	len = strlen(arg_str) + 1;
@@ -285,83 +296,93 @@ filter_args()
 
 
 static void
-filter_eval_fn()
+filter_eval_fn(yyscan_t scanner)
 {
-	char *fname;
+    char *fname;
 
-	fname = eat_token(yytext); 
-	if (strlen(fname) >= MAX_FILTER_FUNC_NAME) {
-		/* XXX error */
-		return;
-	}
+    fname = eat_token(yyget_text(scanner));
+    if (strlen(fname) >= MAX_FILTER_FUNC_NAME) {
+      /* XXX error */
+      return;
+    }
 
-    if (cur_filt_id == -1) {
+    struct filter_spec_lex *extra =
+      (struct filter_spec_lex *) yyget_extra(scanner);
+
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
 
-	strcpy(fdata->fd_filters[cur_filt_id].fi_eval_name, fname);
+	strcpy(extra->fdata->fd_filters[extra->cur_filt_id].fi_eval_name, fname);
 
 }
 
 static void
-filter_init_fn()
+filter_init_fn(yyscan_t scanner)
 {
 	char *fname;
+	struct filter_spec_lex *extra =
+	  (struct filter_spec_lex *) yyget_extra(scanner);
 
-	fname = eat_token(yytext); 
+	fname = eat_token(yyget_text(scanner));
 	if (strlen(fname) >= MAX_FILTER_FUNC_NAME) {
 		/* XXX error */
 		return;
 	}
 
-    if (cur_filt_id == -1) {
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
 
-	strcpy(fdata->fd_filters[cur_filt_id].fi_init_name, fname);
+	strcpy(extra->fdata->fd_filters[extra->cur_filt_id].fi_init_name, fname);
 
 }
 
 static void
-filter_fini_fn()
+filter_fini_fn(yyscan_t scanner)
 {
 	char *fname;
+	struct filter_spec_lex *extra =
+	  (struct filter_spec_lex *) yyget_extra(scanner);
 
-	fname = eat_token(yytext); 
+	fname = eat_token(yyget_text(scanner));
 	if (strlen(fname) >= MAX_FILTER_FUNC_NAME) {
 		/* XXX error */
 		return;
 	}
 
-    if (cur_filt_id == -1) {
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
 
-	strcpy(fdata->fd_filters[cur_filt_id].fi_fini_name, fname);
+	strcpy(extra->fdata->fd_filters[extra->cur_filt_id].fi_fini_name, fname);
 }
 
 
 static void
-filter_dependency()
+filter_dependency(yyscan_t scanner)
 {
 	char *arg;
-    filter_info_t * this_filter;
+	filter_info_t * this_filter;
 
-	arg = eat_token(yytext); 
+	struct filter_spec_lex *extra =
+	  (struct filter_spec_lex *) yyget_extra(scanner);
 
-    if (cur_filt_id == -1) {
+	arg = eat_token(yyget_text(scanner));
+
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
 
-    this_filter = &fdata->fd_filters[cur_filt_id];
+    this_filter = &extra->fdata->fd_filters[extra->cur_filt_id];
 
 	if (this_filter->fi_depcount >= MAX_NUM_DEPS) {
 		/* XXX error */
@@ -377,49 +398,53 @@ filter_dependency()
 
 
 static void
-filter_in_obj()
+filter_in_obj(yyscan_t scanner)
 {
 	char *arg;
+	struct filter_spec_lex *extra =
+	  (struct filter_spec_lex *) yyget_extra(scanner);
 
-	arg = eat_token(yytext); 
+	arg = eat_token(yyget_text(scanner));
 
-    if (cur_filt_id == -1) {
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
 
-    fdata->fd_filters[cur_filt_id].fi_blocksize_in = atol(arg);
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_blocksize_in = atol(arg);
 
 #ifdef VERBOSE
 	printf("input blocksize %d\n", 
-        fdata->fd_filters[cur_filt_id].fi_blocksize_in);
+        extra->fdata->fd_filters[extra->cur_filt_id].fi_blocksize_in);
 #endif
 }
 
 
 static void
-filter_out_obj(filter_output_type_t type)
+filter_out_obj(filter_output_type_t type, yyscan_t scanner)
 {
 	char *arg;
+	struct filter_spec_lex *extra =
+	  (struct filter_spec_lex *) yyget_extra(scanner);
 
-	arg = eat_token(yytext); 
+	arg = eat_token(yyget_text(scanner));
 
-    if (cur_filt_id == -1) {
+    if (extra->cur_filt_id == -1) {
 		fprintf(stderr, "parse error: no filter active\n");
 		assert(0);
 		return;
     }
 
-    fdata->fd_filters[cur_filt_id].fi_type_out = type;
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_type_out = type;
 
 	arg = eat_token(arg); 
-    fdata->fd_filters[cur_filt_id].fi_blocksize_out = atoi(arg);
+    extra->fdata->fd_filters[extra->cur_filt_id].fi_blocksize_out = atoi(arg);
 
 
 #ifdef VERBOSE
 	printf("output blocksize %d\n", 
-        fdata->fd_filters[cur_filt_id].fi_blocksize_out);
+        extra->fdata->fd_filters[extra->cur_filt_id].fi_blocksize_out);
 #endif
 }
 
@@ -428,47 +453,55 @@ int
 read_filter_spec(char *spec_name, filter_data_t **fdp)
 {
     int i;
-	int err;
+
+    yyscan_t scanner;
+    struct filter_spec_lex extra;
 
 	/* initialize static variables */
 	/* first_filter = NULL; */
 	/* cur_filter = NULL; */
 
-    cur_filt_id = -1;
+    extra.cur_filt_id = -1;
 
     /* allocate initial storage for the filter data */
-    fdata = (filter_data_t *)malloc(sizeof(*fdata) + ((DATA_INCR) * 
+    extra.fdata = (filter_data_t *)malloc(sizeof(*extra.fdata) + ((DATA_INCR) * 
             sizeof(filter_info_t)));
-    assert(fdata != NULL); 
+    assert(extra.fdata != NULL); 
 
-    fdata->fd_max_filters = DATA_INCR;
-    fdata->fd_num_filters = 0;
-    fdata->fd_perm = NULL;
-    fdata->fd_po = NULL;
+    extra.fdata->fd_max_filters = DATA_INCR;
+    extra.fdata->fd_num_filters = 0;
+    extra.fdata->fd_perm = NULL;
+    extra.fdata->fd_po = NULL;
 
     for (i=0; i < PROB_HASH_BUCKETS; i++) {
-        LIST_INIT(&fdata->fd_prob_hash[i]);    
+        LIST_INIT(&extra.fdata->fd_prob_hash[i]);    
     }
 
-    fdata->obj_ns_valid = 0;
-    fdata->obj_ns_pos = 0;
-    fdata->obj_counter = 0;
-    fdata->fd_avg_wall = 1.0;
-    fdata->fd_avg_exec = 1.0;
-    fdata->full_eval = 0;
+    extra.fdata->obj_ns_valid = 0;
+    extra.fdata->obj_ns_pos = 0;
+    extra.fdata->obj_counter = 0;
+    extra.fdata->fd_avg_wall = 1.0;
+    extra.fdata->fd_avg_exec = 1.0;
+    extra.fdata->full_eval = 0;
 
-    fdata->lib_info = malloc(sizeof(flib_info_t) * FLIB_INCREMENT);
-    assert(fdata->lib_info != NULL);
-    fdata->max_libs = FLIB_INCREMENT;
-    fdata->num_libs = 0;
+    extra.fdata->lib_info = malloc(sizeof(flib_info_t) * FLIB_INCREMENT);
+    assert(extra.fdata->lib_info != NULL);
+    extra.fdata->max_libs = FLIB_INCREMENT;
+    extra.fdata->num_libs = 0;
 
 
-    yyin = fopen(spec_name, "r");
-    assert(yyin != NULL);
-    err = fspeclex();
+    FILE *f = fopen(spec_name, "r");
+    assert(f != NULL);
 
-    *fdp = fdata;
+    yylex_init(&scanner);
+    yyset_in(f, scanner);
+    yyset_extra(&extra, scanner);
+    yylex(scanner);
+    yylex_destroy(scanner);
+
+    fclose(f);
+
+    *fdp = extra.fdata;
 
     return(0);
 }
-

@@ -301,6 +301,8 @@ read_name_map(char *map_file)
 	}
 
 	ret = nlkuplex();
+	fclose(yyin);
+
 	if (ret) {
 		fprintf(stderr, "error from yylex\n");
 	        free(ninfo.ni_fname);

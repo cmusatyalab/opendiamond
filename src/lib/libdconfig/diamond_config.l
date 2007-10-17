@@ -1,4 +1,4 @@
-%option nounput noyywrap
+%option nounput noyywrap reentrant
 %option prefix="dconf"
 %{
 /*
@@ -33,7 +33,7 @@
 #include "lib_dconfig.h"
 #include "dconfig_priv.h"
 
-static int  have_error();
+static int  have_error(yyscan_t scanner);
 static int  set_data_root(char *name);
 static int  set_cache_dir(char *name);
 static int  set_index_dir(char *name);
@@ -41,7 +41,7 @@ static int  set_log_dir(char *name);
 static int  set_data_type(data_type_t type);
 
 static char * eat_token(char *str);
-static void do_init();
+static void do_init(void);
 
 typedef struct	dconfig_info {
 	char *		dconf_name;
@@ -53,7 +53,6 @@ typedef struct	dconfig_info {
 } dconf_info_t;
 
 
-static int err = 0;
 static dconf_info_t *dinfo = NULL;
 
 %}
@@ -70,13 +69,13 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
                                                                                 
 %%
 #.*\n
-DATAROOT[ \t]+[[:alnum:]\-_\/]+	{set_data_root(eat_token(yytext));}
-CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yytext));}
-INDEXDIR[ \t]+[[:alnum:]\-_\/]+	{set_index_dir(eat_token(yytext));}
-LOGDIR[ \t]+[[:alnum:]\-_\/]+	{set_log_dir(eat_token(yytext));}
+DATAROOT[ \t]+[[:alnum:]\-_\/]+	{set_data_root(eat_token(yyget_text(yyscanner)));}
+CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yyget_text(yyscanner)));}
+INDEXDIR[ \t]+[[:alnum:]\-_\/]+	{set_index_dir(eat_token(yyget_text(yyscanner)));}
+LOGDIR[ \t]+[[:alnum:]\-_\/]+	{set_log_dir(eat_token(yyget_text(yyscanner)));}
 DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
 DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
-.				{have_error(); }
+.				{have_error(yyscanner); }
 %%
 
 
@@ -96,10 +95,9 @@ eat_token(char *str)
 }
 
 int
-have_error()
+have_error(yyscan_t scanner)
 {
-	fprintf(stderr, "unknown text %s\n", yytext);
-	err = 1;
+	fprintf(stderr, "unknown text %s\n", yyget_text(scanner));
 	return (1);
 }
 
@@ -247,6 +245,10 @@ do_init()
 	int ret;
 	char *dir;
 
+	yyscan_t scanner;
+
+	FILE *f;
+
 	/* use a mutex to ensure lexer is re-entrant */
 	static pthread_mutex_t lexlock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -264,15 +266,23 @@ do_init()
 	/* XXX other defaults */
 	dinfo->dconf_cachedir = DEFAULT_DIAMOND_CACHE;
 	dinfo->dconf_logdir = DEFAULT_DIAMOND_LOG;
-	
-	yyin = dconfig_open_config_file(DIAMOND_CONFIG_FILE_NAME);
-	if (yyin == NULL) {
+
+
+
+	f = dconfig_open_config_file(DIAMOND_CONFIG_FILE_NAME);
+	if (f == NULL) {
 		/* XXX log */
 		fprintf(stderr, "failed to open diamond config file \n");
 		exit(1);
 	}
 
-	ret = dconflex();
+	yylex_init(&scanner);
+	yyset_in(f, scanner);
+	ret = yylex(scanner);
+	yylex_destroy(scanner);
+
+	fclose(f);
+
 	if (ret) {
         	// XXX free(dinfo->dconf_name);
 		free(dinfo);

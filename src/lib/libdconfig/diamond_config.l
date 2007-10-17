@@ -1,4 +1,4 @@
-%option nounput
+%option nounput noyywrap
 %option prefix="dconf"
 %{
 /*
@@ -240,12 +240,6 @@ setup_dir(const char *dir)
 }
 
 
-
-int
-dconfwrap()
-{
-    return(1);
-}
 
 static void
 do_init()

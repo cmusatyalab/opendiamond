@@ -1,4 +1,4 @@
-%option nounput
+%option nounput noyywrap
 %option prefix="textattr"
 %{
 /*
@@ -291,10 +291,6 @@ have_ref(char *input)
 	       	    "have_ref: failed to write attributes (%s)", attr_name);
 	}
 	free(data);
-}
-
-int textattrwrap() {
-	return(1);
 }
 
 static FILE *

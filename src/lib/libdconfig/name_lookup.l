@@ -1,4 +1,4 @@
-%option nounput
+%option nounput noyywrap
 %option prefix="nlkup"
 %{
 /*
@@ -287,13 +287,6 @@ nlkup_next_entry(char **namep, void **cookiep)
     }
 }
 
-
-
-int
-nlkupwrap()
-{
-    return(1);
-}
 
 name_map_t *
 read_name_map(char *map_file)

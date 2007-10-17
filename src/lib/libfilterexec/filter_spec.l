@@ -1,4 +1,4 @@
-%option nounput
+%option nounput noyywrap
 %option prefix="fspec"
 %{
 /*
@@ -421,13 +421,6 @@ filter_out_obj(filter_output_type_t type)
 	printf("output blocksize %d\n", 
         fdata->fd_filters[cur_filt_id].fi_blocksize_out);
 #endif
-}
-
-
-int
-fspecwrap()
-{
-	return(1);
 }
 
 

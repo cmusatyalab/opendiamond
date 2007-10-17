@@ -1,4 +1,4 @@
-%option nounput
+%option nounput noyywrap
 %option prefix="glkup"
 %{
 /*
@@ -280,14 +280,6 @@ have_name()
 
 	return(0);
 }
-
-
-int
-glkupwrap()
-{
-	return(1);
-}
-
 
 
 int

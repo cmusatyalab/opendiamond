@@ -43,7 +43,6 @@ static int err = 0;
 static gid_map_t 	*groot = NULL;
 
 %}
-%array
 HEX8	[[:xdigit:]][[:xdigit:]]
 HEX16	{HEX8}:{HEX8}
 HEX32	{HEX16}:{HEX16}

@@ -57,7 +57,6 @@ static int cur_filt_id = -1;
 static filter_data_t   *fdata;
 
 %}
-%array
 ID      [a-zA-Z][-a-zA-Z0-9_]*
 %%
 #.*\n

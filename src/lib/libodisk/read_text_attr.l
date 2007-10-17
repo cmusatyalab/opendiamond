@@ -57,7 +57,6 @@ static odisk_state_t *cur_odisk;
 
 
 %}
-%array
 NAME	\"[^\"]+\"
 VALUE	\"[^\"]*\"
 WS	[ \t]*

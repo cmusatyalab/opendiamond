@@ -45,7 +45,6 @@ static name_map_t 	*nroot = NULL;
 static name_info_t  ninfo;
 
 %}
-%pointer
 HEX8	[[:xdigit:]][[:xdigit:]]
 HEX16	{HEX8}:{HEX8}
 HEX32	{HEX16}:{HEX16}

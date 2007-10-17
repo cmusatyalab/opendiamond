@@ -57,7 +57,6 @@ static int err = 0;
 static dconf_info_t *dinfo = NULL;
 
 %}
-%pointer
 
 
 HEX8	[[:xdigit:]][[:xdigit:]]

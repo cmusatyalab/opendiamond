@@ -146,6 +146,4 @@ int log_start(search_context_t *sc);
 
 int dctl_start(search_context_t *sc);
 
-gid_map_t *read_gid_map(char *mapfile);
-
 #endif

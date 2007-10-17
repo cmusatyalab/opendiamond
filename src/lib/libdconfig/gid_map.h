@@ -31,8 +31,4 @@ typedef struct gid_map
 }
 gid_map_t;
 
-
-gid_map_t      *read_gid_map(char *mapfile);
-void		free_gid_map(gid_map_t *map);
-
 #endif	/* !_GID_MAP_H_ */

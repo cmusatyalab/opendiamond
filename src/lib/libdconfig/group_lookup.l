@@ -1,4 +1,4 @@
-%option nounput noyywrap
+%option nounput noyywrap reentrant
 %option prefix="glkup"
 %{
 /*
@@ -15,7 +15,6 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
@@ -31,16 +30,19 @@
 #include "gid_map.h"
 #include "dconfig_priv.h"
 
-static void have_gid();
-static void have_cont();
-static int have_name();
-static void have_newline();
-static int  have_error();
+static void have_gid(yyscan_t scanner);
+static void have_cont(yyscan_t scanner);
+static int have_name(yyscan_t scanner);
+static void have_newline(yyscan_t scanner);
+static int  have_error(yyscan_t scanner);
 
 
-static int cont = 0;
-static int err = 0;
-static gid_map_t 	*groot = NULL;
+struct group_lookup_lex {
+  gid_map_t *groot;
+  int cont;
+  int err;
+};
+
 
 %}
 HEX8	[[:xdigit:]][[:xdigit:]]
@@ -51,13 +53,13 @@ NAME	[a-zA-Z0-9][a-zA-Z0-9.-]*[[:blank:]]*
 
 %%
 #.*\n
-{HEX64}[[:blank:]]*{NAME}*		{ have_gid(); }
-{NAME}*					{ have_name(); }
+{HEX64}[[:blank:]]*{NAME}*		{ have_gid(yyscanner); }
+{NAME}*					{ have_name(yyscanner); }
 [[:blank:]]
-\\					{ have_cont(); }
-.					{ have_error(); }
+\\					{ have_cont(yyscanner); }
+.					{ have_error(yyscanner); }
 
-\n					{ have_newline(); }
+\n					{ have_newline(yyscanner); }
 %%
 
 
@@ -121,20 +123,26 @@ eat_name(char **str)
 
 
 
-int have_error()
+int have_error(yyscan_t scanner)
 {
-	fprintf(stderr, "unknown text %s\n", yytext);
-	err = 1;
+	struct group_lookup_lex *extra =
+	  (struct group_lookup_lex *) yyget_extra(scanner);
+
+	fprintf(stderr, "unknown text %s\n", yyget_text(scanner));
+	extra->err = 1;
 	return (1);
 }
 
 static void 
-have_newline()
+have_newline(yyscan_t scanner)
 {
-	if (cont == 2) {
-		cont = 1;
+	struct group_lookup_lex *extra =
+	  (struct group_lookup_lex *) yyget_extra(scanner);
+
+	if (extra->cont == 2) {
+		extra->cont = 1;
 	} else { 
-		cont = 0;
+		extra->cont = 0;
 	}
 }
 
@@ -189,7 +197,7 @@ lookup_devname(char *name)
 }
 
 static void
-have_gid()
+have_gid(yyscan_t scanner)
 {
 	char *		names;
 	char *		cur_name;
@@ -197,22 +205,25 @@ have_gid()
 
 	gid_map_t *	gmap;
 
+	struct group_lookup_lex *extra =
+	  (struct group_lookup_lex *) yyget_extra(scanner);
+
 	gmap = (gid_map_t *)malloc(sizeof(*gmap));
 	if (gmap == NULL) {
 		/* XXX log */
-		err = 1;
+		extra->err = 1;
 		return;
 	}
 
 	gmap->num_dev = 0;
-	gmap->next = groot;
-	groot = gmap;
+	gmap->next = extra->groot;
+	extra->groot = gmap;
 
 		
 
-	gmap->gid = convert_gid(yytext);
+	gmap->gid = convert_gid(yyget_text(scanner));
 
-	names = eat_gid(yytext);
+	names = eat_gid(yyget_text(scanner));
 
 	while (names != NULL) {
 		cur_name = eat_name(&names);
@@ -220,7 +231,7 @@ have_gid()
 
 		if (gmap->num_dev >= MAX_DEV_PER_GROUP) {
 			/* XXX log */
-			err = 1;
+			extra->err = 1;
 			return;
 		}
 
@@ -229,38 +240,43 @@ have_gid()
 		gmap->num_dev++;
 	}
 
-	cont = 0;
+	extra->cont = 0;
 
 	return;
 }
 
 static void
-have_cont()
+have_cont(yyscan_t scanner)
 {
-	cont = 2;
+	struct group_lookup_lex *extra =
+	  (struct group_lookup_lex *) yyget_extra(scanner);
+
+	extra->cont = 2;
 	return;
 }
 
 
  
 static int
-have_name()
+have_name(yyscan_t scanner)
 {
 	char *		names;
 	char *		cur_name;
 	uint32_t	dev_id;
 	gid_map_t *	gmap;
 
+	struct group_lookup_lex *extra =
+	  (struct group_lookup_lex *) yyget_extra(scanner);
 
-	if (cont != 1) {
+	if (extra->cont != 1) {
 		/* XXX log */
-		err = 1;
+		extra->err = 1;
 		return(1);
 	}
 
 
-	gmap = groot;
-	names = yytext;
+	gmap = extra->groot;
+	names = yyget_text(scanner);
 
 	while (names != NULL) {
 		cur_name = eat_name(&names);
@@ -268,7 +284,7 @@ have_name()
 
 		if (gmap->num_dev >= MAX_DEV_PER_GROUP) {
 			/* XXX log */
-			err = 1;
+			extra->err = 1;
 			return(1);
 		}
 		gmap->devs[gmap->num_dev].dev_name = strdup(cur_name);
@@ -276,11 +292,58 @@ have_name()
 		gmap->num_dev++;
 	}
 
-	cont = 0;
+	extra->cont = 0;
 
 	return(0);
 }
 
+
+static void
+free_gid_map(gid_map_t *map) {
+	gid_map_t *trav, *next;
+
+	for(trav = map; trav != NULL; trav = next) {
+		 next = trav->next;
+		 free(trav);
+	}
+}
+
+static void
+read_gid_map(char *map_file, yyscan_t scanner)
+{
+	int ret;
+	FILE *f;
+
+	struct group_lookup_lex *extra =
+	  (struct group_lookup_lex *) yyget_extra(scanner);
+
+	f = dconfig_open_config_file(map_file);
+	if (f == NULL) {
+		/* XXX log */
+		fprintf(stderr, "failed to open gid_map file ");
+		return;
+	}
+
+	yyset_in(f, scanner);
+	ret = yylex(scanner);
+
+	fclose(f);
+
+	if (ret) {
+		fprintf(stderr, "error from yylex\n");
+		return;
+	}
+
+
+	if (extra->err) {
+		fprintf(stderr, "error from yylex\n");
+		free_gid_map(extra->groot);
+		extra->groot = NULL;
+		return;
+	}
+
+	return;
+}
 
 int
 glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
@@ -288,7 +351,20 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 	gid_map_t	*cur_map;
 	int		 i;
 
-	cur_map = read_gid_map("gid_map");
+	yyscan_t scanner;
+	struct group_lookup_lex extra = {
+	  .cont = 0,
+	  .err = 0,
+	  .groot = NULL,
+	};
+
+	yylex_init(&scanner);
+	yyset_extra(&extra, scanner);
+	read_gid_map("gid_map", scanner);
+	yylex_destroy(scanner);
+
+	cur_map = extra.groot;
+
 	if (cur_map == NULL) {
 		fprintf(stderr, "Unable to read gid_map \n");
 		*num_hosts = 0;
@@ -301,6 +377,7 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 
 	if (cur_map == NULL) {
 		*num_hosts = 0;
+		free_gid_map(extra.groot);
 		return(ENOENT);
 	}
 
@@ -308,6 +385,7 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 	if (cur_map->num_dev > *num_hosts) {
 		/* XXX log */
 		*num_hosts = cur_map->num_dev;
+		free_gid_map(extra.groot);
 		return(ENOMEM);
 	}
 
@@ -315,54 +393,15 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 	        if (cur_map->devs[i].dev_id == 0) {
 		    fprintf(stderr, "unable to resolve %s \n", 
 			    cur_map->devs[i].dev_name);
+		    free_gid_map(extra.groot);
 	            return(ENOENT);
 	        }
 		hostids[i] = cur_map->devs[i].dev_id;
 	}
 	*num_hosts = cur_map->num_dev;
 
-	free_gid_map(groot);
-	groot = NULL;
+	free_gid_map(extra.groot);
+	extra.groot = NULL;
 
 	return(0);
-}
-
-
-
-gid_map_t *
-read_gid_map(char *map_file)
-{
-	int ret;
-
-	yyin = dconfig_open_config_file(map_file);
-	if (yyin == NULL) {
-		/* XXX log */
-		fprintf(stderr, "failed to open gid_map file ");
-		return NULL;
-	}
-	ret = yylex();
-	if (ret) {
-		fprintf(stderr, "error from yylex\n");
-		return NULL;
-	}
-
-
-	if (err) {
-		fprintf(stderr, "error from yylex\n");
-		free_gid_map(groot);
-		groot = NULL;
-		return NULL;
-	}	
-
-	return(groot);
-}
-
-void
-free_gid_map(gid_map_t *map) {
-	gid_map_t *trav, *next;
-
-	for(trav = map; trav != NULL; trav = next) {
-		 next = trav->next;
-		 free(trav);
-	}
 }

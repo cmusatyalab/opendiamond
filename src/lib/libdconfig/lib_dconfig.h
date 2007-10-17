@@ -43,16 +43,16 @@ int nlkup_next_entry(char **name, void **cookie);
 int glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t * hostids);
 
 
-char * dconf_get_dataroot();
-char * dconf_get_indexdir();
-char * dconf_get_logdir();
-char * dconf_get_cachedir();
-char * dconf_get_spec_cachedir();
-char * dconf_get_binary_cachedir();
-char * dconf_get_blob_cachedir();
-char * dconf_get_filter_cachedir();
+char * dconf_get_dataroot(void);
+char * dconf_get_indexdir(void);
+char * dconf_get_logdir(void);
+char * dconf_get_cachedir(void);
+char * dconf_get_spec_cachedir(void);
+char * dconf_get_binary_cachedir(void);
+char * dconf_get_blob_cachedir(void);
+char * dconf_get_filter_cachedir(void);
 
-data_type_t	dconf_get_datatype();
+data_type_t	dconf_get_datatype(void);
 
 
 #ifdef __cplusplus

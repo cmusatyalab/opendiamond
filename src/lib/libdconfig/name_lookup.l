@@ -1,4 +1,4 @@
-%option nounput noyywrap
+%option nounput noyywrap reentrant
 %option prefix="nlkup"
 %{
 /*
@@ -32,11 +32,11 @@
 #include "lib_dconfig.h"
 #include "dconfig_priv.h"
 
-static void have_gid();
-static void have_cont();
-static int have_name();
-static void have_newline();
-static int  have_error();
+static void have_gid(yyscan_t scanner);
+static void have_cont(void);
+static int have_name(yyscan_t scanner);
+static void have_newline(void);
+static int  have_error(yyscan_t scanner);
 
 
 static int cont = 0;
@@ -53,25 +53,25 @@ NAME	[a-zA-Z][a-zA-Z0-9_-]*
 
 %%
 #.*\n
-{HEX64}                         { have_gid(); }
-{NAME}*					        { have_name(); }
+{HEX64}                         { have_gid(yyscanner); }
+{NAME}*					        { have_name(yyscanner); }
 [[:blank:]]
 \\					            { have_cont(); }
-.					            { have_error(); }
+.					            { have_error(yyscanner); }
 \n					            { have_newline(); }
 %%
 
 
 int
-have_error()
+have_error(yyscan_t scanner)
 {
-	fprintf(stderr, "unknown text %s\n", yytext);
+	fprintf(stderr, "unknown text %s\n", yyget_text(scanner));
 	err = 1;
 	return (1);
 }
 
 static void 
-have_newline()
+have_newline(void)
 {
 	if (cont == 2) {
 		cont = 1;
@@ -110,7 +110,7 @@ convert_gid(char *str)
 
 
 static void
-have_gid()
+have_gid(yyscan_t scanner)
 {
     groupid_t   gid;
 
@@ -120,7 +120,7 @@ have_gid()
         return;
     }
 	
-    gid = convert_gid(yytext);
+    gid = convert_gid(yyget_text(scanner));
 
     assert(nroot->num_gids < MAX_GROUP_PER_NAME); 
 
@@ -128,11 +128,11 @@ have_gid()
     nroot->gids[nroot->num_gids] = gid;
     nroot->num_gids++;
 
-	return;
+    return;
 }
 
 static void
-have_cont()
+have_cont(void)
 {
 	cont = 2;
 	return;
@@ -145,7 +145,7 @@ have_cont()
  */
  
 static int
-have_name()
+have_name(yyscan_t scanner)
 {
 	name_map_t *	nmap;
 
@@ -169,7 +169,7 @@ have_name()
 	}
 
 	nmap->num_gids = 0;
-    nmap->name = strdup(yytext);
+	nmap->name = strdup(yyget_text(scanner));
     assert(nmap->name != NULL);
 
     /* put this on the list */
@@ -184,6 +184,56 @@ have_name()
 
 	return(0);
 }
+
+
+static void
+free_name_map(name_map_t *map) {
+	name_map_t *trav, *next;
+
+	for(trav = map; trav != NULL; trav = next) {
+		 next = trav->next;
+		 free(trav);
+	}
+}
+
+static
+name_map_t *
+read_name_map(char *map_file)
+{
+	int ret;
+
+	yyscan_t scanner;
+	FILE *f;
+
+	f = dconfig_open_config_file(map_file);
+	if (f == NULL) {
+		/* XXX log */
+		fprintf(stderr, "failed to open name_map file \n");
+		return NULL;
+	}
+
+	yylex_init(&scanner);
+	yyset_in(f, scanner);
+	ret = yylex(scanner);
+	yylex_destroy(scanner);
+	fclose(f);
+
+	if (ret) {
+		fprintf(stderr, "error from yylex\n");
+	        free(ninfo.ni_fname);
+		return NULL;
+	}
+
+	if (err) {
+		fprintf(stderr, "error from yylex\n");
+		free_name_map(nroot);
+		nroot = NULL;
+		return NULL;
+	}
+
+	return(nroot);
+}
+
 
 /*
  * Return a list of GID's associated with the specified symbolic name.
@@ -285,47 +335,4 @@ nlkup_next_entry(char **namep, void **cookiep)
         *cookiep = cur_map;
         return(0);
     }
-}
-
-
-name_map_t *
-read_name_map(char *map_file)
-{
-	int ret;
-
-	yyin = dconfig_open_config_file(map_file);
-	if (yyin == NULL) {
-		/* XXX log */
-		fprintf(stderr, "failed to open name_map file \n");
-		return NULL;
-	}
-
-	ret = nlkuplex();
-	fclose(yyin);
-
-	if (ret) {
-		fprintf(stderr, "error from yylex\n");
-	        free(ninfo.ni_fname);
-		return NULL;
-	}
-
-	if (err) {
-		fprintf(stderr, "error from yylex\n");
-		free_name_map(nroot);
-		nroot = NULL;
-		return NULL;
-	}
-
-	return(nroot);
-}
-
-
-void
-free_name_map(name_map_t *map) {
-	name_map_t *trav, *next;
-
-	for(trav = map; trav != NULL; trav = next) {
-		 next = trav->next;
-		 free(trav);
-	}
 }

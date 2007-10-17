@@ -1,4 +1,4 @@
-%option nounput noyywrap
+%option nounput noyywrap reentrant
 %option prefix="textattr"
 %{
 /*
@@ -42,18 +42,18 @@
 #include "obj_attr.h"
 
 
-static void have_value(char *input);
-static void have_ref(char *input);
-static void have_error();
+static void have_value(yyscan_t scanner);
+static void have_ref(yyscan_t scanner);
+static void have_error(char *input);
 
 
-static char  attr_name[MAX_ATTR_NAME];
-static char  attr_value[MAX_ATTR_VALUE];
-
-
-static obj_data_t *cur_obj;
-static char *cur_base;
-static odisk_state_t *cur_odisk;
+struct read_state {
+  obj_data_t *cur_obj;
+  char *cur_base;
+  odisk_state_t *cur_odisk;
+  char attr_name[MAX_ATTR_NAME];
+  char attr_value[MAX_ATTR_VALUE];
+};
 
 
 %}
@@ -64,21 +64,21 @@ WS	[ \t]*
 %%
 ^#.*\n						{printf("comment\n"); }
 \n					
-{WS}{NAME}{WS}={WS}{VALUE}.*\n			{ have_value(yytext);   }
-{WS}{NAME}{WS}@{WS}{VALUE}.*\n			{ have_ref(yytext);   }
-.						{ have_error(); }
+{WS}{NAME}{WS}={WS}{VALUE}.*\n			{ have_value(yyscanner);   }
+{WS}{NAME}{WS}@{WS}{VALUE}.*\n			{ have_ref(yyscanner);   }
+.						{ have_error(yyget_text(yyscanner)); }
 %%
 
 
 static void 
-have_error()
+have_error(char *input)
 {
 	log_message(LOGT_DISK, LOGL_ERR,
-	    "read_text_attr: unknown text (%s)", yytext);
+	    "read_text_attr: unknown text (%s)", input);
 }
 
 
-int
+static int
 extract_name_value(char *input, char *name, char *value)
 {
 	int	inlen = strlen(input);
@@ -155,29 +155,35 @@ extract_name_value(char *input, char *name, char *value)
 
 
 static void
-have_value(char *input)
+have_value(yyscan_t scanner)
 {
 	int		err;
 	int		dlen;
+	struct read_state *extra = (struct read_state *) yyget_extra(scanner);
 
-	err = extract_name_value(input, attr_name, attr_value);
+
+	err = extract_name_value(yyget_text(scanner),
+				 extra->attr_name,
+				 extra->attr_value);
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR,
 		    "have_value: failed to extract name/value (%s)", input);
 		return;
 	}
 
-	dlen = strlen((char *)attr_value) +1;
-	err = obj_write_attr(&cur_obj->attr_info, attr_name, dlen, 
-	    (unsigned char *)attr_value);
+	dlen = strlen((char *)extra->attr_value) +1;
+	err = obj_write_attr(&extra->cur_obj->attr_info, extra->attr_name, dlen,
+	    (unsigned char *)extra->attr_value);
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR,
-		    "have_value: failed to write attribute (%s)", attr_name);
+		    "have_value: failed to write attribute (%s)",
+			    extra->attr_name);
 	}
 }
 
 static int
-load_ref_file(char *afile, size_t *dlen, unsigned char **dref)
+load_ref_file(char *afile, size_t *dlen, unsigned char **dref,
+	      char *cur_base, odisk_state_t *cur_odisk)
 {
 	struct stat     stats;
 	char            attr_name[NAME_MAX];
@@ -186,7 +192,6 @@ load_ref_file(char *afile, size_t *dlen, unsigned char **dref)
 	unsigned char * data;
 	size_t		size;
 	int		err;
-		
 
 	/* if leading / then this is absolute path */
 	if (afile[0] == '/') {
@@ -263,32 +268,37 @@ load_ref_file(char *afile, size_t *dlen, unsigned char **dref)
 
 
 static void
-have_ref(char *input)
+have_ref(yyscan_t scanner)
 {
 	int			err;
 	size_t			dlen = 0;
 	unsigned char *		data = NULL;
+	struct read_state *extra = (struct read_state *) yyget_extra(scanner);
 
-	err = extract_name_value(input, attr_name, attr_value);
+	err = extract_name_value(yyget_text(scanner),
+				 extra->attr_name, extra->attr_value);
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR,
 	       	    "have_ref: failed extract name value from (%s)", input);
 		return;
 	}
 
-	err = load_ref_file(attr_value, &dlen, &data);
+	err = load_ref_file(extra->attr_value, &dlen, &data,
+			    extra->cur_base, extra->cur_odisk);
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "have_ref: failed to load ref file (%s)", attr_value);
+	       	    "have_ref: failed to load ref file (%s)",
+			    extra->attr_value);
 	}
 
 	/* attr value is the file name to load the data */
 
-	err = obj_write_attr(&cur_obj->attr_info, attr_name, dlen, 
+	err = obj_write_attr(&extra->cur_obj->attr_info, extra->attr_name, dlen,
 		data);
 	if (err) {
 		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "have_ref: failed to write attributes (%s)", attr_name);
+	       	    "have_ref: failed to write attributes (%s)",
+			    extra->attr_name);
 	}
 	free(data);
 }
@@ -313,31 +323,47 @@ void
 obj_load_text_attr(odisk_state_t *odisk, char *file_name, obj_data_t *new_obj)
 {
 	int ret;
+	yyscan_t scanner;
+	FILE *f;
 
-	yyin = open_attr_file(file_name);
+	struct read_state extra = {
+	  .cur_obj = NULL,
+	  .cur_base = NULL,
+	  .cur_odisk = NULL,
+	  .attr_name[0] = '\0',
+	  .attr_value[0] = '\0',
+	};
+
+	f = open_attr_file(file_name);
 
 	/*
 	 * it is possible the file doesn't exist so this is not a real
 	 * error.
 	 */
-	if (yyin == NULL) {
+	if (f == NULL) {
 		log_message(LOGT_DISK, LOGL_TRACE,
 		    "obj_load_text_attr: not text attr file (%s)",
 		    file_name);
 		return;
 	}
-	/* set visible pointer to the object */
-	cur_obj = new_obj;
-	cur_base = file_name;
-	cur_odisk = odisk;
 
-	ret = yylex();
+
+	/* set visible pointer to the object */
+	extra.cur_obj = new_obj;
+	extra.cur_base = file_name;
+	extra.cur_odisk = odisk;
+
+	yylex_init(&scanner);
+	yyset_extra(&extra, scanner);
+	yyset_in(f, scanner);
+	ret = yylex(scanner);
+	yylex_destroy(scanner);
+	fclose(f);
+
 	if (ret) {
 		log_message(LOGT_DISK, LOGL_ERR,
 		    "obj_load_text_attr: failed to process attr file (%s)",
 		    file_name);
 	}
-
-	fclose(yyin);
 
 }

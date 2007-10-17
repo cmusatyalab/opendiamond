@@ -45,6 +45,18 @@
 #include "sstub_impl.h"
 #include "rpc_client_content.h"
 
+
+static listener_state_t *rpc_lstate;
+static cstate_t *rpc_cstate;
+
+
+void
+sstub_set_states(listener_state_t *new_lstate, cstate_t *new_cstate)
+{
+  rpc_lstate = new_lstate;
+  rpc_cstate = new_cstate;
+}
+
 void
 sstub_except_control(listener_state_t * lstate, cstate_t * cstate)
 {

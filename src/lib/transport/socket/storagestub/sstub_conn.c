@@ -52,10 +52,6 @@
 static char const cvsid[] =
     "$Header$";
 
-cstate_t *rpc_cstate;
-listener_state_t *rpc_lstate;
-
-
 void handle_requests(void) {
   static int nfds = 0;
   fd_set read_fds;
@@ -263,8 +259,7 @@ connection_main(listener_state_t * lstate, int conn)
 
 	cstate->lstate = lstate;
 
-	rpc_cstate = cstate;
-	rpc_lstate = lstate;
+	sstub_set_states(lstate, cstate);
 
 	while (1) {
 		if (cstate->flags & CSTATE_SHUTTING_DOWN) {

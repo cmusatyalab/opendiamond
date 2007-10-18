@@ -504,7 +504,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2, diamond_rc_t *result,
 	free(sig_str);
 	free(cache);
 
-	if (file_exists(objpath)) {
+	if (access(objpath, F_OK) == 0) {
 	  int err;
 	  err = (*rpc_lstate->set_fobj_cb) (rpc_cstate->app_cookie, gen, 
 					      sent_sig);

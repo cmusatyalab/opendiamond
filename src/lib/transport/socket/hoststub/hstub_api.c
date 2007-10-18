@@ -497,7 +497,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	sig = sig_string(obj_sig);
 	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig);
 
-	assert(file_exists(objname));
+	assert(access(objname, F_OK) == 0);
 
 	err = stat(objname, &stats);
 	if (err) {

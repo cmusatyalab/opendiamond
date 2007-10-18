@@ -29,23 +29,6 @@
 #define	MAX_LOCK_WAIT	5
 
 
-/*
- * Test for the existence of a particular file.
- */
-int
-file_exists(const char *fname)
-{
-
-	struct stat stats;
-	int err;
-	
-	err = stat(fname, &stats);
-	if (err == 0)
-		return(1);
-
-	return(0);
-}
-
 int
 file_get_lock(const char *fname)
 {

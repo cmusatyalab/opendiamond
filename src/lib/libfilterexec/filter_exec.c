@@ -493,7 +493,7 @@ load_filter_lib(char *lib_name, char *so_name, filter_data_t * fdata,
 	char           *error;
 
 	file_get_lock(so_name);
-	if (!file_exists(so_name)) {
+	if (access(so_name, F_OK) != 0) {
 		if (relink_lib(lib_name, so_name) < 0) {
 			fprintf(stderr, "failed to link lib <%s> \n", so_name);
 			exit(1);

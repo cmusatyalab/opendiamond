@@ -42,8 +42,6 @@ extern          "C"
  */
 void get_user_name(char *name);
 
-/* test if a given file exists return is 1 if yes, 0 if not */
-int file_exists(const char *name);
 int file_get_lock(const char *fname);
 int file_release_lock(const char *fname);
 

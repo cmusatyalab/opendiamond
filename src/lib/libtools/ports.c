@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "ports.h"
+
 
 static uint16_t
 get_base_port_from_env(void)

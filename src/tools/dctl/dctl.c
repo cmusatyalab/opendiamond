@@ -27,7 +27,7 @@
 #include "dctl_socket.h"
 
 
-int
+static int
 sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 {
 	int 	rlen;
@@ -83,7 +83,7 @@ sock_read_reply(int fd, dctl_msg_hdr_t *msg, int *len, char *data)
 
 
 
-int
+static int
 sock_read_leaf(int fd, dctl_data_type_t *dtype, char *path,
                int *len, char *data)
 {
@@ -122,7 +122,7 @@ sock_read_leaf(int fd, dctl_data_type_t *dtype, char *path,
 }
 
 
-int
+static int
 sock_list_leafs(int fd, char *path, int *num_ents, dctl_entry_t *entry_space)
 {
 	dctl_msg_hdr_t	msg;
@@ -164,7 +164,7 @@ sock_list_leafs(int fd, char *path, int *num_ents, dctl_entry_t *entry_space)
 	return(err);
 }
 
-int
+static int
 sock_list_nodes(int fd, char *path, int *num_ents, dctl_entry_t *entry_space)
 {
 	dctl_msg_hdr_t	msg;
@@ -205,7 +205,7 @@ sock_list_nodes(int fd, char *path, int *num_ents, dctl_entry_t *entry_space)
 }
 
 
-int
+static int
 sock_write_leaf(int fd, char *path, int len, char *data)
 {
 	dctl_msg_hdr_t	msg;
@@ -252,7 +252,7 @@ sock_write_leaf(int fd, char *path, int len, char *data)
 
 
 
-void
+static void
 show_leaf(int fd, char *leaf_path, int name)
 {
 	char                databuf[64];
@@ -302,7 +302,7 @@ show_leaf(int fd, char *leaf_path, int name)
 
 
 #define	MAX_ENTS	128
-void
+static void
 dump_node(int fd, char *cur_path, int name, int nodes)
 {
 	dctl_entry_t	data[MAX_ENTS];
@@ -343,7 +343,7 @@ dump_node(int fd, char *cur_path, int name, int nodes)
 
 #define MAX_PATH    256
 #define MAX_VALSTR    256
-int
+static int
 write_values(int fd, char *pathval)
 {
 	char                path[MAX_PATH];
@@ -409,7 +409,7 @@ write_values(int fd, char *pathval)
 
 
 
-void
+static void
 dump_values(int fd, char *path, int recurse, int name, int nodes)
 {
 	/*
@@ -426,8 +426,8 @@ dump_values(int fd, char *path, int recurse, int name, int nodes)
 
 
 
-void
-usage()
+static void
+usage(void)
 {
 	fprintf(stdout, "dctl [-r] [-i interval] [-n] variable ... \n");
 	fprintf(stdout, "dctl -w variable=value  ... \n");

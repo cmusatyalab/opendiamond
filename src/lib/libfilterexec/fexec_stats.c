@@ -43,7 +43,7 @@
 /*
  * Comparison function for qsort that compares to filter_id_t.
  */
-int
+static int
 id_comp(const void *data1, const void *data2)
 {
 	filter_id_t     d1,
@@ -153,7 +153,7 @@ fexec_get_stats(filter_data_t * fdata, int max, filter_stats_t * fstats)
 }
 
 
-unsigned int
+static unsigned int
 fexec_hash_prob(filter_id_t cur_filt, int num_prev,
 		const filter_id_t * sorted_list)
 {
@@ -177,7 +177,7 @@ fexec_hash_prob(filter_id_t cur_filt, int num_prev,
  * This looks up a the probabilty given a filter and a sorted
  * list of other filters that have been run before this.
  */
-filter_prob_t  *
+static filter_prob_t  *
 fexec_find_prob(filter_data_t * fdata, filter_id_t cur_filt, int num_prev,
 		const filter_id_t * sorted_list)
 {
@@ -315,7 +315,7 @@ fexec_update_prob(filter_data_t * fdata, filter_id_t cur_filt,
 /*
  * debug function that will probably go away 
  */
-void
+static void
 fexec_dump_prob(filter_data_t * fdata)
 {
 	int             hash,

@@ -77,7 +77,7 @@ static pthread_cond_t pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
  */
 #define MAX_GID_FILTER  64
 
-int
+static int
 odisk_next_index_ent(FILE * idx_file, char *file_name)
 {
 	int             offset;
@@ -719,66 +719,6 @@ odisk_read_obj(odisk_state_t * odisk, obj_data_t * obj, int *len,
 }
 
 
-int
-odisk_read_next(obj_data_t ** new_object, odisk_state_t * odisk)
-{
-	char            path_name[NAME_MAX];
-	char            file_name[NAME_MAX];
-	int             err;
-	int             i;
-	int             ret;
-	int             len;
-
-
-      again:
-	for (i = odisk->cur_file; i < odisk->max_files; i++) {
-		if (odisk->index_files[i] != NULL) {
-			ret = odisk_next_index_ent(odisk->index_files[i],
-						   file_name);
-			if (ret == 0) {
-				/*
-				 * This file done, close it and continue.  
-				 */
-				fclose(odisk->index_files[i]);
-				odisk->index_files[i] = NULL;
-				continue;
-			}
-			len = snprintf(path_name, NAME_MAX, "%s/%s",
-				       odisk->odisk_dataroot, file_name);
-			assert(len < NAME_MAX);
-
-			err = odisk_load_obj(odisk, new_object, path_name);
-
-
-			/*
-			 * if we can't load the object it probably go 
-			 * deleted between the time the search started 
-			 * (and we got the gidindex file and the time 
-			 * we tried to open it.  We just continue on. 
-			 */
-			if (err) {
-				continue;
-			}
-			odisk->cur_file = i + 1;
-			if (odisk->cur_file >= odisk->max_files) {
-				odisk->cur_file = 0;
-			}
-			return (0);
-		}
-	}
-
-	/*
-	 * if we get here, either we need to start at the begining,
-	 * or there is no more data.
-	 */
-	if (odisk->cur_file != 0) {
-		odisk->cur_file = 0;
-		goto again;
-	} else {
-		return (ENOENT);
-	}
-}
-
 static int
 odisk_pr_next(pr_obj_t ** new_object)
 {
@@ -1106,7 +1046,7 @@ odisk_num_waiting(odisk_state_t * odisk)
  * we want to test the open flags, there has been some problems
  * using  O_DIRECT on some platforms.
  */
-void
+static void
 odisk_setup_open_flags(odisk_state_t * odisk)
 {
 	char           *test_name;
@@ -1313,7 +1253,7 @@ odisk_reset(odisk_state_t * odisk)
 
 
 int
-odisk_continue()
+odisk_continue(void)
 {
 	pthread_mutex_lock(&odisk_mutex);
 	search_active = 1;
@@ -1884,7 +1824,7 @@ odisk_write_oids(odisk_state_t * odisk, uint32_t devid)
  */
 
 obj_data_t     *
-odisk_null_obj()
+odisk_null_obj(void)
 {
 	obj_data_t     *new_obj;
 

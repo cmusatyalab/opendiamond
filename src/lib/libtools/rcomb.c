@@ -51,7 +51,6 @@ static void           *heap_extract_max(heap_t * heap);
 static void            heap_insert(heap_t * heap, int key, void *val);
 static int             heap_size(const heap_t * heap);
 static void            heap_print(const heap_t * heap);
-static const void     *heap_max(heap_t * heap);
 
 
 #define PARENT(n) ((n)>>1)
@@ -136,14 +135,6 @@ heap_extract_max(heap_t * heap)
 	return max.val;
 }
 
-const void     *
-heap_max(heap_t * heap)
-{
-
-	assert(heap->size > 0);
-	return heap->data[1].val;
-}
-
 void
 heap_insert(heap_t * heap, int key, void *val)
 {
@@ -210,7 +201,7 @@ pmCopy(permutation_t * copy, const permutation_t * ptr)
 }
 
 
-void
+static void
 pmCopyAll(permutation_t * copy, const permutation_t * ptr)
 {
 	int             i;
@@ -262,20 +253,20 @@ pmSetElt(permutation_t * pm, int i, pelt_t val)
 	pm->elements[i] = val;
 }
 
-int
+static int
 pmSize(permutation_t * pm)
 {
 	return pm->size;
 }
 
-void
+static void
 pmSetSize(permutation_t * pm, int n)
 {
 	assert(n <= pm->capacity);
 	pm->size = n;
 }
 
-void
+static void
 pmIdentity(permutation_t * pm)
 {
 	int             i;
@@ -386,7 +377,7 @@ poDelete(partial_order_t * po)
 	}
 }
 
-int
+static int
 poIsMin(const partial_order_t * po, int u)
 {
 	int             i;
@@ -506,7 +497,7 @@ poIncomparable(const partial_order_t * po, int u, int v)
 	return (cmp == PO_INCOMPARABLE);
 }
 
-int
+static int
 poComparable(const partial_order_t * po, int u, int v)
 {
 	char            cmp;

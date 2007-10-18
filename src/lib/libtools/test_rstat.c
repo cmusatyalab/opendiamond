@@ -16,7 +16,7 @@
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	uint64_t       freq,
 	                mem;

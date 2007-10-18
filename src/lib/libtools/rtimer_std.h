@@ -26,10 +26,9 @@ extern          "C"
 {
 #endif
 
-	extern void     rt_std_init(rtimer_std_t * rt);
-	extern void     rt_std_start(rtimer_std_t * rt);
-	extern void     rt_std_stop(rtimer_std_t * rt);
-	extern rtime_t  rt_std_nanos(rtimer_std_t * rt);
+	void     rt_std_start(rtimer_std_t * rt);
+	void     rt_std_stop(rtimer_std_t * rt);
+	rtime_t  rt_std_nanos(rtimer_std_t * rt);
 
 #ifdef __cplusplus
 }

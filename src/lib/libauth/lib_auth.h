@@ -25,6 +25,7 @@
 typedef	void *	auth_handle_t;
 
 auth_handle_t auth_conn_client(int sockfd);
+auth_handle_t auth_conn_client_ext(int sockfd, char *service);
 auth_handle_t auth_conn_server(int sockfd);
 int auth_msg_encrypt(auth_handle_t handle, char *inbuf, int ilen, 
 					char *outbuf, int olen);

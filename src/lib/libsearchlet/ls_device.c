@@ -87,7 +87,7 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 }
 
 
-void
+static void
 dev_search_done_cb(void *hcookie, int ver_no)
 {
 	device_handle_t *dev;
@@ -118,7 +118,7 @@ dev_search_done_cb(void *hcookie, int ver_no)
 	return;
 }
 
-void
+static void
 conn_down_cb(void *hcookie, int ver_no)
 {
 	device_handle_t *dev;
@@ -172,7 +172,7 @@ static dctl_pending_t  pend_data[MAX_PENDING];
 
 
 static int
-allocate_pending()
+allocate_pending(void)
 {
 	int             i;
 
@@ -195,7 +195,7 @@ free_pending(int idx)
 
 
 static void
-init_pending()
+init_pending(void)
 {
 	int             i;
 

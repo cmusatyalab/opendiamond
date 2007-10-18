@@ -34,7 +34,7 @@
 #include "lib_dconfig.h"
 #include "fexec_history.h"
 
-gboolean sig_equal_fn(gconstpointer a, gconstpointer b) {
+static gboolean sig_equal_fn(gconstpointer a, gconstpointer b) {
 	gboolean match = FALSE;
 	
 	sig_val_t *sig1 = (sig_val_t *) a;
@@ -45,12 +45,12 @@ gboolean sig_equal_fn(gconstpointer a, gconstpointer b) {
 	return (match);
 }
 
-guint sig_hash_fn(gconstpointer key) {
+static guint sig_hash_fn(gconstpointer key) {
 	sig_val_t *sig = (sig_val_t *) key;
 	return (guint) sig_hash(sig);
 }
 
-void  history_destroy_fn(gpointer data)
+static void history_destroy_fn(gpointer data)
 {
 	filter_history_t *fh = (filter_history_t *)data;
 	g_free(fh);
@@ -94,14 +94,14 @@ GHashTable *get_filter_history()
 	return histories;
 }
 
-int filter_history_cmp(const void* arg1, const void* arg2)
+static int filter_history_cmp(const void* arg1, const void* arg2)
 {
 	const filter_history_t *h1 = arg1;
 	const filter_history_t *h2 = arg2;
 	return(h2->executions - h1->executions);
 }
 
-void filter_history_iterator(gpointer key, gpointer value, gpointer user_data) {
+static void filter_history_iterator(gpointer key, gpointer value, gpointer user_data) {
 	filter_history_t *new_entry = (filter_history_t *)value;
 	filter_history_list_t *list = (filter_history_list_t *) user_data;
 	
@@ -110,7 +110,7 @@ void filter_history_iterator(gpointer key, gpointer value, gpointer user_data) {
 }
 
 
-filter_history_list_t *get_history_by_frequency(GHashTable *histories) {
+static filter_history_list_t *get_history_by_frequency(GHashTable *histories) {
 	
 	filter_history_list_t *history_list = malloc(sizeof(filter_history_list_t));
 	history_list->num_entries = g_hash_table_size(histories);
@@ -125,7 +125,7 @@ filter_history_list_t *get_history_by_frequency(GHashTable *histories) {
 	return history_list;
 }
 
-void filter_history_writer(gpointer key, gpointer value, gpointer user_data) {
+static void filter_history_writer(gpointer key, gpointer value, gpointer user_data) {
 
 	char *sigstr;
 	FILE *fp = (FILE *) user_data;

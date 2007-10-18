@@ -38,6 +38,7 @@
 #include "lib_filter.h"
 #include "lib_filter_sys.h"
 #include "lib_filter_priv.h"
+#include "lib_filterexec.h"
 #include "lib_log.h"
 
 
@@ -292,8 +293,6 @@ lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
  * XXX this should match the one in log, but doesn't need to 
  */
 #define	MAX_LOG_BUF	80
-
-char           *fexec_cur_filtname();
 
 void
 lf_log(int level, char *fmt, ...)

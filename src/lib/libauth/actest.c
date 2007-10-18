@@ -22,7 +22,7 @@
 #include "lib_auth.h"   
  
 
-void usage() {
+static void usage(void) {
 	printf("usage: actest <host_name> <port_number>\n");
 	exit(-1);
 }

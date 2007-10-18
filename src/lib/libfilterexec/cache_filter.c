@@ -40,16 +40,14 @@
 #include "fexec_opt.h"
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
+#include "ocache_priv.h"
 
 
 #define	MAX_PERM_NUM	5
 
-/*
- * XXX forward reference 
- */
-static void     sample_init();
-static int      dynamic_use_oattr();
-static void     oattr_sample();
+static void     sample_init(void);
+static int      dynamic_use_oattr(void);
+static void     oattr_sample(void);
 
 static permutation_t *cached_perm[MAX_PERM_NUM];
 static int      cached_perm_num = 0;
@@ -96,7 +94,7 @@ static TAILQ_HEAD(, inject_names) inject_list =
 
 
 static void
-mark_end()
+mark_end(void)
 {
 	pr_obj_t       *pr_obj;
 
@@ -192,7 +190,7 @@ ceval_inject_names(char **nl, int nents)
  *  the list and free'ing any resources.
  */
 static void
-ceval_reset_inject()
+ceval_reset_inject(void)
 {
 	inject_names_t *names;
 	int	i;
@@ -421,6 +419,7 @@ generate_new_perm(const partial_order_t * po, permutation_t * copy, int fidx,
 	return (0);
 }
 
+static
 void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 					  cache_attr_set *change_attr,
 					  query_info_t *qinfo, query_info_t *einfo) 

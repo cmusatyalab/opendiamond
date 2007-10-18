@@ -19,7 +19,6 @@
 #include "queue.h"
 #include "od.h"
 #include "od_priv.h"
-#include "od_priv.h"
 
 
 /*
@@ -27,7 +26,7 @@
  *
  */
 int
-od_init()
+od_init(void)
 {
 	ods_init();
 	return (0);

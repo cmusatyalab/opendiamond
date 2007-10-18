@@ -50,7 +50,7 @@ typedef struct {
   char indexdir[MAXPATHLEN];
 } content_server_t;
 
-void
+static void
 free_list(object_list_t *list) {
   object_node_t *trav;
 
@@ -75,7 +75,7 @@ free_list(object_list_t *list) {
 }
 
 
-int
+static int
 check_ssh_cookies(int num_servers, char **hostname) {
   int i;
 
@@ -103,7 +103,7 @@ check_ssh_cookies(int num_servers, char **hostname) {
  * certain directory.
  */
 
-int 
+static int 
 enumerate_recursive(object_list_t *list, char *path) {
 
   if(!list || !path)
@@ -164,7 +164,7 @@ enumerate_recursive(object_list_t *list, char *path) {
  * expands it to each object in the collection.
  */
 
-object_list_t *
+static object_list_t *
 enumerate_all_objects(char *path) {
   FILE *fp;
   object_list_t *list;
@@ -205,7 +205,7 @@ enumerate_all_objects(char *path) {
 }
 
 
-int 
+static int 
 get_content_server_config(content_server_t *conf) {
   char command[NCARGS];
   FILE *fp;
@@ -277,7 +277,7 @@ get_content_server_config(content_server_t *conf) {
 
 
 
-int
+static int
 generate_object_names(object_list_t *list) {
   object_node_t *trav;
 
@@ -352,7 +352,7 @@ generate_object_names(object_list_t *list) {
 }
 
 
-int
+static int
 generate_index_file(char *collection_name, object_list_t *list,
 		    int num_servers, content_server_t *srv, char *gid) {
   unsigned long long *rdm;
@@ -421,7 +421,7 @@ generate_index_file(char *collection_name, object_list_t *list,
 }
 
 
-int
+static int
 write_distribution_script(char *collection_name, char *gid,
 			  object_list_t *list, 
 			  int num_servers, content_server_t *srv) {
@@ -554,7 +554,7 @@ callback(void *NotUsed, int argc, char **argv, char **azColName){
 }
 
 
-int
+static int
 store_provenance(char *collection_name, char *gid,
 		 object_list_t *list, int num_servers, content_server_t *srv) {
   sqlite3 *db = NULL;
@@ -661,7 +661,7 @@ store_provenance(char *collection_name, char *gid,
 }
 
 
-int
+static int
 store_metadata(char *collection_name, char *gid,
 	       int num_servers, content_server_t *srv) {
   sqlite3 *db = NULL;
@@ -713,7 +713,7 @@ store_metadata(char *collection_name, char *gid,
 }
 
 
-int
+static int
 create_collection(char *name, char *listfile, int num_servers, 
 		  char **hostname) {
   object_list_t *list;
@@ -785,25 +785,25 @@ create_collection(char *name, char *listfile, int num_servers,
   return 0;
 }
 
-void usage_create(void) {
+static void usage_create(void) {
   fprintf(stderr, "usage: volcano create <collection-name> <index-file> "
                   "<content-server-1> [content-server-2]...\n");
 }
 
-void usage_list(void) {
+static void usage_list(void) {
   //TODO
 }
 
-void usage_remove(void) {
+static void usage_remove(void) {
   //TODO
 }
 
-void usage(void) {
+static void usage(void) {
   fprintf(stderr, "usage: volcano <command> <parameters>\n");
   fprintf(stderr, "Try volcano --help for help.\n");
 }
 
-void help(void) {
+static void help(void) {
   fprintf(stderr, "usage: volcano <command> <parameters>\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "The only supported command at the moment is:\n"

@@ -25,7 +25,7 @@
 int             var = 1;
 
 #define	MAX_ENTS	128
-void
+static void
 dump_node(char *cur_path)
 {
 
@@ -74,8 +74,8 @@ dump_node(char *cur_path)
 	}
 }
 
-void
-dump_tree()
+static void
+dump_tree(void)
 {
 	dctl_entry_t    data[MAX_ENTS];
 	int             ents;
@@ -97,14 +97,14 @@ dump_tree()
 
 
 
-int
+static int
 remote_write_leaf(char *path, int len, char *data, void *cookie)
 {
 	printf("write_leaf:  <%s> \n", path);
 	return (0);
 }
 
-int
+static int
 remote_read_leaf(char *path, dctl_data_type_t * dtype, int *len, char *data,
 		 void *cookie)
 {
@@ -116,7 +116,7 @@ remote_read_leaf(char *path, dctl_data_type_t * dtype, int *len, char *data,
 }
 
 
-int
+static int
 remote_list_nodes(char *path, int *num_ents, dctl_entry_t * space,
 		  void *cookie)
 {
@@ -126,7 +126,7 @@ remote_list_nodes(char *path, int *num_ents, dctl_entry_t * space,
 }
 
 
-int
+static int
 remote_list_leafs(char *path, int *num_ents, dctl_entry_t * space,
 		  void *cookie)
 {
@@ -140,8 +140,8 @@ remote_list_leafs(char *path, int *num_ents, dctl_entry_t * space,
 
 
 
-void
-simple_test()
+static void
+simple_test(void)
 {
 	int             err;
 	uint32_t        tmp;
@@ -218,7 +218,7 @@ simple_test()
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	simple_test();
 

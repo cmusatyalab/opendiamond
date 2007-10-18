@@ -224,6 +224,9 @@ int             fexec_estimate_cost(filter_data_t * fdata,
                                     permutation_t * perm, int gen, int indep,
                                     float *cost);
 
+void		update_filter_order(filter_data_t * fdata, const permutation_t * perm);
+
+
 
 extern filter_info_t *fexec_active_filter;
 

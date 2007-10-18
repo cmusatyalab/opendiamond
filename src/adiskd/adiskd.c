@@ -50,8 +50,8 @@ int				do_authenticate = 0;
 int             idle_background = 1;	/* only run background when idle */
 pid_t		background_pid = -1;	/* pid_t of the background process */
 
-void
-usage()
+static void
+usage(void)
 {
 	fprintf(stdout, "adiskd -[abcdlhins] \n");
 	fprintf(stdout, "\t -a authenticate connections \n");
@@ -205,11 +205,11 @@ main(int argc, char **argv)
 			if (do_fork)  {
 				background_pid = fork();
 				if (background_pid == 0) {
-					start_background(1);
+					start_background();
 					exit(0);
 				}
 			} else {
-				start_background(0);
+				start_background();
 			}
 		}
 	}

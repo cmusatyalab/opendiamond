@@ -36,7 +36,7 @@
 #include "obj_attr.h"
 
 
-int
+static int
 isstring(char *str, int len)
 {
 	int i;
@@ -53,47 +53,7 @@ isstring(char *str, int len)
 
 }
 
-int
-print_attr(attr_record_t *arec)
-{
-	unsigned char *data;
-
-	if (arec->flags & ATTR_FLAG_FREE) {
-		printf("%-20s ", " ");
-		printf(" F ");
-		printf("%8d \n", arec->rec_len);
-		return(0);
-	} else {
-		printf("%-20s ", &arec->data[0]);
-		printf("   ");
-		printf("%8d ", arec->data_len);
-	}
-
-	data = &arec->data[arec->name_len];
-
-	if (isstring((char *)data, arec->data_len)) {
-		printf("%s \n", data);
-	} else {
-		if (arec->data_len == 4) {
-			int	foo = *(int *)data;
-			printf("%16d \n", foo);
-
-		} else {
-			int i;
-
-			/* XXX this messes up the endian stuff for little */
-			printf("0X");
-			for (i=0; i < arec->data_len; i++) {
-				printf("%02x", (unsigned char)data[i]);
-			}
-			printf("\n");
-		}
-	}
-	return(0);
-}
-
-
-int
+static int
 add_attr(odisk_state_t *odisk, char *attr_name, char *aname, 
 	unsigned char *data, int datalen)
 {
@@ -122,8 +82,8 @@ add_attr(odisk_state_t *odisk, char *attr_name, char *aname,
 	return (0);
 }
 
-void
-usage()
+static void
+usage(void)
 {
 	printf("setattr attribute [-v value][-s string] file1 <file2 ...>\n");
 

@@ -49,41 +49,6 @@
 #include "rpc_client_content.h"
 #include "xdr_shim.h"
 
-static char const cvsid[] =
-    "$Header$";
-
-void handle_requests(void) {
-  static int nfds = 0;
-  fd_set read_fds;
-
-  nfds = getdtablesize();
-
-  for( ; ; ) {
-    int err;
-
-    read_fds = svc_fdset;
-
-    err = select(nfds, &read_fds, NULL, NULL, NULL);
-    switch(err) {
-
-    case -1:
-      if (errno == EINTR)
-	continue;
-      perror("select");
-      return;
-
-    case 1: 
-      svc_getreqset(&read_fds);
-      break;
-
-    case 0:
-    default:
-      continue;
-    }
-  }
-}
-
-
 /*
  * This sets up a TS-RPC server listening on a random port number.
  */
@@ -94,7 +59,7 @@ struct cts_args {
   cstate_t *cstate;
 };
 
-void *
+static void *
 create_rpc_server(void *arg) {
     SVCXPRT *transp;
     struct sockaddr_in servaddr;
@@ -155,7 +120,7 @@ create_rpc_server(void *arg) {
  * descriptor to which the tunnel can write control bits.
  */
 
-int
+static int
 setup_rpc(cstate_t *cstate) {
     int error, connfd;
     char port_str[NI_MAXSERV];

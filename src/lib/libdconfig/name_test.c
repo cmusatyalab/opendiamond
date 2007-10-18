@@ -23,8 +23,8 @@
 
 #define MAX_GIDS    64
 
-int
-enum_names()
+static int
+enum_names(void)
 {
 	void           *cookie;
 	char           *name;
@@ -45,8 +45,8 @@ enum_names()
 	return (0);
 }
 
-void
-dump_gid_list()
+static void
+dump_gid_list(void)
 {
 	void           *cookie;
 	char           *name;
@@ -89,7 +89,7 @@ dump_gid_list()
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	groupid_t       gid_list[MAX_GIDS];
 	int             num,

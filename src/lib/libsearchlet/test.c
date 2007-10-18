@@ -22,7 +22,7 @@
 #include "lib_filter.h"
 
 
-int
+static int
 test(lf_obj_handle_t ohandle, int numarg, char **args)
 {
 	int             foo = 1;

@@ -200,7 +200,7 @@ process_request(dctl_msg_hdr_t * msg, char *data, int conn)
 }
 
 
-void
+static void
 process_dctl_requests(search_context_t * sc, int conn)
 {
 	dctl_msg_hdr_t  msg;

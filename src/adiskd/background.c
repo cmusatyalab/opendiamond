@@ -108,8 +108,8 @@ typedef struct  {
 
 static void bg_new_search(filter_opts_t *fops);
 
-void
-load_history(  )
+static void
+load_history(void)
 {
 	char fname[PATH_MAX];
 	char *path;
@@ -148,7 +148,7 @@ load_history(  )
 	fclose(fp);
 }
 
-filter_history_t *
+static filter_history_t *
 find_history(sig_val_t *sig)
 {
 	int i;
@@ -171,7 +171,7 @@ find_history(sig_val_t *sig)
 	return(fh);
 }
 
-int
+static int
 history_cmp(const void *arg1, const void *arg2)
 {
 	const filter_history_t *h1 = arg1;
@@ -179,16 +179,16 @@ history_cmp(const void *arg1, const void *arg2)
 	return(h2->executions - h1->executions);
 }
 
-void
-sort_history()
+static void
+sort_history(void)
 {
 	qsort(history_table, num_history, sizeof(filter_history_t),
 	      history_cmp);
 }
 
 
-void
-load_gids()
+static void
+load_gids(void)
 {
 	char path[PATH_MAX];
 	char *prefix;
@@ -223,8 +223,8 @@ load_gids()
 }
 
 
-void
-write_history(  )
+static void
+write_history(void)
 {
 	char fname[PATH_MAX];
 	char *path;
@@ -334,7 +334,7 @@ load_filter(char *path, sig_val_t *sig)
 }
 
 static void
-bg_update_cache()
+bg_update_cache(void)
 {
 	int i;
 	struct timeval tv;
@@ -364,7 +364,7 @@ bg_update_cache()
 }
 
 static void
-update_history()
+update_history(void)
 {
 	DIR *dir;
 	char *path = dconf_get_filter_cachedir();
@@ -799,7 +799,7 @@ bg_new_search(filter_opts_t *fops)
 }
 
 
-int
+static int
 bg_stop(void *app_cookie)
 {
 	bg_shutdown = 1;
@@ -817,7 +817,7 @@ bg_free_obj(search_state_t * sstate, obj_data_t * obj)
  * This releases an object that is no longer needed.
  */
 
-int
+static int
 bg_release_obj(void *app_cookie, obj_data_t * obj)
 {
 	search_state_t *sstate;
@@ -839,7 +839,7 @@ bg_release_obj(void *app_cookie, obj_data_t * obj)
 
 
 
-int
+static int
 bg_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 {
 	int             err;
@@ -852,7 +852,7 @@ bg_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 }
 
 
-int
+static int
 bg_clear_gids(void *app_cookie, int gen_num)
 {
 	int             err;
@@ -874,7 +874,7 @@ hup_handler(int sig)
 }
 
 void
-start_background()
+start_background(void)
 {
 	signal(SIGHUP, hup_handler);
 	load_gids();

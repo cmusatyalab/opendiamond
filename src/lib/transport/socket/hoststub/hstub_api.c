@@ -1319,17 +1319,3 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list)
 	}
 	return ((void *) new_dev);
 }
-
-
-
-
-/*
- * This is used to tear down the state assocaited with the
- * device search.
- */
-void
-device_fini(sdevice_state_t * dev_state)
-{
-
-	free(dev_state);
-}

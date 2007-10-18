@@ -36,7 +36,7 @@
 #include "obj_attr.h"
 
 
-int
+static int
 isstring(char *str, int len)
 {
 	int i;
@@ -55,7 +55,7 @@ isstring(char *str, int len)
 
 }
 
-int
+static int
 print_attr(attr_record_t *arec)
 {
 	unsigned char *data;
@@ -97,7 +97,7 @@ print_attr(attr_record_t *arec)
 }
 
 
-int
+static int
 show_attr(odisk_state_t *odisk, char *attr_name)
 {
 	int		err;

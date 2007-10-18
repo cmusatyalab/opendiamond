@@ -29,7 +29,7 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 
-uint64_t
+static uint64_t
 parse_uint64_string(const char *s)
 {
 	int             i,

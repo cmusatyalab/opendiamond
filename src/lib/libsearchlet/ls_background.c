@@ -80,7 +80,7 @@ typedef struct {
 } bg_cmd_data_t;
 
 
-void
+static void
 update_dev_stats(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
@@ -118,7 +118,7 @@ update_dev_stats(search_context_t * sc)
 	free(dstats);
 }
 
-void
+static void
 update_device_queue(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
@@ -132,7 +132,7 @@ update_device_queue(search_context_t * sc)
  * helper function that write the value passed in the data to the
  * uint32_t that the cookie points to.
  */
-int
+static int
 dctl_write_dev_queue(void *cookie, int len, char *data)
 {
 	search_context_t * sc;
@@ -150,7 +150,7 @@ dctl_write_dev_queue(void *cookie, int len, char *data)
 	return (0);
 }
 
-int
+static int
 dctl_read_dev_queue(void *cookie, int *len, char *data)
 {
 	search_context_t * sc;
@@ -172,7 +172,7 @@ dctl_read_dev_queue(void *cookie, int *len, char *data)
 
 
 
-void
+static void
 update_total_rate(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
@@ -221,7 +221,7 @@ update_total_rate(search_context_t * sc)
 }
 
 
-void
+static void
 update_delta_rate(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
@@ -285,7 +285,7 @@ update_delta_rate(search_context_t * sc)
 	}
 }
 
-void
+static void
 update_rail(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
@@ -326,7 +326,7 @@ update_rail(search_context_t * sc)
 	}
 }
 
-void
+static void
 update_rates(search_context_t * sc)
 {
 	// printf("update rates \n");
@@ -373,7 +373,7 @@ refill_credits(search_context_t * sc)
 #define         POLL_USECS      0
 
 
-obj_info_t     *
+static obj_info_t     *
 get_next_object(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
@@ -421,7 +421,7 @@ redo:
 	return (NULL);
 }
 
-void
+static void
 dec_object_credit(search_context_t * sc, double etime)
 {
 	double          credit = etime / sc->avg_proc_time;
@@ -435,7 +435,7 @@ dec_object_credit(search_context_t * sc, double etime)
 
 
 
-int
+static int
 bg_val(void *cookie)
 {
 	return (1);

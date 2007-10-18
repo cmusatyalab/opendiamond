@@ -17,7 +17,7 @@
 #include "rcomb.h"
 
 
-int
+static int
 evaluate(const void *context, permutation_t * perm, int gen, int *score)
 {
 	int             i,
@@ -39,7 +39,7 @@ evaluate(const void *context, permutation_t * perm, int gen, int *score)
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	hc_state_t      hc;
 	permutation_t  *start;

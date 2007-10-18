@@ -197,30 +197,6 @@ gAddEdge(graph_t * g, node_t * u, node_t * v)
 }
 
 void
-gRemoveEdge(graph_t * g, edge_t * ep)
-{
-
-	assert(0);
-
-	free(ep);
-}
-
-const edgelist_t *
-gSuccessors(const graph_t * g, node_t * u)
-{
-	return &(u->successors);
-}
-
-
-const edgelist_t *
-gPredecessors(const graph_t * g, node_t * u)
-{
-	return &(u->predecessors);
-}
-
-
-
-void
 gPrintNode(node_t * np)
 {
 	edge_t         *ep;
@@ -395,28 +371,15 @@ typedef struct pe_t {
 
 typedef
 TAILQ_HEAD(pe_list_t, pe_t)
-    pe_list_t;
+     pe_list_t;
 
-    void
-                    pInit(pe_list_t * list)
+static void
+pInit(pe_list_t * list)
 {
 	TAILQ_INIT(list);
 }
 
-void
-pClean(pe_list_t * list)
-{
-	pe_t           *np;
-
-	while (!TAILQ_EMPTY(list)) {
-		np = TAILQ_FIRST(list);
-		TAILQ_REMOVE(list, np, link);
-		free(np);
-	}
-}
-
-
-pe_t           *
+static pe_t           *
 pInsert(pe_list_t * list, node_t * node, int prio)
 {
 	pe_t           *np;
@@ -438,7 +401,7 @@ pInsert(pe_list_t * list, node_t * node, int prio)
 }
 
 
-node_t         *
+static node_t         *
 pDeleteMin(pe_list_t * list)
 {
 	pe_t           *np;
@@ -453,7 +416,7 @@ pDeleteMin(pe_list_t * list)
 }
 
 
-void
+static void
 pReduce(pe_list_t * list, pe_t * np, int prio)
 {
 	pe_t           *next;
@@ -471,13 +434,13 @@ pReduce(pe_list_t * list, pe_t * np, int prio)
 	}
 }
 
-int
+static int
 pIsEmpty(pe_list_t * list)
 {
 	return TAILQ_EMPTY(list);
 }
 
-void
+static void
 pPrint(pe_list_t * list)
 {
 	pe_t           *np;
@@ -534,91 +497,6 @@ gSSSP(graph_t * g, node_t * src)
 		printf("%s - %d\n", np->label, np->td);
 	}
 
-}
-
-
-/*
- ********************************************************************** */
-/*
- * daVinci export 
- */
-/*
- ********************************************************************** */
-
-static void
-dv_export_node(FILE * fp, node_t * np, int indent)
-{
-	edge_t         *ep;
-	int             count = 0;
-	char           *edgecolor;
-	char           *red = "red";
-	char           *black = "black";
-	static int      edgeid = 1;
-
-	if (np->color)
-		return;
-
-	np->color = 1;
-
-	fprintf(fp, "l(\"%d\",n(\"A\",", np->id);
-	// fprintf(fp, "[a(\"OBJECT\",\"%s\")],\n", np->label);
-	fprintf(fp, "[a(\"OBJECT\",\"%s\\n(%d)\")", np->label, np->val);
-	// fprintf(fp, ",\na(\"COLOR\",\"red\")");
-	fprintf(fp, "],\n");
-
-	/*
-	 * export edges 
-	 */
-	fprintf(fp, "\t[");
-	// TAILQ_FOREACH(ep, &np->edges, eg_link) {
-	VEC_FOREACH(ep, &np->successors) {
-		if (count++)
-			fprintf(fp, ",\n\t");
-
-		// edgecolor = (TAILQ_NEXT(np, olink) == ep->eg_v) ? red :
-		// black;
-		edgecolor = (ep->eg_color ? red : black);
-
-		fprintf(fp,
-			"l(\"%d\",e(\"B\",[a(\"EDGECOLOR\",\"%s\")],r(\"%d\")))",
-			edgeid, edgecolor, ep->eg_v->id);
-		// export_node(fp, ep->node, indent+1);
-		edgeid++;
-	}
-	fprintf(fp, "\n\t]))\n");
-}
-
-
-/*
- * export in daVinci format 
- */
-static void
-dv_export(graph_t * g, char *filename)
-{
-	node_t         *np;
-	int             indent = 0;
-	FILE           *fp;
-	int             count = 0;
-
-	fp = fopen(filename, "w");
-	if (!fp) {
-		perror(filename);
-		exit(1);
-	}
-
-	TAILQ_FOREACH(np, &g->nodes, link) {
-		np->color = 0;
-	}
-	fprintf(fp, "[\n");
-	TAILQ_FOREACH(np, &g->nodes, link) {
-		if (count++)
-			fprintf(fp, ",");
-		fprintf(fp, "\n");
-		dv_export_node(fp, np, indent);
-	}
-	fprintf(fp, "]\n");
-
-	fclose(fp);
 }
 
 

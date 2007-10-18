@@ -29,7 +29,7 @@ extern "C"
 	od_srv_t;
 
 
-	void       ods_init();
+	void       ods_init(void);
 	od_srv_t * ods_allocate_by_gid(groupid_t *gid);
 	od_srv_t * ods_lookup_by_oid(obj_id_t *oid);
 	od_srv_t * ods_lookup_by_devid(uint64_t id);

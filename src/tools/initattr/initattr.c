@@ -35,7 +35,7 @@
 #include "obj_attr.h"
 
 
-int
+static int
 set_defattr(odisk_state_t *odisk, char *attr_name, char *data_name)
 {
 	struct stat	stats;

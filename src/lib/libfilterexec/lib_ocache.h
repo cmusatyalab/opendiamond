@@ -135,10 +135,10 @@ int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table,
 	sig_val_t *iattr_sig, query_info_t *qinfo);
 
 int ocache_init(char *path_name);
-int ocache_start();
+int ocache_start(void);
 int ocache_stop(char *path_name);
 int ocache_stop_search(sig_val_t *fsig);
-int ocache_wait_finish();
+int ocache_wait_finish(void);
 int ocache_read_file(char *disk_path, sig_val_t *fsig, 
 	void **fcache_table, struct timeval *atime);
 int ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table, 

@@ -99,7 +99,7 @@ typedef enum {		/* filter execution mode */
  * functions
  */
 
-void fexec_system_init();
+void fexec_system_init(void);
 
 int  fexec_load_spec(filter_data_t ** fdata, sig_val_t *sig);
 int  fexec_load_obj(filter_data_t * fdata, sig_val_t *sig);
@@ -125,7 +125,7 @@ int             fexec_set_blob(filter_data_t * fdata, char *filter_name,
 			       int blob_len, void *blob_data);
 int             fexec_get_stats(filter_data_t * fdata, int max,
 				filter_stats_t * fstats);
-char           *fexec_cur_filtname();
+char           *fexec_cur_filtname(void);
 
 
 int             fexec_update_bypass(filter_data_t * fdata, double ratio);

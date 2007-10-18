@@ -20,6 +20,7 @@
 #include    "diamond_consts.h"
 #include    "diamond_types.h"
 #include    "lib_dconfig.h"
+#include    "dconfig_priv.h"
 
 
 #define	MAX_PATH				256

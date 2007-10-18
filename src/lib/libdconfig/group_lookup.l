@@ -29,6 +29,7 @@
 #include "diamond_types.h"
 #include "gid_map.h"
 #include "dconfig_priv.h"
+#include "lib_dconfig.h"
 
 static void have_gid(yyscan_t scanner);
 static void have_cont(yyscan_t scanner);

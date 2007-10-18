@@ -25,7 +25,7 @@
 static const EVP_MD *md;
 
 static int
-sig_cal_init()
+sig_cal_init(void)
 {
 	/*
 	 * make sure we only call once

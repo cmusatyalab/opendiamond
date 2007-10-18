@@ -65,7 +65,7 @@ static LIST_HEAD(devid_hash, od_srv) ods_devid_hash[DEV_HASH_BUCKETS];
 /*
  */
 void
-ods_init()
+ods_init(void)
 {
 	int             i;
 	int             seed;

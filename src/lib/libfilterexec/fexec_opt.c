@@ -26,10 +26,7 @@
 #include "fexec_opt.h"
 #include "fexec_stats.h"
 
-
-extern void     update_filter_order(filter_data_t * fdata,
-				    const permutation_t * perm);
-
+#include "filter_priv.h"
 
 // #define VERBOSE 1
 
@@ -285,7 +282,7 @@ indep_new(filter_data_t * fdata)
 }
 
 
-void           *
+static void           *
 x_indep_new(filter_data_t * fdata)
 {
 	indep_state_t  *iSt = (indep_state_t *) malloc(sizeof(indep_state_t));
@@ -423,7 +420,7 @@ random_new(filter_data_t * fdata)
 }
 
 
-int
+static int
 random_optimize(void *context, filter_data_t * fdata)
 {
 #ifdef VERBOSE

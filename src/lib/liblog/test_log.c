@@ -25,8 +25,8 @@
 #include "lib_log.h"
 
 
-void
-string_test()
+static void
+string_test(void)
 {
 	int             i;
 
@@ -51,7 +51,7 @@ string_test()
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	log_init("testlog", NULL);
 	string_test();

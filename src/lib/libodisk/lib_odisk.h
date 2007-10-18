@@ -117,7 +117,7 @@ typedef struct {
  * function in dev_emul.c
  */
 int odisk_term(struct odisk_state *odisk);
-int odisk_continue();
+int odisk_continue(void);
 int odisk_init(struct odisk_state **odisk, char *path_name);
 int odisk_get_obj_cnt(struct odisk_state *odisk);
 int odisk_next_obj(obj_data_t **new_obj, struct odisk_state *odisk);
@@ -154,7 +154,7 @@ int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
 
 float odisk_get_erate(struct odisk_state *odisk);
 
-obj_data_t     * odisk_null_obj();
+obj_data_t     * odisk_null_obj(void);
 
 
 char * odisk_next_obj_name(odisk_state_t *odisk);

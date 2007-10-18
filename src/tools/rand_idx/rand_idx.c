@@ -32,7 +32,7 @@
 #include "lib_dconfig.h"
 
 
-uint64_t
+static uint64_t
 parse_uint64_string(const char* s)
 {
 	int i, o;
@@ -59,7 +59,7 @@ parse_uint64_string(const char* s)
 	return u;
 }
 
-int
+static int
 get_rand(int max)
 {
 	int	new;
@@ -77,8 +77,8 @@ get_rand(int max)
 	return(new);
 }
 
-void
-usage()
+static void
+usage(void)
 {
 	fprintf(stdout, "rand_stat -g <gid> \n");
 	fprintf(stdout, "\t-g <gid> gid of the group to modify \n");

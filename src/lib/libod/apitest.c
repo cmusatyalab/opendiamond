@@ -30,7 +30,7 @@
 
 #define BLOCK_SIZE      4096*1024
 
-void
+static void
 copy_file(char *fname, obj_id_t * oid)
 {
 	int             offset,
@@ -56,7 +56,7 @@ copy_file(char *fname, obj_id_t * oid)
 	printf("done with copy len %d off %d\n", len, offset);
 }
 
-void
+static void
 fetch_file(char *fname, obj_id_t * oid)
 {
 	int             offset,
@@ -93,7 +93,7 @@ fetch_file(char *fname, obj_id_t * oid)
 // Parses a uint64_t string of the form xx:xx:xx:xx:xx:xx:xx:xx
 // where "xx" is a hex byte.
 // 
-uint64_t
+static uint64_t
 parse_uint64_string(const char *s)
 {
 	int             i,
@@ -124,7 +124,7 @@ parse_uint64_string(const char *s)
 // to stdout.  Really, I should stick it into a char buf
 // but then someone has to deal with allocating space etc.
 // TODO
-void
+static void
 print_uint64(uint64_t u)
 {
 	int             i;
@@ -138,19 +138,13 @@ print_uint64(uint64_t u)
 	}
 }
 
-inline groupid_t
+static groupid_t
 parse_gid_string(const char *s)
 {
 	return parse_uint64_string(s);
 }
 
-inline void
-print_gid(groupid_t gid)
-{
-	print_uint64(gid);
-}
-
-obj_id_t
+static obj_id_t
 parse_oid_string(const char *s)
 {
 	obj_id_t        oid;
@@ -160,7 +154,7 @@ parse_oid_string(const char *s)
 	return oid;
 }
 
-inline void
+static  void
 print_oid(obj_id_t oid)
 {
 	print_uint64(oid.dev_id);

@@ -32,26 +32,7 @@
 #include "obj_attr.h"
 
 
-int
-isstring(char *str, int len)
-{
-	int i;
-	for (i = 0; i<(len -1); i++) {
-		if (!(isalnum((int)str[i])||isspace((int)str[i]))) {
-			/*	printf("isstring : %c \n", str[i]); */
-			return(0);
-		}
-	}
-
-	if (str[len-1] != '\0') {
-		/* printf("isstring : not null \n"); */
-		return(0);
-	}
-	return(1);
-
-}
-
-int
+static int
 show_gid(gid_list_t *glist)
 {
 

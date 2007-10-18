@@ -20,7 +20,7 @@
 
 #include "lib_auth.h"
 
-void usage() {
+static void usage(void) {
 	printf("astest <port_number>\n");
 	exit(-1);
 }

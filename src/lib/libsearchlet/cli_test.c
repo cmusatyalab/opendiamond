@@ -29,7 +29,7 @@
 #define	TEST_FILTER_NAME	"/Users/huston/diamond/diamond/src/lib/libsearchlet/test.so"
 #define	TEST_FILTER_SPEC	"/home/larry/coda/src/proj/libsearchlet/test_spec"
 int
-main(int argc, char **argv)
+main(void)
 {
 	int             err;
 	ls_obj_handle_t cur_obj;

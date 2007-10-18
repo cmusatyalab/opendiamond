@@ -33,51 +33,11 @@
 #include "fexec_stats.h"
 
 
-static int      host_cycles = 0;
-
-
-float
-get_active_searches()
-{
-	/*
-	 * XXXX fix 
-	 */
-	return (1.0);
-}
-
-
-
-float
-get_disk_cycles()
-{
-	uint64_t        val;
-	float           fval;
-	int             err;
-
-	err = r_cpu_freq(&val);
-	assert(err == 0);
-
-	fval = (float) val;
-	return (fval);
-}
-
-
-/*
- * This is called when we get a new request from the host
- * to change the number of cycles sent from the host.
- */
-void
-fexec_update_hostcyles(int new)
-{
-	host_cycles = new;
-}
-
-
 /*
  * This forces all filters to be run at the disk.
  */
 
-void
+static void
 fexec_set_bypass_none(filter_data_t * fdata)
 {
 	int             i;
@@ -86,7 +46,7 @@ fexec_set_bypass_none(filter_data_t * fdata)
 	}
 }
 
-void
+static void
 fexec_set_grouping_none(filter_data_t * fdata)
 {
 	int             i;
@@ -100,7 +60,7 @@ fexec_set_grouping_none(filter_data_t * fdata)
 
 #define SMALL_FRACTION (0.00001)
 
-void
+static void
 fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
 			float target)
 {
@@ -215,7 +175,7 @@ fexec_set_bypass_greedy(filter_data_t * fdata, permutation_t * perm,
 }
 
 
-void
+static void
 fexec_set_grouping_greedy(filter_data_t * fdata, permutation_t * perm)
 {
 	int             i;
@@ -230,7 +190,7 @@ fexec_set_grouping_greedy(filter_data_t * fdata, permutation_t * perm)
 /*
  * This computes the byapss by just splitting the first percentage.
  */
-void
+static void
 fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
 			 double ratio)
 {
@@ -255,7 +215,7 @@ fexec_set_bypass_trivial(filter_data_t * fdata, permutation_t * perm,
 	return;
 }
 
-void
+static void
 fexec_set_grouping_trivial(filter_data_t * fdata, permutation_t * perm)
 {
 	int             i;
@@ -300,7 +260,7 @@ typedef struct {
 	double          c_j;	/* cumulative CPU cost up to filter j */
 } bp_hybrid_state_t;
 
-void
+static void
 fexec_set_bypass_hybrid(filter_data_t * fdata, permutation_t * perm,
 			float target_ms)
 {
@@ -502,7 +462,7 @@ fexec_set_bypass_hybrid(filter_data_t * fdata, permutation_t * perm,
 	return;
 }
 
-void
+static void
 fexec_set_grouping_hybrid(filter_data_t * fdata, permutation_t * perm,
 			  float target_ms)
 {

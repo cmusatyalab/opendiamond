@@ -42,7 +42,7 @@ tv_to_float(struct timeval *tv)
 }
 
 static double
-get_float_time()
+get_float_time(void)
 {
 	double          ftime;
 	struct timeval  tv;
@@ -68,7 +68,7 @@ new_rate(double old_rate, double cur_rate)
 }
 
 
-int
+static int
 ring_enq_idx(ring_data_t * ring)
 {
 	pthread_t       self = pthread_self();

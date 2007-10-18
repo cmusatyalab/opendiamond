@@ -66,7 +66,6 @@ rt_init(rtimer_t * rt)
 
 	case RTIMER_STD:
 	default:
-		rt_std_init((void *) rt);
 		break;
 	}
 }

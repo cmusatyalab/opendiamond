@@ -31,15 +31,6 @@
 
 
 void
-rt_std_init(rtimer_std_t * rt)
-{
-	/*
-	 * null 
-	 */
-}
-
-
-void
 rt_std_start(rtimer_std_t * rt)
 {
 	if (getrusage(RUSAGE_SELF, &rt->ru1) != 0) {

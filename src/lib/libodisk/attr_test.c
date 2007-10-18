@@ -30,7 +30,7 @@
 #include "odisk_priv.h"
 
 
-void
+static void
 remove_some_attr(obj_attr_t * attr, int size, int num)
 {
 	int             i;
@@ -50,7 +50,7 @@ remove_some_attr(obj_attr_t * attr, int size, int num)
 }
 
 
-void
+static void
 check_some_attr(obj_attr_t * attr, int size, int num)
 {
 	char           *base_data;
@@ -101,7 +101,7 @@ check_some_attr(obj_attr_t * attr, int size, int num)
 	free(ret_data);
 }
 
-void
+static void
 write_some_attr(obj_data_t * obj, int size, int num)
 {
 	unsigned char  *data;
@@ -132,7 +132,7 @@ write_some_attr(obj_data_t * obj, int size, int num)
 	free(data);
 }
 
-void
+static void
 write_attr(obj_data_t * obj, int size, char *name)
 {
 	unsigned char  *data;
@@ -158,54 +158,8 @@ write_attr(obj_data_t * obj, int size, char *name)
 }
 
 
-void
-test_attrs(obj_data_t * obj)
-{
-
-	obj_attr_t     *attr = &obj->attr_info;
-
-	write_some_attr(obj, 10, 10);
-	check_some_attr(attr, 10, 10);
-
-
-	write_some_attr(obj, 15, 10);
-
-	check_some_attr(attr, 15, 10);
-	check_some_attr(attr, 10, 10);
-
-
-	write_some_attr(obj, 8099, 10);
-
-	check_some_attr(attr, 15, 10);
-	check_some_attr(attr, 10, 10);
-	check_some_attr(attr, 8099, 10);
-
-
-	write_some_attr(obj, 4000027, 10);
-
-	check_some_attr(attr, 15, 10);
-	check_some_attr(attr, 10, 10);
-	check_some_attr(attr, 8099, 10);
-	check_some_attr(attr, 4000027, 10);
-
-
-	remove_some_attr(attr, 15, 10);
-	check_some_attr(attr, 10, 10);
-	check_some_attr(attr, 8099, 10);
-	check_some_attr(attr, 4000027, 10);
-
-	write_some_attr(obj, 14, 10);
-
-	check_some_attr(attr, 10, 10);
-	check_some_attr(attr, 14, 10);
-	check_some_attr(attr, 8099, 10);
-	check_some_attr(attr, 4000027, 10);
-
-}
-
-
 int
-main(int argc, char **argv)
+main(void)
 {
 	odisk_state_t  *odisk;
 	obj_data_t     *new_obj;

@@ -73,20 +73,45 @@ struct filter_exec_t filter_exec = {
 // int CURRENT_POLICY = HILL_CLIMB_POLICY;
 // int CURRENT_POLICY = BEST_FIRST_POLICY;
 
-/*
- * order here should match enum policy_type_t 
- */
 static opt_policy_t policy_arr[] = {
-	{NULL_POLICY, NULL, NULL, NULL, NULL},
-	{HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
-	 hill_climb_optimize, NULL},
-	{BEST_FIRST_POLICY, best_first_new, best_first_delete,
-	 best_first_optimize, NULL},
-	{INDEP_POLICY, indep_new, best_first_delete, best_first_optimize,
-	 NULL},
-	{RANDOM_POLICY, random_new, NULL, NULL, NULL},
-	{STATIC_POLICY, static_new, NULL, NULL, NULL},
-	{NULL_POLICY, NULL, NULL, NULL, NULL}
+  {
+    .policy = NULL_POLICY
+  },
+
+  {
+    .policy = HILL_CLIMB_POLICY,
+    .p_new = hill_climb_new,
+    .p_delete = hill_climb_delete,
+    .p_optimize = hill_climb_optimize
+  },
+
+  {
+    .policy = BEST_FIRST_POLICY,
+    .p_new = best_first_new,
+    .p_delete = best_first_delete,
+    .p_optimize = best_first_optimize
+  },
+
+  {
+    .policy = INDEP_POLICY,
+    .p_new = indep_new,
+    .p_delete = best_first_delete,
+    .p_optimize = best_first_optimize
+  },
+
+  {
+    .policy = RANDOM_POLICY,
+    .p_new = random_new
+  },
+
+  {
+    .policy = STATIC_POLICY,
+    .p_new = static_new
+  },
+
+  {
+    .policy = NULL_POLICY
+  },
 };
 
 
@@ -101,7 +126,7 @@ static int				fexec_frequency_threshold = 1;  /* threshold for filter history */
 static char            ratio[40];
 static char            pid_str[40];
 
-int
+static int
 fexec_set_slowdown(void *cookie, int data_len, char *val)
 {
 	uint32_t        data;
@@ -153,7 +178,7 @@ fexec_set_slowdown(void *cookie, int data_len, char *val)
 
 
 void
-fexec_system_init()
+fexec_system_init(void)
 {
 	unsigned int    seed;
 	int             fd;
@@ -201,7 +226,7 @@ fexec_system_init()
 
 
 char           *
-fexec_cur_filtname()
+fexec_cur_filtname(void)
 {
 	if (fexec_active_filter != NULL) {
 		return (fexec_active_filter->fi_name);
@@ -210,7 +235,7 @@ fexec_cur_filtname()
 	}
 }
 
-void
+static void
 save_blob_data(void *data, size_t dlen, sig_val_t *sig)
 {
 	char * cache_dir;
@@ -237,7 +262,7 @@ save_blob_data(void *data, size_t dlen, sig_val_t *sig)
 }
 
 
-void
+static void
 save_filter_state(filter_data_t *fdata, filter_info_t *cur_filt)
 {
 	char * cache_dir;

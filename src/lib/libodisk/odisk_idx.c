@@ -28,7 +28,7 @@
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	odisk_state_t  *odisk;
 	int             err;

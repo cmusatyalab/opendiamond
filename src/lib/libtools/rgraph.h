@@ -124,8 +124,6 @@ node_t         *gNewNode(graph_t * g, char *label);
  */
 edge_t         *gAddEdge(graph_t * g, node_t * u, node_t * v);
 
-const edgelist_t *gSuccessors(const graph_t * g, node_t * u);
-const edgelist_t *gPredecessors(const graph_t * g, node_t * u);
 
 /*
  * print to stdout 

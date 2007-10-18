@@ -29,7 +29,7 @@
 #include "lib_log.h"
 #include "odisk_priv.h"
 
-void
+static void
 remove_some_attr(obj_attr_t * attr, int size, int num)
 {
 	int             i;
@@ -51,7 +51,7 @@ remove_some_attr(obj_attr_t * attr, int size, int num)
 }
 
 
-void
+static void
 check_some_attr(obj_attr_t * attr, int size, int num)
 {
 	char           *base_data;
@@ -104,7 +104,7 @@ check_some_attr(obj_attr_t * attr, int size, int num)
 	free(ret_data);
 }
 
-void
+static void
 write_some_attr(obj_attr_t * attr, int size, int num)
 {
 	unsigned char *	data;
@@ -134,7 +134,7 @@ write_some_attr(obj_attr_t * attr, int size, int num)
 }
 
 
-void
+static void
 test_attrs(obj_attr_t * attr)
 {
 
@@ -180,7 +180,7 @@ test_attrs(obj_attr_t * attr)
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	odisk_state_t  *odisk;
 	obj_data_t     *new_obj;

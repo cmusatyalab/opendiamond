@@ -287,7 +287,7 @@ search_set_obj(void *app_cookie, int id, sig_val_t * objsig)
 /*
  * Reset the statistics for the current search.
  */
-void
+static void
 clear_ss_stats(search_state_t * sstate)
 {
 	sstate->obj_total = 0;
@@ -970,11 +970,11 @@ device_main(void *arg)
 			if (do_fork)  {
 				background_pid = fork();
 				if (background_pid == 0) {
-					start_background(1);
+					start_background();
 					exit(0);
 				}
 			} else {
-				start_background(0);
+				start_background();
 			}
 		}
 

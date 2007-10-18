@@ -17,7 +17,7 @@
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 
 	rtimer_t        rt;

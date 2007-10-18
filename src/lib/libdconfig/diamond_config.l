@@ -119,7 +119,7 @@ set_data_root(char *dir)
 }
 
 char *
-dconf_get_dataroot()
+dconf_get_dataroot(void)
 {
 	char *dir;
 	do_init();
@@ -135,7 +135,7 @@ set_cache_dir(char *dir)
 }
 
 char *
-dconf_get_cachedir()
+dconf_get_cachedir(void)
 {
 	char *dir;
 	do_init();
@@ -152,14 +152,14 @@ static char *concatpath (const char *prefix, const char *suffix)
 
 
 char *
-dconf_get_binary_cachedir()
+dconf_get_binary_cachedir(void)
 {
 	do_init();
 	return(concatpath(dinfo->dconf_cachedir, BINARY_DIAMOND_CACHE));
 }
 
 char *
-dconf_get_filter_cachedir()
+dconf_get_filter_cachedir(void)
 {
 	do_init();
 	return(concatpath(dinfo->dconf_cachedir, FILTER_DIAMOND_CACHE));
@@ -167,7 +167,7 @@ dconf_get_filter_cachedir()
 
 
 char *
-dconf_get_blob_cachedir()
+dconf_get_blob_cachedir(void)
 {
 	do_init();
 	return(concatpath(dinfo->dconf_cachedir, BLOB_DIAMOND_CACHE));
@@ -175,7 +175,7 @@ dconf_get_blob_cachedir()
 
 
 char *
-dconf_get_spec_cachedir()
+dconf_get_spec_cachedir(void)
 {
 	do_init();
 	return(concatpath(dinfo->dconf_cachedir, SPEC_DIAMOND_CACHE));
@@ -196,7 +196,7 @@ set_log_dir(char *dir)
 }
 
 char *
-dconf_get_indexdir()
+dconf_get_indexdir(void)
 {
 	char *dir;
 	do_init();
@@ -205,7 +205,7 @@ dconf_get_indexdir()
 }
 
 char *
-dconf_get_logdir()
+dconf_get_logdir(void)
 {
 	char *dir;
 	do_init();
@@ -221,7 +221,7 @@ set_data_type(data_type_t type)
 }
 
 data_type_t
-dconf_get_datatype()
+dconf_get_datatype(void)
 {
 	do_init();
 	return(dinfo->dconf_dtype);
@@ -240,7 +240,7 @@ setup_dir(const char *dir)
 
 
 static void
-do_init()
+do_init(void)
 {
 	int ret;
 	char *dir;

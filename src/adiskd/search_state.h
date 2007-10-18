@@ -130,6 +130,6 @@ device_session_vars_t * search_get_session_vars(void *app_cookie, int gen_num);
 int		search_set_session_vars(void *app_cookie, int gen_num,
 					device_session_vars_t *vars);
 
-void		start_background();
+void		start_background(void);
 
 #endif				/* ifndef _SEARCH_STATE_H_ */

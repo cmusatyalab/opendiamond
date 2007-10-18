@@ -61,7 +61,7 @@ extern "C"
  *		A handle that can be used in subsequent calls.
  */
 
-ls_search_handle_t ls_init_search();
+ls_search_handle_t ls_init_search(void);
 
 /*!
  * This function is called to terminate a search and clean up

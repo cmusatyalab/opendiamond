@@ -31,7 +31,7 @@ typedef struct {
 	filter_history_t *entries;
 } filter_history_list_t;
 
-GHashTable *get_filter_history();
+GHashTable *get_filter_history(void);
 filter_history_list_t *get_filter_history_by_frequency(GHashTable *histories);
 void write_filter_history(GHashTable *histories);
 void update_filter_history(GHashTable *filter_histories, gboolean remove);

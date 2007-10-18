@@ -31,7 +31,7 @@
 #include "lib_dconfig.h"
 
 
-int
+static int
 rebuild_idx(odisk_state_t *odisk)
 {
 	int		err;
@@ -52,7 +52,7 @@ rebuild_idx(odisk_state_t *odisk)
 	return(0);
 }
 
-uint64_t
+static uint64_t
 parse_uint64_string(const char* s)
 {
 	int i, o;
@@ -80,8 +80,8 @@ parse_uint64_string(const char* s)
 }
 
 
-void
-usage()
+static void
+usage(void)
 {
 	fprintf(stdout, "rem_group [-c] -g <gid> [-m <max_objs>] \n");
 	fprintf(stdout, "\t-c show count of objects in the group \n");

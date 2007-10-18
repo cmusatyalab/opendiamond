@@ -154,7 +154,7 @@ log_message(unsigned int type, unsigned int level, char *fmt, ...)
 /*
  * log_create - create a log file
  */
-int log_create(char *prefix) {
+static int log_create(char *prefix) {
 	struct timeval now;
 	int fd;
 	int len;
@@ -177,7 +177,7 @@ int log_create(char *prefix) {
 }
 
 
-char level_to_char(uint32_t level) {
+static char level_to_char(uint32_t level) {
 	char c;
 	
 	switch(level) {
@@ -210,7 +210,7 @@ char level_to_char(uint32_t level) {
 }
 
 
-char source_to_char(uint32_t source) {
+static char source_to_char(uint32_t source) {
 	char c;
 	
 	switch(source) {
@@ -242,7 +242,7 @@ char source_to_char(uint32_t source) {
 /*
  * log_writer - main loop logging thread
  */
-void *log_writer(void *arg) {
+static void *log_writer(void *arg) {
 	log_ent_t		*ent;
 	size_t			file_len = 0;
 	size_t			wlen;
@@ -370,7 +370,7 @@ void log_init(char *log_prefix, char *control_prefix)
 }
 
 
-void log_term() {
+void log_term(void) {
 	if (log_state == NULL) 
 		return;
 

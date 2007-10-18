@@ -35,8 +35,8 @@
 #define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
 
 
-unsigned long long
-read_cycle()
+static unsigned long long
+read_cycle(void)
 {
 	unsigned long long	foo;
 
@@ -46,8 +46,8 @@ read_cycle()
 
 }
 
-void
-usage()
+static void
+usage(void)
 {
 	fprintf(stdout, "slowdown -r <ratio> [-v][-p <pid>\n");
 	fprintf(stdout, "\t-r <ratio> : consume ratio percent of cpu \n");

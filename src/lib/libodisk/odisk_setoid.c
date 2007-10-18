@@ -32,7 +32,7 @@
 #include "odisk_priv.h"
 
 
-uint32_t
+static uint32_t
 get_devid(char *host_addr)
 {
 	int             err;

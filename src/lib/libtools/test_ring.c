@@ -28,8 +28,8 @@
 ring_data_t    *my_ring;
 ring_data_t    *my_2ring;
 
-void
-simple_test()
+static void
+simple_test(void)
 {
 
 	int             i;
@@ -82,8 +82,8 @@ simple_test()
 	}
 }
 
-void
-simple_count_test()
+static void
+simple_count_test(void)
 {
 
 	int             i;
@@ -127,8 +127,8 @@ simple_count_test()
 	}
 }
 
-void
-count_test()
+static void
+count_test(void)
 {
 	int             i;
 	int             err;
@@ -154,8 +154,8 @@ count_test()
 
 
 
-void
-overflow_test()
+static void
+overflow_test(void)
 {
 
 	int             i;
@@ -217,8 +217,8 @@ overflow_test()
 	}
 }
 
-void
-overflow_2test()
+static void
+overflow_2test(void)
 {
 
 	int             i;
@@ -291,8 +291,8 @@ overflow_2test()
 	}
 }
 
-void
-simple_2test()
+static void
+simple_2test(void)
 {
 
 	int             i;
@@ -348,8 +348,8 @@ simple_2test()
 	}
 }
 
-void
-simple_2count_test()
+static void
+simple_2count_test(void)
 {
 
 	int             i;
@@ -394,8 +394,8 @@ simple_2count_test()
 	}
 }
 
-void
-count_2test()
+static void
+count_2test(void)
 {
 	int             i;
 	int             err;
@@ -419,7 +419,7 @@ count_2test()
 }
 
 int
-main(int argc, char **argv)
+main(void)
 {
 
 	int             err;

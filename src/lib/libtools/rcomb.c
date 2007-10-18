@@ -45,12 +45,13 @@ typedef struct heap_t {
  */
 
 
-heap_t         *heap_new(int n);
-void            heap_delete(heap_t * heap);
-void           *heap_extract_max(heap_t * heap);
-void            heap_insert(heap_t * heap, int key, void *val);
-int             heap_size(const heap_t * heap);
-void            heap_print(const heap_t * heap);
+static heap_t         *heap_new(int n);
+static void            heap_delete(heap_t * heap);
+static void           *heap_extract_max(heap_t * heap);
+static void            heap_insert(heap_t * heap, int key, void *val);
+static int             heap_size(const heap_t * heap);
+static void            heap_print(const heap_t * heap);
+static const void     *heap_max(heap_t * heap);
 
 
 #define PARENT(n) ((n)>>1)
@@ -1127,8 +1128,8 @@ format_number(char *buf, double val)
  * this is a transcription of rahuls perl code 
  */
 
-double         *build_cdf(int N);
-int             draw_from_cdf(int num, double *cdf);
+static double         *build_cdf(int N);
+static int             draw_from_cdf(int num, double *cdf);
 
 
 /*

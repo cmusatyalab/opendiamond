@@ -23,15 +23,14 @@
 
 
 static const EVP_MD *md;
-static int      done_sig_init = 0;
 
-int
+static int
 sig_cal_init()
 {
 	/*
 	 * make sure we only call once
 	 */
-	if (done_sig_init) {
+	if (md != NULL) {
 		return (0);
 	}
 
@@ -45,7 +44,6 @@ sig_cal_init()
 
 	/* make sure the digest will fit in our sig_val_t buffer */
 	assert(EVP_MD_size(md) == SIG_SIZE);
-	done_sig_init = 1;
 	return (0);
 }
 
@@ -55,7 +53,7 @@ sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature)
 	EVP_MD_CTX mdctx;
 	unsigned int i;
 
-	assert(done_sig_init == 1);
+	sig_cal_init();
 
 	EVP_MD_CTX_init(&mdctx);
 	EVP_DigestInit_ex(&mdctx, md, NULL);

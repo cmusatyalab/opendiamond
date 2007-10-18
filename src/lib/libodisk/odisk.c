@@ -1213,8 +1213,6 @@ odisk_init(odisk_state_t ** odisk, char *dirp)
 	 */
 	umask(0);
 
-	sig_cal_init();
-
 	/*
 	 * clear umask so we get file permissions we specify 
 	 */

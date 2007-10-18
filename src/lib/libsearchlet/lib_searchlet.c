@@ -105,8 +105,6 @@ ls_init_search()
 		return (NULL);
 	}
 
-	sig_cal_init();
-
 	dctl_start(sc);
 
 	bg_init(sc, 1);

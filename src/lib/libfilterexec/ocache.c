@@ -1781,7 +1781,6 @@ ocache_init(char *dirp)
 		filter_cache_table[i] = NULL;
 	}
 
-	sig_cal_init();
 	ocache_init_read(dir_path);
 	/*
 	 * create thread to process inserted entries for cache table 

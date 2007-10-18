@@ -22,11 +22,6 @@ typedef	struct sig_val {
 } sig_val_t;
 
 /*
- * Must be called once before using the library.
- */
-int sig_cal_init();
-
-/*
  * Compute the signature for a scatter-gather list of byte ranges
  */
 /* 'const'-version of struct iovec (sys/uio.h) */

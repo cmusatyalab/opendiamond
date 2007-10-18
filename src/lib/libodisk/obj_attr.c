@@ -322,12 +322,7 @@ obj_write_attr(obj_attr_t * attr, const char *name, size_t len,
 	attr_record_t  *data_rec;
 	int             total_size;
 	int             namelen;
-	static int      done_init = 0;
 
-	if (!done_init) {
-		sig_cal_init();
-		done_init = 1;
-	}
 	/*
 	 * XXX validate object ??? 
 	 */

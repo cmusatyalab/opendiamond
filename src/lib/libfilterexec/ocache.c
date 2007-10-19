@@ -47,9 +47,6 @@
 #include "filter_priv.h"
 
 
-#define	MAX_FNAME	128
-#define TEMP_ATTR_BUF_SIZE	1024
-
 /*
  * dctl variables 
  */
@@ -95,14 +92,10 @@ static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
 
-
-#define SIG_BUF_SIZE	256
 #define MAX_FILTER_ARG_NAME 256
 #define CACHE_ENTRY_NUM 4096
 #define FCACHE_NUM 50
 #define MAX_CACHE_ENTRY_NUM 0X1000000
-#define MAX_ENTRY_NUM	(2 * MAX_CACHE_ENTRY_NUM)
-#define MAX_IATTR_SIZE	4096
 
 static cache_init_obj **init_table;
 static fcache_t *filter_cache_table[FCACHE_NUM];
@@ -1395,7 +1388,7 @@ ocache_main(void *arg)
 		} else
 			ocache_entry_free(cobj);
 
-		if (cache_entry_num >= MAX_ENTRY_NUM)
+		if (cache_entry_num >= MAX_CACHE_ENTRY_NUM)
 			free_fcache_entry(cstate->ocache_path);
 	}
 }

@@ -300,7 +300,7 @@ lf_log(int level, char *fmt, ...)
 	va_list         ap;
 	va_list         new_ap;
 	char            log_buffer[MAX_LOG_BUF];
-	char           *cur_filter;
+	const char      *cur_filter;
 	int             len;
 	int             remain_len;
 

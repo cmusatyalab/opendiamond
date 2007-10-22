@@ -125,7 +125,7 @@ int             fexec_set_blob(filter_data_t * fdata, char *filter_name,
 			       int blob_len, void *blob_data);
 int             fexec_get_stats(filter_data_t * fdata, int max,
 				filter_stats_t * fstats);
-char           *fexec_cur_filtname(void);
+const char           *fexec_cur_filtname(void);
 
 
 int             fexec_update_bypass(filter_data_t * fdata, double ratio);

@@ -56,7 +56,7 @@
  * Some state to keep track of the active filter. XXX
  */
 filter_info_t  *fexec_active_filter = NULL;
-static char    *no_filter = "None";
+static const char    *no_filter = "None";
 
 
 
@@ -225,7 +225,7 @@ fexec_system_init(void)
 }
 
 
-char           *
+const char           *
 fexec_cur_filtname(void)
 {
 	if (fexec_active_filter != NULL) {

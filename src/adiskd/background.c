@@ -506,6 +506,7 @@ background_eval(void *arg)
 	int             any;
 	struct timespec timeout;
 	query_info_t    qinfo;
+	double          elapsed;
 
 	sstate = (search_state_t *) arg;
  	memset(&qinfo, 0, sizeof(query_info_t));
@@ -542,8 +543,9 @@ background_eval(void *arg)
 			sstate->obj_bg_processed++;
 
 			/* XXX force eval of desired filters */
-			pass = ceval_filters2(new_obj, sstate->fdata, 1, sstate->exec_mode,
-						&qinfo, sstate, continue_fn);
+			pass = ceval_filters2(new_obj, sstate->fdata, 1, &elapsed,
+					      sstate->exec_mode,
+					      &qinfo, sstate, continue_fn);
 
 			if (pass == 0) {
 				sstate->obj_dropped++;

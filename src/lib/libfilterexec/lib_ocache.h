@@ -126,8 +126,9 @@ int ceval_stop(filter_data_t * fdata);
 
 int ceval_filters1(char * obj_name, filter_data_t * fdata, void *cookie);
 int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, 
-		int force_eval, filter_exec_mode_t mode, query_info_t *qinfo,
-		void *cookie, int (*continue_cb)(void *cookie));
+		   int force_eval, double *elapsed,
+		   filter_exec_mode_t mode, query_info_t *qinfo,
+		   void *cookie, int (*continue_cb)(void *cookie));
 
 void ceval_inject_names(char **nl, int nents);
 

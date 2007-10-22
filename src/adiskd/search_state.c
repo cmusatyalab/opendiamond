@@ -760,7 +760,8 @@ device_main(void *arg)
 	query_info_t	qinfo;
 	pid_t		wait_pid;
 	int		wait_status;
-	
+	double          elapsed;
+
 	sstate = (search_state_t *) arg;
 
 	init_good_objs(&gobj, sstate->ver_no);
@@ -885,8 +886,9 @@ device_main(void *arg)
 				qinfo.session = sstate->cinfo;
 				qinfo.query_id = sstate->ver_no;
 				pass = ceval_filters2(new_obj, sstate->fdata,
-						   force_eval, sstate->exec_mode, 
-						   &qinfo, sstate, continue_fn);
+						      force_eval, &elapsed,
+						      sstate->exec_mode,
+						      &qinfo, sstate, continue_fn);
 
 				if (pass == 0) {
 					sstate->obj_dropped++;
@@ -932,8 +934,9 @@ device_main(void *arg)
 				qinfo.session = sstate->cinfo;
 				qinfo.query_id = sstate->ver_no;
 				pass = ceval_filters2(new_obj, sstate->fdata,
-					   1, sstate->exec_mode, &qinfo,
-					   sstate, NULL);
+						      1, &elapsed,
+						      sstate->exec_mode, &qinfo,
+						      sstate, NULL);
 				if (pass == 0) {
 					sstate->obj_dropped++;
 					sstate->obj_processed++;

@@ -746,8 +746,9 @@ ceval_wattr_stats(off_t len)
 
 int
 ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
-				filter_exec_mode_t exec_mode, query_info_t *qinfo,
-	       		void *cookie, int (*continue_cb) (void *cookie))
+	       double *elapsed,	filter_exec_mode_t exec_mode,
+	       query_info_t *qinfo,
+	       void *cookie, int (*continue_cb) (void *cookie))
 {
 	filter_info_t  *cur_filter;
 	int             conf;
@@ -1003,6 +1004,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	 */
 	fdata->fd_avg_wall = (0.95 * fdata->fd_avg_wall) + (0.05 * temp);
 	temp = rt_time2secs(stack_ns);
+	*elapsed = temp;
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
 	return pass;

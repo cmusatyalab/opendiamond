@@ -35,23 +35,6 @@
 
 
 static int
-isstring(char *str, int len)
-{
-	int i;
-	for (i = 0; i<(len -1); i++) {
-		if (!(isalnum((int)str[i]))) {
-			return(0);
-		}
-	}
-
-	if (str[len-1] != '\0') {
-		return(0);
-	}
-	return(1);
-
-}
-
-static int
 del_attr(odisk_state_t *odisk, char *attr_fname, char *aname)
 {
 	int		err;

@@ -766,50 +766,6 @@ bg_main(void *arg)
 	}
 }
 
-
-static int
-bg_filt_sig(char *fname, sig_val_t * sig)
-{
-
-	int             fd;
-	int             err;
-	char           *buf;
-	struct stat     stats;
-	size_t          rsize;
-
-
-	fd = open(fname, O_RDONLY);
-	if (fd < 0) {
-		return (EINVAL);
-	}
-
-	err = fstat(fd, &stats);
-
-	if (err < 0) {
-		close(fd);
-		return (EINVAL);
-	}
-
-	buf = (char *) malloc(stats.st_size);
-	assert(buf != NULL);
-
-	rsize = read(fd, buf, stats.st_size);
-	if (rsize < stats.st_size) {
-		err = EINVAL;
-		goto done;
-	}
-
-	sig_cal(buf, stats.st_size, sig);
-
-	err = 0;
-
-done:
-	free(buf);
-	close(fd);
-	return (err);
-}
-
-
 /*
  * This function sets the searchlet for the background thread to use
  * for processing the data.  This function doesn't actually load

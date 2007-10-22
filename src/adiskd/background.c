@@ -799,13 +799,6 @@ bg_new_search(filter_opts_t *fops)
 }
 
 
-static int
-bg_stop(void *app_cookie)
-{
-	bg_shutdown = 1;
-	return (0);
-}
-
 int
 bg_free_obj(search_state_t * sstate, obj_data_t * obj)
 {
@@ -813,59 +806,6 @@ bg_free_obj(search_state_t * sstate, obj_data_t * obj)
 	return (0);
 }
 
-/*
- * This releases an object that is no longer needed.
- */
-
-static int
-bg_release_obj(void *app_cookie, obj_data_t * obj)
-{
-	search_state_t *sstate;
-	sstate = (search_state_t *) app_cookie;
-
-	if (obj == NULL) {
-		return (0);
-	}
-
-	sstate->pend_objs--;
-	if (sstate->pend_objs == 0) {
-		sstate->tx_idles++;
-	}
-	sstate->pend_compute -= obj->remain_compute;
-
-	odisk_release_obj(obj);
-	return (0);
-}
-
-
-
-static int
-bg_set_gid(void *app_cookie, int gen_num, groupid_t gid)
-{
-	int             err;
-	search_state_t *sstate;
-
-	sstate = (search_state_t *) app_cookie;
-	err = odisk_set_gid(sstate->ostate, gid);
-	assert(err == 0);
-	return (0);
-}
-
-
-static int
-bg_clear_gids(void *app_cookie, int gen_num)
-{
-	int             err;
-	search_state_t *sstate;
-
-	/*
-	 * XXX check gen num 
-	 */
-	sstate = (search_state_t *) app_cookie;
-	err = odisk_clear_gids(sstate->ostate);
-	assert(err == 0);
-	return (0);
-}
 
 static void
 hup_handler(int sig)

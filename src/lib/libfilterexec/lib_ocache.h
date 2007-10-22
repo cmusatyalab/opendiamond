@@ -15,6 +15,7 @@
 #ifndef	_LIB_OCACHE_H_
 #define	_LIB_OCACHE_H_ 	1
 
+#include "lib_filter.h"
 #include "lib_filterexec.h"
 #include "obj_attr.h"
 
@@ -106,11 +107,11 @@ int ocache_stop_search(sig_val_t *fsig);
 int ocache_wait_finish(void);
 int ocache_read_file(char *disk_path, sig_val_t *fsig, 
 	void **fcache_table, struct timeval *atime);
-int ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table, 
-	sig_val_t *fsig);
 
-int ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf, 
-				   query_info_t *qid, filter_exec_mode_t exec_mode);
+int ocache_add_start(lf_obj_handle_t ohandle, char *fhandle, void *cache_table,
+		     sig_val_t *fsig);
+int ocache_add_end(lf_obj_handle_t ohandle, char *fhandle, int conf,
+		   query_info_t *qid, filter_exec_mode_t exec_mode);
 
 int combine_attr_set(cache_attr_set *attr1, cache_attr_set *attr2);
 

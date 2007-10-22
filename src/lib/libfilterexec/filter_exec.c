@@ -55,7 +55,7 @@
 /*
  * Some state to keep track of the active filter. XXX
  */
-filter_info_t  *fexec_active_filter = NULL;
+filter_info_t  *fexec_active_filter;
 static const char    *no_filter = "None";
 
 

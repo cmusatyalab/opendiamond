@@ -1088,18 +1088,19 @@ ocache_read_file(char *disk_path, sig_val_t * fsig, void **fcache_table,
 }
 
 int
-ocache_add_start(char *fhandle, sig_val_t * id_sig, void *cache_table,
-		 sig_val_t * fsig)
+ocache_add_start(lf_obj_handle_t ohandle, char *fhandle, void *cache_table,
+		 sig_val_t *fsig)
 {
 	struct ocache_ring_entry *new_entry;
+	obj_data_t *obj = (obj_data_t *) ohandle;
 
-	memcpy(&ocache_sig, id_sig, sizeof(sig_val_t));
+	memcpy(&ocache_sig, &obj->id_sig, sizeof(sig_val_t));
 
 	new_entry = (struct ocache_ring_entry *) calloc(1, sizeof(*new_entry));
 	assert(new_entry != NULL);
 
 	new_entry->type = INSERT_START;
-	memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
+	memcpy(&new_entry->id_sig, &obj->id_sig, sizeof(sig_val_t));
 	memcpy(&new_entry->u.start.fsig, fsig, sizeof(sig_val_t));
 	new_entry->u.start.cache_table = cache_table;
 
@@ -1159,19 +1160,20 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 }
 
 int
-ocache_add_end(char *fhandle, sig_val_t * id_sig, int conf,
+ocache_add_end(lf_obj_handle_t ohandle, char *fhandle, int conf,
 	       query_info_t *qid, filter_exec_mode_t exec_mode)
 {
 	struct ocache_ring_entry *new_entry;
+	obj_data_t *obj = (obj_data_t *) ohandle;
 
-	if (!sig_match(&ocache_sig, id_sig))
+	if (!sig_match(&ocache_sig, &obj->id_sig))
 		return 0;
 
 	new_entry = (struct ocache_ring_entry *) calloc(1, sizeof(*new_entry));
 	assert(new_entry != NULL);
 
 	new_entry->type = INSERT_END;
-	memcpy(&new_entry->id_sig, id_sig, sizeof(sig_val_t));
+	memcpy(&new_entry->id_sig, &obj->id_sig, sizeof(sig_val_t));
 	new_entry->u.end.result = conf;
 	new_entry->u.end.qid = *qid;
 	new_entry->u.end.exec_mode = exec_mode;

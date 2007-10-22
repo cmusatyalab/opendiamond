@@ -888,26 +888,25 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 			assert(cur_filter->fi_eval_fp);
 
 			/*
-			 * mark beginning of filter eval into cache ring 
+			 * mark beginning of filter eval into cache ring
 			 */
 			if (add_cache_entries) {
-				ocache_add_start(cur_filter->fi_name,
-					 			&obj_handle->id_sig,
-					 			cur_filter->cache_table,
-					 			&cur_filter->fi_sig);
+				ocache_add_start(obj_handle,
+						 cur_filter->fi_name,
+						 cur_filter->cache_table,
+						 &cur_filter->fi_sig);
 			}
 
 			conf = cur_filter->fi_eval_fp(obj_handle,
-						      cur_filter->
-						      fi_filt_arg);
+						      cur_filter-> fi_filt_arg);
 
 			/*
-			 * mark end of filter eval into cache ring 
+			 * mark end of filter eval into cache ring
 			 */
 			if (add_cache_entries) {
-				ocache_add_end(cur_filter->fi_name, 
-								&obj_handle->id_sig, 
-				 	      		conf, qinfo, exec_mode);
+				ocache_add_end(obj_handle,
+					       cur_filter->fi_name,
+					       conf, qinfo, exec_mode);
 			}
 
 			cur_filter->fi_compute++;

@@ -42,7 +42,7 @@ typedef struct obj_id obj_id_t;
  * call before calling the other library calls.
  *
  */
-int od_init();
+int od_init(void);
 
 /*
  * Create a new object. the resulting object ID is returned

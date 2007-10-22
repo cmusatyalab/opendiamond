@@ -65,16 +65,11 @@ enum auto_part_t {
 extern int             fexec_bypass_type;
 extern int             fexec_autopart_type;
 
-struct filter_exec_t {
-	enum policy_type_t current_policy;
-};
-
-
 
 /*
  * update at your own risk! 
  */
-extern struct filter_exec_t filter_exec;
+extern enum policy_type_t filter_exec_current_policy;
 
 /* XXX */
 #define	MAX_OBJ_FILES	64

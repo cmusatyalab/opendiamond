@@ -65,9 +65,7 @@ static const char    *no_filter = "None";
  * filter optimization policy defs 
  */
 
-struct filter_exec_t filter_exec = {
-	NULL_POLICY
-};
+enum policy_type_t filter_exec_current_policy = NULL_POLICY;
 
 // int CURRENT_POLICY = NULL_POLICY;
 // int CURRENT_POLICY = HILL_CLIMB_POLICY;
@@ -207,7 +205,7 @@ fexec_system_init(void)
 
 	// #ifdef VERBOSE
 	fprintf(stderr, "fexec_system_init: policy = %d\n",
-		filter_exec.current_policy);
+		filter_exec_current_policy);
 	// #endif
 
 
@@ -884,8 +882,8 @@ initialize_policy(filter_data_t * fdata)
 	/*
 	 * initialize policy 
 	 */
-	policy = &policy_arr[filter_exec.current_policy];
-	assert(policy->policy == filter_exec.current_policy);
+	policy = &policy_arr[filter_exec_current_policy];
+	assert(policy->policy == filter_exec_current_policy);
 	if (policy->p_new) {
 		policy->p_context = policy->p_new(fdata);
 	}
@@ -1097,7 +1095,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	/*
 	 * change the permutation if it's time for a change 
 	 */
-	optimize_filter_order(fdata, &policy_arr[filter_exec.current_policy]);
+	optimize_filter_order(fdata, &policy_arr[filter_exec_current_policy]);
 
 	/*
 	 * Get the total time we have execute so far (if we have

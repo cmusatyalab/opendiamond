@@ -781,7 +781,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	/*
 	 * change the permutation if it's time for a change
 	 */
-	optimize_filter_order(fdata, &policy_arr[filter_exec.current_policy]);
+	optimize_filter_order(fdata, &policy_arr[filter_exec_current_policy]);
 
 	asize = sizeof(stack_ns);
 	err = obj_read_attr(&obj_handle->attr_info, FLTRTIME,

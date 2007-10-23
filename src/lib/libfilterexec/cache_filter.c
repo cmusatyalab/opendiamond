@@ -49,6 +49,9 @@ static void     sample_init(void);
 static int      dynamic_use_oattr(void);
 static void     oattr_sample(void);
 
+static int      ceval_filters1(char *objname, filter_data_t * fdata, void *cookie);
+
+
 static permutation_t *cached_perm[MAX_PERM_NUM];
 static int      cached_perm_num = 0;
 static int      perm_done = 0;
@@ -454,7 +457,7 @@ void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 	return;
 }
 
-int
+static int
 ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 {
 	ceval_state_t  *cstate = (ceval_state_t *) cookie;

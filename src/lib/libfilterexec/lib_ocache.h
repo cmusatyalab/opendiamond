@@ -124,7 +124,6 @@ int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk,
 int ceval_start(filter_data_t * fdata);
 int ceval_stop(filter_data_t * fdata);
 
-int ceval_filters1(char * obj_name, filter_data_t * fdata, void *cookie);
 int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, 
 		   int force_eval, double *elapsed,
 		   filter_exec_mode_t mode, query_info_t *qinfo,

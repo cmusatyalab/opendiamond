@@ -1321,10 +1321,10 @@ ocache_main(void *arg)
 					odisk_release_obj(tobj->u.oattr.obj);
 
 				src_attr = &attr;
-				attr_set = &cobj->iattr;
+				attr_set = &cobj->oattr;
 			} else {
 				src_attr = &tobj->u.iattr;
-				attr_set = &cobj->oattr;
+				attr_set = &cobj->iattr;
 			}
 
 			free(tobj);

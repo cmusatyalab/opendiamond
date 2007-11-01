@@ -53,8 +53,7 @@
 static unsigned int    if_cache_table = 1;
 static unsigned int    if_cache_oattr = 0;
 
-static int      search_active = 0;
-static int      search_done = 0;
+static int search_done = 0;
 
 static GAsyncQueue *ocache_queue;
 
@@ -87,10 +86,6 @@ struct ocache_ring_entry {
 };
 
 static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
-/*
- * active 
- */
-static pthread_cond_t bg_active_cv = PTHREAD_COND_INITIALIZER;
 
 #define MAX_FILTER_ARG_NAME 256
 #define CACHE_ENTRY_NUM 4096
@@ -431,11 +426,12 @@ cache_lookup(sig_val_t * id_sig, sig_val_t * fsig, void *fcache_table,
 	unsigned int    index;
 	cache_obj     **cache_table = (cache_obj **) fcache_table;
 
-	if (cache_table == NULL)
-		return found;
-	if (search_done == 1) {
-		return (ENOENT);
-	}
+	if (!cache_table)
+		return 0;
+
+	if (search_done)
+		return ENOENT;
+
 	pthread_mutex_lock(&shared_mutex);
 	index = sig_hash(id_sig) % CACHE_ENTRY_NUM;
 	cobj = cache_table[index];
@@ -944,8 +940,7 @@ ocache_read_file(char *disk_path, sig_val_t * fsig, void **fcache_table,
 		filter_cache_table_num = err;
 	}
 
-	cache_table =
-	    (cache_obj **) calloc(1, sizeof(char *) * CACHE_ENTRY_NUM);
+	cache_table = (cache_obj **)calloc(CACHE_ENTRY_NUM, sizeof(char *));
 	assert(cache_table != NULL);
 
 	for (i = 0; i < CACHE_ENTRY_NUM; i++) {
@@ -1208,15 +1203,6 @@ ocache_main(void *arg)
 
 	while (1) {
 		/*
-		 * If there is no search don't do anything 
-		 */
-		pthread_mutex_lock(&shared_mutex);
-		while (search_active == 0) {
-			pthread_cond_wait(&bg_active_cv, &shared_mutex);
-		}
-		pthread_mutex_unlock(&shared_mutex);
-
-		/*
 		 * get the next lookup object 
 		 */
 		tobj = ocache_queue_pop();
@@ -1470,12 +1456,8 @@ ocache_init(char *dirp)
 int
 ocache_start()
 {
-	pthread_mutex_lock(&shared_mutex);
-	search_active = 1;
 	search_done = 0;
-	pthread_cond_signal(&bg_active_cv);
-	pthread_mutex_unlock(&shared_mutex);
-	return (0);
+	return 0;
 }
 
 /*
@@ -1493,10 +1475,7 @@ ocache_stop(char *dirp)
 		dir_path = strdup(dirp);
 	}
 
-	pthread_mutex_lock(&shared_mutex);
-	search_active = 0;
 	search_done = 1;
-	pthread_mutex_unlock(&shared_mutex);
 
 	for (i = 0; i < FCACHE_NUM; i++) {
 		if (filter_cache_table[i] == NULL)

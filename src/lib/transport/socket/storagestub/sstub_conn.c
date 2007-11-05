@@ -50,7 +50,7 @@
 #include "xdr_shim.h"
 
 /*
- * This sets up a TS-RPC server listening on a random port number.
+ * This sets up a Sun RPC server listening on a random port number.
  */
 
 struct cts_args {
@@ -90,7 +90,7 @@ create_rpc_server(void *arg) {
 
     transp = svctcp_create(rpcfd, BUFSIZ, BUFSIZ);
     if (transp == NULL) {
-      fprintf (stderr, "%s", "cannot create TS-RPC tcp service.");
+      fprintf (stderr, "%s", "cannot create Sun RPC tcp service.");
       pthread_exit((void *)-1);
     }
 
@@ -98,14 +98,14 @@ create_rpc_server(void *arg) {
     
     if (!svc_register(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
 		      clientcontent_prog_2, 0)) {
-      fprintf(stderr, "(TS-RPC server) unable to register \"client to "
+      fprintf(stderr, "(Sun RPC server) unable to register \"client to "
 	      "content\" program (prognum=0x%x, versnum=%d, tcp)\n", 
 	      CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
       pthread_exit((void *)-1);
     }
 
     *(data->control_ready) = 1;       /* Signal the parent thread that
-				       * our TI-RPC server is ready to
+				       * our Sun RPC server is ready to
 				       * accept connections. */
 
     svc_run();
@@ -115,7 +115,7 @@ create_rpc_server(void *arg) {
 
 
 /* 
- * This function spawns a thread which becomes a TI-RPC server, and then
+ * This function spawns a thread which becomes a Sun RPC server, and then
  * makes a local TCP connection to that server.  It returns the socket file
  * descriptor to which the tunnel can write control bits.
  */
@@ -134,7 +134,7 @@ setup_rpc(cstate_t *cstate) {
     args = (struct cts_args *)calloc(1, sizeof(struct cts_args));
 
     /* Choose a random TCP port between 10k and 65k to connect to the 
-     * TI-RPC server on.  Use high-order bits for improved randomness. */
+     * Sun RPC server on.  Use high-order bits for improved randomness. */
     
     gettimeofday(&t, NULL);
     srand(t.tv_sec);
@@ -148,7 +148,7 @@ setup_rpc(cstate_t *cstate) {
     args->control_ready = &control_ready;
 
 
-    /* Create a thread which becomes a TI-RPC server. */
+    /* Create a thread which becomes a Sun RPC server. */
 
     bzero(&rpc_thread, sizeof(pthread_t));
     pthread_create(&rpc_thread, NULL, create_rpc_server, 
@@ -156,7 +156,7 @@ setup_rpc(cstate_t *cstate) {
     
     while(control_ready == 0) continue;
     
-    /* Create new connection to the TS-RPC server. */
+    /* Create new connection to the Sun RPC server. */
     if((connfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("socket");
       pthread_exit((void *)-1);
@@ -202,7 +202,7 @@ connection_main(listener_state_t * lstate, int conn)
 
 
 	/*
-	 * Create a TI-RPC server thread and then make a TCP
+	 * Create a Sun RPC server thread and then make a TCP
 	 * connection to it.
 	 */
 

@@ -51,9 +51,9 @@ sstub_except_rpc(listener_state_t * lstate, cstate_t * cstate)
 }
 
 /*
- * This function is called when we see that the TS-RPC server has
+ * This function is called when we see that the Sun RPC server has
  * written bytes back for a client to read.  We forward the bytes from
- * the TS-RPC connection to the control connection.
+ * the Sun RPC connection to the control connection.
  */
 
 void
@@ -78,7 +78,7 @@ sstub_read_rpc(listener_state_t * lstate, cstate_t * cstate)
   }
   else if(size_in == 0) { /* EOF */
     close(cstate->control_fd);
-    fprintf(stderr, "(tunnel) The TI-RPC server closed its connection\n");
+    fprintf(stderr, "(tunnel) The Sun RPC server closed its connection\n");
     exit(EXIT_SUCCESS);	  
   }
   

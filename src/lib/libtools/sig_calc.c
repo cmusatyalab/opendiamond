@@ -130,22 +130,21 @@ string_to_sig(char *string, sig_val_t * sig_val)
 	}
 }
 
-unsigned long
-sig_hash(sig_val_t * sig)
+unsigned int
+sig_hash(const sig_val_t * sig)
 {
-	int             i;
-	unsigned long   v = 0;
+	unsigned int v =
+	    (((unsigned int)sig->sig[0]) << 24) +
+	    (((unsigned int)sig->sig[1]) << 16) +
+	    (((unsigned int)sig->sig[2]) << 8) +
+	    (((unsigned int)sig->sig[3]));
 
-	for (i = 0; i < SIG_SIZE; i++) {
-		v = ((unsigned long) sig->sig[i]) + (v << 6) + (v << 16) - v;
-	}
-
-	return (v);
+	return v;
 }
 
 
 int
-sig_match(sig_val_t * sig1, sig_val_t * sig2)
+sig_match(const sig_val_t * sig1, const sig_val_t * sig2)
 {
 	if (memcmp(sig1, sig2, sizeof(sig_val_t)) == 0) {
 		return (1);

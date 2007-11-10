@@ -217,43 +217,19 @@ ceval_init_search(filter_data_t * fdata, query_info_t *qinfo, ceval_state_t * cs
 {
 	filter_id_t     fid;
 	filter_info_t  *cur_filt;
-	int             err;
-	char            buf[PATH_MAX];
-	char           *cdir;
-	char           *sig_str;
-	struct timeval  atime;
-	struct timezone tz;
-
-	err = gettimeofday(&atime, &tz);
-	assert(err == 0);
 
 	ceval_reset_inject();
 
 	pthread_mutex_lock(&ceval_mutex);
 	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
-		cur_filt = &fdata->fd_filters[fid];
-		if (fid == fdata->fd_app_id) {
+		if (fid == fdata->fd_app_id)
 			continue;
-		}
-		err = digest_cal(fdata, cur_filt->fi_eval_name,
-			 cur_filt->fi_numargs, cur_filt->fi_arglist, 
-			 cur_filt->fi_blob_len, cur_filt->fi_blob_data, 
-			 &cur_filt->fi_sig);
 
-		sig_str = sig_string(&cur_filt->fi_sig);
-		if (sig_str == NULL) {
-			continue;
-		}
-		cdir = dconf_get_cachedir();
-		sprintf(buf, "%s/%s", cdir, sig_str);
-		free(sig_str);
-		err = mkdir(buf, 0777);
-		if (err && errno != EEXIST) {
-			printf("fail to creat dir %s, err %d\n", buf, err);
-		}
-		ocache_read_file(cdir, &cur_filt->fi_sig,
-				 &cur_filt->cache_table, &atime);
-		free(cdir);
+		cur_filt = &fdata->fd_filters[fid];
+		digest_cal(fdata, cur_filt->fi_eval_name,
+			   cur_filt->fi_numargs, cur_filt->fi_arglist,
+			   cur_filt->fi_blob_len, cur_filt->fi_blob_data,
+			   &cur_filt->fi_sig);
 	}
 
 	cstate->fdata = fdata;
@@ -422,14 +398,16 @@ generate_new_perm(const partial_order_t * po, permutation_t * copy, int fidx,
 	return (0);
 }
 
+#if 0
 static
 void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 					  cache_attr_set *change_attr,
-					  query_info_t *qinfo, query_info_t *einfo) 
+					  query_info_t *qinfo,
+					  query_info_t *einfo)
 {
 	int found = 1;
 	int conf;
-	cache_attr_set *oattr_set;
+	int cache_entry_hit;
 	sig_val_t isig;
 	query_info_t entry_info;
 	
@@ -437,7 +415,8 @@ void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 		// look up the cache entry
 		found = cache_lookup(oid_sig, &f->fi_sig,
 					     	f->cache_table,
-					     	change_attr, &conf, &oattr_set,
+					     	change_attr, &conf,
+						&cache_entry_hit,
 					     	&isig, &entry_info);
 	} else {
 		entry_info = *einfo;
@@ -456,6 +435,7 @@ void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 	
 	return;
 }
+#endif
 
 static int
 ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
@@ -475,8 +455,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	rtimer_t        rt;
 	u_int64_t       time_ns;	/* time for one filter */
 	u_int64_t       stack_ns;	/* time for whole filter stack */
-	cache_attr_set  change_attr;
-	cache_attr_set *oattr_set;
+	int		cache_entry_hit;
 	int             hit = 1;
 	int             oattr_fnum = 0;
 	sig_val_t       isig;
@@ -519,26 +498,18 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 		return 1;
 	}
 
-
 	stack_ns = 0;
 
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);
 
 	for (perm_num = 0; perm_num < cached_perm_num; perm_num++) {
-		change_attr.entry_num = 0;
-		change_attr.entry_data = calloc(1,
-						ATTR_ENTRY_NUM *
-						sizeof(char *));
-		assert(change_attr.entry_data != NULL);
-
 		/*
 		 * get initial attributes of object from cache.
 		 * if we don't find object, there isn't any point.
 		 */
-		found = cache_get_init_attrs(&id_sig, &change_attr);
+		found = cache_get_init_attrs(cstate->qinfo, &id_sig);
 		if (!found) {
-			free(change_attr.entry_data);
 			hit = 0;
 			break;
 		}
@@ -556,13 +527,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 			cur_fid = pmElt(cur_perm, cur_fidx);
 			cur_filter = &fdata->fd_filters[cur_fid];
 
-			rt_init(&rt);
 			rt_start(&rt);
 
 			found = cache_lookup(&id_sig, &cur_filter->fi_sig,
-					     cur_filter->cache_table,
-					     &change_attr, &conf, &oattr_set,
-					     &isig, &entry_info);
+					     cstate->qinfo,
+					     &conf, &cache_entry_hit, &isig);
 
 			if (found) {
 				/*
@@ -581,7 +550,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 						    fi_called++;
 						fdata->fd_filters[j].
 						    fi_cache_pass++;
-						    
+#if 0
 						/* 
 				 		 * determine source of cache hit
 				 	 	 */
@@ -590,6 +559,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 										 &change_attr,
 										 cstate->qinfo,
 										 NULL);
+#endif
 					}
 
 					/* 
@@ -600,6 +570,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 					cur_filter->fi_cache_drop++;
 					cur_filter->fi_drop++;
 					
+#if 0
 					/* 
 				 	 * determine when this hit was created 
 				 	 * and update stats 
@@ -608,15 +579,16 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 									 &change_attr,
 									 cstate->qinfo,
 									 &entry_info);
+#endif
 				}
 
 				/*
-				 * modify change attr set 
+				 * update current attr set
 				 */
 				if (pass) {
-					if (oattr_set != NULL)
-						combine_attr_set(&change_attr,
-								 oattr_set);
+					cache_combine_attr_set(cstate->qinfo,
+							       cache_entry_hit);
+
 					if (oattr_fnum < MAX_FILTERS
 					    && perm_num == 0) {
 						pr_obj->filters[oattr_fnum] =
@@ -660,15 +632,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 			cur_filter->fi_time_ns += time_ns;	
 			stack_ns += time_ns;
 
-			if (!hit) {
+			if (!hit)
 				break;
-			}
 		}
-		if (hit) {
-			free(change_attr.entry_data);
+		if (hit)
 			break;
-		}
-		free(change_attr.entry_data);
 	}
 	if (hit) {
 		// cached_perm[perm_num]->drop_rate++; /*XXX add later? */
@@ -769,7 +737,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	rtimer_t        rt;
 	u_int64_t       time_ns;	/* time for one filter */
 	u_int64_t       stack_ns;	/* time for whole filter stack */
-	cache_attr_set *oattr_set;
 	char           *sig_str;
 
 	sig_str = sig_string(&obj_handle->id_sig);
@@ -818,8 +785,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
 		fexec_active_filter = cur_filter;
-
-		oattr_set = NULL;
 
 		/*
 		 * See if the cache thread has already run this filter.

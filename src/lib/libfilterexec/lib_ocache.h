@@ -26,42 +26,8 @@ extern "C"
 
 #define ATTR_ENTRY_NUM  200
 
-typedef struct {
-	unsigned int	name_len;
-	char		the_attr_name[MAX_ATTR_NAME];
-	sig_val_t	attr_sig;
-} cache_attr_entry;
-
-typedef struct {
-	unsigned int entry_num;
-	cache_attr_entry **entry_data;
-} cache_attr_set;
-
-struct cache_obj_s {
-	sig_val_t		id_sig;
-	sig_val_t		iattr_sig;
-	int			result;
-	unsigned short		eval_count; //how many times this filter is evaluated
-	unsigned short		aeval_count; //how many times this filter is evaluated
-	unsigned short		hit_count; //how many times this filter is evaluated
-	unsigned short		ahit_count; //how many times this filter is evaluated
-	cache_attr_set		iattr;
-	cache_attr_set		oattr;
-	query_info_t		qid;		// query that created entry
-	filter_exec_mode_t	exec_mode;  // exec mode when entry created
-	struct cache_obj_s	*next;
-};
-
-struct cache_init_obj_s {
-	sig_val_t		id_sig;
-	cache_attr_set    		attr;
-	struct cache_init_obj_s	*next;
-};
-
 typedef void (*stats_drop)(void *cookie);
 typedef void (*stats_process)(void *cookie);
-
-struct ceval_state;
 
 typedef struct ceval_state {
 	pthread_t       ceval_thread_id;   // thread for cache table
@@ -72,9 +38,6 @@ typedef struct ceval_state {
 	stats_drop stats_process_fn;
 	query_info_t	*qinfo;			// state for current search
 } ceval_state_t;
-
-typedef struct cache_obj_s cache_obj;
-typedef struct cache_init_obj_s cache_init_obj;
 
 typedef struct {
 	void *		cache_table;
@@ -92,13 +55,15 @@ typedef struct {
 int digest_cal(filter_data_t *fdata, char *fn_name, int numarg, 
 	char **filt_args, int blob_len, void *blob, sig_val_t * signature);
 
-int cache_get_init_attrs(sig_val_t * id_sig, cache_attr_set * change_attr);
 
 void cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t *init_attr);
+int cache_get_init_attrs(query_info_t *qid, sig_val_t *idsig);
 
-int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, void *fcache_table, 
-	cache_attr_set *change_attr, int *err, cache_attr_set **oattr_set, 
-	sig_val_t *iattr_sig, query_info_t *qinfo);
+int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, query_info_t *qid,
+		 int *err, int *cache_entry_hit, sig_val_t *iattr_sig);
+
+void cache_combine_attr_set(query_info_t *qid, int cache_entry_hit);
+
 
 int ocache_init(char *path_name);
 int ocache_start(void);
@@ -106,17 +71,15 @@ int ocache_stop(char *path_name);
 int ocache_stop_search(sig_val_t *fsig);
 int ocache_wait_finish(void);
 int ocache_read_file(char *disk_path, sig_val_t *fsig, 
-	void **fcache_table, struct timeval *atime);
+		     void **fcache_table, struct timeval *atime);
 
 int ocache_add_start(lf_obj_handle_t ohandle, char *fhandle, void *cache_table,
 		     sig_val_t *fsig);
 int ocache_add_end(lf_obj_handle_t ohandle, char *fhandle, int conf,
 		   query_info_t *qid, filter_exec_mode_t exec_mode);
 
-int combine_attr_set(cache_attr_set *attr1, cache_attr_set *attr2);
-
 int ceval_init_search(filter_data_t * fdata, query_info_t *qinfo,
-						struct ceval_state *cstate);
+		      struct ceval_state *cstate);
 
 int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk, 
 	void *cookie, stats_drop stats_drop_fn, 
@@ -131,7 +94,6 @@ int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata,
 		   void *cookie, int (*continue_cb)(void *cookie));
 
 void ceval_inject_names(char **nl, int nents);
-
 
 
 #ifdef	__cplusplus

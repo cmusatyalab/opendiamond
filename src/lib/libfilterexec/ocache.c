@@ -29,6 +29,8 @@
 #include <sys/uio.h>
 #include <limits.h>
 
+#include <sqlite3.h>
+
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
@@ -46,14 +48,52 @@
 #include "lib_dconfig.h"
 #include "filter_priv.h"
 
+#define debug(args...) fprintf(stderr, args)
+
+typedef struct {
+	unsigned int	name_len;
+	char		the_attr_name[MAX_ATTR_NAME];
+	sig_val_t	attr_sig;
+} cache_attr_entry;
+
+typedef struct {
+	unsigned int entry_num;
+	cache_attr_entry **entry_data;
+} cache_attr_set;
+
+struct cache_obj_s {
+	sig_val_t		id_sig;
+	sig_val_t		iattr_sig;
+	int			result;
+	unsigned short		eval_count; //how many times this filter is evaluated
+	unsigned short		aeval_count; //how many times this filter is evaluated
+	unsigned short		hit_count; //how many times this filter is evaluated
+	unsigned short		ahit_count; //how many times this filter is evaluated
+	cache_attr_set		iattr;
+	cache_attr_set		oattr;
+	query_info_t		qid;		// query that created entry
+	filter_exec_mode_t	exec_mode;  // exec mode when entry created
+	struct cache_obj_s	*next;
+};
+typedef struct cache_obj_s cache_obj;
+
+struct cache_init_obj_s {
+	sig_val_t		id_sig;
+	cache_attr_set		attr;
+	struct cache_init_obj_s	*next;
+};
+typedef struct cache_init_obj_s cache_init_obj;
+
+
 
 /*
  * dctl variables 
  */
-static unsigned int    if_cache_table = 1;
-static unsigned int    if_cache_oattr = 0;
+static unsigned int if_cache_table = 1;
+static unsigned int if_cache_oattr = 0;
 
-static int search_done = 0;
+#define OCACHE_DB_NAME "/ocache.db"
+static sqlite3 *ocache_DB;
 
 static GAsyncQueue *ocache_queue;
 
@@ -88,13 +128,6 @@ struct ocache_ring_entry {
 static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define MAX_FILTER_ARG_NAME 256
-#define CACHE_ENTRY_NUM 4096
-#define FCACHE_NUM 50
-#define MAX_CACHE_ENTRY_NUM 0X1000000
-
-static cache_init_obj **init_table;
-static fcache_t *filter_cache_table[FCACHE_NUM];
-static int      cache_entry_num = 0;	/* for debug purpose */
 
 static sig_val_t ocache_sig = { {0,} };
 
@@ -117,7 +150,7 @@ digest_cal(filter_data_t * fdata, char *fn_name, int numarg, char **filt_args,
 	   int blob_len, void *blob, sig_val_t * signature)
 {
 	struct ciovec *iov;
-	unsigned int i, len, n = 0;
+	int i, len, n = 0;
 
 	len =	fdata->num_libs +	/* library_signatures */
 		1 +			/* filter name */
@@ -172,7 +205,7 @@ static void
 sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 {
 	struct ciovec *iov;
-	int i;
+	unsigned int i;
 
 	iov = (struct ciovec *)malloc(iattr->entry_num * sizeof(struct ciovec));
 	assert(iov != NULL);
@@ -187,110 +220,9 @@ sig_iattr(cache_attr_set * iattr, sig_val_t * sig)
 }
 
 static int
-attr_in_set(cache_attr_entry * inattr, cache_attr_set * set)
-{
-	int             j;
-	cache_attr_entry *tattr;
-
-	for (j = 0; j < set->entry_num; j++) {
-		tattr = set->entry_data[j];
-		if (tattr == NULL) {
-			printf("null temp_j, something wrong\n");
-			continue;
-		}
-		if (memcmp(inattr, tattr, sizeof(*tattr)) == 0) {
-			return (1);
-		}
-	}
-	return (0);
-
-}
-
-/*
- * This to see if attr1 is a strict subset of attr2, if not, then we
- * return 1, otherwise return 0.
- */
-
-static int
-compare_attr_set(cache_attr_set * attr1, cache_attr_set * attr2)
-{
-	int             i;
-	cache_attr_entry *temp_i;
-
-	/*
-	 * for each item in attr1, see if it exists in attr2.
-	 */
-	for (i = 0; i < attr1->entry_num; i++) {
-		temp_i = attr1->entry_data[i];
-		if (temp_i == NULL) {
-			printf("null temp_i, something wrong\n");
-			continue;
-		}
-
-		/*
-		 * if this item isn't in the set then return 1 
-		 */
-		if (attr_in_set(temp_i, attr2) == 0) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-int
-combine_attr_set(cache_attr_set * attr1, cache_attr_set * attr2)
-{
-	int             i,
-	                j;
-	int             found;
-	cache_attr_entry *temp_i,
-	               *temp_j;
-	cache_attr_entry **tmp;
-
-	for (i = 0; i < attr2->entry_num; i++) {
-		temp_i = attr2->entry_data[i];
-		if (temp_i == NULL) {
-			printf("null temp_i, something wrong\n");
-			assert(0);
-		}
-		found = 0;
-		for (j = 0; j < attr1->entry_num; j++) {
-			temp_j = attr1->entry_data[j];
-			if (temp_j == NULL) {
-				printf("null temp_j, something wrong\n");
-				break;
-			}
-			if (memcmp(temp_i, temp_j, sizeof(*temp_j)) == 0) {
-				attr1->entry_data[j] = temp_i;
-				found = 1;
-				break;
-			}
-		}
-		/*
-		 * no found, add to the tail 
-		 */
-		if (!found) {
-			attr1->entry_data[attr1->entry_num] = temp_i;
-			attr1->entry_num++;
-			if ((attr1->entry_num % ATTR_ENTRY_NUM) == 0) {
-				tmp = calloc(1, (attr1->entry_num +
-						 ATTR_ENTRY_NUM) *
-					     sizeof(char *));
-				assert(tmp != NULL);
-				memcpy(tmp, attr1->entry_data,
-				       attr1->entry_num * sizeof(char *));
-				free(attr1->entry_data);
-				attr1->entry_data = tmp;
-			}
-		}
-	}
-	return 0;
-}
-
-static int
 ocache_entry_free(cache_obj * cobj)
 {
-	int             i;
+	unsigned int i;
 
 	if (cobj == NULL) {
 		return (0);
@@ -317,769 +249,343 @@ ocache_entry_free(cache_obj * cobj)
 	return (0);
 }
 
-/*
- * Build state to keep track of initial object attributes.
- */
-void
-cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t * init_attr)
+static int
+get_column_blob(sqlite3_stmt *stmt, int col, void *blob, int size)
 {
-	cache_init_obj *cobj;
-	unsigned int    index;
-	attr_record_t  *arec;
-	unsigned char  *buf;
-	size_t          len;
-	void           *cookie;
-	int             err;
-	cache_attr_entry *attr_entry;
+	/* call sqlite3_column_blob before calling sqlite3_column_bytes */
+	const void *p = sqlite3_column_blob(stmt, col);
 
+	if (size != sqlite3_column_bytes(stmt, col))
+		return SQLITE_TOOBIG;
+
+	memcpy(blob, p, size);
+	return SQLITE_OK;
+}
+
+static void
+cache_setup(const char *dir)
+{
+	char *db_file, *errmsg = NULL;
+	int rc;
+
+	if (ocache_DB != NULL) return;
+
+	db_file = malloc(strlen(dir) + strlen(OCACHE_DB_NAME) + 1);
+	strcpy(db_file, dir);
+	strcat(db_file, OCACHE_DB_NAME);
+
+	debug("Opening ocache database\n");
+	rc = sqlite3_open(db_file, &ocache_DB);
+
+	free(db_file);
+
+	if (rc != SQLITE_OK) {
+		ocache_DB = NULL;
+		return;
+	}
+
+	debug("Initializing... ");
+	rc = sqlite3_exec(ocache_DB,
+" CREATE TABLE IF NOT EXISTS cache ("
+"    cache_entry INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+"    create_time TEXT DEFAULT CURRENT_TIMESTAMP,"
+/*"  create_time INTEGER " -- DEFAULT strftime("%s", "now", "utc") */
+"    filter_sig  BLOB NOT NULL,"
+"    object_sig  BLOB NOT NULL,"
+"    iattr_sig   BLOB NOT NULL,"
+"    confidence  INTEGER NOT NULL"
+" ); "
+"CREATE INDEX IF NOT EXISTS filter_object_idx ON cache (filter_sig,object_sig);"
+""
+" CREATE TABLE IF NOT EXISTS attrs ("
+"    attr_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+"    name    TEXT NOT NULL,"
+"    sig     BLOB NOT NULL,"
+"    value   BLOB,"
+"    UNIQUE (name, sig)"
+" );"
+""
+" CREATE TABLE IF NOT EXISTS input_attrs ("
+"    cache_entry INTEGER,"
+"    attr_id     INTEGER,"
+"    PRIMARY KEY (cache_entry, attr_id) ON CONFLICT IGNORE"
+" );"
+" CREATE INDEX IF NOT EXISTS input_attr_idx ON input_attrs (attr_id);"
+""
+" CREATE TABLE IF NOT EXISTS output_attrs ("
+"    cache_entry INTEGER,"
+"    attr_id     INTEGER,"
+"    PRIMARY KEY (cache_entry, attr_id) ON CONFLICT IGNORE"
+" );"
+" CREATE INDEX IF NOT EXISTS output_attr_idx ON output_attrs (cache_entry);"
+""
+" CREATE TABLE IF NOT EXISTS initial_attrs ("
+"    object_sig  INTEGER,"
+"    attr_id     INTEGER,"
+"    PRIMARY KEY (object_sig, attr_id) ON CONFLICT IGNORE"
+" );"
+" CREATE INDEX IF NOT EXISTS initial_attr_idx ON initial_attrs (object_sig);"
+""
+" CREATE TEMP TABLE current_attrs ("
+"    query_id    INTEGER,"
+"    attr_id     INTEGER,"
+"    PRIMARY KEY (query_id, attr_id) ON CONFLICT IGNORE"
+" );"
+" CREATE INDEX current_attr_idx ON current_attrs (query_id);"
+		    , NULL, NULL, &errmsg);
+    if (rc != SQLITE_OK) {
+	    fprintf(stderr, "ocache.db initialization failed: %s\n", errmsg);
+	    sqlite3_free(errmsg);
+	    ocache_DB = NULL;
+    }
+    debug("done\n");
+}
+
+int
+cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
+	     int *err, int *cache_entry_hit, sig_val_t *iattr_sig)
+{
+	static sqlite3_stmt *SQL = NULL;
+	int rc, found = 0;
+
+	if (if_cache_table == 0 || ocache_DB == NULL)
+		return 0;
+
+	sig_clear(iattr_sig);
 
 	pthread_mutex_lock(&shared_mutex);
-	index = sig_hash(id_sig) % CACHE_ENTRY_NUM;
 
-	for (cobj = init_table[index]; cobj != NULL; cobj = cobj->next) {
-		if (sig_match(&cobj->id_sig, id_sig)) {
-			pthread_mutex_unlock(&shared_mutex);
-			return;
+	if (!SQL) {
+		rc = sqlite3_prepare_v2(ocache_DB,
+"SELECT cache_entry, confidence, iattr_sig FROM cache"
+"  WHERE object_sig = ?1 AND filter_sig = ?2 AND"
+"  cache_entry NOT IN"
+"  (SELECT input_attrs.cache_entry FROM input_attrs, cache"
+"     WHERE cache.cache_entry = input_attrs.cache_entry AND"
+"     cache.object_sig = ?1 AND cache.filter_sig = ?2 AND"
+"     input_attrs.attr_id NOT IN"
+"     (SELECT attr_id FROM current_attrs WHERE query_id = ?3))"
+"  LIMIT 1;"
+					, 0, &SQL, NULL);
+		if (rc != SQLITE_OK || SQL == NULL) {
+			if (SQL) sqlite3_finalize(SQL);
+			SQL = NULL;
+			goto out_unlock;
 		}
 	}
 
-	cobj = (cache_init_obj *) calloc(1, sizeof(*cobj));
-	memcpy(&cobj->id_sig, id_sig, sizeof(sig_val_t));
-	cobj->attr.entry_num = 0;
-	cobj->attr.entry_data = calloc(1, ATTR_ENTRY_NUM * sizeof(char *));
-	assert(cobj->attr.entry_data != NULL);
+	/* Bind values to the prepared statement */
+	rc = sqlite3_bind_blob(SQL, 1, idsig, sizeof(sig_val_t), SQLITE_STATIC);
+	if (rc != SQLITE_OK) goto out_fail;
 
-	err = obj_get_attr_first(init_attr, &buf, &len, &cookie, 0);
-	while (err != ENOENT) {
+	rc = sqlite3_bind_blob(SQL, 2, fsig, sizeof(sig_val_t), SQLITE_STATIC);
+	if (rc != SQLITE_OK) goto out_fail;
+
+	rc = sqlite3_bind_int(SQL, 3, qid->query_id);
+	if (rc != SQLITE_OK) goto out_fail;
+
+	/* Run query */
+	rc = sqlite3_step(SQL);
+	if (rc == SQLITE_ROW) {
+		/* handle to find the output attr set when we're extending the
+		 * current_attr set */
+		*cache_entry_hit = sqlite3_column_int(SQL, 1);
+
+		/* confidence value */
+		*err = sqlite3_column_int(SQL, 2);
+
+		/* iattr_sig */
+		rc = get_column_blob(SQL, 3, iattr_sig, sizeof(sig_val_t));
+		if (rc != SQLITE_OK) goto out_fail;
+
+		/* not storing this yet, is it really needed? */
+		//rc = get_column_blob(SQL, 4, qinfo, sizeof(query_info_t));
+
+		found = 1;
+	}
+
+out_fail:
+	/* Because we defined the bound values as static, sqlite3 didn't make a
+	 * private copy and we have to clear them before returning */
+	sqlite3_reset(SQL);
+	sqlite3_clear_bindings(SQL);
+out_unlock:
+	pthread_mutex_unlock(&shared_mutex);
+
+	return found;
+}
+
+void
+cache_combine_attr_set(query_info_t *qid, int cache_entry_hit)
+{
+	static sqlite3_stmt *SQL = NULL;
+	int rc;
+
+	if (!if_cache_table || ocache_DB == NULL)
+		return;
+
+	pthread_mutex_lock(&shared_mutex);
+
+	if (!SQL) {
+		rc = sqlite3_prepare_v2(ocache_DB,
+"INSERT INTO current_attrs (query_id, attr_id)"
+"  SELECT ?1, attr_id FROM output_attrs"
+"  WHERE cache_entry = ?2;"
+					, 0, &SQL, NULL);
+		if (rc != SQLITE_OK || SQL == NULL) {
+			if (SQL) sqlite3_finalize(SQL);
+			SQL = NULL;
+			goto out_unlock;
+		}
+	}
+
+	/* Bind values to the prepared statement */
+	rc = sqlite3_bind_int(SQL, 1, qid->query_id);
+	if (rc != SQLITE_OK) goto out_fail;
+
+	rc = sqlite3_bind_int(SQL, 2, cache_entry_hit);
+	if (rc != SQLITE_OK) goto out_fail;
+
+	/* Run query */
+	while (1) {
+		rc = sqlite3_step(SQL);
+
+		/* Maybe we should sleep, but this should only happen when
+		 * another adiskd process is updating the output_attrs table,
+		 * which only happens after a filter has been executed (so not
+		 * that often) */
+		if (rc == SQLITE_BUSY)
+			continue;
+		break;
+	}
+
+out_fail:
+	sqlite3_reset(SQL);
+	sqlite3_clear_bindings(SQL);
+out_unlock:
+	pthread_mutex_unlock(&shared_mutex);
+}
+
+/* Build state to keep track of initial object attributes. */
+void
+cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
+{
+	static sqlite3_stmt *SQL = NULL;
+	int rc;
+	unsigned char *buf;
+	size_t len;
+	void *cookie;
+	attr_record_t *arec;
+
+	if (!if_cache_table || ocache_DB == NULL)
+		return;
+
+	pthread_mutex_lock(&shared_mutex);
+
+	if (!SQL) {
+		rc = sqlite3_prepare_v2(ocache_DB,
+" BEGIN TRANSACTION;"
+" INSERT OR ABORT INTO attrs (name, sig) VALUES (?2, ?3);"
+" INSERT OR IGNORE INTO initial_attrs (object_sig, attr_id)"
+"   SELECT ?1, attr_id FROM attrs WHERE name = ?2 AND sig = ?3;"
+" COMMIT TRANSACTION;"
+					, 0, &SQL, NULL);
+		if (rc != SQLITE_OK || SQL == NULL) {
+			if (SQL) sqlite3_finalize(SQL);
+			SQL = NULL;
+			goto out_unlock;
+		}
+	}
+
+	/* Bind values to the prepared statement */
+	rc = sqlite3_bind_blob(SQL, 1, idsig, sizeof(sig_val_t), SQLITE_STATIC);
+	if (rc != SQLITE_OK) goto out_unlock;
+
+	rc = obj_get_attr_first(init_attr, &buf, &len, &cookie, 0);
+	while (rc != ENOENT) {
 		if (buf == NULL) {
 			printf("can not get attr\n");
 			break;
 		}
 		arec = (attr_record_t *) buf;
-		attr_entry = (cache_attr_entry *)
-		    calloc(1, sizeof(cache_attr_entry));
-		assert(attr_entry != NULL);
 
-		attr_entry->name_len = arec->name_len;
+		rc = sqlite3_bind_text(SQL, 2, (char *)arec->data,
+				       arec->name_len, SQLITE_STATIC);
+		if (rc != SQLITE_OK) goto bind_fail;
 
-		memcpy(attr_entry->the_attr_name, arec->data, arec->name_len);
-		memcpy(&attr_entry->attr_sig, &arec->attr_sig,
-		       sizeof(sig_val_t));
-		cobj->attr.entry_data[cobj->attr.entry_num] = attr_entry;
-		cobj->attr.entry_num++;
-		if ((cobj->attr.entry_num % ATTR_ENTRY_NUM) == 0) {
-			cache_attr_entry **tmp;
-			tmp = calloc(1, (cobj->attr.entry_num +
-					 ATTR_ENTRY_NUM) * sizeof(char *));
-			assert(tmp != NULL);
-			memcpy(tmp, cobj->attr.entry_data,
-			       cobj->attr.entry_num * sizeof(char *));
-			free(cobj->attr.entry_data);
-			cobj->attr.entry_data = tmp;
-		}
-		err = obj_get_attr_next(init_attr, &buf, &len, &cookie, 0);
-	}
+		rc = sqlite3_bind_blob(SQL, 3, &arec->attr_sig,
+				       sizeof(sig_val_t), SQLITE_STATIC);
+		if (rc != SQLITE_OK) goto bind_fail;
 
-
-	cobj->next = init_table[index];
-	init_table[index] = cobj;
-	pthread_mutex_unlock(&shared_mutex);
-	return;
-}
-
-
-int
-cache_get_init_attrs(sig_val_t * id_sig, cache_attr_set * init_set)
-{
-	cache_init_obj *cobj;
-	int             found = 0;
-	unsigned int    index;
-
-	pthread_mutex_lock(&shared_mutex);
-	index = sig_hash(id_sig) % CACHE_ENTRY_NUM;
-	for (cobj = init_table[index]; cobj != NULL; cobj = cobj->next) {
-		if (sig_match(&cobj->id_sig, id_sig)) {
-			found = 1;
-			init_set->entry_num = cobj->attr.entry_num;
-			/*
-			 * XXXLH this can bee too big ??? 
-			 */
-			memcpy(init_set->entry_data, cobj->attr.entry_data,
-			       cobj->attr.entry_num * sizeof(char *));
+		/* Run query */
+		while (1) {
+			rc = sqlite3_step(SQL);
+			if (rc == SQLITE_BUSY)
+				continue;
 			break;
 		}
+bind_fail:
+		sqlite3_reset(SQL);
+		rc = obj_get_attr_next(init_attr, &buf, &len, &cookie, 0);
 	}
-
+	sqlite3_clear_bindings(SQL);
+out_unlock:
 	pthread_mutex_unlock(&shared_mutex);
-	return found;
 }
 
-
 int
-cache_lookup(sig_val_t * id_sig, sig_val_t * fsig, void *fcache_table,
-	     cache_attr_set * change_attr, int *err,
-	     cache_attr_set ** oattr_set, sig_val_t * iattr_sig, 
-	     query_info_t *qinfo)
+cache_get_init_attrs(query_info_t *qid, sig_val_t *idsig)
 {
-	cache_obj      *cobj;
-	int             found = 0;
-	unsigned int    index;
-	cache_obj     **cache_table = (cache_obj **) fcache_table;
+	static sqlite3_stmt *SQL = NULL;
+	int rc;
 
-	if (!cache_table)
+	if (!if_cache_table || ocache_DB == NULL)
 		return 0;
 
-	if (search_done)
-		return ENOENT;
-
 	pthread_mutex_lock(&shared_mutex);
-	index = sig_hash(id_sig) % CACHE_ENTRY_NUM;
-	cobj = cache_table[index];
-	sig_clear(iattr_sig);
 
-	/*
-	 * cache hit if there is a (id_sig, filter sig, input attr sig) match 
-	 */
-	while (cobj != NULL) {
-		if (sig_match(&cobj->id_sig, id_sig)) {
-			/*
-			 * compare change_attr set with input attr set 
-			 */
-			if (!compare_attr_set(&cobj->iattr, change_attr)) {
-				found = 1;
-				*err = cobj->result;
-				cobj->ahit_count++;
-
-				memcpy(iattr_sig, &cobj->iattr_sig,
-				       sizeof(sig_val_t));
-				memcpy(qinfo, &cobj->qid, sizeof(query_info_t));
-				
-				/*
-				 * pass back the output attr set 
-				 */
-				*oattr_set = &cobj->oattr;
-				break;
-			}
-		}
-		cobj = cobj->next;
-	}
-
-	pthread_mutex_unlock(&shared_mutex);
-
-	return found;
-}
-
-static int
-time_after(struct timeval *time1, struct timeval *time2)
-{
-	if (time1->tv_sec > time2->tv_sec)
-		return (1);
-	if (time1->tv_sec < time2->tv_sec)
-		return (0);
-	if (time1->tv_usec > time2->tv_usec)
-		return (1);
-	return (0);
-}
-
-static int
-ocache_update(int fd, cache_obj ** cache_table, struct stat *stats)
-{
-	cache_obj      *cobj;
-	int             i;
-	off_t           size,
-	                rsize;
-	cache_obj      *p,
-	               *q;
-	unsigned int    index;
-	int             duplicate;
-
-	if (fd < 0) {
-		printf("cache file does not exist\n");
-		return (EINVAL);
-	}
-	size = stats->st_size;
-	rsize = 0;
-
-	pthread_mutex_lock(&shared_mutex);
-	while (rsize < size) {
-		cobj = (cache_obj *) calloc(1, sizeof(*cobj));
-		assert(cobj != NULL);
-		read(fd, &cobj->id_sig, sizeof(sig_val_t));
-		read(fd, &cobj->iattr_sig, sizeof(sig_val_t));
-		read(fd, &cobj->result, sizeof(int));
-
-		read(fd, &cobj->eval_count, sizeof(unsigned short));
-		cobj->aeval_count = 0;
-		read(fd, &cobj->hit_count, sizeof(unsigned short));
-		cobj->ahit_count = 0;
-		rsize +=
-		    (2 * sizeof(sig_val_t) + sizeof(int) +
-		     2 * sizeof(unsigned short));
-		     
-		read(fd, &cobj->qid, sizeof(query_info_t));
-		read(fd, &cobj->exec_mode, sizeof(filter_exec_mode_t));
-		rsize += sizeof(query_info_t) + sizeof(filter_exec_mode_t);
-		
-		read(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
-		rsize += sizeof(unsigned int);
-		cobj->iattr.entry_data =
-		    calloc(1, cobj->iattr.entry_num * sizeof(char *));
-		assert(cobj->iattr.entry_data != NULL);
-		for (i = 0; i < cobj->iattr.entry_num; i++) {
-			cobj->iattr.entry_data[i] =
-			    calloc(1, sizeof(cache_attr_entry));
-			assert(cobj->iattr.entry_data[i] != NULL);
-			rsize += read(fd, cobj->iattr.entry_data[i],
-				      sizeof(cache_attr_entry));
-		}
-
-		read(fd, &cobj->oattr.entry_num, sizeof(unsigned int));
-		rsize += sizeof(unsigned int);
-		cobj->oattr.entry_data =
-		    calloc(1, cobj->oattr.entry_num * sizeof(char *));
-		assert(cobj->oattr.entry_data != NULL);
-		for (i = 0; i < cobj->oattr.entry_num; i++) {
-			cobj->oattr.entry_data[i] =
-			    calloc(1, sizeof(cache_attr_entry));
-			rsize +=
-			    read(fd, cobj->oattr.entry_data[i],
-				 sizeof(cache_attr_entry));
-		}
-		cobj->next = NULL;
-		/*
-		 * insert it into the cache_table array 
-		 */
-		index = sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
-		if (cache_table[index] == NULL) {
-			cache_table[index] = cobj;
-			/*
-			 * for debug purpose 
-			 */
-			cache_entry_num++;
-		} else {
-			p = cache_table[index];
-			q = p;
-			duplicate = 0;
-			while (p != NULL) {
-				if (sig_match(&p->id_sig, &cobj->id_sig) &&
-				    sig_match(&p->iattr_sig,
-					      &cobj->iattr_sig)) {
-					if (cobj->eval_count > p->eval_count) {
-						p->eval_count +=
-						    (cobj->eval_count -
-						     p->eval_count);
-					}
-					if (cobj->hit_count > p->hit_count) {
-						p->hit_count +=
-						    (cobj->hit_count -
-						     p->hit_count);
-					}
-					duplicate = 1;
-					break;
-				}
-				q = p;
-				p = p->next;
-			}
-			if (duplicate) {
-				ocache_entry_free(cobj);
-			} else {
-				q->next = cobj;
-				/*
-				 * for debug purpose 
-				 */
-				cache_entry_num++;
-			}
-		}
-	}
-	pthread_mutex_unlock(&shared_mutex);
-	return (0);
-}
-
-static int
-ocache_write_file(char *disk_path, fcache_t * fcache)
-{
-	char            fpath[PATH_MAX];
-	cache_obj      *cobj;
-	cache_obj      *tmp;
-	int             i,
-	                j;
-	int             fd;
-	int             err;
-	cache_obj     **cache_table;
-	unsigned int    count;
-	struct stat     stats;
-	char           *s_str;
-
-	assert(fcache != NULL);
-	cache_table = (cache_obj **) fcache->cache_table;
-	s_str = sig_string(&fcache->fsig);
-	if (s_str == NULL) {
-		return (0);
-	}
-	sprintf(fpath, "%s/%s.%s", disk_path, s_str, CACHE_EXT);
-	free(s_str);
-
-	fd = open(fpath, O_RDWR, 00777);
-	if (fd >=  0) {
-		err = flock(fd, LOCK_EX);
-		if (err) {
-			perror("failed to lock cache file\n");
-			close(fd);
-			return (0);
-		}
-		err = fstat(fd, &stats);
-		if (err != 0) {
-			perror("failed to stat cache file\n");
-			close(fd);
-			return (0);
-		}
-		if (memcmp(&stats.st_mtime, &fcache->mtime, sizeof(time_t))) {
-			err = ocache_update(fd, cache_table, &stats);
-		}
-		close(fd);
-	}
-
-	fd = open(fpath, O_CREAT | O_RDWR | O_TRUNC, 00777);
-	err = flock(fd, LOCK_EX);
-	if (err) {
-		perror("failed to lock cache file\n");
-		close(fd);
-		return (0);
-	}
-
-	pthread_mutex_lock(&shared_mutex);
-	for (j = 0; j < CACHE_ENTRY_NUM; j++) {
-		cobj = cache_table[j];
-		while (cobj != NULL) {
-			write(fd, &cobj->id_sig, sizeof(sig_val_t));
-			write(fd, &cobj->iattr_sig, sizeof(sig_val_t));
-			write(fd, &cobj->result, sizeof(int));
-
-			count = cobj->eval_count + cobj->aeval_count;
-			write(fd, &count, sizeof(unsigned short));
-			count = cobj->hit_count + cobj->ahit_count;
-			write(fd, &count, sizeof(unsigned short));
-			
-			write(fd, &cobj->qid, sizeof(query_info_t));
-			write(fd, &cobj->exec_mode, sizeof(filter_exec_mode_t));
-			
-			write(fd, &cobj->iattr.entry_num,
-			      sizeof(unsigned int));
-			for (i = 0; i < cobj->iattr.entry_num; i++) {
-				write(fd, cobj->iattr.entry_data[i],
-				      sizeof(cache_attr_entry));
-			}
-
-			write(fd, &cobj->oattr.entry_num,
-			      sizeof(unsigned int));
-
-			for (i = 0; i < cobj->oattr.entry_num; i++) {
-				write(fd, cobj->oattr.entry_data[i],
-				      sizeof(cache_attr_entry));
-			}
-
-			tmp = cobj;
-			cobj = cobj->next;
-			/*
-			 * free 
-			 */
-			ocache_entry_free(tmp);
-			cache_entry_num--;
-		}
-	}
-	for (i = 0; i < CACHE_ENTRY_NUM; i++) {
-		cache_table[i] = NULL;
-	}
-	pthread_mutex_unlock(&shared_mutex);
-	close(fd);
-	return (0);
-}
-
-/*
- * free cache table for unused filters: a very simple LRU 
- */
-static int
-free_fcache_entry(char *disk_path)
-{
-	int             i;
-	fcache_t       *oldest = NULL;
-	int             found = -1;
-
-	do {
-		for (i = 0; i < FCACHE_NUM; i++) {
-			if (filter_cache_table[i] == NULL)
-				continue;
-			if (filter_cache_table[i]->running > 0)
-				continue;
-			if (oldest == NULL) {
-				oldest = filter_cache_table[i];
-				found = i;
-			} else {
-				if (time_after
-				    (&oldest->atime,
-				     &filter_cache_table[i]->atime)) {
-					oldest = filter_cache_table[i];
-					found = i;
-				}
-			}
-		}
-		if (oldest == NULL) {
-			return (-1);
-		} else {
-			ocache_write_file(disk_path, oldest);
-			free(oldest->cache_table);
-			free(oldest);
-			filter_cache_table[found] = NULL;
-			oldest = NULL;
-		}
-	}
-	while (cache_entry_num >= MAX_CACHE_ENTRY_NUM);
-
-	return (found);
-}
-
-static int
-ocache_init_read(char *disk_path)
-{
-	char            fpath[PATH_MAX];
-	cache_init_obj *cobj;
-	off_t           size,
-	                rsize;
-	int             fd;
-	struct stat     stats;
-	cache_init_obj *p,
-	               *q;
-	unsigned int    index;
-	int             i,
-	                err;
-
-	sprintf(fpath, "%s/ATTRSIG", disk_path);
-
-	init_table =
-	    (cache_init_obj **) calloc(1, sizeof(char *) * CACHE_ENTRY_NUM);
-	assert(init_table != NULL);
-	for (i = 0; i < CACHE_ENTRY_NUM; i++) {
-		init_table[i] = NULL;
-	}
-
-	fd = open(fpath, O_RDONLY, 00777);
-	if (fd < 0) {
-		return (0);
-	}
-
-	err = flock(fd, LOCK_EX);
-	if (err != 0) {
-		perror("failed to lock cache file\n");
-		close(fd);
-		return (0);
-	}
-	err = fstat(fd, &stats);
-	if (err != 0) {
-		perror("failed to stat cache file\n");
-		close(fd);
-		return (EINVAL);
-	}
-	size = stats.st_size;
-
-	rsize = 0;
-	pthread_mutex_lock(&shared_mutex);
-	while (rsize < size) {
-		cobj = (cache_init_obj *) calloc(1, sizeof(*cobj));
-		assert(cobj != NULL);
-		read(fd, &cobj->id_sig, sizeof(sig_val_t));
-		read(fd, &cobj->attr.entry_num, sizeof(unsigned int));
-		rsize += (sizeof(sig_val_t) + sizeof(unsigned int));
-		cobj->attr.entry_data =
-		    calloc(1, cobj->attr.entry_num * sizeof(char *));
-		assert(cobj->attr.entry_data != NULL);
-
-
-		for (i = 0; i < cobj->attr.entry_num; i++) {
-			cobj->attr.entry_data[i] =
-			    calloc(1, sizeof(cache_attr_entry));
-			assert(cobj->attr.entry_data[i] != NULL);
-			rsize += read(fd, cobj->attr.entry_data[i],
-				      sizeof(cache_attr_entry));
-		}
-
-		cobj->next = NULL;
-		index = sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
-		if (init_table[index] == NULL) {
-			init_table[index] = cobj;
-		} else {
-			p = init_table[index];
-			while (p != NULL) {
-				q = p;
-				p = p->next;
-			}
-			q->next = cobj;
-		}
-	}
-	pthread_mutex_unlock(&shared_mutex);
-	close(fd);
-	return (0);
-}
-
-static int
-ocache_init_write(char *disk_path)
-{
-	char            fpath[PATH_MAX];
-	cache_init_obj *cobj,
-	               *tmp;
-	int             fd;
-	int             i,
-	                j,
-	                err;
-
-	if (init_table == NULL) {
-		return (0);
-	}
-	sprintf(fpath, "%s/ATTRSIG", disk_path);
-	fd = open(fpath, O_CREAT | O_RDWR | O_TRUNC, 00777);
-	err = flock(fd, LOCK_EX);
-	if (err) {
-		perror("failed to lock cache file\n");
-		close(fd);
-		return (0);
-	}
-	pthread_mutex_lock(&shared_mutex);
-	for (j = 0; j < CACHE_ENTRY_NUM; j++) {
-		cobj = init_table[j];
-		while (cobj != NULL) {
-			write(fd, &cobj->id_sig, sizeof(sig_val_t));
-			write(fd, &cobj->attr.entry_num,
-			      sizeof(unsigned int));
-			for (i = 0; i < cobj->attr.entry_num; i++) {
-				write(fd, cobj->attr.entry_data[i],
-				      sizeof(cache_attr_entry));
-			}
-			tmp = cobj;
-			cobj = cobj->next;
-
-			for (i = 0; i < tmp->attr.entry_num; i++) {
-				if (tmp->attr.entry_data[i] != NULL) {
-					free(tmp->attr.entry_data[i]);
-				}
-			}
-			if (tmp->attr.entry_data != NULL)
-				free(tmp->attr.entry_data);
-			free(tmp);
-		}
-	}
-	pthread_mutex_unlock(&shared_mutex);
-	close(fd);
-	return (0);
-}
-
-int
-ocache_read_file(char *disk_path, sig_val_t * fsig, void **fcache_table,
-		 struct timeval *atime)
-{
-	char            fpath[PATH_MAX];
-	cache_obj      *cobj;
-	int             i;
-	off_t           size;
-	int             fd;
-	struct stat     stats;
-	cache_obj      *p,
-	               *q;
-	unsigned int    index;
-	fcache_t       *fcache;
-	int             err;
-	char           *sig_str;
-	int             duplicate;
-	cache_obj     **cache_table;
-	int             filter_cache_table_num = -1;
-	int             rc;
-
-	*fcache_table = NULL;
-
-	/*
-	 * lookup the filter in cached filter array 
-	 */
-	for (i = 0; i < FCACHE_NUM; i++) {
-		if (filter_cache_table[i] == NULL)
-			continue;
-
-		if (sig_match(&filter_cache_table[i]->fsig, fsig)) {
-			*fcache_table = filter_cache_table[i]->cache_table;
-			memcpy(&filter_cache_table[i]->atime, atime,
-			       sizeof(struct timeval));
-			filter_cache_table[i]->running++;
-			return (0);
+	if (!SQL) {
+		rc = sqlite3_prepare_v2(ocache_DB,
+" BEGIN TRANSACTION;"
+" DELETE FROM current_attrs WHERE query_id = ?1;"
+" INSERT ON CONFLICT IGNORE INTO current_attrs (query_id, attr_id)"
+"   SELECT ?1, attr_id FROM initial_attrs WHERE object_sig = ?2;"
+" COMMIT TRANSACTION;"
+					, 0, &SQL, NULL);
+		if (rc != SQLITE_OK || SQL == NULL) {
+			if (SQL) sqlite3_finalize(SQL);
+			SQL = NULL;
+			goto out_unlock;
 		}
 	}
 
-	/*
-	 * if not found, try to get a free entry for this filter 
-	 */
-	sig_str = sig_string(fsig);
-	if (sig_str == NULL) {
-		return (ENOENT);
-	}
-	/*
-	 * XXX overflow on buffer
-	 */
-	sprintf(fpath, "%s/%s.%s", disk_path, sig_str, CACHE_EXT);
-	free(sig_str);
+	/* Bind values to the prepared statement */
+	rc = sqlite3_bind_int(SQL, 1, qid->query_id);
+	if (rc != SQLITE_OK) goto out_fail;
 
-	for (i = 0; i < FCACHE_NUM; i++) {
-		if (filter_cache_table[i] == NULL) {
-			filter_cache_table_num = i;
-			break;
-		}
-	}
+	rc = sqlite3_bind_blob(SQL, 2, idsig, sizeof(sig_val_t), SQLITE_STATIC);
+	if (rc != SQLITE_OK) goto out_fail;
 
-	if ((cache_entry_num > MAX_CACHE_ENTRY_NUM) ||
-	    (filter_cache_table_num == -1)) {
-		err = free_fcache_entry(disk_path);
-		if (err < 0) {
-			printf("can not find free fcache entry\n");
-			return (ENOMEM);
-		}
-		filter_cache_table_num = err;
-	}
-
-	cache_table = (cache_obj **)calloc(CACHE_ENTRY_NUM, sizeof(char *));
-	assert(cache_table != NULL);
-
-	for (i = 0; i < CACHE_ENTRY_NUM; i++) {
-		cache_table[i] = NULL;
-	}
-
-	fcache = (fcache_t *) calloc(1, sizeof(fcache_t));
-	assert(fcache != NULL);
-
-	filter_cache_table[filter_cache_table_num] = fcache;
-	fcache->cache_table = (void *) cache_table;
-	memcpy(&fcache->fsig, fsig, sizeof(sig_val_t));
-
-	assert(atime != NULL);
-	memcpy(&fcache->atime, atime, sizeof(struct timeval));
-	fcache->running = 1;
-	*fcache_table = (void *) cache_table;
-
-	fd = open(fpath, O_RDONLY, 00777);
-	if (fd < 0) {
-		memset(&fcache->mtime, 0, sizeof(time_t));
-		return (0);
-	}
-	err = flock(fd, LOCK_EX);
-	if (err != 0) {
-		perror("failed to lock cache file\n");
-		close(fd);
-		return (0);
-	}
-	err = fstat(fd, &stats);
-	if (err != 0) {
-		perror("failed to stat cache file\n");
-		close(fd);
-		return (EINVAL);
-	}
-	size = stats.st_size;
-	memcpy(&fcache->mtime, &stats.st_mtime, sizeof(time_t));
-
-	pthread_mutex_lock(&shared_mutex);
+	/* Run query */
 	while (1) {
-		cobj = (cache_obj *) calloc(1, sizeof(*cobj));
-		assert(cobj != NULL);
-		rc = read(fd, &cobj->id_sig, sizeof(sig_val_t));
-		if (rc == 0) {
-			break;
-		} else if (rc < 0) {
-			printf("read error \n");
-			break;
-		}
-		rc = read(fd, &cobj->iattr_sig, sizeof(sig_val_t));
-		assert(rc == sizeof(sig_val_t));
-		rc = read(fd, &cobj->result, sizeof(int));
-		assert(rc == sizeof(int));
+		rc = sqlite3_step(SQL);
 
-		rc = read(fd, &cobj->eval_count, sizeof(unsigned short));
-		assert(rc == sizeof(unsigned short));
-		cobj->aeval_count = 0;
-		rc = read(fd, &cobj->hit_count, sizeof(unsigned short));
-		assert(rc == sizeof(unsigned short));
-		cobj->ahit_count = 0;
-
-		rc = read(fd, &cobj->qid, sizeof(query_info_t));
-		assert(rc == sizeof(query_info_t));
-		rc = read(fd, &cobj->exec_mode, sizeof(filter_exec_mode_t));
-		assert(rc == sizeof(filter_exec_mode_t));
-
-		rc = read(fd, &cobj->iattr.entry_num, sizeof(unsigned int));
-		assert(rc == sizeof(unsigned int));
-		cobj->iattr.entry_data =
-		    calloc(1, cobj->iattr.entry_num * sizeof(char *));
-		assert(cobj->iattr.entry_data != NULL);
-		for (i = 0; i < cobj->iattr.entry_num; i++) {
-			cobj->iattr.entry_data[i] =
-			    calloc(1, sizeof(cache_attr_entry));
-			assert(cobj->iattr.entry_data[i] != NULL);
-
-			rc = read(fd, cobj->iattr.entry_data[i],
-				  sizeof(cache_attr_entry));
-			assert(rc == sizeof(cache_attr_entry));
-
-		}
-
-		rc = read(fd, &cobj->oattr.entry_num, sizeof(unsigned int));
-		assert(rc == sizeof(unsigned int));
-
-		cobj->oattr.entry_data =
-		    calloc(1, cobj->oattr.entry_num * sizeof(char *));
-		assert(cobj->oattr.entry_data != NULL);
-
-		for (i = 0; i < cobj->oattr.entry_num; i++) {
-			cobj->oattr.entry_data[i] =
-			    calloc(1, sizeof(cache_attr_entry));
-			assert(cobj->oattr.entry_data[i] != NULL);
-
-			rc = read(fd, cobj->oattr.entry_data[i],
-				  sizeof(cache_attr_entry));
-			assert(rc == sizeof(cache_attr_entry));
-		}
-		cobj->next = NULL;
-
-
-		/*
-		 * insert it into the cache_table array 
-		 */
-		index = sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
-		if (cache_table[index] == NULL) {
-			cache_table[index] = cobj;
-			/*
-			 * for debug purpose 
-			 */
-			cache_entry_num++;
-		} else {
-			p = cache_table[index];
-			q = p;
-			duplicate = 0;
-			while (p != NULL) {
-				if (sig_match(&p->id_sig, &cobj->id_sig) &&
-				    sig_match(&p->iattr_sig,
-					      &cobj->iattr_sig)) {
-					duplicate = 1;
-					break;
-				}
-				q = p;
-				p = p->next;
-			}
-			if (duplicate) {
-				ocache_entry_free(cobj);
-			} else {
-				q->next = cobj;
-				/*
-				 * for debug purpose 
-				 */
-				cache_entry_num++;
-			}
-		}
+		/* Maybe we should sleep, but this should only happen when
+		 * another adiskd process is updating the output_attrs table,
+		 * which only happens after a filter has been executed (so not
+		 * that often) */
+		if (rc == SQLITE_BUSY)
+			continue;
+		break;
 	}
+
+out_fail:
+	sqlite3_reset(SQL);
+	sqlite3_clear_bindings(SQL);
+out_unlock:
 	pthread_mutex_unlock(&shared_mutex);
-	close(fd);
-	return (0);
+#warning "should return success only if we actually found initial attributes"
+	return 1;
 }
 
 int
@@ -1364,7 +870,7 @@ ocache_main(void *arg)
 			} else
 				unlink(attrbuf);
 		}
-
+#if 0
 		if (cache_table && correct) {
 			unsigned int index;
 			index = sig_hash(&cobj->id_sig) % CACHE_ENTRY_NUM;
@@ -1374,10 +880,13 @@ ocache_main(void *arg)
 			cache_entry_num++;
 			pthread_mutex_unlock(&shared_mutex);
 		} else
+#endif
 			ocache_entry_free(cobj);
 
+#if 0
 		if (cache_entry_num >= MAX_CACHE_ENTRY_NUM)
 			free_fcache_entry(cstate->ocache_path);
+#endif
 	}
 }
 
@@ -1388,7 +897,6 @@ ocache_init(char *dirp)
 	ocache_state_t *new_state;
 	int             err;
 	char           *dir_path;
-	int             i;
 
 	if (dirp == NULL) {
 		dir_path = dconf_get_cachedir();
@@ -1436,27 +944,20 @@ ocache_init(char *dirp)
 	strcpy(new_state->ocache_path, dir_path);
 
 	/*
-	 * initialized the cache_table 
-	 */
-	for (i = 0; i < FCACHE_NUM; i++) {
-		filter_cache_table[i] = NULL;
-	}
-
-	ocache_init_read(dir_path);
-	/*
 	 * create thread to process inserted entries for cache table 
 	 */
 	err = pthread_create(&new_state->c_thread_id, NULL,
 			     ocache_main, (void *) new_state);
 
+	/* open and initialize ocache database */
+	cache_setup(dir_path);
 	free(dir_path);
 	return (0);
 }
 
 int
-ocache_start()
+ocache_start(void)
 {
-	search_done = 0;
 	return 0;
 }
 
@@ -1466,29 +967,7 @@ ocache_start()
 int
 ocache_stop(char *dirp)
 {
-	int             i;
-	char           *dir_path;
-
-	if (dirp == NULL) {
-		dir_path = dconf_get_cachedir();
-	} else {
-		dir_path = strdup(dirp);
-	}
-
-	search_done = 1;
-
-	for (i = 0; i < FCACHE_NUM; i++) {
-		if (filter_cache_table[i] == NULL)
-			continue;
-		ocache_write_file(dir_path, filter_cache_table[i]);
-		free(filter_cache_table[i]->cache_table);
-		free(filter_cache_table[i]);
-		filter_cache_table[i] = NULL;
-	}
-
-	ocache_init_write(dir_path);
-	free(dir_path);
-	return (0);
+	return 0;
 }
 
 /*
@@ -1497,15 +976,6 @@ ocache_stop(char *dirp)
 int
 ocache_stop_search(sig_val_t * fsig)
 {
-	int             i;
-
-	for (i = 0; i < FCACHE_NUM; i++) {
-		if (filter_cache_table[i] == NULL) {
-			continue;
-		}
-		if (sig_match(&filter_cache_table[i]->fsig, fsig)) {
-			filter_cache_table[i]->running--;
-		}
-	}
-	return (0);
+	return 0;
 }
+

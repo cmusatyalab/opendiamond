@@ -47,9 +47,9 @@ char * sig_string(sig_val_t *sig);
 
 void string_to_sig(char *string, sig_val_t * sig_val);
 
-unsigned long sig_hash(sig_val_t *sig);
+unsigned int sig_hash(const sig_val_t *sig);
 
-int sig_match(sig_val_t *sig1, sig_val_t *sig2);
+int sig_match(const sig_val_t *sig1, const sig_val_t *sig2);
 
 void sig_clear(sig_val_t *sig);
 

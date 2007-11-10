@@ -48,7 +48,11 @@
 #include "lib_dconfig.h"
 #include "filter_priv.h"
 
+#ifndef NDEBUG
 #define debug(args...) fprintf(stderr, args)
+#else
+#define debug(args...)
+#endif
 
 typedef struct {
 	unsigned int	name_len;
@@ -249,6 +253,67 @@ ocache_entry_free(cache_obj * cobj)
 	return (0);
 }
 
+static void
+sql_error(const char *f, sqlite3 *db, const char *sql)
+{
+	char frag[32]; strncpy(frag, sql, 31); frag[31] = '\0';
+	fprintf(stderr, "%s: %s at '%s'\n", f, sqlite3_errmsg(db), frag);
+}
+
+static int
+sql_prepare_multi(const char *f, sqlite3 *db, sqlite3_stmt **mSQL,
+		  const char *zSql)
+{
+	int rc, i = 0;
+
+	while (1) {
+		rc = sqlite3_prepare_v2(db, zSql, -1, &mSQL[i], &zSql);
+		if (rc != SQLITE_OK) goto err;
+		if (mSQL[i] == NULL) continue;
+		if (*zSql == '\0') break;
+	}
+	mSQL[i] = NULL; /* add a NULL at the end of the array */
+	return SQLITE_OK;
+err:
+	sql_error(f, db, zSql);
+	for (; i >= 0; i--) {
+	    sqlite3_finalize(mSQL[i]);
+	    mSQL[i] = NULL;
+	}
+	return rc;
+}
+
+static void
+sql_step_multi(const char *f, sqlite3_stmt **mSQL)
+{
+	int i, rc = SQLITE_ERROR;
+	for (i = 0; mSQL[i] != NULL;) {
+		/* Run query */
+		rc = sqlite3_step(mSQL[i]);
+
+		/* Maybe we should sleep, but this should only happen when
+		 * another adiskd process is updating the output_attrs table,
+		 * which only happens after a filter has been executed (so not
+		 * that often) */
+		if (rc == SQLITE_BUSY) {
+			/* sqlite_sleep(1); */
+			continue;
+		}
+
+		if (rc == SQLITE_ROW)
+			continue;
+
+		sqlite3_reset(mSQL[i]);
+
+		if (rc != SQLITE_DONE)
+			break;
+
+		i++;
+	}
+	if (rc != SQLITE_DONE)
+		sql_error(f, sqlite3_db_handle(mSQL[i]), "[sql_step_multi]");
+}
+
 static int
 get_column_blob(sqlite3_stmt *stmt, int col, void *blob, int size)
 {
@@ -286,7 +351,8 @@ cache_setup(const char *dir)
 
 	debug("Initializing... ");
 	rc = sqlite3_exec(ocache_DB,
-" CREATE TABLE IF NOT EXISTS cache ("
+"BEGIN TRANSACTION;"
+"CREATE TABLE IF NOT EXISTS cache ("
 "    cache_entry INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
 "    create_time TEXT DEFAULT CURRENT_TIMESTAMP,"
 /*"  create_time INTEGER " -- DEFAULT strftime("%s", "now", "utc") */
@@ -294,45 +360,46 @@ cache_setup(const char *dir)
 "    object_sig  BLOB NOT NULL,"
 "    iattr_sig   BLOB NOT NULL,"
 "    confidence  INTEGER NOT NULL"
-" ); "
+"); "
 "CREATE INDEX IF NOT EXISTS filter_object_idx ON cache (filter_sig,object_sig);"
 ""
-" CREATE TABLE IF NOT EXISTS attrs ("
+"CREATE TABLE IF NOT EXISTS attrs ("
 "    attr_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
 "    name    TEXT NOT NULL,"
 "    sig     BLOB NOT NULL,"
 "    value   BLOB,"
 "    UNIQUE (name, sig)"
-" );"
+");"
 ""
-" CREATE TABLE IF NOT EXISTS input_attrs ("
+"CREATE TABLE IF NOT EXISTS input_attrs ("
 "    cache_entry INTEGER,"
 "    attr_id     INTEGER,"
 "    PRIMARY KEY (cache_entry, attr_id) ON CONFLICT IGNORE"
-" );"
-" CREATE INDEX IF NOT EXISTS input_attr_idx ON input_attrs (attr_id);"
+");"
+"CREATE INDEX IF NOT EXISTS input_attr_idx ON input_attrs (attr_id);"
 ""
-" CREATE TABLE IF NOT EXISTS output_attrs ("
+"CREATE TABLE IF NOT EXISTS output_attrs ("
 "    cache_entry INTEGER,"
 "    attr_id     INTEGER,"
 "    PRIMARY KEY (cache_entry, attr_id) ON CONFLICT IGNORE"
-" );"
-" CREATE INDEX IF NOT EXISTS output_attr_idx ON output_attrs (cache_entry);"
+");"
+"CREATE INDEX IF NOT EXISTS output_attr_idx ON output_attrs (cache_entry);"
 ""
-" CREATE TABLE IF NOT EXISTS initial_attrs ("
+"CREATE TABLE IF NOT EXISTS initial_attrs ("
 "    object_sig  INTEGER,"
 "    attr_id     INTEGER,"
 "    PRIMARY KEY (object_sig, attr_id) ON CONFLICT IGNORE"
-" );"
-" CREATE INDEX IF NOT EXISTS initial_attr_idx ON initial_attrs (object_sig);"
+");"
+"CREATE INDEX IF NOT EXISTS initial_attr_idx ON initial_attrs (object_sig);"
 ""
-" CREATE TEMP TABLE current_attrs ("
+"CREATE TEMP TABLE current_attrs ("
 "    query_id    INTEGER,"
 "    attr_id     INTEGER,"
 "    PRIMARY KEY (query_id, attr_id) ON CONFLICT IGNORE"
-" );"
-" CREATE INDEX current_attr_idx ON current_attrs (query_id);"
-		    , NULL, NULL, &errmsg);
+");"
+"CREATE INDEX current_attr_idx ON current_attrs (query_id);"
+"COMMIT TRANSACTION;"
+			, NULL, NULL, &errmsg);
     if (rc != SQLITE_OK) {
 	    fprintf(stderr, "ocache.db initialization failed: %s\n", errmsg);
 	    sqlite3_free(errmsg);
@@ -346,6 +413,7 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	     int *err, int *cache_entry_hit, sig_val_t *iattr_sig)
 {
 	static sqlite3_stmt *SQL = NULL;
+	const char *tail;
 	int rc, found = 0;
 
 	if (if_cache_table == 0 || ocache_DB == NULL)
@@ -354,6 +422,7 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	sig_clear(iattr_sig);
 
 	pthread_mutex_lock(&shared_mutex);
+	debug("Cache lookup\n");
 
 	if (!SQL) {
 		rc = sqlite3_prepare_v2(ocache_DB,
@@ -365,9 +434,9 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 "     cache.object_sig = ?1 AND cache.filter_sig = ?2 AND"
 "     input_attrs.attr_id NOT IN"
 "     (SELECT attr_id FROM current_attrs WHERE query_id = ?3))"
-"  LIMIT 1;"
-					, 0, &SQL, NULL);
+"  LIMIT 1;", -1, &SQL, &tail);
 		if (rc != SQLITE_OK || SQL == NULL) {
+			sql_error(__func__, ocache_DB, tail);
 			if (SQL) sqlite3_finalize(SQL);
 			SQL = NULL;
 			goto out_unlock;
@@ -419,20 +488,22 @@ void
 cache_combine_attr_set(query_info_t *qid, int cache_entry_hit)
 {
 	static sqlite3_stmt *SQL = NULL;
+	const char *tail;
 	int rc;
 
 	if (!if_cache_table || ocache_DB == NULL)
 		return;
 
 	pthread_mutex_lock(&shared_mutex);
+	debug("Cache combine attr set\n");
 
 	if (!SQL) {
 		rc = sqlite3_prepare_v2(ocache_DB,
 "INSERT INTO current_attrs (query_id, attr_id)"
 "  SELECT ?1, attr_id FROM output_attrs"
-"  WHERE cache_entry = ?2;"
-					, 0, &SQL, NULL);
+"  WHERE cache_entry = ?2;", -1, &SQL, &tail);
 		if (rc != SQLITE_OK || SQL == NULL) {
+			sql_error(__func__, ocache_DB, tail);
 			if (SQL) sqlite3_finalize(SQL);
 			SQL = NULL;
 			goto out_unlock;
@@ -461,7 +532,6 @@ cache_combine_attr_set(query_info_t *qid, int cache_entry_hit)
 
 out_fail:
 	sqlite3_reset(SQL);
-	sqlite3_clear_bindings(SQL);
 out_unlock:
 	pthread_mutex_unlock(&shared_mutex);
 }
@@ -470,7 +540,7 @@ out_unlock:
 void
 cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 {
-	static sqlite3_stmt *SQL = NULL;
+	static sqlite3_stmt *mSQL[10] = { NULL, };
 	int rc;
 	unsigned char *buf;
 	size_t len;
@@ -481,24 +551,21 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 		return;
 
 	pthread_mutex_lock(&shared_mutex);
+	debug("Cache set init attrs\n");
 
-	if (!SQL) {
-		rc = sqlite3_prepare_v2(ocache_DB,
-" BEGIN TRANSACTION;"
-" INSERT OR ABORT INTO attrs (name, sig) VALUES (?2, ?3);"
-" INSERT OR IGNORE INTO initial_attrs (object_sig, attr_id)"
-"   SELECT ?1, attr_id FROM attrs WHERE name = ?2 AND sig = ?3;"
-" COMMIT TRANSACTION;"
-					, 0, &SQL, NULL);
-		if (rc != SQLITE_OK || SQL == NULL) {
-			if (SQL) sqlite3_finalize(SQL);
-			SQL = NULL;
+	if (mSQL[0] == NULL) {
+		rc = sql_prepare_multi(__func__, ocache_DB, mSQL,
+"BEGIN TRANSACTION;"
+"INSERT OR IGNORE INTO attrs (name, sig) VALUES (?2, ?3);"
+"INSERT OR IGNORE INTO initial_attrs (object_sig, attr_id)"
+"  SELECT ?1, attr_id FROM attrs WHERE name = ?2 AND sig = ?3;"
+"COMMIT TRANSACTION;");
+		if (rc != SQLITE_OK)
 			goto out_unlock;
-		}
 	}
 
 	/* Bind values to the prepared statement */
-	rc = sqlite3_bind_blob(SQL, 1, idsig, sizeof(sig_val_t), SQLITE_STATIC);
+	rc = sqlite3_bind_blob(mSQL[2], 1, idsig, sizeof(sig_val_t), SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto out_unlock;
 
 	rc = obj_get_attr_first(init_attr, &buf, &len, &cookie, 0);
@@ -509,26 +576,27 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 		}
 		arec = (attr_record_t *) buf;
 
-		rc = sqlite3_bind_text(SQL, 2, (char *)arec->data,
+		rc = sqlite3_bind_text(mSQL[1], 2, (char *)arec->data,
+				       arec->name_len, SQLITE_STATIC);
+		if (rc != SQLITE_OK) goto bind_fail;
+		rc = sqlite3_bind_text(mSQL[2], 2, (char *)arec->data,
 				       arec->name_len, SQLITE_STATIC);
 		if (rc != SQLITE_OK) goto bind_fail;
 
-		rc = sqlite3_bind_blob(SQL, 3, &arec->attr_sig,
+		rc = sqlite3_bind_blob(mSQL[1], 3, &arec->attr_sig,
+				       sizeof(sig_val_t), SQLITE_STATIC);
+		if (rc != SQLITE_OK) goto bind_fail;
+		rc = sqlite3_bind_blob(mSQL[2], 3, &arec->attr_sig,
 				       sizeof(sig_val_t), SQLITE_STATIC);
 		if (rc != SQLITE_OK) goto bind_fail;
 
 		/* Run query */
-		while (1) {
-			rc = sqlite3_step(SQL);
-			if (rc == SQLITE_BUSY)
-				continue;
-			break;
-		}
+		sql_step_multi(__func__, mSQL);
 bind_fail:
-		sqlite3_reset(SQL);
 		rc = obj_get_attr_next(init_attr, &buf, &len, &cookie, 0);
 	}
-	sqlite3_clear_bindings(SQL);
+	sqlite3_clear_bindings(mSQL[1]);
+	sqlite3_clear_bindings(mSQL[2]);
 out_unlock:
 	pthread_mutex_unlock(&shared_mutex);
 }
@@ -536,55 +604,43 @@ out_unlock:
 int
 cache_get_init_attrs(query_info_t *qid, sig_val_t *idsig)
 {
-	static sqlite3_stmt *SQL = NULL;
+	static sqlite3_stmt *mSQL[10] = { NULL, };
 	int rc;
 
 	if (!if_cache_table || ocache_DB == NULL)
 		return 0;
 
 	pthread_mutex_lock(&shared_mutex);
+	debug("Cache get init attrs\n");
 
-	if (!SQL) {
-		rc = sqlite3_prepare_v2(ocache_DB,
-" BEGIN TRANSACTION;"
-" DELETE FROM current_attrs WHERE query_id = ?1;"
-" INSERT ON CONFLICT IGNORE INTO current_attrs (query_id, attr_id)"
-"   SELECT ?1, attr_id FROM initial_attrs WHERE object_sig = ?2;"
-" COMMIT TRANSACTION;"
-					, 0, &SQL, NULL);
-		if (rc != SQLITE_OK || SQL == NULL) {
-			if (SQL) sqlite3_finalize(SQL);
-			SQL = NULL;
+	if (mSQL[0] == NULL) {
+		rc = sql_prepare_multi(__func__, ocache_DB, mSQL,
+"BEGIN TRANSACTION;"
+"DELETE FROM current_attrs WHERE query_id = ?1;"
+"INSERT OR IGNORE INTO current_attrs (query_id, attr_id)"
+"  SELECT ?1, attr_id FROM initial_attrs WHERE object_sig = ?2;"
+"COMMIT TRANSACTION;");
+		if (rc != SQLITE_OK)
 			goto out_unlock;
-		}
 	}
 
 	/* Bind values to the prepared statement */
-	rc = sqlite3_bind_int(SQL, 1, qid->query_id);
+	rc = sqlite3_bind_int(mSQL[1], 1, qid->query_id);
+	if (rc != SQLITE_OK) goto out_fail;
+	rc = sqlite3_bind_int(mSQL[2], 1, qid->query_id);
 	if (rc != SQLITE_OK) goto out_fail;
 
-	rc = sqlite3_bind_blob(SQL, 2, idsig, sizeof(sig_val_t), SQLITE_STATIC);
+	rc = sqlite3_bind_blob(mSQL[2], 2, idsig, sizeof(sig_val_t), SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	/* Run query */
-	while (1) {
-		rc = sqlite3_step(SQL);
-
-		/* Maybe we should sleep, but this should only happen when
-		 * another adiskd process is updating the output_attrs table,
-		 * which only happens after a filter has been executed (so not
-		 * that often) */
-		if (rc == SQLITE_BUSY)
-			continue;
-		break;
-	}
-
+	sql_step_multi(__func__, mSQL);
 out_fail:
-	sqlite3_reset(SQL);
-	sqlite3_clear_bindings(SQL);
+	/* we need to clear any SQLITE_STATIC bindings */
+	sqlite3_clear_bindings(mSQL[2]);
 out_unlock:
 	pthread_mutex_unlock(&shared_mutex);
-#warning "should return success only if we actually found initial attributes"
+#warning "should return success only if we actually found initial attributes?"
 	return 1;
 }
 

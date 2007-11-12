@@ -73,9 +73,8 @@ int ocache_wait_finish(void);
 int ocache_read_file(char *disk_path, sig_val_t *fsig, 
 		     void **fcache_table, struct timeval *atime);
 
-int ocache_add_start(lf_obj_handle_t ohandle, char *fhandle, void *cache_table,
-		     sig_val_t *fsig);
-int ocache_add_end(lf_obj_handle_t ohandle, char *fhandle, int conf,
+int ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig);
+int ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 		   query_info_t *qid, filter_exec_mode_t exec_mode);
 
 int ceval_init_search(filter_data_t * fdata, query_info_t *qinfo,

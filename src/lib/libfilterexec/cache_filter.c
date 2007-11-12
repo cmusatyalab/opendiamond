@@ -466,7 +466,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	int             perm_num;
 	permutation_t  *cur_perm, *new_perm = NULL;
 	char            buf[BUFSIZ];
-	query_info_t    entry_info;
 
 	/*
 	 * XXX this used to be passed in and need to change before caching is 
@@ -857,20 +856,18 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 			 */
 			if (add_cache_entries) {
 				ocache_add_start(obj_handle,
-						 cur_filter->fi_name,
-						 cur_filter->cache_table,
 						 &cur_filter->fi_sig);
 			}
 
 			conf = cur_filter->fi_eval_fp(obj_handle,
-						      cur_filter-> fi_filt_arg);
+						      cur_filter->fi_filt_arg);
 
 			/*
 			 * mark end of filter eval into cache ring
 			 */
 			if (add_cache_entries) {
 				ocache_add_end(obj_handle,
-					       cur_filter->fi_name,
+					       &cur_filter->fi_sig,
 					       conf, qinfo, exec_mode);
 			}
 

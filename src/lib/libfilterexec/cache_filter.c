@@ -407,8 +407,7 @@ void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 {
 	int found = 1;
 	int conf;
-	int cache_entry_hit;
-	sig_val_t isig;
+	int64_t cache_entry;
 	query_info_t entry_info;
 	
 	if (einfo == NULL) {
@@ -416,8 +415,8 @@ void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 		found = cache_lookup(oid_sig, &f->fi_sig,
 					     	f->cache_table,
 					     	change_attr, &conf,
-						&cache_entry_hit,
-					     	&isig, &entry_info);
+						&cache_entry,
+					     	&entry_info);
 	} else {
 		entry_info = *einfo;
 	}
@@ -455,10 +454,9 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	rtimer_t        rt;
 	u_int64_t       time_ns;	/* time for one filter */
 	u_int64_t       stack_ns;	/* time for whole filter stack */
-	int		cache_entry_hit;
+	int64_t		cache_entry;
 	int             hit = 1;
 	int             oattr_fnum = 0;
-	sig_val_t       isig;
 	sig_val_t       id_sig;
 	pr_obj_t       *pr_obj;
 	int             i,
@@ -530,7 +528,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 
 			found = cache_lookup(&id_sig, &cur_filter->fi_sig,
 					     cstate->qinfo,
-					     &conf, &cache_entry_hit, &isig);
+					     &conf, &cache_entry);
 
 			if (found) {
 				/*
@@ -586,7 +584,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 				 */
 				if (pass) {
 					cache_combine_attr_set(cstate->qinfo,
-							       cache_entry_hit);
+							       cache_entry);
 
 					if (oattr_fnum < MAX_FILTERS
 					    && perm_num == 0) {
@@ -595,10 +593,6 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 						memcpy(&pr_obj->
 						       fsig[oattr_fnum],
 						       &cur_filter->fi_sig,
-						       sizeof(sig_val_t));
-						memcpy(&pr_obj->
-						       iattrsig[oattr_fnum],
-						       &isig,
 						       sizeof(sig_val_t));
 						oattr_fnum++;
 					}

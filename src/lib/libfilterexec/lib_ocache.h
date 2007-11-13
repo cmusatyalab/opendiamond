@@ -60,9 +60,9 @@ void cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t *init_attr);
 int cache_get_init_attrs(query_info_t *qid, sig_val_t *idsig);
 
 int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, query_info_t *qid,
-		 int *err, int *cache_entry_hit, sig_val_t *iattr_sig);
+		 int *err, int64_t *cache_entry);
 
-void cache_combine_attr_set(query_info_t *qid, int cache_entry_hit);
+void cache_combine_attr_set(query_info_t *qid, int64_t cache_entry);
 
 
 int ocache_init(char *path_name);

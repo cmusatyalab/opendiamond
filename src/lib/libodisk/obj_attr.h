@@ -94,10 +94,6 @@ int obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
 int obj_get_attr_next(obj_attr_t *attr, unsigned char **buf, size_t *len,
                       void **cookie, int skip_big);
 
-int obj_read_oattr(struct odisk_state *odisk, char *disk_path, 
-	sig_val_t *id_sig, sig_val_t *fsig, sig_val_t *iattrsig, 
-	obj_attr_t *attr);
-
 int obj_first_attr(obj_attr_t * attr, char **name, size_t * len, 
 		unsigned char **data, void **cookie);
 int obj_next_attr(obj_attr_t * attr, char **name, size_t * len, 

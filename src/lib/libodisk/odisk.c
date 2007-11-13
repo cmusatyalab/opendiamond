@@ -754,14 +754,8 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 	      odisk_state_t * odisk)
 {
 	int             err;
-	int             i;
-	char            timebuf[BUFSIZ];
-	rtimer_t        rt;
-	u_int64_t       time_ns;
-	u_int64_t       stack_ns;
 
 	assert(pr_obj != NULL);
-	stack_ns = pr_obj->stack_ns;
 
 	/*
 	 * Load base object 
@@ -781,46 +775,8 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 		return (0);
 	}
 
-	/*
-	 * load the partial state 
-	 */
-	for (i = 0; i < pr_obj->oattr_fnum; i++) {
+	/* load cached output attributes */
 
-		if (pr_obj->filters[i] == NULL) {
-			continue;
-		}
-
-		rt_init(&rt);
-		rt_start(&rt);
-
-		err = obj_read_oattr(odisk, odisk->odisk_dataroot,
-		    &(*new_object)->id_sig, &pr_obj->fsig[i],
-		    &pr_obj->iattrsig[i], &(*new_object)->attr_info);
-
-		rt_stop(&rt);
-		time_ns = rt_nanos(&rt);
-		stack_ns += time_ns;
-
-		/* if attribute read failed, we exit */
-		if (err != 0) {
-			break;
-		}
-
-		sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
-		err = obj_write_attr(&(*new_object)->attr_info, timebuf,
-				     sizeof(time_ns), (void *) &time_ns);
-		if (err != 0) {
-			/* XXX */
-			printf("CHECK OBJECT %016llX ATTR FILE\n",
-			       pr_obj->obj_id);
-		}
-	}
-
-	err = obj_write_attr(&(*new_object)->attr_info,
-			     FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
-	if (err != 0) {
-		printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
-	}
 	return (0);
 }
 

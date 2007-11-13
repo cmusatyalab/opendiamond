@@ -106,7 +106,6 @@ typedef struct {
 	int 		oattr_fnum;
 	char *		filters[MAX_FILTERS];
 	sig_val_t	fsig[MAX_FILTERS];
-	sig_val_t	iattrsig[MAX_FILTERS];
 	u_int64_t       stack_ns;
 } pr_obj_t;
 

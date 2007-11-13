@@ -135,11 +135,12 @@ sql_prepare_multi(const char *f, sqlite3 *db, sqlite3_stmt **mSQL,
 {
 	int rc, i = 0;
 
-	while (1) {
+	while (*zSql != '\0') {
+		//debug("prepare_multi: %s\n", zSql);
 		rc = sqlite3_prepare_v2(db, zSql, -1, &mSQL[i], &zSql);
 		if (rc != SQLITE_OK) goto err;
 		if (mSQL[i] == NULL) continue;
-		if (*zSql == '\0') break;
+		i++;
 	}
 	mSQL[i] = NULL; /* add a NULL at the end of the array */
 	return SQLITE_OK;
@@ -155,7 +156,19 @@ err:
 static void
 sql_step_multi(const char *f, sqlite3_stmt **mSQL)
 {
+	static sqlite3_stmt *BEGIN = NULL;
+	static sqlite3_stmt *COMMIT = NULL;
+	static sqlite3_stmt *ABORT = NULL;
+	sqlite3 *db;
 	int i, rc = SQLITE_ERROR;
+
+	db = sqlite3_db_handle(mSQL[0]);
+	if (!BEGIN)  sqlite3_prepare_v2(db, "BEGIN;", -1, &BEGIN, NULL);
+	if (!COMMIT) sqlite3_prepare_v2(db, "COMMIT;", -1, &COMMIT, NULL);
+	if (!ABORT)  sqlite3_prepare_v2(db, "ROLLBACK;", -1, &ABORT, NULL);
+
+	sqlite3_step(BEGIN);
+
 	for (i = 0; mSQL[i] != NULL;) {
 		/* Run query */
 		rc = sqlite3_step(mSQL[i]);
@@ -180,8 +193,11 @@ sql_step_multi(const char *f, sqlite3_stmt **mSQL)
 
 		i++;
 	}
-	if (rc != SQLITE_DONE)
-		sql_error(f, sqlite3_db_handle(mSQL[i]), "[sql_step_multi]");
+	if (rc != SQLITE_DONE) {
+		sql_error(f, db, "[sql_step_multi aborting]");
+		sqlite3_step(ABORT);
+	} else
+		sqlite3_step(COMMIT);
 }
 
 #if 0
@@ -293,7 +309,7 @@ cache_setup(const char *dir)
 
 int
 cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
-	     int *err, int *cache_entry_hit, sig_val_t *iattr_sig)
+	     int *err, int64_t *cache_entry)
 {
 	static sqlite3_stmt *SQL = NULL;
 	const char *tail;
@@ -302,26 +318,22 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	if (if_cache_table == 0 || ocache_DB == NULL)
 		return 0;
 
-	sig_clear(iattr_sig);
-
 	pthread_mutex_lock(&shared_mutex);
 	debug("Cache lookup\n");
 
 	if (!SQL) {
 		rc = sqlite3_prepare_v2(ocache_DB,
 "SELECT cache_entry, confidence FROM cache"
-"  WHERE object_sig = ?1 AND filter_sig = ?2 AND"
-"  cache_entry NOT IN"
-"  (SELECT input_attrs.cache_entry FROM cache, input_attrs"
-"     WHERE cache.cache_entry = input_attrs.cache_entry AND"
+"  WHERE object_sig = ?1 AND filter_sig = ?2 AND cache_entry NOT IN"
+"  (SELECT input_attrs.cache_entry FROM cache, input_attrs WHERE"
+"     cache.cache_entry = input_attrs.cache_entry AND"
 "     cache.object_sig = ?1 AND cache.filter_sig = ?2 AND"
 "     input_attrs.attr_id NOT IN"
 "     (SELECT attr_id FROM current_attrs WHERE query_id = ?3))"
 "  LIMIT 1;", -1, &SQL, &tail);
 		if (rc != SQLITE_OK || SQL == NULL) {
 			sql_error(__func__, ocache_DB, tail);
-			if (SQL) sqlite3_finalize(SQL);
-			SQL = NULL;
+			if (SQL) { sqlite3_finalize(SQL); SQL = NULL; }
 			goto out_unlock;
 		}
 	}
@@ -341,11 +353,12 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	if (rc == SQLITE_ROW) {
 		/* handle to find the output attr set when we're extending the
 		 * current_attr set */
-		*cache_entry_hit = sqlite3_column_int(SQL, 1);
+		*cache_entry = sqlite3_column_int64(SQL, 0);
 
 		/* confidence value */
-		*err = sqlite3_column_int(SQL, 2);
+		*err = sqlite3_column_int(SQL, 1);
 
+		debug("hit: %lld %d\n", *cache_entry, *err);
 		found = 1;
 	}
 
@@ -361,7 +374,7 @@ out_unlock:
 }
 
 void
-cache_combine_attr_set(query_info_t *qid, int cache_entry)
+cache_combine_attr_set(query_info_t *qid, int64_t cache_entry)
 {
 	static sqlite3_stmt *SQL = NULL;
 	const char *tail;
@@ -390,7 +403,7 @@ cache_combine_attr_set(query_info_t *qid, int cache_entry)
 	rc = sqlite3_bind_int(SQL, 1, qid->query_id);
 	if (rc != SQLITE_OK) goto out_fail;
 
-	rc = sqlite3_bind_int(SQL, 2, cache_entry);
+	rc = sqlite3_bind_int64(SQL, 2, cache_entry);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	/* Run query */
@@ -422,11 +435,9 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 
 	if (mSQL[0] == NULL) {
 		rc = sql_prepare_multi(__func__, ocache_DB, mSQL,
-"BEGIN TRANSACTION;"
 "INSERT INTO attrs (name, sig) VALUES (?2, ?3);"
 "INSERT INTO initial_attrs (object_sig, attr_id)"
-"  SELECT ?1, attr_id FROM attrs WHERE name = ?2 AND sig = ?3;"
-"COMMIT TRANSACTION;");
+"  SELECT ?1, attr_id FROM attrs WHERE name = ?2 AND sig = ?3;");
 		if (rc != SQLITE_OK)
 			goto out_unlock;
 	}
@@ -482,11 +493,9 @@ cache_get_init_attrs(query_info_t *qid, sig_val_t *idsig)
 
 	if (mSQL[0] == NULL) {
 		rc = sql_prepare_multi(__func__, ocache_DB, mSQL,
-"BEGIN TRANSACTION;"
 "DELETE FROM current_attrs WHERE query_id = ?1;"
 "INSERT INTO current_attrs (query_id, attr_id)"
-"  SELECT ?1, attr_id FROM initial_attrs WHERE object_sig = ?2;"
-"COMMIT TRANSACTION;");
+"  SELECT ?1, attr_id FROM initial_attrs WHERE object_sig = ?2;");
 		if (rc != SQLITE_OK)
 			goto out_unlock;
 	}
@@ -514,7 +523,7 @@ int
 ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig)
 {
 	/* check if we don't have temp_iattr/temp_oattr entries for this
-	 * object? */
+	 * query or object? */
 	return 0;
 }
 
@@ -554,7 +563,7 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 	rc = sqlite3_bind_int(SQL, 1, query_id);
 	if (rc != SQLITE_OK) goto out_fail;
 
-	rc = sqlite3_bind_text(SQL, 2, name, strlen(name), SQLITE_STATIC);
+	rc = sqlite3_bind_text(SQL, 2, name, -1, SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	odisk_get_attr_sig(obj, name, &sig);
@@ -610,7 +619,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 	rc = sqlite3_bind_int(SQL, 1, query_id);
 	if (rc != SQLITE_OK) goto out_fail;
 
-	rc = sqlite3_bind_text(SQL, 2, name, strlen(name), SQLITE_STATIC);
+	rc = sqlite3_bind_text(SQL, 2, name, -1, SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	odisk_get_attr_sig(obj, name, &sig);
@@ -654,7 +663,6 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 
 	if (mSQL[0] == NULL) {
 		rc = sql_prepare_multi(__func__, ocache_DB, mSQL,
-"BEGIN TRANSACTION;"
 "INSERT INTO attrs (name, sig, value)"
 "  SELECT name, sig, value FROM temp_oattrs WHERE query_id = ?1;"
 "INSERT INTO cache (filter_sig, object_sig, confidence)"
@@ -666,14 +674,15 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 "  SELECT cache_entry, attr_id FROM cache, temp_iattrs"
 "  WHERE filter_sig = ?2 AND object_sig = ?3 AND query_id = ?1;"
 "DELETE FROM temp_oattrs WHERE query_id = ?1;"
-"DELETE FROM temp_iattrs WHERE query_id = ?1;"
-"COMMIT TRANSACTION;");
+"DELETE FROM temp_iattrs WHERE query_id = ?1;");
 		if (rc != SQLITE_OK)
 			goto out_unlock;
 	}
 
 	/* Bind values to the prepared statement */
-	rc = sqlite3_bind_int(mSQL[1], 1, query_id);
+	rc = sqlite3_bind_int(mSQL[0], 1, query_id);
+	if (rc != SQLITE_OK) goto bind_fail;
+	rc = sqlite3_bind_int(mSQL[2], 1, query_id);
 	if (rc != SQLITE_OK) goto bind_fail;
 	rc = sqlite3_bind_int(mSQL[3], 1, query_id);
 	if (rc != SQLITE_OK) goto bind_fail;
@@ -681,38 +690,36 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	if (rc != SQLITE_OK) goto bind_fail;
 	rc = sqlite3_bind_int(mSQL[5], 1, query_id);
 	if (rc != SQLITE_OK) goto bind_fail;
-	rc = sqlite3_bind_int(mSQL[6], 1, query_id);
-	if (rc != SQLITE_OK) goto bind_fail;
 
+	rc = sqlite3_bind_blob(mSQL[1], 2, fsig, sizeof(sig_val_t),
+			       SQLITE_STATIC);
+	if (rc != SQLITE_OK) goto bind_fail;
 	rc = sqlite3_bind_blob(mSQL[2], 2, fsig, sizeof(sig_val_t),
 			       SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto bind_fail;
 	rc = sqlite3_bind_blob(mSQL[3], 2, fsig, sizeof(sig_val_t),
 			       SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto bind_fail;
-	rc = sqlite3_bind_blob(mSQL[4], 2, fsig, sizeof(sig_val_t),
+
+	rc = sqlite3_bind_blob(mSQL[1], 3, &obj->id_sig, sizeof(sig_val_t),
 			       SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto bind_fail;
-
 	rc = sqlite3_bind_blob(mSQL[2], 3, &obj->id_sig, sizeof(sig_val_t),
 			       SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto bind_fail;
 	rc = sqlite3_bind_blob(mSQL[3], 3, &obj->id_sig, sizeof(sig_val_t),
 			       SQLITE_STATIC);
 	if (rc != SQLITE_OK) goto bind_fail;
-	rc = sqlite3_bind_blob(mSQL[4], 3, &obj->id_sig, sizeof(sig_val_t),
-			       SQLITE_STATIC);
-	if (rc != SQLITE_OK) goto bind_fail;
 
-	rc = sqlite3_bind_int(mSQL[2], 4, conf);
+	rc = sqlite3_bind_int(mSQL[1], 4, conf);
 	if (rc != SQLITE_OK) goto bind_fail;
 
 	/* Add input/output attributes */
 	sql_step_multi(__func__, mSQL);
 bind_fail:
 	sqlite3_clear_bindings(mSQL[1]);
+	sqlite3_clear_bindings(mSQL[2]);
 	sqlite3_clear_bindings(mSQL[3]);
-	sqlite3_clear_bindings(mSQL[4]);
 out_unlock:
 	pthread_mutex_unlock(&shared_mutex);
 	return 0;

@@ -151,49 +151,39 @@ cache_setup(const char *dir)
 "BEGIN TRANSACTION;"
 "CREATE TABLE IF NOT EXISTS cache ("
 "    cache_entry INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
-"    filter_sig	BLOB NOT NULL,"
-"    object_sig	BLOB NOT NULL,"
-"    confidence	INTEGER NOT NULL,"
+"    object_sig  BLOB NOT NULL,"
+"    filter_sig  BLOB NOT NULL,"
+"    confidence  INTEGER NOT NULL,"
 "    create_time INTEGER" /* DEFAULT strftime('%s', 'now', 'utc')"*/
 /*"    create_time TEXT DEFAULT CURRENT_TIMESTAMP"*/
 "); "
-"CREATE INDEX IF NOT EXISTS filter_object_idx ON cache (filter_sig,object_sig);"
+"CREATE INDEX IF NOT EXISTS object_filter_idx ON cache (object_sig,filter_sig);"
 ""
 "CREATE TABLE IF NOT EXISTS attrs ("
-"    attr_id	INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
-"    name	TEXT NOT NULL,"
-"    sig	BLOB NOT NULL,"
-"    value	BLOB,"
-"    UNIQUE (name, sig) ON CONFLICT IGNORE"
+"    sig	BLOB PRIMARY KEY NOT NULL ON CONFLICT IGNORE,"
+"    value	BLOB"
 ");"
 ""
 "CREATE TABLE IF NOT EXISTS input_attrs ("
 "    cache_entry INTEGER NOT NULL,"
-"    attr_id     INTEGER NOT NULL,"
-"    PRIMARY KEY (cache_entry, attr_id) ON CONFLICT IGNORE"
+"    name	 TEXT NOT NULL,"
+"    sig	 BLOB NOT NULL,"
+"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
 ");"
 ""
 "CREATE TABLE IF NOT EXISTS output_attrs ("
 "    cache_entry INTEGER NOT NULL,"
-"    attr_id     INTEGER NOT NULL,"
-"    PRIMARY KEY (cache_entry, attr_id) ON CONFLICT IGNORE"
+"    name	 TEXT NOT NULL,"
+"    sig	 BLOB NOT NULL,"
+"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
 ");"
+//"CREATE INDEX IF NOT EXISTS output_attr_idx ON output_attrs (cache_entry);"
 ""
 "CREATE TEMP TABLE current_attrs ("
-"    attr_id    INTEGER NOT NULL,"
-"    PRIMARY KEY (attr_id) ON CONFLICT IGNORE"
+"    name   TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+"    sig    BLOB NOT NULL"
 ");"
-""
-"CREATE TEMP TABLE temp_iattrs ("
-"    attr_id    INTEGER NOT NULL,"
-"    PRIMARY KEY (attr_id) ON CONFLICT IGNORE"
-");"
-"CREATE TEMP TABLE temp_oattrs ("
-"    name	TEXT NOT NULL,"
-"    sig	BLOB NOT NULL,"
-"    value      BLOB,"
-"    UNIQUE (name) ON CONFLICT REPLACE"
-");"
+//"CREATE INDEX IF NOT EXISTS current_attr_idx ON current_attrs (name, sig);"
 "COMMIT TRANSACTION;" , NULL, NULL, &errmsg);
     if (rc != SQLITE_OK) {
 	    fprintf(stderr, "ocache.db initialization failed: %s\n", errmsg);
@@ -220,12 +210,13 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 
 	sql_query(&res, ocache_DB,
 		  "SELECT cache_entry, confidence FROM cache"
-		  "  WHERE object_sig = ?1 AND filter_sig = ?2 AND"
-		  "  cache_entry NOT IN (SELECT cache.cache_entry"
-		  "    FROM cache, input_attrs USING(cache_entry)"
-		  "    WHERE object_sig = ?1 AND filter_sig = ?2 AND"
-		  "    input_attrs.attr_id NOT IN current_attrs)"
-		  "  LIMIT 1;",
+		  " WHERE object_sig = ?1 AND filter_sig = ?2 AND"
+		  " cache_entry NOT IN (SELECT cache_entry"
+		  "   FROM cache JOIN input_attrs USING(cache_entry)"
+		  "   LEFT OUTER JOIN current_attrs USING(name, sig)"
+		  "   WHERE object_sig = ?1 AND filter_sig = ?2 AND"
+		  "   current_attrs.name ISNULL)"
+		  " LIMIT 1;",
 		  "BB", idsig, sizeof(sig_val_t), fsig, sizeof(sig_val_t));
 
 	if (res) {
@@ -248,8 +239,8 @@ cache_combine_attr_set(query_info_t *qid, int64_t cache_entry)
 	debug("Cache combine attr set\n");
 
 	sql_query(NULL, ocache_DB,
-		  "INSERT INTO current_attrs (attr_id)"
-		  "  SELECT attr_id FROM output_attrs"
+		  "INSERT INTO current_attrs (name, sig)"
+		  "  SELECT name, sig FROM output_attrs"
 		  "  WHERE cache_entry = ?1;",
 		  "D", cache_entry);
 
@@ -316,7 +307,7 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 		return 0;
 
 	pthread_mutex_lock(&shared_mutex);
-	debug("Cache get init attrs\n");
+	debug("Cache reset current attrs\n");
 
 	sql_query(NULL, ocache_DB, "DELETE FROM current_attrs;", NULL);
 
@@ -327,9 +318,42 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 int
 ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig)
 {
-	/* check if we don't have temp_iattr/temp_oattr entries for this
-	 * query or object? */
-	return 0;
+	int rc;
+
+	if (!if_cache_table || ocache_DB == NULL)
+		return 0;
+
+	pthread_mutex_lock(&shared_mutex);
+
+	rc = sql_begin(ocache_DB);
+	if (rc != SQLITE_OK) goto out;
+
+	rc = sql_query(NULL, ocache_DB,
+		       "CREATE TEMP TABLE temp_iattrs ("
+		       "    name TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+		       "    sig  BLOB NOT NULL"
+		       ");", NULL);
+	if (rc != SQLITE_OK) goto out_fail;
+
+	rc = sql_query(NULL, ocache_DB,
+		       "CREATE TEMP TABLE temp_oattrs ("
+		       "    name TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+		       "    sig  BLOB NOT NULL,"
+		       "    value BLOB"
+		       ");", NULL);
+	if (rc != SQLITE_OK) goto out_fail;
+
+out_fail:
+	if (rc != SQLITE_OK)
+		sql_rollback(ocache_DB);
+	else	sql_commit(ocache_DB);
+out:
+	pthread_mutex_unlock(&shared_mutex);
+
+	/* we currently don't support concurrent filter executions */
+	assert(rc == SQLITE_OK);
+
+	return rc;
 }
 
 static void
@@ -348,9 +372,7 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 	odisk_get_attr_sig(obj, name, &sig);
 
 	sql_query(NULL, ocache_DB,
-		  "INSERT INTO temp_iattrs (attr_id)"
-		  "  SELECT attr_id FROM current_attrs, attrs USING (attr_id)"
-		  "  WHERE attrs.name = ?1 AND attrs.sig = ?2;",
+		  "INSERT INTO temp_iattrs (name, sig) VALUES (?1, ?2);",
 		  "SB", name, &sig, sizeof(sig_val_t));
 
 	pthread_mutex_unlock(&shared_mutex);
@@ -401,45 +423,44 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	debug("Cache add filter results\n");
 
 	rc = sql_begin(ocache_DB);
-	if (rc != SQLITE_OK) goto out_fail;
+	if (rc != SQLITE_OK) goto out;
 
 	rc = sql_query(NULL, ocache_DB,
-		       "INSERT INTO cache (filter_sig, object_sig, confidence,"
-		       "		      create_time)"
+		       "INSERT INTO cache"
+		       "  (object_sig, filter_sig, confidence, create_time)"
 		       "  VALUES (?1, ?2, ?3, strftime('%s', 'now', 'utc'));",
-		       "BBd", fsig, sizeof(sig_val_t),
-		       &obj->id_sig, sizeof(sig_val_t), conf);
+		       "BBd", &obj->id_sig, sizeof(sig_val_t), fsig,
+		       sizeof(sig_val_t), conf);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	rowid = sqlite3_last_insert_rowid(ocache_DB);
 
 	rc = sql_query(NULL, ocache_DB,
-		       "INSERT INTO attrs (name, sig, value)"
-		       "  SELECT name, sig, value FROM temp_oattrs;", NULL);
-	if (rc != SQLITE_OK) goto out_fail;
-
-	rc = sql_query(NULL, ocache_DB,
-		       "INSERT INTO output_attrs (cache_entry, attr_id)"
-		       "  SELECT ?1, attr_id FROM temp_oattrs, attrs"
-		       "  USING(name, sig);",
+		       "INSERT INTO input_attrs (cache_entry, name, sig)"
+		       "  SELECT ?1, name, sig FROM temp_iattrs;",
 		       "D", rowid);
 	if (rc != SQLITE_OK) goto out_fail;
 
-	rc = sql_query(NULL, ocache_DB, "DELETE FROM temp_oattrs;", NULL);
-	if (rc != SQLITE_OK) goto out_fail;
-
 	rc = sql_query(NULL, ocache_DB,
-		       "INSERT INTO input_attrs (cache_entry, attr_id)"
-		       "  SELECT ?1, attr_id FROM temp_iattrs;",
+		       "INSERT INTO output_attrs (cache_entry, name, sig)"
+		       "  SELECT ?1, name, sig FROM temp_oattrs;",
 		       "D", rowid);
 	if (rc != SQLITE_OK) goto out_fail;
 
-	rc = sql_query(NULL, ocache_DB, "DELETE FROM temp_iattrs;", NULL);
+	sql_query(NULL, ocache_DB,
+		  "INSERT INTO attrs (sig, value)"
+		  "  SELECT sig, value FROM temp_oattrs"
+		  "  WHERE value NOTNULL;", NULL);
 
 out_fail:
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);
-	else	sql_commit(ocache_DB);
+out:
+	sql_query(NULL, ocache_DB, "DROP TABLE temp_iattrs;", NULL);
+	sql_query(NULL, ocache_DB, "DROP TABLE temp_oattrs;", NULL);
+
+	if (rc == SQLITE_OK)
+		sql_commit(ocache_DB);
 
 	pthread_mutex_unlock(&shared_mutex);
 	return 0;

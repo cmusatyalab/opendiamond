@@ -308,7 +308,7 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 }
 
 int
-cache_get_init_attrs(query_info_t *qid, sig_val_t *idsig)
+cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 {
 	if (!if_cache_table || ocache_DB == NULL)
 		return 0;
@@ -373,7 +373,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 
 	odisk_get_attr_sig(obj, name, &sig);
 
-	if (if_cache_oattr && data != NULL /* && len < magic_value */)
+	if (if_cache_oattr /* && len < magic_value */)
 		value = data;
 
 	sql_query(NULL, ocache_DB,

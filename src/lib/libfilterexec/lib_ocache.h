@@ -57,7 +57,7 @@ int digest_cal(filter_data_t *fdata, char *fn_name, int numarg,
 
 
 void cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t *init_attr);
-int cache_get_init_attrs(query_info_t *qid, sig_val_t *idsig);
+int cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig);
 
 int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, query_info_t *qid,
 		 int *err, int64_t *cache_entry);

@@ -505,7 +505,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 		 * get initial attributes of object from cache.
 		 * if we don't find object, there isn't any point.
 		 */
-		found = cache_get_init_attrs(cstate->qinfo, &id_sig);
+		found = cache_reset_current_attrs(cstate->qinfo, &id_sig);
 		if (!found) {
 			hit = 0;
 			break;

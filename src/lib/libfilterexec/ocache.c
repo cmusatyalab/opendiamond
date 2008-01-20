@@ -179,6 +179,13 @@ cache_setup(const char *dir)
 ");"
 //"CREATE INDEX IF NOT EXISTS output_attr_idx ON output_attrs (cache_entry);"
 ""
+"CREATE TEMP TABLE initial_attrs ("
+"    object_sig	BLOB NOT NULL,"
+"    name       TEXT NOT NULL,"
+"    sig	BLOB NOT NULL,"
+"    PRIMARY KEY (object_sig, name) ON CONFLICT REPLACE"
+");"
+""
 "CREATE TEMP TABLE current_attrs ("
 "    name   TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
 "    sig    BLOB NOT NULL"
@@ -251,12 +258,10 @@ cache_combine_attr_set(query_info_t *qid, int64_t cache_entry)
 void
 cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 {
-#if 0
 	unsigned char *buf;
 	size_t len;
 	void *cookie;
 	attr_record_t *arec;
-	int64_t rowid;
 	int ret, rc;
 
 	if (!if_cache_table || ocache_DB == NULL)
@@ -266,6 +271,7 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 	debug("Cache set init attrs\n");
 
 	rc = sql_begin(ocache_DB);
+	if (rc != SQLITE_OK) goto out;
 
 	ret = obj_get_attr_first(init_attr, &buf, &len, &cookie, 0);
 	while (ret != ENOENT && rc == SQLITE_OK) {
@@ -276,18 +282,10 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 		arec = (attr_record_t *) buf;
 
 		rc = sql_query(NULL, ocache_DB,
-			       "INSERT INTO attrs (name, sig) VALUES (?1, ?2);"
-			       "SB", arec->data,
+			       "INSERT INTO initial_attrs (object_sig,name,sig)"
+			       "  VALUES (?1, ?2, ?3);",
+			       "BSB", idsig, sizeof(sig_val_t), arec->data,
 			       &arec->attr_sig, sizeof(sig_val_t));
-		if (rc != SQLITE_OK)
-			break;
-
-		rowid = sqlite3_last_insert_rowid(ocache_DB);
-
-		rc = sql_query(NULL, ocache_DB,
-			       "INSERT INTO initial_attrs (object_sig, attr_id)"
-			       "  VALUES (?1, ?2);",
-			       "BD", idsig, sizeof(sig_val_t), rowid);
 
 		ret = obj_get_attr_next(init_attr, &buf, &len, &cookie, 0);
 	}
@@ -295,9 +293,8 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);
 	else	sql_commit(ocache_DB);
-
+out:
 	pthread_mutex_unlock(&shared_mutex);
-#endif
 }
 
 int
@@ -309,7 +306,15 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 	pthread_mutex_lock(&shared_mutex);
 	debug("Cache reset current attrs\n");
 
+	sql_begin(ocache_DB);
+
 	sql_query(NULL, ocache_DB, "DELETE FROM current_attrs;", NULL);
+	sql_query(NULL, ocache_DB,
+		  "INSERT INTO current_attrs (name, sig)"
+		  " SELECT name, sig FROM initial_attrs WHERE object_sig = ?1;",
+		  "B", idsig, sizeof(sig_val_t));
+
+	sql_commit(ocache_DB);
 
 	pthread_mutex_unlock(&shared_mutex);
 	return 1;

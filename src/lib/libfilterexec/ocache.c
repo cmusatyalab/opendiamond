@@ -48,7 +48,7 @@
 #include "lib_dconfig.h"
 #include "filter_priv.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG
 #define debug(args...) fprintf(stderr, args)
 #else
 #define debug(args...)

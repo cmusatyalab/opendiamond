@@ -146,6 +146,8 @@ cache_setup(const char *dir)
 
 	debug("Initializing... ");
 	rc = sqlite3_exec(ocache_DB,
+"PRAGMA temp_store = MEMORY;"
+"PRAGMA synchronous = OFF;"
 "BEGIN TRANSACTION;"
 "CREATE TABLE IF NOT EXISTS cache ("
 "    cache_entry INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"

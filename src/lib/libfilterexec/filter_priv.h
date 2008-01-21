@@ -127,7 +127,6 @@ typedef struct filter_info {
 	/* JIAYING */
 	char	    	lib_name[PATH_MAX];
 	sig_val_t	fi_sig;
-	void	*   	cache_table;
 	int	    	fi_cache_drop; /* # of objs dropped through cache lookup */
 	int		fi_cache_pass; /* # of objs skipped by using cache */
 	int		fi_compute;    /* # of objs evaluated */

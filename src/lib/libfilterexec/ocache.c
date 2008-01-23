@@ -67,6 +67,11 @@ static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define MAX_FILTER_ARG_NAME 256
 
+/* assume we can read approximately 1MB/s of attribute data from the cache,
+ * this should at somepoint (when we actually read attributes) become a
+ * running average of the measured bandwidth. */
+#define ESTIMATED_ATTR_READ_BW (1024LL*1024LL)
+
 /*
  * This could be moved to a support library XXX
  */
@@ -206,7 +211,7 @@ int
 cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	     int *confidence, int64_t *cache_entry)
 {
-	static sqlite3_stmt *res;
+	sqlite3_stmt *res;
 	int found = 0;
 
 	if (if_cache_table == 0 || ocache_DB == NULL)
@@ -400,7 +405,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 
 	odisk_get_attr_sig(obj, name, &sig);
 
-	if (if_cache_oattr /* && len < magic_value */)
+	if (if_cache_oattr)
 		value = data;
 
 	sql_query(NULL, ocache_DB,
@@ -416,9 +421,10 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	       query_info_t *qinfo, filter_exec_mode_t exec_mode,
 	       struct timespec *elapsed)
 {
+	sqlite3_stmt *res;
 	obj_data_t *obj = (obj_data_t *) ohandle;
 	int elapsed_ms;
-	sqlite_int64 rowid;
+	sqlite_int64 rowid, oattr_size;
 	int rc;
 
 	if (!if_cache_table || ocache_DB == NULL)
@@ -454,10 +460,25 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 		       "D", rowid);
 	if (rc != SQLITE_OK) goto out_fail;
 
-	sql_query(NULL, ocache_DB,
-		  "INSERT INTO attrs (sig, value)"
-		  "  SELECT sig, value FROM temp_oattrs"
-		  "  WHERE value NOTNULL;", NULL);
+	if (!if_cache_oattr)
+		goto out;
+
+	sql_query(&res, ocache_DB,
+		  "SELECT sum(length(value)) FROM temp_oattrs;", NULL);
+	if (!res) goto out;
+
+	sql_query_row(res, "D", &oattr_size);
+	sql_query_free(res);
+
+	/* if it took a long time to generate a small amount of data, it
+	 * should be useful to cache the results so that we can read the
+	 * attributes from the cache instead of reexecuting the filter. */
+	if ((oattr_size*1000LL) < (ESTIMATED_ATTR_READ_BW*(int64_t)elapsed_ms))
+	{
+	    sql_query(NULL, ocache_DB,
+		      "INSERT INTO attrs (sig, value)"
+		      "  SELECT sig, value FROM temp_oattrs;", NULL);
+	}
 out_fail:
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);

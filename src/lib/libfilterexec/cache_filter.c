@@ -707,6 +707,18 @@ ceval_wattr_stats(off_t len)
 	}
 }
 
+/* result = a - b, should work when 'result' and 'a' point at the same object */
+/* should move to a common location */
+static void
+timespec_sub(struct timespec *a, struct timespec *b, struct timespec *result)
+{
+    result->tv_sec = a->tv_sec - b->tv_sec;
+    result->tv_nsec = a->tv_nsec - b->tv_nsec;
+    if (result->tv_nsec < 0) {
+	result->tv_sec--;
+	result->tv_nsec += 1000000000;
+    }
+}
 
 int
 ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
@@ -731,6 +743,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	u_int64_t       time_ns;	/* time for one filter */
 	u_int64_t       stack_ns;	/* time for whole filter stack */
 	char           *sig_str;
+	struct timespec filter_start, filter_end;
 
 	sig_str = sig_string(&obj_handle->id_sig);
 	log_message(LOGT_FILT, LOGL_DEBUG, "ceval_filters2(%s): Entering",
@@ -845,24 +858,29 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 			assert(cur_filter->fi_eval_fp);
 
-			/*
-			 * mark beginning of filter eval into cache ring
-			 */
+			/* mark beginning of filter eval */
 			if (add_cache_entries) {
 				ocache_add_start(obj_handle,
 						 &cur_filter->fi_sig);
 			}
 
+			clock_gettime(CLOCK_MONOTONIC, &filter_start);
+
 			conf = cur_filter->fi_eval_fp(obj_handle,
 						      cur_filter->fi_filt_arg);
 
-			/*
-			 * mark end of filter eval into cache ring
-			 */
+			clock_gettime(CLOCK_MONOTONIC, &filter_end);
+
+			/* mark end of filter eval */
 			if (add_cache_entries) {
+				struct timespec filter_elapsed;
+				timespec_sub(&filter_end, &filter_start,
+					     &filter_elapsed);
+
 				ocache_add_end(obj_handle,
 					       &cur_filter->fi_sig,
-					       conf, qinfo, exec_mode);
+					       conf, qinfo, exec_mode,
+					       &filter_elapsed);
 			}
 
 			cur_filter->fi_compute++;

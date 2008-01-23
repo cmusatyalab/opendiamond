@@ -154,8 +154,8 @@ cache_setup(const char *dir)
 "    object_sig  BLOB NOT NULL,"
 "    filter_sig  BLOB NOT NULL,"
 "    confidence  INTEGER NOT NULL,"
-"    create_time INTEGER" /* DEFAULT strftime('%s', 'now', 'utc')"*/
-/*"    create_time TEXT DEFAULT CURRENT_TIMESTAMP"*/
+"    create_time INTEGER," /* DEFAULT strftime('%s', 'now', 'utc')"*/
+"    elapsed_ms  INTEGER"
 "); "
 "CREATE INDEX IF NOT EXISTS object_filter_idx ON cache (object_sig,filter_sig);"
 ""
@@ -346,8 +346,6 @@ ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig)
 		       "    sig  BLOB NOT NULL,"
 		       "    value BLOB"
 		       ");", NULL);
-	if (rc != SQLITE_OK) goto out_fail;
-
 out_fail:
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);
@@ -415,9 +413,11 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 
 int
 ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
-	       query_info_t *qinfo, filter_exec_mode_t exec_mode)
+	       query_info_t *qinfo, filter_exec_mode_t exec_mode,
+	       struct timespec *elapsed)
 {
 	obj_data_t *obj = (obj_data_t *) ohandle;
+	int elapsed_ms;
 	sqlite_int64 rowid;
 	int rc;
 
@@ -430,12 +430,14 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	rc = sql_begin(ocache_DB);
 	if (rc != SQLITE_OK) goto out;
 
+	elapsed_ms = (elapsed->tv_sec * 1000) + (elapsed->tv_nsec / 1000000);
+
 	rc = sql_query(NULL, ocache_DB,
-		       "INSERT INTO cache"
-		       "  (object_sig, filter_sig, confidence, create_time)"
-		       "  VALUES (?1, ?2, ?3, strftime('%s', 'now', 'utc'));",
-		       "BBd", &obj->id_sig, sizeof(sig_val_t), fsig,
-		       sizeof(sig_val_t), conf);
+		"INSERT INTO cache"
+		" (object_sig, filter_sig, confidence, create_time, elapsed_ms)"
+		" VALUES (?1, ?2, ?3, strftime('%s', 'now', 'utc'), ?4);",
+		"BBdd",&obj->id_sig, sizeof(sig_val_t), fsig, sizeof(sig_val_t),
+		conf, elapsed_ms);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	rowid = sqlite3_last_insert_rowid(ocache_DB);
@@ -456,7 +458,6 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 		  "INSERT INTO attrs (sig, value)"
 		  "  SELECT sig, value FROM temp_oattrs"
 		  "  WHERE value NOTNULL;", NULL);
-
 out_fail:
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);

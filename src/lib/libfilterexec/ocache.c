@@ -58,7 +58,7 @@
  * dctl variables 
  */
 static unsigned int if_cache_table = 1;
-static unsigned int if_cache_oattr = 0;
+static unsigned int if_cache_oattr = 1;
 
 #define OCACHE_DB_NAME "/ocache.db"
 static sqlite3 *ocache_DB;
@@ -257,6 +257,38 @@ cache_combine_attr_set(query_info_t *qid, int64_t cache_entry)
 		  "D", cache_entry);
 
 	pthread_mutex_unlock(&shared_mutex);
+}
+
+/* load cached output attributes for a object (called from odisk_pr_load) */
+int
+cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
+{
+	sqlite3_stmt *res;
+	int ret, err = ENOENT; /* return a non-zero error if we had no
+				  attributes cached for this cache_entry */
+	char *name;
+	void *value;
+	int length;
+
+	pthread_mutex_lock(&shared_mutex);
+	debug("Cache read oattr\n");
+
+	ret = sql_query(&res, ocache_DB,
+			"SELECT name, value "
+			" FROM output_attrs JOIN attrs USING(sig)"
+			" WHERE cache_entry = ?1;",
+			"D", cache_entry);
+
+	while (ret == SQLITE_ROW) {
+		sql_query_row(res, "sb", &name, &value, &length);
+		err = obj_write_attr(attr, name, length, value);
+		ret = sql_query_next(res);
+		if (err) break;
+	}
+
+	sql_query_free(res);
+	pthread_mutex_unlock(&shared_mutex);
+	return err;
 }
 
 /* Build state to keep track of initial object attributes. */

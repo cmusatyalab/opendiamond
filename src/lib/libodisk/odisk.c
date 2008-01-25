@@ -35,6 +35,7 @@
 #include "lib_dconfig.h"
 #include "lib_log.h"
 #include "lib_dctl.h"
+#include "lib_ocache.h"
 #include "dctl_common.h"
 #include "odisk_priv.h"
 #include "sys_attr.h"
@@ -754,8 +755,14 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 	      odisk_state_t * odisk)
 {
 	int             err;
+	int		i;
+	char		timebuf[BUFSIZ];
+	rtimer_t	rt;
+	u_int64_t	time_ns;
+	u_int64_t	stack_ns;
 
 	assert(pr_obj != NULL);
+	stack_ns = pr_obj->stack_ns;
 
 	/*
 	 * Load base object 
@@ -768,15 +775,49 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 	}
 
 	/*
-	 * see if we have partials to load 
+	 * see if we had ocache hits, in which case we may have cached
+	 * attributes to load 
 	 */
 	if ((pr_obj->oattr_fnum == 0) ||
 	    (dynamic_load_oattr(ring_count(obj_ring)) == 0)) {
 		return (0);
 	}
 
-	/* load cached output attributes */
+	for (i = 0; i < pr_obj->oattr_fnum; i++) {
+		if (pr_obj->filters[i] == NULL)
+			continue;
 
+		rt_init(&rt);
+		rt_start(&rt);
+
+		/* get cached attribute values from the ocache.db if possible */
+		err = cache_read_oattrs(&(*new_object)->attr_info,
+					pr_obj->filter_hits[i]);
+
+		rt_stop(&rt);
+		time_ns = rt_nanos(&rt);
+		stack_ns += time_ns;
+
+		/* cache_read_oattrs returns with an error if we failed to
+		 * add the attributes to new_object or if there was no
+		 * cached attribute for this filter. continue to the next hit */
+		if (err != 0)
+			continue;
+
+		/* update total filter run time */
+		sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
+		err = obj_write_attr(&(*new_object)->attr_info, timebuf,
+				     sizeof(time_ns), (void *) &time_ns);
+		if (err != 0)
+			printf("CHECK OBJECT %016llX ATTR FILE\n",
+			       pr_obj->obj_id);
+	}
+
+	/* update total filter run time */
+	err = obj_write_attr(&(*new_object)->attr_info,
+			     FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
+	if (err != 0)
+		printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
 	return (0);
 }
 

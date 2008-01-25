@@ -76,7 +76,6 @@ static opt_policy_t policy_arr[] = {
 
 static unsigned int    use_cache_table = 1;
 static unsigned int    use_cache_oattr = 1;
-static unsigned int    cache_oattr_thresh = 10000;
 static unsigned int    mdynamic_load = 1;
 static unsigned int	add_cache_entries = 1;
 static unsigned int	hybrid_mode_enabled = 1;
@@ -257,9 +256,6 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_oattr", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &use_cache_oattr);
-	dctl_register_leaf(DEV_CACHE_PATH, "cache_oattr_thresh",
-			   DCTL_DT_UINT32, dctl_read_uint32,
-			   dctl_write_uint32, &cache_oattr_thresh);
 	dctl_register_leaf(DEV_CACHE_PATH, "mdynamic_load", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &mdynamic_load);
@@ -590,10 +586,8 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 					    && perm_num == 0) {
 						pr_obj->filters[oattr_fnum] =
 						    cur_filter->fi_name;
-						memcpy(&pr_obj->
-						       fsig[oattr_fnum],
-						       &cur_filter->fi_sig,
-						       sizeof(sig_val_t));
+						pr_obj->filter_hits[oattr_fnum]=
+						    cache_entry;
 						oattr_fnum++;
 					}
 				}

@@ -11,6 +11,7 @@ nodist_od_server_SOURCES = od_svc.c
 od_server_SOURCES = od_server.c
 od_server_LDADD = libod.la ../liblog/liblog.la ../libdctl/libdctl.la \
 	../libodisk/libodisk.la ../libdconfig/libdconfig.la \
+	../libfilterexec/libfilterexec.la ../libfilter/libfilter.la \
 	../libtools/libtools.la ../libdctl/libdctl.la \
 	${GLIB2_LIBS}
 

@@ -283,6 +283,10 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 
 	*obj_handle = (obj_data_t *) new_obj;
 	odisk->obj_load++;
+
+	/* add attributes to the ocache */
+	ocache_add_initial_attrs(obj_handle);
+
 	return (0);
 }
 

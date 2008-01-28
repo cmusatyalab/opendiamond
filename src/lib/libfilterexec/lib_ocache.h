@@ -44,7 +44,7 @@ typedef struct ceval_state {
 int digest_cal(filter_data_t *fdata, char *fn_name, int numarg, 
 	char **filt_args, int blob_len, void *blob, sig_val_t * signature);
 
-void cache_set_init_attrs(sig_val_t * id_sig, obj_attr_t *init_attr);
+void ocache_add_initial_attrs(lf_obj_handle_t ohandle);
 int cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig);
 
 int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, query_info_t *qid,

@@ -157,7 +157,7 @@ cache_setup(const char *dir)
 "CREATE TABLE IF NOT EXISTS cache ("
 "    cache_entry INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
 "    object_sig  BLOB NOT NULL,"
-"    filter_sig  BLOB NOT NULL,"
+"    filter_sig  BLOB,"
 "    confidence  INTEGER NOT NULL,"
 "    create_time INTEGER," /* DEFAULT strftime('%s', 'now', 'utc')"*/
 "    elapsed_ms  INTEGER"
@@ -183,13 +183,6 @@ cache_setup(const char *dir)
 "    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
 ");"
 //"CREATE INDEX IF NOT EXISTS output_attr_idx ON output_attrs (cache_entry);"
-""
-"CREATE TEMP TABLE initial_attrs ("
-"    object_sig	BLOB NOT NULL,"
-"    name       TEXT NOT NULL,"
-"    sig	BLOB NOT NULL,"
-"    PRIMARY KEY (object_sig, name) ON CONFLICT REPLACE"
-");"
 ""
 "CREATE TEMP TABLE current_attrs ("
 "    name   TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
@@ -293,24 +286,35 @@ cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 
 /* Build state to keep track of initial object attributes. */
 void
-cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
+ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 {
+	obj_data_t *obj = (obj_data_t *)ohandle;
 	unsigned char *buf;
 	size_t len;
 	void *cookie;
 	attr_record_t *arec;
 	int ret, rc;
+	sqlite_int64 rowid;
 
 	if (!if_cache_table || ocache_DB == NULL)
 		return;
 
 	pthread_mutex_lock(&shared_mutex);
-	debug("Cache set init attrs\n");
+	debug("Cache add initial attrs\n");
 
 	rc = sql_begin(ocache_DB);
 	if (rc != SQLITE_OK) goto out;
 
-	ret = obj_get_attr_first(init_attr, &buf, &len, &cookie, 0);
+	rc = sql_query(NULL, ocache_DB,
+		"INSERT INTO cache"
+		" (object_sig, confidence, create_time, elapsed_ms)"
+		" VALUES (?1, 100, strftime('%s', 'now', 'utc'), 0);",
+		"B", &obj->id_sig, sizeof(sig_val_t));
+	if (rc != SQLITE_OK) goto out_fail;
+
+	rowid = sqlite3_last_insert_rowid(ocache_DB);
+
+	ret = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, 0);
 	while (ret != ENOENT && rc == SQLITE_OK) {
 		if (buf == NULL) {
 			printf("can not get attr\n");
@@ -319,14 +323,15 @@ cache_set_init_attrs(sig_val_t *idsig, obj_attr_t *init_attr)
 		arec = (attr_record_t *) buf;
 
 		rc = sql_query(NULL, ocache_DB,
-			       "INSERT INTO initial_attrs (object_sig,name,sig)"
-			       "  VALUES (?1, ?2, ?3);",
-			       "BSB", idsig, sizeof(sig_val_t), arec->data,
+			       "INSERT INTO output_attrs (cache_entry,name,sig)"
+			       "  VALUES (?1, ?2, ?3);", "DSB",
+			       rowid, arec->data,
 			       &arec->attr_sig, sizeof(sig_val_t));
 
-		ret = obj_get_attr_next(init_attr, &buf, &len, &cookie, 0);
+		ret = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie,0);
 	}
 
+out_fail:
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);
 	else	sql_commit(ocache_DB);
@@ -348,7 +353,9 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 	sql_query(NULL, ocache_DB, "DELETE FROM current_attrs;", NULL);
 	sql_query(NULL, ocache_DB,
 		  "INSERT INTO current_attrs (name, sig)"
-		  " SELECT name, sig FROM initial_attrs WHERE object_sig = ?1;",
+		  " SELECT name, sig FROM cache JOIN output_attrs"
+		  " USING(cache_entry)"
+		  " WHERE object_sig = ?1 and filter_sig ISNULL;",
 		  "B", idsig, sizeof(sig_val_t));
 
 	sql_commit(ocache_DB);

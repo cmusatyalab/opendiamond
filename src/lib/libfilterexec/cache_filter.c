@@ -764,9 +764,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);
 
-	/* save initial object attributes */
-	cache_set_init_attrs(&obj_handle->id_sig, &obj_handle->attr_info);
-
 	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm); cur_fidx++) {
 
 		if ((pass == 0) && (fdata->full_eval == 0) && 

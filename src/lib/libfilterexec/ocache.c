@@ -135,15 +135,17 @@ static void
 cache_setup(const char *dir)
 {
 	char *db_file, *errmsg = NULL;
+	sqlite3_stmt *res;
+	int version;
 	int rc;
 
-	if (ocache_DB != NULL) return;
+	if (if_cache_table == 0 || ocache_DB != NULL) return;
 
 	db_file = malloc(strlen(dir) + strlen(OCACHE_DB_NAME) + 1);
 	strcpy(db_file, dir);
 	strcat(db_file, OCACHE_DB_NAME);
 
-	debug("Opening ocache database\n");
+	fprintf(stderr, "Opening ocache database\n");
 	rc = sqlite3_open(db_file, &ocache_DB);
 
 	free(db_file);
@@ -153,12 +155,25 @@ cache_setup(const char *dir)
 		return;
 	}
 
-	debug("Initializing... ");
-	rc = sqlite3_exec(ocache_DB,
-"PRAGMA temp_store = MEMORY;"
-"PRAGMA synchronous = OFF;"
-"BEGIN TRANSACTION;"
-"CREATE TABLE IF NOT EXISTS cache ("
+	fprintf(stderr, "Initializing... ");
+
+	sql_set_busy_handler(ocache_DB);
+	sql_query(NULL, ocache_DB, "PRAGMA temp_store = MEMORY;", NULL);
+	sql_query(NULL, ocache_DB, "PRAGMA synchronous = OFF;", NULL);
+	sql_query(&res, ocache_DB, "PRAGMA user_version;", NULL);
+	assert(res); /* PRAGMA user_version should always succeed */
+
+	sql_query_row(res, "d", &version);
+	sql_query_free(res);
+
+	sql_begin(ocache_DB);
+
+	switch (version) {
+	/* Initializing a new db */
+	case 0: fprintf(stderr, "new database... ");
+		rc = sqlite3_exec(ocache_DB,
+"PRAGMA user_version = 1;"
+"CREATE TABLE cache ("
 "    cache_entry INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
 "    object_sig  BLOB NOT NULL,"
 "    filter_sig  BLOB,"
@@ -166,42 +181,73 @@ cache_setup(const char *dir)
 "    create_time INTEGER," /* DEFAULT strftime('%s', 'now', 'utc')"*/
 "    elapsed_ms  INTEGER"
 "); "
-"CREATE INDEX IF NOT EXISTS object_filter_idx ON cache (object_sig,filter_sig);"
+"CREATE INDEX object_filter_idx ON cache (object_sig,filter_sig);"
 ""
-"CREATE TABLE IF NOT EXISTS attrs ("
+"CREATE TABLE input_attrs ("
+"    cache_entry INTEGER NOT NULL,"
+"    name	 TEXT NOT NULL,"
+"    sig	 BLOB NOT NULL,"
+"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
+");"
+""
+"CREATE TABLE output_attrs ("
+"    cache_entry INTEGER NOT NULL,"
+"    name	 TEXT NOT NULL,"
+"    sig	 BLOB NOT NULL,"
+"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
+");"
+""
+"CREATE TABLE attrs ("
 "    sig	BLOB PRIMARY KEY NOT NULL ON CONFLICT IGNORE,"
 "    value	BLOB"
-");"
-""
-"CREATE TABLE IF NOT EXISTS input_attrs ("
-"    cache_entry INTEGER NOT NULL,"
-"    name	 TEXT NOT NULL,"
-"    sig	 BLOB NOT NULL,"
-"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
-");"
-""
-"CREATE TABLE IF NOT EXISTS output_attrs ("
-"    cache_entry INTEGER NOT NULL,"
-"    name	 TEXT NOT NULL,"
-"    sig	 BLOB NOT NULL,"
-"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
-");"
-//"CREATE INDEX IF NOT EXISTS output_attr_idx ON output_attrs (cache_entry);"
-""
-"CREATE TEMP TABLE current_attrs ("
-"    name   TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
-"    sig    BLOB NOT NULL"
-");"
-//"CREATE INDEX IF NOT EXISTS current_attr_idx ON current_attrs (name, sig);"
-"COMMIT TRANSACTION;" , NULL, NULL, &errmsg);
-    if (rc != SQLITE_OK) {
-	    fprintf(stderr, "ocache.db initialization failed: %s\n", errmsg);
-	    sqlite3_free(errmsg);
-	    ocache_DB = NULL;
-    }
-    debug("done\n");
+");", NULL, NULL, &errmsg);
+		if (rc != SQLITE_OK) goto err_out;
+		break;
 
-    sql_set_busy_handler(ocache_DB);
+#if 0
+	/* apply any necessary upgrades to the schema */
+	case 1:
+	...
+		fprintf(stderr, "upgraded schema... ");
+	case current_version:
+		break;
+#endif
+	case 1: fprintf(stderr, "up-to-date schema... ");
+		break;
+	default:
+		errmsg = strdup("Unrecognized ocache.db version");
+		rc = SQLITE_ERROR;
+		goto err_out;
+	}
+	fprintf(stderr, "temporary tables... ");
+	rc = sqlite3_exec(ocache_DB,
+"CREATE TEMP TABLE current_attrs ("
+"    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+"    sig	BLOB NOT NULL"
+");"
+"CREATE TEMP TABLE temp_iattrs ("
+"    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+"    sig	BLOB NOT NULL"
+");"
+"CREATE TEMP TABLE temp_oattrs ("
+"    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+"    sig	BLOB NOT NULL,"
+"    value	BLOB"
+");", NULL, NULL, &errmsg);
+
+err_out:
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "disabling cache\n");
+		fprintf(stderr, "Cache initialization failed: %s\n", errmsg);
+		if (errmsg) free(errmsg);
+
+		sql_rollback(ocache_DB);
+		sqlite3_close(ocache_DB);
+		ocache_DB = NULL;
+	} else {
+		sql_commit(ocache_DB);
+		fprintf(stderr, "done\n");
+	}
 }
 
 int
@@ -371,40 +417,27 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 int
 ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig)
 {
-	int rc;
+	sqlite3_stmt *res;
+	sqlite_int64 nattr = 0;
 
 	if (!if_cache_table || ocache_DB == NULL)
 		return 0;
 
 	pthread_mutex_lock(&shared_mutex);
+	debug("Start of filter execution\n");
 
-	rc = sql_begin(ocache_DB);
-	if (rc != SQLITE_OK) goto out;
+	sql_query(&res, ocache_DB, "SELECT COUNT(*) FROM temp_oattrs;", NULL);
+	if (res) {
+		sql_query_row(res, "D", &nattr);
+		sql_query_free(res);
+	}
 
-	rc = sql_query(NULL, ocache_DB,
-		       "CREATE TEMP TABLE temp_iattrs ("
-		       "    name TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
-		       "    sig  BLOB NOT NULL"
-		       ");", NULL);
-	if (rc != SQLITE_OK) goto out_fail;
-
-	rc = sql_query(NULL, ocache_DB,
-		       "CREATE TEMP TABLE temp_oattrs ("
-		       "    name TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
-		       "    sig  BLOB NOT NULL,"
-		       "    value BLOB"
-		       ");", NULL);
-out_fail:
-	if (rc != SQLITE_OK)
-		sql_rollback(ocache_DB);
-	else	sql_commit(ocache_DB);
-out:
 	pthread_mutex_unlock(&shared_mutex);
 
 	/* we currently don't support concurrent filter executions */
-	assert(rc == SQLITE_OK);
+	assert(nattr == 0);
 
-	return rc;
+	return 0;
 }
 
 static void
@@ -526,8 +559,8 @@ out_fail:
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);
 out:
-	sql_query(NULL, ocache_DB, "DROP TABLE temp_iattrs;", NULL);
-	sql_query(NULL, ocache_DB, "DROP TABLE temp_oattrs;", NULL);
+	sql_query(NULL, ocache_DB, "DELETE FROM temp_iattrs;", NULL);
+	sql_query(NULL, ocache_DB, "DELETE FROM temp_oattrs;", NULL);
 
 	if (rc == SQLITE_OK)
 		sql_commit(ocache_DB);
@@ -541,6 +574,8 @@ ocache_init(char *dirp)
 {
 	int  err;
 	char *dir_path;
+
+	debug("ocache_init called\n");
 
 	if (dirp == NULL) {
 		dir_path = dconf_get_cachedir();
@@ -584,6 +619,7 @@ ocache_init(char *dirp)
 int
 ocache_start(void)
 {
+	debug("ocache_start called\n");
 	return 0;
 }
 
@@ -593,15 +629,17 @@ ocache_start(void)
 int
 ocache_stop(char *dirp)
 {
+	debug("ocache_stop called\n");
 	return 0;
 }
 
 /*
- * called by ceval_stop, ceval_stop is called when Stop 
+ * called by ceval_stop, ceval_stop is called when Stop
  */
 int
 ocache_stop_search(sig_val_t * fsig)
 {
+	debug("ocache_stop_search called\n");
 	return 0;
 }
 

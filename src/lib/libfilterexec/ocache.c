@@ -97,9 +97,13 @@ digest_cal(filter_data_t * fdata, char *fn_name, int numarg, char **filt_args,
 		n++;
 	}
 
+#if 0
+	/* the filter should already be uniquely defined based on the
+	 * filter data and attributes/parameters */
 	iov[n].iov_base = fn_name;
 	iov[n].iov_len = strlen(fn_name);
 	n++;
+#endif
 
 	/* include the args */
 	for (i = 0; i < numarg; i++) {

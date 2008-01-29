@@ -197,9 +197,11 @@ cache_setup(const char *dir)
 "    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
 ");"
 ""
+/* We used to have ON CONFLICT IGNORE defined here, but we still got constraint
+ * violation errors, so now we use INSERT OR IGNORE in cache_add_end */
 "CREATE TABLE attrs ("
-"    sig	BLOB PRIMARY KEY NOT NULL ON CONFLICT IGNORE,"
-"    value	BLOB"
+"    sig	BLOB PRIMARY KEY NOT NULL,"
+"    value	BLOB NOT NULL"
 ");", NULL, NULL, &errmsg);
 		if (rc != SQLITE_OK) goto err_out;
 		break;
@@ -524,12 +526,14 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 
 	rowid = sqlite3_last_insert_rowid(ocache_DB);
 
+	debug("Cache add input attributes\n");
 	rc = sql_query(NULL, ocache_DB,
 		       "INSERT INTO input_attrs (cache_entry, name, sig)"
 		       "  SELECT ?1, name, sig FROM temp_iattrs;",
 		       "D", rowid);
 	if (rc != SQLITE_OK) goto out_fail;
 
+	debug("Cache add output attributes\n");
 	rc = sql_query(NULL, ocache_DB,
 		       "INSERT INTO output_attrs (cache_entry, name, sig)"
 		       "  SELECT ?1, name, sig FROM temp_oattrs;",
@@ -551,8 +555,9 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	 * attributes from the cache instead of reexecuting the filter. */
 	if ((oattr_size*1000LL) < (ESTIMATED_ATTR_READ_BW*(int64_t)elapsed_ms))
 	{
+	    debug("Cache add attributes values\n");
 	    sql_query(NULL, ocache_DB,
-		      "INSERT INTO attrs (sig, value)"
+		      "INSERT OR IGNORE INTO attrs (sig, value)"
 		      "  SELECT sig, value FROM temp_oattrs;", NULL);
 	}
 out_fail:

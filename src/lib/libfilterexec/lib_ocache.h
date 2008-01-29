@@ -41,8 +41,9 @@ typedef struct ceval_state {
 	query_info_t	*qinfo;			// state for current search
 } ceval_state_t;
 
-int digest_cal(filter_data_t *fdata, char *fn_name, int numarg, 
-	char **filt_args, int blob_len, void *blob, sig_val_t * signature);
+int digest_cal(filter_data_t *fdata, char *filter_name, char *function_name,
+	       int numarg, char **filt_args, int blob_len, void *blob,
+	       sig_val_t * signature);
 
 void ocache_add_initial_attrs(lf_obj_handle_t ohandle);
 int cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig);

@@ -378,7 +378,8 @@ fexec_init_search(filter_data_t * fdata)
 		/*
 		 * XXX this need some works 
 		 */
-		err = digest_cal(fdata, cur_filt->fi_eval_name,
+		err = digest_cal(fdata,
+				 cur_filt->fi_name, cur_filt->fi_eval_name,
 				 cur_filt->fi_numargs, cur_filt->fi_arglist,
 				 cur_filt->fi_blob_len,
 				 cur_filt->fi_blob_data, &cur_filt->fi_sig);

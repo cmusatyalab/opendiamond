@@ -76,14 +76,15 @@ static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
  * This could be moved to a support library XXX
  */
 int
-digest_cal(filter_data_t * fdata, char *fn_name, int numarg, char **filt_args,
-	   int blob_len, void *blob, sig_val_t * signature)
+digest_cal(filter_data_t * fdata, char *filter_name, char *function_name,
+	   int numarg, char **filt_args, int blob_len, void *blob,
+	   sig_val_t * signature)
 {
 	struct ciovec *iov;
 	int i, len, n = 0;
 
 	len =	fdata->num_libs +	/* library_signatures */
-		1 +			/* filter name */
+		2 +			/* filter/function name */
 		numarg +		/* filter arguments */
 		1;			/* optional binary blob */
 
@@ -102,8 +103,12 @@ digest_cal(filter_data_t * fdata, char *fn_name, int numarg, char **filt_args,
 	 * However some filters use their name as part of the generated output
 	 * attributes and so differently named executions of the same filter
 	 * should not be considered identical. */
-	iov[n].iov_base = fn_name;
-	iov[n].iov_len = strlen(fn_name);
+	iov[n].iov_base = filter_name;
+	iov[n].iov_len = strlen(filter_name);
+	n++;
+
+	iov[n].iov_base = function_name;
+	iov[n].iov_len = strlen(function_name);
 	n++;
 
 	/* include the args */

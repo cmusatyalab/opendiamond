@@ -225,7 +225,8 @@ ceval_init_search(filter_data_t * fdata, query_info_t *qinfo, ceval_state_t * cs
 			continue;
 
 		cur_filt = &fdata->fd_filters[fid];
-		digest_cal(fdata, cur_filt->fi_eval_name,
+		digest_cal(fdata,
+			   cur_filt->fi_name, cur_filt->fi_eval_name,
 			   cur_filt->fi_numargs, cur_filt->fi_arglist,
 			   cur_filt->fi_blob_len, cur_filt->fi_blob_data,
 			   &cur_filt->fi_sig);

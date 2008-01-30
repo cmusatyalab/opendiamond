@@ -360,6 +360,10 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 	if (!if_cache_table || ocache_DB == NULL)
 		return;
 
+	/* check if there are any initial attributes to add */
+	ret = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, 0);
+	if (ret == ENOENT) return;
+
 	pthread_mutex_lock(&shared_mutex);
 	debug("Cache add initial attrs\n");
 
@@ -375,7 +379,6 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 
 	rowid = sqlite3_last_insert_rowid(ocache_DB);
 
-	ret = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, 0);
 	while (ret != ENOENT && rc == SQLITE_OK) {
 		if (buf == NULL) {
 			printf("can not get attr\n");

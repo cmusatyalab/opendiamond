@@ -594,34 +594,38 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	int             r_err;
 	int32_t         r_opid;
 	enum clnt_stat retval;
-
+	void *buf;
 
 	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
 
-	if((data = malloc(plen+len)) == NULL) {
+	if((buf = malloc(plen+len)) == NULL) {
 	  log_message(LOGT_NET, LOGL_ERR,
 		      "device_write_leaf: failed malloc data");
 	  return (EAGAIN);
 	}
 
-	memcpy(&data[0], path, plen);
-	memcpy(&data[plen], data, len);
+	memcpy(&buf[0], path, plen);
+	memcpy(&buf[plen], data, len);
 
 	dx.dctl_err = 0;
 	dx.dctl_opid = opid;
 	dx.dctl_plen = plen;
 	dx.dctl_data.dctl_data_len = plen+len;
-	dx.dctl_data.dctl_data_val = data;
+	dx.dctl_data.dctl_data_val = buf;
 
 	memset(&drx, 0, sizeof(drx));
 	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: couldn't lock mutex");
+	  free(buf);
 	  return -1;
 	}
 	retval = device_write_leaf_x_2(0, dx, &drx, 
 				       dev->con_data.rpc_client);
+
+	free(buf);
+
 	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: couldn't unlock mutex");
 	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
@@ -631,7 +635,6 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	if (retval != RPC_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call sending failed");
 	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  free(data);
 	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	  return -1;
 	}
@@ -639,7 +642,6 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	if(rc->service_err != DIAMOND_SUCCESS) {
 	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call servicing failed");
 	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  free(data);
 	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	  return -1;
 	}
@@ -649,7 +651,6 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 
 	(*dev->hstub_wleaf_done_cb) (dev->hcookie, r_err, r_opid);
 
-	free(data);
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 
 	return (0);

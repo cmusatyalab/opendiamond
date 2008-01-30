@@ -27,6 +27,12 @@
 
 #include "sql.h"
 
+#if SQLITE_VERSION_NUMBER >= 3003011
+#define sql_prepare sqlite3_prepare_v2
+#else
+#define sql_prepare sqlite3_prepare
+#endif
+
 void sql_query_free(sqlite3_stmt *stmt)
 {
 	if (stmt)
@@ -44,7 +50,7 @@ int sql_query(sqlite3_stmt **result, sqlite3 *db, const char *query,
 
 	if (result != NULL)
 		*result=NULL;
-	ret=sqlite3_prepare_v2(db, query, -1, &stmt, NULL);
+	ret=sql_prepare(db, query, -1, &stmt, NULL);
 	if (ret) {
 		fprintf(stderr, "SQL prepare error: %s\n", sqlite3_errmsg(db));
 		return ret;

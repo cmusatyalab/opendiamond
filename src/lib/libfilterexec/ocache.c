@@ -145,7 +145,7 @@ cache_setup(const char *dir)
 	int version;
 	int rc;
 
-	if (if_cache_table == 0 || ocache_DB != NULL) return;
+	if (ocache_DB != NULL) return;
 
 	db_file = malloc(strlen(dir) + strlen(OCACHE_DB_NAME) + 1);
 	strcpy(db_file, dir);
@@ -265,7 +265,7 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	sqlite3_stmt *res;
 	int found = 0;
 
-	if (if_cache_table == 0 || ocache_DB == NULL)
+	if (ocache_DB == NULL)
 		return 0;
 
 	pthread_mutex_lock(&shared_mutex);
@@ -295,7 +295,7 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 void
 cache_combine_attr_set(query_info_t *qid, int64_t cache_entry)
 {
-	if (!if_cache_table || ocache_DB == NULL)
+	if (ocache_DB == NULL)
 		return;
 
 	pthread_mutex_lock(&shared_mutex);
@@ -320,6 +320,9 @@ cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 	char *name;
 	void *value;
 	int length;
+
+	if (ocache_DB == NULL)
+		return ENOENT;
 
 	pthread_mutex_lock(&shared_mutex);
 	debug("Cache read oattr\n");
@@ -400,7 +403,7 @@ out:
 int
 cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 {
-	if (!if_cache_table || ocache_DB == NULL)
+	if (ocache_DB == NULL)
 		return 0;
 
 	pthread_mutex_lock(&shared_mutex);
@@ -511,14 +514,22 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	sqlite_int64 rowid, oattr_size;
 	int rc;
 
-	if (!if_cache_table || ocache_DB == NULL)
+	if (ocache_DB == NULL)
 		return 0;
 
 	pthread_mutex_lock(&shared_mutex);
 	debug("Cache add filter results\n");
 
+	/* if caching is disabled, we still want to make sure that the
+	 * temporary tables are cleared in case caching was disabled during
+	 * the execution of this filter */
+	rc = SQLITE_ERROR;
+	if (if_cache_table == 0)
+		goto out;
+
 	rc = sql_begin(ocache_DB);
-	if (rc != SQLITE_OK) goto out;
+	if (rc != SQLITE_OK)
+		goto out;
 
 	elapsed_ms = (elapsed->tv_sec * 1000) + (elapsed->tv_nsec / 1000000);
 

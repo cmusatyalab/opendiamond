@@ -240,7 +240,7 @@ cache_setup(const char *dir)
 "CREATE TEMP TABLE temp_oattrs ("
 "    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
 "    sig	BLOB NOT NULL,"
-"    value	BLOB"
+"    length	INTEGER"
 ");", NULL, NULL, &errmsg);
 
 err_out:
@@ -482,7 +482,6 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 {
 	obj_data_t *obj = (obj_data_t *) ohandle;
 	sig_val_t sig;
-	const void *value = NULL;
 
 	if (!if_cache_table || ocache_DB == NULL)
 		return;
@@ -495,13 +494,10 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 
 	odisk_get_attr_sig(obj, name, &sig);
 
-	if (if_cache_oattr)
-		value = data;
-
 	sql_query(NULL, ocache_DB,
-		  "INSERT INTO temp_oattrs (name, sig, value)"
-		  "  VALUES (?1, ?2, ?3);",
-		  "SBB", name, &sig, sizeof(sig_val_t), value, len);
+		  "INSERT INTO temp_oattrs (name, sig, length)"
+		  " VALUES (?1, ?2, ?3);", "SBd",
+		  name, &sig, sizeof(sig_val_t), len);
 
 	pthread_mutex_unlock(&shared_mutex);
 }
@@ -563,8 +559,7 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	if (!if_cache_oattr)
 		goto out;
 
-	sql_query(&res, ocache_DB,
-		  "SELECT sum(length(value)) FROM temp_oattrs;", NULL);
+	sql_query(&res, ocache_DB, "SELECT sum(length) FROM temp_oattrs;",NULL);
 	if (!res) goto out;
 
 	sql_query_row(res, "D", &oattr_size);
@@ -573,13 +568,34 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 	/* if it took a long time to generate a small amount of data, it
 	 * should be useful to cache the results so that we can read the
 	 * attributes from the cache instead of reexecuting the filter. */
-	if ((oattr_size*1000LL) < (ESTIMATED_ATTR_READ_BW*(int64_t)elapsed_ms))
-	{
-	    debug("Cache add attributes values\n");
-	    sql_query(NULL, ocache_DB,
-		      "INSERT OR IGNORE INTO attrs (sig, value)"
-		      "  SELECT sig, value FROM temp_oattrs;", NULL);
+	if ((oattr_size*1000LL) >= (ESTIMATED_ATTR_READ_BW*(int64_t)elapsed_ms))
+		goto out;
+
+	debug("Cache add attributes values\n");
+
+	rc = sql_query(&res, ocache_DB,
+		       "SELECT name, sig FROM temp_oattrs;", NULL);
+	while (rc == SQLITE_ROW) {
+		char *name;
+		sig_val_t *sig;
+		void *data;
+		int len;
+
+		sql_query_row(res, "sb", &name, &sig, &len);
+		assert(len == sizeof(sig_val_t));
+
+		rc = obj_ref_attr(&obj->attr_info, name, &len, &data);
+		assert(rc == 0);
+
+		rc = sql_query(NULL, ocache_DB,
+			       "INSERT OR IGNORE INTO attrs (sig, value)"
+			       " VALUES (?1, ?2);", "BB",
+			       sig, sizeof(sig_val_t), data, len);
+		if (rc != SQLITE_OK) break;
+
+		rc = sql_query_next(res);
 	}
+	sql_query_free(res);
 out_fail:
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);

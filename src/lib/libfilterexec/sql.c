@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "sql.h"
 
@@ -197,8 +198,9 @@ static int busy_handler(void *db, int count)
 		count = 10;
 
 	ms = 1 << count;
+	struct timespec ts = { ms / 1000, (ms % 1000) * 1000000 };
 
-	sqlite3_sleep(ms);
+	nanosleep(&ts, NULL);
 	return 1;
 }
 

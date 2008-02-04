@@ -183,6 +183,7 @@ enumerate_all_objects(char *path) {
     return NULL;
   }
 
+  list->head = NULL;
   pthread_mutex_init(&list->mutex, NULL);
 
   while(fgets(buf, MAXPATHLEN, fp) != NULL) {

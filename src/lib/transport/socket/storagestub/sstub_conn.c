@@ -16,6 +16,9 @@
  * These file handles a lot of the device specific code.  For the current
  * version we have state for each of the devices.
  */
+
+#define _GNU_SOURCE
+
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>

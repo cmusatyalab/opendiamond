@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <netdb.h>
 #include <assert.h>
+#include <limits.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_dconfig.h"

@@ -349,13 +349,15 @@ cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 void
 ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 {
-	obj_data_t *obj = (obj_data_t *)ohandle;
+	obj_data_t *obj = *(obj_data_t **)ohandle;
 	unsigned char *buf;
 	size_t len;
 	void *cookie;
 	attr_record_t *arec;
 	int ret, rc;
 	sqlite_int64 rowid;
+	sqlite3_stmt *res;
+	sqlite_int64 have_initial_attrs = 0;
 
 	if (!if_cache_table || ocache_DB == NULL)
 		return;
@@ -370,10 +372,21 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 	rc = sql_begin(ocache_DB);
 	if (rc != SQLITE_OK) goto out;
 
+	rc = sql_query(&res, ocache_DB,
+		"SELECT COUNT(*) FROM cache WHERE"
+		" object_sig = ?1 AND filter_sig ISNULL",
+		"B", &obj->id_sig, sizeof(sig_val_t));
+	if (res) {
+		sql_query_row(res, "D", &have_initial_attrs);
+		sql_query_free(res);
+	}
+	if (have_initial_attrs)
+		goto out;
+
 	rc = sql_query(NULL, ocache_DB,
 		"INSERT INTO cache"
 		" (object_sig, confidence, create_time, elapsed_ms)"
-		" VALUES (?1, 100, strftime('%s', 'now', 'utc'), 0);",
+		" VALUES (?1, 1, strftime('%s', 'now', 'utc'), 0);",
 		"B", &obj->id_sig, sizeof(sig_val_t));
 	if (rc != SQLITE_OK) goto out_fail;
 
@@ -419,7 +432,7 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 		  "INSERT INTO current_attrs (name, sig)"
 		  " SELECT name, sig FROM cache JOIN output_attrs"
 		  " USING(cache_entry)"
-		  " WHERE object_sig = ?1 and filter_sig ISNULL;",
+		  " WHERE object_sig = ?1 AND filter_sig ISNULL;",
 		  "B", idsig, sizeof(sig_val_t));
 
 	sql_commit(ocache_DB);
@@ -579,7 +592,7 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 		char *name;
 		sig_val_t *sig;
 		void *data;
-		int len;
+		size_t len;
 
 		sql_query_row(res, "sb", &name, &sig, &len);
 		assert(len == sizeof(sig_val_t));

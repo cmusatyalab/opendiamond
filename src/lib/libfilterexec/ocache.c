@@ -349,7 +349,7 @@ cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 void
 ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 {
-	obj_data_t *obj = *(obj_data_t **)ohandle;
+	obj_data_t *obj = (obj_data_t *)ohandle;
 	unsigned char *buf;
 	size_t len;
 	void *cookie;
@@ -381,7 +381,7 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 		sql_query_free(res);
 	}
 	if (have_initial_attrs)
-		goto out;
+		goto out_fail;
 
 	rc = sql_query(NULL, ocache_DB,
 		"INSERT INTO cache"

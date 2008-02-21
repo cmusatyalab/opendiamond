@@ -1,5 +1,5 @@
 SUBDIRS = libtools libdconfig libdctl liblog libodisk libfilter \
-	libfilterexec libod libauth transport libsearchlet libscope
+	libfilterexec libauth transport libsearchlet libscope
 
 lib_LTLIBRARIES = libopendiamond.la
 
@@ -11,7 +11,7 @@ libopendiamond_la_SOURCES =
 # don't LIBADD .la files in subdirectories (or multiple definitions will occur)
 libopendiamond_la_LIBADD = libauth/libauth.la libdconfig/libdconfig.la \
 	libdctl/libdctl.la libfilter/libfilter.la \
-	libfilterexec/libfilterexec.la liblog/liblog.la libod/libod.la \
+	libfilterexec/libfilterexec.la liblog/liblog.la \
 	libodisk/libodisk.la libsearchlet/libsearchlet.la \
 	libtools/libtools.la transport/libtransport.la \
 	libscope/libscope.la

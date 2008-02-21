@@ -20,7 +20,7 @@ od_server_LDADD = libod.la ../liblog/liblog.la ../libdctl/libdctl.la \
 # rpcgen stuff (includes hack for rpcgen's interesting behavior with paths)
 CLEANFILES = od_clnt.c od_xdr.c od.h od_svc.c od.x lib_od.h
 od_clnt.c od_xdr.c od.h od_svc.c: od.x lib_od.h
-	rpcgen od.x
+	$(RPCGEN) od.x
 
 od.x: od.x.in
 	cp $< $@

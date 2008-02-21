@@ -41,28 +41,28 @@ ugly_perl_command = "undef $$/; while(<>) { s/bool_t\nxdr_begin_preamble.*bool_t
 
 rpc_preamble.h: rpc_preamble.x
 	$(RM) $@
-	rpcgen -M -N -C -h -o $@ $<
+	$(RPCGEN) -M -N -C -h -o $@ $<
 
 rpc_preamble_xdr.c: rpc_preamble.x rpc_preamble.h
 	$(RM) $@
-	rpcgen -M -N -C -c -o $@ $<
+	$(RPCGEN) -M -N -C -c -o $@ $<
 
 rpc_%_xdr.c: rpc_%.x
 	$(RM) $@
-	rpcgen -M -N -C -c -o $@ $<
+	$(RPCGEN) -M -N -C -c -o $@ $<
 	perl -i -e $(ugly_perl_command) $@
 
 rpc_%.h: rpc_%.x
 	$(RM) $@
-	rpcgen -M -N -C -h -o $@ $<
+	$(RPCGEN) -M -N -C -h -o $@ $<
 
 rpc_%_svc.c: rpc_%.x
 	$(RM) $@
-	rpcgen -M -N -C -m -o $@ $<
+	$(RPCGEN) -M -N -C -m -o $@ $<
 
 rpc_%_clnt.c: rpc_%.x
 	$(RM) $@
-	rpcgen -M -N -C -l -o $@ $<
+	$(RPCGEN) -M -N -C -l -o $@ $<
 
 rpc_preamble.x: rpc_preamble.x.in
 	cp $< $@

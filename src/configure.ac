@@ -22,6 +22,7 @@ AM_PROG_LEX
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
+AC_PATH_PROG(RPCGEN, rpcgen)
 
 # Check for recent pkg-config which supports Requires.private
 # (snippet taken from cairo configure.in)

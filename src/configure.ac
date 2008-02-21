@@ -50,10 +50,8 @@ else
    AC_SEARCH_LIBS([roken_concat], [roken])
    AC_SEARCH_LIBS([copy_PrincipalName], [asn1])
 fi
-
-# always need krb5
-AC_SEARCH_LIBS([krb5_init_context],
-	[krb5],, AC_MSG_FAILURE([cannot find krb5 function]))
+AC_SEARCH_LIBS([krb5_init_context], [krb5],, [have_krb5=no])
+AM_CONDITIONAL(HAVE_KRB5, [test "$have_krb5" != no])
 
 
 # glib

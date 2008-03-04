@@ -111,7 +111,6 @@ tools/rem_group/Makefile
 tools/setattr/Makefile
 tools/showattr/Makefile
 tools/showgid/Makefile
-tools/slowdown/Makefile
 tools/volcano/Makefile
 tests/Makefile
 debian/Makefile

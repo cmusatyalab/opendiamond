@@ -1569,8 +1569,6 @@ search_set_blob(void *app_cookie, int gen_num, char *name,
 	return (0);
 }
 
-extern int      fexec_cpu_slowdown;
-
 int search_set_exec_mode(void *app_cookie, uint32_t mode)
 {
 	search_state_t *sstate;

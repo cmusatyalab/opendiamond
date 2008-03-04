@@ -118,62 +118,10 @@ static opt_policy_t policy_arr[] = {
  */
 int             fexec_bypass_type = BP_NONE;
 int             fexec_autopart_type = AUTO_PART_NONE;
-static int             fexec_cpu_slowdown = 0;	/* percentage slowdown for CPU */
 static int				fexec_frequency_threshold = 1;  /* threshold for filter history */
 
 static char            ratio[40];
 static char            pid_str[40];
-
-static int
-fexec_set_slowdown(void *cookie, int data_len, char *val)
-{
-	uint32_t        data;
-	pid_t           new_pid;
-	int             err;
-	pid_t           my_pid;
-
-
-	data = *(uint32_t *) val;
-
-	fprintf(stderr, "slowdown !!!! \n");
-	if (fexec_cpu_slowdown != 0) {
-		fprintf(stderr, "slowdown already set !!!! \n");
-		return (EAGAIN);
-	}
-
-	if (data == 0) {
-		fprintf(stderr, "slowdown no data  !!!! \n");
-		return (0);
-	}
-
-	if (data > 90) {
-		fprintf(stderr, "slowdown out of range  !!!! \n");
-		return (EINVAL);
-	}
-
-	fexec_cpu_slowdown = data;
-
-	my_pid = getpid();
-
-	fprintf(stderr, "my pid %d \n", my_pid);
-
-	new_pid = fork();
-	if (new_pid == 0) {
-		sprintf(ratio, "%d", data);
-		sprintf(pid_str, "%d", my_pid);
-		err =
-		    execlp("/home/diamond/bin/slowdown", "slowdown", "-r",
-			   ratio, "-p", pid_str, NULL);
-		if (err) {
-			perror("exec failed:");
-		}
-	}
-
-	fprintf(stderr, "child pid %d \n", new_pid);
-	return (0);
-
-}
-
 
 void
 fexec_system_init(void)
@@ -194,10 +142,6 @@ fexec_system_init(void)
 	dctl_register_leaf(DEV_FEXEC_PATH, "dynamic_method", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &fexec_autopart_type);
-
-	dctl_register_leaf(DEV_FEXEC_PATH, "cpu_slowdown", DCTL_DT_UINT32,
-			   dctl_read_uint32, fexec_set_slowdown,
-			   &fexec_cpu_slowdown);
 
 	dctl_register_leaf(DEV_FEXEC_PATH, "frequency_threshold", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,

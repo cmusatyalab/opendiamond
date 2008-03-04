@@ -6,7 +6,7 @@
 # dh-make output file, you may use that output file without restriction.
 # This special exception was added by Craig Small in version 0.37 of dh-make.
 
-PACKAGE=diamond
+PACKAGE=opendiamond
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -24,9 +24,6 @@ else
 	CFLAGS += -O2
 endif
 
-configure: configure.in
-	autoconf
-
 Makefile: configure
 	dh_testdir
 	# Add here commands to configure the package.
@@ -38,7 +35,7 @@ build-stamp:  Makefile
 	dh_testdir
 
 	# Add here commands to compile the package.
-	$(MAKE) 
+	$(MAKE)
 	#docbook-to-man debian/diamond.sgml > diamond.1
 
 	touch build-stamp
@@ -46,28 +43,21 @@ build-stamp:  Makefile
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp 
+	rm -f build-stamp
 
 	# Add here commands to clean up after the build process.
 	-$(MAKE) distclean
-ifneq "$(wildcard /usr/share/misc/config.sub)" ""
-	cp -f /usr/share/misc/config.sub config.sub
-endif
-ifneq "$(wildcard /usr/share/misc/config.guess)" ""
-	cp -f /usr/share/misc/config.guess config.guess
-endif
 
-
-	dh_clean 
+	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_clean -k
 	dh_installdirs
 
-	# Add here commands to install the package into debian/diamond.
-	$(MAKE) install INSTALLBASE=$(CURDIR)/debian/diamond/usr/local/diamond
+	# Add here commands to install the package into debian/opendiamond.
+	$(MAKE) install prefix="`pwd`/debian/opendiamond/usr/local/opendiamond"
 
 
 # Build architecture-independent files here.
@@ -78,12 +68,12 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs 
+	dh_installchangelogs
 	dh_installdocs
 	dh_installexamples
 #	dh_install
 #	dh_installmenu
-#	dh_installdebconf	
+#	dh_installdebconf
 #	dh_installlogrotate
 #	dh_installemacsen
 #	dh_installpam
@@ -106,4 +96,4 @@ binary-arch: build install
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install 
+.PHONY: build clean binary-indep binary-arch binary install

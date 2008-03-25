@@ -1,4 +1,4 @@
-SUBDIRS = common lib adiskd tools tests target debian
+SUBDIRS = sqlite common lib adiskd tools tests target debian
 
 
 EXTRA_DIST = CREDITS LICENSE INSTALL

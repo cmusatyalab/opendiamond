@@ -86,6 +86,7 @@ AC_CONFIG_FILES([
 Makefile
 adiskd/Makefile
 common/Makefile
+sqlite/Makefile
 lib/Makefile
 lib/libauth/Makefile
 lib/libdconfig/Makefile

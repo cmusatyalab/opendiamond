@@ -23,13 +23,11 @@
 #include "lib_tools.h"
 #include "lib_od.h"
 #include "lib_ocache.h"
-#include "ocache_priv.h"
 
 
 int
 main(int argc, char **argv)
 {
-	ocache_state_t *ocache;
 	void           *log_cookie;
 	void           *dctl_cookie;
 	int             err;

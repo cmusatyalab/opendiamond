@@ -359,7 +359,7 @@ void log_init(char *log_prefix, char *control_prefix)
 				 DCTL_DT_UINT32, dctl_read_uint32,
 				 dctl_write_uint32, &log_state->level);
 	assert(err == 0);
-	dctl_register_leaf(log_path, "log_type",
+	err = dctl_register_leaf(log_path, "log_type",
 				 DCTL_DT_UINT32, dctl_read_uint32,
 				 dctl_write_uint32, &log_state->type);
 	assert(err == 0);

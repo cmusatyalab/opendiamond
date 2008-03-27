@@ -58,16 +58,16 @@ static pthread_mutex_t ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t active_cv = PTHREAD_COND_INITIALIZER;	/* active */
 
 static opt_policy_t policy_arr[] = {
-	{NULL_POLICY, NULL, NULL, NULL, NULL},
+	{NULL_POLICY, NULL, NULL, NULL, NULL, 0},
 	{HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
-	 hill_climb_optimize, NULL},
+	 hill_climb_optimize, NULL, 0},
 	{BEST_FIRST_POLICY, best_first_new, best_first_delete,
-	 best_first_optimize, NULL},
+	 best_first_optimize, NULL, 0},
 	{INDEP_POLICY, indep_new, best_first_delete,
-	 best_first_optimize, NULL},
-	{RANDOM_POLICY, random_new, NULL, NULL, NULL},
-	{STATIC_POLICY, static_new, NULL, NULL, NULL},
-	{NULL_POLICY, NULL, NULL, NULL, NULL}
+	 best_first_optimize, NULL, 0},
+	{RANDOM_POLICY, random_new, NULL, NULL, NULL, 0},
+	{STATIC_POLICY, static_new, NULL, NULL, NULL, 0},
+	{NULL_POLICY, NULL, NULL, NULL, NULL, 0}
 };
 
 static unsigned int    use_cache_table = 1;

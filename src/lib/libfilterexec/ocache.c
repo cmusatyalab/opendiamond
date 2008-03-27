@@ -635,7 +635,7 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int score,
 	while (rc == SQLITE_ROW) {
 		char *name;
 		sig_val_t *sig;
-		void *data;
+		unsigned char *data;
 		size_t len;
 
 		sql_query_row(res, "sb", &name, &sig, &len);

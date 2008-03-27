@@ -61,6 +61,7 @@ static unsigned int if_cache_table = 1;
 static unsigned int if_cache_oattr = 1;
 
 #define OCACHE_DB_NAME "/ocache.db"
+#define OATTR_DB_NAME "/oattr.db"
 static sqlite3 *ocache_DB;
 
 static pthread_mutex_t shared_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -147,13 +148,10 @@ cache_setup(const char *dir)
 
 	if (ocache_DB != NULL) return;
 
-	db_file = malloc(strlen(dir) + strlen(OCACHE_DB_NAME) + 1);
-	strcpy(db_file, dir);
-	strcat(db_file, OCACHE_DB_NAME);
-
 	fprintf(stderr, "Opening ocache database\n");
+	db_file = malloc(strlen(dir) + strlen(OCACHE_DB_NAME) + 1);
+	strcpy(db_file, dir); strcat(db_file, OCACHE_DB_NAME);
 	rc = sqlite3_open(db_file, &ocache_DB);
-
 	free(db_file);
 
 	if (rc != SQLITE_OK) {
@@ -161,9 +159,21 @@ cache_setup(const char *dir)
 		return;
 	}
 
-	fprintf(stderr, "Initializing... ");
+	/* attach oattr database file */
+	fprintf(stderr, "Opening oattr database\n");
+	db_file = malloc(strlen(dir) + strlen(OATTR_DB_NAME) + 1);
+	strcpy(db_file, dir); strcat(db_file, OATTR_DB_NAME);
+	rc = sql_attach(ocache_DB, "oattr", db_file);
+	free(db_file);
+
+	if (rc != SQLITE_OK) {
+		sqlite3_close(ocache_DB);
+		ocache_DB = NULL;
+		return;
+	}
 
 	sql_set_busy_handler(ocache_DB);
+
 	sql_query(NULL, ocache_DB, "PRAGMA temp_store = MEMORY;", NULL);
 	sql_query(NULL, ocache_DB, "PRAGMA synchronous = OFF;", NULL);
 	sql_query(&res, ocache_DB, "PRAGMA user_version;", NULL);
@@ -175,28 +185,48 @@ cache_setup(const char *dir)
 	sql_begin(ocache_DB);
 
 	switch (version) {
-	/* Initializing a new db */
-	case 0: fprintf(stderr, "new database... ");
-		rc = sqlite3_exec(ocache_DB,
-"PRAGMA user_version = 1;"
-"CREATE TABLE cache ("
+	case 0: /* Initializing a new db */
+	    fprintf(stderr, "Initializing new database... ");
+	    break;
+
+	case 1: /* apply any necessary upgrades to the schema */
+	    /* move tables/indices that need to be rebuilt aside */
+	    fprintf(stderr, "Upgrading database... ");
+	    rc = sqlite3_exec(ocache_DB,
+			      "DROP INDEX object_filter_idx;"
+			      "ALTER TABLE cache RENAME TO old_cache;",
+			      NULL, NULL, &errmsg);
+	    if (rc != SQLITE_OK) goto err_out;
+	    break;
+
+	case 2: /* current version */
+	    fprintf(stderr, "Database up-to-date... ");
+	    break;
+
+	default: /* future versions */
+	    errmsg = strdup("Unrecognized ocache.db version");
+	    rc = SQLITE_ERROR;
+	    goto err_out;
+	}
+
+	rc = sqlite3_exec(ocache_DB,
+"CREATE TABLE IF NOT EXISTS cache ("
 "    cache_entry INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
 "    object_sig  BLOB NOT NULL,"
 "    filter_sig  BLOB,"
-"    confidence  INTEGER NOT NULL,"
+"    score	 INTEGER NOT NULL,"
 "    create_time INTEGER," /* DEFAULT strftime('%s', 'now', 'utc')"*/
 "    elapsed_ms  INTEGER"
 "); "
-"CREATE INDEX object_filter_idx ON cache (object_sig,filter_sig);"
 ""
-"CREATE TABLE input_attrs ("
+"CREATE TABLE IF NOT EXISTS input_attrs ("
 "    cache_entry INTEGER NOT NULL,"
 "    name	 TEXT NOT NULL,"
 "    sig	 BLOB NOT NULL,"
 "    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
 ");"
 ""
-"CREATE TABLE output_attrs ("
+"CREATE TABLE IF NOT EXISTS output_attrs ("
 "    cache_entry INTEGER NOT NULL,"
 "    name	 TEXT NOT NULL,"
 "    sig	 BLOB NOT NULL,"
@@ -205,29 +235,42 @@ cache_setup(const char *dir)
 ""
 /* We used to have ON CONFLICT IGNORE defined here, but we still got constraint
  * violation errors, so now we use INSERT OR IGNORE in cache_add_end */
-"CREATE TABLE attrs ("
-"    sig	BLOB PRIMARY KEY NOT NULL,"
-"    value	BLOB NOT NULL"
+"CREATE TABLE IF NOT EXISTS oattr.attrs ("
+"    name	TEXT NOT NULL,"
+"    sig	BLOB NOT NULL,"
+"    value	BLOB NOT NULL,"
+"    PRIMARY KEY (sig, name)"
 ");", NULL, NULL, &errmsg);
-		if (rc != SQLITE_OK) goto err_out;
-		break;
+	if (rc != SQLITE_OK) goto err_out;
 
-#if 0
-	/* apply any necessary upgrades to the schema */
+	/* now that any missing tables have been created, we can copy data
+	 * from the old tables into the new schema */
+	switch (version) {
 	case 1:
-	...
-		fprintf(stderr, "upgraded schema... ");
-	case current_version:
-		break;
-#endif
-	case 1: fprintf(stderr, "up-to-date schema... ");
-		break;
+	    rc = sqlite3_exec(ocache_DB,
+		"INSERT INTO cache SELECT cache_entry, object_sig, filter_sig,"
+		"    confidence, create_time, elapsed_ms FROM old_cache;"
+		"DROP TABLE old_cache;"
+		"INSERT OR IGNORE INTO oattr.attrs SELECT name, sig, value"
+		"    FROM output_attrs JOIN attrs USING(sig);"
+		"DROP TABLE attrs;", NULL, NULL, &errmsg);
+	    if (rc != SQLITE_OK) goto err_out;
+
+	    fprintf(stderr, "upgraded schema... ");
 	default:
-		errmsg = strdup("Unrecognized ocache.db version");
-		rc = SQLITE_ERROR;
-		goto err_out;
+	    break;
 	}
+
+	/* and finally we can rebuild the indices and set the schema version */
+	rc = sqlite3_exec(ocache_DB,
+	    "CREATE INDEX IF NOT EXISTS object_filter_idx"
+	    "    ON cache (object_sig, filter_sig);"
+	    "PRAGMA user_version = 2;", NULL, NULL, &errmsg);
+	if (rc != SQLITE_OK) goto err_out;
+	sql_commit(ocache_DB);
+
 	fprintf(stderr, "temporary tables... ");
+	sql_begin(ocache_DB);
 	rc = sqlite3_exec(ocache_DB,
 "CREATE TEMP TABLE current_attrs ("
 "    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
@@ -247,7 +290,8 @@ err_out:
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "disabling cache\n");
 		fprintf(stderr, "Cache initialization failed: %s\n", errmsg);
-		if (errmsg) free(errmsg);
+		/* if (errmsg) free(errmsg); *** got a bad pointer to free,
+		 * not sure what sqlite really returns here. */
 
 		sql_rollback(ocache_DB);
 		sqlite3_close(ocache_DB);
@@ -260,7 +304,7 @@ err_out:
 
 int
 cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
-	     int *confidence, int64_t *cache_entry)
+	     int *score, int64_t *cache_entry)
 {
 	sqlite3_stmt *res;
 	int found = 0;
@@ -272,7 +316,7 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	debug("Cache lookup\n");
 
 	sql_query(&res, ocache_DB,
-		  "SELECT cache_entry, confidence FROM cache"
+		  "SELECT cache_entry, score FROM cache"
 		  " WHERE object_sig = ?1 AND filter_sig = ?2 AND"
 		  " cache_entry NOT IN (SELECT cache_entry"
 		  "   FROM cache JOIN input_attrs USING(cache_entry)"
@@ -283,7 +327,7 @@ cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 		  "BB", idsig, sizeof(sig_val_t), fsig, sizeof(sig_val_t));
 
 	if (res) {
-		sql_query_row(res, "Dd", cache_entry, confidence);
+		sql_query_row(res, "Dd", cache_entry, score);
 		sql_query_free(res);
 		found = 1;
 	}
@@ -328,8 +372,8 @@ cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 	debug("Cache read oattr\n");
 
 	ret = sql_query(&res, ocache_DB,
-			"SELECT name, value "
-			" FROM output_attrs JOIN attrs USING(sig)"
+			"SELECT output_attrs.name, value "
+			" FROM output_attrs JOIN oattr.attrs USING(sig)"
 			" WHERE cache_entry = ?1;",
 			"D", cache_entry);
 
@@ -385,7 +429,7 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 
 	rc = sql_query(NULL, ocache_DB,
 		"INSERT INTO cache"
-		" (object_sig, confidence, create_time, elapsed_ms)"
+		" (object_sig, score, create_time, elapsed_ms)"
 		" VALUES (?1, 1, strftime('%s', 'now', 'utc'), 0);",
 		"B", &obj->id_sig, sizeof(sig_val_t));
 	if (rc != SQLITE_OK) goto out_fail;
@@ -516,7 +560,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 }
 
 int
-ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
+ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int score,
 	       query_info_t *qinfo, filter_exec_mode_t exec_mode,
 	       struct timespec *elapsed)
 {
@@ -547,10 +591,10 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 
 	rc = sql_query(NULL, ocache_DB,
 		"INSERT INTO cache"
-		" (object_sig, filter_sig, confidence, create_time, elapsed_ms)"
+		" (object_sig, filter_sig, score, create_time, elapsed_ms)"
 		" VALUES (?1, ?2, ?3, strftime('%s', 'now', 'utc'), ?4);",
 		"BBdd",&obj->id_sig, sizeof(sig_val_t), fsig, sizeof(sig_val_t),
-		conf, elapsed_ms);
+		score, elapsed_ms);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	rowid = sqlite3_last_insert_rowid(ocache_DB);
@@ -601,9 +645,9 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 		assert(rc == 0);
 
 		rc = sql_query(NULL, ocache_DB,
-			       "INSERT OR IGNORE INTO attrs (sig, value)"
-			       " VALUES (?1, ?2);", "BB",
-			       sig, sizeof(sig_val_t), data, len);
+			       "INSERT OR IGNORE INTO oattr.attrs"
+			       " (name, sig, value) VALUES (?1, ?2, ?3);","SBB",
+			       name, sig, sizeof(sig_val_t), data, len);
 		if (rc != SQLITE_OK) break;
 
 		rc = sql_query_next(res);

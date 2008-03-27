@@ -45,9 +45,6 @@
 
 #define	CACHE_EXT	".CACHEFL"
 
-static unsigned int    dynamic_load = 1;
-static unsigned int    dynamic_load_depth = 3;
-
 /*
  * forward declarations 
  */
@@ -110,29 +107,6 @@ odisk_next_index_ent(FILE * idx_file, char *file_name)
 	 */
 	file_name[offset++] = '\0';
 	return (1);
-}
-
-/*
- * Decide if we should load the output attributes
- * from the disk. This uses a simple threshold to see
- * if we are I/O bound.  If we have less than N objects then
- * we decide we are behind and skip (return 0) else
- * we return (1).
- */
-
-static int
-dynamic_load_oattr(int ring_depth)
-{
-	if (dynamic_load == 0) {
-		return (1);
-	}
-
-	if (ring_depth < dynamic_load_depth) {
-		return (0);
-	} else {
-		return (1);
-	}
-
 }
 
 /*
@@ -782,10 +756,8 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 	 * see if we had ocache hits, in which case we may have cached
 	 * attributes to load 
 	 */
-	if ((pr_obj->oattr_fnum == 0) ||
-	    (dynamic_load_oattr(ring_count(obj_ring)) == 0)) {
+	if (pr_obj->oattr_fnum == 0)
 		return (0);
-	}
 
 	for (i = 0; i < pr_obj->oattr_fnum; i++) {
 		if (pr_obj->filters[i] == NULL)
@@ -1172,12 +1144,6 @@ odisk_init(odisk_state_t ** odisk, char *dirp)
 	dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked",
 			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
 			   &new_state->readahead_full);
-	dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load",
-			   DCTL_DT_UINT32, dctl_read_uint32,
-			   dctl_write_uint32, &dynamic_load);
-	dctl_register_leaf(DEV_OBJ_PATH, "dynamic_load_depth",
-			   DCTL_DT_UINT32, dctl_read_uint32,
-			   dctl_write_uint32, &dynamic_load_depth);
 
 	/*
 	 * the length has already been tested above 

@@ -45,10 +45,6 @@
 
 #define	MAX_PERM_NUM	5
 
-static void     sample_init(void);
-static int      dynamic_use_oattr(void);
-static void     oattr_sample(void);
-
 static int      ceval_filters1(char *objname, filter_data_t * fdata, void *cookie);
 
 
@@ -76,7 +72,6 @@ static opt_policy_t policy_arr[] = {
 
 static unsigned int    use_cache_table = 1;
 static unsigned int    use_cache_oattr = 1;
-static unsigned int    mdynamic_load = 1;
 static unsigned int	add_cache_entries = 1;
 static unsigned int	hybrid_mode_enabled = 1;
 
@@ -257,9 +252,6 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_oattr", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &use_cache_oattr);
-	dctl_register_leaf(DEV_CACHE_PATH, "mdynamic_load", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &mdynamic_load);
 	dctl_register_leaf(DEV_CACHE_PATH, "add_cache_entries", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32,
 			   &add_cache_entries);
@@ -295,7 +287,6 @@ ceval_start(filter_data_t * fdata)
 	cached_perm_num = 1;
 	pmPrint(fdata->fd_perm, buf, BUFSIZ);
 	search_active = 1;
-	sample_init();
 	pthread_cond_signal(&active_cv);
 	pthread_mutex_unlock(&ceval_mutex);
 
@@ -462,6 +453,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	permutation_t  *cur_perm, *new_perm = NULL;
 	char            buf[BUFSIZ];
 
+	if (fdata->fd_num_filters == 0) {
+		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters1: no filters");
+		return 1;
+	}
+
 	/*
 	 * XXX this used to be passed in and need to change before caching is 
 	 * re-enabled. 
@@ -477,18 +473,11 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 	assert(pr_obj != NULL);
 
-
-
 	if (use_cache_table == 0) {
 		pr_obj->obj_name = objname;
 		pr_obj->oattr_fnum = 0;
 		pr_obj->stack_ns = 0;
 		odisk_pr_add(pr_obj);
-		return (1);
-	}
-
-	if (fdata->fd_num_filters == 0) {
-		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters1: no filters");
 		return 1;
 	}
 
@@ -674,18 +663,13 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	temp = rt_time2secs(stack_ns);
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
-
 	/*
 	 * if pass, add the obj & oattr_fname list into the odisk queue 
 	 */
 	if (pass) {
 		pr_obj->obj_name = objname;
 		pr_obj->stack_ns = stack_ns;
-		if (use_cache_oattr && dynamic_use_oattr()) {
-			pr_obj->oattr_fnum = oattr_fnum;
-		} else {
-			pr_obj->oattr_fnum = 0;
-		}
+		pr_obj->oattr_fnum = use_cache_oattr ? oattr_fnum : 0;
 		odisk_pr_add(pr_obj);
 	} else {
 		free(pr_obj);
@@ -933,8 +917,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		obj_handle->remain_compute /= avg;
 	}
 
-	oattr_sample();
-
 	fexec_active_filter = NULL;
 
 	sig_str = sig_string(&obj_handle->id_sig);
@@ -978,85 +960,3 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	return pass;
 }
 
-
-#define SAMPLE_NUM		100
-// #define AJUST_RATE 5
-
-static unsigned int    sample_counter = 0;
-static int             oattr_percent = 80;	// start with using rate 50%
-static double          opt_time = 1000000.0;	// initialize to an extrme large
-					// value
-static struct timeval  sample_start_time;
-static struct timeval  sample_end_time;
-static int             direction = -1;
-static int             adjust = 5 * 4;
-
-static void
-sample_init()
-{
-	oattr_percent = 80;
-	opt_time = 1000000.0;	// initialize to an extrme large value
-	sample_counter = 0;
-	direction = -1;
-	adjust = 5 * 4;
-}
-
-static void
-oattr_sample()
-{
-	int             err;
-	struct timezone st_tz;
-	double          temp;
-
-	if (sample_counter == 0) {
-		err = gettimeofday(&sample_start_time, &st_tz);
-		assert(err == 0);
-	}
-	sample_counter++;
-	if (sample_counter >= SAMPLE_NUM) {
-		err = gettimeofday(&sample_end_time, &st_tz);
-		assert(err == 0);
-		temp = tv_diff(&sample_end_time, &sample_start_time);
-		if (temp > opt_time) {
-			oattr_percent -= (adjust * direction);	// first
-			// getting
-			// back
-			direction = direction * (-1);
-			if (adjust > 5) {
-				adjust /= 2;
-			}
-		}
-		if (oattr_percent >= 100) {
-			oattr_percent = 100;
-			direction = -1;
-		}
-		if (oattr_percent <= 0) {
-			oattr_percent = 0;
-			direction = 1;
-		}
-		opt_time = temp;
-		oattr_percent += adjust * direction;
-		sample_counter = 0;
-	}
-	return;
-}
-
-static int
-dynamic_use_oattr()
-{
-	unsigned int    random;
-
-	return (1);
-
-	if (mdynamic_load == 0) {
-		return (1);
-	}
-
-	random = 1 + (int) (100.0 * rand() / (RAND_MAX + 1.0));
-	if (random <= oattr_percent) {
-		// if(random <= 50) {
-		return (1);
-	} else {
-		return (0);
-	}
-}

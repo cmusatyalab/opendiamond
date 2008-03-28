@@ -45,7 +45,6 @@ static char * eat_token(char *str);
 static void do_init(void);
 
 typedef struct	dconfig_info {
-	char *		dconf_name;
 	char *		dconf_dataroot;
 	char *		dconf_cachedir;
 	char *		dconf_indexdir;

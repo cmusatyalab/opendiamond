@@ -259,7 +259,7 @@ do_init(void)
 		return;	
 	}
 
-	dinfo = malloc(sizeof(*dinfo));
+	dinfo = calloc(1, sizeof(*dinfo));
 	assert(dinfo != NULL);
 
 	/* setup defaults */
@@ -270,24 +270,20 @@ do_init(void)
 
 
 	f = dconfig_open_config_file(DIAMOND_CONFIG_FILE_NAME);
-	if (f == NULL) {
-		/* XXX log */
-		fprintf(stderr, "failed to open diamond config file \n");
-		exit(1);
-	}
+	if (f != NULL) {
+		// if f is NULL, then just use the defaults
+		yylex_init(&scanner);
+		yyset_in(f, scanner);
+		ret = yylex(scanner);
+		yylex_destroy(scanner);
 
-	yylex_init(&scanner);
-	yyset_in(f, scanner);
-	ret = yylex(scanner);
-	yylex_destroy(scanner);
+		fclose(f);
 
-	fclose(f);
-
-	if (ret) {
-        	// XXX free(dinfo->dconf_name);
-		free(dinfo);
-		dinfo = NULL;
-		exit(1);
+		if (ret) {
+		  free(dinfo);
+		  dinfo = NULL;
+		  exit(1);
+		}
 	}
 
 	/* setup all the directories we need if they don't exist */

@@ -22,6 +22,9 @@
 # Remove All Blank Lines
 sed -i '/^$/d' $1
 
+# Ensure ~/.diamond exists
+mkdir -p ~/.diamond
+
 # Move NEWSCOPE into place
 cp $1 ~/.diamond/NEWSCOPE
 

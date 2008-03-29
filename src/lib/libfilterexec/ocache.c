@@ -373,15 +373,16 @@ cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 
 	ret = sql_query(&res, ocache_DB,
 			"SELECT output_attrs.name, value "
-			" FROM output_attrs JOIN oattr.attrs USING(sig)"
+			" FROM output_attrs LEFT JOIN oattr.attrs USING(sig)"
 			" WHERE cache_entry = ?1;",
 			"D", cache_entry);
 
 	while (ret == SQLITE_ROW) {
 		sql_query_row(res, "sb", &name, &value, &length);
+		if (!value) { err = ENOENT; break }
 		err = obj_write_attr(attr, name, length, value);
-		ret = sql_query_next(res);
 		if (err) break;
+		ret = sql_query_next(res);
 	}
 
 	sql_query_free(res);
@@ -634,20 +635,27 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int score,
 		       "SELECT name, sig FROM temp_oattrs;", NULL);
 	while (rc == SQLITE_ROW) {
 		char *name;
-		sig_val_t *sig;
+		sig_val_t *sig, check_sig;
 		unsigned char *data;
 		size_t len;
 
 		sql_query_row(res, "sb", &name, &sig, &len);
 		assert(len == sizeof(sig_val_t));
 
+		/* make sure the attribute still has the same signature */
+		odisk_get_attr_sig(obj, name, &check_sig);
+		if (memcmp(sig, &check_sig, sizeof(sig_val_t)) != 0) {
+		    rc = sql_query_next(res);
+		    continue;
+		}
+
 		rc = obj_ref_attr(&obj->attr_info, name, &len, &data);
 		assert(rc == 0);
 
 		rc = sql_query(NULL, ocache_DB,
-			       "INSERT OR IGNORE INTO oattr.attrs"
-			       " (name, sig, value) VALUES (?1, ?2, ?3);","SBB",
-			       name, sig, sizeof(sig_val_t), data, len);
+			    "INSERT OR IGNORE INTO oattr.attrs"
+			    " (name, sig, value) VALUES (?1, ?2, ?3);",
+			    "SBB", name, sig, sizeof(sig_val_t), data, len);
 		if (rc != SQLITE_OK) break;
 
 		rc = sql_query_next(res);

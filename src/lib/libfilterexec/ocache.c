@@ -379,7 +379,7 @@ cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 
 	while (ret == SQLITE_ROW) {
 		sql_query_row(res, "sb", &name, &value, &length);
-		if (!value) { err = ENOENT; break }
+		if (!value) { err = ENOENT; break; }
 		err = obj_write_attr(attr, name, length, value);
 		if (err) break;
 		ret = sql_query_next(res);

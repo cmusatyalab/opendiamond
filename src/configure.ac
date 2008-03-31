@@ -10,7 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-AC_INIT([opendiamond], [3.2.3], [diamond@cs.cmu.edu])
+AC_INIT([opendiamond], [3.3.0], [diamond@cs.cmu.edu])
 AC_PREREQ([2.59])
 AC_CONFIG_SRCDIR([config.h.in])
 AM_INIT_AUTOMAKE([foreign 1.8.5])

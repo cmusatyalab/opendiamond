@@ -40,7 +40,7 @@ int nlkup_next_entry(char **name, void **cookie);
 
 
 /* Functions that map groups into a set of hosts.  */
-int glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t * hostids);
+int glkup_gid_hosts(groupid_t gid, int *num_hosts, char *hosts[]);
 
 
 char * dconf_get_dataroot(void);

@@ -62,7 +62,7 @@ typedef enum {
 
 typedef struct conn_info {
 	int	 		flags;
-	uint32_t		dev_id;
+	uint32_t		ipv4addr;
 	pthread_mutex_t		mutex;
         uint32_t		session_nonce; /* for pairing control and data conns */
 	int			control_fd;
@@ -155,7 +155,7 @@ void hstub_write_data(sdevice_state_t *dev);
 /*
  * Functions available in hstub_socket.h.
  */
-int hstub_establish_connection(conn_info_t *cinfo, uint32_t devid);
+int hstub_establish_connection(conn_info_t *cinfo, const char *host);
 
 #endif	/* !_LIB_HSTUB_IMPL_H_ */
 

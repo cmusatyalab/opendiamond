@@ -113,8 +113,8 @@ dev_search_done_cb(void *hcookie, int ver_no)
 	dev->flags |= DEV_FLAG_COMPLETE;
 	time(&cur_time);
 	delta = cur_time - dev->start_time;
-	fprintf(stdout, "complete: %08x elapsed time %ld data %s ",
-		dev->dev_id, delta, ctime(&cur_time));
+	fprintf(stdout, "complete: %s elapsed time %ld data %s ",
+		dev->dev_name, delta, ctime(&cur_time));
 	return;
 }
 
@@ -140,16 +140,15 @@ conn_down_cb(void *hcookie, int ver_no)
  */
 
 static device_handle_t *
-lookup_dev_by_id(search_context_t * sc, uint32_t devid)
+lookup_dev_by_name(search_context_t * sc, const char *host)
 {
 	device_handle_t *cur_dev;
 
 	cur_dev = sc->dev_list;
 	while (cur_dev != NULL) {
-		if ((cur_dev->dev_id == devid) && 
-		    ((cur_dev->flags & DEV_FLAG_DOWN) == 0)) {
+		if ((cur_dev->flags & DEV_FLAG_DOWN) == 0 &&
+		    strcmp(cur_dev->dev_name, host) == 0)
 			break;
-		}
 		cur_dev = cur_dev->next;
 	}
 
@@ -479,40 +478,20 @@ read_float_as_uint32(void *cookie, int *len, char *data)
 
 
 static void
-register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
+register_remote_dctl(const char *host, device_handle_t * dev_handle)
 {
-	struct hostent *hent;
 	dctl_fwd_cbs_t  cbs;
-	int             len,
-	                err;
-	char           *delim;
-	char            node_name[128];
+	int		err;
+	char           *node_name, *delim;
 	char            cr_name[128];
 
-	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
-	if (hent == NULL) {
-		/* no host name to use the IP address */
-		struct in_addr  in;
-		in.s_addr = devid;
-		delim = inet_ntoa(in);
-		strcpy(node_name, delim);
+	node_name = strdup(host);
 
-		/*
-		 * replace all the '.' with '_' 
-		 */
-		while ((delim = index(node_name, '.')) != NULL) {
-			*delim = '_';
-		}
-	} else {
-		delim = index(hent->h_name, '.');
-		if (delim == NULL) {
-			len = strlen(hent->h_name);
-		} else {
-			len = delim - hent->h_name;
-		}
-		strncpy(node_name, hent->h_name, len);
-		node_name[len] = 0;
-	}
+	/*
+	 * replace all the '.' with '_'
+	 */
+	while ((delim = index(node_name, '.')) != NULL)
+	    *delim = '_';
 
 	cbs.dfwd_rleaf_cb = remote_read_leaf;
 	cbs.dfwd_wleaf_cb = remote_write_leaf;
@@ -525,6 +504,7 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 		log_message(LOGT_BG, LOGL_ERR, 
 		    "register_remove_dctl:  failed to register remote - err=%d",
 		    err);
+		free(node_name);
 		return;
 	}
 
@@ -555,6 +535,7 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
 		    "register_remove_remove:  failed to register leaf - err=%d",
 		    err);
 	}
+	free(node_name);
 }
 
 
@@ -565,13 +546,11 @@ register_remote_dctl(uint32_t devid, device_handle_t * dev_handle)
  */
 
 static device_handle_t *
-create_new_device(search_context_t * sc, uint32_t devid)
+create_new_device(search_context_t * sc, const char *host)
 {
 	device_handle_t *new_dev;
 	hstub_cb_args_t cb_data;
-	struct hostent *hent;
 	static int      done_init = 0;
-	struct in_addr	iaddr;
 
 	if (!done_init) {
 		init_pending();
@@ -583,19 +562,10 @@ create_new_device(search_context_t * sc, uint32_t devid)
 		    "create_new_device: failed malloc");
 		return (NULL);
 	}
-	iaddr.s_addr = devid;
 
-	/* get symbolic name */
-	hent = gethostbyaddr(&iaddr, sizeof(iaddr), AF_INET);
-	if (hent == NULL) {
-		new_dev->dev_name = strdup(inet_ntoa(iaddr));
-	} else {
-		new_dev->dev_name = strdup(hent->h_name);
-	}
-
+	new_dev->dev_name = strdup(host);
 	new_dev->flags = 0;
 	new_dev->sc = sc;
-	new_dev->dev_id = devid;
 	new_dev->num_groups = 0;
 	new_dev->remain_old = 100003;
 	new_dev->remain_mid = 100002;
@@ -614,8 +584,8 @@ create_new_device(search_context_t * sc, uint32_t devid)
 	cb_data.conn_down_cb = conn_down_cb;
 
 
-	new_dev->dev_handle = device_init(sc->cur_search_id, devid,
-	    (void *) new_dev, &cb_data);
+	new_dev->dev_handle = device_init(sc->cur_search_id, host,
+					  (void *)new_dev, &cb_data);
 
 	if (new_dev->dev_handle == NULL) {
 		log_message(LOGT_BG, LOGL_CRIT, 
@@ -633,7 +603,7 @@ create_new_device(search_context_t * sc, uint32_t devid)
 	new_dev->next = sc->dev_list;
 	sc->dev_list = new_dev;
 
-	register_remote_dctl(devid, new_dev);
+	register_remote_dctl(host, new_dev);
 
 	return (new_dev);
 }
@@ -642,15 +612,15 @@ create_new_device(search_context_t * sc, uint32_t devid)
 
 
 int
-device_add_gid(search_context_t * sc, groupid_t gid, uint32_t devid)
+device_add_gid(search_context_t * sc, groupid_t gid, const char *host)
 {
 
 	device_handle_t *cur_dev;
 	int             i;
 
-	cur_dev = lookup_dev_by_id(sc, devid);
+	cur_dev = lookup_dev_by_name(sc, host);
 	if (cur_dev == NULL) {
-		cur_dev = create_new_device(sc, devid);
+		cur_dev = create_new_device(sc, host);
 		if (cur_dev == NULL) {
 			log_message(LOGT_BG, LOGL_CRIT, 
 		    	    "device_add_gid: create_device failed");

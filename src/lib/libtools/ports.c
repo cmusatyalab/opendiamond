@@ -39,20 +39,19 @@ get_base_port_from_env(void)
   return result;
 }
 
-uint16_t
+const char *
 diamond_get_control_port(void)
 {
-  return get_base_port_from_env();
+    static char port[6];
+    sprintf(port, "%u", get_base_port_from_env());
+    return port;
 }
 
-uint16_t
+const char *
 diamond_get_data_port(void)
 {
-  return get_base_port_from_env() + 1;
+    static char port[6];
+    sprintf(port, "%u", get_base_port_from_env() + 1);
+    return port;
 }
 
-uint16_t
-diamond_get_log_port(void)
-{
-  return get_base_port_from_env() + 2;
-}

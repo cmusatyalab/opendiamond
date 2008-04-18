@@ -156,25 +156,27 @@ setup_rpc(cstate_t *cstate) {
     
     while(control_ready == 0) continue;
     
-    /* Create new connection to the Sun RPC server. */
-    if((connfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-      perror("socket");
-      pthread_exit((void *)-1);
-    }
-    
     bzero(&hints,  sizeof(struct addrinfo));
-    hints.ai_flags = AI_CANONNAME;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     snprintf(port_str, NI_MAXSERV, "%u", args->port);
     
-    if((error = getaddrinfo("localhost", port_str, &hints, &info)) < 0) {
+    if((error = getaddrinfo(NULL, port_str, &hints, &info)) < 0) {
       fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
       pthread_exit((void *)-1);
     }
 
-    if(connect(connfd, info->ai_addr, sizeof(struct sockaddr_in)) < 0) {
+    /* Create new connection to the Sun RPC server. */
+    connfd = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+    if (connfd < 0) {
+      perror("socket");
+      freeaddrinfo(info);
+      pthread_exit((void *)-1);
+    }
+
+    if(connect(connfd, info->ai_addr, info->ai_addrlen) < 0) {
       perror("sunrpc connect");
+      freeaddrinfo(info);
       pthread_exit((void *)-1);
     }
 

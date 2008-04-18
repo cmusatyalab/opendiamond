@@ -16,13 +16,10 @@
 
 #include <stdint.h>
 
-uint16_t
+const char *
 diamond_get_control_port(void);
 
-uint16_t
+const char *
 diamond_get_data_port(void);
-
-uint16_t
-diamond_get_log_port(void);
 
 #endif                           /* _PORTS_H_ */

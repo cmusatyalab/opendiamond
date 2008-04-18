@@ -594,7 +594,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	int             r_err;
 	int32_t         r_opid;
 	enum clnt_stat retval;
-	void *buf;
+	uint8_t *buf;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -1161,42 +1161,21 @@ device_enable_obj(void *handle)
 }
 
 static void
-setup_stats(sdevice_state_t * dev, uint32_t devid)
+setup_stats(sdevice_state_t * dev, const char *host)
 {
-	struct hostent *hent;
-	int             len,
-	                err;
-	char           *delim;
-	char            node_name[128];	/* XXX */
+	int 		err;
+	char           *node_name, *delim;
 	char            path_name[128];	/* XXX */
 
-	hent = gethostbyaddr(&devid, sizeof(devid), AF_INET);
-	if (hent == NULL) {
-		struct in_addr  in;
+	node_name = strdup(host);
 
-		printf("failed to get hostname\n");
-		in.s_addr = devid;
-		delim = inet_ntoa(in);
-		strcpy(node_name, delim);
+	/*
+	 * replace all the '.' with '_'
+	 */
+	while ((delim = index(node_name, '.')) != NULL)
+		*delim = '_';
 
-		/*
-		 * replace all the '.' with '_' 
-		 */
-		while ((delim = index(node_name, '.')) != NULL) {
-			*delim = '_';
-		}
-	} else {
-		delim = index(hent->h_name, '.');
-		if (delim == NULL) {
-			len = strlen(hent->h_name);
-		} else {
-			len = delim - hent->h_name;
-		}
-		strncpy(node_name, hent->h_name, len);
-		node_name[len] = 0;
-	}
-
-	sprintf(path_name, "%s.%s", HOST_NETWORK_PATH, node_name);
+	snprintf(path_name, 128, "%s.%s", HOST_NETWORK_PATH, node_name);
 
 	err = dctl_register_node(HOST_NETWORK_PATH, node_name);
 	assert(err == 0);
@@ -1235,6 +1214,7 @@ setup_stats(sdevice_state_t * dev, uint32_t devid)
 	dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64,
 			   dctl_read_uint64, NULL,
 			   &dev->con_data.stat_log_byte_rx);
+	free(node_name);
 }
 
 /*
@@ -1242,7 +1222,7 @@ setup_stats(sdevice_state_t * dev, uint32_t devid)
  * called by the searchlet library when we startup.
  */
 void *
-device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list)
+device_init(int id, const char *host, void *hcookie, hstub_cb_args_t * cb_list)
 {
 	sdevice_state_t *new_dev;
 	int             err;
@@ -1276,7 +1256,7 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list)
 	/*
 	 * Open the sockets to the new host.
 	 */
-	err = hstub_establish_connection(&new_dev->con_data, devid);
+	err = hstub_establish_connection(&new_dev->con_data, host);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_init: failed to establish connection");
@@ -1303,7 +1283,7 @@ device_init(int id, uint32_t devid, void *hcookie, hstub_cb_args_t * cb_list)
 	new_dev->dstats = NULL;
 	new_dev->stat_size = 0;
 
-	setup_stats(new_dev, devid);
+	setup_stats(new_dev, host);
 
 	/*
 	 * Spawn a thread for this device that process data to and

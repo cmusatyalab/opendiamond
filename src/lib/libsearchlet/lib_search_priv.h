@@ -46,7 +46,6 @@ struct search_context;
 
 typedef struct device_handle {
 	struct device_handle * 		next;
-	uint32_t			dev_id;
 	char *				dev_name;
 	groupid_t			dev_groups[MAX_DEV_GROUPS];
 	int				num_groups;
@@ -66,15 +65,6 @@ typedef struct device_handle {
 	int				serviced;	/* times data removed */
 	struct 				search_context *	sc;
 } device_handle_t;
-
-
-#define	MAX_DEV_PER_GROUP	64
-typedef struct gid_map {
-	struct gid_map *	next;
-	groupid_t		gid;
-	int			num_dev;
-	uint32_t		devs[MAX_DEV_PER_GROUP];
-} gid_map_t;
 
 
 typedef enum {
@@ -126,9 +116,8 @@ typedef struct search_context {
  */
 int dev_new_obj_cb(void *hcookie, obj_data_t *odata, int vno);
 void dev_log_data_cb(void *cookie, char *data, int len, int devid);
-int lookup_group_hosts(groupid_t gid, int *num_hosts,
-                       uint32_t *hostids);
-int device_add_gid(search_context_t *sc, groupid_t gid, uint32_t devid);
+int lookup_group_hosts(groupid_t gid, int *num_hosts, char *hosts[]);
+int device_add_gid(search_context_t *sc, groupid_t gid, const char *host);
 /*
  * These are background processing functions.
  */

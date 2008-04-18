@@ -71,31 +71,46 @@ socket_non_block(int fd)
 
 
 static int
-create_tcp_connection(uint32_t devid, uint16_t port)
+create_tcp_connection(const char *host, const char *port)
 {
-	int sockfd;
-	struct sockaddr_in sa;
-	
-	if(!devid || !port) return -1;
+	int sockfd, err;
+	struct addrinfo *ai, *addrs, hints = {
+		.ai_family = AF_UNSPEC,
+		.ai_socktype = SOCK_STREAM
+	};
 
+	err = getaddrinfo(host, port, &hints, &addrs);
+	if (err) {
+		fprintf(stderr, "Failed to resolve %s: %s\n",
+			host, gai_strerror(err));
+		return -1;
+	}
+
+	ai = addrs;
+try_next:
 	/* create TCP socket */
-	if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-	  perror("socket");
-	  return -1;
+	sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+	if (sockfd < 0) {
+		perror("socket");
+		freeaddrinfo(addrs);
+		return -1;
 	}
 
-	/* define destination */	
-	sa.sin_family = AF_INET;
-	sa.sin_port = port;
-	sa.sin_addr.s_addr = (in_addr_t) devid; /* already in network order */
-	
 	/* make connection */
-	if(connect(sockfd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
-	  perror("connect");
-	  return -1;
+	err = connect(sockfd, ai->ai_addr, ai->ai_addrlen);
+	if (!err) {
+		freeaddrinfo(addrs);
+		return sockfd;
 	}
-	
-	return sockfd;
+
+	/* failed to connect, try next address */
+	close(sockfd);
+	ai = ai->ai_next;
+	if (ai) goto try_next;
+
+	perror("connect");
+	freeaddrinfo(addrs);
+	return -1;
 }
 
 /* rpc_init() takes an already-connected socket file descriptor and
@@ -137,10 +152,10 @@ rpc_init(int connfd) {
 
 
 static int 
-data_connect(uint32_t devid, uint16_t portnum, unsigned int session_nonce) {
+data_connect(const char *host, unsigned int session_nonce) {
 	int connfd, size;
 
-	connfd = create_tcp_connection(devid, portnum);
+	connfd = create_tcp_connection(host, diamond_get_data_port());
 	if (connfd < 0){
 	  log_message(LOGT_NET, LOGL_ERR, "data_connect: create_tcp_connection() failed");
 	  return(-1);
@@ -159,10 +174,10 @@ data_connect(uint32_t devid, uint16_t portnum, unsigned int session_nonce) {
 
 
 static int
-control_connect(uint32_t devid, uint16_t portnum, unsigned int *session_nonce) {
+control_connect(const char *host, unsigned int *session_nonce) {
 	int connfd, size;
 	
-	connfd = create_tcp_connection(devid, portnum);
+	connfd = create_tcp_connection(host, diamond_get_control_port());
 	if (connfd < 0){
 	  log_message(LOGT_NET, LOGL_ERR, "control_connect: create_tcp_connection() failed");
 	  return(-1);
@@ -184,16 +199,28 @@ control_connect(uint32_t devid, uint16_t portnum, unsigned int *session_nonce) {
  * side.
  */
 int
-hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
+hstub_establish_connection(conn_info_t *cinfo, const char *host)
 {
 	ssize_t         size, len;
 	int		auth_required = 0;
 	char		buf[BUFSIZ];
 
+	int		err;
+	struct addrinfo *ai, hints = {
+	    .ai_family = AF_INET,
+	    .ai_socktype = SOCK_STREAM
+	};
 
-        uint16_t px = htons(diamond_get_control_port());
-	cinfo->dev_id = devid;
-	cinfo->control_fd = control_connect(devid, px, &cinfo->session_nonce);
+	/* applications expect the device's ipv4 address in some cases */
+	err = getaddrinfo(host, NULL, &hints, &ai);
+	if (!err && ai) {
+	    cinfo->ipv4addr =
+		((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr;
+	    freeaddrinfo(ai);
+	} else
+	    cinfo->ipv4addr = INADDR_NONE;
+
+	cinfo->control_fd = control_connect(host, &cinfo->session_nonce);
 	if (cinfo->control_fd < 0 ) {
 		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to initialize control connection");
 		return(ENOENT);
@@ -237,9 +264,7 @@ hstub_establish_connection(conn_info_t *cinfo, uint32_t devid)
 	/*
 	 * Now we open the data socket and send the cookie on it.
 	 */
-
-        px = htons(diamond_get_data_port());
-        cinfo->data_fd = data_connect(devid, px, cinfo->session_nonce);
+        cinfo->data_fd = data_connect(host, cinfo->session_nonce);
 	if (cinfo->data_fd <0) {
 		log_message(LOGT_NET, LOGL_ERR, 
 		    "hstub: connect data port failed");

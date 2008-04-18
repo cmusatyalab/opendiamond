@@ -172,69 +172,66 @@ shutdown_connection(listener_state_t * lstate, cstate_t * cstate)
  * side.
  */
 int
-sstub_new_sock(int *fd, int port, int bind_only_locally)
+sstub_new_sock(int *fd, const char *port, int bind_only_locally)
 {
 	int             new_fd;
-	struct protoent *pent;
-	struct sockaddr_in sa;
 	int             err;
 	int             yes = 1;
 
-	pent = getprotobyname("tcp");
-	if (pent == NULL) {
-		/*
-		 * XXX log error 
-		 */
-		return (ENOENT);
+	struct addrinfo *ai, *addrs, hints = {
+	    .ai_family = AF_UNSPEC,
+	    .ai_socktype = SOCK_STREAM
+	};
+
+	if (!bind_only_locally)
+	    hints.ai_flags |= AI_PASSIVE;
+
+	err = getaddrinfo(NULL, port, &hints, &addrs);
+	if (err) return ENOENT;
+
+	ai = addrs;
+try_next:
+	if (!ai) {
+		perror("Bind failed");
+		freeaddrinfo(addrs);
+		return ENOENT;
 	}
 
-	new_fd = socket(PF_INET, SOCK_STREAM, pent->p_proto);
-	/*
-	 * XXX err ?? 
-	 */
-
+	new_fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+	if (new_fd < 0) {
+		ai = ai->ai_next;
+		goto try_next;
+	}
 
 	/*
 	 * set the socket options to avoid the re-use message if
 	 * we have a fast restart.
 	 */
-
 	err = setsockopt(new_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 	if (err == -1) {
-		/*
-		 * XXX log 
-		 */
-		perror("setsockopt");
-		return (ENOENT);
+		/* XXX log */
+		close(new_fd);
+		ai = ai->ai_next;
+		goto try_next;
 	}
 
-
-	sa.sin_family = AF_INET;
-	sa.sin_port = htons((unsigned short) port);
-
-	if (bind_only_locally) {
-		sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	} else {
-		sa.sin_addr.s_addr = htonl(INADDR_ANY);
-	}
-
-	err = bind(new_fd, (struct sockaddr *) &sa, sizeof(sa));
+	err = bind(new_fd, ai->ai_addr, ai->ai_addrlen);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		perror("bind failed ");
-		return (ENOENT);
+		/* XXX log */
+		close(new_fd);
+		ai = ai->ai_next;
+		goto try_next;
 	}
 
 	err = listen(new_fd, SOMAXCONN);
 	if (err) {
-		/*
-		 * XXX log 
-		 */
-		printf("bind failed \n");
-		return (ENOENT);
+		/* XXX log */
+		close(new_fd);
+		ai = ai->ai_next;
+		goto try_next;
 	}
+
+	freeaddrinfo(addrs);
 
 	*fd = new_fd;
 	return (0);

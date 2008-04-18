@@ -209,15 +209,9 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 /* simple error logging for failed device.  */
 
 static void
-log_dev_error(uint32_t host, const char *str)
+log_dev_error(const char *host, const char *str)
 {
-	struct in_addr  in;
-	char           *name;
-
-	in.s_addr = host;
-	name = inet_ntoa(in);
-
-	log_message(LOGT_BG, LOGL_CRIT, "%s for device %s", str, name);
+	log_message(LOGT_BG, LOGL_CRIT, "%s for device %s", str, host);
 }
 
 
@@ -230,8 +224,8 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	search_context_t *sc;
 	groupid_t       cur_gid;
 	device_handle_t *cur_dev;
-	uint32_t        host_ids[MAX_HOST_IDS];
-	int             hosts;
+	char		*hosts[MAX_HOST_IDS];
+	int             nhosts;
 	int             i,
 	                j;
 	int             err;
@@ -268,7 +262,7 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 		cur_dev->num_groups = 0;
 		err = device_clear_gids(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id, "failed clear gid");
+			log_dev_error(cur_dev->dev_name, "failed clear gid");
 		}
 	}
 
@@ -279,12 +273,12 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 	 */
 	for (i = 0; i < num_groups; i++) {
 		cur_gid = glist[i];
-		hosts = MAX_HOST_IDS;
-		glkup_gid_hosts(cur_gid, &hosts, host_ids);
-		for (j = 0; j < hosts; j++) {
-			err = device_add_gid(sc, cur_gid, host_ids[j]);
+		nhosts = MAX_HOST_IDS;
+		glkup_gid_hosts(cur_gid, &nhosts, hosts);
+		for (j = 0; j < nhosts; j++) {
+			err = device_add_gid(sc, cur_gid, hosts[j]);
 			if (err) {
-				log_dev_error(host_ids[j], "Failed to add gid");
+				log_dev_error(hosts[j], "Failed to add gid");
 			}
 		}
 	}
@@ -510,13 +504,12 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		err = device_set_spec(cur_dev->dev_handle,
 		    sc->cur_search_id, filter_spec_name, &spec_sig);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id, 
-			    "failed setting spec");
+			log_dev_error(cur_dev->dev_name, "failed setting spec");
 		}
 		err = device_set_lib(cur_dev->dev_handle,
 		    sc->cur_search_id, &obj_sig);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id, 
+			log_dev_error(cur_dev->dev_name,
 			    "failed setting searchlet");
 		} else {
 			started++;
@@ -594,7 +587,7 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 		err = device_set_lib(cur_dev->dev_handle,
 		    sc->cur_search_id, &obj_sig);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id, 
+			log_dev_error(cur_dev->dev_name,
 			    "failed adding filter file");
 		} else {
 			started++;
@@ -695,7 +688,7 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 				      sc->cur_search_id, filter_name,
 				      blob_len, blob_data);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id, "failed to set blob");
+			log_dev_error(cur_dev->dev_name, "failed to set blob");
 		}
 	}
 
@@ -809,7 +802,7 @@ ls_start_search(ls_search_handle_t handle)
 		cur_dev->start_time = cur_time;
 		err = device_start(cur_dev->dev_handle, sc->cur_search_id);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id,
+			log_dev_error(cur_dev->dev_name,
 			    "failed starting search");
 		} else {
 			started++;
@@ -1326,14 +1319,16 @@ int ls_set_user_state(ls_search_handle_t handle, user_state_t state) {
 		err = device_set_user_state(cur_dev->dev_handle,
 				      sc->cur_search_id, state);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id, "failed to set user state");
+			log_dev_error(cur_dev->dev_name,
+				      "failed to set user state");
 			return(err);
 		}
 		
 		err = device_set_exec_mode(cur_dev->dev_handle, 
 								sc->cur_search_id, new_mode);
 		if (err != 0) {
-			log_dev_error(cur_dev->dev_id, "failed to set exec mode");
+			log_dev_error(cur_dev->dev_name,
+				      "failed to set exec mode");
 			return(err);
 		}
 				

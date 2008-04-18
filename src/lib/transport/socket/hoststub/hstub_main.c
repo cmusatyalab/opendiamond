@@ -95,7 +95,7 @@ request_chars(sdevice_state_t * dev)
 	dev->dev_char.dc_isa = characteristics.chars.dcs_isa;
 	dev->dev_char.dc_speed = characteristics.chars.dcs_isa;
 	dev->dev_char.dc_mem = characteristics.chars.dcs_mem;
-	dev->dev_char.dc_devid = dev->con_data.dev_id;
+	dev->dev_char.dc_devid = dev->con_data.ipv4addr;
 
 	xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
 	

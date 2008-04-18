@@ -236,8 +236,7 @@ have_gid(yyscan_t scanner)
 			return;
 		}
 
-		gmap->devs[gmap->num_dev].dev_name = strdup(cur_name);
-		gmap->devs[gmap->num_dev].dev_id = dev_id;
+		gmap->devs[gmap->num_dev] = strdup(cur_name);
 		gmap->num_dev++;
 	}
 
@@ -288,8 +287,7 @@ have_name(yyscan_t scanner)
 			extra->err = 1;
 			return(1);
 		}
-		gmap->devs[gmap->num_dev].dev_name = strdup(cur_name);
-		gmap->devs[gmap->num_dev].dev_id = dev_id;
+		gmap->devs[gmap->num_dev] = strdup(cur_name);
 		gmap->num_dev++;
 	}
 
@@ -302,10 +300,15 @@ have_name(yyscan_t scanner)
 static void
 free_gid_map(gid_map_t *map) {
 	gid_map_t *trav, *next;
+	int i;
 
 	for(trav = map; trav != NULL; trav = next) {
-		 next = trav->next;
-		 free(trav);
+		next = trav->next;
+
+		for (i = 0; i < trav->num_dev; i++)
+		    free(trav->devs[i]);
+
+		free(trav);
 	}
 }
 
@@ -347,10 +350,11 @@ read_gid_map(char *map_file, yyscan_t scanner)
 }
 
 int
-glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
+glkup_gid_hosts(groupid_t gid, int *num_hosts, char *hosts[])
 {
-	gid_map_t	*cur_map;
+	gid_map_t	*cur_map = NULL;
 	int		 i;
+	int		 err = 0;
 
 	yyscan_t scanner;
 	struct group_lookup_lex extra = {
@@ -364,45 +368,32 @@ glkup_gid_hosts(groupid_t gid, int *num_hosts, uint32_t *hostids)
 	read_gid_map("gid_map", scanner);
 	yylex_destroy(scanner);
 
-	cur_map = extra.groot;
-
-	if (cur_map == NULL) {
+	if (extra.err || extra.groot == NULL) {
 		fprintf(stderr, "Unable to read gid_map \n");
-		*num_hosts = 0;
-		return(ENOENT);
+		err = ENOENT;
+		goto err_out;
 	}
 
-	for(; cur_map != NULL; cur_map = cur_map->next)
+	for(cur_map = extra.groot; cur_map != NULL; cur_map = cur_map->next)
 		if (cur_map->gid == gid)
 			break;
 
 	if (cur_map == NULL) {
-		*num_hosts = 0;
-		free_gid_map(extra.groot);
-		return(ENOENT);
+		err = ENOENT;
+		goto err_out;
 	}
-
 
 	if (cur_map->num_dev > *num_hosts) {
 		/* XXX log */
-		*num_hosts = cur_map->num_dev;
-		free_gid_map(extra.groot);
-		return(ENOMEM);
+		err = ENOMEM;
+		goto err_out;
 	}
 
-	for (i = 0; i < cur_map->num_dev; i++) {
-	        if (cur_map->devs[i].dev_id == 0) {
-		    fprintf(stderr, "unable to resolve %s \n", 
-			    cur_map->devs[i].dev_name);
-		    free_gid_map(extra.groot);
-	            return(ENOENT);
-	        }
-		hostids[i] = cur_map->devs[i].dev_id;
-	}
-	*num_hosts = cur_map->num_dev;
+	for (i = 0; i < cur_map->num_dev; i++)
+		hosts[i] = strdup(cur_map->devs[i]);
 
+err_out:
+	*num_hosts = cur_map ? cur_map->num_dev : 0;
 	free_gid_map(extra.groot);
-	extra.groot = NULL;
-
-	return(0);
+	return(err);
 }

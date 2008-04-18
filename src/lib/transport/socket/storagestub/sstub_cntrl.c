@@ -500,7 +500,7 @@ device_set_obj_x_2_svc(u_int gen, sig_val_x arg2, diamond_rc_t *result,
 
 	cache = dconf_get_binary_cachedir();
 	sig_str = sig_string(sent_sig);
-	snprintf(objpath, PATH_MAX, OBJ_FORMAT, cache, sig_str);
+	snprintf(objpath, PATH_MAX, SO_FORMAT, cache, sig_str);
 	free(sig_str);
 	free(cache);
 
@@ -545,7 +545,7 @@ device_send_obj_x_2_svc(u_int gen, send_obj_x arg2, diamond_rc_t *result,
 	/* get name to store the object */ 	
 	cache = dconf_get_binary_cachedir();
 	sig_str = sig_string(sent_sig);
-	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig_str);
+	snprintf(objname, PATH_MAX, SO_FORMAT, cache, sig_str);
 	free(sig_str);
 	free(cache);
 

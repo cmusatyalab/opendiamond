@@ -495,7 +495,7 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 
 	cache = dconf_get_binary_cachedir();
 	sig = sig_string(obj_sig);
-	snprintf(objname, PATH_MAX, OBJ_FORMAT, cache, sig);
+	snprintf(objname, PATH_MAX, SO_FORMAT, cache, sig);
 
 	assert(access(objname, F_OK) == 0);
 

@@ -331,7 +331,7 @@ cache_file(char *oname, sig_val_t *sig)
 
 	cdir = dconf_get_binary_cachedir();
 	sstr = sig_string(sig);
-	snprintf(name_buf, PATH_MAX, OBJ_FORMAT, cdir, sstr);
+	snprintf(name_buf, PATH_MAX, SO_FORMAT, cdir, sstr);
 
 	/* create the new file */
 	file_get_lock(name_buf);

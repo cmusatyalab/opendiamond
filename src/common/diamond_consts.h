@@ -62,7 +62,6 @@
 #define DEFAULT_DIAMOND_LOG  "/tmp/diamond_log"
 
 /* strings for formating data */
-#define	OBJ_FORMAT		"%s/%s.obj"
 #define	SO_FORMAT		"%s/%s.so"
 #define	BLOB_FORMAT		"%s/%s.blob"
 #define	FILTER_SUMMARY		"%s/%s.summary"

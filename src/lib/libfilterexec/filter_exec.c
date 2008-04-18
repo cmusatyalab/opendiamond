@@ -433,20 +433,7 @@ fexec_term_search(filter_data_t * fdata)
 }
 
 static int
-relink_lib(char *lib, char *so_name)
-{
-	char	command[256];	
-
-	sprintf(command, "g++ -m32 -o %s  -shared %s ", so_name, lib);
-	if (system(command) < 0) {
-		printf("Failed to load command\n");
-		return(-1);	
-	}
-	return(0);
-}
-
-static int
-load_filter_lib(char *lib_name, char *so_name, filter_data_t * fdata, 
+load_filter_lib(char *so_name, filter_data_t * fdata, 
     sig_val_t * sig)
 {
 	void           *handle;
@@ -458,13 +445,6 @@ load_filter_lib(char *lib_name, char *so_name, filter_data_t * fdata,
 	char           *error;
 
 	file_get_lock(so_name);
-	if (access(so_name, F_OK) != 0) {
-		if (relink_lib(lib_name, so_name) < 0) {
-			fprintf(stderr, "failed to link lib <%s> \n", so_name);
-			exit(1);
-		}
-	}
-
 	handle = dlopen(so_name, RTLD_LAZY | RTLD_LOCAL);
 	if (!handle) {
 		/*
@@ -842,7 +822,6 @@ fexec_load_obj(filter_data_t * fdata, sig_val_t *sig)
 {
 	int  err;
 	char * cache_dir;
-	char name_buf[PATH_MAX];
 	char so_name[PATH_MAX];
 	char *sig_str;
 
@@ -850,16 +829,15 @@ fexec_load_obj(filter_data_t * fdata, sig_val_t *sig)
 	log_message(LOGT_FILT, LOGL_TRACE, "fexec_load_obj: lib %s", sig_str);
 
 	cache_dir = dconf_get_binary_cachedir();
-	snprintf(name_buf, PATH_MAX, OBJ_FORMAT, cache_dir, sig_str);
 	snprintf(so_name, PATH_MAX, SO_FORMAT, cache_dir, sig_str);
 	free(sig_str);
 	free(cache_dir);
 
-	err = load_filter_lib(name_buf, so_name, fdata, sig);
+	err = load_filter_lib(so_name, fdata, sig);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR,
 			    "Failed loading filter library <%s>",
-			    name_buf);
+			    so_name);
 		return (err);
 	}
 	return (0);

@@ -167,18 +167,17 @@ sstub_attr_len(obj_data_t * obj, int drop_attrs)
 
 
 void
-sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
+sstub_write_data(cstate_t *cstate)
 {
 	obj_info_t      *oi;
 	obj_data_t	*obj;
 	int		vnum;
-	int             sent;
-	int             err;
-	int             header_remain = 0, header_offset = 0;
-	size_t          attr_remain = 0, attr_offset = 0;
-	int             data_remain = 0, data_offset = 0;
+	int		sent;
+	int		err;
+	int		header_remain = 0, header_offset = 0;
+	size_t		attr_remain = 0, attr_offset = 0;
+	int		data_remain = 0, data_offset = 0;
 	char		*data;
-
 
 	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
 		pthread_mutex_lock(&cstate->cmutex);
@@ -352,7 +351,7 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 				return;
 			} else {
 				/*
-				 * XXX what errors should we handles ?? 
+				 * XXX what errors should we handles ??
 				 */
 				perror("send attr ");
 				exit(1);
@@ -435,13 +434,14 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 	 */
 
 	cstate->data_tx_state = DATA_TX_NO_PENDING;
-	(*lstate->cb.release_obj_cb) (cstate->app_cookie, cstate->data_tx_obj);
+	(*cstate->lstate->cb.release_obj_cb) (cstate->app_cookie,
+					      cstate->data_tx_obj);
 
 	/*
-	 * decrement credit count 
+	 * decrement credit count
 	 */
 	/*
-	 * XXX do I need to lock 
+	 * XXX do I need to lock
 	 */
 	if (cstate->cc_credits > 0)
 	  cstate->cc_credits--;
@@ -450,7 +450,7 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 }
 
 void
-sstub_except_data(listener_state_t * lstate, cstate_t * cstate)
+sstub_except_data(cstate_t * cstate)
 {
 	printf("XXX except data \n");
 	/*
@@ -466,15 +466,15 @@ sstub_except_data(listener_state_t * lstate, cstate_t * cstate)
 
 
 void
-sstub_read_data(listener_state_t * lstate, cstate_t * cstate)
+sstub_read_data(cstate_t * cstate)
 {
 
-	char           *data;
-	size_t          data_size;
-	size_t          rsize;
+	char	*data;
+	size_t	data_size;
+	size_t	rsize;
 
 	/*
-	 * Handle the case where we are shutting down 
+	 * Handle the case where we are shutting down
 	 */
 	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
 		return;

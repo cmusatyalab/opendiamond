@@ -1,72 +1,21 @@
 noinst_LTLIBRARIES = libdiamondrpc.la
 
-BUILT_SOURCES = rpc_client_content_clnt.c rpc_client_content_svc.c \
-	rpc_client_content_xdr.c rpc_client_content.x rpc_client_content.h \
-	rpc_client_scope_clnt.c rpc_client_scope_svc.c \
-	rpc_client_scope_xdr.c rpc_client_scope.x rpc_client_scope.h \
-	rpc_content_scope_clnt.c rpc_content_scope_svc.c \
-	rpc_content_scope_xdr.c rpc_content_scope.x rpc_content_scope.h \
-	rpc_scope_scope_clnt.c rpc_scope_scope_svc.c \
-	rpc_scope_scope_xdr.c rpc_scope_scope.x rpc_scope_scope.h \
-	rpc_admin_content_clnt.c rpc_admin_content_svc.c \
-	rpc_admin_content_xdr.c rpc_admin_content.x rpc_admin_content.h \
-	rpc_admin_scope_clnt.c rpc_admin_scope_svc.c \
-	rpc_admin_scope_xdr.c rpc_admin_scope.x rpc_admin_scope.h \
-	rpc_preamble_xdr.c rpc_preamble.x rpc_preamble.h
+MINIRPC_FILES = rpc_client_content.mx rpc_preamble.mx
+libdiamondrpc_la_SOURCES = socket_trans.c socket_trans.h $(MINIRPC_FILES)
 
-CLEANFILES = $(BUILT_SOURCES)
+MINIRPC_GENERATED = \
+	${MINIRPC_FILES:.mx=_client.h} ${MINIRPC_FILES:.mx=_server.h} \
+	${MINIRPC_FILES:.mx=_minirpc.c} ${MINIRPC_FILES:.mx=_minirpc.h} \
+	${MINIRPC_FILES:.mx=_xdr.c} ${MINIRPC_FILES:.mx=_xdr.h}
 
-nodist_libdiamondrpc_la_SOURCES = rpc_client_content_svc.c rpc_client_scope_svc.c \
-		 rpc_content_scope_svc.c rpc_scope_scope_svc.c \
-		 rpc_admin_content_svc.c rpc_admin_scope_svc.c \
-		 rpc_client_content_clnt.c rpc_client_scope_clnt.c \
-		 rpc_content_scope_clnt.c rpc_scope_scope_clnt.c \
-		 rpc_admin_content_clnt.c rpc_admin_scope_clnt.c \
-		 rpc_client_content_xdr.c rpc_client_scope_xdr.c \
-		 rpc_content_scope_xdr.c rpc_scope_scope_xdr.c \
-		 rpc_admin_content_xdr.c rpc_admin_scope_xdr.c \
-		 rpc_preamble_xdr.c
-libdiamondrpc_la_SOURCES = socket_trans.c socket_trans.h \
-	rpc_admin_content.x.in rpc_content_scope.x.in rpc_admin_scope.x.in \
-	rpc_preamble.x.in rpc_client_content.x.in rpc_scope_scope.x.in \
-	rpc_client_scope.x.in xdr_shim.h
+nodist_libdiamondrpc_la_SOURCES = ${MINIRPC_GENERATED}
 
-AM_CPPFLAGS += -include xdr_shim.h
+BUILT_SOURCES = ${MINIRPC_GENERATED}
+CLEANFILES = ${MINIRPC_GENERATED}
 
-pkginclude_HEADERS = socket_trans.h
+# make sure we rebuild rpc interfaces when the common header changes
+rpc_client_content_xdr.h: rpc_preamble_xdr.h
 
-# This string is used to store a perl command which strips out duplicate
-# XDR functions from generated files.
-ugly_perl_command = "undef $$/; while(<>) { s/bool_t\nxdr_begin_preamble.*bool_t\nxdr_end_preamble[^}]*}//s; print; }"
-
-rpc_preamble.h: rpc_preamble.x
-	$(RM) $@
-	$(RPCGEN) -M -N -C -h -o $@ $<
-
-rpc_preamble_xdr.c: rpc_preamble.x rpc_preamble.h
-	$(RM) $@
-	$(RPCGEN) -M -N -C -c -o $@ $<
-
-rpc_%_xdr.c: rpc_%.x
-	$(RM) $@
-	$(RPCGEN) -M -N -C -c -o $@ $<
-	perl -i -e $(ugly_perl_command) $@
-
-rpc_%.h: rpc_%.x
-	$(RM) $@
-	$(RPCGEN) -M -N -C -h -o $@ $<
-
-rpc_%_svc.c: rpc_%.x
-	$(RM) $@
-	$(RPCGEN) -M -N -C -m -o $@ $<
-
-rpc_%_clnt.c: rpc_%.x
-	$(RM) $@
-	$(RPCGEN) -M -N -C -l -o $@ $<
-
-rpc_preamble.x: rpc_preamble.x.in
-	cp $< $@
-
-%.x: %.x.in rpc_preamble.x
-	cp $< $@
+%_client.h %_server.h %_minirpc.c %_minirpc.h %_xdr.c %_xdr.h: %.mx
+	$(MINIRPCGEN) $<
 

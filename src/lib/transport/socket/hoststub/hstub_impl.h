@@ -16,7 +16,7 @@
 #ifndef	_LIB_HSTUB_IMPL_H_
 #define	_LIB_HSTUB_IMPL_H_
 
-#include <rpc/rpc.h>
+#include <minirpc/minirpc.h>
 
 /*
  * This structure keeps track of the state associated with each
@@ -30,26 +30,22 @@ typedef enum {
     DATA_RX_DATA,
 } data_rx_state_t;
 
-
 /* flag definitons */
-#define	CINFO_PENDING_CONTROL	0x01
 #define	CINFO_BLOCK_OBJ		0x02
 #define	CINFO_PENDING_CREDIT	0x04
 #define	CINFO_DOWN		0x08
 
 typedef struct conn_info {
-	int			flags;
-	uint32_t		ipv4addr;
-	pthread_mutex_t		mutex;
-        uint32_t		session_nonce; /* for pairing control and data conns */
-	int			control_fd;
+	pthread_mutex_t		mutex; /* protects 'flags' */
+	int	 		flags;
+	uint32_t		ipv4addr; /* used by device_characteristics() */
+        sig_val_t		session_nonce; /* for pairing control and data conns */
+	struct mrpc_connection *rpc_client;
 	int			data_fd;
 	data_rx_state_t		data_rx_state;
 	obj_header_t		data_rx_header;
 	int			data_rx_offset;
 	obj_data_t *		data_rx_obj;
-	CLIENT *                rpc_client;
-	pthread_mutex_t         rpc_mutex;
 	credit_count_msg_t 	cc_msg;
 	int			cc_counter;
 	int			obj_limit;
@@ -85,22 +81,13 @@ typedef struct sdevice_state {
 /*
  * Functions availabe in hstub_api.c
  */
-int rpc_preproc(const char *func, struct conn_info *con);
-int rpc_postproc(const char *func, struct conn_info *con,
-		 enum clnt_stat rpc_rc, diamond_rc_t *rc);
+int rpc_postproc(const char *func, mrpc_status_t ret);
 
 /*
  * Functions availabe in hstub_main.c
  */
 void * hstub_main(void *arg);
 void hstub_conn_down(sdevice_state_t *dev);
-
-/*
- * Functions available in hstub_cntrl.c
- */
-void hstub_read_cntrl(sdevice_state_t *dev);
-void hstub_except_cntrl(sdevice_state_t *dev);
-void hstub_write_cntrl(sdevice_state_t *dev);
 
 /*
  * Functions available in hstub_data.c

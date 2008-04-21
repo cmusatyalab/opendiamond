@@ -1,0 +1,127 @@
+/*
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 3
+ *
+ *  Copyright (c) 2007-2008 Carnegie Mellon University
+ *  All rights reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+const SIG_SIZE = 16;
+const MAX_FILTER_NAME = 128;
+const MAX_FILTERS = 64;
+
+/* "hyper" is the rpcgen type for a 64-bit quantity. */
+typedef hyper		groupid_x;
+typedef opaque		sig_val_x<SIG_SIZE>;
+typedef unsigned int	mode_x;
+typedef unsigned int	state_x;
+
+struct stop_x {
+    int host_objs_received;
+    int host_objs_queued;
+    int host_objs_read;
+    int app_objs_queued;
+    int app_objs_presented;
+};
+
+struct spec_file_x {
+    sig_val_x	sig;
+    opaque	data<>;
+};
+
+struct dctl_x {
+    unsigned int    dctl_err;
+    unsigned int    dctl_plen;
+    unsigned int    dctl_dtype;
+    opaque	    dctl_data<>;
+};
+
+struct blob_x {
+    string	filter_name<MAX_FILTER_NAME>;
+    opaque	blob_data<>;
+};
+
+struct dev_char_x {
+    unsigned int	dcs_isa;
+    unsigned int	dcs_speed;
+    hyper		dcs_mem;
+};
+
+struct filter_stats_x {
+    string	fs_name<MAX_FILTER_NAME>;
+    int		fs_objs_processed;
+    int		fs_objs_dropped;
+    int		fs_objs_cache_dropped;
+    int		fs_objs_cache_passed;
+    int		fs_objs_compute;
+    int		fs_hits_inter_session;
+    int		fs_hits_inter_query;
+    int		fs_hits_intra_query;
+    hyper	fs_avg_exec_time;
+};
+
+struct dev_stats_x {
+    int		ds_objs_total;
+    int		ds_objs_processed;
+    int		ds_objs_dropped;
+    int		ds_objs_nproc;
+    int		ds_system_load;
+    hyper	ds_avg_obj_time;
+    filter_stats_x ds_filter_stats<MAX_FILTERS>;
+};
+
+struct send_obj_x {
+    sig_val_x	obj_sig;
+    opaque	obj_data<>;
+};
+
+struct diamond_session_var_x {
+    string	name<>;
+    double	value;
+};
+
+struct diamond_session_vars_x {
+    diamond_session_var_x vars<>;
+};
+
+serverprocs {
+    /**** Client calls ****/
+    device_start(void, void) = 1;
+    device_stop(stop_x, void) = 2;
+    device_terminate(void, void) = 3;
+    device_clear_gids(void, void) = 4;
+    device_new_gid(groupid_x, void) = 5;
+    device_set_spec(spec_file_x, void) = 6;
+
+    /**** Dctl operations ****/
+    device_write_leaf(dctl_x, dctl_x) = 7;
+    device_read_leaf(dctl_x, dctl_x) = 8;
+    device_list_nodes(dctl_x, dctl_x) = 9;
+    device_list_leafs(dctl_x, dctl_x) = 10;
+
+    device_set_blob(blob_x, void) = 11;
+    device_set_exec_mode(mode_x, void) = 12;
+    device_set_user_state(state_x, void) = 13;
+
+    /**** Device characteristics and statistics ****/
+    request_chars(void, dev_char_x) = 14;
+    request_stats(void, dev_stats_x) = 15;
+
+    /**** Filter Caching ****/
+    /* The filter caching calls are related respectively by:
+     * client call(SET_OBJ) -> server call(GET_OBJ) -> client call(SEND_OBJ) */
+    /* The GET_OBJ call is implied by the return code from SET_OBJ which
+     * returns DIAMOND_FCACHEMISS when the object was not found */
+    device_set_obj(sig_val_x, void) = 16;
+    device_send_obj(send_obj_x, void) = 17;
+
+    /**** Anomaly detection ****/
+    session_variables_get(void, diamond_session_vars_x) = 18;
+    session_variables_set(diamond_session_vars_x, void) = 19;
+}
+

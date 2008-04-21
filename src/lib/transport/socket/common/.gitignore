@@ -1,5 +1,6 @@
-/rpc_*_svc.c
-/rpc_*_clnt.c
-/rpc_*.h
-/rpc_*_xdr.c
-/rpc_*.x
+*_client.h
+*_server.h
+*_minirpc.c
+*_minirpc.h
+*_xdr.c
+*_xdr.h

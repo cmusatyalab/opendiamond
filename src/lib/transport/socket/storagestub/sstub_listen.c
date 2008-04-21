@@ -132,12 +132,11 @@ shutdown_connection(listener_state_t * lstate, cstate_t * cstate)
 	 */
 	(*lstate->cb.close_conn_cb) (cstate->app_cookie);
 
-
 	/*
 	 * if there is a control socket, close it 
 	 */
 	if (cstate->flags & CSTATE_CNTRL_FD) {
-		close(cstate->control_fd);
+		mrpc_conn_close(cstate->mrpc_conn);
 		cstate->flags &= ~CSTATE_CNTRL_FD;
 	}
 
@@ -238,7 +237,7 @@ try_next:
 
 
 /*
- * We have all the sockets endpoints open for this new connetion.
+ * We have all the sockets endpoints open for this new connection.
  * Now we span a thread for managing this connection as well
  * using the callbacks to inform the caller that there is a new
  * connection to be serviced.
@@ -304,148 +303,110 @@ have_full_conn(listener_state_t * list_state, int conn)
 	}
 }
 
+const sig_val_t nullsig;
 
-/*
- * This accepts an incomming connection request to the control
- * port.  We accept the connection and assign it to a new connection
- * state.
- */
-
+/* create a unique nonce, hashing the contents of /proc/stat on Linux has the
+ * nice property that it contains various timers and interrupt counters */
 static void
-accept_control_conn(listener_state_t * list_state)
+new_nonce(sig_val_t *sig)
 {
-	struct sockaddr_storage peer;
-	socklen_t       peerlen;
-	int             new_sock;
-	int             i;
-	int				len;
-	uint32_t        data;
-	ssize_t         wsize;
-	char 			buf[BUFSIZ];
-
-	peerlen = sizeof(peer);
-	new_sock = accept(list_state->control_fd,
-			  (struct sockaddr *)&peer, &peerlen);
-
-	if (new_sock < 0) {
-		/*
-		 * XXX log 
-		 */
-		printf("XXX accept failed \n");
-	}
-
-	/*
-	 * Now we allocate a per connection state information and
-	 * store the socket associated with this.
-	 */
-	for (i = 0; i < MAX_CONNS; i++) {
-		if (!(list_state->conns[i].flags & CSTATE_ALLOCATED)) {
-			break;
-		}
-	}
-	if (i == MAX_CONNS) {
-		/*
-		 * XXX log 
-		 */
-		printf("XXX accept control no state \n");
-		close(new_sock);
-		return;
-	}
-
-	list_state->conns[i].flags |= CSTATE_ALLOCATED;
-	list_state->conns[i].flags |= CSTATE_CNTRL_FD;
-	list_state->conns[i].control_fd = new_sock;
-	list_state->conns[i].data_tx_state = DATA_TX_NO_PENDING;
-
-	memcpy(&list_state->conns[i].cinfo.clientaddr, &peer, peerlen);
-	list_state->conns[i].cinfo.clientaddr_len = peerlen;
-
-	/*
-	 * XXX return value ??
-	 */
-	pthread_mutex_init(&list_state->conns[i].cmutex, NULL);
-
-	data = (uint32_t) i;
-
-	wsize = write(new_sock, (char *) &data, sizeof(data));
-	if (wsize < 0) {
-		/* XXX log */
-		printf("XXX Failed write on cntrl connection \n");
-		close(new_sock);
-		list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
-	}
+	int fd = open("/dev/urandom", O_RDONLY);
+	read(fd, sig, sizeof(*sig));
+	close(fd);
 }
 
 /*
- * This accepts an incomming connection request to the data
- * port.  We accept the connection and get some data out of it.  This
- * should tell us what connection it belongs to (if the caller did
- * the correct handshake.  
+ * This accepts an incoming connection request. We accept the connection and
+ * receive some data. This should tell us whether this is a new connection or
+ * what connection it belongs to (if the caller did the correct handshake).
  */
-
 static void
-accept_data_conn(listener_state_t * list_state)
+accept_connection(listener_state_t * list_state)
 {
 	struct sockaddr_storage peer;
 	socklen_t	peerlen;
-	int             new_sock;
-	uint32_t        data;
-	ssize_t          size, dsize;
-	char 			buf[BUFSIZ];
+	int		sockfd;
+	cstate_t	*conn;
+	ssize_t	n;
+	sig_val_t	nonce;
+	int		i;
 
 	peerlen = sizeof(peer);
-	new_sock = accept(list_state->data_fd,
-			  (struct sockaddr *)&peer, &peerlen);
-
-	if (new_sock < 0) {
-		/*
-		 * XXX log 
-		 */
+	sockfd = accept(list_state->listen_fd,
+			(struct sockaddr *)&peer, &peerlen);
+	if (sockfd < 0) {
+		/* XXX log */
 		printf("XXX accept failed \n");
-	}
-
-	dsize = read(new_sock, (char *) &data, sizeof(data));
-	if (dsize < 0) {
-		/*
-		 * XXX 
-		 */
-		printf("failed read cookie \n");
-		close(new_sock);
 		return;
 	}
 
-	if (data >= MAX_CONNS) {
-		/*
-		 * XXX 
-		 */
-		fprintf(stderr, "data conn cookie out of range <%d> \n",
-			data);
-		close(new_sock);
+	n = read(sockfd, &nonce, sizeof(nonce));
+	if (n != sizeof(nonce)) {
+		/* XXX */
+		printf("failed to read cookie \n");
+		close(sockfd);
 		return;
 	}
+	if (memcmp(&nonce, &nullsig, sizeof(nonce)) == 0) {
+		/* Now we allocate a new connection state and store the socket
+		* associated with this. */
+		for (i = 0; i < MAX_CONNS; i++) {
+			conn = &list_state->conns[i];
+			if (!(conn->flags & CSTATE_ALLOCATED))
+				break;
+		}
+		if (i == MAX_CONNS) {
+			/* XXX log */
+			printf("XXX accept control no available state found\n");
+			close(sockfd);
+			return;
+		}
 
+		conn->flags |= CSTATE_ALLOCATED;
+		conn->flags |= CSTATE_CNTRL_FD;
+		conn->control_fd = sockfd;
+		conn->data_tx_state = DATA_TX_NO_PENDING;
 
-	if (!(list_state->conns[data].flags & CSTATE_ALLOCATED)) {
-		/*
-		 * XXX 
-		 */
-		fprintf(stderr, "connection not on valid cookie <%d>\n",
-			data);
-		close(new_sock);
-		return;
+		memcpy(&conn->cinfo.clientaddr, &peer, peerlen);
+		conn->cinfo.clientaddr_len = peerlen;
+
+		pthread_mutex_init(&conn->cmutex, NULL);
+		new_nonce(&conn->nonce);
+	}
+	else {
+		/* Now we find the matching connection state and associate the
+		 * incoming data connection with this. */
+		for (i = 0; i < MAX_CONNS; i++) {
+			conn = &list_state->conns[i];
+			if (conn->flags & CSTATE_ALLOCATED &&
+			    memcmp(&nonce, &conn->nonce, sizeof(nonce)) == 0)
+				break;
+		}
+		if (i == MAX_CONNS) {
+			/* XXX log */
+			printf("XXX accept data no matching state found\n");
+			close(sockfd);
+			return;
+		}
+		conn->flags |= CSTATE_DATA_FD;
+		conn->data_fd = sockfd;
+
+		socket_non_block(sockfd);
 	}
 
+	n = write(sockfd, &conn->nonce, sizeof(sig_val_t));
+	if (n != sizeof(conn->nonce)) goto err_out;
 
-	list_state->conns[data].flags |= CSTATE_DATA_FD;
-	list_state->conns[data].data_fd = new_sock;
+	if ((conn->flags & CSTATE_ALL_FD) == CSTATE_ALL_FD)
+		have_full_conn(list_state, i);
+	return;
 
-	socket_non_block(new_sock);
-
-	if ((list_state->conns[data].flags & CSTATE_ALL_FD) == CSTATE_ALL_FD) {
-		have_full_conn(list_state, (int) data);
-
-	}
-
+err_out:
+	if (conn->flags & CSTATE_CNTRL_FD)
+		mrpc_conn_close(conn->mrpc_conn);
+	if (conn->flags & CSTATE_DATA_FD)
+		close(conn->data_fd);
+	conn->flags &= ~(CSTATE_ALLOCATED | CSTATE_CNTRL_FD | CSTATE_DATA_FD);
 }
 
 
@@ -462,21 +423,13 @@ sstub_listen(void *cookie)
 	struct timeval  now;
 	int             err;
 	int             max_fd = 0;
+	fd_set		read_fds;
 
 	list_state = (listener_state_t *) cookie;
 
-	max_fd = list_state->control_fd;
-	if (list_state->data_fd > max_fd) {
-		max_fd = list_state->data_fd;
-	}
-	max_fd += 1;
-
-	FD_ZERO(&list_state->read_fds);
-	FD_ZERO(&list_state->write_fds);
-	FD_ZERO(&list_state->except_fds);
-
-	FD_SET(list_state->control_fd, &list_state->read_fds);
-	FD_SET(list_state->data_fd, &list_state->read_fds);
+	FD_ZERO(&read_fds);
+	FD_SET(list_state->listen_fd, &read_fds);
+	max_fd = list_state->listen_fd + 1;
 
 	now.tv_sec = 1;
 	now.tv_usec = 0;
@@ -485,13 +438,9 @@ sstub_listen(void *cookie)
 	 * Sleep on the set of sockets to see if anything
 	 * interesting has happened.
 	 */
-	err = select(max_fd, &list_state->read_fds,
-		     &list_state->write_fds,
-		     &list_state->except_fds, &now);
+	err = select(max_fd, &read_fds, NULL, NULL, &now);
 	if (err == -1) {
-		/*
-		 * XXX log 
-		 */
+		/* XXX log */
 		printf("XXX select failed \n");
 		exit(1);
 	}
@@ -501,16 +450,7 @@ sstub_listen(void *cookie)
 	 * that have data.
 	 */
 	if (err > 0) {
-		if (FD_ISSET(list_state->control_fd,
-			     &list_state->read_fds)) {
-			accept_control_conn(list_state);
-		}
-
-		if (FD_ISSET(list_state->data_fd,
-			     &list_state->read_fds)) {
-			accept_data_conn(list_state);
-		}
+		if (FD_ISSET(list_state->listen_fd, &read_fds))
+			accept_connection(list_state);
 	}
-
-	return;	
 }

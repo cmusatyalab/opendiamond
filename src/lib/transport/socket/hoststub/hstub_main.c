@@ -42,7 +42,8 @@
 #include "lib_log.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
-#include "rpc_client_content.h"
+
+#include "rpc_client_content_client.h"
 
 /*
  * XXX constant config 
@@ -57,32 +58,26 @@
  * these to answer requests.  The freshness will be determined
  * by how often we go an make the requests.
  */
-
 static int
 request_chars(sdevice_state_t * dev)
 {
-	enum clnt_stat retval;
-	request_chars_return_x characteristics;
-	int err;
+	mrpc_status_t	retval;
+	dev_char_x	*characteristics = NULL;
+	int		err;
 
-	memset(&characteristics, 0, sizeof(characteristics));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_request_chars(dev->con_data.rpc_client,
+						  &characteristics);
 
-	retval = request_chars_x_2(0, &characteristics,
-				   dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval,
-			   &characteristics.error);
+	err = rpc_postproc(__FUNCTION__, retval);
 	if (err) goto err_out;
 
-	dev->dev_char.dc_isa = characteristics.chars.dcs_isa;
-	dev->dev_char.dc_speed = characteristics.chars.dcs_isa;
-	dev->dev_char.dc_mem = characteristics.chars.dcs_mem;
+	dev->dev_char.dc_isa = characteristics->dcs_isa;
+	dev->dev_char.dc_speed = characteristics->dcs_isa;
+	dev->dev_char.dc_mem = characteristics->dcs_mem;
+
 	dev->dev_char.dc_devid = dev->con_data.ipv4addr;
 err_out:
-	xdr_free((xdrproc_t)xdr_request_chars_return_x,
-		 (char *)&characteristics);
+	free_dev_char_x(characteristics, 1);
 	return err;
 }
 
@@ -91,45 +86,35 @@ err_out:
  * This stores caches the statistics to answer requests
  * from users.
  */
-
 static int
 request_stats(sdevice_state_t * dev)
 {
-	enum clnt_stat retval;
-	request_stats_return_x statistics;
-	dev_stats_t    *dstats;
-	int             len;
-	int             num_filt;
-	int             i;
-	int err, unavail;
+	mrpc_status_t	retval;
+	dev_stats_x	*statistics = NULL;
+	dev_stats_t	*dstats;
+	int		len;
+	int		num_filt;
+	int		i;
+	int		unavail;
+	int		err;
 
-	memset(&statistics, 0, sizeof(statistics));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
-
-	retval = request_stats_x_2(0, &statistics, dev->con_data.rpc_client);
+	retval = rpc_client_content_request_stats(dev->con_data.rpc_client,
+						  &statistics);
 
 	/* when filters are not loaded we get an 'error', avoid logging it */
-	unavail = (retval == RPC_SUCCESS &&
-		   statistics.error.service_err == DIAMOND_OPERR &&
-		   statistics.error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL);
-	if (unavail) {
-		statistics.error.service_err = DIAMOND_SUCCESS;
-		statistics.error.opcode_err = DIAMOND_OPCODE_SUCCESS;
-	}
+	unavail = (retval == DIAMOND_NOSTATSAVAIL);
+	if (unavail) retval = DIAMOND_SUCCESS;
 
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval,
-			   &statistics.error);
+	err = rpc_postproc(__FUNCTION__, retval);
 	if (err || unavail) goto err_out;
 
-	num_filt = statistics.stats.ds_filter_stats.ds_filter_stats_len;
+	num_filt = statistics->ds_filter_stats.ds_filter_stats_len;
 	len = DEV_STATS_SIZE(num_filt);
 
-
 	if (len > dev->stat_size) {
-		if (dev->dstats != NULL) {
+		if (dev->dstats != NULL)
 			free(dev->dstats);
-		}
+
 		dstats = (dev_stats_t *) malloc(len);
 		assert(dstats != NULL);
 		dev->dstats = dstats;
@@ -139,53 +124,52 @@ request_stats(sdevice_state_t * dev)
 		dev->stat_size = len;
 	}
 
-
-	dstats->ds_objs_total = statistics.stats.ds_objs_total;
-	dstats->ds_objs_processed = statistics.stats.ds_objs_processed;
-	dstats->ds_objs_dropped = statistics.stats.ds_objs_dropped;
-	dstats->ds_objs_nproc = statistics.stats.ds_objs_nproc;
-	dstats->ds_system_load = statistics.stats.ds_system_load;
-	dstats->ds_avg_obj_time = statistics.stats.ds_avg_obj_time;
-	dstats->ds_num_filters = statistics.stats.ds_filter_stats.ds_filter_stats_len;
+	dstats->ds_objs_total = statistics->ds_objs_total;
+	dstats->ds_objs_processed = statistics->ds_objs_processed;
+	dstats->ds_objs_dropped = statistics->ds_objs_dropped;
+	dstats->ds_objs_nproc = statistics->ds_objs_nproc;
+	dstats->ds_system_load = statistics->ds_system_load;
+	dstats->ds_avg_obj_time = statistics->ds_avg_obj_time;
+	dstats->ds_num_filters = statistics->ds_filter_stats.ds_filter_stats_len;
 
 	for (i = 0; i < num_filt; i++) {
 		strncpy(dstats->ds_filter_stats[i].fs_name,
-			statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_name, MAX_FILTER_NAME);
+			statistics->ds_filter_stats.ds_filter_stats_val[i].fs_name, MAX_FILTER_NAME);
 		dstats->ds_filter_stats[i].fs_name[MAX_FILTER_NAME - 1] =
 		    '\0';
 
 		dstats->ds_filter_stats[i].fs_objs_processed =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_objs_processed;
 
 		dstats->ds_filter_stats[i].fs_objs_dropped =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_objs_dropped;
 
 		/*
-		 * JIAYING 
+		 * JIAYING
 		 */
 		dstats->ds_filter_stats[i].fs_objs_cache_dropped =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_dropped;
 		dstats->ds_filter_stats[i].fs_objs_cache_passed =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_objs_cache_passed;
 		dstats->ds_filter_stats[i].fs_objs_compute =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_objs_compute;
 
 		dstats->ds_filter_stats[i].fs_hits_inter_session =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_session;
 		dstats->ds_filter_stats[i].fs_hits_inter_query =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_hits_inter_query;
 		dstats->ds_filter_stats[i].fs_hits_intra_query =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_hits_intra_query;
 
 		/*
-		 * XXX byte order !!! 
+		 * XXX byte order !!!
 		 */
-		
+
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
-		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
+		    statistics->ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
 	}
 err_out:
-	xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
+	free_dev_stats_x(statistics, 1);
 	return err;
 }
 
@@ -197,9 +181,8 @@ hstub_conn_down(sdevice_state_t * dev)
 
 	/* set the flag */
 	dev->con_data.flags |= CINFO_DOWN;
-	log_message(LOGT_NET, LOGL_CRIT, 
-	     "hstub_conn_down: Killing thread..\n");
-	pthread_exit(0); 
+	log_message(LOGT_NET, LOGL_CRIT, "hstub_conn_down: Killing thread..\n");
+	pthread_exit(0);
 }
 
 
@@ -208,15 +191,14 @@ hstub_conn_down(sdevice_state_t * dev)
  * The main loop that the per device thread runs while
  * processing data to/from the individual devices
  */
-
 void *
 hstub_main(void *arg)
 {
 	sdevice_state_t *dev;
 	conn_info_t    *cinfo;
 	struct timeval  to;
-	int             err;
-	int             max_fd;
+	int		err;
+	int		max_fd;
 	struct timeval  this_time;
 	struct timeval  next_time = {0, 0};
 	struct timezone tz;
@@ -233,10 +215,7 @@ hstub_main(void *arg)
 	 */
 	cinfo = &dev->con_data;
 
-	max_fd = cinfo->control_fd;
-	if (cinfo->data_fd > max_fd) {
-		max_fd = cinfo->data_fd;
-	}
+	max_fd = cinfo->data_fd;
 	max_fd += 1;
 
 	/*
@@ -248,11 +227,11 @@ hstub_main(void *arg)
 	while (1) {
 
 		/* if the connection has been marked down then we
-		 * exit for now. 
+		 * exit for now.
 		 * TODO: future version should possibly start over.
 		 */
 		if (cinfo->flags & CINFO_DOWN) {
-		  log_message(LOGT_NET, LOGL_CRIT, 
+		  log_message(LOGT_NET, LOGL_CRIT,
 			      "hstub_main: conn marked down. Killing thread..\n");			pthread_exit(0);
 		}
 
@@ -264,13 +243,13 @@ hstub_main(void *arg)
 		 */
 
 		if (((this_time.tv_sec == next_time.tv_sec) &&
-	     	    (this_time.tv_usec >= next_time.tv_usec)) ||
+		     (this_time.tv_usec >= next_time.tv_usec)) ||
 		    (this_time.tv_sec > next_time.tv_sec)) {
 
 			if((request_chars(dev) < 0) || (request_stats(dev) < 0)) {
-			  log_message(LOGT_NET, LOGL_CRIT, 
-				      "hstub_main: TS-RPC calls are failing. Killing thread..\n");
-			  hstub_conn_down(dev); 
+			  log_message(LOGT_NET, LOGL_CRIT,
+				      "hstub_main: RPC calls are failing. Killing thread..\n");
+			  hstub_conn_down(dev);
 			}
 
 			assert(POLL_USECS < 1000000);
@@ -302,7 +281,6 @@ hstub_main(void *arg)
 
 
 		err = select(max_fd, &read_fds, &write_fds, &except_fds, &to);
-
 		if (err == -1) {
 			log_message(LOGT_NET, LOGL_CRIT,
 				    "hstub_main: broken socket");
@@ -320,6 +298,5 @@ hstub_main(void *arg)
 				hstub_write_data(dev);
 			}
 		}
-
 	}
 }

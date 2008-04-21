@@ -44,8 +44,7 @@
 #include "lib_hstub.h"
 #include "lib_dconfig.h"
 #include "hstub_impl.h"
-#include "rpc_client_content.h"
-#include "rpc_preamble.h"
+#include "rpc_client_content_client.h"
 
 /*
  * XXX move to common header 
@@ -53,30 +52,16 @@
 #define	HSTUB_RING_SIZE	512
 #define OBJ_RING_SIZE	512
 
-int rpc_preproc(const char *func, struct conn_info *con)
+int rpc_postproc(const char *func, mrpc_status_t ret)
 {
-	if(pthread_mutex_lock(&con->rpc_mutex) != 0) {
-		log_message(LOGT_NET, LOGL_ERR, "%s: mutex lock failed", func);
-		return -1;
-	}
-	return 0;
-}
-
-int rpc_postproc(const char *func, struct conn_info *con,
-		 enum clnt_stat rpc_rc, diamond_rc_t *rc)
-{
-	if (pthread_mutex_unlock(&con->rpc_mutex) != 0) {
-		log_message(LOGT_NET, LOGL_ERR, "%s: mutex unlock failed",func);
-		return -1;
-	}
-	if (rpc_rc != RPC_SUCCESS) {
+	if (ret < 0) { /* minirpc error */
 		log_message(LOGT_NET, LOGL_ERR, "%s: sending failed", func);
-		log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(rpc_rc));
+		log_message(LOGT_NET, LOGL_ERR, mrpc_strerror(ret));
 		return -1;
 	}
-	if (rc->service_err != DIAMOND_SUCCESS) {
+	else if (ret > 0) { /* diamond error */
 		log_message(LOGT_NET, LOGL_ERR, "%s: servicing failed", func);
-		log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+		log_message(LOGT_NET, LOGL_ERR, diamond_error(ret));
 		return -1;
 	}
 	return 0;
@@ -134,11 +119,9 @@ device_statistics(void *handle, dev_stats_t * dev_stats, int *stat_len)
 int
 device_stop(void *handle, int id, host_stats_t *hs)
 {
-	diamond_rc_t rc;
-	stop_x sx;
+	stop_x		sx;
 	sdevice_state_t *dev;
-	enum clnt_stat retval;
-	int err;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -148,92 +131,60 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	sx.app_objs_queued = hs->hs_objs_uqueued;
 	sx.app_objs_presented = hs->hs_objs_upresented;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_stop(dev->con_data.rpc_client, &sx);
 
-	retval = device_stop_x_2(id, sx, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 
 int
 device_terminate(void *handle, int id)
 {
-	diamond_rc_t rc;
 	sdevice_state_t *dev;
-	enum clnt_stat retval;
-	int err;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_clear_gids(dev->con_data.rpc_client);
 
-	retval = device_clear_gids_x_2(id, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 
 /*
  * This start a search that has been setup.  
  */
-
-
 int
 device_start(void *handle, int id)
 {
-	diamond_rc_t rc;
 	sdevice_state_t *dev;
-	enum clnt_stat retval;
-	int err;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
 	/* save the new start id */
 	dev->ver_no = id;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_start(dev->con_data.rpc_client);
 
-	retval = device_start_x_2(id, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 int
 device_clear_gids(void *handle, int id)
 {
-	diamond_rc_t rc;
 	sdevice_state_t *dev;
-	enum clnt_stat retval;
-	int err;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_clear_gids(dev->con_data.rpc_client);
 
-	retval = device_clear_gids_x_2(id, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 
-obj_info_t     *
+obj_info_t *
 device_next_obj(void *handle)
 {
 	sdevice_state_t *dev;
@@ -244,11 +195,10 @@ device_next_obj(void *handle)
 
 	if (oinfo != NULL) {
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
-	} else {
-	       	if (dev->con_data.cc_counter++ > 100) {
-			dev->con_data.flags |= CINFO_PENDING_CREDIT;
-			dev->con_data.cc_counter = 0;
-		}
+	}
+	else if (dev->con_data.cc_counter++ > 100) {
+		dev->con_data.flags |= CINFO_PENDING_CREDIT;
+		dev->con_data.cc_counter = 0;
 	}
 	return (oinfo);
 }
@@ -257,25 +207,16 @@ device_next_obj(void *handle)
 int
 device_new_gid(void *handle, int id, groupid_t gid)
 {
-	diamond_rc_t rc;
 	sdevice_state_t *dev;
-	groupid_x gix;
-	enum clnt_stat retval;
-	int err;
+	groupid_x	gix;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
-
 	gix = gid;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
-
-	retval = device_new_gid_x_2(id, gix, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	retval = rpc_client_content_device_new_gid(dev->con_data.rpc_client,
+						   &gix);
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 
@@ -284,37 +225,36 @@ device_new_gid(void *handle, int id, groupid_t gid)
  * This builds the buffers and copies the contents of the files into
  * the buffers.
  */
-
-
 int
 device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 {
-	char           *data;
-	int             spec_len;
-	struct stat     stats;
-	ssize_t         rsize;
-	FILE           *cur_file;
+	char		*data = NULL;
+	int		spec_len;
+	struct stat	stats;
+	ssize_t		rsize;
+	FILE		*cur_file;
 	sdevice_state_t *dev;
-	diamond_rc_t    rc;
-	spec_file_x     sf;
-	enum clnt_stat retval;
-	int err;
+	spec_file_x	sf;
+	mrpc_status_t	retval;
+	int		err;
 
 	dev = (sdevice_state_t *) handle;
 
 	err = stat(spec, &stats);
 	if (err) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed stat spec file <%s>", 
-		    spec);
-		return (ENOENT);
+	    log_message(LOGT_NET, LOGL_ERR,
+			"device_set_searchlet: failed stat spec file <%s>",
+			spec);
+	    goto err_out;
 	}
-	spec_len = stats.st_size;
 
-	if ((data = malloc(spec_len)) == NULL) {
-	  log_message(LOGT_NET, LOGL_ERR,
-		      "device_set_searchlet: failed open spec <%s>", spec);
-	  return ENOENT;
+	err = -1;
+	spec_len = stats.st_size;
+	data = malloc(spec_len);
+	if (data == NULL) {
+	    log_message(LOGT_NET, LOGL_ERR,
+			"device_set_searchlet: failed open spec <%s>", spec);
+	    goto err_out;
 	}
 
 	/*
@@ -322,18 +262,18 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	 * copy in the filter spec from the file.  NOTE: This is
 	 * currently blocks, we may want to do something else later.
 	 */
-	if ((cur_file = fopen(spec, "r")) == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed open spec <%s>", spec);
-		free(data);
-		return (ENOENT);
+	cur_file = fopen(spec, "r");
+	if (cur_file == NULL) {
+	    log_message(LOGT_NET, LOGL_ERR,
+			"device_set_searchlet: failed open spec <%s>", spec);
+	    goto err_out;
 	}
-	if ((rsize = fread(data, spec_len, 1, cur_file)) != 1) {
-		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_searchlet: failed read spec <%s>", 
-		    spec);
-		free(data);
-		return (EAGAIN);
+	rsize = fread(data, spec_len, 1, cur_file);
+	if (rsize != 1) {
+	    log_message(LOGT_NET, LOGL_ERR,
+			"device_set_searchlet: failed read spec <%s>",
+			spec);
+	    goto err_out;
 	}
 
 	fclose(cur_file);
@@ -344,60 +284,44 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	sf.data.data_len = spec_len;
 	sf.data.data_val = data;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data)) {
-		free(data);
-		return -1;
-	}
-
-	retval = device_set_spec_x_2(id, sf, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	free(data);
+	retval = rpc_client_content_device_set_spec(dev->con_data.rpc_client,
+						    &sf);
+	err = rpc_postproc(__FUNCTION__, retval);
+err_out:
+	if (data) free(data);
 	return err;
 }
 
 int
 device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 {
-	diamond_rc_t rc;
+	char		*data = NULL;
 	sdevice_state_t *dev;
-	sig_val_x sx;
-	send_obj_x ox;
+	sig_val_x	sx;
+	send_obj_x	ox;
 	struct stat     stats;
-	ssize_t         rsize;
+	ssize_t		rsize;
 	int		buf_len;
-	FILE           *cur_file;
-	char objname[PATH_MAX];
-	char *cache;
-	char *data;
-	char *sig;
-	enum clnt_stat retval;
-	int err, cachemiss;
+	FILE		*cur_file;
+	char		objname[PATH_MAX];
+	char		*cache;
+	char		*sig;
+	mrpc_status_t	retval;
+	int		cachemiss;
+	int		err;
 
 	dev = (sdevice_state_t *) handle;
 
 	sx.sig_val_x_len = sizeof(sig_val_t);
 	sx.sig_val_x_val = (char *)obj_sig;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
-
-	retval = device_set_obj_x_2(id, sx, &rc, dev->con_data.rpc_client);
-
+	retval = rpc_client_content_device_set_obj(dev->con_data.rpc_client,
+						   &sx);
 	/* cache misses are not really errors, we don't need them logged */
-	cachemiss = (retval == RPC_SUCCESS &&
-		     rc.service_err == DIAMOND_OPERR &&
-		     rc.opcode_err == DIAMOND_OPCODE_FCACHEMISS);
-	if (cachemiss) {
-		rc.service_err = DIAMOND_SUCCESS;
-		rc.opcode_err = DIAMOND_OPCODE_SUCCESS;
-	}
+	cachemiss = (retval == DIAMOND_FCACHEMISS);
+	if (cachemiss) retval = DIAMOND_SUCCESS;
 
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
+	err = rpc_postproc(__FUNCTION__, retval);
 	if (err || !cachemiss) return err;
 
 	/* If we've reached this point, the server does not have this
@@ -412,42 +336,37 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	err = stat(objname, &stats);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_lib: failed stat spec file <%s>",  
-		    objname);
-		return (ENOENT);
+		    "device_set_lib: failed stat spec file <%s>", objname);
+		goto err_out;
 	}
 	buf_len = stats.st_size;
 
 	ox.obj_sig.sig_val_x_val = (char *)obj_sig;
 	ox.obj_sig.sig_val_x_len = sizeof(sig_val_t);
 
+	err = -1;
 	data = (char *)malloc(buf_len);
 	if(data == NULL) {
 	  perror("malloc");
 	  log_message(LOGT_NET, LOGL_ERR,
-		      "device_set_lib: failed malloc spec file <%s>",  
-		      objname);
-	  return ENOENT;
+		      "device_set_lib: failed malloc spec file <%s>", objname);
+	  goto err_out;
 	}
-
 
 	/*
 	 * set data to the beginning of the data portion  and
 	 * copy in the filter spec from the file.  NOTE: This is
 	 * currently blocks, we may want to do something else later.
 	 */
-
 	if ((cur_file = fopen(objname, "r")) == NULL) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_lib: failed open <%s>", objname);
-		free(data);
-		return (ENOENT);
+			    "device_set_lib: failed open <%s>", objname);
+		goto err_out;
 	}
 	if ((rsize = fread(data, buf_len, 1, cur_file)) != 1) {
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_lib: failed read obj <%s>", objname);
-		free(data);
-		return (EAGAIN);
+		goto err_out;
 	}
 
 	fclose(cur_file);
@@ -455,17 +374,11 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	ox.obj_data.obj_data_len = buf_len;
 	ox.obj_data.obj_data_val = data;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data)) {
-		free(data);
-		return -1;
-	}
-
-	retval = device_send_obj_x_2(id, ox, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	free(data);
+	retval = rpc_client_content_device_send_obj(dev->con_data.rpc_client,
+						    &ox);
+	err = rpc_postproc(__FUNCTION__, retval);
+err_out:
+	if (data) free(data);
 	return err;
 }
 
@@ -474,49 +387,43 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 int
 device_write_leaf(void *handle, char *path, int len, char *data)
 {
+	dctl_x		*drx = NULL;
+	char		*buf = NULL;
 	sdevice_state_t *dev;
-	dctl_x          dx;
-	int             plen;
-	dctl_return_x   drx;
-	enum clnt_stat retval;
-	char *buf;
-	int err;
+	dctl_x		dx;
+	int		plen;
+	mrpc_status_t	retval;
+	int		err;
 
 	dev = (sdevice_state_t *) handle;
 
 	plen = strlen(path) + 1;
 
-	if((buf = malloc(plen+len)) == NULL) {
-	  log_message(LOGT_NET, LOGL_ERR,
-		      "device_write_leaf: failed malloc data");
-	  return (EAGAIN);
+	buf = malloc(plen+len);
+	if(buf == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+			    "device_write_leaf: failed malloc data");
+		return -1;
 	}
 
 	memcpy(&buf[0], path, plen);
 	memcpy(&buf[plen], data, len);
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = 0;
 	dx.dctl_plen = plen;
 	dx.dctl_data.dctl_data_len = plen+len;
 	dx.dctl_data.dctl_data_val = buf;
 
-	memset(&drx, 0, sizeof(drx));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data)) {
-		free(buf);
-		return -1;
-	}
+	retval = rpc_client_content_device_write_leaf(dev->con_data.rpc_client,
+						      &dx, &drx);
+	err = rpc_postproc(__FUNCTION__, retval);
+	if (err) goto err_out;
 
-	retval = device_write_leaf_x_2(0, dx, &drx, dev->con_data.rpc_client);
+	err = drx->dctl_err;
 
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
-	free(buf);
-	if (err) {
-		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-		return -1;
-	}
-	err = drx.dctl.dctl_err;
-	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
+err_out:
+	if (buf) free(buf);
+	free_dctl_x(drx, 1);
 	return err;
 }
 
@@ -524,45 +431,38 @@ int
 device_read_leaf(void *handle, char *path,
 		 dctl_data_type_t *dtype, int *dlen, void *dval)
 {
+	dctl_x		*drx = NULL;
 	sdevice_state_t *dev;
-	dctl_x          dx;
-	int             len;
-	dctl_return_x   drx;
-	enum clnt_stat retval;
-	int err;
+	dctl_x		dx;
+	int		len;
+	mrpc_status_t	retval;
+	int		err;
 
 	dev = (sdevice_state_t *) handle;
 
 	len = strlen(path) + 1;
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = 0;
 	dx.dctl_plen = len;
 	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
-	memset(&drx, 0, sizeof(drx));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_read_leaf(dev->con_data.rpc_client,
+						     &dx, &drx);
+	err = rpc_postproc(__FUNCTION__, retval);
+	if (err) goto err_out;
 
-	retval = device_read_leaf_x_2(0, dx, &drx, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
-	if (err) {
-		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-		return -1;
-	}
-	err = drx.dctl.dctl_err;
-	len = drx.dctl.dctl_data.dctl_data_len;
+	err = drx->dctl_err;
+	len = drx->dctl_data.dctl_data_len;
 	if (len <= *dlen)
-		memcpy(dval, drx.dctl.dctl_data.dctl_data_val, len);
+		memcpy(dval, drx->dctl_data.dctl_data_val, len);
 	else
 		err = ENOMEM;
-
 	*dlen = len;
-	*dtype = drx.dctl.dctl_dtype;
+	*dtype = drx->dctl_dtype;
 
-	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
+err_out:
+	free_dctl_x(drx, 1);
 	return err;
 }
 
@@ -570,120 +470,93 @@ device_read_leaf(void *handle, char *path,
 int
 device_list_nodes(void *handle, char *path, int *dents, dctl_entry_t *dval)
 {
+	dctl_x		*drx = NULL;
 	sdevice_state_t *dev;
 	int		len, ents;
 	dctl_x		dx;
-	dctl_return_x   drx;
-	enum clnt_stat retval;
-	int err;
+	mrpc_status_t	retval;
+	int		err;
 
 	dev = (sdevice_state_t *) handle;
 
 	len = strlen(path) + 1;
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = 0;
 	dx.dctl_plen = len;
 	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
-	memset(&drx, 0, sizeof(drx));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_list_nodes(dev->con_data.rpc_client,
+						      &dx, &drx);
+	err = rpc_postproc(__FUNCTION__, retval);
+	if (err) goto err_out;
 
-	retval = device_list_nodes_x_2(0, dx, &drx, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
-	if (err) {
-		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-		return -1;
-	}
-
-	err = drx.dctl.dctl_err;
-	ents = drx.dctl.dctl_data.dctl_data_len / sizeof(*dval);
+	err = drx->dctl_err;
+	ents = drx->dctl_data.dctl_data_len / sizeof(*dval);
 	if (ents <= *dents)
-		memcpy(dval, drx.dctl.dctl_data.dctl_data_val,
-		       ents * sizeof(*dval));
+		memcpy(dval, drx->dctl_data.dctl_data_val, ents*sizeof(*dval));
 	else
 		err = ENOMEM;
-
 	*dents = ents;
 
-	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	return 0;
+err_out:
+	free_dctl_x(drx, 1);
+	return err;
 }
 
 int
 device_list_leafs(void *handle, char *path, int *dents, dctl_entry_t *dval)
 {
+	dctl_x		*drx = NULL;
 	sdevice_state_t *dev;
 	int		len, ents;
 	dctl_x		dx;
-	dctl_return_x   drx;
-	enum clnt_stat retval;
-	int err;
+	mrpc_status_t	retval;
+	int		err;
 
 	dev = (sdevice_state_t *) handle;
 
 	len = strlen(path) + 1;
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = 0;
 	dx.dctl_plen = len;
 	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
-	memset(&drx, 0, sizeof(drx));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_list_leafs(dev->con_data.rpc_client,
+						      &dx, &drx);
+	err = rpc_postproc(__FUNCTION__, retval);
+	if (err) goto err_out;
 
-	retval = device_list_leafs_x_2(0, dx, &drx, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
-	if (err) {
-		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-		return -1;
-	}
-
-	err = drx.dctl.dctl_err;
-	ents = drx.dctl.dctl_data.dctl_data_len / sizeof(*dval);
+	err = drx->dctl_err;
+	ents = drx->dctl_data.dctl_data_len / sizeof(*dval);
 	if (ents <= *dents)
-		memcpy(dval, drx.dctl.dctl_data.dctl_data_val,
-		       ents * sizeof(*dval));
+		memcpy(dval, drx->dctl_data.dctl_data_val, ents*sizeof(*dval));
 	else
 		err = ENOMEM;
-
 	*dents = ents;
 
-	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	return 0;
+err_out:
+	free_dctl_x(drx, 1);
+	return err;
 }
 
 int
 device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 {
 	sdevice_state_t *dev;
-	blob_x           bx;
-	diamond_rc_t     rc;
-	enum clnt_stat retval;
-	int err;
+	blob_x		arg;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	bx.blob_name.blob_name_len = strlen(name) + 1;
-	bx.blob_name.blob_name_val = name;
-	bx.blob_data.blob_data_len = blob_len;
-	bx.blob_data.blob_data_val = blob;
+	arg.filter_name = name;
+	arg.blob_data.blob_data_len = blob_len;
+	arg.blob_data.blob_data_val = blob;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
-
-	retval = device_set_blob_x_2(id, bx, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	retval = rpc_client_content_device_set_blob(dev->con_data.rpc_client,
+						    &arg);
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 int
@@ -701,66 +574,47 @@ device_set_limit(void *handle, int limit)
 }
 
 int
-device_set_exec_mode(void *handle, int id, uint32_t mode) 
+device_set_exec_mode(void *handle, int id, uint32_t mode)
 {
 	sdevice_state_t *dev;
-	diamond_rc_t rc;
-	enum clnt_stat retval;
-	int err;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_set_exec_mode
+					(dev->con_data.rpc_client, &mode);
 
-	retval = device_set_exec_mode_x_2(id, mode, &rc,
-					  dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 
 int
-device_set_user_state(void *handle, int id, uint32_t state) 
+device_set_user_state(void *handle, int id, uint32_t state)
 {
-	sdevice_state_t *dev;
-	diamond_rc_t     rc;
-	enum clnt_stat retval;
-	int err;
+	sdevice_state_t	*dev;
+	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
+	retval = rpc_client_content_device_set_user_state
+					(dev->con_data.rpc_client, &state);
 
-	retval = device_set_user_state_x_2(id, state, &rc,
-					   dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return err;
+	return rpc_postproc(__FUNCTION__, retval);
 }
 
 int
 device_get_session_variables(void *handle, device_session_vars_t **vars)
 {
 	sdevice_state_t *dev = (sdevice_state_t *) handle;
-	diamond_session_var_list_return_x rc;
-	enum clnt_stat retval;
-	int err;
+	diamond_session_vars_x *rc = NULL;
+	mrpc_status_t	retval;
+	int		i, err;
 
 	*vars = NULL;
-	memset(&rc, 0, sizeof(rc));
-	if (rpc_preproc(__FUNCTION__, &dev->con_data))
-		return -1;
 
-	retval = session_variables_get_x_2(0, &rc, dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc.error);
+	retval = rpc_client_content_session_variables_get
+					(dev->con_data.rpc_client, &rc);
+	err = rpc_postproc(__FUNCTION__, retval);
 	if (err) goto err_out;
 
 	// allocate
@@ -772,87 +626,46 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
 		goto err_out;
 	}
 
-	// count length
-	int len = 0;
-	diamond_session_var_list_x *first = rc.l;
-	diamond_session_var_list_x *cur = first;
+	(*vars)->len = rc->vars.vars_len;
+	(*vars)->names = calloc((*vars)->len, sizeof(char *));
+	(*vars)->values = calloc((*vars)->len, sizeof(double));
 
-	while (cur != NULL) {
-		cur = cur->next;
-		len++;
-	}
-
-	// allocate some more
-	(*vars)->len = len;
-	(*vars)->names = calloc(len, sizeof(char *));
-	(*vars)->values = calloc(len, sizeof(double));
-
-	// copy
-	int i = 0;
-	cur = first;
-	while (cur != NULL) {
-		(*vars)->names[i] = strdup(cur->name);
-		(*vars)->values[i] = cur->value;
-
-		cur = cur->next;
-		i++;
+	for (i = 0; i < (*vars)->len; i++) {
+		(*vars)->names[i] = strdup(rc->vars.vars_val[i].name);
+		(*vars)->values[i] = rc->vars.vars_val[i].value;
 	}
 err_out:
-	xdr_free((xdrproc_t)xdr_diamond_session_var_list_return_x, (char *)&rc);
+	free_diamond_session_vars_x(rc, 1);
 	return err;
 }
 
 int
 device_set_session_variables(void *handle, device_session_vars_t *vars)
 {
-	sdevice_state_t *dev = (sdevice_state_t *) handle;
-	diamond_rc_t rc;
-	enum clnt_stat retval;
-	diamond_session_var_list_x *first = NULL;
-	diamond_session_var_list_x *prev = NULL;
-	int i, err;
+	sdevice_state_t	*dev = (sdevice_state_t *) handle;
+	diamond_session_vars_x out;
+	mrpc_status_t	retval;
+	int		i;
 
-	if (vars->len == 0) return 0;
+	if (vars->len == 0)
+		return 0;
+
+	out.vars.vars_val = calloc(vars->len, sizeof(diamond_session_var_x));
+	if (out.vars.vars_val == NULL)
+		return -1;
+	out.vars.vars_len = vars->len;
 
 	for (i = 0; i < vars->len; i++) {
-		diamond_session_var_list_x *l =
-			calloc(1, sizeof(diamond_session_var_list_x));
-		if (l == NULL) break;
-
-		if (i == 0) {
-			first = l;
-		} else {
-			prev->next = l;
-		}
-
-		// load values
-		l->name = vars->names[i];
-		l->value = vars->values[i];
-
-		//printf(" device_set_session_variables %d: \"%s\" -> %g\n",
-		//	 i, l->name, l->value);
-
-		prev = l;
+		out.vars.vars_val[i].name = vars->names[i];
+		out.vars.vars_val[i].value = vars->values[i];
 	}
 
-	memset(&rc, 0, sizeof(rc));
-	err = rpc_preproc(__FUNCTION__, &dev->con_data);
-	if (err) goto err_out;
+	retval = rpc_client_content_session_variables_set
+					(dev->con_data.rpc_client, &out);
+	free(out.vars.vars_val);
 
-	retval = session_variables_set_x_2(0, *first, &rc,
-					   dev->con_data.rpc_client);
-
-	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
-
-err_out:
-	while (first != NULL) {
-		prev = first;
-		first = first->next;
-		free(prev);
-	}
-	return err;
+	return rpc_postproc(__FUNCTION__, retval);
 }
-
 
 
 void
@@ -879,9 +692,9 @@ device_enable_obj(void *handle)
 static void
 setup_stats(sdevice_state_t * dev, const char *host)
 {
-	int 		err;
-	char           *node_name, *delim;
-	char            path_name[128];	/* XXX */
+	int		err;
+	char		*node_name, *delim;
+	char		path_name[128];	/* XXX */
 
 	node_name = strdup(host);
 
@@ -938,10 +751,10 @@ setup_stats(sdevice_state_t * dev, const char *host)
  * called by the searchlet library when we startup.
  */
 void *
-device_init(int id, const char *host, void *hcookie, hstub_cb_args_t * cb_list)
+device_init(int id, const char *host, void *hcookie, hstub_cb_args_t *cb_list)
 {
 	sdevice_state_t *new_dev;
-	int             err;
+	int		err;
 
 	new_dev = (sdevice_state_t *) calloc(1, sizeof(*new_dev));
 	if (new_dev == NULL) {
@@ -954,7 +767,6 @@ device_init(int id, const char *host, void *hcookie, hstub_cb_args_t * cb_list)
 		return (NULL);
 	}
 
-
 	pthread_mutex_init(&new_dev->con_data.mutex, NULL);
 
 	/*
@@ -963,7 +775,7 @@ device_init(int id, const char *host, void *hcookie, hstub_cb_args_t * cb_list)
 	err = hstub_establish_connection(&new_dev->con_data, host);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_init: failed to establish connection");
+			    "device_init: failed to establish connection");
 		free(new_dev);
 		return (NULL);
 	}

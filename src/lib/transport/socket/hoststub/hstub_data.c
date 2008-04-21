@@ -333,10 +333,10 @@ hstub_read_data(sdevice_state_t * dev)
 	ver_no = ntohl(cinfo->data_rx_header.version_num);
 
 	if ((cinfo->data_rx_obj->data_len == 0) &&
-	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0)) {
+	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0))
+	{
 		(*dev->cb.search_done_cb) (dev->hcookie, ver_no);
 		free(cinfo->data_rx_obj);
-
 	} else {
 
 		/*

@@ -16,6 +16,7 @@
 #ifndef	_SSTUB_IMPL_H_
 #define	_SSTUB_IMPL_H_
 
+#include <minirpc/minirpc.h>
 
 /* the max concurrent connections that we currently support */
 #define	MAX_CONNS		64
@@ -38,7 +39,6 @@
  * context (I.e each search will have a connection to each device 
  * that is involved in the search).
  */
-
 typedef enum {
     DATA_TX_NO_PENDING,
     DATA_TX_HEADER,
@@ -66,17 +66,17 @@ typedef enum {
 struct listener_state;
 
 typedef struct cstate {
+	sig_val_t		nonce;
 	unsigned int		flags;
-	pthread_t		    thread_id;
+	pthread_t		thread_id;
 	pthread_mutex_t		cmutex;
-	struct listener_state *lstate;
+	struct listener_state	*lstate;
 	session_info_t		cinfo;
-	int			        control_fd;
-	int			        data_fd;
-        int                             rpc_fd;
-	int			        pend_obj;
-	int			        have_start;
-	uint32_t		    start_gen;
+	struct mrpc_connection	*mrpc_conn;
+	int			control_fd;
+	int			data_fd;
+	int			pend_obj;
+	int			have_start;
 	void *			app_cookie;
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
@@ -117,13 +117,10 @@ cstate_t;
 
 typedef struct listener_state {
 	pthread_t		thread_id;
-	int			control_fd;
-	int			data_fd;
-	fd_set			read_fds;
-	fd_set			write_fds;
-	fd_set			except_fds;
+	int			listen_fd;
 	sstub_cb_args_t		cb;
 	cstate_t		conns[MAX_CONNS];
+	struct mrpc_conn_set	*set;
 } listener_state_t;
 
 
@@ -148,33 +145,18 @@ int sstub_new_sock(int *fd, const char *port, int bind_only_locally);
 /*
  * Functions exported by sstub_cntrl.c
  */
-void sstub_read_control(listener_state_t *lstate, cstate_t *cstate);
-void sstub_except_control(listener_state_t *lstate, cstate_t *cstate);
-void sstub_set_states(listener_state_t *new_lstate, cstate_t *new_cstate);
-
-/*
- * Functions exported by sstub_log.c
- */
-void sstub_write_log(listener_state_t *lstate, cstate_t *cstate);
-void sstub_read_log(listener_state_t *lstate, cstate_t *cstate);
-void sstub_except_log(listener_state_t *lstate, cstate_t *cstate);
+int sstub_bind_conn(cstate_t *new_cstate);
 
 /*
  * Functions exported by sstub_data.c
  */
-void sstub_write_data(listener_state_t *lstate, cstate_t *cstate);
-void sstub_read_data(listener_state_t *lstate, cstate_t *cstate);
-void sstub_except_data(listener_state_t *lstate, cstate_t *cstate);
-
-/*
- * Functions exported by sstub_tirpc.c
- */
-void sstub_read_rpc(listener_state_t *lstate, cstate_t *cstate);
-void sstub_except_rpc(listener_state_t *lstate, cstate_t *cstate);
+void sstub_write_data(cstate_t *cstate);
+void sstub_read_data(cstate_t *cstate);
+void sstub_except_data(cstate_t *cstate);
 
 /*
  * Functions exported by sstub_conn.c
  */
-void * connection_main(listener_state_t *lstate, int conn);
+void connection_main(listener_state_t *lstate, int conn);
 
 #endif /* !_SSTUB_IMPL_H_ */

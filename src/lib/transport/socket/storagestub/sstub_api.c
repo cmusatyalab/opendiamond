@@ -42,6 +42,8 @@
 #include "sstub_impl.h"
 #include "ports.h"
 
+#include <minirpc/minirpc.h>
+#include "rpc_client_content_server.h"
 
 /*
  * XXX do we manage the complete ring also?? 
@@ -200,45 +202,40 @@ sstub_flush_objs(void *cookie, int ver_no)
 void *
 sstub_init(sstub_cb_args_t *cb_args, int bind_only_locally)
 {
-	listener_state_t *list_state;
-	int             err;
+	listener_state_t *lstate;
+	int err;
 
-	list_state = (listener_state_t *) calloc(1, sizeof(*list_state));
-	if (list_state == NULL) {
+	lstate = (listener_state_t *) calloc(1, sizeof(*lstate));
+	if (lstate == NULL) {
 		return (NULL);
 	}
 
 	/* Save all the callback functions. */
-	list_state->cb = *cb_args;
+	lstate->cb = *cb_args;
 
-	/*
-	 * Open the listner sockets for the different types of connections.
-	 */
-	err = sstub_new_sock(&list_state->control_fd, 
- 			     diamond_get_control_port(),
-			     bind_only_locally);
-	if (err) {
-		/*
-		 * XXX log, 
-		 */
-		printf("failed to create control \n");
-		free(list_state);
-		return (NULL);
+	if (mrpc_conn_set_create(&lstate->set, rpc_client_content_server, NULL))
+	{
+		printf("failed to create minirpc connection set\n");
+		free(lstate);
+		return NULL;
 	}
 
-	err = sstub_new_sock(&list_state->data_fd, 
-			     diamond_get_data_port(),
-			     bind_only_locally);
-	if (err) {
-		/*
-		 * XXX log, 
-		 */
-		printf("failed to create data \n");
-		free(list_state);
-		return (NULL);
+	if (mrpc_start_dispatch_thread(lstate->set))
+	{
+		printf("failed to start minirpc dispatch thread\n");
+		mrpc_conn_set_unref(lstate->set);
+		free(lstate);
+		return NULL;
 	}
 
-	sstub_set_states(NULL, NULL);
-
-	return ((void *) list_state);
+	/* Open the listener sockets for the different types of connections. */
+	err = sstub_new_sock(&lstate->listen_fd, diamond_get_control_port(),
+			     bind_only_locally);
+	if (err) {
+		/* XXX log */
+		printf("failed to create listener\n");
+		free(lstate);
+		return NULL;
+	}
+	return lstate;
 }

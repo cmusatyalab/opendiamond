@@ -22,8 +22,6 @@ AM_PROG_LEX
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-AC_PATH_PROG(RPCGEN, rpcgen)
-
 # Check for recent pkg-config which supports Requires.private
 # (snippet taken from cairo configure.in)
 PKG_PROG_PKG_CONFIG()
@@ -47,6 +45,13 @@ AC_SUBST(GLIB2_LIBS)
 PKG_CHECK_MODULES(SQLITE3, [sqlite3])
 AC_SUBST(SQLITE3_CFLAGS)
 AC_SUBST(SQLITE3_LIBS)
+
+# minirpc
+PKG_CHECK_MODULES(MINIRPC, [minirpc > 0.2])
+MINIRPCGEN="`pkg-config --variable=MINIRPCGEN minirpc`"
+AC_SUBST(MINIRPC_CFLAGS)
+AC_SUBST(MINIRPC_LIBS)
+AC_SUBST(MINIRPCGEN)
 
 # libs
 AC_SEARCH_LIBS([sqrt], [m],, AC_MSG_FAILURE([cannot find math library]))

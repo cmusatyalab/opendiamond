@@ -11,6 +11,7 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+#include <stdlib.h>
 #include "lib_auth.h"
 
 /* stubs to intentionally fail any code that assumes it can reliably authenticate */

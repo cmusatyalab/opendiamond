@@ -40,7 +40,7 @@ typedef enum {
 #define CINFO_AUTHENTICATED	0x10
 
 typedef struct conn_info {
-	int	 		flags;
+	int			flags;
 	uint32_t		ipv4addr;
 	pthread_mutex_t		mutex;
         uint32_t		session_nonce; /* for pairing control and data conns */
@@ -55,9 +55,6 @@ typedef struct conn_info {
 	credit_count_msg_t 	cc_msg;
 	int			cc_counter;
 	int			obj_limit;
-	fd_set			read_fds;
-	fd_set			write_fds;
-	fd_set			except_fds;
 	auth_handle_t			ca_handle;
 	auth_handle_t			da_handle;
 	auth_handle_t			la_handle;

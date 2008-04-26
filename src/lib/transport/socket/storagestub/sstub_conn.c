@@ -208,6 +208,9 @@ connection_main(listener_state_t * lstate, int conn)
 	struct timeval  to;
 	int             max_fd;
 	int             err;
+	fd_set		read_fds;
+	fd_set		write_fds;
+	fd_set		except_fds;
 
 	cstate = &lstate->conns[conn];
 
@@ -247,23 +250,23 @@ connection_main(listener_state_t * lstate, int conn)
 			pthread_exit((void *)0);
 		}
 
-		FD_ZERO(&cstate->read_fds);
-		FD_ZERO(&cstate->write_fds);
-		FD_ZERO(&cstate->except_fds);
+		FD_ZERO(&read_fds);
+		FD_ZERO(&write_fds);
+		FD_ZERO(&except_fds);
 
-		FD_SET(cstate->control_fd, &cstate->read_fds);
-		FD_SET(cstate->data_fd, &cstate->read_fds);
-		FD_SET(cstate->rpc_fd, &cstate->read_fds);
+		FD_SET(cstate->control_fd, &read_fds);
+		FD_SET(cstate->data_fd, &read_fds);
+		FD_SET(cstate->rpc_fd, &read_fds);
 
-		FD_SET(cstate->control_fd, &cstate->except_fds);
-		FD_SET(cstate->data_fd, &cstate->except_fds);
-		FD_SET(cstate->rpc_fd, &cstate->except_fds);
+		FD_SET(cstate->control_fd, &except_fds);
+		FD_SET(cstate->data_fd, &except_fds);
+		FD_SET(cstate->rpc_fd, &except_fds);
 
 		pthread_mutex_lock(&cstate->cmutex);
 
 		if ((cstate->flags & CSTATE_OBJ_DATA) &&
 		    (cstate->cc_credits > 0)) {
-			FD_SET(cstate->data_fd, &cstate->write_fds);
+			FD_SET(cstate->data_fd, &write_fds);
 		}
 
 		pthread_mutex_unlock(&cstate->cmutex);
@@ -275,8 +278,7 @@ connection_main(listener_state_t * lstate, int conn)
 		 * Sleep on the set of sockets to see if anything
 		 * interesting has happened.
 		 */
-		err = select(max_fd, &cstate->read_fds,
-			     &cstate->write_fds, &cstate->except_fds, &to);
+		err = select(max_fd, &read_fds, &write_fds, &except_fds, &to);
 
 		if (err == -1) {
 			/*
@@ -286,7 +288,7 @@ connection_main(listener_state_t * lstate, int conn)
 			perror("XXX select failed ");
 			exit(1);
 		}
-		
+
 		/*
 		 * If err > 0 then there are some objects
 		 * that have data.
@@ -296,32 +298,32 @@ connection_main(listener_state_t * lstate, int conn)
 			/*
 			 * handle data tunneling between control and ti-rpc
 			 */
-			if (FD_ISSET(cstate->control_fd, &cstate->read_fds))
+			if (FD_ISSET(cstate->control_fd, &read_fds))
 			  sstub_read_control(lstate, cstate);
 
-			if (FD_ISSET(cstate->rpc_fd, &cstate->read_fds))
+			if (FD_ISSET(cstate->rpc_fd, &read_fds))
 			  sstub_read_rpc(lstate, cstate);
-			
+
 			/*
 			 * handle outgoing data on the data connection
 			 */
-			if (FD_ISSET(cstate->data_fd, &cstate->read_fds)) {
+			if (FD_ISSET(cstate->data_fd, &read_fds)) {
 			  sstub_read_data(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->data_fd, &cstate->write_fds)) {
+			if (FD_ISSET(cstate->data_fd, &write_fds)) {
 			  sstub_write_data(lstate, cstate);
 			}
 
 			/*
-			 * handle the exception conditions on the socket 
+			 * handle the exception conditions on the socket
 			 */
-			if (FD_ISSET(cstate->control_fd, &cstate->except_fds)) {
+			if (FD_ISSET(cstate->control_fd, &except_fds)) {
 				sstub_except_control(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->data_fd, &cstate->except_fds)) {
+			if (FD_ISSET(cstate->data_fd, &except_fds)) {
 				sstub_except_data(lstate, cstate);
 			}
-			if (FD_ISSET(cstate->rpc_fd, &cstate->except_fds)) {
+			if (FD_ISSET(cstate->rpc_fd, &except_fds)) {
 				sstub_except_rpc(lstate, cstate);
 			}
 		}

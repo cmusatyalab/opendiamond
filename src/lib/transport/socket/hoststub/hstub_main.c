@@ -221,6 +221,9 @@ hstub_main(void *arg)
 	struct timeval  this_time;
 	struct timeval  next_time = {0, 0};
 	struct timezone tz;
+	fd_set		read_fds;
+	fd_set		write_fds;
+	fd_set		except_fds;
 
 	dev = (sdevice_state_t *) arg;
 
@@ -236,7 +239,6 @@ hstub_main(void *arg)
 		max_fd = cinfo->data_fd;
 	}
 	max_fd += 1;
-
 
 	/*
 	 * This loop looks at the set of items that we need to handle.
@@ -282,42 +284,40 @@ hstub_main(void *arg)
 			}
 		}
 
-
-		FD_ZERO(&cinfo->read_fds);
-		FD_ZERO(&cinfo->write_fds);
-		FD_ZERO(&cinfo->except_fds);
+		FD_ZERO(&read_fds);
+		FD_ZERO(&write_fds);
+		FD_ZERO(&except_fds);
 
 		if (!(cinfo->flags & CINFO_BLOCK_OBJ)) {
-			FD_SET(cinfo->data_fd, &cinfo->read_fds);
+			FD_SET(cinfo->data_fd, &read_fds);
 		}
 
 		if (cinfo->flags & CINFO_PENDING_CREDIT) {
-			FD_SET(cinfo->data_fd, &cinfo->write_fds);
+			FD_SET(cinfo->data_fd, &write_fds);
 		}
 
-		FD_SET(cinfo->data_fd, &cinfo->except_fds);
+		FD_SET(cinfo->data_fd, &except_fds);
 
 		to.tv_sec = 1;
 		to.tv_usec = 0;
 
 
-		err = select(max_fd, &cinfo->read_fds, &cinfo->write_fds,
-			     &cinfo->except_fds, &to);
+		err = select(max_fd, &read_fds, &write_fds, &except_fds, &to);
 
 		if (err == -1) {
-		 	log_message(LOGT_NET, LOGL_CRIT, 
+			log_message(LOGT_NET, LOGL_CRIT,
 				    "hstub_main: broken socket");
 			hstub_conn_down(dev);
 		}
 
 		if (err > 0) {
-			if (FD_ISSET(cinfo->data_fd, &cinfo->read_fds)) {
+			if (FD_ISSET(cinfo->data_fd, &read_fds)) {
 				hstub_read_data(dev);
 			}
-			if (FD_ISSET(cinfo->data_fd, &cinfo->except_fds)) {
+			if (FD_ISSET(cinfo->data_fd, &except_fds)) {
 				hstub_except_data(dev);
 			}
-			if (FD_ISSET(cinfo->data_fd, &cinfo->write_fds)) {
+			if (FD_ISSET(cinfo->data_fd, &write_fds)) {
 				hstub_write_data(dev);
 			}
 		}

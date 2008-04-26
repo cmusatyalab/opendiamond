@@ -78,9 +78,6 @@ typedef struct cstate {
 	int			        have_start;
 	uint32_t		    start_gen;
 	void *			app_cookie;
-	fd_set			read_fds;
-	fd_set			write_fds;
-	fd_set			except_fds;
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
 	obj_data_t *		data_tx_obj;

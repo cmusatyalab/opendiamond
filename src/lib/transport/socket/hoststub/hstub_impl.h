@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -131,6 +131,12 @@ typedef struct sdevice_state {
 	hstub_lleafs_done_fn    hstub_lleaf_done_cb;
 } sdevice_state_t;
 
+/*
+ * Functions availabe in hstub_api.c
+ */
+int rpc_preproc(const char *func, struct conn_info *con);
+int rpc_postproc(const char *func, struct conn_info *con,
+		 enum clnt_stat rpc_rc, diamond_rc_t *rc);
 
 /*
  * Functions availabe in hstub_main.c

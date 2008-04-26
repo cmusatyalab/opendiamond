@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -64,42 +64,27 @@ request_chars(sdevice_state_t * dev)
 {
 	enum clnt_stat retval;
 	request_chars_return_x characteristics;
+	int err;
 
 	memset(&characteristics, 0, sizeof(characteristics));
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
 
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
-	  return -1;
-	}
 	retval = request_chars_x_2(0, &characteristics,
-			       dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
-	  return -1;
-	}
+				   dev->con_data.rpc_client);
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
-	  return -1;
-	}
-	if(characteristics.error.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&characteristics.error));
-	  xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
-	  return -1;
-	}
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval,
+			   &characteristics.error);
+	if (err) goto err_out;
 
 	dev->dev_char.dc_isa = characteristics.chars.dcs_isa;
 	dev->dev_char.dc_speed = characteristics.chars.dcs_isa;
 	dev->dev_char.dc_mem = characteristics.chars.dcs_mem;
 	dev->dev_char.dc_devid = dev->con_data.ipv4addr;
-
-	xdr_free((xdrproc_t)xdr_request_chars_return_x, (char *)&characteristics);
-	
-	return 0;
+err_out:
+	xdr_free((xdrproc_t)xdr_request_chars_return_x,
+		 (char *)&characteristics);
+	return err;
 }
 
 
@@ -117,36 +102,26 @@ request_stats(sdevice_state_t * dev)
 	int             len;
 	int             num_filt;
 	int             i;
+	int err, unavail;
 
 	memset(&statistics, 0, sizeof(statistics));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_stats: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = request_stats_x_2(0, &statistics, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_stats: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
-	  return -1;
+
+	/* when filters are not loaded we get an 'error', avoid logging it */
+	unavail = (retval == RPC_SUCCESS &&
+		   statistics.error.service_err == DIAMOND_OPERR &&
+		   statistics.error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL);
+	if (unavail) {
+		statistics.error.service_err = DIAMOND_SUCCESS;
+		statistics.error.opcode_err = DIAMOND_OPCODE_SUCCESS;
 	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
-	  return -1;
-	}
-	if(statistics.error.service_err != DIAMOND_SUCCESS) {
-	  if((statistics.error.service_err == DIAMOND_OPERR) &&
-	     (statistics.error.opcode_err == DIAMOND_OPCODE_NOSTATSAVAIL)) {
-	    xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
-	    return 0;  // we often ask for stats when no filters are there
-	  }
-	  log_message(LOGT_NET, LOGL_ERR, "request_stats: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&statistics.error));
-	  xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
-	  return -1;
-	}
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval,
+			   &statistics.error);
+	if (err || unavail) goto err_out;
 
 	num_filt = statistics.stats.ds_filter_stats.ds_filter_stats_len;
 	len = DEV_STATS_SIZE(num_filt);
@@ -210,10 +185,9 @@ request_stats(sdevice_state_t * dev)
 		dstats->ds_filter_stats[i].fs_avg_exec_time =
 		    statistics.stats.ds_filter_stats.ds_filter_stats_val[i].fs_avg_exec_time;
 	}
-
+err_out:
 	xdr_free((xdrproc_t)xdr_request_stats_return_x, (char *)&statistics);
-
-	return 0;
+	return err;
 }
 
 void

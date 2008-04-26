@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -53,6 +54,34 @@
 #define	HSTUB_RING_SIZE	512
 #define OBJ_RING_SIZE	512
 
+int rpc_preproc(const char *func, struct conn_info *con)
+{
+	if(pthread_mutex_lock(&con->rpc_mutex) != 0) {
+		log_message(LOGT_NET, LOGL_ERR, "%s: mutex lock failed", func);
+		return -1;
+	}
+	return 0;
+}
+
+int rpc_postproc(const char *func, struct conn_info *con,
+		 enum clnt_stat rpc_rc, diamond_rc_t *rc)
+{
+	if (pthread_mutex_unlock(&con->rpc_mutex) != 0) {
+		log_message(LOGT_NET, LOGL_ERR, "%s: mutex unlock failed",func);
+		return -1;
+	}
+	if (rpc_rc != RPC_SUCCESS) {
+		log_message(LOGT_NET, LOGL_ERR, "%s: sending failed", func);
+		log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(rpc_rc));
+		return -1;
+	}
+	if (rc->service_err != DIAMOND_SUCCESS) {
+		log_message(LOGT_NET, LOGL_ERR, "%s: servicing failed", func);
+		log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
+		return -1;
+	}
+	return 0;
+}
 
 /*
  * Return the cache device characteristics.
@@ -110,6 +139,7 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	stop_x sx;
 	sdevice_state_t *dev;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -120,32 +150,14 @@ device_stop(void *handle, int id, host_stats_t *hs)
 	sx.app_objs_presented = hs->hs_objs_upresented;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_stop: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_stop_x_2(id, sx, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_stop: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_stop: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_stop: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 
@@ -155,36 +167,19 @@ device_terminate(void *handle, int id)
 	diamond_rc_t rc;
 	sdevice_state_t *dev;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_clear_gids_x_2(id, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_terminate: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 
@@ -199,6 +194,7 @@ device_start(void *handle, int id)
 	diamond_rc_t rc;
 	sdevice_state_t *dev;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -206,32 +202,14 @@ device_start(void *handle, int id)
 	dev->ver_no = id;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_start: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_start_x_2(id, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_start: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_start: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_start: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 int
@@ -240,36 +218,19 @@ device_clear_gids(void *handle, int id)
 	diamond_rc_t rc;
 	sdevice_state_t *dev;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_clear_gids_x_2(id, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_clear_gids: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 
@@ -301,38 +262,21 @@ device_new_gid(void *handle, int id, groupid_t gid)
 	sdevice_state_t *dev;
 	groupid_x gix;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
 	gix = gid;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_new_gid_x_2(id, gix, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_new_gid: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 
@@ -346,7 +290,6 @@ device_new_gid(void *handle, int id, groupid_t gid)
 int
 device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 {
-	int             err;
 	char           *data;
 	int             spec_len;
 	struct stat     stats;
@@ -356,6 +299,7 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	diamond_rc_t    rc;
 	spec_file_x     sf;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -402,36 +346,17 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	sf.data.data_val = data;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
-	  return -1;
+	if (rpc_preproc(__FUNCTION__, &dev->con_data)) {
+		free(data);
+		return -1;
 	}
+
 	retval = device_set_spec_x_2(id, sf, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  free(data);
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return ENOENT;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_spec: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  free(data);
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return ENOENT;
-	}
-	
-	free(data);
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-
-	return (0);
+	free(data);
+	return err;
 }
 
 int
@@ -443,14 +368,14 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	send_obj_x ox;
 	struct stat     stats;
 	ssize_t         rsize;
-	int		buf_len, err;
+	int		buf_len;
 	FILE           *cur_file;
 	char objname[PATH_MAX];
 	char *cache;
 	char *data;
 	char *sig;
 	enum clnt_stat retval;
-
+	int err, cachemiss;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -458,37 +383,23 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	sx.sig_val_x_val = (char *)obj_sig;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_set_obj_x_2(id, sx, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
+
+	/* cache misses are not really errors, we don't need them logged */
+	cachemiss = (retval == RPC_SUCCESS &&
+		     rc.service_err == DIAMOND_OPERR &&
+		     rc.opcode_err == DIAMOND_OPCODE_FCACHEMISS);
+	if (cachemiss) {
+		rc.service_err = DIAMOND_SUCCESS;
+		rc.opcode_err = DIAMOND_OPCODE_SUCCESS;
 	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: set_obj call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  if(!((rc.service_err == DIAMOND_OPERR) && 
-	       (rc.opcode_err == DIAMOND_OPCODE_FCACHEMISS))) {
-	    log_message(LOGT_NET, LOGL_ERR, "device_set_lib: call servicing failed");
-	    log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	    xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	    return -1;
-	  }
-	}
-	else { 
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return 0;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
+	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
+	if (err || !cachemiss) return err;
 
 	/* If we've reached this point, the server does not have this
 	 * filter library and we need to make another send_obj call. */
@@ -531,14 +442,12 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_lib: failed open <%s>", objname);
 		free(data);
-		xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
 		return (ENOENT);
 	}
 	if ((rsize = fread(data, buf_len, 1, cur_file)) != 1) {
 		log_message(LOGT_NET, LOGL_ERR,
 		    "device_set_lib: failed read obj <%s>", objname);
 		free(data);
-		xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
 		return (EAGAIN);
 	}
 
@@ -547,38 +456,18 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	ox.obj_data.obj_data_len = buf_len;
 	ox.obj_data.obj_data_val = data;
 
-	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "request_chars: couldn't lock mutex");
-	  return -1;
+	if (rpc_preproc(__FUNCTION__, &dev->con_data)) {
+		free(data);
+		return -1;
 	}
+
 	retval = device_send_obj_x_2(id, ox, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: send_obj call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  free(data);
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_lib: send_obj call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  free(data);
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
-	free(data);
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-
-	return (0);
+	free(data);
+	return err;
 }
 
 
@@ -589,12 +478,12 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	sdevice_state_t *dev;
 	dctl_x          dx;
 	int             plen;
-	diamond_rc_t    *rc;
 	dctl_return_x   drx;
 	int             r_err;
 	int32_t         r_opid;
 	enum clnt_stat retval;
-	uint8_t *buf;
+	char *buf;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -616,44 +505,26 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	dx.dctl_data.dctl_data_val = buf;
 
 	memset(&drx, 0, sizeof(drx));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: couldn't lock mutex");
-	  free(buf);
-	  return -1;
+	if (rpc_preproc(__FUNCTION__, &dev->con_data)) {
+		free(buf);
+		return -1;
 	}
-	retval = device_write_leaf_x_2(0, dx, &drx, 
-				       dev->con_data.rpc_client);
 
+	retval = device_write_leaf_x_2(0, dx, &drx, dev->con_data.rpc_client);
+
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
 	free(buf);
-
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
+	if (err) {
+		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
+		return -1;
 	}
-
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
-	rc = &drx.error;
-	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_write_leaf: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
-
 	r_err = drx.dctl.dctl_err;
 	r_opid = drx.dctl.dctl_opid;
 
 	(*dev->hstub_wleaf_done_cb) (dev->hcookie, r_err, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-
-	return (0);
+	return 0;
 }
 
 int
@@ -662,13 +533,13 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	sdevice_state_t *dev;
 	dctl_x          dx;
 	int             plen;
-	diamond_rc_t    *rc;
 	dctl_return_x   drx;
 	int             r_err;
 	int32_t         r_opid;
 	int             r_dlen;
 	dctl_data_type_t r_dtype;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -681,31 +552,16 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_val = path;
 
 	memset(&drx, 0, sizeof(drx));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_read_leaf_x_2(0, dx, &drx, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
+	if (err) {
+		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
+		return -1;
 	}
-	rc = &drx.error;
-	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_read_leaf: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
-
 	r_err = drx.dctl.dctl_err;
 	r_opid = drx.dctl.dctl_opid;
 	r_dtype = drx.dctl.dctl_dtype;
@@ -715,9 +571,7 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 				     drx.dctl.dctl_data.dctl_data_val, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-
-	return (0);
-
+	return 0;
 }
 
 
@@ -731,9 +585,9 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	int             r_err;
 	int32_t         r_opid;
 	int             r_dlen;
-	diamond_rc_t   *rc;
 	int             ents;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -746,32 +600,16 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_val = path;
 
 	memset(&drx, 0, sizeof(drx));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: couldn't lock mutex");
-	  return -1;
-	}
-	retval = device_list_nodes_x_2(0, dx, &drx,
-				       dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
-	rc = &drx.error;
-	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_nodes: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
+	retval = device_list_nodes_x_2(0, dx, &drx, dev->con_data.rpc_client);
 
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
+	if (err) {
+		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
+		return -1;
+	}
 	r_err = drx.dctl.dctl_err;
 	r_opid = drx.dctl.dctl_opid;
 	r_dlen = drx.dctl.dctl_data.dctl_data_len;
@@ -782,8 +620,7 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 				     (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-
-	return (0);
+	return 0;
 }
 
 int
@@ -797,8 +634,8 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	int             r_err;
 	int32_t         r_opid;
 	int             r_dlen;
-	diamond_rc_t   *rc;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -811,32 +648,16 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 	dx.dctl_data.dctl_data_val = path;
 
 	memset(&drx, 0, sizeof(drx));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: couldn't lock mutex");
-	  return -1;
-	}
-	retval = device_list_leafs_x_2(0, dx, &drx, 
-				       dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
-	rc = &drx.error;
-	if(rc->service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_list_leafs: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(rc));
-	  xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	  return -1;
-	}
+	retval = device_list_leafs_x_2(0, dx, &drx, dev->con_data.rpc_client);
 
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &drx.error);
+	if (err) {
+		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
+		return -1;
+	}
 	r_err = drx.dctl.dctl_err;
 	r_opid = drx.dctl.dctl_opid;
 	r_dlen = drx.dctl.dctl_data.dctl_data_len;
@@ -847,8 +668,7 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 				     (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-
-	return (0);
+	return 0;
 }
 
 int
@@ -858,6 +678,7 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	blob_x           bx;
 	diamond_rc_t     rc;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
@@ -867,32 +688,14 @@ device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
 	bx.blob_data.blob_data_val = blob;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_set_blob_x_2(id, bx, &rc, dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_blob: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 int
@@ -915,37 +718,20 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 	sdevice_state_t *dev;
 	diamond_rc_t rc;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: couldn't lock mutex");
-	  return -1;
-	}
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
 	retval = device_set_exec_mode_x_2(id, mode, &rc,
 					  dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_exec_mode: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 
@@ -955,186 +741,127 @@ device_set_user_state(void *handle, int id, uint32_t state)
 	sdevice_state_t *dev;
 	diamond_rc_t     rc;
 	enum clnt_stat retval;
+	int err;
 
 	dev = (sdevice_state_t *) handle;
 
 	memset(&rc, 0, sizeof(rc));
-	if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: couldn't lock mutex");
-	  return -1;
-	}
-	retval = device_set_user_state_x_2(id, state, &rc, 
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
+
+	retval = device_set_user_state_x_2(id, state, &rc,
 					   dev->con_data.rpc_client);
-	if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: couldn't unlock mutex");
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
 
-	if (retval != RPC_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: call sending failed");
-	  log_message(LOGT_NET, LOGL_ERR, clnt_sperrno(retval));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-	if(rc.service_err != DIAMOND_SUCCESS) {
-	  log_message(LOGT_NET, LOGL_ERR, "device_set_user_state: call servicing failed");
-	  log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-	  xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	  return -1;
-	}
-
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 	xdr_free((xdrproc_t)xdr_diamond_rc_t, (char *)&rc);
-	return (0);
+	return err;
 }
 
 int
 device_get_session_variables(void *handle, device_session_vars_t **vars)
 {
-  sdevice_state_t *dev = (sdevice_state_t *) handle;
-  diamond_session_var_list_return_x rc;
-  enum clnt_stat retval;
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
+	diamond_session_var_list_return_x rc;
+	enum clnt_stat retval;
+	int err;
 
-  memset(&rc, 0, sizeof(rc));
-  if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: couldn't lock mutex");
-    return -1;
-  }
-  retval = session_variables_get_x_2(0, &rc, dev->con_data.rpc_client);
-  if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: couldn't unlock mutex");
-    return -1;
-  }
+	memset(&rc, 0, sizeof(rc));
+	if (rpc_preproc(__FUNCTION__, &dev->con_data))
+		return -1;
 
+	retval = session_variables_get_x_2(0, &rc, dev->con_data.rpc_client);
 
-  if (retval != RPC_SUCCESS) {
-    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: call sending failed");
-    log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_get_session_variables"));
-    return -1;
-  }
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc.error);
+	if (err) goto err_out;
 
-  if(rc.error.service_err != DIAMOND_SUCCESS) {
-    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: call servicing failed");
-    log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc.error));
-    return -1;
-  }
+	// allocate
+	*vars = calloc(1, sizeof(device_session_vars_t));
+	if (*vars == NULL) {
+		log_message(LOGT_NET, LOGL_ERR,
+			    "device_get_session_variables: no memory");
+		err = -1;
+		goto err_out;
+	}
 
-  // allocate
-  *vars = calloc(1, sizeof(device_session_vars_t));
-  if (*vars == NULL) {
-    log_message(LOGT_NET, LOGL_ERR, "device_get_session_variables: no memory");
-    return -1;
-  }
+	// count length
+	int len = 0;
+	diamond_session_var_list_x *first = rc.l;
+	diamond_session_var_list_x *cur = first;
 
-  // count length
-  int len = 0;
-  diamond_session_var_list_x *first = rc.l;
-  diamond_session_var_list_x *cur = first;
+	while (cur != NULL) {
+		cur = cur->next;
+		len++;
+	}
 
-  while (cur != NULL) {
-    cur = cur->next;
-    len++;
-  }
+	// allocate some more
+	(*vars)->len = len;
+	(*vars)->names = calloc(len, sizeof(char *));
+	(*vars)->values = calloc(len, sizeof(double));
 
-  // allocate some more
-  (*vars)->len = len;
-  (*vars)->names = calloc(len, sizeof(char *));
-  (*vars)->values = calloc(len, sizeof(double));
+	// copy
+	int i = 0;
+	cur = first;
+	while (cur != NULL) {
+		(*vars)->names[i] = strdup(cur->name);
+		(*vars)->values[i] = cur->value;
 
-  // copy
-  int i = 0;
-  cur = first;
-  while (cur != NULL) {
-    (*vars)->names[i] = strdup(cur->name);
-    (*vars)->values[i] = cur->value;
-
-    cur = cur->next;
-    i++;
-  }
-
-  // deallocate old
-  cur = first;
-  while (cur != NULL) {
-    diamond_session_var_list_x *prev = cur;
-    free(cur->name);
-    cur = cur->next;
-    free(prev);
-  }
-  rc.l = NULL;
-
-  return 0;
+		cur = cur->next;
+		i++;
+	}
+err_out:
+	xdr_free((xdrproc_t)xdr_diamond_session_var_list_return_x, (char *)&rc);
+	return err;
 }
 
 int
 device_set_session_variables(void *handle, device_session_vars_t *vars)
 {
-  if (vars->len == 0) {
-    return 0;
-  }
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
+	diamond_rc_t rc;
+	enum clnt_stat retval;
+	diamond_session_var_list_x *first = NULL;
+	diamond_session_var_list_x *prev = NULL;
+	int i, err;
 
-  sdevice_state_t *dev = (sdevice_state_t *) handle;
-  diamond_rc_t rc;
-  enum clnt_stat retval;
+	if (vars->len == 0) return 0;
 
-  // create list
-  diamond_session_var_list_x *first = NULL;
-  diamond_session_var_list_x *prev = NULL;
+	for (i = 0; i < vars->len; i++) {
+		diamond_session_var_list_x *l =
+			calloc(1, sizeof(diamond_session_var_list_x));
+		if (l == NULL) break;
 
-  int i;
-  for (i = 0; i < vars->len; i++) {
-    diamond_session_var_list_x *l = calloc(1, sizeof(diamond_session_var_list_x));
-    if (l == NULL) {
-      break;
-    }
+		if (i == 0) {
+			first = l;
+		} else {
+			prev->next = l;
+		}
 
-    if (i == 0) {
-      first = l;
-    } else {
-      prev->next = l;
-    }
+		// load values
+		l->name = vars->names[i];
+		l->value = vars->values[i];
 
-    // load values
-    l->name = vars->names[i];
-    l->value = vars->values[i];
+		//printf(" device_set_session_variables %d: \"%s\" -> %g\n",
+		//	 i, l->name, l->value);
 
-    //printf(" device_set_session_variables %d: \"%s\" -> %g\n", i, l->name, l->value);
+		prev = l;
+	}
 
-    prev = l;
-  }
+	memset(&rc, 0, sizeof(rc));
+	err = rpc_preproc(__FUNCTION__, &dev->con_data);
+	if (err) goto err_out;
 
-  memset(&rc, 0, sizeof(rc));
-  if(pthread_mutex_lock(&dev->con_data.rpc_mutex) != 0) {
-    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: couldn't lock mutex");
-    return -1;
-  }
-  retval = session_variables_set_x_2(0, *first, &rc, dev->con_data.rpc_client);
-  if(pthread_mutex_unlock(&dev->con_data.rpc_mutex) != 0) {
-    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: couldn't unlock mutex");
-    return -1;
-  }
+	retval = session_variables_set_x_2(0, *first, &rc,
+					   dev->con_data.rpc_client);
 
-  // free
-  diamond_session_var_list_x *cur = first;
-  while (cur != NULL) {
-    prev = cur;
-    cur = cur->next;
-    free(prev);
-  }
+	err = rpc_postproc(__FUNCTION__, &dev->con_data, retval, &rc);
 
-
-  if (retval != RPC_SUCCESS) {
-    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: call sending failed");
-    log_message(LOGT_NET, LOGL_ERR, clnt_spcreateerror("device_set_session_variables"));
-    return -1;
-  }
-
-  if(rc.service_err != DIAMOND_SUCCESS) {
-    log_message(LOGT_NET, LOGL_ERR, "device_set_session_variables: call servicing failed");
-    log_message(LOGT_NET, LOGL_ERR, diamond_error(&rc));
-    return -1;
-  }
-
-  return 0;
+err_out:
+	while (first != NULL) {
+		prev = first;
+		first = first->next;
+		free(prev);
+	}
+	return err;
 }
 
 

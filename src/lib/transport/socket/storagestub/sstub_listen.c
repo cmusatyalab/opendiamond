@@ -277,15 +277,6 @@ have_full_conn(listener_state_t * list_state, int conn)
 		return;
 	}
 
-	err = ring_init(&cstate->control_tx_ring, CONTROL_RING_SIZE);
-	if (err) {
-		/*
-		 * XXX 
-		 */
-		printf("failed to init control ring \n");
-		return;
-	}
-
 	parent = (*list_state->new_conn_cb) ((void *) cstate, &new_cookie);
 	if (parent) {
 		shutdown_connection(list_state, cstate);
@@ -387,8 +378,6 @@ accept_control_conn(listener_state_t * list_state)
 	list_state->conns[i].flags |= CSTATE_ALLOCATED;
 	list_state->conns[i].flags |= CSTATE_CNTRL_FD;
 	list_state->conns[i].control_fd = new_sock;
-	list_state->conns[i].control_rx_state = CONTROL_RX_NO_PENDING;
-	list_state->conns[i].control_tx_state = CONTROL_TX_NO_PENDING;
 	list_state->conns[i].data_tx_state = DATA_TX_NO_PENDING;
 
 	memcpy(&list_state->conns[i].cinfo.clientaddr, &peer, peerlen);

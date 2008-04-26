@@ -25,32 +25,11 @@
  */
 
 typedef enum {
-    CONTROL_TX_NO_PENDING,
-    CONTROL_TX_HEADER,
-    CONTROL_TX_DATA
-} control_tx_state_t;
-
-
-typedef enum {
-    CONTROL_RX_NO_PENDING,
-    CONTROL_RX_HEADER,
-    CONTROL_RX_DATA
-} control_rx_state_t;
-
-
-typedef enum {
     DATA_RX_NO_PENDING,
     DATA_RX_HEADER,
     DATA_RX_ATTR,
     DATA_RX_DATA,
 } data_rx_state_t;
-
-typedef enum {
-    LOG_RX_NO_PENDING,
-    LOG_RX_HEADER,
-    LOG_RX_DATA
-} log_rx_state_t;
-
 
 
 /* flag definitons */
@@ -66,11 +45,6 @@ typedef struct conn_info {
 	pthread_mutex_t		mutex;
         uint32_t		session_nonce; /* for pairing control and data conns */
 	int			control_fd;
-	control_tx_state_t	control_state;
-	int			control_offset;
-	control_rx_state_t	control_rx_state;	/* recieve state */
-	int			control_rx_offset;	/* current rx offset  */
-	char *			control_rx_data;	/* rx data buffer */
 	int			data_fd;
 	data_rx_state_t		data_rx_state;
 	obj_header_t		data_rx_header;
@@ -101,20 +75,11 @@ typedef struct conn_info {
 } conn_info_t;
 
 
-
-#define	CI_NO_PENDING	0
-#define	CI_GET_ATTR	1
-#define	CI_GET_DATA	2
-#define	CI_GET_DATA	2
-
-
 typedef struct sdevice_state {
 	struct sdevice_state * 	next;
 	pthread_t	        thread_id;
-	ring_data_t *	    	device_ops;
 	ring_data_t *	    	obj_ring;
 	conn_info_t 	    	con_data;
-	unsigned int	    	flags;
 	int		      	ver_no;
 	void *		    	hcookie;
 	device_char_t		dev_char;	/* cached device chars */

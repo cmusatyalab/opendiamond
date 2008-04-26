@@ -959,24 +959,12 @@ device_init(int id, const char *host, void *hcookie, hstub_cb_args_t * cb_list)
 		return (NULL);
 	}
 
-	/*
-	 * initialize the ring that is used to queue "commands"
-	 * to the background thread.
-	 */
-	err = ring_init(&new_dev->device_ops, HSTUB_RING_SIZE);
-	if (err) {
-		free(new_dev);
-		return (NULL);
-	}
-
 	err = ring_init(&new_dev->obj_ring, OBJ_RING_SIZE);
 	if (err) {
 		free(new_dev);
 		return (NULL);
 	}
 
-
-	new_dev->flags = 0;
 
 	pthread_mutex_init(&new_dev->con_data.mutex, NULL);
 

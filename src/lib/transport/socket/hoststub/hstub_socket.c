@@ -331,8 +331,6 @@ hstub_establish_connection(conn_info_t *cinfo, const char *host)
 	/*
 	 * Set the state machines variables.
 	 */
-	cinfo->control_state = CONTROL_TX_NO_PENDING;
-	cinfo->control_rx_state = CONTROL_RX_NO_PENDING;
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 
 	return (0);

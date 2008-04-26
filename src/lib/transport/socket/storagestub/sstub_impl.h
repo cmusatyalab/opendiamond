@@ -40,31 +40,11 @@
  */
 
 typedef enum {
-    CONTROL_RX_NO_PENDING,
-    CONTROL_RX_HEADER,
-    CONTROL_RX_DATA
-} control_rx_state_t;
-
-
-typedef enum {
-    CONTROL_TX_NO_PENDING,
-    CONTROL_TX_HEADER,
-    CONTROL_TX_DATA
-} control_tx_state_t;
-
-
-typedef enum {
     DATA_TX_NO_PENDING,
     DATA_TX_HEADER,
     DATA_TX_ATTR,
     DATA_TX_DATA,
 } data_tx_state_t;
-
-typedef enum {
-    LOG_TX_NO_PENDING,
-    LOG_TX_HEADER,
-    LOG_TX_DATA,
-} log_tx_state_t;
 
 typedef enum {
     NW_ATTR_POLICY_FIXED = 0,
@@ -103,12 +83,6 @@ typedef struct cstate {
 	fd_set			except_fds;
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
-	control_rx_state_t	control_rx_state;
-	char *			control_rx_data;
-	int			control_rx_offset;
-	ring_data_t * 		control_tx_ring;
-	control_tx_state_t	control_tx_state;
-	int			control_tx_offset;
 	obj_data_t *		data_tx_obj;
 	data_tx_state_t		data_tx_state;
 	int		        data_tx_offset;

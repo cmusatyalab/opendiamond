@@ -64,7 +64,7 @@ void log_init(char *prefix, char *control);
 void log_term(void);
 void log_setlevel(unsigned int level_mask);
 void log_settype(unsigned int type_mask);
-void log_message(unsigned int type, unsigned int level, char *fmt, ...);
+void log_message(unsigned int type, unsigned int level, const char *fmt, ...);
 
 #ifdef __cplusplus
 }

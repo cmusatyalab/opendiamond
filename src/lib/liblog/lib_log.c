@@ -97,7 +97,7 @@ log_settype(unsigned int type_mask)
  * long as this type of logging is enabled.
  */
 void
-log_message(unsigned int type, unsigned int level, char *fmt, ...)
+log_message(unsigned int type, unsigned int level, const char *fmt, ...)
 {
 	va_list         ap;
 	va_list         new_ap;

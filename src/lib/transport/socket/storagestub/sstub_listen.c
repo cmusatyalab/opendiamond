@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006-2007 Carnegie Mellon University
+ *  Copyright (c) 2006-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -248,25 +248,16 @@ static void
 have_full_conn(listener_state_t * list_state, int conn)
 {
 
-	int             err;
-	void           *new_cookie;
-	cstate_t       *cstate;
-	int				parent;
-	unsigned int 	addr_len;
+	int		err;
+	void		*new_cookie;
+	cstate_t	*cstate;
+	int		parent;
 
 	/* set up connection info */
 	cstate = &list_state->conns[conn];
 	cstate->cinfo.conn_idx = conn;
 	timerclear(&cstate->cinfo.connect_time);
 	gettimeofday(&cstate->cinfo.connect_time, NULL);
-	addr_len = sizeof(cstate->cinfo.clientaddr);
-	err = getpeername(cstate->control_fd, 
-			  (struct sockaddr *)&cstate->cinfo.clientaddr,
-			  &addr_len);
-	if (err) {
- 	    log_message(LOGT_NET, LOGL_ERR, 
-					"Error %d while calling getpeername", err);
-	}
 
 	err = ring_2init(&cstate->complete_obj_ring, OBJ_RING_SIZE);
 	if (err) {
@@ -333,8 +324,8 @@ have_full_conn(listener_state_t * list_state, int conn)
 static void
 accept_control_conn(listener_state_t * list_state)
 {
-	struct sockaddr_in ca;
-	socklen_t       csize;
+	struct sockaddr_storage peer;
+	socklen_t       peerlen;
 	int             new_sock;
 	int             i;
 	int				len;
@@ -342,9 +333,9 @@ accept_control_conn(listener_state_t * list_state)
 	ssize_t         wsize;
 	char 			buf[BUFSIZ];
 
-	csize = sizeof(ca);
-	new_sock = accept(list_state->control_fd, (struct sockaddr *)
-			  &ca, &csize);
+	peerlen = sizeof(peer);
+	new_sock = accept(list_state->control_fd,
+			  (struct sockaddr *)&peer, &peerlen);
 
 	if (new_sock < 0) {
 		/*
@@ -400,6 +391,9 @@ accept_control_conn(listener_state_t * list_state)
 	list_state->conns[i].control_tx_state = CONTROL_TX_NO_PENDING;
 	list_state->conns[i].data_tx_state = DATA_TX_NO_PENDING;
 
+	memcpy(&list_state->conns[i].cinfo.clientaddr, &peer, peerlen);
+	list_state->conns[i].cinfo.clientaddr_len = peerlen;
+
 	/*
 	 * XXX return value ??
 	 */
@@ -451,16 +445,16 @@ accept_control_conn(listener_state_t * list_state)
 static void
 accept_data_conn(listener_state_t * list_state)
 {
-	struct sockaddr_in ca;
-	socklen_t	csize;
+	struct sockaddr_storage peer;
+	socklen_t	peerlen;
 	int             new_sock;
 	uint32_t        data;
 	ssize_t          size, dsize;
 	char 			buf[BUFSIZ];
 
-	csize = sizeof(ca);
-	new_sock = accept(list_state->data_fd, (struct sockaddr *)
-			  &ca, &csize);
+	peerlen = sizeof(peer);
+	new_sock = accept(list_state->data_fd,
+			  (struct sockaddr *)&peer, &peerlen);
 
 	if (new_sock < 0) {
 		/*

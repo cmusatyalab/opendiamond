@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007 Carnegie Mellon University 
+ *  Copyright (c) 2007-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -35,6 +35,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
+#include <netdb.h>
 #include <glib.h>
 #include "sig_calc.h"
 #include "ring.h"
@@ -1104,9 +1105,18 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	log_init(LOG_PREFIX, DEV_SEARCH_PATH);
 
 	sstub_get_conn_info(comm_cookie, &sstate->cinfo);
-	log_message(LOGT_DISK, LOGL_INFO, 
-				"adiskd: new connection received from %s",
-				inet_ntoa(sstate->cinfo.clientaddr.sin_addr));
+
+	char host[NI_MAXHOST], port[NI_MAXSERV];
+	err = getnameinfo((struct sockaddr *)&sstate->cinfo.clientaddr,
+			  sstate->cinfo.clientaddr_len,
+			  host, sizeof(host), port, sizeof(port),
+			  NI_NUMERICHOST | NI_NUMERICSERV);
+	if (!err)
+	    log_message(LOGT_DISK, LOGL_INFO,
+			"adiskd: new connection received from %s:%s",host,port);
+	else
+	    log_message(LOGT_DISK, LOGL_ERR,
+			"adiskd: failed to resolve peer: %s",gai_strerror(err));
 
 	/*
 	 * initialize libfilterexec

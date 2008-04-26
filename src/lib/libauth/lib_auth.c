@@ -3,6 +3,7 @@
  *  Version 3
  *
  *  Copyright (c) 2002-2006 Intel Corporation
+ *  Copyright (c) 2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -149,35 +150,33 @@ auth_handle_t auth_conn_client_ext(int sockfd, char *service)
     krb5_ccache ccdef;
     krb5_principal client, server;
     krb5_error *err_ret = NULL;
- 	char            node_name[128];
- 	char		   *clientstr = NULL;
- 	struct hostent *hent;
- 	int len;
- 	struct sockaddr_in addr;
-	unsigned int addr_len;
-	auth_context_t *k;
-	
-	addr_len = sizeof(addr);
-	retval = getpeername(sockfd, &addr, &addr_len);
-	if (retval) {
- 	    log_message(LOGT_NET, LOGL_ERR, 
-					"Error %d while calling getpeername", retval);
-	    return(NULL);
-	}
- 
+    char node_name[NI_MAXHOST];
+    char *clientstr = NULL;
+    struct sockaddr_storage addr;
+    unsigned int addr_len;
+    auth_context_t *k;
+    int err;
+
+    addr_len = sizeof(addr);
+    retval = getpeername(sockfd, (struct sockaddr *)&addr, &addr_len);
+    if (retval) {
+	log_message(LOGT_NET, LOGL_ERR,
+		    "Error %d while calling getpeername", retval);
+	return(NULL);
+    }
+
     signal(SIGPIPE, SIG_IGN);
- 
-    hent = gethostbyaddr(&addr.sin_addr, sizeof(addr.sin_addr), AF_INET);
-	if (hent == NULL) {
-		log_message(LOGT_NET, LOGL_ERR,
-					"failed to get hostname for %s\n",
-					inet_ntoa(addr.sin_addr));
-		return(NULL);
-	} else {
-		len = strlen(hent->h_name);
-		strncpy(node_name, hent->h_name, len);
-		node_name[len] = 0;
-	}
+
+    err = getnameinfo((struct sockaddr *)&addr, addr_len,
+		      node_name, sizeof(node_name), NULL, 0, NI_NAMEREQD);
+    if (err) {
+	getnameinfo((struct sockaddr *)&addr, addr_len,
+		    node_name, sizeof(node_name), NULL, 0, NI_NUMERICHOST);
+	log_message(LOGT_NET, LOGL_ERR,
+		    "failed to resolve hostname %s:\n",
+		    node_name, gai_strerror(err));
+	return NULL;
+    }
 
  	k = (auth_context_t *) malloc(sizeof(auth_context_t));
 	assert(k != NULL);

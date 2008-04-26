@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -118,19 +118,22 @@ try_next:
 
 static CLIENT *
 rpc_init(int connfd) {
-	struct sockaddr_in control_name;
+	struct sockaddr_storage control_name;
+	socklen_t control_name_len = sizeof(control_name);
 	struct timeval tv;
-	unsigned int control_name_len = sizeof(struct sockaddr);
 	CLIENT *clnt;
 
-	if(getsockname(connfd, (struct sockaddr *)&control_name, 
+	if(getsockname(connfd, (struct sockaddr *)&control_name,
 		       &control_name_len) < 0) {
 	  perror("getsockname");
 	  return NULL;
 	}
-	
-	if ((clnt = clnttcp_create(&control_name,
-				   CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
+
+	/* the only reason this works correctly with ipv6 addresses is because
+	 * clnttcp_create only looks if the sin_port field is zero, and it's
+	 * location identical in the sockaddr_in and sockaddr_in6 structures */
+	if ((clnt = clnttcp_create((struct sockaddr_in *)&control_name,
+				   CLIENTCONTENT_PROG, CLIENTCONTENT_VERS,
 				   &connfd, BUFSIZ, BUFSIZ)) == NULL) {
 	  clnt_pcreateerror("clnttcp_create");
 	  return NULL;

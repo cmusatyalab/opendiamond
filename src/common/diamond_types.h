@@ -3,6 +3,7 @@
  *  Version 3
  *
  *  Copyright (c) 2002-2005 Intel Corporation
+ *  Copyright (c) 2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -156,9 +157,10 @@ typedef enum {
  * descriptor for search sessions
  */
 typedef struct {
-	struct sockaddr_in 	clientaddr;
+	struct sockaddr_storage	clientaddr;
+	socklen_t		clientaddr_len;
 	struct timeval		connect_time;
-	int					conn_idx;
+	int			conn_idx;
 } session_info_t;
 
 /*

@@ -3,7 +3,7 @@
  *  Version 3
  *
  *  Copyright (c) 2002-2007 Intel Corporation
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -62,8 +62,12 @@ struct cts_args {
 static void *
 create_rpc_server(void *arg) {
     SVCXPRT *transp;
-    struct sockaddr_in servaddr;
-    int rpcfd;
+    struct addrinfo *ai, hints = {
+	.ai_family = AF_UNSPEC,
+	.ai_socktype = SOCK_STREAM
+    };
+    int rpcfd, err;
+    char port[NI_MAXSERV];
 
     struct cts_args *data = (struct cts_args *)arg;
 
@@ -72,21 +76,26 @@ create_rpc_server(void *arg) {
       pthread_exit((void *)-1);
     }
 
-    if((rpcfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-      perror("socket");
-      pthread_exit((void *)-1);
+    sprintf(port, "%u", data->port);
+    err = getaddrinfo(NULL, port, &hints, &ai);
+    if (err) {
+	fprintf(stderr, "create_rpc_server: getaddrinfo failed: %s\n",
+		gai_strerror(err));
+	pthread_exit((void *)-1);
     }
-  
-    bzero(&servaddr, sizeof(struct sockaddr_in));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);  /* only local conns */
-    servaddr.sin_port = htons(data->port);
 
-    if(bind(rpcfd, (struct sockaddr *) &servaddr, 
-	    sizeof(struct sockaddr_in)) < 0) {
-      perror("bind");
-      pthread_exit((void *)-1);
+    rpcfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if (rpcfd < 0) {
+	perror("socket");
+	pthread_exit((void *)-1);
     }
+
+    if (bind(rpcfd, ai->ai_addr, ai->ai_addrlen) < 0) {
+	perror("bind");
+	pthread_exit((void *)-1);
+    }
+
+    freeaddrinfo(ai);
 
     transp = svctcp_create(rpcfd, BUFSIZ, BUFSIZ);
     if (transp == NULL) {
@@ -95,8 +104,8 @@ create_rpc_server(void *arg) {
     }
 
     pmap_unset(CLIENTCONTENT_PROG, CLIENTCONTENT_VERS);
-    
-    if (!svc_register(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS, 
+
+    if (!svc_register(transp, CLIENTCONTENT_PROG, CLIENTCONTENT_VERS,
 		      clientcontent_prog_2, 0)) {
       fprintf(stderr, "(Sun RPC server) unable to register \"client to "
 	      "content\" program (prognum=0x%x, versnum=%d, tcp)\n", 
@@ -157,7 +166,7 @@ setup_rpc(cstate_t *cstate) {
     while(control_ready == 0) continue;
     
     bzero(&hints,  sizeof(struct addrinfo));
-    hints.ai_family = AF_INET;
+    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     snprintf(port_str, NI_MAXSERV, "%u", args->port);
     

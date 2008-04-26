@@ -194,7 +194,7 @@ void
 hstub_conn_down(sdevice_state_t * dev)
 {
 	/* callback to mark the search done */
-	(*dev->hstub_conn_down_cb) (dev->hcookie, dev->ver_no);
+	(*dev->cb.conn_down_cb) (dev->hcookie, dev->ver_no);
 
 	/* set the flag */
 	dev->con_data.flags |= CINFO_DOWN;

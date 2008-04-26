@@ -131,7 +131,7 @@ shutdown_connection(listener_state_t * lstate, cstate_t * cstate)
 	/*
 	 * Notify the "application" through the callback.
 	 */
-	(*lstate->close_conn_cb) (cstate->app_cookie);
+	(*lstate->cb.close_conn_cb) (cstate->app_cookie);
 
 
 	/*
@@ -277,7 +277,7 @@ have_full_conn(listener_state_t * list_state, int conn)
 		return;
 	}
 
-	parent = (*list_state->new_conn_cb) ((void *) cstate, &new_cookie);
+	parent = (*list_state->cb.new_conn_cb) ((void *) cstate, &new_cookie);
 	if (parent) {
 		shutdown_connection(list_state, cstate);
 	} else {

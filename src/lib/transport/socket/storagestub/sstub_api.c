@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006-2007 Carnegie Mellon University
+ *  Copyright (c) 2006-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -175,7 +175,7 @@ sstub_flush_objs(void *cookie, int ver_no)
 			break;
 		}
 		obj = (obj_data_t *) junk;
-		(*lstate->release_obj_cb) (cstate->app_cookie, obj);
+		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
 	}
 
 	while (1) {
@@ -191,7 +191,7 @@ sstub_flush_objs(void *cookie, int ver_no)
 			return (0);
 		}
 		obj = (obj_data_t *) junk;
-		(*lstate->release_obj_cb) (cstate->app_cookie, obj);
+		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
 
 	}
 
@@ -242,30 +242,8 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 		return (NULL);
 	}
 
-	/*
-	 * Save all the callback functions.
-	 */
-	list_state->new_conn_cb = cb_args->new_conn_cb;
-	list_state->close_conn_cb = cb_args->close_conn_cb;
-	list_state->start_cb = cb_args->start_cb;
-	list_state->stop_cb = cb_args->stop_cb;
-	list_state->set_fspec_cb = cb_args->set_fspec_cb;
-	list_state->set_fobj_cb = cb_args->set_fobj_cb;
-	list_state->terminate_cb = cb_args->terminate_cb;
-	list_state->release_obj_cb = cb_args->release_obj_cb;
-	list_state->get_char_cb = cb_args->get_char_cb;
-	list_state->get_stats_cb = cb_args->get_stats_cb;
-	list_state->rleaf_cb = cb_args->rleaf_cb;
-	list_state->wleaf_cb = cb_args->wleaf_cb;
-	list_state->lleaf_cb = cb_args->lleaf_cb;
-	list_state->lnode_cb = cb_args->lnode_cb;
-	list_state->sgid_cb = cb_args->sgid_cb;
-	list_state->clear_gids_cb = cb_args->clear_gids_cb;
-	list_state->set_blob_cb = cb_args->set_blob_cb;
-	list_state->set_exec_mode_cb = cb_args->set_exec_mode_cb;
-	list_state->set_user_state_cb = cb_args->set_user_state_cb;
-	list_state->get_session_vars_cb = cb_args->get_session_vars_cb;
-	list_state->set_session_vars_cb = cb_args->set_session_vars_cb;
+	/* Save all the callback functions. */
+	list_state->cb = *cb_args;
 
 	/*
 	 * save authentication state

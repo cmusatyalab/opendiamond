@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006-2007 Carnegie Mellon University
+ *  Copyright (c) 2006-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -438,7 +438,7 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 	 */
 
 	cstate->data_tx_state = DATA_TX_NO_PENDING;
-	(*lstate->release_obj_cb) (cstate->app_cookie, cstate->data_tx_obj);
+	(*lstate->cb.release_obj_cb) (cstate->app_cookie, cstate->data_tx_obj);
 
 	/*
 	 * decrement credit count 

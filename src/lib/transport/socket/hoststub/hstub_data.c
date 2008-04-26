@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006 Carnegie Mellon University
+ *  Copyright (c) 2006-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -335,7 +335,7 @@ hstub_read_data(sdevice_state_t * dev)
 
 	if ((cinfo->data_rx_obj->data_len == 0) &&
 	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0)) {
-		(*dev->hstub_search_done_cb) (dev->hcookie, ver_no);
+		(*dev->cb.search_done_cb) (dev->hcookie, ver_no);
 		free(cinfo->data_rx_obj);
 
 	} else {

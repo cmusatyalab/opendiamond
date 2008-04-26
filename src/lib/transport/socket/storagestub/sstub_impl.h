@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006-2007 Carnegie Mellon University
+ *  Copyright (c) 2006-2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -133,28 +133,7 @@ typedef struct listener_state {
 	auth_handle_t		ca_handle;
 	auth_handle_t		da_handle;
 	auth_handle_t		la_handle;
-	sstub_new_conn_fn 	new_conn_cb;
-	sstub_close_conn_fn 	close_conn_cb;
-	sstub_start_fn 		start_cb;
-	sstub_stop_fn 		stop_cb;
-	sstub_set_filter_spec_fn set_fspec_cb;
-	sstub_set_filter_obj_fn set_fobj_cb;
-	sstub_terminate_fn	terminate_cb;
-	sstub_getstats_fn	get_stats_cb;
-	sstub_release_obj_fn	release_obj_cb;
-	sstub_get_devchar_fn	get_char_cb;
-	sstub_set_log_fn	setlog_cb;
-	sstub_rleaf_fn	        rleaf_cb;
-	sstub_wleaf_fn	        wleaf_cb;
-	sstub_lleaf_fn	        lleaf_cb;
-	sstub_lnode_fn	        lnode_cb;
-	sstub_sgid_fn	        sgid_cb;
-	sstub_clear_gids_fn	clear_gids_cb;
-	sstub_set_blob_fn	set_blob_cb;
-	sstub_set_exec_mode_fn set_exec_mode_cb;
-	sstub_set_user_state_fn set_user_state_cb;
-	sstub_get_session_vars_fn get_session_vars_cb;
-	sstub_set_session_vars_fn set_session_vars_cb;
+	sstub_cb_args_t		cb;
 	cstate_t		conns[MAX_CONNS];
 } listener_state_t;
 

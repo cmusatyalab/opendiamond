@@ -521,7 +521,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	r_err = drx.dctl.dctl_err;
 	r_opid = drx.dctl.dctl_opid;
 
-	(*dev->hstub_wleaf_done_cb) (dev->hcookie, r_err, r_opid);
+	(*dev->cb.wleaf_done_cb) (dev->hcookie, r_err, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	return 0;
@@ -567,8 +567,8 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 	r_dtype = drx.dctl.dctl_dtype;
 	r_dlen = drx.dctl.dctl_data.dctl_data_len;
 
-	(*dev->hstub_rleaf_done_cb) (dev->hcookie, r_err, r_dtype, r_dlen,
-				     drx.dctl.dctl_data.dctl_data_val, r_opid);
+	(*dev->cb.rleaf_done_cb) (dev->hcookie, r_err, r_dtype, r_dlen,
+				  drx.dctl.dctl_data.dctl_data_val, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	return 0;
@@ -616,8 +616,9 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 
 	ents = r_dlen / (sizeof(dctl_entry_t));
 
-	(*dev->hstub_lnode_done_cb) (dev->hcookie, r_err, ents,
-				     (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
+	(*dev->cb.lnode_done_cb)
+		(dev->hcookie, r_err, ents,
+		 (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	return 0;
@@ -664,8 +665,9 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 
 	ents = r_dlen / (sizeof(dctl_entry_t));
 
-	(*dev->hstub_lleaf_done_cb) (dev->hcookie, r_err, ents,
-				     (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
+	(*dev->cb.lleaf_done_cb)
+		(dev->hcookie, r_err, ents,
+		 (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	return 0;
@@ -979,18 +981,9 @@ device_init(int id, const char *host, void *hcookie, hstub_cb_args_t * cb_list)
 		return (NULL);
 	}
 
-	/*
-	 * Save the callback and the host cookie.
-	 */
+	/* Save the callback and the host cookie. */
 	new_dev->hcookie = hcookie;
-	new_dev->hstub_log_data_cb = cb_list->log_data_cb;
-	new_dev->hstub_search_done_cb = cb_list->search_done_cb;
-	new_dev->hstub_rleaf_done_cb = cb_list->rleaf_done_cb;
-	new_dev->hstub_wleaf_done_cb = cb_list->wleaf_done_cb;
-	new_dev->hstub_lnode_done_cb = cb_list->lnode_done_cb;
-	new_dev->hstub_lleaf_done_cb = cb_list->lleaf_done_cb;
-	new_dev->hstub_conn_down_cb = cb_list->conn_down_cb;
-
+	new_dev->cb = *cb_list;
 
 	/*
 	 * Init caches stats.

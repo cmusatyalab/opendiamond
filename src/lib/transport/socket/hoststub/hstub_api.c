@@ -42,7 +42,6 @@
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "lib_hstub.h"
-#include "lib_auth.h"
 #include "lib_dconfig.h"
 #include "hstub_impl.h"
 #include "rpc_client_content.h"

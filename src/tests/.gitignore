@@ -9,8 +9,6 @@
 /test_log
 /name_test
 /dconf_test
-/actest
-/astest
 /test_dctl
 /test_ring
 /test_rtimer

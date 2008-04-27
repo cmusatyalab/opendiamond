@@ -46,7 +46,6 @@ int             not_silent = 0;
 int             bind_locally = 0;
 int             active_searches = 0;
 int             do_background = 0;
-int				do_authenticate = 0;
 int             idle_background = 1;	/* only run background when idle */
 pid_t		background_pid = -1;	/* pid_t of the background process */
 
@@ -54,7 +53,6 @@ static void
 usage(void)
 {
 	fprintf(stdout, "adiskd -[abcdlhins] \n");
-	fprintf(stdout, "\t -a authenticate connections \n");
 	fprintf(stdout, "\t -b run background tasks \n");
 	fprintf(stdout, "\t -d do not run adisk as a daemon \n");
 	fprintf(stdout, "\t -h get this help message \n");
@@ -85,9 +83,6 @@ main(int argc, char **argv)
 			break;
 		}
 		switch (c) {
-		case 'a':
-			do_authenticate = 1;
-			break;
 		case 'b':
 			/* enable background processing */
 			do_background = 1;
@@ -165,12 +160,12 @@ main(int argc, char **argv)
 	cb_args.clear_gids_cb = search_clear_gids;
 	cb_args.set_blob_cb = search_set_blob;
 	cb_args.set_exec_mode_cb = search_set_exec_mode;
- 	cb_args.set_user_state_cb = search_set_user_state;
+	cb_args.set_user_state_cb = search_set_user_state;
 	cb_args.get_session_vars_cb = search_get_session_vars;
 	cb_args.set_session_vars_cb = search_set_session_vars;
 
-	cookie = sstub_init_ext(&cb_args, bind_locally, do_authenticate);
-	if (cookie == NULL) { 
+	cookie = sstub_init(&cb_args, bind_locally);
+	if (cookie == NULL) {
 		fprintf(stderr, "Unable to initialize the communications\n");
 		exit(1);
 	}

@@ -38,22 +38,6 @@ esac
 
 AC_SUBST(PKGCONFIG_REQUIRES)
 
-
-# checks for kerberos - is this MIT or Heimdal?
-MITKRB5="no"
-AC_SEARCH_LIBS(krb5_encrypt, k5crypto, [MITKRB5="yes"])
-if test "$MITKRB5" = yes ; then
-   AC_DEFINE(HAVE_KRB5, 1, [Define if kerberos 5 is available])
-else
-   AC_DEFINE(HAVE_HEIMDAL, 1, [Define if using heimdal as kerberos5 library])
-   AC_SEARCH_LIBS([crypt], [crypt])
-   AC_SEARCH_LIBS([roken_concat], [roken])
-   AC_SEARCH_LIBS([copy_PrincipalName], [asn1])
-fi
-AC_SEARCH_LIBS([krb5_init_context], [krb5],, [have_krb5=no])
-AM_CONDITIONAL(HAVE_KRB5, [test "$have_krb5" != no])
-
-
 # glib
 PKG_CHECK_MODULES(GLIB2, [glib-2.0, gthread-2.0])
 AC_SUBST(GLIB2_CFLAGS)
@@ -76,7 +60,7 @@ AC_SEARCH_LIBS([clock_gettime],
 
 
 # some options and includes
-AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/common -I$(top_srcdir)/lib/libauth -I$(top_srcdir)/lib/libdconfig -I$(top_srcdir)/lib/libdctl -I$(top_srcdir)/lib/libfilter -I$(top_srcdir)/lib/libfilterexec -I$(top_srcdir)/lib/liblog -I$(top_srcdir)/lib/libodisk -I$(top_srcdir)/lib/libsearchlet -I$(top_srcdir)/lib/libtools -I$(top_srcdir)/lib/transport/socket/common -I$(top_srcdir)/lib/transport/socket/hoststub -I$(top_srcdir)/lib/transport/socket/storagestub'])
+AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/common -I$(top_srcdir)/lib/libdconfig -I$(top_srcdir)/lib/libdctl -I$(top_srcdir)/lib/libfilter -I$(top_srcdir)/lib/libfilterexec -I$(top_srcdir)/lib/liblog -I$(top_srcdir)/lib/libodisk -I$(top_srcdir)/lib/libsearchlet -I$(top_srcdir)/lib/libtools -I$(top_srcdir)/lib/transport/socket/common -I$(top_srcdir)/lib/transport/socket/hoststub -I$(top_srcdir)/lib/transport/socket/storagestub'])
 
 AC_SUBST(AM_CFLAGS, ['-Wall -Wextra -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs $(GLIB2_CFLAGS)'])
 
@@ -88,7 +72,6 @@ adiskd/Makefile
 common/Makefile
 sqlite/Makefile
 lib/Makefile
-lib/libauth/Makefile
 lib/libdconfig/Makefile
 lib/libdctl/Makefile
 lib/libfilter/Makefile

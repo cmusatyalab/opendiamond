@@ -38,7 +38,6 @@
 #include "lib_odisk.h"
 #include "socket_trans.h"
 #include "lib_dctl.h"
-#include "lib_auth.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 #include "ports.h"
@@ -195,39 +194,11 @@ sstub_flush_objs(void *cookie, int ver_no)
 
 
 /*
- * This is the initialization function that is
- * called by the searchlet library when we startup.
- */
-
-/*
- * XXX callback for new packets 
- */
-void           *
-sstub_init(sstub_cb_args_t * cb_args)
-{
-	return sstub_init_ext(cb_args, 0, 0);
-}
-
-
-/*
- * This is a new version of sstub_init which allows
- * for binding only to localhost.
+ * This is the initialization function that is called by adiskd when we
+ * start up. The second argument can be used to bind only to localhost.
  */
 void *
-sstub_init_2(sstub_cb_args_t * cb_args,
-	     int bind_only_locally)
-{
-	return sstub_init_ext(cb_args, bind_only_locally, 0);
-}
-
-/*
- * This is a new version of sstub_init which allows
- * for binding only to localhost.
- */
-void *
-sstub_init_ext(sstub_cb_args_t * cb_args,
-	     int bind_only_locally,
-	     int auth_required)
+sstub_init(sstub_cb_args_t *cb_args, int bind_only_locally)
 {
 	listener_state_t *list_state;
 	int             err;
@@ -239,13 +210,6 @@ sstub_init_ext(sstub_cb_args_t * cb_args,
 
 	/* Save all the callback functions. */
 	list_state->cb = *cb_args;
-
-	/*
-	 * save authentication state
-	 */
-	if (auth_required) {
-		list_state->flags |= LSTATE_AUTH_REQUIRED;
-	}
 
 	/*
 	 * Open the listner sockets for the different types of connections.

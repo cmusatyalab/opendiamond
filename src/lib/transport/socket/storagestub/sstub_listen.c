@@ -37,7 +37,6 @@
 #include "socket_trans.h"
 #include "lib_dctl.h"
 #include "dctl_common.h"
-#include "lib_auth.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 
@@ -334,29 +333,7 @@ accept_control_conn(listener_state_t * list_state)
 		 */
 		printf("XXX accept failed \n");
 	}
-	
-	/* authenticate connection */
-	if (list_state->flags & LSTATE_AUTH_REQUIRED) {
-		/* send a negative cookie to alert the host */
-		data = -1;
-		wsize = write(new_sock, (char *) &data, sizeof(data));
-		if (wsize < 0) {
-			/*
-			 * XXX log 
-		 	*/
-			printf("XXX Failed write on cntrl connection \n");
-			close(new_sock);
-			return;
-		}
-		
-		list_state->ca_handle = auth_conn_server(new_sock);
-		if (list_state->ca_handle == NULL) {
-			close(new_sock);
-			printf("Authentication failed (control)\n");
-			return;
-		}
-	}
-		
+
 	/*
 	 * Now we allocate a per connection state information and
 	 * store the socket associated with this.
@@ -389,39 +366,14 @@ accept_control_conn(listener_state_t * list_state)
 	pthread_mutex_init(&list_state->conns[i].cmutex, NULL);
 
 	data = (uint32_t) i;
-	
-	if (list_state->flags & LSTATE_AUTH_REQUIRED) {
-		len = auth_msg_encrypt(list_state->ca_handle, (char *) &data, sizeof(data),
-							buf, BUFSIZ);
-		if (len < 0) {
-			printf("Error while encrypting message\n");
-			close(new_sock);
-			list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
-			return;
-		}
-	
-		wsize = write(new_sock, &buf[0], len);
-		if (wsize < 0) {
-			printf("Failed write on cntrl connection\n");
-			close(new_sock);
-			list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
-			return;
-		}
-	
-    } else {
-		wsize = write(new_sock, (char *) &data, sizeof(data));
-		if (wsize < 0) {
-		/*
-		 * XXX log 
-		 */
-			printf("XXX Failed write on cntrl connection \n");
-			close(new_sock);
-			list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
-			return;
-		}
+
+	wsize = write(new_sock, (char *) &data, sizeof(data));
+	if (wsize < 0) {
+		/* XXX log */
+		printf("XXX Failed write on cntrl connection \n");
+		close(new_sock);
+		list_state->conns[i].flags &= ~CSTATE_ALLOCATED;
 	}
-	
-	return;
 }
 
 /*
@@ -451,33 +403,8 @@ accept_data_conn(listener_state_t * list_state)
 		 */
 		printf("XXX accept failed \n");
 	}
-	
-	/* authenticate connection */
-	if (list_state->flags & LSTATE_AUTH_REQUIRED) {
-		list_state->da_handle = auth_conn_server(new_sock);
-		if (list_state->da_handle == NULL) {
-			close(new_sock);
-			printf("Authentication failed (data)\n");
-			return;
-		}
-		
-		/* read the encrypted cookie */
-		size = read(new_sock, &buf[0], BUFSIZ);
-		if (size == -1) {
-			printf("failed to read from socket");
-			close(new_sock);
-			return;
-		}
-	
-		printf("Read encrypted message of %d bytes\n", size);
 
-		/* decrypt the message */	
-		dsize = auth_msg_decrypt(list_state->da_handle, buf, size, 
-							(char *) &data, sizeof(data));		
-	} else {
-		dsize = read(new_sock, (char *) &data, sizeof(data));
-	}
-	
+	dsize = read(new_sock, (char *) &data, sizeof(data));
 	if (dsize < 0) {
 		/*
 		 * XXX 

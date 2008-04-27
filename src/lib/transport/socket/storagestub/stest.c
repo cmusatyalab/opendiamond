@@ -229,9 +229,7 @@ main(int argc, char **argv)
 	cb_args.release_obj_cb = release_obj;
 	cb_args.get_char_cb = dev_chars;
 
-
-
-	lib_cookie = sstub_init(&cb_args);
+	lib_cookie = sstub_init(&cb_args, 0);
 
 	sstub_listen(lib_cookie, 1);
 

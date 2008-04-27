@@ -41,7 +41,6 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_dctl.h"
-#include "lib_auth.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 #include "ports.h"
@@ -205,7 +204,6 @@ int
 hstub_establish_connection(conn_info_t *cinfo, const char *host)
 {
 	ssize_t         size, len;
-	int		auth_required = 0;
 	char		buf[BUFSIZ];
 
 	int		err;
@@ -230,40 +228,6 @@ hstub_establish_connection(conn_info_t *cinfo, const char *host)
 	}
 
 
-	if ((int) cinfo->session_nonce < 0) {
-		/* authenticate */
-		cinfo->ca_handle = auth_conn_client(cinfo->control_fd);
-		if (cinfo->ca_handle) {
-			/* wait for ack to our connect request */
-			size = readn(cinfo->control_fd, &buf[0], BUFSIZ);
-			if (size == -1) {
-			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to read encrypted session_nonce");
-			  close(cinfo->control_fd);
-			  return (ENOENT);
-			}
-	
-
-			/* decrypt the message */	
-			len = auth_msg_decrypt(cinfo->ca_handle, buf, size, 
-									(char *) &cinfo->session_nonce, 
-									sizeof(cinfo->session_nonce));
-			if (len < 0) {
-			  log_message(LOGT_NET, LOGL_ERR, "hstub_establish_connection: failed to decrypt session_nonce");
-				close(cinfo->control_fd);
-				return (ENOENT);
-			}
-			
-			auth_required = 1;
-			cinfo->flags |= CINFO_AUTHENTICATED;
-		} else {			
-			log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub_establish_connection: auth_conn_client() failed");
-			close(cinfo->control_fd);
-			return (ENOENT);
-		}
-	}
-
-
 	/*
 	 * Now we open the data socket and send the cookie on it.
 	 */
@@ -274,40 +238,6 @@ hstub_establish_connection(conn_info_t *cinfo, const char *host)
 		close(cinfo->control_fd);
 		return (ENOENT);
 	}
-
-	/* authenticate connection */
-	if (auth_required) {
-		cinfo->da_handle = auth_conn_client(cinfo->data_fd);
-		if (cinfo->da_handle) {
-			/* encrypt the cookie */
-			len = auth_msg_encrypt(cinfo->da_handle,  
-							(char *) &cinfo->session_nonce, 
-							sizeof(cinfo->session_nonce),
-							buf, BUFSIZ);
-			if (len < 0) {
-				printf("failed to encrypt message");
-				close(cinfo->control_fd);
-				close(cinfo->data_fd);
-				return (ENOENT);
-			}
-			
-			/* send the cookie */
-			size = write(cinfo->data_fd, buf, len);
-			if (size == -1) {
-				log_message(LOGT_NET, LOGL_ERR, 
-		    				"hstub: send on  data port failed");
-				close(cinfo->control_fd);
-				close(cinfo->data_fd);
-				return (ENOENT);
-			}
-		} else {
-			log_message(LOGT_NET, LOGL_ERR, 
-		    	"hstub: failed to read from socket");
-			close(cinfo->control_fd);
-			close(cinfo->data_fd);
-			return (ENOENT);
-		}
-	} 
 
 	if(pthread_mutex_init(&cinfo->rpc_mutex, NULL) != 0) {
 		log_message(LOGT_NET, LOGL_ERR, 

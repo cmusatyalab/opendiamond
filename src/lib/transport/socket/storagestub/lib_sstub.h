@@ -50,12 +50,8 @@ device_session_vars_t* (*get_session_vars_cb) (void *app_cookie, int gen);
 } sstub_cb_args_t;
 
 
-void * sstub_init(sstub_cb_args_t *cb_args);
-void * sstub_init_2(sstub_cb_args_t *cb_args, int bind_only_locally);
-void * sstub_init_ext(sstub_cb_args_t *cb_args, 
-						int bind_only_locally,
-						int auth_required);
-void  sstub_listen(void * cookie);
+void *sstub_init(sstub_cb_args_t *cb_args, int bind_only_locally);
+void sstub_listen(void * cookie);
 int sstub_get_partial(void *cookie, obj_data_t **obj);
 int sstub_flush_objs(void *cookie, int vnum);
 int sstub_send_obj(void *cookie, obj_data_t *obj, int vnum, int complete);

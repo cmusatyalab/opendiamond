@@ -109,10 +109,6 @@ typedef struct cstate {
 }
 cstate_t;
 
-/* These are the flags for each listener state defined below */
-#define	LSTATE_AUTH_REQUIRED	0x0001
-
-
 /*
  * This is the main state for the library.  It includes the socket
  * state for each of the "listners" as well as all the callback
@@ -123,13 +119,9 @@ typedef struct listener_state {
 	pthread_t		thread_id;
 	int			control_fd;
 	int			data_fd;
-	unsigned int		flags;
 	fd_set			read_fds;
 	fd_set			write_fds;
 	fd_set			except_fds;
-	auth_handle_t		ca_handle;
-	auth_handle_t		da_handle;
-	auth_handle_t		la_handle;
 	sstub_cb_args_t		cb;
 	cstate_t		conns[MAX_CONNS];
 } listener_state_t;

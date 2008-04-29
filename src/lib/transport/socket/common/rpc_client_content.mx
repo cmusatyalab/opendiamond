@@ -22,11 +22,11 @@ typedef unsigned int	mode_x;
 typedef unsigned int	state_x;
 
 struct stop_x {
-    int host_objs_received;
-    int host_objs_queued;
-    int host_objs_read;
-    int app_objs_queued;
-    int app_objs_presented;
+    int		host_objs_received;
+    int		host_objs_queued;
+    int		host_objs_read;
+    int		app_objs_queued;
+    int		app_objs_presented;
 };
 
 struct spec_file_x {
@@ -75,7 +75,7 @@ struct dev_stats_x {
     filter_stats_x ds_filter_stats<MAX_FILTERS>;
 };
 
-struct send_obj_x {
+struct obj_x {
     sig_val_x	obj_sig;
     opaque	obj_data<>;
 };
@@ -118,10 +118,9 @@ serverprocs {
     /* The GET_OBJ call is implied by the return code from SET_OBJ which
      * returns DIAMOND_FCACHEMISS when the object was not found */
     device_set_obj(sig_val_x, void) = 16;
-    device_send_obj(send_obj_x, void) = 17;
+    device_send_obj(obj_x, void) = 17;
 
     /**** Anomaly detection ****/
     session_variables_get(void, diamond_session_vars_x) = 18;
     session_variables_set(diamond_session_vars_x, void) = 19;
 }
-

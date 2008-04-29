@@ -168,7 +168,7 @@ typedef struct {
  */
 typedef struct {
 	session_info_t	session;
-	int				query_id;
+	int Xquery_id;
 } query_info_t;
 
 

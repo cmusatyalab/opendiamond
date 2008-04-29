@@ -89,7 +89,7 @@ dev_log_data_cb(void *cookie, char *data, int len, int devid)
 
 
 static void
-dev_search_done_cb(void *hcookie, int ver_no)
+dev_search_done_cb(void *hcookie)
 {
 	device_handle_t *dev;
 	time_t          cur_time;
@@ -100,6 +100,8 @@ dev_search_done_cb(void *hcookie, int ver_no)
 	log_message(LOGT_BG, LOGL_INFO, "device %s search is complete",
 	    dev->dev_name);
 
+#warning "Check this"
+#if 0
 	/*
 	 * If this version number doesn't match this was
 	 * an old message stuck in the queue.
@@ -110,7 +112,7 @@ dev_search_done_cb(void *hcookie, int ver_no)
 		    ver_no, dev->sc->cur_search_id);
 		return;
 	}
-
+#endif
 	dev->flags |= DEV_FLAG_COMPLETE;
 	time(&cur_time);
 	delta = cur_time - dev->start_time;
@@ -120,7 +122,7 @@ dev_search_done_cb(void *hcookie, int ver_no)
 }
 
 static void
-conn_down_cb(void *hcookie, int ver_no)
+conn_down_cb(void *hcookie)
 {
 	device_handle_t *dev;
 
@@ -307,8 +309,7 @@ create_new_device(search_context_t * sc, const char *host)
 	cb_data.search_done_cb = dev_search_done_cb;
 	cb_data.conn_down_cb = conn_down_cb;
 
-	new_dev->dev_handle = device_init(sc->cur_search_id, host,
-					  (void *)new_dev, &cb_data);
+	new_dev->dev_handle = device_init(host, (void *)new_dev, &cb_data);
 
 	if (new_dev->dev_handle == NULL) {
 		log_message(LOGT_BG, LOGL_CRIT, 
@@ -370,7 +371,7 @@ device_add_gid(search_context_t * sc, groupid_t gid, const char *host)
 		return (ENOENT);
 	}
 
-	device_new_gid(cur_dev->dev_handle, sc->cur_search_id, gid);
+	device_new_gid(cur_dev->dev_handle, gid);
 
 	cur_dev->dev_groups[cur_dev->num_groups] = gid;
 	cur_dev->num_groups++;

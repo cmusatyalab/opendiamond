@@ -62,7 +62,6 @@ hstub_read_data(sdevice_state_t * dev)
 	ssize_t         rsize;
 	uint32_t        alen,
 	                dlen;
-	int             ver_no;
 	char           *adata;
 	char           *odata;
 	char           *data;
@@ -327,30 +326,16 @@ hstub_read_data(sdevice_state_t * dev)
 	    cinfo->data_rx_obj->attr_info.attr_dlist->adata_len +
 	    sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
 
-
-
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
-	ver_no = ntohl(cinfo->data_rx_header.version_num);
 
 	if ((cinfo->data_rx_obj->data_len == 0) &&
 	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0))
 	{
-		(*dev->cb.search_done_cb) (dev->hcookie, ver_no);
+		(*dev->cb.search_done_cb) (dev->hcookie);
 		free(cinfo->data_rx_obj);
 	} else {
-
-		/*
-		 * XXX put it into the object ring 
-		 */
-		obj_info_t     *oinfo;
-
-		oinfo = (obj_info_t *) malloc(sizeof(*oinfo));
-		assert(oinfo != NULL);
-
-		oinfo->ver_num = ver_no;
-		oinfo->obj = cinfo->data_rx_obj;
-
-		err = ring_enq(dev->obj_ring, oinfo);
+		/* XXX put it into the object ring */
+		err = ring_enq(dev->obj_ring, cinfo->data_rx_obj);
 		assert(err == 0);
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}

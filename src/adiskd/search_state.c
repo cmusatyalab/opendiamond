@@ -99,7 +99,6 @@ typedef struct {
 
 typedef struct {
 	dev_op_type_t   cmd;
-	int             id;
 	sig_val_t	sig;
 	union {
 		dev_blob_data_t bdata;
@@ -108,14 +107,13 @@ typedef struct {
 } dev_cmd_data_t;
 
 int
-search_stop(void *app_cookie, int gen_num, host_stats_t *hstats)
+search_stop(void *app_cookie, host_stats_t *hstats)
 {
 	dev_cmd_data_t *cmd;
 	search_state_t *sstate;
 	int             err;
 
-	log_message(LOGT_DISK, LOGL_TRACE, "search_stop: gen %d", 
-				gen_num);
+	log_message(LOGT_DISK, LOGL_TRACE, "search_stop");
 
 	sstate = (search_state_t *) app_cookie;
 	sstate->user_state = USER_UNKNOWN;
@@ -126,7 +124,6 @@ search_stop(void *app_cookie, int gen_num, host_stats_t *hstats)
 	}
 
 	cmd->cmd = DEV_STOP;
-	cmd->id = gen_num;
 	cmd->extra_data.hdata = *hstats;
 
 	err = ring_enq(sstate->control_ops, (void *) cmd);
@@ -139,13 +136,13 @@ search_stop(void *app_cookie, int gen_num, host_stats_t *hstats)
 
 
 int
-search_term(void *app_cookie, int id)
+search_term(void *app_cookie)
 {
 	dev_cmd_data_t *cmd;
 	search_state_t *sstate;
 	int             err;
 
-	log_message(LOGT_DISK, LOGL_TRACE, "search_stop: id %d", id);
+	log_message(LOGT_DISK, LOGL_TRACE, "search_stop");
 
 	sstate = (search_state_t *) app_cookie;
 	sstate->user_state = USER_UNKNOWN;
@@ -159,7 +156,6 @@ search_term(void *app_cookie, int id)
 		return (1);
 	}
 	cmd->cmd = DEV_TERM;
-	cmd->id = id;
 
 	/*
 	 * Put it on the ring.
@@ -189,7 +185,7 @@ search_setlog(void *app_cookie, uint32_t level, uint32_t src)
 
 
 int
-search_start(void *app_cookie, int id)
+search_start(void *app_cookie)
 {
 	dev_cmd_data_t *cmd;
 	int             err;
@@ -198,7 +194,7 @@ search_start(void *app_cookie, int id)
 	/*
 	 * XXX start 
 	 */
-	log_message(LOGT_DISK, LOGL_TRACE, "search_start: id %d", id);
+	log_message(LOGT_DISK, LOGL_TRACE, "search_start");
 
 	sstate = (search_state_t *) app_cookie;
 	sstate->user_state = USER_WAITING;
@@ -208,7 +204,6 @@ search_start(void *app_cookie, int id)
 		return (1);
 	}
 	cmd->cmd = DEV_START;
-	cmd->id = id;
 
 	err = ring_enq(sstate->control_ops, (void *) cmd);
 	if (err) {
@@ -226,7 +221,7 @@ search_start(void *app_cookie, int id)
  */
 
 int
-search_set_spec(void *app_cookie, int id, sig_val_t *spec_sig)
+search_set_spec(void *app_cookie, sig_val_t *spec_sig)
 {
 	dev_cmd_data_t *cmd;
 	int             err;
@@ -234,9 +229,7 @@ search_set_spec(void *app_cookie, int id, sig_val_t *spec_sig)
 
 	char *sig_str = sig_string(spec_sig);
 
-	log_message(LOGT_DISK, LOGL_TRACE,
-				"search_set_spec: id %d %s",
-				id, sig_str);
+	log_message(LOGT_DISK, LOGL_TRACE, "search_set_spec: %s", sig_str);
 	free(sig_str);
 
 	sstate = (search_state_t *) app_cookie;
@@ -247,7 +240,6 @@ search_set_spec(void *app_cookie, int id, sig_val_t *spec_sig)
 	}
 
 	cmd->cmd = DEV_SPEC;
-	cmd->id = id;
 
 	memcpy(&cmd->sig, spec_sig, sizeof(*spec_sig));
 	err = ring_enq(sstate->control_ops, (void *) cmd);
@@ -260,7 +252,7 @@ search_set_spec(void *app_cookie, int id, sig_val_t *spec_sig)
 
 
 int
-search_set_obj(void *app_cookie, int id, sig_val_t * objsig)
+search_set_obj(void *app_cookie, sig_val_t * objsig)
 {
 	dev_cmd_data_t *cmd;
 	int             err;
@@ -274,7 +266,6 @@ search_set_obj(void *app_cookie, int id, sig_val_t * objsig)
 	}
 
 	cmd->cmd = DEV_OBJ;
-	cmd->id = id;
 
 	memcpy(&cmd->sig, objsig, sizeof(*objsig));
 	err = ring_enq(sstate->control_ops, (void *) cmd);
@@ -352,7 +343,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		/*
 		 * flush objects in the transmit queue 
 		 */
-		err = sstub_flush_objs(sstate->comm_cookie, sstate->ver_no);
+		err = sstub_flush_objs(sstate->comm_cookie);
 		assert(err == 0);
 		
 		/*
@@ -393,7 +384,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		 * whole library and spec file 
 		 */
 		qinfo.session = sstate->cinfo;
-		qinfo.query_id = cmd->id;
 		ceval_init_search(sstate->fdata, &qinfo, sstate->cstate);
 
 		// LBM - odisk group
@@ -422,12 +412,10 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		}
 
 		sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
-		sstate->ver_no = cmd->id;
 		sstate->flags |= DEV_FLAG_RUNNING;
 		break;
 
 	case DEV_SPEC:
-		sstate->ver_no = cmd->id;
 		err = fexec_load_spec(&sstate->fdata, &cmd->sig);
 		if (err) {
 			/*
@@ -675,7 +663,6 @@ continue_fn(void *cookie)
 
 
 typedef struct {
-	int	ver_no;
 	int	max_names;
 	int	num_names;
 	char ** nlist;
@@ -683,18 +670,17 @@ typedef struct {
 
 
 static void
-init_good_objs(good_objs_t *gobj, int ver_no)
+init_good_objs(good_objs_t *gobj)
 {
 	gobj->num_names = 0;
 	gobj->max_names = 256;
-	gobj->ver_no = ver_no;
 
 	gobj->nlist = malloc(sizeof(char *) * gobj->max_names);
 	assert(gobj->nlist != NULL); 
 }
 
 static void
-clear_good_objs(good_objs_t *gobj, int ver_no)
+clear_good_objs(good_objs_t *gobj)
 {
 	int	i;
 
@@ -702,7 +688,6 @@ clear_good_objs(good_objs_t *gobj, int ver_no)
 		free(gobj->nlist[i]);
 
 	gobj->num_names = 0;
-	gobj->ver_no = ver_no;
 }
 
 /*
@@ -710,7 +695,7 @@ clear_good_objs(good_objs_t *gobj, int ver_no)
  */ 
 
 static void
-save_good_name(good_objs_t *gobj, obj_data_t *obj, int ver_no)
+save_good_name(good_objs_t *gobj, obj_data_t *obj)
 {
 	size_t          size;
 	int             err;
@@ -730,7 +715,6 @@ save_good_name(good_objs_t *gobj, obj_data_t *obj, int ver_no)
 		fprintf(stdout, "name Unknown \n");
 	} else {
 		gobj->nlist[gobj->num_names] = strdup((char *)name);
-		gobj->ver_no = ver_no;
 		assert(gobj->nlist[gobj->num_names] != NULL);
 		gobj->num_names++;
 	}
@@ -765,7 +749,7 @@ device_main(void *arg)
 
 	sstate = (search_state_t *) arg;
 
-	init_good_objs(&gobj, sstate->ver_no);
+	init_good_objs(&gobj);
 
 	log_message(LOGT_DISK, LOGL_DEBUG, "adiskd: device_main: 0x%x", arg);
 	
@@ -798,12 +782,16 @@ device_main(void *arg)
 			 * the cache eval code about the objects.
 			 */	
 			if (lookahead) {
+#warning "Check this"
+#if 0
 				if (gobj.ver_no != sstate->ver_no) {
 					clear_good_objs(&gobj, sstate->ver_no);
-				} else {
+				} else
+#endif
+				{
 					ceval_inject_names(gobj.nlist, 
-						gobj.num_names);
-					init_good_objs(&gobj, sstate->ver_no);
+							   gobj.num_names);
+					init_good_objs(&gobj);
 				}
 				lookahead = 0;
 			}
@@ -843,8 +831,7 @@ device_main(void *arg)
 				new_obj = odisk_null_obj();
 				new_obj->remain_compute = 0.0;
 				err = sstub_send_obj(sstate->comm_cookie,
-						     new_obj, sstate->ver_no,
-						     1);
+						     new_obj, 1);
 				if (err) {
 					/*
 					 * XXX overflow gracefully  and log
@@ -885,7 +872,6 @@ device_main(void *arg)
 				new_obj->session_variables_state = sstate->session_variables_state;
 
 				qinfo.session = sstate->cinfo;
-				qinfo.query_id = sstate->ver_no;
 				pass = ceval_filters2(new_obj, sstate->fdata,
 						      force_eval, &elapsed,
 						      sstate->exec_mode,
@@ -906,11 +892,8 @@ device_main(void *arg)
 					sstate->pend_compute +=
 					    new_obj->remain_compute;
 
-					err = sstub_send_obj(sstate->
-							   comm_cookie,
-							   new_obj,
-							   sstate->ver_no,
-							   complete);
+					err =sstub_send_obj(sstate->comm_cookie,
+							     new_obj, complete);
 					if (err) {
 						/*
 						 * XXX overflow gracefully 
@@ -939,7 +922,6 @@ device_main(void *arg)
 				new_obj->session_variables_state = sstate->session_variables_state;
 
 				qinfo.session = sstate->cinfo;
-				qinfo.query_id = sstate->ver_no;
 				pass = ceval_filters2(new_obj, sstate->fdata,
 						      1, &elapsed,
 						      sstate->exec_mode, &qinfo,
@@ -948,8 +930,7 @@ device_main(void *arg)
 					sstate->obj_dropped++;
 					sstate->obj_processed++;
 				} else {
-					save_good_name(&gobj, new_obj,
-					   sstate->ver_no);
+					save_good_name(&gobj, new_obj);
 				}
 				search_free_obj(sstate, new_obj);
 			} else {
@@ -1048,9 +1029,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
 
-	dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
-			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-			   &sstate->ver_no);
 	dctl_register_leaf(DEV_SEARCH_PATH, "work_ahead", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32, 
 			   &sstate->work_ahead);
@@ -1236,7 +1214,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
  * free the return argument.
  */
 device_char_t *
-search_get_char(void *app_cookie, int gen_num)
+search_get_char(void *app_cookie)
 {
 	device_char_t   *dev_char;
 	search_state_t *sstate;
@@ -1307,7 +1285,7 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
  */
 
 dev_stats_t *
-search_get_stats(void *app_cookie, int gen_num)
+search_get_stats(void *app_cookie)
 {
 	search_state_t *sstate;
 	dev_stats_t    *stats;
@@ -1507,7 +1485,7 @@ search_list_nodes(void *app_cookie, char *path)
 }
 
 int
-search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
+search_set_gid(void *app_cookie, groupid_t gid)
 {
 	int             err;
 	search_state_t *sstate;
@@ -1532,7 +1510,7 @@ search_set_gid(void *app_cookie, int gen_num, groupid_t gid)
 
 
 int
-search_clear_gids(void *app_cookie, int gen_num)
+search_clear_gids(void *app_cookie)
 {
 	int             err;
 	search_state_t *sstate;
@@ -1547,8 +1525,7 @@ search_clear_gids(void *app_cookie, int gen_num)
 }
 
 int
-search_set_blob(void *app_cookie, int gen_num, char *name,
-		int blob_len, void *blob)
+search_set_blob(void *app_cookie, char *name, int blob_len, void *blob)
 {
 	dev_cmd_data_t *cmd;
 	int             err;
@@ -1567,7 +1544,6 @@ search_set_blob(void *app_cookie, int gen_num, char *name,
 	memcpy(new_blob, blob, blob_len);
 
 	cmd->cmd = DEV_BLOB;
-	cmd->id = gen_num;
 
 	cmd->extra_data.bdata.fname = strdup(name);
 	assert(cmd->extra_data.bdata.fname != NULL);
@@ -1631,7 +1607,7 @@ void session_variables_unpack(gpointer key, gpointer value, gpointer user_value)
   r->len++;
 }
 
-device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
+device_session_vars_t *search_get_session_vars(void *app_cookie)
 {
   log_message(LOGT_DISK, LOGL_TRACE, "search_get_session_vars");
 
@@ -1674,8 +1650,7 @@ device_session_vars_t *search_get_session_vars(void *app_cookie, int gen_num)
   return result;
 }
 
-int search_set_session_vars(void *app_cookie, int gen_num,
-			    device_session_vars_t *vars)
+int search_set_session_vars(void *app_cookie, device_session_vars_t *vars)
 {
   log_message(LOGT_DISK, LOGL_TRACE, "search_set_session_vars");
 

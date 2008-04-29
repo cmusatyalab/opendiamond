@@ -612,9 +612,6 @@ bg_new_search(filter_opts_t *fops)
 
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
 
-	dctl_register_leaf(DEV_SEARCH_PATH, "version_num",
-			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-			   &sstate->ver_no);
 	dctl_register_leaf(DEV_SEARCH_PATH, "work_ahead", DCTL_DT_UINT32,
 			   dctl_read_uint32, dctl_write_uint32, 
 			   &sstate->work_ahead);
@@ -732,7 +729,6 @@ bg_new_search(filter_opts_t *fops)
 	err = ceval_init(&sstate->cstate, sstate->ostate, (void *) sstate,
 			 bg_drop, bg_process);
 
-	sstate->ver_no = 1;
 	err = fexec_load_spec(&sstate->fdata, &fops->spec_sig);
 	if (err) {
 		return;
@@ -783,7 +779,6 @@ bg_new_search(filter_opts_t *fops)
 	}
 
 	sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
-	sstate->ver_no = 1;
 	sstate->flags |= DEV_FLAG_RUNNING;
 
 

@@ -71,48 +71,41 @@ void sstub_get_conn_info(void *cookie, session_info_t *cinfo) {
 
 
 /*
- * Send an object. 
+ * Send an object.
  *
  * return current queue depth??
  */
 int
-sstub_send_obj(void *cookie, obj_data_t * obj, int ver_no, int complete)
+sstub_send_obj(void *cookie, obj_data_t * obj, int complete)
 {
-	obj_info_t	*oi;
 	cstate_t	*cstate;
-	int             err;
+	int		err;
 
 	cstate = (cstate_t *) cookie;
-
-	oi = malloc(sizeof(*oi));
-	if (!oi) return ENOMEM;
-
-	oi->obj = obj;
-	oi->ver_num = ver_no;
 
 	/*
 	 * Set a flag to indicate there is object
 	 * data associated with our connection.
 	 */
 	/*
-	 * XXX log 
+	 * XXX log
 	 */
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_OBJ_DATA;
 
 	if (complete) {
-		err = ring_enq(cstate->complete_obj_ring, oi);
+		err = ring_enq(cstate->complete_obj_ring, obj);
 	} else {
-		err = ring_enq(cstate->partial_obj_ring, oi);
+		err = ring_enq(cstate->partial_obj_ring, obj);
 	}
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	if (err) {
 		/*
-		 * XXX log 
+		 * XXX log
 		 */
 		/*
-		 * XXX how do we handle this 
+		 * XXX how do we handle this
 		 */
 		return (err);
 	}
@@ -123,9 +116,8 @@ sstub_send_obj(void *cookie, obj_data_t * obj, int ver_no, int complete)
 int
 sstub_get_partial(void *cookie, obj_data_t **obj)
 {
-	obj_info_t	*oi;
 	cstate_t	*cstate;
-	int             err;
+	int		err;
 
 	cstate = (cstate_t *) cookie;
 
@@ -134,27 +126,21 @@ sstub_get_partial(void *cookie, obj_data_t **obj)
 	 * data associated with our connection.
 	 */
 	/*
-	 * XXX log 
+	 * XXX log
 	 */
 	pthread_mutex_lock(&cstate->cmutex);
-	oi = ring_deq(cstate->partial_obj_ring);
+	*obj = ring_deq(cstate->partial_obj_ring);
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	if (!oi)
-		return 1;
-
-	*obj = oi->obj;
-	free(oi);
-	return 0;
+	return (*obj == NULL);
 }
 
 int
-sstub_flush_objs(void *cookie, int ver_no)
+sstub_flush_objs(void *cookie)
 {
-	obj_info_t	*oi;
 	cstate_t	*cstate;
-	int             err;
 	obj_data_t	*obj;
+	int		err;
 	listener_state_t *lstate;
 
 	cstate = (cstate_t *) cookie;
@@ -165,32 +151,29 @@ sstub_flush_objs(void *cookie, int ver_no)
 	 * data associated with our connection.
 	 */
 	/*
-	 * XXX log 
+	 * XXX log
 	 */
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
-		oi = ring_deq(cstate->complete_obj_ring);
+		obj = ring_deq(cstate->complete_obj_ring);
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* we got through them all */
-		if (!oi) break;
+		if (!obj) break;
 
-		(*lstate->cb.release_obj_cb) (cstate->app_cookie, oi->obj);
-		free(oi);
+		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
 	}
 
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
-		oi = ring_deq(cstate->partial_obj_ring);
+		obj = ring_deq(cstate->partial_obj_ring);
 		pthread_mutex_unlock(&cstate->cmutex);
 
 		/* we got through them all */
-		if (!oi) return 0;
+		if (!obj) return 0;
 
-		(*lstate->cb.release_obj_cb) (cstate->app_cookie, oi->obj);
-		free(oi);
+		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
 	}
-
 	return (0);
 }
 

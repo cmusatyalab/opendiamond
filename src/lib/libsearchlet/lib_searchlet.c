@@ -87,7 +87,7 @@ ls_init_search()
 
 	log_init(LOG_PREFIX, ROOT_PATH);
 
-	sc->cur_search_id = 1;	/* XXX should we randomize ??? */
+	sc->Xcur_search_id = 1;	/* XXX should we randomize ??? */
 	sc->dev_list = NULL;
 	sc->cur_status = SS_EMPTY;
 	sc->bg_status = 0;
@@ -107,10 +107,9 @@ ls_init_search()
 
 	dctl_start(sc);
 
-	bg_init(sc, 1);
+	bg_init(sc);
 
-	log_message(LOGT_BG, LOGL_TRACE, "ls_init_search: id %d", 
-				sc->cur_search_id);
+	log_message(LOGT_BG, LOGL_TRACE, "ls_init_search");
 	
 	return ((ls_search_handle_t) sc);
 }
@@ -138,8 +137,7 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 
 	sc = (search_context_t *) handle;
 
-	log_message(LOGT_BG, LOGL_TRACE, "ls_terminate_search: id %d", 
-				sc->cur_search_id);
+	log_message(LOGT_BG, LOGL_TRACE, "ls_terminate_search");
 
 	/*
 	 * if there is a current search, we need to start shutting it down
@@ -152,8 +150,7 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 			}
 			sc->host_stats.hs_objs_uqueued = as->as_objs_queued;
 			sc->host_stats.hs_objs_upresented = as->as_objs_presented;
-			err = device_stop(cur_dev->dev_handle,
-					  		sc->cur_search_id, &sc->host_stats);
+			err = device_stop(cur_dev->dev_handle, &sc->host_stats);
 			if (err != 0) {
 				/*
 				 * if we get an error we note it for * the
@@ -169,7 +166,7 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 	/*
 	 * change the search id 
 	 */
-	sc->cur_search_id++;
+	sc->Xcur_search_id++;
 
 	/*
 	 * change to indicated we are shutting down 
@@ -189,7 +186,7 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		err = device_terminate(cur_dev->dev_handle, sc->cur_search_id);
+		err = device_terminate(cur_dev->dev_handle);
 		if (err != 0) {
 			/*
 			 * if we get an error we note it for
@@ -239,8 +236,8 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 		strcat(buf, gbuf);
 	}
 
-	log_message(LOGT_BG, LOGL_TRACE, "ls_set_searchlist: id %d groups(%d) %s", 
-				sc->cur_search_id, num_groups, buf);
+	log_message(LOGT_BG, LOGL_TRACE, "ls_set_searchlist: groups(%d) %s",
+		    num_groups, buf);
 	/*
 	 * we have two steps.  One is to clear the current
 	 * searchlist on all the devices that
@@ -260,7 +257,7 @@ ls_set_searchlist(ls_search_handle_t handle, int num_groups,
 			continue;
 		}
 		cur_dev->num_groups = 0;
-		err = device_clear_gids(cur_dev->dev_handle, sc->cur_search_id);
+		err = device_clear_gids(cur_dev->dev_handle);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name, "failed clear gid");
 		}
@@ -470,7 +467,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 	}
 
 	/* change the search id */
-	sc->cur_search_id++;
+	sc->Xcur_search_id++;
 
 	/* copy object file to the object cache directory */
 	if (cache_spec(filter_spec_name, &spec_sig)) {
@@ -488,11 +485,9 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		    filter_file_name); 
 		return(EINVAL);
 	}
-	
-	log_message(LOGT_BG, LOGL_TRACE, 
-				"ls_set_searchlet: id %d filter %s spec %s", 
-				sc->cur_search_id, 
-				filter_file_name, filter_spec_name);
+
+	log_message(LOGT_BG, LOGL_TRACE, "ls_set_searchlet: filter %s spec %s",
+		    filter_file_name, filter_spec_name);
 
 	/*
 	 * we need to verify the searchlet somehow 
@@ -501,13 +496,12 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		err = device_set_spec(cur_dev->dev_handle,
-		    sc->cur_search_id, filter_spec_name, &spec_sig);
+		err = device_set_spec(cur_dev->dev_handle, filter_spec_name,
+				      &spec_sig);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name, "failed setting spec");
 		}
-		err = device_set_lib(cur_dev->dev_handle,
-		    sc->cur_search_id, &obj_sig);
+		err = device_set_lib(cur_dev->dev_handle, &obj_sig);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name,
 			    "failed setting searchlet");
@@ -516,7 +510,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		}
 	}
 
-	err = bg_set_spec(sc, sc->cur_search_id, &spec_sig);
+	err = bg_set_spec(sc, &spec_sig);
 	if (err) {
 		/*
 		 * XXX log 
@@ -524,7 +518,7 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		assert(0);
 	}
 
-	err = bg_set_lib(sc, sc->cur_search_id, &obj_sig);
+	err = bg_set_lib(sc, &obj_sig);
 	if (err) {
 		/*
 		 * XXX log 
@@ -575,8 +569,8 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 		return(EINVAL);
 	}
 
-	log_message(LOGT_BG, LOGL_TRACE, "ls_add_filter_file: id %d filter %s", 
-				sc->cur_search_id, filter_file_name);
+	log_message(LOGT_BG, LOGL_TRACE, "ls_add_filter_file: filter %s",
+		    filter_file_name);
 	/*
 	 * we need to verify the searchlet somehow 
 	 */
@@ -584,8 +578,7 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		err = device_set_lib(cur_dev->dev_handle,
-		    sc->cur_search_id, &obj_sig);
+		err = device_set_lib(cur_dev->dev_handle, &obj_sig);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name,
 			    "failed adding filter file");
@@ -595,7 +588,7 @@ ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
 	}
 
 	/* XXX */	
-	err = bg_set_lib(sc, sc->cur_search_id, &obj_sig);
+	err = bg_set_lib(sc, &obj_sig);
 	if (err) {
 		/*
 		 * XXX log 
@@ -674,9 +667,9 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 		return (EBUSY);
 	}
 
-	log_message(LOGT_BG, LOGL_TRACE, 
-				"ls_set_blob: id %d filter %s data %x len %d", 
-				sc->cur_search_id, 	filter_name, blob_data, blob_len);
+	log_message(LOGT_BG, LOGL_TRACE,
+		    "ls_set_blob: filter %s data %x len %d",
+		    filter_name, blob_data, blob_len);
 	/*
 	 * we need to verify the searchlet somehow 
 	 */
@@ -684,16 +677,14 @@ ls_set_blob(ls_search_handle_t handle, char *filter_name,
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		err = device_set_blob(cur_dev->dev_handle,
-				      sc->cur_search_id, filter_name,
+		err = device_set_blob(cur_dev->dev_handle, filter_name,
 				      blob_len, blob_data);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name, "failed to set blob");
 		}
 	}
 
-	err = bg_set_blob(sc, sc->cur_search_id, filter_name, blob_len,
-			  blob_data);
+	err = bg_set_blob(sc, filter_name, blob_len, blob_data);
 	if (err) {
 		/*
 		 * XXX log 
@@ -782,7 +773,7 @@ ls_start_search(ls_search_handle_t handle)
 
 	memset(&sc->host_stats, 0, sizeof(host_stats_t));
 	
-	err = bg_start_search(sc, sc->cur_search_id);
+	err = bg_start_search(sc);
 	if (err) {
 		/*
 		 * XXX log 
@@ -800,7 +791,7 @@ ls_start_search(ls_search_handle_t handle)
 		 */
 		cur_dev->flags &= ~DEV_FLAG_COMPLETE;
 		cur_dev->start_time = cur_time;
-		err = device_start(cur_dev->dev_handle, sc->cur_search_id);
+		err = device_start(cur_dev->dev_handle);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name,
 			    "failed starting search");
@@ -813,9 +804,8 @@ ls_start_search(ls_search_handle_t handle)
 	 * XXX 
 	 */
 	started++;
-	
-	log_message(LOGT_BG, LOGL_TRACE, "ls_start_search: id %d", 
-				sc->cur_search_id);
+
+	log_message(LOGT_BG, LOGL_TRACE, "ls_start_search");
 
 	if (started > 0) {
 		sc->cur_status = SS_ACTIVE;
@@ -883,10 +873,9 @@ ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as)
 		return (EINVAL);
 	}
 
-	log_message(LOGT_BG, LOGL_TRACE, "ls_abort_search: id %d", 
-				sc->cur_search_id);
+	log_message(LOGT_BG, LOGL_TRACE, "ls_abort_search");
 		
-	err = bg_stop_search(sc, sc->cur_search_id);
+	err = bg_stop_search(sc);
 	if (err) {
 		/*
 		 * XXX log 
@@ -900,8 +889,7 @@ ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as)
 		}
 		sc->host_stats.hs_objs_uqueued = as->as_objs_queued;
 		sc->host_stats.hs_objs_upresented = as->as_objs_presented;
-		err = device_stop(cur_dev->dev_handle, sc->cur_search_id,
-							&sc->host_stats);
+		err = device_stop(cur_dev->dev_handle, &sc->host_stats);
 		if (err != 0) {
 			/*
 			 * if we get an error we note it for the return value 
@@ -917,7 +905,7 @@ ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as)
 	/*
 	 * change the search id 
 	 */
-	sc->cur_search_id++;
+	sc->Xcur_search_id++;
 
 	/*
 	 * change the current state to idle 
@@ -961,8 +949,6 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 {
 	search_context_t *sc;
 	obj_data_t     *obj_data;
-	obj_info_t     *obj_info;
-	void           *data;
 	struct timespec timeout;
 	char	       *sigstr;
 
@@ -971,15 +957,15 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 	 */
 	sc = (search_context_t *) handle;
 
-	log_message(LOGT_BG, LOGL_TRACE, "ls_next_object: id %d", 
-				sc->cur_search_id);	
+	log_message(LOGT_BG, LOGL_TRACE, "ls_next_object");
+
 	/*
 	 * Try to get an item from the queue, if data is not available,
 	 * then we either spin or return EWOULDBLOCK based on the
 	 * flags.
 	 */
       again:
-	while ((data = ring_deq(sc->proc_ring)) == NULL) {
+	while ((obj_data = ring_deq(sc->proc_ring)) == NULL) {
 
 		/*
 		 * Make sure we are still processing data.
@@ -987,8 +973,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 
 		if (sc->cur_status == SS_DONE) {
 			log_message(LOGT_BG, LOGL_TRACE, 
-						"ls_next_object: id %d --> no more objects", 
-						sc->cur_search_id);	
+				    "ls_next_object: --> no more objects");
 			return (ENOENT);
 		}
 
@@ -998,8 +983,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 		 */
 		if ((flags & LSEARCH_NO_BLOCK) == LSEARCH_NO_BLOCK) {
 			log_message(LOGT_BG, LOGL_TRACE, 
-						"ls_next_object: id %d --> would block",
-						sc->cur_search_id);	
+				    "ls_next_object: --> would block");
 			return (EWOULDBLOCK);
 		}
 
@@ -1011,15 +995,13 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 		timeout.tv_nsec = 10000000;	/* 10 ms */
 		nanosleep(&timeout, NULL);
 	}
-	obj_info = (obj_info_t *) data;
-	obj_data = obj_info->obj;
+#warning "Check this"
+#if 0
 	if (sc->cur_search_id != obj_info->ver_num) {
 		ls_release_object(sc, obj_data);
-		free(obj_info);
 		goto again;
 	}
-
-	free(obj_info);
+#endif
 	sc->host_stats.hs_objs_read++;
 	/*
 	 * XXX how should we get this state really ?? 
@@ -1030,8 +1012,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 	*obj_handle = (ls_obj_handle_t *) obj_data;
 	sigstr = sig_string(&obj_data->id_sig);
 	if(sigstr != NULL) {
-	  log_message(LOGT_BG, LOGL_TRACE, "ls_next_object: id %d --> %s", 
-		      sc->cur_search_id, sigstr);
+	  log_message(LOGT_BG, LOGL_TRACE, "ls_next_object: --> %s", sigstr);
 	  free(sigstr);
 	}
 
@@ -1289,8 +1270,8 @@ ls_set_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_hand
  *		There was no active search or the handle is invalid.
  */
 
-int ls_set_user_state(ls_search_handle_t handle, user_state_t state) {
-	
+int ls_set_user_state(ls_search_handle_t handle, user_state_t state)
+{
 	search_context_t *sc;
 	device_handle_t *cur_dev;
 	int             err = 0;
@@ -1298,10 +1279,9 @@ int ls_set_user_state(ls_search_handle_t handle, user_state_t state) {
 
 	sc = (search_context_t *) handle;
 
-	log_message(LOGT_BG, LOGL_TRACE, 
-				"ls_set_user_state: id %d state %s", 
-				sc->cur_search_id, state==USER_BUSY?"BUSY":"WAITING");
-			
+	log_message(LOGT_BG, LOGL_TRACE, "ls_set_user_state: state %s",
+		    state == USER_BUSY ? "BUSY" : "WAITING");
+
 	/*
 	 * set execution mode to current for waiting users,
 	 * and hybrid for busy users.
@@ -1316,16 +1296,14 @@ int ls_set_user_state(ls_search_handle_t handle, user_state_t state) {
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		err = device_set_user_state(cur_dev->dev_handle,
-				      sc->cur_search_id, state);
+		err = device_set_user_state(cur_dev->dev_handle, state);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name,
 				      "failed to set user state");
 			return(err);
 		}
 		
-		err = device_set_exec_mode(cur_dev->dev_handle, 
-								sc->cur_search_id, new_mode);
+		err = device_set_exec_mode(cur_dev->dev_handle, new_mode);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name,
 				      "failed to set exec mode");

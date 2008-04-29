@@ -117,7 +117,7 @@ device_statistics(void *handle, dev_stats_t * dev_stats, int *stat_len)
  */
 
 int
-device_stop(void *handle, int id, host_stats_t *hs)
+device_stop(void *handle, host_stats_t *hs)
 {
 	stop_x		sx;
 	sdevice_state_t *dev;
@@ -138,14 +138,14 @@ device_stop(void *handle, int id, host_stats_t *hs)
 
 
 int
-device_terminate(void *handle, int id)
+device_terminate(void *handle)
 {
 	sdevice_state_t *dev;
 	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	retval = rpc_client_content_device_clear_gids(dev->con_data.rpc_client);
+	retval = rpc_client_content_device_terminate(dev->con_data.rpc_client);
 
 	return rpc_postproc(__FUNCTION__, retval);
 }
@@ -155,15 +155,12 @@ device_terminate(void *handle, int id)
  * This start a search that has been setup.  
  */
 int
-device_start(void *handle, int id)
+device_start(void *handle)
 {
 	sdevice_state_t *dev;
 	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
-
-	/* save the new start id */
-	dev->ver_no = id;
 
 	retval = rpc_client_content_device_start(dev->con_data.rpc_client);
 
@@ -171,7 +168,7 @@ device_start(void *handle, int id)
 }
 
 int
-device_clear_gids(void *handle, int id)
+device_clear_gids(void *handle)
 {
 	sdevice_state_t *dev;
 	mrpc_status_t	retval;
@@ -179,43 +176,41 @@ device_clear_gids(void *handle, int id)
 	dev = (sdevice_state_t *) handle;
 
 	retval = rpc_client_content_device_clear_gids(dev->con_data.rpc_client);
-
 	return rpc_postproc(__FUNCTION__, retval);
 }
 
 
-obj_info_t *
+obj_data_t *
 device_next_obj(void *handle)
 {
 	sdevice_state_t *dev;
-	obj_info_t     *oinfo;
+	obj_data_t     *obj;
 
 	dev = (sdevice_state_t *) handle;
-	oinfo = ring_deq(dev->obj_ring);
+	obj = ring_deq(dev->obj_ring);
 
-	if (oinfo != NULL) {
+	if (obj != NULL) {
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}
 	else if (dev->con_data.cc_counter++ > 100) {
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 		dev->con_data.cc_counter = 0;
 	}
-	return (oinfo);
+	return obj;
 }
 
 
 int
-device_new_gid(void *handle, int id, groupid_t gid)
+device_new_gid(void *handle, groupid_t gid)
 {
 	sdevice_state_t *dev;
-	groupid_x	gix;
+	groupid_x	x;
 	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
-	gix = gid;
+	x = gid;
 
-	retval = rpc_client_content_device_new_gid(dev->con_data.rpc_client,
-						   &gix);
+	retval = rpc_client_content_device_new_gid(dev->con_data.rpc_client,&x);
 	return rpc_postproc(__FUNCTION__, retval);
 }
 
@@ -226,7 +221,7 @@ device_new_gid(void *handle, int id, groupid_t gid)
  * the buffers.
  */
 int
-device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
+device_set_spec(void *handle, char *spec, sig_val_t *sig)
 {
 	char		*data = NULL;
 	int		spec_len;
@@ -284,8 +279,8 @@ device_set_spec(void *handle, int id, char *spec, sig_val_t *sig)
 	sf.data.data_len = spec_len;
 	sf.data.data_val = data;
 
-	retval = rpc_client_content_device_set_spec(dev->con_data.rpc_client,
-						    &sf);
+	retval = rpc_client_content_device_set_spec
+					(dev->con_data.rpc_client, &sf);
 	err = rpc_postproc(__FUNCTION__, retval);
 err_out:
 	if (data) free(data);
@@ -293,12 +288,12 @@ err_out:
 }
 
 int
-device_set_lib(void *handle, int id, sig_val_t *obj_sig)
+device_set_lib(void *handle, sig_val_t *obj_sig)
 {
 	char		*data = NULL;
 	sdevice_state_t *dev;
 	sig_val_x	sx;
-	send_obj_x	ox;
+	obj_x		ox;
 	struct stat     stats;
 	ssize_t		rsize;
 	int		buf_len;
@@ -312,11 +307,11 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 
 	dev = (sdevice_state_t *) handle;
 
-	sx.sig_val_x_len = sizeof(sig_val_t);
 	sx.sig_val_x_val = (char *)obj_sig;
+	sx.sig_val_x_len = sizeof(sig_val_t);
 
-	retval = rpc_client_content_device_set_obj(dev->con_data.rpc_client,
-						   &sx);
+	retval = rpc_client_content_device_set_obj
+					(dev->con_data.rpc_client, &sx);
 	/* cache misses are not really errors, we don't need them logged */
 	cachemiss = (retval == DIAMOND_FCACHEMISS);
 	if (cachemiss) retval = DIAMOND_SUCCESS;
@@ -336,13 +331,11 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 	err = stat(objname, &stats);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_set_lib: failed stat spec file <%s>", objname);
+			    "device_set_lib: failed stat spec file <%s>",
+			    objname);
 		goto err_out;
 	}
 	buf_len = stats.st_size;
-
-	ox.obj_sig.sig_val_x_val = (char *)obj_sig;
-	ox.obj_sig.sig_val_x_len = sizeof(sig_val_t);
 
 	err = -1;
 	data = (char *)malloc(buf_len);
@@ -371,11 +364,14 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 
 	fclose(cur_file);
 
+	ox.obj_sig.sig_val_x_val = (char *)obj_sig;
+	ox.obj_sig.sig_val_x_len = sizeof(sig_val_t);
+
 	ox.obj_data.obj_data_len = buf_len;
 	ox.obj_data.obj_data_val = data;
 
-	retval = rpc_client_content_device_send_obj(dev->con_data.rpc_client,
-						    &ox);
+	retval = rpc_client_content_device_send_obj
+					(dev->con_data.rpc_client, &ox);
 	err = rpc_postproc(__FUNCTION__, retval);
 err_out:
 	if (data) free(data);
@@ -414,8 +410,9 @@ device_write_leaf(void *handle, char *path, int len, char *data)
 	dx.dctl_data.dctl_data_len = plen+len;
 	dx.dctl_data.dctl_data_val = buf;
 
-	retval = rpc_client_content_device_write_leaf(dev->con_data.rpc_client,
-						      &dx, &drx);
+	retval = rpc_client_content_device_write_leaf
+				(dev->con_data.rpc_client, &dx, &drx);
+
 	err = rpc_postproc(__FUNCTION__, retval);
 	if (err) goto err_out;
 
@@ -447,8 +444,8 @@ device_read_leaf(void *handle, char *path,
 	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
-	retval = rpc_client_content_device_read_leaf(dev->con_data.rpc_client,
-						     &dx, &drx);
+	retval = rpc_client_content_device_read_leaf
+				(dev->con_data.rpc_client, &dx, &drx);
 	err = rpc_postproc(__FUNCTION__, retval);
 	if (err) goto err_out;
 
@@ -486,8 +483,8 @@ device_list_nodes(void *handle, char *path, int *dents, dctl_entry_t *dval)
 	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
-	retval = rpc_client_content_device_list_nodes(dev->con_data.rpc_client,
-						      &dx, &drx);
+	retval = rpc_client_content_device_list_nodes
+				(dev->con_data.rpc_client, &dx, &drx);
 	err = rpc_postproc(__FUNCTION__, retval);
 	if (err) goto err_out;
 
@@ -523,8 +520,8 @@ device_list_leafs(void *handle, char *path, int *dents, dctl_entry_t *dval)
 	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
-	retval = rpc_client_content_device_list_leafs(dev->con_data.rpc_client,
-						      &dx, &drx);
+	retval = rpc_client_content_device_list_leafs
+				(dev->con_data.rpc_client, &dx, &drx);
 	err = rpc_postproc(__FUNCTION__, retval);
 	if (err) goto err_out;
 
@@ -542,20 +539,20 @@ err_out:
 }
 
 int
-device_set_blob(void *handle, int id, char *name, int blob_len, void *blob)
+device_set_blob(void *handle, char *name, int blob_len, void *blob)
 {
 	sdevice_state_t *dev;
-	blob_x		arg;
+	blob_x		bx;
 	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	arg.filter_name = name;
-	arg.blob_data.blob_data_len = blob_len;
-	arg.blob_data.blob_data_val = blob;
+	bx.filter_name = name;
+	bx.blob_data.blob_data_len = blob_len;
+	bx.blob_data.blob_data_val = blob;
 
-	retval = rpc_client_content_device_set_blob(dev->con_data.rpc_client,
-						    &arg);
+	retval = rpc_client_content_device_set_blob
+					(dev->con_data.rpc_client, &bx);
 	return rpc_postproc(__FUNCTION__, retval);
 }
 
@@ -574,7 +571,7 @@ device_set_limit(void *handle, int limit)
 }
 
 int
-device_set_exec_mode(void *handle, int id, uint32_t mode)
+device_set_exec_mode(void *handle, uint32_t mode)
 {
 	sdevice_state_t *dev;
 	mrpc_status_t	retval;
@@ -589,7 +586,7 @@ device_set_exec_mode(void *handle, int id, uint32_t mode)
 
 
 int
-device_set_user_state(void *handle, int id, uint32_t state)
+device_set_user_state(void *handle, uint32_t state)
 {
 	sdevice_state_t	*dev;
 	mrpc_status_t	retval;
@@ -751,7 +748,7 @@ setup_stats(sdevice_state_t * dev, const char *host)
  * called by the searchlet library when we startup.
  */
 void *
-device_init(int id, const char *host, void *hcookie, hstub_cb_args_t *cb_list)
+device_init(const char *host, void *hcookie, hstub_cb_args_t *cb_list)
 {
 	sdevice_state_t *new_dev;
 	int		err;
@@ -797,11 +794,10 @@ device_init(int id, const char *host, void *hcookie, hstub_cb_args_t *cb_list)
 	 * from the device.
 	 */
 
-	err = pthread_create(&new_dev->thread_id, NULL, hstub_main,
-			     (void *) new_dev);
+	err = pthread_create(&new_dev->thread_id, NULL, hstub_main, new_dev);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
-		    "device_init: failed to create thread");
+			    "device_init: failed to create thread");
 		free(new_dev);
 		return (NULL);
 	}

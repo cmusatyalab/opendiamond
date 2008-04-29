@@ -18,8 +18,8 @@
 
 typedef struct {
 	void (*log_data_cb)	(void *hcookie, char *data, int len, int dev);
-	void (*search_done_cb)	(void *hcookie, int ver_num);
-	void (*conn_down_cb)	(void *hcookie, int ver_num);
+	void (*search_done_cb)	(void *hcookie);
+	void (*conn_down_cb)	(void *hcookie);
 } hstub_cb_args_t;
 
 /*
@@ -27,32 +27,31 @@ typedef struct {
  * of the storage devices.
  */
 
-void *device_init(int id, const char *host, void *cookie, hstub_cb_args_t *cbs);
+void *device_init(const char *host, void *cookie, hstub_cb_args_t *cbs);
 
-int device_stop(void *dev, int id, host_stats_t *hstats);
-int device_terminate(void *dev, int id);
-int device_start(void *dev, int id);
-int device_set_lib(void *dev, int id, sig_val_t *sig);
-int device_set_spec(void *dev, int id, char *spec, sig_val_t *spec_sig);
+int device_stop(void *dev, host_stats_t *hstats);
+int device_terminate(void *dev);
+int device_start(void *dev);
+int device_set_lib(void *dev, sig_val_t *sig);
+int device_set_spec(void *dev, char *spec, sig_val_t *spec_sig);
 int device_characteristics(void *handle, device_char_t *dev_chars);
-int device_statistics(void *dev, dev_stats_t *dev_stats,
-		      int *stat_len);
+int device_statistics(void *dev, dev_stats_t *dev_stats, int *stat_len);
 int device_write_leaf(void *dev, char *path, int len, char *data);
 int device_read_leaf(void *dev, char *path,
 		     dctl_data_type_t *dtype, int *dlen, void *dval);
-int device_list_nodes(void *dev, char *path, int *dents, dctl_entry_t *dval);
-int device_list_leafs(void *dev, char *path, int *dents, dctl_entry_t *dval);
-int device_new_gid(void *handle, int id, groupid_t gid);
-int device_clear_gids(void *handle, int id);
-int device_set_blob(void *handle, int id, char *name, int blob_len, void *blob);
+int device_list_nodes(void *dev, char *path, int *dlen, dctl_entry_t *dval);
+int device_list_leafs(void *dev, char *path, int *dlen, dctl_entry_t *dval);
+int device_new_gid(void *handle, groupid_t gid);
+int device_clear_gids(void *handle);
+int device_set_blob(void *handle, char *name, int blob_len, void *blob);
 void device_stop_obj(void *handle);
 void device_enable_obj(void *handle);
 int device_set_limit(void *handle, int limit);
-int device_set_exec_mode(void *handle, int id, uint32_t mode);
-int device_set_user_state(void *handle, int id, uint32_t state);
+int device_set_exec_mode(void *handle, uint32_t mode);
+int device_set_user_state(void *handle, uint32_t state);
 int device_get_session_variables(void *handle, device_session_vars_t **vars);
 int device_set_session_variables(void *handle, device_session_vars_t *vars);
-obj_info_t * device_next_obj(void *handle);
+obj_data_t * device_next_obj(void *handle);
 
 #endif	/* _LIB_HSTUB_H_ */
 

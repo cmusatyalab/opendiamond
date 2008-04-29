@@ -94,11 +94,6 @@ typedef struct obj_data {
 	session_variables_state_t *session_variables_state;
 } obj_data_t;
 
-typedef struct {
-	obj_data_t *        obj;
-	int                 ver_num;
-} obj_info_t;
-
 
 typedef struct {
 	uint64_t 	obj_id;

@@ -52,7 +52,7 @@ device_start(void *conn_data, struct mrpc_message *msg)
 
 	fprintf(stderr, "have_start pend %d\n", cstate->pend_obj);
 	if (cstate->pend_obj == 0) {
-		(*cstate->lstate->cb.start_cb) (cstate->app_cookie, 0);
+		(*cstate->lstate->cb.start_cb) (cstate->app_cookie);
 	} else {
 		cstate->have_start = 1;
 	}
@@ -72,7 +72,7 @@ device_stop(void *conn_data, struct mrpc_message *msg, stop_x *in)
 	hstats.hs_objs_uqueued = in->app_objs_queued;
 	hstats.hs_objs_upresented = in->app_objs_presented;
 
-	(*cstate->lstate->cb.stop_cb) (cstate->app_cookie, 0, &hstats);
+	(*cstate->lstate->cb.stop_cb) (cstate->app_cookie, &hstats);
 	return MINIRPC_OK;
 }
 
@@ -81,7 +81,7 @@ static mrpc_status_t
 device_terminate(void *conn_data, struct mrpc_message *msg)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
-	(*cstate->lstate->cb.terminate_cb) (cstate->app_cookie, 0);
+	(*cstate->lstate->cb.terminate_cb) (cstate->app_cookie);
 	return MINIRPC_OK;
 }
 
@@ -90,7 +90,7 @@ static mrpc_status_t
 device_clear_gids(void *conn_data, struct mrpc_message *msg)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
-	(*cstate->lstate->cb.clear_gids_cb) (cstate->app_cookie, 0);
+	(*cstate->lstate->cb.clear_gids_cb) (cstate->app_cookie);
 	return MINIRPC_OK;
 }
 
@@ -100,7 +100,7 @@ device_new_gid(void *conn_data, struct mrpc_message *msg, groupid_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	groupid_t gid = *in;
-	(*cstate->lstate->cb.sgid_cb) (cstate->app_cookie, 0, gid);
+	(*cstate->lstate->cb.sgid_cb) (cstate->app_cookie, gid);
 	return MINIRPC_OK;
 }
 
@@ -150,7 +150,7 @@ device_set_spec(void *conn_data, struct mrpc_message *msg, spec_file_x *in)
 	file_release_lock(specpath);
 
 done:
-	(*cstate->lstate->cb.set_fspec_cb) (cstate->app_cookie, 0, sent_sig);
+	(*cstate->lstate->cb.set_fspec_cb) (cstate->app_cookie, sent_sig);
 	return MINIRPC_OK;
 }
 
@@ -167,8 +167,7 @@ device_set_blob(void *conn_data, struct mrpc_message *msg, blob_x *in)
 	blen = in->blob_data.blob_data_len;
 	blob = in->blob_data.blob_data_val;
 
-	(*cstate->lstate->cb.set_blob_cb) (cstate->app_cookie, 0, name, blen,
-					   blob);
+	(*cstate->lstate->cb.set_blob_cb)(cstate->app_cookie, name, blen, blob);
 	return MINIRPC_OK;
 }
 
@@ -182,7 +181,7 @@ request_stats(void *conn_data, struct mrpc_message *msg, dev_stats_x *out)
 	filter_stats_x *out_fstats;
 	int i;
 
-	stats = (*cstate->lstate->cb.get_stats_cb) (cstate->app_cookie, 0);
+	stats = (*cstate->lstate->cb.get_stats_cb) (cstate->app_cookie);
 	if (stats == NULL)
 		return DIAMOND_NOSTATSAVAIL;
 
@@ -231,7 +230,7 @@ request_chars(void *conn_data, struct mrpc_message *msg, dev_char_x *out)
 	cstate_t *cstate = (cstate_t *)conn_data;
 	device_char_t *chars;
 
-	chars = (*cstate->lstate->cb.get_char_cb) (cstate->app_cookie, 0);
+	chars = (*cstate->lstate->cb.get_char_cb) (cstate->app_cookie);
 	if (chars == NULL)
 		return DIAMOND_FAILURE; // XXX: be more specific?
 
@@ -350,6 +349,9 @@ device_set_obj(void *conn_data, struct mrpc_message *msg, sig_val_x *in)
 	sig_val_t *sent_sig;
 	int err;
 
+	if (in->sig_val_x_len != sizeof(sig_val_t))
+		return DIAMOND_FAILURE;
+
 	sent_sig = (sig_val_t *)(in->sig_val_x_val);
 
 	/*
@@ -368,8 +370,7 @@ device_set_obj(void *conn_data, struct mrpc_message *msg, sig_val_x *in)
 		return DIAMOND_FCACHEMISS;
 	}
 
-	err = (*cstate->lstate->cb.set_fobj_cb) (cstate->app_cookie, 0,
-						 sent_sig);
+	err = (*cstate->lstate->cb.set_fobj_cb) (cstate->app_cookie, sent_sig);
 	if (err)
 		return DIAMOND_FAILURE; // XXX: be more specific
 
@@ -378,7 +379,7 @@ device_set_obj(void *conn_data, struct mrpc_message *msg, sig_val_x *in)
 
 
 static mrpc_status_t
-device_send_obj(void *conn_data, struct mrpc_message *msg, send_obj_x *in)
+device_send_obj(void *conn_data, struct mrpc_message *msg, obj_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	int fd;
@@ -426,15 +427,14 @@ device_send_obj(void *conn_data, struct mrpc_message *msg, send_obj_x *in)
 	close(fd);
 	file_release_lock(objname);
 
-	err = (*cstate->lstate->cb.set_fobj_cb) (cstate->app_cookie, 0,
-						 sent_sig);
+	err = (*cstate->lstate->cb.set_fobj_cb) (cstate->app_cookie, sent_sig);
 	if(err)
 		return DIAMOND_FAILURE; // XXX: be more specific
 
 	cstate->pend_obj--;
 
 	if (cstate->pend_obj== 0 && cstate->have_start) {
-		(*cstate->lstate->cb.start_cb) (cstate->app_cookie, 0);
+		(*cstate->lstate->cb.start_cb) (cstate->app_cookie);
 		cstate->have_start = 0;
 	}
 	return MINIRPC_OK;
@@ -450,9 +450,8 @@ session_variables_get(void *conn_data, struct mrpc_message *msg,
 	device_session_vars_t *vars;
 	int i, err = DIAMOND_NOMEM;
 
-	vars = (*cstate->lstate->cb.get_session_vars_cb) (cstate->app_cookie,0);
-	if (vars == NULL)
-		goto err_out;
+	vars = (*cstate->lstate->cb.get_session_vars_cb) (cstate->app_cookie);
+	if (vars == NULL) goto err_out;
 
 	out->vars.vars_val = calloc(vars->len, sizeof(diamond_session_var_x));
 	if (out->vars.vars_val == NULL) {
@@ -498,7 +497,7 @@ session_variables_set(void *conn_data, struct mrpc_message *msg,
 		vars->values[i] = in->vars.vars_val[i].value;
 	}
 
-	(*cstate->lstate->cb.set_session_vars_cb) (cstate->app_cookie, 0, vars);
+	(*cstate->lstate->cb.set_session_vars_cb) (cstate->app_cookie, vars);
 	err = MINIRPC_OK;
 err_out:
 	free(vars->names);

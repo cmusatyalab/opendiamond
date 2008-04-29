@@ -93,7 +93,7 @@ typedef enum {
 #define	OBJ_QUEUE_SIZE		1024
 struct filter_info;
 typedef struct search_context {
-	int			cur_search_id;	/* ID of current search */
+	int			Xcur_search_id;	/* ID of current search */
 	double			avg_proc_time;	/* time spent per object */
 	device_handle_t *	dev_list;
 	device_handle_t *	last_dev;
@@ -121,13 +121,13 @@ int device_add_gid(search_context_t *sc, groupid_t gid, const char *host);
 /*
  * These are background processing functions.
  */
-int bg_init(search_context_t *sc, int id);
-int bg_set_lib(search_context_t *sc, int id, sig_val_t *sig);
-int bg_set_spec(search_context_t *sc, int id, sig_val_t *sig);
-int bg_set_blob(search_context_t *sc, int id, char *filter_name,
-                int blob_len, void *blob_data);
-int bg_start_search(search_context_t *sc, int id);
-int bg_stop_search(search_context_t *sc, int id);
+int bg_init(search_context_t *sc);
+int bg_set_lib(search_context_t *sc, sig_val_t *sig);
+int bg_set_spec(search_context_t *sc, sig_val_t *sig);
+int bg_set_blob(search_context_t *sc, char *filter_name,
+		int blob_len, void *blob_data);
+int bg_start_search(search_context_t *sc);
+int bg_stop_search(search_context_t *sc);
 
 
 int log_start(search_context_t *sc);

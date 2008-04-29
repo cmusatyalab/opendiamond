@@ -169,9 +169,7 @@ sstub_attr_len(obj_data_t * obj, int drop_attrs)
 void
 sstub_write_data(cstate_t *cstate)
 {
-	obj_info_t      *oi;
 	obj_data_t	*obj;
-	int		vnum;
 	int		sent;
 	int		err;
 	int		header_remain = 0, header_offset = 0;
@@ -181,26 +179,22 @@ sstub_write_data(cstate_t *cstate)
 
 	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
 		pthread_mutex_lock(&cstate->cmutex);
-		oi = ring_deq(cstate->complete_obj_ring);
+		obj = ring_deq(cstate->complete_obj_ring);
 		/*
 		 * If we don't get a complete object, look for a partial.
 		 */
-		if (!oi)
-			oi = ring_deq(cstate->partial_obj_ring);
+		if (!obj)
+			obj = ring_deq(cstate->partial_obj_ring);
 
 		/*
 		 * if there is no other data, then clear the obj data flag
 		 */
-		if (!oi) {
+		if (!obj) {
 			cstate->flags &= ~CSTATE_OBJ_DATA;
 			pthread_mutex_unlock(&cstate->cmutex);
 			return;
 		}
 		pthread_mutex_unlock(&cstate->cmutex);
-
-		obj = oi->obj;
-		vnum = oi->ver_num;
-		free(oi);
 
 		/*
 		 * periodically we want to update our send policy if
@@ -224,11 +218,10 @@ sstub_write_data(cstate_t *cstate)
 		 */
 		cstate->data_tx_oheader.obj_magic = htonl(OBJ_MAGIC_HEADER);
 		cstate->data_tx_oheader.attr_len =
-		    htonl(sstub_attr_len(obj, cstate->drop_attrs));
+			htonl(sstub_attr_len(obj, cstate->drop_attrs));
 		cstate->data_tx_oheader.data_len = htonl(obj->data_len);
 		cstate->data_tx_oheader.remain_compute =
-		    htonl((int) (oi->obj->remain_compute * 1000));
-		cstate->data_tx_oheader.version_num = htonl(vnum);
+			htonl((int) (obj->remain_compute * 1000));
 
 		/*
 		 * setup the remain and offset counters 

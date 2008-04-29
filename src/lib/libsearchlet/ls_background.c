@@ -373,11 +373,11 @@ refill_credits(search_context_t * sc)
 #define         POLL_USECS      0
 
 
-static obj_info_t     *
+static obj_data_t *
 get_next_object(search_context_t * sc)
 {
 	device_handle_t *cur_dev;
-	obj_info_t     *obj_inf;
+	obj_data_t	*obj;
 	int             loop = 0;
 
 	if (sc->last_dev == NULL) {
@@ -393,11 +393,11 @@ redo:
 			continue;
 		}
 		if (cur_dev->cur_credits > 0.0) {
-			obj_inf = device_next_obj(cur_dev->dev_handle);
-			if (obj_inf != NULL) {
+			obj = device_next_obj(cur_dev->dev_handle);
+			if (obj) {
 				cur_dev->serviced++;
 				sc->last_dev = cur_dev;
-				return (obj_inf);
+				return obj;
 			}
 		}
 		cur_dev = cur_dev->next;
@@ -418,7 +418,7 @@ redo:
 		refill_credits(sc);
 		goto redo;
 	}
-	return (NULL);
+	return NULL;
 }
 
 static void
@@ -450,7 +450,6 @@ static void    *
 bg_main(void *arg)
 {
 	obj_data_t     *new_obj;
-	obj_info_t     *obj_info;
 	search_context_t *sc;
 	int             err;
 	bg_cmd_data_t  *cmd;
@@ -537,10 +536,11 @@ bg_main(void *arg)
 		 */
 		if ((sc->bg_status & BG_STARTED) &&
 		    (ring_count(sc->proc_ring) < sc->pend_lw)) {
-			obj_info = get_next_object(sc);
-			if (obj_info != NULL) {
+			new_obj = get_next_object(sc);
+			if (new_obj) {
 				any = 1;
-				new_obj = obj_info->obj;
+#warning "Check this"
+#if 0
 				/*
 				 * Make sure the version number is the
 				 * latest.  If it is not equal, then this
@@ -550,10 +550,9 @@ bg_main(void *arg)
 				 */
 				if (sc->cur_search_id != obj_info->ver_num) {
 					ls_release_object(sc, new_obj);
-					free(obj_info);
 					continue;
 				}
-
+#endif
 				/*
 				 * Now that we have an object, go ahead
 				 * an evaluate all the filters on the
@@ -567,9 +566,8 @@ bg_main(void *arg)
 				dec_object_credit(sc, etime);
 				if (err == 0) {
 					ls_release_object(sc, new_obj);
-					free(obj_info);
 				} else {
-					err = ring_enq(sc->proc_ring, (void *) obj_info);
+					err = ring_enq(sc->proc_ring, new_obj);
 
 					if (err) {
 						/*
@@ -591,13 +589,12 @@ bg_main(void *arg)
 				     */
 					int proc_ring_count = ring_count(sc->proc_ring);
 					int new_mode = sc->search_exec_mode;
-					
-				    log_message(LOGT_BG, LOGL_DEBUG, 
-				    			"Search %d, %d objects queued for app, limit %d", 
-				    			sc->cur_search_id, 
-				    			proc_ring_count,
-				    			sc->dev_queue_limit);
-				    
+
+				    log_message(LOGT_BG, LOGL_DEBUG,
+						"Search %d objects queued for app, limit %d",
+						proc_ring_count,
+						sc->dev_queue_limit);
+
 				    if (sc->search_exec_mode == FM_CURRENT) {
 				    	if (proc_ring_count > exec_mode_thresh_high) {
 				    		new_mode = FM_MODEL;
@@ -621,8 +618,8 @@ bg_main(void *arg)
 				    if (sc->search_exec_mode != new_mode) {			    
 						for (cur_dev = sc->dev_list; cur_dev != NULL;
 					    	 cur_dev = cur_dev->next) {
-					    	device_set_exec_mode(cur_dev->dev_handle, 
-					    					sc->cur_search_id, new_mode);
+						device_set_exec_mode(cur_dev->dev_handle,
+								     new_mode);
 					    }
 				    }
 				}
@@ -718,19 +715,13 @@ bg_main(void *arg)
 				 */
 				{
 					obj_data_t     *new_obj;
-					obj_info_t     *obj_info;
 
 					while (!ring_empty(sc->proc_ring)) {
 						/*
 						 * XXX lock 
 						 */
-						obj_info =
-						    (obj_info_t *)
-						    ring_deq(sc->proc_ring);
-						new_obj = obj_info->obj;
-						ls_release_object(sc,
-								  new_obj);
-						free(obj_info);
+						new_obj = ring_deq(sc->proc_ring);
+						ls_release_object(sc, new_obj);
 					}
 				}
 
@@ -780,7 +771,7 @@ bg_main(void *arg)
  */
 
 int
-bg_set_spec(search_context_t * sc, int id, sig_val_t *sig)
+bg_set_spec(search_context_t * sc, sig_val_t *sig)
 {
 	bg_cmd_data_t  *cmd;
 
@@ -791,14 +782,13 @@ bg_set_spec(search_context_t * sc, int id, sig_val_t *sig)
 	assert(cmd != NULL);
 
 	cmd->cmd = BG_SPEC;
-	cmd->ver_id = (bg_op_type_t) id;
 	memcpy(&cmd->spec_sig, sig, sizeof(*sig));
 	ring_enq(sc->bg_ops, (void *) cmd);
 	return (0);
 }
 
 int
-bg_set_lib(search_context_t * sc, int id, sig_val_t *sig)
+bg_set_lib(search_context_t * sc, sig_val_t *sig)
 {
 	bg_cmd_data_t  *cmd;
 
@@ -809,7 +799,6 @@ bg_set_lib(search_context_t * sc, int id, sig_val_t *sig)
 	assert(cmd != NULL);
 
 	cmd->cmd = BG_LIB;
-	cmd->ver_id = (bg_op_type_t) id;
 	memcpy(&cmd->lib_sig, sig, sizeof(*sig));
 	ring_enq(sc->bg_ops, (void *) cmd);
 	return (0);
@@ -817,9 +806,9 @@ bg_set_lib(search_context_t * sc, int id, sig_val_t *sig)
 
 
 int
-bg_start_search(search_context_t * sc, int id)
+bg_start_search(search_context_t *sc)
 {
-	bg_cmd_data_t  *cmd;
+	bg_cmd_data_t *cmd;
 
 	/*
 	 * Allocate a command struct to store the new command.
@@ -841,9 +830,9 @@ bg_start_search(search_context_t * sc, int id)
 }
 
 int
-bg_stop_search(search_context_t * sc, int id)
+bg_stop_search(search_context_t *sc)
 {
-	bg_cmd_data_t  *cmd;
+	bg_cmd_data_t *cmd;
 
 	/*
 	 * Allocate a command struct to store the new command.
@@ -864,7 +853,7 @@ bg_stop_search(search_context_t * sc, int id)
 }
 
 int
-bg_set_blob(search_context_t * sc, int id, char *filter_name,
+bg_set_blob(search_context_t * sc, char *filter_name,
 	    int blob_len, void *blob_data)
 {
 	bg_cmd_data_t  *cmd;
@@ -913,7 +902,7 @@ bg_set_blob(search_context_t * sc, int id, char *filter_name,
  */
 
 int
-bg_init(search_context_t * sc, int id)
+bg_init(search_context_t *sc)
 {
 	int             err;
 	pthread_t       thread_id;

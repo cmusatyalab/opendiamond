@@ -57,7 +57,6 @@ typedef struct search_state {
 	struct odisk_state *ostate;
 	struct ceval_state *cstate;
 	session_info_t		cinfo;			/* used for session id */
-	int             ver_no;			/* id of current search */
 	ring_data_t    *control_ops;
 	pthread_mutex_t log_mutex;
 	pthread_cond_t  log_cond;
@@ -103,32 +102,29 @@ typedef struct search_state {
 
 int             search_new_conn(void *cookie, void **app_cookie);
 int             search_close_conn(void *app_cookie);
-int             search_start(void *app_cookie, int gen_num);
-int             search_stop(void *app_cookie, int gen_num, host_stats_t *hs);
-int             search_set_spec(void *app_cookie, int gen_num,
-		    sig_val_t *spec_sig);
-int             search_set_obj(void *app_cookie, int gen_num,
-		    sig_val_t *obj_sig);
-int             search_term(void *app_cookie, int gen_num);
-dev_stats_t *   search_get_stats(void *app_cookie, int gen_num);
+int             search_start(void *app_cookie);
+int             search_stop(void *app_cookie, host_stats_t *hs);
+int             search_set_spec(void *app_cookie, sig_val_t *spec_sig);
+int             search_set_obj(void *app_cookie, sig_val_t *obj_sig);
+int             search_term(void *app_cookie);
+dev_stats_t *   search_get_stats(void *app_cookie);
 int             search_release_obj(void *app_cookie, obj_data_t * obj);
-device_char_t * search_get_char(void *app_cookie, int gen_num);
+device_char_t * search_get_char(void *app_cookie);
 int             search_setlog(void *app_cookie, uint32_t level, uint32_t src);
 dctl_rleaf_t *  search_read_leaf(void *app_cookie, char *path);
 int             search_write_leaf(void *app_cookie, char *path, int len,
 				  char *data);
 dctl_lnode_t *  search_list_nodes(void *app_cookie, char *path);
 dctl_lleaf_t *  search_list_leafs(void *app_cookie, char *path);
-int             search_set_gid(void *app_cookie, int gen, groupid_t gid);
-int             search_clear_gids(void *app_cookie, int gen);
-int             search_set_blob(void *app_cookie, int gen, char *name,
+int		search_set_gid(void *app_cookie, groupid_t gid);
+int		search_clear_gids(void *app_cookie);
+int		search_set_blob(void *app_cookie, char *name,
 				int blob_len, void *blob_data);
 int		search_set_exec_mode(void *app_cookie, uint32_t mode);
 int		search_set_user_state(void *app_cookie, uint32_t state);
 
-device_session_vars_t * search_get_session_vars(void *app_cookie, int gen_num);
-int		search_set_session_vars(void *app_cookie, int gen_num,
-					device_session_vars_t *vars);
+device_session_vars_t * search_get_session_vars(void *app_cookie);
+int search_set_session_vars(void *app_cookie, device_session_vars_t *vars);
 
 void		start_background(void);
 

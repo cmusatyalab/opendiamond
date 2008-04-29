@@ -68,7 +68,6 @@ typedef struct sdevice_state {
 	pthread_t	        thread_id;
 	ring_data_t *	    	obj_ring;
 	conn_info_t 	    	con_data;
-	int		      	ver_no;
 	void *		    	hcookie;
 	device_char_t		dev_char;	/* cached device chars */
 	int		       	stat_size;	/* size of caches stats */

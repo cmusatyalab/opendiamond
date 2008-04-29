@@ -28,7 +28,6 @@ typedef struct object_header {
 	uint32_t	attr_len;	/* length of the attributes */
 	uint32_t	data_len;	/* length of the data portion */
 	uint32_t	remain_compute;	/* remaining compute * 1000 */
-	uint32_t	version_num;	/* search version number */
 } obj_header_t;
 
 /*

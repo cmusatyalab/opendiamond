@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -136,7 +137,7 @@ conn_down_cb(void *hcookie, int ver_no)
 
 /*
  * Search through the list of current devices to see
- * if we have one with the same ID. 
+ * if we have one with the same ID.
  */
 
 static device_handle_t *
@@ -156,303 +157,38 @@ lookup_dev_by_name(search_context_t * sc, const char *host)
 }
 
 
-#define     MAX_PENDING     64
-
-typedef struct dctl_pending {
-	int             pend_allocated;
-	int            *pend_len;
-	char           *pend_data;
-	dctl_data_type_t *pend_dtype;
-	int             pend_err;
-} dctl_pending_t;
-
-
-static dctl_pending_t  pend_data[MAX_PENDING];
-
-
-static int
-allocate_pending(void)
-{
-	int             i;
-
-	for (i = 0; i < MAX_PENDING; i++) {
-
-		if (pend_data[i].pend_allocated == 0) {
-			pend_data[i].pend_allocated = 1;
-			return (i);
-		}
-	}
-	return (-1);
-}
-
-static void
-free_pending(int idx)
-{
-	pend_data[idx].pend_allocated = 0;
-}
-
-
-
-static void
-init_pending(void)
-{
-	int             i;
-
-	for (i = 0; i < MAX_PENDING; i++)
-		pend_data[i].pend_allocated = 0;
-
-}
-
-
-
-static void
-write_leaf_done_cb(void *cookie, int err, int32_t opid)
-{
-	int             idx;
-
-
-	idx = (int) opid;
-
-	assert(idx >= 0);
-	assert(idx < MAX_PENDING);
-
-	pend_data[idx].pend_err = err;
-}
-
-
 static int
 remote_write_leaf(char *path, int len, char *data, void *cookie)
 {
-	device_handle_t *cur_dev;
-	int             idx;
-	int             err;
-
-	cur_dev = (device_handle_t *) cookie;
-
-	idx = allocate_pending();
-	if (idx < 0) {
-		return (ENOSPC);
-	}
-
-	/*
-	 * we don't care about keeping the data of len here 
-	 */
-	err = device_write_leaf(cur_dev->dev_handle, path, len, data, idx);
-	if (err) {
-		free_pending(idx);
-		return (err);
-	}
-
-	/*
-	 * get error from the request and save it 
-	 */
-	err = pend_data[idx].pend_err;
-
-	free_pending(idx);
-
-	return (err);
-}
-
-
-
-static void
-read_leaf_done_cb(void *cookie, int err, dctl_data_type_t dtype,
-		  int len, char *data, int32_t opid)
-{
-	int             idx;
-
-	idx = (int) opid;
-
-	assert(idx >= 0);
-	assert(idx < MAX_PENDING);
-
-	if (err) {
-		pend_data[idx].pend_err = err;
-
-	} else {
-		if (*pend_data[idx].pend_len < len) {
-			pend_data[idx].pend_err = ENOMEM;
-			*pend_data[idx].pend_len = len;
-
-		} else {
-			pend_data[idx].pend_err = 0;
-			*pend_data[idx].pend_len = len;
-			*pend_data[idx].pend_dtype = dtype;
-			memcpy(pend_data[idx].pend_data, data, len);
-		}
-	}
-
+	void *handle = ((device_handle_t *)cookie)->dev_handle;
+	return device_write_leaf(handle, path, len, data);
 }
 
 
 static int
-remote_read_leaf(char *path, dctl_data_type_t * dtype, int *len,
-		 char *data, void *cookie)
+remote_read_leaf(char *path, dctl_data_type_t *dtype, int *len, char *data,
+		 void *cookie)
 {
-	device_handle_t *cur_dev;
-	int             idx;
-	int             err;
-
-	cur_dev = (device_handle_t *) cookie;
-
-	idx = allocate_pending();
-	if (idx < 0) {
-		return (ENOSPC);
-	}
-
-	pend_data[idx].pend_len = len;
-	pend_data[idx].pend_data = data;
-	pend_data[idx].pend_dtype = dtype;
-
-	/*
-	 * we don't care about keeping the data of len here 
-	 */
-	err = device_read_leaf(cur_dev->dev_handle, path, idx);
-	if (err) {
-		free_pending(idx);
-		return (err);
-	}
-
-	/*
-	 * get error from the request and save it 
-	 */
-	err = pend_data[idx].pend_err;
-
-	free_pending(idx);
-
-	return (err);
+	void *handle = ((device_handle_t *)cookie)->dev_handle;
+	return device_read_leaf(handle, path, dtype, len, data);
 }
-
-
-static void
-lnodes_done_cb(void *cookie, int err, int num_ents, dctl_entry_t * data,
-	       int32_t opid)
-{
-	int             idx;
-
-	idx = (int) opid;
-
-	assert(idx >= 0);
-	assert(idx < MAX_PENDING);
-
-	if (err) {
-		pend_data[idx].pend_err = err;
-
-	} else {
-		if (*pend_data[idx].pend_len < num_ents) {
-			pend_data[idx].pend_err = ENOMEM;
-			*pend_data[idx].pend_len = num_ents;
-
-		} else {
-			pend_data[idx].pend_err = 0;
-			*pend_data[idx].pend_len = num_ents;
-			memcpy((char *) pend_data[idx].pend_data,
-			       (char *) data,
-			       (num_ents * sizeof(dctl_entry_t)));
-		}
-	}
-}
-
-static int
-remote_list_nodes(char *path, int *num_ents, dctl_entry_t * space,
-		  void *cookie)
-{
-	device_handle_t *cur_dev;
-	int             idx;
-	int             err;
-
-	cur_dev = (device_handle_t *) cookie;
-
-	idx = allocate_pending();
-	if (idx < 0) {
-		return (ENOSPC);
-	}
-
-	pend_data[idx].pend_len = num_ents;
-	pend_data[idx].pend_data = (char *) space;
-
-	err = device_list_nodes(cur_dev->dev_handle, path, idx);
-	if (err) {
-		free_pending(idx);
-		return (err);
-	}
-
-
-	/*
-	 * get error from the request and save it 
-	 */
-	err = pend_data[idx].pend_err;
-
-	free_pending(idx);
-
-	return (err);
-}
-
-
-static void
-lleafs_done_cb(void *cookie, int err, int num_ents, dctl_entry_t * data,
-	       int32_t opid)
-{
-	int             idx;
-
-	idx = (int) opid;
-
-	assert(idx >= 0);
-	assert(idx < MAX_PENDING);
-
-	if (err) {
-		pend_data[idx].pend_err = err;
-
-	} else {
-		if (*pend_data[idx].pend_len < num_ents) {
-			pend_data[idx].pend_err = ENOMEM;
-			*pend_data[idx].pend_len = num_ents;
-
-		} else {
-			pend_data[idx].pend_err = 0;
-			*pend_data[idx].pend_len = num_ents;
-			memcpy((char *) pend_data[idx].pend_data,
-			       (char *) data,
-			       (num_ents * sizeof(dctl_entry_t)));
-		}
-	}
-}
-
 
 
 static int
-remote_list_leafs(char *path, int *num_ents, dctl_entry_t * space,
-		  void *cookie)
+remote_list_nodes(char *path, int *num_ents, dctl_entry_t *space, void *cookie)
 {
-	device_handle_t *cur_dev;
-	int             idx;
-	int             err;
-
-	cur_dev = (device_handle_t *) cookie;
-
-	idx = allocate_pending();
-	if (idx < 0) {
-		return (ENOSPC);
-	}
-
-	pend_data[idx].pend_len = num_ents;
-	pend_data[idx].pend_data = (char *) space;
-
-	err = device_list_leafs(cur_dev->dev_handle, path, idx);
-	if (err) {
-		free_pending(idx);
-		return (err);
-	}
-
-	/*
-	 * get error from the request and save it 
-	 */
-	err = pend_data[idx].pend_err;
-
-	free_pending(idx);
-
-	return (err);
+	void *handle = ((device_handle_t *)cookie)->dev_handle;
+	return device_list_nodes(handle, path, num_ents, space);
 }
+
+
+static int
+remote_list_leafs(char *path, int *num_ents, dctl_entry_t *space, void *cookie)
+{
+	void *handle = ((device_handle_t *)cookie)->dev_handle;
+	return device_list_leafs(handle, path, num_ents, space);
+}
+
 
 static int
 read_float_as_uint32(void *cookie, int *len, char *data)
@@ -472,9 +208,6 @@ read_float_as_uint32(void *cookie, int *len, char *data)
 
 	return (0);
 }
-
-
-
 
 
 static void
@@ -550,11 +283,6 @@ create_new_device(search_context_t * sc, const char *host)
 {
 	device_handle_t *new_dev;
 	hstub_cb_args_t cb_data;
-	static int      done_init = 0;
-
-	if (!done_init) {
-		init_pending();
-	}
 
 	new_dev = (device_handle_t *) malloc(sizeof(*new_dev));
 	if (new_dev == NULL) {
@@ -577,12 +305,7 @@ create_new_device(search_context_t * sc, const char *host)
 
 	cb_data.log_data_cb = dev_log_data_cb;
 	cb_data.search_done_cb = dev_search_done_cb;
-	cb_data.rleaf_done_cb = read_leaf_done_cb;
-	cb_data.wleaf_done_cb = write_leaf_done_cb;
-	cb_data.lnode_done_cb = lnodes_done_cb;
-	cb_data.lleaf_done_cb = lleafs_done_cb;
 	cb_data.conn_down_cb = conn_down_cb;
-
 
 	new_dev->dev_handle = device_init(sc->cur_search_id, host,
 					  (void *)new_dev, &cb_data);

@@ -1366,7 +1366,7 @@ search_get_stats(void *app_cookie, int gen_num)
  */
 
 dctl_rleaf_t *
-search_read_leaf(void *app_cookie, char *path, int32_t opid)
+search_read_leaf(void *app_cookie, char *path)
 {
 	/*
 	 * XXX hack for now 
@@ -1404,8 +1404,7 @@ search_read_leaf(void *app_cookie, char *path, int32_t opid)
 
 
 int
-search_write_leaf(void *app_cookie, char *path, int len, char *data,
-		  int32_t opid)
+search_write_leaf(void *app_cookie, char *path, int len, char *data)
 {
 	/*
 	 * XXX hack for now 
@@ -1423,7 +1422,7 @@ search_write_leaf(void *app_cookie, char *path, int len, char *data,
 }
 
 dctl_lleaf_t *
-search_list_leafs(void *app_cookie, char *path, int32_t opid)
+search_list_leafs(void *app_cookie, char *path)
 {
 
 	/*
@@ -1465,7 +1464,7 @@ search_list_leafs(void *app_cookie, char *path, int32_t opid)
  * The caller must free the returned argument.
  */
 dctl_lnode_t *
-search_list_nodes(void *app_cookie, char *path, int32_t opid)
+search_list_nodes(void *app_cookie, char *path)
 {
 
 	/*

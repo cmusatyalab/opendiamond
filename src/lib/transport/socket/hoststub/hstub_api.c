@@ -473,14 +473,12 @@ device_set_lib(void *handle, int id, sig_val_t *obj_sig)
 
 
 int
-device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
+device_write_leaf(void *handle, char *path, int len, char *data)
 {
 	sdevice_state_t *dev;
 	dctl_x          dx;
 	int             plen;
 	dctl_return_x   drx;
-	int             r_err;
-	int32_t         r_opid;
 	enum clnt_stat retval;
 	char *buf;
 	int err;
@@ -499,7 +497,7 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 	memcpy(&buf[plen], data, len);
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = opid;
+	dx.dctl_opid = 0;
 	dx.dctl_plen = plen;
 	dx.dctl_data.dctl_data_len = plen+len;
 	dx.dctl_data.dctl_data_val = buf;
@@ -518,37 +516,30 @@ device_write_leaf(void *handle, char *path, int len, char *data, int32_t opid)
 		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 		return -1;
 	}
-	r_err = drx.dctl.dctl_err;
-	r_opid = drx.dctl.dctl_opid;
-
-	(*dev->cb.wleaf_done_cb) (dev->hcookie, r_err, r_opid);
-
+	err = drx.dctl.dctl_err;
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	return 0;
+	return err;
 }
 
 int
-device_read_leaf(void *handle, char *path, int32_t opid)
+device_read_leaf(void *handle, char *path,
+		 dctl_data_type_t *dtype, int *dlen, void *dval)
 {
 	sdevice_state_t *dev;
 	dctl_x          dx;
-	int             plen;
+	int             len;
 	dctl_return_x   drx;
-	int             r_err;
-	int32_t         r_opid;
-	int             r_dlen;
-	dctl_data_type_t r_dtype;
 	enum clnt_stat retval;
 	int err;
 
 	dev = (sdevice_state_t *) handle;
 
-	plen = strlen(path) + 1;
+	len = strlen(path) + 1;
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = opid;
-	dx.dctl_plen = plen;
-	dx.dctl_data.dctl_data_len = plen;
+	dx.dctl_opid = 0;
+	dx.dctl_plen = len;
+	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
 	memset(&drx, 0, sizeof(drx));
@@ -562,41 +553,39 @@ device_read_leaf(void *handle, char *path, int32_t opid)
 		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 		return -1;
 	}
-	r_err = drx.dctl.dctl_err;
-	r_opid = drx.dctl.dctl_opid;
-	r_dtype = drx.dctl.dctl_dtype;
-	r_dlen = drx.dctl.dctl_data.dctl_data_len;
+	err = drx.dctl.dctl_err;
+	len = drx.dctl.dctl_data.dctl_data_len;
+	if (len <= *dlen)
+		memcpy(dval, drx.dctl.dctl_data.dctl_data_val, len);
+	else
+		err = ENOMEM;
 
-	(*dev->cb.rleaf_done_cb) (dev->hcookie, r_err, r_dtype, r_dlen,
-				  drx.dctl.dctl_data.dctl_data_val, r_opid);
+	*dlen = len;
+	*dtype = drx.dctl.dctl_dtype;
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
-	return 0;
+	return err;
 }
 
 
 int
-device_list_nodes(void *handle, char *path, int32_t opid)
+device_list_nodes(void *handle, char *path, int *dents, dctl_entry_t *dval)
 {
 	sdevice_state_t *dev;
-	int             plen;
-	dctl_x          dx;
+	int		len, ents;
+	dctl_x		dx;
 	dctl_return_x   drx;
-	int             r_err;
-	int32_t         r_opid;
-	int             r_dlen;
-	int             ents;
 	enum clnt_stat retval;
 	int err;
 
 	dev = (sdevice_state_t *) handle;
 
-	plen = strlen(path) + 1;
+	len = strlen(path) + 1;
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = opid;
-	dx.dctl_plen = plen;
-	dx.dctl_data.dctl_data_len = plen;
+	dx.dctl_opid = 0;
+	dx.dctl_plen = len;
+	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
 	memset(&drx, 0, sizeof(drx));
@@ -610,42 +599,39 @@ device_list_nodes(void *handle, char *path, int32_t opid)
 		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 		return -1;
 	}
-	r_err = drx.dctl.dctl_err;
-	r_opid = drx.dctl.dctl_opid;
-	r_dlen = drx.dctl.dctl_data.dctl_data_len;
 
-	ents = r_dlen / (sizeof(dctl_entry_t));
+	err = drx.dctl.dctl_err;
+	ents = drx.dctl.dctl_data.dctl_data_len / sizeof(*dval);
+	if (ents <= *dents)
+		memcpy(dval, drx.dctl.dctl_data.dctl_data_val,
+		       ents * sizeof(*dval));
+	else
+		err = ENOMEM;
 
-	(*dev->cb.lnode_done_cb)
-		(dev->hcookie, r_err, ents,
-		 (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
+	*dents = ents;
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	return 0;
 }
 
 int
-device_list_leafs(void *handle, char *path, int32_t opid)
+device_list_leafs(void *handle, char *path, int *dents, dctl_entry_t *dval)
 {
 	sdevice_state_t *dev;
-	int             plen;
-	int             ents;
-	dctl_x          dx;
+	int		len, ents;
+	dctl_x		dx;
 	dctl_return_x   drx;
-	int             r_err;
-	int32_t         r_opid;
-	int             r_dlen;
 	enum clnt_stat retval;
 	int err;
 
 	dev = (sdevice_state_t *) handle;
 
-	plen = strlen(path) + 1;
+	len = strlen(path) + 1;
 
 	dx.dctl_err = 0;
-	dx.dctl_opid = opid;
-	dx.dctl_plen = plen;
-	dx.dctl_data.dctl_data_len = plen;
+	dx.dctl_opid = 0;
+	dx.dctl_plen = len;
+	dx.dctl_data.dctl_data_len = len;
 	dx.dctl_data.dctl_data_val = path;
 
 	memset(&drx, 0, sizeof(drx));
@@ -659,15 +645,16 @@ device_list_leafs(void *handle, char *path, int32_t opid)
 		xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 		return -1;
 	}
-	r_err = drx.dctl.dctl_err;
-	r_opid = drx.dctl.dctl_opid;
-	r_dlen = drx.dctl.dctl_data.dctl_data_len;
 
-	ents = r_dlen / (sizeof(dctl_entry_t));
+	err = drx.dctl.dctl_err;
+	ents = drx.dctl.dctl_data.dctl_data_len / sizeof(*dval);
+	if (ents <= *dents)
+		memcpy(dval, drx.dctl.dctl_data.dctl_data_val,
+		       ents * sizeof(*dval));
+	else
+		err = ENOMEM;
 
-	(*dev->cb.lleaf_done_cb)
-		(dev->hcookie, r_err, ents,
-		 (dctl_entry_t *)drx.dctl.dctl_data.dctl_data_val, r_opid);
+	*dents = ents;
 
 	xdr_free((xdrproc_t)xdr_dctl_return_x, (char *)&drx);
 	return 0;

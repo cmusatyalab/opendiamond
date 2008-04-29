@@ -4,8 +4,8 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007 Carnegie Mellon University 
- *  
+ *  Copyright (c) 2007-2008 Carnegie Mellon University
+ *
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -39,11 +39,10 @@ typedef	int (*sstub_release_obj_fn)(void *app_cookie, obj_data_t * obj);
 typedef	device_char_t *(*sstub_get_devchar_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_set_log_fn)(void *app_cookie, uint32_t level, uint32_t src);
 
-typedef	dctl_rleaf_t *(*sstub_rleaf_fn)(void *app_cookie, char *path, int32_t opid);
-typedef	int (*sstub_wleaf_fn)(void *app_cookie, char *path, int len,
-                              char *data, int32_t opid);
-typedef	dctl_lleaf_t *(*sstub_lleaf_fn)(void *app_cookie, char *path, int32_t opid);
-typedef	dctl_lnode_t *(*sstub_lnode_fn)(void *app_cookie, char *path, int32_t opid);
+typedef	dctl_rleaf_t *(*sstub_rleaf_fn)(void *app_cookie, char *path);
+typedef	int (*sstub_wleaf_fn)(void *appcookie, char *path, int len, char *data);
+typedef	dctl_lleaf_t *(*sstub_lleaf_fn)(void *app_cookie, char *path);
+typedef	dctl_lnode_t *(*sstub_lnode_fn)(void *app_cookie, char *path);
 typedef	int (*sstub_sgid_fn)(void *app_cookie, int gen_num, groupid_t gid);
 typedef	int (*sstub_clear_gids_fn)(void *app_cookie, int gen_num);
 typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,

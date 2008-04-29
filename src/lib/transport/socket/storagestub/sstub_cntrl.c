@@ -330,8 +330,7 @@ device_read_leaf_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 	memset ((char *)result, 0, sizeof(*result));
 
 	rt = (rpc_lstate->cb.rleaf_cb) (rpc_cstate->app_cookie,
-					arg2.dctl_data.dctl_data_val,
-					arg2.dctl_opid);
+					arg2.dctl_data.dctl_data_val);
 	if(rt == NULL) {
 	  result->error.service_err = DIAMOND_OPERR;
 	  result->error.opcode_err = DIAMOND_FAILURE; //XXX: be more specific?
@@ -363,8 +362,7 @@ device_write_leaf_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 	err = (*rpc_lstate->cb.wleaf_cb)
 		(rpc_cstate->app_cookie, arg2.dctl_data.dctl_data_val,
 		 (arg2.dctl_data.dctl_data_len - arg2.dctl_plen),
-		 &(arg2.dctl_data.dctl_data_val[arg2.dctl_plen]),
-		 arg2.dctl_opid);
+		 &(arg2.dctl_data.dctl_data_val[arg2.dctl_plen]));
 
 	result->dctl.dctl_err = err;
 	result->dctl.dctl_opid = arg2.dctl_opid;
@@ -393,8 +391,7 @@ device_list_nodes_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 	memset ((char *)result, 0, sizeof(*result));
 
 	lt = (rpc_lstate->cb.lnode_cb) (rpc_cstate->app_cookie,
-					arg2.dctl_data.dctl_data_val,
-					arg2.dctl_opid);
+					arg2.dctl_data.dctl_data_val);
 	if(lt == NULL) {
 	  result->error.service_err = DIAMOND_OPERR;
 	  result->error.opcode_err = DIAMOND_FAILURE;
@@ -431,8 +428,7 @@ device_list_leafs_x_2_svc(u_int gen, dctl_x arg2, dctl_return_x *result,
 	memset ((char *)result, 0, sizeof(*result));
 
 	lt = (rpc_lstate->cb.lleaf_cb) (rpc_cstate->app_cookie,
-					arg2.dctl_data.dctl_data_val,
-					arg2.dctl_opid);
+					arg2.dctl_data.dctl_data_val);
 
 	result->dctl.dctl_err = lt->err;
 	result->dctl.dctl_opid = arg2.dctl_opid;

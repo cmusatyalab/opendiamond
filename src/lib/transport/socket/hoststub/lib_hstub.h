@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -18,24 +19,13 @@
 
 typedef	void (*hstub_log_data_fn)(void *hcookie, char *data, int len, int dev);
 typedef	void (*hstub_search_done_fn)(void *hcookie, int ver_num);
-typedef	void (*hstub_rleaf_done_fn)(void *hcookie, int err,
-                                    dctl_data_type_t dtype, int len, char *data, int32_t opid);
-typedef	void (*hstub_wleaf_done_fn)(void *hcookie, int err, int32_t opid);
-typedef	void (*hstub_lnodes_done_fn)(void *hcookie, int err, int num_ents,
-                                     dctl_entry_t *data, int32_t opid);
-typedef	void (*hstub_lleafs_done_fn)(void *hcookie, int err, int num_ents,
-                                     dctl_entry_t *data, int32_t opid);
 typedef	void (*hstub_conn_down_fn)(void *hcookie, int ver_num);
 
 
 typedef struct {
-	hstub_log_data_fn		log_data_cb;
-	hstub_search_done_fn	    	search_done_cb;
-	hstub_rleaf_done_fn		rleaf_done_cb;
-	hstub_wleaf_done_fn		wleaf_done_cb;
-	hstub_lnodes_done_fn		lnode_done_cb;
-	hstub_lleafs_done_fn		lleaf_done_cb;
-	hstub_conn_down_fn	    	conn_down_cb;
+	hstub_log_data_fn	log_data_cb;
+	hstub_search_done_fn	search_done_cb;
+	hstub_conn_down_fn	conn_down_cb;
 } hstub_cb_args_t;
 
 
@@ -53,12 +43,12 @@ int device_set_lib(void *dev, int id, sig_val_t *sig);
 int device_set_spec(void *dev, int id, char *spec, sig_val_t *spec_sig);
 int device_characteristics(void *handle, device_char_t *dev_chars);
 int device_statistics(void *dev, dev_stats_t *dev_stats,
-                      int *stat_len);
-int device_write_leaf(void *dev, char *path, int len, char *data,
-                      int32_t opid);
-int device_read_leaf(void *dev, char *path, int32_t opid);
-int device_list_nodes(void *dev, char *path, int32_t opid);
-int device_list_leafs(void *dev, char *path, int32_t opid);
+		      int *stat_len);
+int device_write_leaf(void *dev, char *path, int len, char *data);
+int device_read_leaf(void *dev, char *path,
+		     dctl_data_type_t *dtype, int *dlen, void *dval);
+int device_list_nodes(void *dev, char *path, int *dents, dctl_entry_t *dval);
+int device_list_leafs(void *dev, char *path, int *dents, dctl_entry_t *dval);
 int device_new_gid(void *handle, int id, groupid_t gid);
 int device_clear_gids(void *handle, int id);
 int device_set_blob(void *handle, int id, char *name, int blob_len, void *blob);

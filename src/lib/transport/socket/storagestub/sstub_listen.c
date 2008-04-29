@@ -259,7 +259,7 @@ have_full_conn(listener_state_t * list_state, int conn)
 	timerclear(&cstate->cinfo.connect_time);
 	gettimeofday(&cstate->cinfo.connect_time, NULL);
 
-	err = ring_2init(&cstate->complete_obj_ring, OBJ_RING_SIZE);
+	err = ring_init(&cstate->complete_obj_ring, OBJ_RING_SIZE);
 	if (err) {
 		/*
 		 * XXX 
@@ -268,7 +268,7 @@ have_full_conn(listener_state_t * list_state, int conn)
 		return;
 	}
 
-	err = ring_2init(&cstate->partial_obj_ring, OBJ_RING_SIZE);
+	err = ring_init(&cstate->partial_obj_ring, OBJ_RING_SIZE);
 	if (err) {
 		/*
 		 * XXX 

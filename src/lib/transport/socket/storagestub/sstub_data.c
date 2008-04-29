@@ -48,8 +48,8 @@ sstub_queued_objects(void *cookie)
 	cstate_t       *cstate = (cstate_t *) cookie;
 	int             count;
 
-	count = ring_2count(cstate->partial_obj_ring);
-	count += ring_2count(cstate->complete_obj_ring);
+	count = ring_count(cstate->partial_obj_ring);
+	count += ring_count(cstate->complete_obj_ring);
 	return (count);
 }
 
@@ -170,38 +170,39 @@ sstub_attr_len(obj_data_t * obj, int drop_attrs)
 void
 sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 {
-	obj_data_t     *obj;
+	obj_info_t      *oi;
+	obj_data_t	*obj;
+	int		vnum;
 	int             sent;
-	void           *vnum;
-	void           *junk;
 	int             err;
 	int             header_remain = 0, header_offset = 0;
 	size_t          attr_remain = 0, attr_offset = 0;
 	int             data_remain = 0, data_offset = 0;
-	char           *data;
+	char		*data;
 
 
 	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->complete_obj_ring, &junk, &vnum);
+		oi = ring_deq(cstate->complete_obj_ring);
 		/*
 		 * If we don't get a complete object, look for a partial.
 		 */
-		if (err) {
-			err =
-			    ring_2deq(cstate->partial_obj_ring, &junk, &vnum);
-		}
+		if (!oi)
+			oi = ring_deq(cstate->partial_obj_ring);
 
 		/*
 		 * if there is no other data, then clear the obj data flag
 		 */
-		if (err) {
+		if (!oi) {
 			cstate->flags &= ~CSTATE_OBJ_DATA;
 			pthread_mutex_unlock(&cstate->cmutex);
 			return;
 		}
-		obj = (obj_data_t *) junk;
 		pthread_mutex_unlock(&cstate->cmutex);
+
+		obj = oi->obj;
+		vnum = oi->ver_num;
+		free(oi);
 
 		/*
 		 * periodically we want to update our send policy if
@@ -226,12 +227,10 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 		cstate->data_tx_oheader.obj_magic = htonl(OBJ_MAGIC_HEADER);
 		cstate->data_tx_oheader.attr_len =
 		    htonl(sstub_attr_len(obj, cstate->drop_attrs));
-		cstate->data_tx_oheader.data_len = htonl((int) obj->data_len);
+		cstate->data_tx_oheader.data_len = htonl(obj->data_len);
 		cstate->data_tx_oheader.remain_compute =
-		    htonl((int) (obj->remain_compute * 1000));
-		cstate->data_tx_oheader.version_num = htonl((int) vnum);
-
-
+		    htonl((int) (oi->obj->remain_compute * 1000));
+		cstate->data_tx_oheader.version_num = htonl(vnum);
 
 		/*
 		 * setup the remain and offset counters 
@@ -282,7 +281,6 @@ sstub_write_data(listener_state_t * lstate, cstate_t * cstate)
 
 		data_offset = 0;
 		data_remain = obj->data_len;
-
 	} else if (cstate->data_tx_state == DATA_TX_ATTR) {
 		obj = cstate->data_tx_obj;
 		header_offset = 0;

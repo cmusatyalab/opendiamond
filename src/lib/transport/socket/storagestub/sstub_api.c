@@ -54,7 +54,7 @@ sstub_get_drate(void *cookie)
 	cstate_t       *cstate;
 	cstate = (cstate_t *) cookie;
 
-	return (ring_2drate(cstate->partial_obj_ring));
+	return (ring_drate(cstate->partial_obj_ring));
 }
 
 
@@ -77,11 +77,17 @@ void sstub_get_conn_info(void *cookie, session_info_t *cinfo) {
 int
 sstub_send_obj(void *cookie, obj_data_t * obj, int ver_no, int complete)
 {
-
-	cstate_t       *cstate;
+	obj_info_t	*oi;
+	cstate_t	*cstate;
 	int             err;
 
 	cstate = (cstate_t *) cookie;
+
+	oi = malloc(sizeof(*oi));
+	if (!oi) return ENOMEM;
+
+	oi->obj = obj;
+	oi->ver_num = ver_no;
 
 	/*
 	 * Set a flag to indicate there is object
@@ -92,14 +98,11 @@ sstub_send_obj(void *cookie, obj_data_t * obj, int ver_no, int complete)
 	 */
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_OBJ_DATA;
+
 	if (complete) {
-		err =
-		    ring_2enq(cstate->complete_obj_ring, (void *) obj,
-			      (void *) ver_no);
+		err = ring_enq(cstate->complete_obj_ring, oi);
 	} else {
-		err =
-		    ring_2enq(cstate->partial_obj_ring, (void *) obj,
-			      (void *) ver_no);
+		err = ring_enq(cstate->partial_obj_ring, oi);
 	}
 	pthread_mutex_unlock(&cstate->cmutex);
 
@@ -117,12 +120,11 @@ sstub_send_obj(void *cookie, obj_data_t * obj, int ver_no, int complete)
 }
 
 int
-sstub_get_partial(void *cookie, obj_data_t ** obj)
+sstub_get_partial(void *cookie, obj_data_t **obj)
 {
-
-	cstate_t       *cstate;
+	obj_info_t	*oi;
+	cstate_t	*cstate;
 	int             err;
-	void           *vnum;
 
 	cstate = (cstate_t *) cookie;
 
@@ -134,21 +136,24 @@ sstub_get_partial(void *cookie, obj_data_t ** obj)
 	 * XXX log 
 	 */
 	pthread_mutex_lock(&cstate->cmutex);
-	err = ring_2deq(cstate->partial_obj_ring, (void **) obj,
-			(void **) &vnum);
+	oi = ring_deq(cstate->partial_obj_ring);
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	return (err);
+	if (!oi)
+		return 1;
+
+	*obj = oi->obj;
+	free(oi);
+	return 0;
 }
 
 int
 sstub_flush_objs(void *cookie, int ver_no)
 {
-	cstate_t       *cstate;
+	obj_info_t	*oi;
+	cstate_t	*cstate;
 	int             err;
-	obj_data_t     *obj;
-	void           *junk;
-	void           *vnum;
+	obj_data_t	*obj;
 	listener_state_t *lstate;
 
 	cstate = (cstate_t *) cookie;
@@ -163,35 +168,26 @@ sstub_flush_objs(void *cookie, int ver_no)
 	 */
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->complete_obj_ring,
-				(void **) &junk, (void **) &vnum);
+		oi = ring_deq(cstate->complete_obj_ring);
 		pthread_mutex_unlock(&cstate->cmutex);
 
-		/*
-		 * we got through them all 
-		 */
-		if (err) {
-			break;
-		}
-		obj = (obj_data_t *) junk;
-		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
+		/* we got through them all */
+		if (!oi) break;
+
+		(*lstate->cb.release_obj_cb) (cstate->app_cookie, oi->obj);
+		free(oi);
 	}
 
 	while (1) {
 		pthread_mutex_lock(&cstate->cmutex);
-		err = ring_2deq(cstate->partial_obj_ring,
-				(void **) &junk, (void **) &vnum);
+		oi = ring_deq(cstate->partial_obj_ring);
 		pthread_mutex_unlock(&cstate->cmutex);
 
-		/*
-		 * we got through them all 
-		 */
-		if (err) {
-			return (0);
-		}
-		obj = (obj_data_t *) junk;
-		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
+		/* we got through them all */
+		if (!oi) return 0;
 
+		(*lstate->cb.release_obj_cb) (cstate->app_cookie, oi->obj);
+		free(oi);
 	}
 
 	return (0);

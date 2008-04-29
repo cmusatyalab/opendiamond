@@ -144,7 +144,6 @@ sstub_get_partial(void *cookie, obj_data_t ** obj)
 int
 sstub_flush_objs(void *cookie, int ver_no)
 {
-
 	cstate_t       *cstate;
 	int             err;
 	obj_data_t     *obj;

@@ -16,18 +16,11 @@
 #ifndef	_LIB_HSTUB_H_
 #define	_LIB_HSTUB_H_
 
-
-typedef	void (*hstub_log_data_fn)(void *hcookie, char *data, int len, int dev);
-typedef	void (*hstub_search_done_fn)(void *hcookie, int ver_num);
-typedef	void (*hstub_conn_down_fn)(void *hcookie, int ver_num);
-
-
 typedef struct {
-	hstub_log_data_fn	log_data_cb;
-	hstub_search_done_fn	search_done_cb;
-	hstub_conn_down_fn	conn_down_cb;
+	void (*log_data_cb)	(void *hcookie, char *data, int len, int dev);
+	void (*search_done_cb)	(void *hcookie, int ver_num);
+	void (*conn_down_cb)	(void *hcookie, int ver_num);
 } hstub_cb_args_t;
-
 
 /*
  * This structure keeps track of the state associated with each
@@ -61,8 +54,5 @@ int device_get_session_variables(void *handle, device_session_vars_t **vars);
 int device_set_session_variables(void *handle, device_session_vars_t *vars);
 obj_info_t * device_next_obj(void *handle);
 
-
 #endif	/* _LIB_HSTUB_H_ */
-
-
 

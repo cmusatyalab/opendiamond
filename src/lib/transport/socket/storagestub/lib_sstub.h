@@ -19,63 +19,34 @@
 
 
 /*
- * Typedef's for the callback functions that are passed when initializing
- * the library.
+ * Callback functions that are passed when initializing the library.
  */
-
-typedef	int (*sstub_new_conn_fn)(void *cookie, void **app_cookie);
-typedef	int (*sstub_close_conn_fn)(void *app_cookie);
-typedef	int (*sstub_start_fn)(void *app_cookie, int gen_num);
-typedef	int (*sstub_stop_fn)(void *app_cookie, int gen_num, 
-		host_stats_t *hstats);
-typedef	int (*sstub_set_filter_spec_fn)(void *app_cookie, int gen_num, 
-		sig_val_t *spec_sig);
-typedef	int (*sstub_set_filter_obj_fn)(void *app_cookie, int gen_num, 
-		sig_val_t *obj_sig);
-
-typedef	int (*sstub_terminate_fn)(void *app_cookie, int gen_num);
-typedef	dev_stats_t *(*sstub_getstats_fn)(void *app_cookie, int gen_num);
-typedef	int (*sstub_release_obj_fn)(void *app_cookie, obj_data_t * obj);
-typedef	device_char_t *(*sstub_get_devchar_fn)(void *app_cookie, int gen_num);
-typedef	int (*sstub_set_log_fn)(void *app_cookie, uint32_t level, uint32_t src);
-
-typedef	dctl_rleaf_t *(*sstub_rleaf_fn)(void *app_cookie, char *path);
-typedef	int (*sstub_wleaf_fn)(void *appcookie, char *path, int len, char *data);
-typedef	dctl_lleaf_t *(*sstub_lleaf_fn)(void *app_cookie, char *path);
-typedef	dctl_lnode_t *(*sstub_lnode_fn)(void *app_cookie, char *path);
-typedef	int (*sstub_sgid_fn)(void *app_cookie, int gen_num, groupid_t gid);
-typedef	int (*sstub_clear_gids_fn)(void *app_cookie, int gen_num);
-typedef	int (*sstub_set_blob_fn)(void *app_cookie, int gen_num, char * name,
-                                 int blen, void *blob);
-typedef int (*sstub_set_exec_mode_fn)(void *app_cookie, uint32_t mode);
-typedef int (*sstub_set_user_state_fn)(void *app_cookie, uint32_t state);
-typedef device_session_vars_t *(*sstub_get_session_vars_fn)(void *app_cookie, int gen_num);
-typedef int (*sstub_set_session_vars_fn)(void *app_cookie, int gen_num,
-					 device_session_vars_t *vars);
-
 typedef struct {
-	sstub_new_conn_fn 	    	new_conn_cb;
-	sstub_close_conn_fn 		close_conn_cb;
-	sstub_start_fn 		    	start_cb;
-	sstub_stop_fn 		    	stop_cb;
-	sstub_set_filter_spec_fn	set_fspec_cb;
-	sstub_set_filter_obj_fn		set_fobj_cb;
-	sstub_terminate_fn	    	terminate_cb;
-	sstub_getstats_fn	    	get_stats_cb;
-	sstub_release_obj_fn		release_obj_cb;
-	sstub_get_devchar_fn		get_char_cb;
-	sstub_set_log_fn	    	setlog_cb;
-	sstub_rleaf_fn	        	rleaf_cb;
-	sstub_wleaf_fn	        	wleaf_cb;
-	sstub_lleaf_fn	        	lleaf_cb;
-	sstub_lnode_fn	        	lnode_cb;
-	sstub_sgid_fn	        	sgid_cb;
-	sstub_clear_gids_fn			clear_gids_cb;
-	sstub_set_blob_fn			set_blob_cb;
-	sstub_set_exec_mode_fn 		set_exec_mode_cb;
-	sstub_set_user_state_fn 	set_user_state_cb;
-	sstub_get_session_vars_fn	get_session_vars_cb;
-	sstub_set_session_vars_fn	set_session_vars_cb;
+	int	(*new_conn_cb)	(void *cookie, void **app_cookie);
+	int	(*close_conn_cb) (void *app_cookie);
+	int	(*start_cb)	(void *app_cookie, int gen);
+	int	(*stop_cb)	(void *app_cookie, int gen, host_stats_t *stat);
+	int	(*set_fspec_cb)	(void *app_cookie, int gen, sig_val_t *specsig);
+	int	(*set_fobj_cb)	(void *app_cookie, int gen, sig_val_t *obj_sig);
+	int	(*terminate_cb)	(void *app_cookie, int gen);
+dev_stats_t*	(*get_stats_cb) (void *app_cookie, int gen);
+	int	(*release_obj_cb) (void *app_cookie, obj_data_t *obj);
+device_char_t*	(*get_char_cb)	(void *app_cookie, int gen);
+	int	(*setlog_cb)	(void *app_cookie, uint32_t lvl, uint32_t src);
+dctl_rleaf_t*	(*rleaf_cb)	(void *app_cookie, char *path);
+	int	(*wleaf_cb)	(void *app_cookie, char *path, int len,
+				 char *data);
+dctl_lleaf_t*	(*lleaf_cb)	(void *app_cookie, char *path);
+dctl_lnode_t*	(*lnode_cb)	(void *app_cookie, char *path);
+	int	(*sgid_cb)	(void *app_cookie, int gen, groupid_t gid);
+	int	(*clear_gids_cb) (void *app_cookie, int gen);
+	int	(*set_blob_cb)	(void *app_cookie, int gen, char *name,
+				 int blen, void *blob);
+	int	(*set_exec_mode_cb) (void *app_cookie, uint32_t mode);
+	int	(*set_user_state_cb) (void *app_cookie, uint32_t state);
+device_session_vars_t* (*get_session_vars_cb) (void *app_cookie, int gen);
+	int	(*set_session_vars_cb) (void *app_cookie, int gen,
+					device_session_vars_t *vars);
 } sstub_cb_args_t;
 
 

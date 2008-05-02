@@ -120,7 +120,6 @@ typedef struct listener_state {
 	int			listen_fd;
 	sstub_cb_args_t		cb;
 	cstate_t		conns[MAX_CONNS];
-	struct mrpc_conn_set	*set;
 } listener_state_t;
 
 
@@ -139,13 +138,14 @@ typedef struct listener_state {
 /*
  * Functions exported by sstub_listen.c
  */
-void shutdown_connection(listener_state_t *lstate, cstate_t *cstate);
+void shutdown_connection(cstate_t *cstate);
 int sstub_new_sock(int *fd, const char *port, int bind_only_locally);
 
 /*
  * Functions exported by sstub_cntrl.c
  */
-int sstub_bind_conn(cstate_t *new_cstate);
+/* minirpc server operations */
+const struct rpc_client_content_server_operations *sstub_ops;
 
 /*
  * Functions exported by sstub_data.c
@@ -157,6 +157,6 @@ void sstub_except_data(cstate_t *cstate);
 /*
  * Functions exported by sstub_conn.c
  */
-void connection_main(listener_state_t *lstate, int conn);
+void connection_main(cstate_t *cstate);
 
 #endif /* !_SSTUB_IMPL_H_ */

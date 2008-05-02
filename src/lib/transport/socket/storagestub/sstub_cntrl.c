@@ -506,7 +506,7 @@ err_out:
 	return err;
 }
 
-const struct rpc_client_content_server_operations ops = {
+static const struct rpc_client_content_server_operations ops = {
 	.device_start = device_start,
 	.device_stop = device_stop,
 	.device_terminate = device_terminate,
@@ -527,14 +527,4 @@ const struct rpc_client_content_server_operations ops = {
 	.session_variables_get = session_variables_get,
 	.session_variables_set = session_variables_set,
 };
-
-int sstub_bind_conn(cstate_t *cstate)
-{
-	if (mrpc_conn_create(&cstate->mrpc_conn, cstate->lstate->set, cstate))
-		return -1;
-
-	rpc_client_content_server_set_operations(cstate->mrpc_conn, &ops);
-
-	return mrpc_bind_fd(cstate->mrpc_conn, cstate->control_fd);
-}
-
+const struct rpc_client_content_server_operations *sstub_ops = &ops;

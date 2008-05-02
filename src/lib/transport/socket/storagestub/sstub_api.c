@@ -42,9 +42,6 @@
 #include "sstub_impl.h"
 #include "ports.h"
 
-#include <minirpc/minirpc.h>
-#include "rpc_client_content_server.h"
-
 /*
  * XXX do we manage the complete ring also?? 
  */
@@ -117,7 +114,6 @@ int
 sstub_get_partial(void *cookie, obj_data_t **obj)
 {
 	cstate_t	*cstate;
-	int		err;
 
 	cstate = (cstate_t *) cookie;
 
@@ -140,7 +136,6 @@ sstub_flush_objs(void *cookie)
 {
 	cstate_t	*cstate;
 	obj_data_t	*obj;
-	int		err;
 	listener_state_t *lstate;
 
 	cstate = (cstate_t *) cookie;
@@ -195,21 +190,6 @@ sstub_init(sstub_cb_args_t *cb_args, int bind_only_locally)
 
 	/* Save all the callback functions. */
 	lstate->cb = *cb_args;
-
-	if (mrpc_conn_set_create(&lstate->set, rpc_client_content_server, NULL))
-	{
-		printf("failed to create minirpc connection set\n");
-		free(lstate);
-		return NULL;
-	}
-
-	if (mrpc_start_dispatch_thread(lstate->set))
-	{
-		printf("failed to start minirpc dispatch thread\n");
-		mrpc_conn_set_unref(lstate->set);
-		free(lstate);
-		return NULL;
-	}
 
 	/* Open the listener sockets for the different types of connections. */
 	err = sstub_new_sock(&lstate->listen_fd, diamond_get_control_port(),

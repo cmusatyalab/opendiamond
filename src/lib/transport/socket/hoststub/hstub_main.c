@@ -173,16 +173,19 @@ err_out:
 	return err;
 }
 
-void
+static void
 hstub_conn_down(sdevice_state_t * dev)
 {
 	/* callback to mark the search done */
 	(*dev->cb.conn_down_cb) (dev->hcookie);
 
-	/* set the flag */
+	/* signal shutdown for the minirpc connection */
+	mrpc_conn_close(dev->con_data.rpc_client);
+
+	/* and make sure the connection is marked as down */
+	pthread_mutex_lock(&dev->con_data.mutex);
 	dev->con_data.flags |= CINFO_DOWN;
-	log_message(LOGT_NET, LOGL_CRIT, "hstub_conn_down: Killing thread..\n");
-	pthread_exit(0);
+	pthread_mutex_unlock(&dev->con_data.mutex);
 }
 
 
@@ -225,14 +228,20 @@ hstub_main(void *arg)
 	 * is available for processing.
 	 */
 	while (1) {
+		int closed;
 
 		/* if the connection has been marked down then we
 		 * exit for now.
 		 * TODO: future version should possibly start over.
 		 */
-		if (cinfo->flags & CINFO_DOWN) {
-		  log_message(LOGT_NET, LOGL_CRIT,
-			      "hstub_main: conn marked down. Killing thread..\n");			pthread_exit(0);
+		pthread_mutex_lock(&dev->con_data.mutex);
+		closed = (cinfo->flags & CINFO_DOWN);
+		pthread_mutex_unlock(&dev->con_data.mutex);
+
+		if (closed) {
+			log_message(LOGT_NET, LOGL_CRIT,
+				    "hstub_main: conn marked down...\n");
+			break;
 		}
 
 		gettimeofday(&this_time, &tz);
@@ -244,19 +253,23 @@ hstub_main(void *arg)
 
 		if (((this_time.tv_sec == next_time.tv_sec) &&
 		     (this_time.tv_usec >= next_time.tv_usec)) ||
-		    (this_time.tv_sec > next_time.tv_sec)) {
-
-			if((request_chars(dev) < 0) || (request_stats(dev) < 0)) {
-			  log_message(LOGT_NET, LOGL_CRIT,
-				      "hstub_main: RPC calls are failing. Killing thread..\n");
-			  hstub_conn_down(dev);
+		    (this_time.tv_sec > next_time.tv_sec))
+		{
+			if ((request_chars(dev) < 0) ||
+			    (request_stats(dev) < 0))
+			{
+				log_message(LOGT_NET, LOGL_CRIT,
+					    "hstub_main: RPC calls are failing."
+					    " Killing thread..\n");
+				break;
 			}
 
 			assert(POLL_USECS < 1000000);
 			next_time.tv_sec = this_time.tv_sec + POLL_SECS;
 			next_time.tv_usec = this_time.tv_usec + POLL_USECS;
 
-			if (next_time.tv_usec >= 1000000) {
+			if (next_time.tv_usec >= 1000000)
+			{
 				next_time.tv_usec -= 1000000;
 				next_time.tv_sec += 1;
 			}
@@ -283,20 +296,31 @@ hstub_main(void *arg)
 		err = select(max_fd, &read_fds, &write_fds, &except_fds, &to);
 		if (err == -1) {
 			log_message(LOGT_NET, LOGL_CRIT,
-				    "hstub_main: broken socket");
-			hstub_conn_down(dev);
+				    "hstub_main: select failed");
+			break;
 		}
 
-		if (err > 0) {
-			if (FD_ISSET(cinfo->data_fd, &read_fds)) {
-				hstub_read_data(dev);
-			}
-			if (FD_ISSET(cinfo->data_fd, &except_fds)) {
-				hstub_except_data(dev);
-			}
-			if (FD_ISSET(cinfo->data_fd, &write_fds)) {
-				hstub_write_data(dev);
-			}
+		if (err == 0)
+			continue;
+
+		if (FD_ISSET(cinfo->data_fd, &read_fds))
+			if (hstub_read_data(dev))
+				break;
+
+		if (FD_ISSET(cinfo->data_fd, &write_fds))
+			if (hstub_write_data(dev))
+				break;
+
+		if (FD_ISSET(cinfo->data_fd, &except_fds)) {
+			log_message(LOGT_NET, LOGL_CRIT,
+				    "hstub_main: exception on data fd");
+			break;
 		}
 	}
+
+	hstub_conn_down(dev);
+
+	log_message(LOGT_NET, LOGL_CRIT, "hstub_main: Killing thread..\n");
+	pthread_exit(0);
 }
+

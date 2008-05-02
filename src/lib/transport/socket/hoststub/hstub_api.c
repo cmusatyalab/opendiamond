@@ -147,6 +147,11 @@ device_terminate(void *handle)
 
 	retval = rpc_client_content_device_terminate(dev->con_data.rpc_client);
 
+	/* mark the connection as closing/closed */
+	pthread_mutex_lock(&dev->con_data.mutex);
+	dev->con_data.flags |= CINFO_DOWN;
+	pthread_mutex_unlock(&dev->con_data.mutex);
+
 	return rpc_postproc(__FUNCTION__, retval);
 }
 

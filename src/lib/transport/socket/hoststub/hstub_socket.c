@@ -46,6 +46,15 @@
 #include "rpc_client_content_client.h"
 
 
+static void disconnect_cb(void *conn_data, enum mrpc_disc_reason reason)
+{
+    conn_info_t *cinfo = (conn_info_t *)conn_data;
+
+    pthread_mutex_lock(&cinfo->mutex);
+    cinfo->flags |= CINFO_DOWN;
+    pthread_mutex_unlock(&cinfo->mutex);
+}
+
 static struct mrpc_conn_set *mrpc_cset;
 static int init_minirpc(void)
 {
@@ -54,6 +63,12 @@ static int init_minirpc(void)
 	if (mrpc_conn_set_create(&mrpc_cset, rpc_client_content_client, NULL)) {
 		log_message(LOGT_NET, LOGL_ERR,
 			    "mrpc_conn_set_create failed");
+		return -1;
+	}
+	if (mrpc_set_disconnect_func(mrpc_cset, disconnect_cb)) {
+		log_message(LOGT_NET, LOGL_ERR,
+			    "mrpc_set_disconnect_func failed");
+		mrpc_conn_set_unref(mrpc_cset);
 		return -1;
 	}
 	if (mrpc_start_dispatch_thread(mrpc_cset)) {
@@ -210,7 +225,7 @@ hstub_establish_connection(conn_info_t *cinfo, const char *host)
 	cinfo->data_rx_state = DATA_RX_NO_PENDING;
 
 	/* hand the control socket over to minirpc. */
-	if (mrpc_conn_create(&cinfo->rpc_client, mrpc_cset, NULL)) {
+	if (mrpc_conn_create(&cinfo->rpc_client, mrpc_cset, cinfo)) {
 		log_message(LOGT_NET, LOGL_ERR, "mrpc_conn_create failed");
 		goto err_out;
 	}

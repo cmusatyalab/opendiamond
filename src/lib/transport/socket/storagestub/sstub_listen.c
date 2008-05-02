@@ -116,11 +116,10 @@ register_stats(cstate_t * cstate)
  */
 
 void
-shutdown_connection(listener_state_t * lstate, cstate_t * cstate)
+shutdown_connection(cstate_t * cstate)
 {
-
 	/*
-	 * set the flag to indicate we are shutting down 
+	 * set the flag to indicate we are shutting down
 	 */
 	pthread_mutex_lock(&cstate->cmutex);
 	cstate->flags |= CSTATE_SHUTTING_DOWN;
@@ -130,38 +129,31 @@ shutdown_connection(listener_state_t * lstate, cstate_t * cstate)
 	/*
 	 * Notify the "application" through the callback.
 	 */
-	(*lstate->cb.close_conn_cb) (cstate->app_cookie);
+	(*cstate->lstate->cb.close_conn_cb) (cstate->app_cookie);
 
 	/*
-	 * if there is a control socket, close it 
+	 * if there is a control socket, close it
 	 */
 	if (cstate->flags & CSTATE_CNTRL_FD) {
-		mrpc_conn_close(cstate->mrpc_conn);
+		close(cstate->control_fd);
 		cstate->flags &= ~CSTATE_CNTRL_FD;
 	}
 
+	/* If the main thread has been started it will clear the remaining
+	 * flags and close the data fd */
+	if (cstate->flags & CSTATE_ESTABLISHED)
+		return;
+
 	/*
-	 * if there is a data socket, close it 
+	 * if there is a data socket, close it
 	 */
 	if (cstate->flags & CSTATE_DATA_FD) {
 		close(cstate->data_fd);
 		cstate->flags &= ~CSTATE_DATA_FD;
 	}
 
-	/*
-	 * clear the established flag 
-	 */
-	cstate->flags &= ~CSTATE_ESTABLISHED;
-	cstate->flags &= ~CSTATE_ALLOCATED;
-
-	/*
-	 * XXX do we need this ?? 
-	 */
 	cstate->flags &= ~CSTATE_SHUTTING_DOWN;
-
-	/*
-	 * XXX we need to clean up other state such as queued data .... 
-	 */
+	cstate->flags &= ~CSTATE_ALLOCATED;
 }
 
 
@@ -262,7 +254,7 @@ have_full_conn(listener_state_t * list_state, int conn)
 		/*
 		 * XXX 
 		 */
-		printf("failed to init obj ring \n");
+		printf("failed to init complete obj ring \n");
 		return;
 	}
 
@@ -271,39 +263,41 @@ have_full_conn(listener_state_t * list_state, int conn)
 		/*
 		 * XXX 
 		 */
-		printf("failed to init obj ring \n");
+		printf("failed to init partial obj ring \n");
 		return;
 	}
+
+	cstate->lstate = list_state;
 
 	parent = (*list_state->cb.new_conn_cb) ((void *) cstate, &new_cookie);
 	if (parent) {
-		shutdown_connection(list_state, cstate);
-	} else {
-		/*
-		 * we registered correctly, save the cookie;
-		 */
-		list_state->conns[conn].app_cookie = new_cookie;
-
-		/*
-		 * Register the statistics with dctl.  This needs to be
-		 * done after the new_conn_cb()  !!!.
-		 */
-		register_stats(cstate);
-
-		cstate->attr_policy = DEFAULT_NW_ATTR_POLICY;
-		cstate->attr_threshold = RAND_MAX;
-		cstate->attr_ratio = DEFAULT_NW_ATTR_RATIO;
-
-		/*
-		 * the main thread for this process is used
-		 * for servicing the connections.
-		 */
-		connection_main(list_state, conn);
+		shutdown_connection(cstate);
 		return;
 	}
+
+	/*
+	 * we registered correctly, save the cookie;
+	 */
+	cstate->app_cookie = new_cookie;
+
+	/*
+	 * Register the statistics with dctl.  This needs to be
+	 * done after the new_conn_cb()  !!!.
+	 */
+	register_stats(cstate);
+
+	cstate->attr_policy = DEFAULT_NW_ATTR_POLICY;
+	cstate->attr_threshold = RAND_MAX;
+	cstate->attr_ratio = DEFAULT_NW_ATTR_RATIO;
+
+	/*
+	 * the main thread of this process is used
+	 * for servicing the connections.
+	 */
+	connection_main(cstate);
 }
 
-const sig_val_t nullsig;
+static const sig_val_t nullsig;
 
 /* create a unique nonce, hashing the contents of /proc/stat on Linux has the
  * nice property that it contains various timers and interrupt counters */
@@ -403,7 +397,7 @@ accept_connection(listener_state_t * list_state)
 
 err_out:
 	if (conn->flags & CSTATE_CNTRL_FD)
-		mrpc_conn_close(conn->mrpc_conn);
+		close(conn->control_fd);
 	if (conn->flags & CSTATE_DATA_FD)
 		close(conn->data_fd);
 	conn->flags &= ~(CSTATE_ALLOCATED | CSTATE_CNTRL_FD | CSTATE_DATA_FD);
@@ -421,8 +415,8 @@ sstub_listen(void *cookie)
 {
 	listener_state_t *list_state;
 	struct timeval  now;
-	int             err;
-	int             max_fd = 0;
+	int		n;
+	int		max_fd = 0;
 	fd_set		read_fds;
 
 	list_state = (listener_state_t *) cookie;
@@ -438,19 +432,14 @@ sstub_listen(void *cookie)
 	 * Sleep on the set of sockets to see if anything
 	 * interesting has happened.
 	 */
-	err = select(max_fd, &read_fds, NULL, NULL, &now);
-	if (err == -1) {
+	n = select(max_fd, &read_fds, NULL, NULL, &now);
+	if (n == -1) {
 		/* XXX log */
 		printf("XXX select failed \n");
 		exit(1);
 	}
 
-	/*
-	 * If err > 0 then there are some objects
-	 * that have data.
-	 */
-	if (err > 0) {
-		if (FD_ISSET(list_state->listen_fd, &read_fds))
-			accept_connection(list_state);
-	}
+	if (n && FD_ISSET(list_state->listen_fd, &read_fds))
+		accept_connection(list_state);
 }
+

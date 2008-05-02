@@ -85,15 +85,13 @@ int rpc_postproc(const char *func, mrpc_status_t ret);
 /*
  * Functions availabe in hstub_main.c
  */
-void * hstub_main(void *arg);
-void hstub_conn_down(sdevice_state_t *dev);
+void *hstub_main(void *arg);
 
 /*
  * Functions available in hstub_data.c
  */
-void hstub_read_data(sdevice_state_t *dev);
-void hstub_except_data(sdevice_state_t *dev);
-void hstub_write_data(sdevice_state_t *dev);
+int hstub_read_data(sdevice_state_t *dev);
+int hstub_write_data(sdevice_state_t *dev);
 
 /*
  * Functions available in hstub_socket.h.

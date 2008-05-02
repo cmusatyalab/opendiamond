@@ -47,7 +47,7 @@
  * This is called when there is data waiting on
  * the object socket.
  */
-void
+int
 hstub_read_data(sdevice_state_t * dev)
 {
 	obj_data_t     *obj;
@@ -132,12 +132,11 @@ hstub_read_data(sdevice_state_t * dev)
 				 */
 				cinfo->data_rx_state = DATA_RX_HEADER;
 				cinfo->data_rx_offset = header_offset;
-				return;
+				return 0;
 			} else {
 			    	log_message(LOGT_NET, LOGL_CRIT,
 			    	    "hstub_read_data: broken socket");
-				hstub_conn_down(dev);
-				return;
+				return -1;
 			}
 		}
 
@@ -148,7 +147,7 @@ hstub_read_data(sdevice_state_t * dev)
 		if (rsize != header_remain) {
 			cinfo->data_rx_state = DATA_RX_HEADER;
 			cinfo->data_rx_offset = header_offset + rsize;
-			return;
+			return 0;
 		}
 
 
@@ -162,8 +161,7 @@ hstub_read_data(sdevice_state_t * dev)
 		    != OBJ_MAGIC_HEADER) {
 			log_message(LOGT_NET, LOGL_CRIT,
 			    "hstub_read_data: bad magic");
-			hstub_conn_down(dev);
-			return;
+			return -1;
 		}
 
 		/*
@@ -181,8 +179,7 @@ hstub_read_data(sdevice_state_t * dev)
 			if (adata == NULL) {
 				log_message(LOGT_NET, LOGL_CRIT,
 			    	    "hstub_read_data: malloc failed");
-				hstub_conn_down(dev);
-				return;
+				return -1;
 			}
 		} else {
 			adata = NULL;
@@ -196,8 +193,7 @@ hstub_read_data(sdevice_state_t * dev)
 			if (odata == NULL) {
 				log_message(LOGT_NET, LOGL_CRIT,
 			    	    "hstub_read_data: malloc failed");
-				hstub_conn_down(dev);
-				return;
+				return -1;
 			}
 		} else {
 			odata = NULL;
@@ -213,8 +209,7 @@ hstub_read_data(sdevice_state_t * dev)
 		if (obj == NULL) {
 			log_message(LOGT_NET, LOGL_CRIT,
 			    "hstub_read_data: malloc failed");
-			hstub_conn_down(dev);
-			return;
+			return -1;
 		}
 		obj->data_len = dlen;
 		obj->data = odata;
@@ -257,12 +252,11 @@ hstub_read_data(sdevice_state_t * dev)
 				 */
 				cinfo->data_rx_state = DATA_RX_ATTR;
 				cinfo->data_rx_offset = attr_offset;
-				return;
+				return 0;
 			} else {
 				log_message(LOGT_NET, LOGL_CRIT,
 			    	    "hstub_read_data: socket down");
-				hstub_conn_down(dev);
-				return;
+				return -1;
 			}
 		}
 
@@ -272,7 +266,7 @@ hstub_read_data(sdevice_state_t * dev)
 			 */
 			cinfo->data_rx_state = DATA_RX_ATTR;
 			cinfo->data_rx_offset = attr_offset + rsize;
-			return;
+			return 0;
 		}
 	}
 
@@ -296,12 +290,11 @@ hstub_read_data(sdevice_state_t * dev)
 				 */
 				cinfo->data_rx_state = DATA_RX_DATA;
 				cinfo->data_rx_offset = data_offset;
-				return;
+				return 0;
 			} else {
 				log_message(LOGT_NET, LOGL_CRIT,
 			    	    "hstub_read_data: socket down");
-				hstub_conn_down(dev);
-				return;
+				return -1;
 			}
 		}
 
@@ -313,7 +306,7 @@ hstub_read_data(sdevice_state_t * dev)
 
 			cinfo->data_rx_state = DATA_RX_DATA;
 			cinfo->data_rx_offset = data_offset + rsize;
-			return;
+			return 0;
 		}
 	}
 
@@ -339,12 +332,7 @@ hstub_read_data(sdevice_state_t * dev)
 		assert(err == 0);
 		dev->con_data.flags |= CINFO_PENDING_CREDIT;
 	}
-}
-
-void
-hstub_except_data(sdevice_state_t * dev)
-{
-	printf("except_data \n");
+	return 0;
 }
 
 
@@ -353,7 +341,7 @@ hstub_except_data(sdevice_state_t * dev)
  * count onto the data channel.
  */
 
-void
+int
 hstub_write_data(sdevice_state_t * dev)
 {
 	conn_info_t    *cinfo;
@@ -368,9 +356,8 @@ hstub_write_data(sdevice_state_t * dev)
 	 * credit count messages.
 	 */
 
-	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0) {
-		return;
-	}
+	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0)
+		return 0;
 
 	/*
 	 * build the credit count messages using the current state 
@@ -391,12 +378,11 @@ hstub_write_data(sdevice_state_t * dev)
 	while (mcount > 0) {
 		send_size = send(cinfo->data_fd, data, mcount, 0);
 		if (send_size == -1) {
-			if (errno == EAGAIN) {
-				continue;
-			} else {
+			if (errno != EAGAIN) {
 				perror("hstub_write_data");
-				return;
+				return -1;
 			}
+			continue;
 		}
 		mcount -= send_size;
 		data += send_size;
@@ -406,4 +392,6 @@ hstub_write_data(sdevice_state_t * dev)
 	 * if successful, clear the flag 
 	 */
 	cinfo->flags &= ~CINFO_PENDING_CREDIT;
+	return 0;
 }
+

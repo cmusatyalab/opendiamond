@@ -771,28 +771,20 @@ device_main(void *arg)
 		/*
 		 * XXX look for data from device to process.
 		 */
-		if ((sstate->flags & DEV_FLAG_RUNNING) &&
-		    (sstate->pend_objs < sstate->pend_max)) {
-
+		if (!(sstate->flags & DEV_FLAG_RUNNING)) {
+			clear_good_objs(&gobj);
+		}
+		else if (sstate->pend_objs < sstate->pend_max) {
 			/*
 			 * If we ever did lookahead to heat the cache
 			 * we now inject those names back into the processing
 			 * stages. If the lookahead was from a previous
 			 * search we will just clean up otherwise tell
 			 * the cache eval code about the objects.
-			 */	
+			 */
 			if (lookahead) {
-#warning "Check this"
-#if 0
-				if (gobj.ver_no != sstate->ver_no) {
-					clear_good_objs(&gobj, sstate->ver_no);
-				} else
-#endif
-				{
-					ceval_inject_names(gobj.nlist, 
-							   gobj.num_names);
-					init_good_objs(&gobj);
-				}
+				ceval_inject_names(gobj.nlist, gobj.num_names);
+				init_good_objs(&gobj);
 				lookahead = 0;
 			}
 			force_eval = 0;
@@ -904,8 +896,8 @@ device_main(void *arg)
 					}
 				}
 			}
-		} else if ((sstate->flags & DEV_FLAG_RUNNING) &&
-		    sstate->work_ahead) {
+		}
+		else if (sstate->work_ahead) {
 			/* 
 			 * If work ahead is enabled we continue working
 			 * on the objects.  We keep track of the ones that
@@ -936,7 +928,7 @@ device_main(void *arg)
 			} else {
 				sstate->tx_full_stalls++;
 			}
-		} else if ((sstate->flags & DEV_FLAG_RUNNING)) {
+		} else {
 			sstate->tx_full_stalls++;
 		}
 

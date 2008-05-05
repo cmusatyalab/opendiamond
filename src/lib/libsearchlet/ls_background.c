@@ -539,20 +539,6 @@ bg_main(void *arg)
 			new_obj = get_next_object(sc);
 			if (new_obj) {
 				any = 1;
-#warning "Check this"
-#if 0
-				/*
-				 * Make sure the version number is the
-				 * latest.  If it is not equal, then this
-				 * is probably data left over from a previous
-				 * search that is working its way through
-				 * the system.
-				 */
-				if (sc->cur_search_id != obj_info->ver_num) {
-					ls_release_object(sc, new_obj);
-					continue;
-				}
-#endif
 				/*
 				 * Now that we have an object, go ahead
 				 * an evaluate all the filters on the

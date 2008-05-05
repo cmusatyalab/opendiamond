@@ -93,7 +93,6 @@ typedef enum {
 #define	OBJ_QUEUE_SIZE		1024
 struct filter_info;
 typedef struct search_context {
-	int			Xcur_search_id;	/* ID of current search */
 	double			avg_proc_time;	/* time spent per object */
 	device_handle_t *	dev_list;
 	device_handle_t *	last_dev;

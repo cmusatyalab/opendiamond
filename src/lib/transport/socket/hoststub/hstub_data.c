@@ -205,12 +205,9 @@ hstub_read_data(sdevice_state_t * dev)
 		 * and populate it.
 		 */
 
-		obj = (obj_data_t *) malloc(sizeof(*obj));
-		if (obj == NULL) {
-			log_message(LOGT_NET, LOGL_CRIT,
-			    "hstub_read_data: malloc failed");
-			return -1;
-		}
+		obj = odisk_null_obj();
+		assert(obj != NULL);
+
 		obj->data_len = dlen;
 		obj->data = odata;
 		obj->base = odata;
@@ -325,7 +322,7 @@ hstub_read_data(sdevice_state_t * dev)
 	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0))
 	{
 		(*dev->cb.search_done_cb) (dev->hcookie);
-		free(cinfo->data_rx_obj);
+		odisk_release_obj(cinfo->data_rx_obj);
 	} else {
 		/* XXX put it into the object ring */
 		err = ring_enq(dev->obj_ring, cinfo->data_rx_obj);

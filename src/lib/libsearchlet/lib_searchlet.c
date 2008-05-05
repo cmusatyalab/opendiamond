@@ -87,7 +87,6 @@ ls_init_search()
 
 	log_init(LOG_PREFIX, ROOT_PATH);
 
-	sc->Xcur_search_id = 1;	/* XXX should we randomize ??? */
 	sc->dev_list = NULL;
 	sc->cur_status = SS_EMPTY;
 	sc->bg_status = 0;
@@ -114,6 +113,20 @@ ls_init_search()
 	return ((ls_search_handle_t) sc);
 }
 
+/* flush any pending objects from the queues */
+static void
+drain_queues(search_context_t *sc)
+{
+	device_handle_t *dev;
+	obj_data_t *obj;
+
+	for (dev = sc->dev_list; dev != NULL; dev = dev->next)
+		device_drain_objs(dev->dev_handle);
+
+	while ((obj = ring_deq(sc->proc_ring)) != NULL)
+		odisk_release_obj(obj);
+}
+
 
 /*
  * This stops the any current searches and releases the state
@@ -133,7 +146,7 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 {
 	search_context_t *sc;
 	device_handle_t *cur_dev;
-	int             err;
+	int err;
 
 	sc = (search_context_t *) handle;
 
@@ -163,15 +176,13 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 			}
 		}
 	}
-	/*
-	 * change the search id 
-	 */
-	sc->Xcur_search_id++;
 
 	/*
 	 * change to indicated we are shutting down 
 	 */
 	sc->cur_status = SS_SHUTDOWN;
+
+	drain_queues(sc);
 
 	/*
 	 * XXX think more about the shutdown.  How do we 
@@ -465,9 +476,6 @@ ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
 		printf("still idle \n");
 		return (EINVAL);
 	}
-
-	/* change the search id */
-	sc->Xcur_search_id++;
 
 	/* copy object file to the object cache directory */
 	if (cache_spec(filter_spec_name, &spec_sig)) {
@@ -816,35 +824,20 @@ ls_start_search(ls_search_handle_t handle)
 }
 
 
+int
+ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
+{
+	obj_data_t *obj = (obj_data_t *) obj_handle;
+
+	if (!obj) return 0;
+	return odisk_release_obj(obj);
+}
+
 /*
  * This stops the current search.  We actually do an async shutdown
  * by changing the sequence number (so that we will just drop incoming
  * data) and asynchronously sending messages to the disk to stop processing.
  */
-
-int
-ls_release_object(ls_search_handle_t handle, ls_obj_handle_t obj_handle)
-{
-	obj_data_t     *new_obj;
-	obj_adata_t    *cur,
-	               *next;
-
-	new_obj = (obj_data_t *) obj_handle;
-
-	if (new_obj->base != NULL) {
-		free(new_obj->base);
-	}
-
-	cur = new_obj->attr_info.attr_dlist;
-	while (cur != NULL) {
-		next = cur->adata_next;
-		free(cur->adata_base);
-		free(cur);
-		cur = next;
-	}
-	free(new_obj);
-	return (0);
-}
 
 int
 ls_abort_search(ls_search_handle_t handle)
@@ -860,8 +853,7 @@ ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as)
 {
 	search_context_t *sc;
 	device_handle_t *cur_dev;
-	int             err;
-	int             ret_err;
+	int err, ret_err;
 
 	sc = (search_context_t *) handle;
 
@@ -874,7 +866,7 @@ ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as)
 	}
 
 	log_message(LOGT_BG, LOGL_TRACE, "ls_abort_search");
-		
+
 	err = bg_stop_search(sc);
 	if (err) {
 		/*
@@ -902,10 +894,7 @@ ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as)
 		}
 	}
 
-	/*
-	 * change the search id 
-	 */
-	sc->Xcur_search_id++;
+	drain_queues(sc);
 
 	/*
 	 * change the current state to idle 
@@ -964,7 +953,6 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 	 * then we either spin or return EWOULDBLOCK based on the
 	 * flags.
 	 */
-      again:
 	while ((obj_data = ring_deq(sc->proc_ring)) == NULL) {
 
 		/*
@@ -995,13 +983,6 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 		timeout.tv_nsec = 10000000;	/* 10 ms */
 		nanosleep(&timeout, NULL);
 	}
-#warning "Check this"
-#if 0
-	if (sc->cur_search_id != obj_info->ver_num) {
-		ls_release_object(sc, obj_data);
-		goto again;
-	}
-#endif
 	sc->host_stats.hs_objs_read++;
 	/*
 	 * XXX how should we get this state really ?? 

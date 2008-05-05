@@ -52,6 +52,7 @@ int device_set_user_state(void *handle, uint32_t state);
 int device_get_session_variables(void *handle, device_session_vars_t **vars);
 int device_set_session_variables(void *handle, device_session_vars_t *vars);
 obj_data_t * device_next_obj(void *handle);
+void device_drain_objs(void *handle);
 
 #endif	/* _LIB_HSTUB_H_ */
 

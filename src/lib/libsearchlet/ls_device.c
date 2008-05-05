@@ -100,19 +100,6 @@ dev_search_done_cb(void *hcookie)
 	log_message(LOGT_BG, LOGL_INFO, "device %s search is complete",
 	    dev->dev_name);
 
-#warning "Check this"
-#if 0
-	/*
-	 * If this version number doesn't match this was
-	 * an old message stuck in the queue.
-	 */
-	if (dev->sc->cur_search_id != ver_no) {
-		log_message(LOGT_BG, LOGL_INFO, 
-		    "search_done_cb:  version mismatch got %d expected %d",
-		    ver_no, dev->sc->cur_search_id);
-		return;
-	}
-#endif
 	dev->flags |= DEV_FLAG_COMPLETE;
 	time(&cur_time);
 	delta = cur_time - dev->start_time;

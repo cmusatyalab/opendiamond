@@ -204,6 +204,17 @@ device_next_obj(void *handle)
 	return obj;
 }
 
+void
+device_drain_objs(void *handle)
+{
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
+	obj_data_t     *obj;
+
+	while ((obj = ring_deq(dev->obj_ring)) != NULL)
+		odisk_release_obj(obj);
+
+	dev->con_data.flags |= CINFO_PENDING_CREDIT;
+}
 
 int
 device_new_gid(void *handle, groupid_t gid)

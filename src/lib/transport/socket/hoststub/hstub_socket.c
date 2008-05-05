@@ -48,11 +48,11 @@
 
 static void disconnect_cb(void *conn_data, enum mrpc_disc_reason reason)
 {
-    conn_info_t *cinfo = (conn_info_t *)conn_data;
+	conn_info_t *cinfo = (conn_info_t *)conn_data;
 
-    pthread_mutex_lock(&cinfo->mutex);
-    cinfo->flags |= CINFO_DOWN;
-    pthread_mutex_unlock(&cinfo->mutex);
+	pthread_mutex_lock(&cinfo->mutex);
+	cinfo->flags |= CINFO_DOWN;
+	pthread_mutex_unlock(&cinfo->mutex);
 }
 
 static struct mrpc_conn_set *mrpc_cset;

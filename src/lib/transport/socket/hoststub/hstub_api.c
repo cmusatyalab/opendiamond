@@ -754,6 +754,7 @@ device_get_session_variables(void *handle, device_session_vars_t **vars)
 	enum clnt_stat retval;
 	int err;
 
+	*vars = NULL;
 	memset(&rc, 0, sizeof(rc));
 	if (rpc_preproc(__FUNCTION__, &dev->con_data))
 		return -1;

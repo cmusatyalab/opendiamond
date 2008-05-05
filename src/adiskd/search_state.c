@@ -932,6 +932,12 @@ device_main(void *arg)
 			if (err == 0) {
 				any = 1;	
 				lookahead = 1;
+
+				/*
+				 * XXX anomaly detection stuff, not in right place
+				 */
+				new_obj->session_variables_state = sstate->session_variables_state;
+
 				qinfo.session = sstate->cinfo;
 				qinfo.query_id = sstate->ver_no;
 				pass = ceval_filters2(new_obj, sstate->fdata,

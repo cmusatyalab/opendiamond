@@ -1220,8 +1220,8 @@ search_get_char(void *app_cookie)
 	sstate = (search_state_t *) app_cookie;
 
 	dev_char->dc_isa = DEV_ISA_IA32;
-	dev_char->dc_speed = (r_cpu_freq(&val) ? 0 : val);
-	dev_char->dc_mem = (r_freemem(&val) ? 0 : val);
+	dev_char->dc_speed = 0;
+	dev_char->dc_mem = 0;
 
 	return dev_char;
 }

@@ -39,7 +39,6 @@
 #include <glib.h>
 #include "sig_calc.h"
 #include "ring.h"
-#include "rstat.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "obj_attr.h"

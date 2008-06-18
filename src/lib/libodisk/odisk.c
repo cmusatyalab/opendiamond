@@ -40,6 +40,7 @@
 #include "odisk_priv.h"
 #include "sys_attr.h"
 #include "dconfig_priv.h"
+#include "ocache_priv.h"
 
 
 #define	MAX_READ_THREADS	1

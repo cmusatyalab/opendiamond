@@ -226,6 +226,27 @@ int             fexec_estimate_cost(filter_data_t * fdata,
 void		update_filter_order(filter_data_t * fdata, const permutation_t * perm);
 
 
+void	    	optimize_filter_order(filter_data_t * fdata, 
+			opt_policy_t * policy);
+double	    	tv_diff(struct timeval *end, struct timeval *start);
+int             eval_filters(obj_data_t * obj_handle,
+			     filter_data_t * fdata, int force_eval,
+			     double *elapsed,
+			     void *cookie,
+			     int (*continue_cb)(void* vookie),
+			     int (*cb_func) (void *cookie, char *name,
+					     int *pass,
+					     uint64_t *
+					     et));
+
+void            fexec_clear_stats(filter_data_t * fdata);
+
+const char           *fexec_cur_filtname(void);
+
+int             fexec_estimate_cost(filter_data_t * fdata,
+				    permutation_t * perm, int gen, int indep,
+				    float *cost);
+
 
 extern filter_info_t *fexec_active_filter;
 

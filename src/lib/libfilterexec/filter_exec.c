@@ -45,6 +45,7 @@
 #include "fexec_history.h"
 #include "dconfig_priv.h"
 #include "odisk_priv.h"
+#include "ocache_priv.h"
 
 
 /*

@@ -40,6 +40,7 @@
 #include "dctl_common.h"
 #include "lib_search_priv.h"
 #include "lib_filterexec.h"
+#include "filter_priv.h"
 
 
 /*

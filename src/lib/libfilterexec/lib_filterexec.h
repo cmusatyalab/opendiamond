@@ -109,21 +109,8 @@ int             fexec_init_search(filter_data_t * fdata);
 diamond_public
 int             fexec_term_search(filter_data_t * fdata);
 
-void	    	optimize_filter_order(filter_data_t * fdata, 
-			opt_policy_t * policy);
-double	    	tv_diff(struct timeval *end, struct timeval *start);
-int             eval_filters(obj_data_t * obj_handle,
-			     filter_data_t * fdata, int force_eval,
-			     double *elapsed,
-			     void *cookie,
-			     int (*continue_cb)(void* vookie),
-			     int (*cb_func) (void *cookie, char *name,
-					     int *pass,
-					     uint64_t *
-					     et));
 diamond_public
 int             fexec_num_filters(filter_data_t * fdata);
-void            fexec_clear_stats(filter_data_t * fdata);
 
 diamond_public
 double          fexec_get_load(filter_data_t * fdata);
@@ -135,8 +122,6 @@ int             fexec_set_blob(filter_data_t * fdata, char *filter_name,
 diamond_public
 int             fexec_get_stats(filter_data_t * fdata, int max,
 				filter_stats_t * fstats);
-const char           *fexec_cur_filtname(void);
-
 
 diamond_public
 int             fexec_update_bypass(filter_data_t * fdata, double ratio);
@@ -146,10 +131,6 @@ int             fexec_update_grouping(filter_data_t * fdata, double ratio);
 
 diamond_public
 float           fexec_get_prate(filter_data_t *fdata);
-
-int             fexec_estimate_cost(filter_data_t * fdata,
-				    permutation_t * perm, int gen, int indep,
-				    float *cost);
 
 diamond_public
 int             fexec_estimate_cur_cost(filter_data_t * fdata,

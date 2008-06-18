@@ -16,11 +16,11 @@
 
 #include <stdint.h>
 #include <limits.h>
+#include <sys/queue.h>
 
 #include "rtimer.h"
 #include "rgraph.h"
 #include "lib_filter.h"         /* for filter_proto */
-#include "queue.h"
 #include "diamond_consts.h"
 #include "rcomb.h"
 

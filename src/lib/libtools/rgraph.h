@@ -21,7 +21,7 @@
  * Rajiv Wickremesinghe 2/2003
  */
 
-#include "queue.h"
+#include <sys/queue.h>
 
 #ifdef __cplusplus
 extern          "C"

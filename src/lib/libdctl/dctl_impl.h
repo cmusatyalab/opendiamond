@@ -14,6 +14,7 @@
 #ifndef	_DCTL_IMPL_H_
 #define	_DCTL_IMPL_H_	1
 
+#include <sys/queue.h>
 
 
 typedef struct dctl_leaf

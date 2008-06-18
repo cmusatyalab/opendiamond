@@ -17,7 +17,6 @@
 
 /* pull in all the headers that make up the library */
 #include "ring.h"
-#include "queue.h"
 #include "sig_calc.h"
 
 

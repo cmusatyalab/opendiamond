@@ -32,14 +32,19 @@ extern          "C"
  */
 
 /* returns list of gids for name */
+diamond_public
 int nlkup_lookup_collection(char *name, int *num_gids, groupid_t * gids);
 
 /* iterates through all names of collections (const name).  */
+diamond_public
 int nlkup_first_entry(char **name, void **cookie);
+
+diamond_public
 int nlkup_next_entry(char **name, void **cookie);
 
 
 /* Functions that map groups into a set of hosts.  */
+diamond_public
 int glkup_gid_hosts(groupid_t gid, int *num_hosts, char *hosts[]);
 
 
@@ -49,7 +54,11 @@ char * dconf_get_logdir(void);
 char * dconf_get_cachedir(void);
 char * dconf_get_spec_cachedir(void);
 char * dconf_get_binary_cachedir(void);
+
+diamond_public
 char * dconf_get_blob_cachedir(void);
+
+diamond_public
 char * dconf_get_filter_cachedir(void);
 
 data_type_t	dconf_get_datatype(void);

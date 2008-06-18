@@ -159,6 +159,7 @@ typedef int (*filter_fini_proto)(void *filter_args);
  *
  */
 
+diamond_public
 int lf_next_block(lf_obj_handle_t obj_handle, int num_blocks,  
 			size_t *lenp, unsigned char **bufp);
 
@@ -219,6 +220,7 @@ int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
  *		One or more of the arguments was invalid.
  */
 
+diamond_public
 int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len, 
 		unsigned char *data);
 
@@ -249,6 +251,7 @@ int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len,
  *		One or more of the arguments was invalid.
  */
 
+diamond_public
 int lf_ref_attr(lf_obj_handle_t ohandle, const char *name, 
 		size_t *len, unsigned char **data);
 
@@ -279,6 +282,7 @@ int lf_ref_attr(lf_obj_handle_t ohandle, const char *name,
  *		One or more of the arguments was invalid.
  */
 
+diamond_public
 int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len, 
 		unsigned char *data);
 
@@ -299,6 +303,7 @@ int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
  *		Attribute was not found.
  */
 
+diamond_public
 int lf_omit_attr(lf_obj_handle_t ohandle, char *name);
 
 
@@ -319,6 +324,7 @@ int lf_omit_attr(lf_obj_handle_t ohandle, char *name);
  *
  */
 
+diamond_public
 void lf_log(int level, char *fmt, ...);
 
 
@@ -344,6 +350,7 @@ void lf_log(int level, char *fmt, ...);
  *		One or more of the arguments was invalid.
  */
 
+diamond_public
 int lf_first_attr(lf_obj_handle_t ohandle, char **name, 
 		size_t *len, unsigned char **data, void **cookie);
 
@@ -369,6 +376,7 @@ int lf_first_attr(lf_obj_handle_t ohandle, char **name,
  *		One or more of the arguments was invalid.
  */
 
+diamond_public
 int lf_next_attr(lf_obj_handle_t ohandle, char **name, 
 		size_t *len, unsigned char **data, void **cookie);
 
@@ -382,9 +390,10 @@ typedef struct {
   double value;
 } lf_session_variable_t;
 
+diamond_public
 int lf_get_session_variables(lf_obj_handle_t ohandle,
 			     lf_session_variable_t **list);
-
+diamond_public
 int lf_update_session_variables(lf_obj_handle_t ohandle,
 				lf_session_variable_t **list);
 

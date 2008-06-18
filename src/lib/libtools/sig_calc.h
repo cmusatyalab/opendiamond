@@ -17,6 +17,8 @@
 
 #define	SIG_SIZE	16
 
+#include <diamond_features.h>
+
 typedef	struct sig_val {
 	unsigned char 	sig[SIG_SIZE];
 } sig_val_t;
@@ -42,9 +44,10 @@ int sig_cal_str(const char *buf, sig_val_t * sig);
  * return string holding ascii value of the signature,
  * This memory is malloc'ed so called needs to free when they are don.
  */
+diamond_public
 char * sig_string(sig_val_t *sig);
 
-
+diamond_public
 void string_to_sig(char *string, sig_val_t * sig_val);
 
 unsigned int sig_hash(const sig_val_t *sig);

@@ -16,7 +16,7 @@
 #define	_LIB_DCTL_H_	1
 
 
-
+#include <diamond_features.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -91,19 +91,27 @@ typedef	struct {
 } dctl_fwd_cbs_t;
 
 
+diamond_public
 int dctl_register_node(char *path, char *node_name);
 int dctl_unregister_node(char *path, char *node_name);
+
+diamond_public
 int dctl_register_leaf(char *path, char *leaf_name,
        dctl_data_type_t dctl_data_t, dctl_read_fn read_cb,
 		       dctl_write_fn write_cb, void *cookie);
 int dctl_unregister_leaf(char *path, char *leaf_name);
 
+diamond_public
 int dctl_read_leaf(char *leaf_name, dctl_data_type_t *type,
 		   int *len, char *data);
+diamond_public
 int dctl_write_leaf(char *leaf_name, int len, char *data);
 
+diamond_public
 int dctl_list_nodes(char *parent_node, int *num_ents, dctl_entry_t *
 		    entry_space);
+
+diamond_public
 int dctl_list_leafs(char *parent_node, int *num_ents, dctl_entry_t *
 		    entry_space);
 
@@ -119,7 +127,10 @@ int dctl_unregister_fwd_node(char *parent_node, char *node_name);
  * write functions passed to dctl_register_leaf().  The cookie must
  * be the pointer to the data of the appropriate type.
  */
+diamond_public
 int dctl_read_uint32(void *cookie, int *len, char *data);
+
+diamond_public
 int dctl_write_uint32(void *cookie, int len, char *data);
 int dctl_read_uint64(void *cookie, int *len, char *data);
 int dctl_write_uint64(void *cookie, int len, char *data);

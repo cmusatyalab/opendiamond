@@ -79,6 +79,7 @@ int obj_write_attr(obj_attr_t *attr, const char *name,
 int obj_read_attr(obj_attr_t *attr, const char *name,
                   size_t *len, unsigned char *data);
 
+diamond_public
 int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, 
 		unsigned char **data);
 

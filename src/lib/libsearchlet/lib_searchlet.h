@@ -61,6 +61,7 @@ extern "C"
  *		A handle that can be used in subsequent calls.
  */
 
+diamond_public
 ls_search_handle_t ls_init_search(void);
 
 /*!
@@ -78,6 +79,7 @@ ls_search_handle_t ls_init_search(void);
  *		the handle was not valid.
  */
 
+diamond_public
 int ls_terminate_search(ls_search_handle_t handle);
 
 /*!
@@ -98,6 +100,7 @@ int ls_terminate_search(ls_search_handle_t handle);
  *		the handle was not valid.
  */
 
+diamond_public
 int ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as);
 
 /*!
@@ -125,6 +128,7 @@ int ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as);
  *
  */
 
+diamond_public
 int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
                       groupid_t *glist);
 
@@ -171,6 +175,7 @@ int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
  *		A search was already active.
  */
 
+diamond_public
 int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
                      char *filter_file_name, char *filter_spec_name);
 
@@ -204,6 +209,7 @@ int ls_set_searchlet(ls_search_handle_t handle, device_isa_t isa_type,
  * \return EBUSY
  *		A search was already active.
  */
+diamond_public
 int ls_add_filter_file(ls_search_handle_t handle, device_isa_t isa_type,
                      char *filter_file_name);
 
@@ -289,6 +295,7 @@ int ls_set_device_searchlet(ls_search_handle_t handle,
  * 		A search was already active.
  */
 
+diamond_public
 int ls_set_blob(ls_search_handle_t handle, char *filter_name,
                 int  blob_len, void *blob_data);
 
@@ -349,6 +356,7 @@ int ls_set_device_blob(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
  * 		initialization calls have not been made, or if
  * 		the handle is not valid.
  */
+diamond_public
 int ls_start_search(ls_search_handle_t handle);
 
 
@@ -423,6 +431,7 @@ int ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as);
  *
  */
 
+diamond_public
 int ls_next_object(ls_search_handle_t handle,
                    ls_obj_handle_t *obj_handle,
                    int flags);
@@ -454,6 +463,7 @@ int ls_next_object(ls_search_handle_t handle,
  *
  */
 
+diamond_public
 int ls_release_object(ls_search_handle_t handle,
                       ls_obj_handle_t obj_handle);
 
@@ -495,6 +505,7 @@ int ls_release_object(ls_search_handle_t handle,
  * 		indicate the amount of space needed.
  *
  */
+diamond_public
 int ls_get_dev_list(ls_search_handle_t handle,
                     ls_dev_handle_t *handle_list,
                     int *num_handles);
@@ -521,6 +532,7 @@ int ls_get_dev_list(ls_search_handle_t handle,
  *
  */
 
+diamond_public
 int ls_dev_characteristics(ls_search_handle_t handle,
                            ls_dev_handle_t dev_handle,
                            device_char_t *dev_chars);
@@ -560,6 +572,7 @@ int ls_dev_characteristics(ls_search_handle_t handle,
  *
  */
 
+diamond_public
 int ls_get_dev_stats(ls_search_handle_t handle,
                      ls_dev_handle_t  dev_handle,
                      dev_stats_t *dev_stats, int *stat_len);
@@ -583,15 +596,18 @@ int ls_get_dev_stats(ls_search_handle_t handle,
  *		Either the search handle is invalid.
  */
 
+diamond_public
 int
 ls_num_objects(ls_search_handle_t handle, int *obj_cnt);
 
 
 
+diamond_public
 int
 ls_get_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 			     device_session_vars_t **vars);
 
+diamond_public
 int
 ls_set_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 			     device_session_vars_t *vars);
@@ -610,6 +626,7 @@ ls_set_dev_session_variables(ls_search_handle_t handle, ls_dev_handle_t dev_hand
  *		There was no active search or the handle is invalid.
  */
 
+diamond_public
 int ls_set_user_state(ls_search_handle_t handle, user_state_t state);
 
 

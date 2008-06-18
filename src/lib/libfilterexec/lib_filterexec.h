@@ -61,16 +61,6 @@ enum auto_part_t {
     AUTO_PART_QUEUE
 };
 
-
-extern int             fexec_bypass_type;
-extern int             fexec_autopart_type;
-
-
-/*
- * update at your own risk! 
- */
-extern enum policy_type_t filter_exec_current_policy;
-
 /* XXX */
 #define	MAX_OBJ_FILES	64
 
@@ -80,7 +70,7 @@ typedef struct {
 	sig_val_t	obj_sigs[MAX_OBJ_FILES];
 
 
-		
+
 } filter_config_t;
 
 typedef enum {		/* filter execution mode */

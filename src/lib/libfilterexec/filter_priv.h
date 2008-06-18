@@ -250,5 +250,16 @@ int             fexec_estimate_cost(filter_data_t * fdata,
 
 extern filter_info_t *fexec_active_filter;
 
+/*
+ * update at your own risk! 
+ */
+extern enum policy_type_t filter_exec_current_policy;
+
+
+
+extern int             fexec_bypass_type;
+extern int             fexec_autopart_type;
+
+
 
 #endif                    /* ! _FILTER_PRIV_H_ */

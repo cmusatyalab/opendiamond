@@ -46,6 +46,8 @@
 #include "dconfig_priv.h"
 #include "odisk_priv.h"
 #include "ocache_priv.h"
+#include "tools_priv.h"
+#include "sig_calc_priv.h"
 
 
 /*

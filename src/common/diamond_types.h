@@ -19,7 +19,6 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 
-#include "rtimer.h"
 #include "diamond_consts.h"
 
 
@@ -76,7 +75,7 @@ typedef struct filter_stats {
 	int		fs_hits_inter_session;	/* hits computed before this session */
 	int		fs_hits_inter_query;	/* hits computed in session, before query */
 	int		fs_hits_intra_query;	/* hits computed this query */
-	rtime_t		fs_avg_exec_time;	   /* avg time spent in filter*/
+	uint64_t		fs_avg_exec_time;	   /* avg time spent in filter*/
 } filter_stats_t;
 
 
@@ -94,7 +93,7 @@ typedef struct dev_stats {
 	int		ds_objs_dropped;	/* total objects dropped */
 	int		ds_objs_nproc;		/* objs not procced at disk */
 	int		ds_system_load;		/* average load on  device??? */
-	rtime_t	ds_avg_obj_time;	/* average time per objects */
+	uint64_t	ds_avg_obj_time;	/* average time per objects */
 	int		ds_num_filters; 	/* number of filters */
 	filter_stats_t	ds_filter_stats[0];	/* list of filter */
 } dev_stats_t;

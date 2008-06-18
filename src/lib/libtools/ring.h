@@ -59,15 +59,12 @@ int             ring_init(ring_data_t ** ring, int num_elem);
 
 diamond_public
 int             ring_empty(ring_data_t * ring);
-int             ring_full(ring_data_t * ring);
 
 diamond_public
 int             ring_enq(ring_data_t * ring, void *data);
 
 diamond_public
 int             ring_count(ring_data_t * ring);
-float           ring_erate(ring_data_t * ring);
-float           ring_drate(ring_data_t * ring);
 
 diamond_public
 void           *ring_deq(ring_data_t * ring);

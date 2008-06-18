@@ -42,6 +42,8 @@
 #include "lib_dconfig.h"
 #include "sstub_impl.h"
 #include "dconfig_priv.h"
+#include "tools_priv.h"
+#include "sig_calc_priv.h"
 
 #include <minirpc/minirpc.h>
 #include "rpc_client_content_server.h"

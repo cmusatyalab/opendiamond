@@ -41,6 +41,7 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 #include "ports.h"
+#include "tools_priv.h"
 
 /*
  * XXX do we manage the complete ring also?? 

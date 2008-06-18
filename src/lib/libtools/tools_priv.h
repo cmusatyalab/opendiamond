@@ -12,37 +12,33 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-#ifndef _LIB_TOOLS_H_
-#define _LIB_TOOLS_H_
+#ifndef _TOOLS_PRIV_H_
+#define _TOOLS_PRIV_H_
 
-/* pull in all the headers that make up the library */
 #include "ring.h"
-#include "queue.h"
-#include "sig_calc.h"
-#include "rcomb.h"
-#include "rgraph.h"
-
-
-/* external functions defined in user.c */
-
-/* max user name we support */
-#define MAX_USER_NAME   64
 
 #ifdef __cplusplus
 extern          "C"
 {
 #endif
 
-/*
- * fill in string name of the current user (assumes
- * string is MAX_USER_NAME bytes long).
- */
-diamond_public
-void get_user_name(char *name);
+
+int file_get_lock(const char *fname);
+int file_release_lock(const char *fname);
+
+int             ring_full(ring_data_t * ring);
+
+float           ring_erate(ring_data_t * ring);
+float           ring_drate(ring_data_t * ring);
+
+
+
+
+
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif                          /* _LIB_TOOOLS_H */
+#endif

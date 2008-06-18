@@ -33,6 +33,7 @@
 #include "lib_filterexec.h"
 #include "lib_dconfig.h"
 #include "fexec_history.h"
+#include "sig_calc_priv.h"
 
 static gboolean sig_equal_fn(gconstpointer a, gconstpointer b) {
 	gboolean match = FALSE;

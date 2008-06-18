@@ -33,7 +33,6 @@
  * of the OpenDiamond system.
  */
 
-#include "rtimer.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
 

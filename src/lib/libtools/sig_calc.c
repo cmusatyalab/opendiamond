@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "sig_calc.h"
+#include "sig_calc_priv.h"
 
 
 static const EVP_MD *md;

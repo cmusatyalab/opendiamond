@@ -41,6 +41,9 @@
 #include "sys_attr.h"
 #include "dconfig_priv.h"
 #include "ocache_priv.h"
+#include "rtimer.h"
+#include "tools_priv.h"
+#include "sig_calc_priv.h"
 
 
 #define	MAX_READ_THREADS	1

@@ -35,6 +35,7 @@
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "odisk_priv.h"
+#include "sig_calc_priv.h"
 
 int
 obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)

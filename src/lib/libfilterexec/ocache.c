@@ -49,6 +49,8 @@
 #include "dconfig_priv.h"
 #include "odisk_priv.h"
 #include "filter_priv.h"
+#include "sig_calc_priv.h"
+
 
 #ifdef DEBUG
 #define debug(args...) fprintf(stderr, args)

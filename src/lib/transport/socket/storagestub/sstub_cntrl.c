@@ -41,6 +41,7 @@
 #include "lib_sstub.h"
 #include "lib_dconfig.h"
 #include "sstub_impl.h"
+#include "dconfig_priv.h"
 
 #include <minirpc/minirpc.h>
 #include "rpc_client_content_server.h"

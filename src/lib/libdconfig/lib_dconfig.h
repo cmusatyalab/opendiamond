@@ -15,11 +15,6 @@
 #ifndef _LIB_DCONFIG_H_
 #define _LIB_DCONFIG_H_
 
-typedef enum {
-	DATA_TYPE_OBJECT = 1,
-	DATA_TYPE_NATIVE
-} data_type_t;
-
 #ifdef __cplusplus
 extern          "C"
 {
@@ -48,21 +43,11 @@ diamond_public
 int glkup_gid_hosts(groupid_t gid, int *num_hosts, char *hosts[]);
 
 
-char * dconf_get_dataroot(void);
-char * dconf_get_indexdir(void);
-char * dconf_get_logdir(void);
-char * dconf_get_cachedir(void);
-char * dconf_get_spec_cachedir(void);
-char * dconf_get_binary_cachedir(void);
-
 diamond_public
 char * dconf_get_blob_cachedir(void);
 
 diamond_public
 char * dconf_get_filter_cachedir(void);
-
-data_type_t	dconf_get_datatype(void);
-
 
 #ifdef __cplusplus
 }

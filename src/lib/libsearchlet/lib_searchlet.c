@@ -44,6 +44,7 @@
 #include "lib_dconfig.h"
 #include "dctl_common.h"
 #include "lib_filterexec.h"
+#include "dconfig_priv.h"
 
 
 #define	PROC_RING_SIZE		1024

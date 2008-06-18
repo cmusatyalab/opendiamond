@@ -43,6 +43,7 @@
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
 #include "fexec_history.h"
+#include "dconfig_priv.h"
 
 
 /*

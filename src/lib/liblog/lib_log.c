@@ -32,6 +32,7 @@
 #include "lib_dctl.h"
 #include "dctl_common.h"
 #include "lib_log.h"
+#include "dconfig_priv.h"
 
 #define DCTL_NAME_LEN 128
 

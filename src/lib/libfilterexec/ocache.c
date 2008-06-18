@@ -46,6 +46,7 @@
 #include "lib_filterexec.h"
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
+#include "dconfig_priv.h"
 #include "filter_priv.h"
 
 #ifdef DEBUG

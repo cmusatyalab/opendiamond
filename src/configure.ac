@@ -93,13 +93,6 @@ lib/transport/socket/hoststub/Makefile
 lib/transport/socket/storagestub/Makefile
 tools/Makefile
 tools/dctl/Makefile
-tools/delattr/Makefile
-tools/initattr/Makefile
-tools/rand_idx/Makefile
-tools/rem_group/Makefile
-tools/setattr/Makefile
-tools/showattr/Makefile
-tools/showgid/Makefile
 tools/volcano/Makefile
 tests/Makefile
 debian/Makefile

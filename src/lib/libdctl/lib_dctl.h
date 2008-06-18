@@ -99,7 +99,6 @@ diamond_public
 int dctl_register_leaf(char *path, char *leaf_name,
        dctl_data_type_t dctl_data_t, dctl_read_fn read_cb,
 		       dctl_write_fn write_cb, void *cookie);
-int dctl_unregister_leaf(char *path, char *leaf_name);
 
 diamond_public
 int dctl_read_leaf(char *leaf_name, dctl_data_type_t *type,
@@ -115,12 +114,6 @@ diamond_public
 int dctl_list_leafs(char *parent_node, int *num_ents, dctl_entry_t *
 		    entry_space);
 
-int dctl_register_fwd_node(char *parent_node, char *node_name,
-				  dctl_fwd_cbs_t *cbs);
-int dctl_unregister_fwd_node(char *parent_node, char *node_name);
-
-
-
 /*
  * The following are a set of helper functions for reading, writing
  * commoon data types.  The callers can use these are the read and
@@ -132,13 +125,6 @@ int dctl_read_uint32(void *cookie, int *len, char *data);
 
 diamond_public
 int dctl_write_uint32(void *cookie, int len, char *data);
-int dctl_read_uint64(void *cookie, int *len, char *data);
-int dctl_write_uint64(void *cookie, int len, char *data);
-int dctl_read_char(void *cookie, int *len, char *data);
-int dctl_write_char(void *cookie, int len, char *data);
-int dctl_read_string(void *cookie, int *len, char *data);
-
-
 
 #ifdef __cplusplus
 }

@@ -50,6 +50,20 @@ typedef struct dctl_node
 dctl_node_t;
 
 
+int dctl_unregister_leaf(char *path, char *leaf_name);
+
+int dctl_register_fwd_node(char *parent_node, char *node_name,
+				  dctl_fwd_cbs_t *cbs);
+int dctl_unregister_fwd_node(char *parent_node, char *node_name);
+
+int dctl_read_uint64(void *cookie, int *len, char *data);
+int dctl_write_uint64(void *cookie, int len, char *data);
+int dctl_read_char(void *cookie, int *len, char *data);
+int dctl_write_char(void *cookie, int len, char *data);
+int dctl_read_string(void *cookie, int *len, char *data);
+
+
+
 #endif	/* !defined(_DCTL_IMPL_H_) */
 
 

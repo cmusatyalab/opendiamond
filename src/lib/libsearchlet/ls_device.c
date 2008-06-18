@@ -43,6 +43,7 @@
 #include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "dctl_common.h"
+#include "dctl_impl.h"
 
 /*
  *  This function intializes the background processing thread that

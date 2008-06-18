@@ -39,7 +39,7 @@
 #include "dctl_common.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
-
+#include "dctl_impl.h"
 
 /*
  * XXX debug 

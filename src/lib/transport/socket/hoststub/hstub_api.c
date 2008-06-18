@@ -45,6 +45,7 @@
 #include "lib_dconfig.h"
 #include "hstub_impl.h"
 #include "dconfig_priv.h"
+#include "dctl_impl.h"
 #include "rpc_client_content_client.h"
 
 /*

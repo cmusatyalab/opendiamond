@@ -134,4 +134,138 @@ int log_start(search_context_t *sc);
 
 int dctl_start(search_context_t *sc);
 
+
+/*!
+ * This call sets a "blob" of data to be passed to a given
+ * filter on a specific device.  This is similar to the above
+ * call but will only affect one device instead of all devices.
+ *
+ * This call should be called after the searchlet has been
+ * loaded but before a search has begun.
+ *
+ * NOTE:  It is up to the caller to make sure the data
+ * can be interpreted by at the device (endian issues, etc).
+ *
+ * \param handle
+ *		The handle for the search instance.
+ *
+ * \param dev_handle
+ *		The handle for the device.
+ *
+ * \param filter_name
+ *		The name of the filter to use for the blob.
+ *
+ * \param blob_len
+ *		The length of the blob data.
+ *
+ * \param blob_data
+ *		A pointer to the blob data.
+ * 
+ * \return 0
+ *		The call succeeded.
+ *
+ * \return EINVAL
+ *		One of the file names was invalid or 
+ *		one of the files could not be parsed.
+ *
+ * \return EBUSY
+ *		A search was already active.
+ */
+
+int ls_set_device_blob(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
+                       char *filter_name, int  blob_len, void *blob_data);
+
+
+
+
+/*!
+ * This call terminates a currently running search.  When the call returns
+ * the search has been terminated from the applications perspective and the
+ * application is able to change the searchlet, etc. if it wishes.
+ *
+ * \param handle
+ *		the search handle returned by init_libsearchlet().
+ *
+ * \return 0
+ *		The search aborted cleanly.
+ *
+ * \return EINVAL
+ *		There was no active search or the handle is invalid.
+ */
+
+int ls_abort_search(ls_search_handle_t handle);
+
+
+/*!
+ * This call terminates a currently running search.  When the call returns
+ * the search has been terminated from the applications perspective and the
+ * application is able to change the searchlet, etc. if it wishes.
+ *
+ * \param handle
+ *		the search handle returned by init_libsearchlet().
+ *
+ * \param app_stats
+ *		pointer to an structure holding application statistics
+ *
+ * \return 0
+ *		The search aborted cleanly.
+ *
+ * \return EINVAL
+ *		There was no active search or the handle is invalid.
+ */
+
+int ls_abort_search_extended(ls_search_handle_t handle, app_stats_t *as);
+
+
+
+/*!
+ * This call sets the searchlet for for a specific device.  This call can
+ * be used if the application wishes to set filters for different devices.
+ * In this case the application must make this call for each of the devices
+ * involved in the search.
+ *
+ * \param	handle
+ * 		The handle for the search instance.
+ *
+ * \param dev_handle
+ *		The handle for the device.
+ *
+ *  
+ * \param isa_type
+ *		this is the instruction set used in the filter file.  If the 
+ * 		devices are non-homogeneous, the application will need to call 
+ *  	this once for every device type.
+ *
+ * \param	filter_file_name
+ *		this name of the file that contains the filter code.  This 
+ *		should be a shared library file where each filters is a 
+ *		different function as specified in the filter specification
+ *
+ * \param filter_spec_name
+ *		The name of the filter specification file.  This is
+ * 	 	read by system to parse the library file as well
+ * 	 	as describing attributes of each of the filters
+ * 	  	(dependencies, ...).
+ *
+ * \return 0
+ *		The searchlet was set appropriately.
+ *
+ * \return EINVAL
+ *		One of the file names was invalid or one of the files 
+ *		could not be parsed.
+ *
+ * \return EBUSY
+ *		A search was already active.
+ */
+
+int ls_set_device_searchlet(ls_search_handle_t handle,
+                            ls_dev_handle_t dev_handle,
+                            device_isa_t isa_type, char *filter_file_name,
+                            char *filter_spec_name);
+
+
+
+
+
+
 #endif

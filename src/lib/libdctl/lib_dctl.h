@@ -93,7 +93,6 @@ typedef	struct {
 
 diamond_public
 int dctl_register_node(char *path, char *node_name);
-int dctl_unregister_node(char *path, char *node_name);
 
 diamond_public
 int dctl_register_leaf(char *path, char *leaf_name,

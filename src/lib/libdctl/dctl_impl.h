@@ -49,6 +49,7 @@ typedef struct dctl_node
 }
 dctl_node_t;
 
+int dctl_unregister_node(char *path, char *node_name);
 
 int dctl_unregister_leaf(char *path, char *leaf_name);
 

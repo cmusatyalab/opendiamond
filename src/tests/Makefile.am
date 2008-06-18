@@ -1,6 +1,3 @@
-noinst_PROGRAMS = odisk_test attr_test odisk_idx del_obj \
-	odisk_setoid cli_test test_log \
-	name_test dconf_test test_dctl \
-	test_ring test_rtimer test_rcomb
+noinst_PROGRAMS = cli_test test_log name_test
 
 LDADD = $(top_builddir)/lib/libopendiamond.la ${GLIB2_LIBS}

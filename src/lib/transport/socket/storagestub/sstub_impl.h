@@ -159,4 +159,12 @@ void sstub_except_data(cstate_t *cstate);
  */
 void connection_main(cstate_t *cstate);
 
+
+/*
+ * Other private functions
+ */
+int sstub_send_log(void *cookie, char *buf, int len);
+int sstub_queued_objects(void *cookie);
+
+
 #endif /* !_SSTUB_IMPL_H_ */

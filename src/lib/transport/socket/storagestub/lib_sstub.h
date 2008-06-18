@@ -63,12 +63,9 @@ int sstub_flush_objs(void *cookie);
 
 diamond_public
 int sstub_send_obj(void *cookie, obj_data_t *obj, int complete);
-int sstub_send_log(void *cookie, char *buf, int len);
 
 diamond_public
 float sstub_get_drate(void *cookie);
-
-int sstub_queued_objects(void *cookie);
 
 diamond_public
 void sstub_get_conn_info(void *cookie, session_info_t *sinfo);

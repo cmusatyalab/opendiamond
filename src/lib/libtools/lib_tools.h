@@ -19,8 +19,6 @@
 #include "ring.h"
 #include "queue.h"
 #include "sig_calc.h"
-#include "rcomb.h"
-#include "rgraph.h"
 
 
 /* external functions defined in user.c */

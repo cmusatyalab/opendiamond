@@ -17,7 +17,6 @@
 
 
 #include "lib_odisk.h"
-#include "rcomb.h"
 
 #ifdef __cplusplus
 extern          "C"

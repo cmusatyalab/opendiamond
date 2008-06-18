@@ -24,4 +24,32 @@ typedef struct
 filter_lib_handle_t;
 
 
+
+/*!
+ * This skips the next N blocks of the specified object.  For an input
+ * object, this will effect the data retrieved the next time lf_next_block()
+ * is called.  XXX specify what happens on output objects if we aren't
+ * currently aligned on the block boundary.
+ *
+ *
+ * \param obj_handle
+ *		The object handle 
+ *
+ * \param num_blocks
+ *		the number of blocks to skip.
+ *
+ * \return 0
+ *		the skip was successful. 
+ *
+ * \return ENOSPC
+ *		insufficient resources were available to complete the call.
+ * 
+ * \return EINVAL
+ *		one of the handles was invalid. 
+ */
+
+int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
+
+
+
 #endif /* _LIB_FILTER_PRIV_H_  */

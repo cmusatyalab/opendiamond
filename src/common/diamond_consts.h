@@ -15,6 +15,8 @@
 #ifndef _CONSTS_H_
 #define _CONSTS_H_
 
+#include <diamond_features.h>
+
 /* some constants pertaining to the maximum filter values */ 
 #define	MAX_FILTER_NAME		128
 #define	MAX_FILTER_FUNC_NAME	64

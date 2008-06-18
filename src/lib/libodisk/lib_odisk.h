@@ -106,13 +106,6 @@ typedef struct {
 
 
 
-/*
- * These are the function prototypes for the device emulation
- * function in dev_emul.c
- */
-int odisk_term(struct odisk_state *odisk);
-int odisk_continue(void);
-
 diamond_public
 int odisk_init(struct odisk_state **odisk, char *path_name);
 
@@ -122,25 +115,8 @@ int odisk_get_obj_cnt(struct odisk_state *odisk);
 diamond_public
 int odisk_next_obj(obj_data_t **new_obj, struct odisk_state *odisk);
 
-int odisk_get_obj(struct odisk_state *odisk, obj_data_t **new_obj,
-		  obj_id_t *oid);
-
-int odisk_new_obj(struct odisk_state *odisk, obj_id_t *oid, groupid_t *gid);
-
-int odisk_save_obj(struct odisk_state *odisk, obj_data_t *obj);
-
-int odisk_write_obj(struct odisk_state *odisk, obj_data_t *obj, int len,
-		    int offset, char *buf);
-
-int odisk_read_obj(struct odisk_state *odisk, obj_data_t *obj, int *len,
-		   int offset, char *buf);
-
-int odisk_add_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
-int odisk_rem_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
-
 diamond_public
 int odisk_release_obj(obj_data_t *obj);
-void odisk_ref_obj(obj_data_t *obj);
 
 diamond_public
 int odisk_set_gid(struct odisk_state *odisk, groupid_t gid);
@@ -151,26 +127,14 @@ int odisk_clear_gids(struct odisk_state *odisk);
 diamond_public
 int odisk_reset(struct odisk_state *odisk);
 
-int odisk_clear_indexes(odisk_state_t * odisk);
-int odisk_build_indexes(odisk_state_t * odisk);
-
 diamond_public
 int odisk_num_waiting(struct odisk_state *odisk);
-int odisk_load_obj(odisk_state_t *odisk, obj_data_t **o_handle, char *name);
-
-int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
-
-int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
 
 diamond_public
 float odisk_get_erate(struct odisk_state *odisk);
 
 diamond_public
 obj_data_t     * odisk_null_obj(void);
-
-
-char * odisk_next_obj_name(odisk_state_t *odisk);
-int odisk_pr_add(pr_obj_t *pr_obj);
 
 diamond_public
 int odisk_flush(odisk_state_t *odisk);

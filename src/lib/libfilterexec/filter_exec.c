@@ -44,6 +44,7 @@
 #include "lib_dconfig.h"
 #include "fexec_history.h"
 #include "dconfig_priv.h"
+#include "odisk_priv.h"
 
 
 /*

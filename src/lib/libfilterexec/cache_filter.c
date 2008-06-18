@@ -41,6 +41,7 @@
 #include "lib_ocache.h"
 #include "lib_dconfig.h"
 #include "ocache_priv.h"
+#include "odisk_priv.h"
 
 
 #define	MAX_PERM_NUM	5

@@ -40,6 +40,7 @@
 #include "lib_filter_priv.h"
 #include "lib_filterexec.h"
 #include "lib_log.h"
+#include "odisk_priv.h"
 
 
 static read_attr_cb read_attr_fn = NULL;

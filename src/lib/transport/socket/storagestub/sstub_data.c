@@ -40,6 +40,7 @@
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
+#include "odisk_priv.h"
 
 int
 sstub_queued_objects(void *cookie)

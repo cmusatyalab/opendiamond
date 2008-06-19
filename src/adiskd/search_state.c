@@ -709,7 +709,9 @@ save_good_name(good_objs_t *gobj, obj_data_t *obj)
 	}
 
 
-	err = obj_ref_attr(&obj->attr_info, DISPLAY_NAME, &size, &name);
+	/* it would be nice if this function did not mutate
+	   state via read_attr_fn */
+	err = lf_ref_attr(obj, DISPLAY_NAME, &size, &name);
 	if (err) {
 		fprintf(stdout, "name Unknown \n");
 	} else {

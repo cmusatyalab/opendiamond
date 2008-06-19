@@ -47,6 +47,7 @@
 #include "dconfig_priv.h"
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
+#include "odisk_priv.h"
 
 
 #define	PROC_RING_SIZE		1024

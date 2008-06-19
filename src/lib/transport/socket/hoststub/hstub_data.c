@@ -41,6 +41,7 @@
 #include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
+#include "odisk_priv.h"
 
 
 /*

@@ -19,7 +19,6 @@
 
 #include "lib_filter.h"
 #include "lib_filterexec.h"
-#include "obj_attr.h"
 
 #ifdef	__cplusplus
 extern "C"

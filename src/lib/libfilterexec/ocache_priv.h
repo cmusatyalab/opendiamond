@@ -18,6 +18,7 @@
 
 #include "lib_filter.h"
 #include "lib_filterexec.h"
+#include "obj_attr.h"
 
 void ceval_wattr_stats(off_t len);
 

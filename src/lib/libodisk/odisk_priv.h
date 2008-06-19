@@ -14,14 +14,81 @@
 #ifndef	_ODISK_PRIV_H_
 #define	_ODISK_PRIV_H_ 	1
 
+#include "obj_attr.h"
 
-struct odisk_state;
+typedef struct gid_idx_ent {
+    char                gid_name[MAX_GID_NAME];
+} gid_idx_ent_t;
 
 
-/*
- * XXX we need to clean up this interface so this is not externally 
- * visible.
- */
+/* maybe we need to remove this later */
+#define MAX_DIR_PATH    512
+#define MAX_GID_FILTER  64
+#define MAX_HOST_NAME	255
+
+struct odisk_state {
+	char            odisk_dataroot[MAX_DIR_PATH];
+	char            odisk_indexdir[MAX_DIR_PATH];
+	groupid_t       gid_list[MAX_GID_FILTER];
+	FILE *          index_files[MAX_GID_FILTER];
+	char		odisk_name[MAX_HOST_NAME];
+	int             num_gids;
+	int             max_files;
+	int             cur_file;
+	int             open_flags;
+	pthread_t       thread_id;
+	DIR *           odisk_dir;
+	uint32_t        obj_load;
+	uint32_t        next_blocked;
+	uint32_t        readahead_full;
+};
+
+typedef struct gid_list {
+	int         num_gids;
+	groupid_t   gids[0];
+} gid_list_t;
+
+#define GIDLIST_SIZE(num)   (sizeof(gid_list_t) + (sizeof(groupid_t) * (num)))
+
+#define GIDLIST_NAME        "gid_list"
+
+
+struct session_variables_state {
+	pthread_mutex_t mutex;
+	GHashTable     *store;
+	bool            between_get_and_set;
+};
+
+
+struct pr_obj {
+	uint64_t 	obj_id;
+	char *		obj_name;
+	int 		oattr_fnum;
+	char *		filters[MAX_FILTERS];
+	int64_t		filter_hits[MAX_FILTERS];
+	u_int64_t       stack_ns;
+};
+
+
+	/*
+	 * This is the state associated with the object
+	 */
+struct obj_data {
+	off_t			data_len;
+	off_t			cur_offset;
+	uint64_t       		local_id;
+	sig_val_t      		id_sig;
+	int		    	cur_blocksize;
+	int		    	ref_count;
+	pthread_mutex_t	mutex;
+	float			remain_compute;
+	char *			data;
+	char *			base;
+	obj_attr_t		attr_info;
+	session_variables_state_t *session_variables_state;
+};
+
+
 
 /*
  * Some macros for using the O_DIRECT call for aligned buffer
@@ -85,34 +152,6 @@ int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
 
 char * odisk_next_obj_name(odisk_state_t *odisk);
 int odisk_pr_add(pr_obj_t *pr_obj);
-
-
-/*
- * These are the object attribute managment calls.
- */
-int obj_write_attr(obj_attr_t *attr, const char *name,
-                   size_t len, const unsigned char *data);
-int obj_read_attr(obj_attr_t *attr, const char *name,
-                  size_t *len, unsigned char *data);
-
-
-
-int obj_omit_attr(obj_attr_t *attr, const char *name);
-int obj_del_attr(obj_attr_t *attr, const char *name);
-int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname, 
-		obj_attr_t *attr);
-int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
-
-int obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
-                       void **cookie, int skip_big);
-
-int obj_get_attr_next(obj_attr_t *attr, unsigned char **buf, size_t *len,
-                      void **cookie, int skip_big);
-
-int obj_first_attr(obj_attr_t * attr, char **name, size_t * len, 
-		unsigned char **data, void **cookie);
-int obj_next_attr(obj_attr_t * attr, char **name, size_t * len, 
-		unsigned char **data, void **cookie);
 
 
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);

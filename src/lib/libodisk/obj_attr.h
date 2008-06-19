@@ -70,8 +70,33 @@ typedef struct attr_record {
 #define	ATTR_BIG_THRESH	1000
 
 
+/*
+ * These are the object attribute managment calls.
+ */
+int obj_write_attr(obj_attr_t *attr, const char *name,
+                   size_t len, const unsigned char *data);
+int obj_read_attr(obj_attr_t *attr, const char *name,
+                  size_t *len, unsigned char *data);
 
-diamond_public
+
+
+int obj_omit_attr(obj_attr_t *attr, const char *name);
+int obj_del_attr(obj_attr_t *attr, const char *name);
+int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname, 
+		obj_attr_t *attr);
+int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
+
+int obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
+                       void **cookie, int skip_big);
+
+int obj_get_attr_next(obj_attr_t *attr, unsigned char **buf, size_t *len,
+                      void **cookie, int skip_big);
+
+int obj_first_attr(obj_attr_t * attr, char **name, size_t * len, 
+		unsigned char **data, void **cookie);
+int obj_next_attr(obj_attr_t * attr, char **name, size_t * len, 
+		unsigned char **data, void **cookie);
+
 int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, 
 		unsigned char **data);
 

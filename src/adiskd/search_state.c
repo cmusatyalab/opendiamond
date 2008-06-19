@@ -54,6 +54,7 @@
 #include "lib_ocache.h"
 #include "sys_attr.h"
 #include "obj_attr.h"
+#include "odisk_priv.h"
 
 
 #define	SAMPLE_TIME_FLOAT	0.2

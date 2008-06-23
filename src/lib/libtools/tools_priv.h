@@ -15,8 +15,6 @@
 #ifndef _TOOLS_PRIV_H_
 #define _TOOLS_PRIV_H_
 
-#include "ring.h"
-
 #ifdef __cplusplus
 extern          "C"
 {
@@ -25,13 +23,6 @@ extern          "C"
 
 int file_get_lock(const char *fname);
 int file_release_lock(const char *fname);
-
-int             ring_full(ring_data_t * ring);
-
-float           ring_erate(ring_data_t * ring);
-float           ring_drate(ring_data_t * ring);
-
-
 
 
 

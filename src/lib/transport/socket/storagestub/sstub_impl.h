@@ -17,6 +17,8 @@
 #define	_SSTUB_IMPL_H_
 
 #include <minirpc/minirpc.h>
+#include "ring.h"
+
 
 /* the max concurrent connections that we currently support */
 #define	MAX_CONNS		64

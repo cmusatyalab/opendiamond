@@ -16,6 +16,8 @@
 #define _LIB_SEARCH_PRIV_H_
 
 
+#include "ring.h"
+
 /*
  * This is header file defines the internal state that is used
  * for the searchlet library.

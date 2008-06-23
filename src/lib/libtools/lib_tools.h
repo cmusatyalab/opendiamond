@@ -16,7 +16,6 @@
 #define _LIB_TOOLS_H_
 
 /* pull in all the headers that make up the library */
-#include "ring.h"
 #include "sig_calc.h"
 
 

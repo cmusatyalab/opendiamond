@@ -44,6 +44,7 @@
 #include "rtimer.h"
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
+#include "ring.h"
 
 
 #define	MAX_READ_THREADS	1

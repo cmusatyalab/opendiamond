@@ -17,6 +17,7 @@
 #define	_LIB_HSTUB_IMPL_H_
 
 #include <minirpc/minirpc.h>
+#include "ring.h"
 
 /*
  * This structure keeps track of the state associated with each

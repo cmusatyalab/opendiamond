@@ -19,6 +19,8 @@
 #include <glib.h>
 #include <stdbool.h>
 
+#include "ring.h"
+
 /*
  * some of the default constants for packet processing 
  */

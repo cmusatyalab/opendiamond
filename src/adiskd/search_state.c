@@ -38,7 +38,6 @@
 #include <netdb.h>
 #include <glib.h>
 #include "sig_calc.h"
-#include "ring.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "obj_attr.h"
@@ -74,11 +73,6 @@ extern pid_t    background_pid;
 
 int	background_search;
 
-/*
- * XXX move to seperate header file !!! 
- */
-#define	CONTROL_RING_SIZE	512
-
 static int      search_free_obj(search_state_t * sstate, obj_data_t * obj);
 
 typedef enum {
@@ -111,7 +105,6 @@ search_stop(void *app_cookie, host_stats_t *hstats)
 {
 	dev_cmd_data_t *cmd;
 	search_state_t *sstate;
-	int             err;
 
 	log_message(LOGT_DISK, LOGL_TRACE, "search_stop");
 
@@ -126,11 +119,7 @@ search_stop(void *app_cookie, host_stats_t *hstats)
 	cmd->cmd = DEV_STOP;
 	cmd->extra_data.hdata = *hstats;
 
-	err = ring_enq(sstate->control_ops, (void *) cmd);
-	if (err) {
-		free(cmd);
-		return (1);
-	}
+	g_async_queue_push(sstate->control_ops, cmd);
 	return (0);
 }
 
@@ -140,7 +129,6 @@ search_term(void *app_cookie)
 {
 	dev_cmd_data_t *cmd;
 	search_state_t *sstate;
-	int             err;
 
 	log_message(LOGT_DISK, LOGL_TRACE, "search_stop");
 
@@ -160,11 +148,7 @@ search_term(void *app_cookie)
 	/*
 	 * Put it on the ring.
 	 */
-	err = ring_enq(sstate->control_ops, (void *) cmd);
-	if (err) {
-		free(cmd);
-		return (1);
-	}
+	g_async_queue_push(sstate->control_ops, cmd);
 	return (0);
 }
 
@@ -188,7 +172,6 @@ int
 search_start(void *app_cookie)
 {
 	dev_cmd_data_t *cmd;
-	int             err;
 	search_state_t *sstate;
 
 	/*
@@ -205,12 +188,7 @@ search_start(void *app_cookie)
 	}
 	cmd->cmd = DEV_START;
 
-	err = ring_enq(sstate->control_ops, (void *) cmd);
-	if (err) {
-		free(cmd);
-		return (1);
-	}
-
+	g_async_queue_push(sstate->control_ops, cmd);
 
 	return (0);
 }
@@ -224,7 +202,6 @@ int
 search_set_spec(void *app_cookie, sig_val_t *spec_sig)
 {
 	dev_cmd_data_t *cmd;
-	int             err;
 	search_state_t *sstate;
 
 	char *sig_str = sig_string(spec_sig);
@@ -242,11 +219,7 @@ search_set_spec(void *app_cookie, sig_val_t *spec_sig)
 	cmd->cmd = DEV_SPEC;
 
 	memcpy(&cmd->sig, spec_sig, sizeof(*spec_sig));
-	err = ring_enq(sstate->control_ops, (void *) cmd);
-	if (err) {
-		free(cmd);
-		return (1);
-	}
+	g_async_queue_push(sstate->control_ops, cmd);
 	return (0);
 }
 
@@ -255,7 +228,6 @@ int
 search_set_obj(void *app_cookie, sig_val_t * objsig)
 {
 	dev_cmd_data_t *cmd;
-	int             err;
 	search_state_t *sstate;
 
 	sstate = (search_state_t *) app_cookie;
@@ -268,11 +240,7 @@ search_set_obj(void *app_cookie, sig_val_t * objsig)
 	cmd->cmd = DEV_OBJ;
 
 	memcpy(&cmd->sig, objsig, sizeof(*objsig));
-	err = ring_enq(sstate->control_ops, (void *) cmd);
-	if (err) {
-		free(cmd);
-		return (1);
-	}
+	g_async_queue_push(sstate->control_ops, cmd);
 	return (0);
 }
 
@@ -760,7 +728,7 @@ device_main(void *arg)
 	 */
 	while (1) {
 		any = 0;
-		cmd = (dev_cmd_data_t *) ring_deq(sstate->control_ops);
+		cmd = (dev_cmd_data_t *) g_async_queue_try_pop(sstate->control_ops);
 		if (cmd != NULL) {
 			any = 1;
 			dev_process_cmd(sstate, cmd);
@@ -1104,12 +1072,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	/*
 	 * init the ring to hold the queue of pending operations.
 	 */
-	err = ring_init(&sstate->control_ops, CONTROL_RING_SIZE);
-	if (err) {
-		free(sstate);
-		*app_cookie = NULL;
-		exit(1);
-	}
+	sstate->control_ops = g_async_queue_new();
 
 	sstate->flags = 0;
 	sstate->comm_cookie = comm_cookie;
@@ -1522,7 +1485,6 @@ int
 search_set_blob(void *app_cookie, char *name, int blob_len, void *blob)
 {
 	dev_cmd_data_t *cmd;
-	int             err;
 	search_state_t *sstate;
 	void           *new_blob;
 
@@ -1545,12 +1507,7 @@ search_set_blob(void *app_cookie, char *name, int blob_len, void *blob)
 	cmd->extra_data.bdata.blob = new_blob;
 
 
-	err = ring_enq(sstate->control_ops, (void *) cmd);
-	if (err) {
-		free(cmd);
-		assert(0);
-		return (1);
-	}
+	g_async_queue_push(sstate->control_ops, cmd);
 	return (0);
 }
 

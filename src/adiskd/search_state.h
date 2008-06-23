@@ -19,8 +19,6 @@
 #include <glib.h>
 #include <stdbool.h>
 
-#include "ring.h"
-
 /*
  * some of the default constants for packet processing 
  */
@@ -59,7 +57,7 @@ typedef struct search_state {
 	struct odisk_state *ostate;
 	struct ceval_state *cstate;
 	session_info_t		cinfo;			/* used for session id */
-	ring_data_t    *control_ops;
+	GAsyncQueue    *control_ops;
 	pthread_mutex_t log_mutex;
 	pthread_cond_t  log_cond;
 	pthread_t       bypass_id;

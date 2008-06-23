@@ -30,7 +30,6 @@
 #include <dirent.h>
 #include <assert.h>
 #include "sig_calc.h"
-#include "ring.h"
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "obj_attr.h"
@@ -56,11 +55,6 @@
  */
 extern int      do_cleanup;
 extern int      active_searches;
-
-/*
- * XXX move to seperate header file !!! 
- */
-#define	CONTROL_RING_SIZE	512
 
 static int      bg_free_obj(search_state_t * sstate, obj_data_t * obj);
 static int bg_shutdown = 0;
@@ -674,13 +668,6 @@ bg_new_search(filter_opts_t *fops)
 
 	/* initialize libfilterexec */
 	fexec_system_init();
-
-	/* init the ring to hold the queue of pending operations.  */
-	err = ring_init(&sstate->control_ops, CONTROL_RING_SIZE);
-	if (err) {
-		free(sstate);
-		exit(1);
-	}
 
 	sstate->flags = 0;
 

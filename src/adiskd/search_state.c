@@ -1172,13 +1172,12 @@ search_get_char(void *app_cookie)
 {
 	device_char_t   *dev_char;
 	search_state_t *sstate;
-	u_int64_t       val;
 
 	if((dev_char = (device_char_t *)malloc(sizeof(device_char_t))) == NULL) {
 	  perror("malloc");
 	  return NULL;
 	}
-	
+
 	sstate = (search_state_t *) app_cookie;
 
 	dev_char->dc_isa = DEV_ISA_IA32;

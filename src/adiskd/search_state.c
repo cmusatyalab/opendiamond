@@ -54,6 +54,7 @@
 #include "sys_attr.h"
 #include "obj_attr.h"
 #include "odisk_priv.h"
+#include "lib_filter_priv.h"
 
 
 #define	SAMPLE_TIME_FLOAT	0.2
@@ -677,10 +678,7 @@ save_good_name(good_objs_t *gobj, obj_data_t *obj)
 		assert(gobj->nlist != NULL);
 	}
 
-
-	/* it would be nice if this function did not mutate
-	   state via read_attr_fn */
-	err = lf_ref_attr(obj, DISPLAY_NAME, &size, &name);
+	err = lf_ref_attr_no_callback(obj, DISPLAY_NAME, &size, &name);
 	if (err) {
 		fprintf(stdout, "name Unknown \n");
 	} else {

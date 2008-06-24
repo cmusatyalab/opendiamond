@@ -51,5 +51,8 @@ filter_lib_handle_t;
 int lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks);
 
 
+diamond_public
+int lf_ref_attr_no_callback(lf_obj_handle_t ohandle, const char *name, 
+			    size_t *len, unsigned char **data);
 
 #endif /* _LIB_FILTER_PRIV_H_  */

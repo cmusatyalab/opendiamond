@@ -81,6 +81,20 @@ int
 lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
 	unsigned char **data)
 {
+	int             err;
+
+	err = lf_ref_attr_no_callback(obj, name, len, data);
+
+	/* add read attrs into cache queue: input attr set */
+	if (!err && (read_attr_fn != NULL)) {
+		(*read_attr_fn) (obj, name, *len, *data);
+	}
+	return (err);
+}
+
+int lf_ref_attr_no_callback(lf_obj_handle_t obj, const char *name,
+			    size_t *len, unsigned char **data)
+{
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
 	int             err;
@@ -89,10 +103,6 @@ lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len,
 	adata = &odata->attr_info;
 	err = obj_ref_attr(adata, name, len, data);
 
-	/* add read attrs into cache queue: input attr set */
-	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn) (obj, name, *len, *data);
-	}
 	return (err);
 }
 

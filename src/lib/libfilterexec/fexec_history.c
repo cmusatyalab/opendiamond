@@ -77,11 +77,11 @@ GHashTable *get_filter_history()
 	if (fp != NULL) {
 		while (1) {
 			filter_history_t *fh = g_malloc(sizeof(filter_history_t));
-			char *sigstr;
+			char *sigstr = NULL;
 
-			cnt = fscanf(fp, "%s %u %u %u %u %u \n", 
+			cnt = fscanf(fp, "%s %u %u %u %u %u \n",
 				sigstr, &fh->executions, &fh->search_objects,
-				&fh->filter_objects, &fh->drop_objects, 
+				&fh->filter_objects, &fh->drop_objects,
 				&fh->last_run);
 			if (cnt != 6) {
 				break;

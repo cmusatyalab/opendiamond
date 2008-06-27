@@ -91,7 +91,7 @@ typedef struct cstate {
 	int			attr_ratio;
 	int			drop_attrs;
 	unsigned char *		attr_buf;
-	void *			attr_cookie;
+	struct acookie *	attr_cookie;
 	size_t			attr_remain;
 	/* store incoming credit message */
 	credit_count_msg_t	cc_msg;

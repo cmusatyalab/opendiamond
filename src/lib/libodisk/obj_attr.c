@@ -100,12 +100,12 @@ obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)
 int
 obj_write_attr_file(char *attr_fname, obj_attr_t * attr)
 {
-	int             attr_fd;
-	off_t           wsize;
-	size_t          len;
+	int		attr_fd;
+	off_t		wsize;
+	size_t		len;
 	unsigned char *	buf;
-	int             err;
-	void           *cookie;
+	int		err;
+	struct acookie  *cookie;
 
 	/*
 	 * Open the file or create it.
@@ -116,8 +116,7 @@ obj_write_attr_file(char *attr_fname, obj_attr_t * attr)
 		exit(1);
 	}
 
-	err = obj_get_attr_first(attr, (unsigned char **)&buf, &len, 
-			&cookie, 0);
+	err = obj_get_attr_first(attr, &buf, &len, &cookie, 0);
 	while (err != ENOENT) {
 		wsize = write(attr_fd, buf, len);
 		if (wsize != len) {
@@ -489,15 +488,6 @@ obj_del_attr(obj_attr_t * attr, const char *name)
 }
 
 
-/*
- * XXX short term hack 
- */
-typedef struct acookie {
-	size_t          offset;
-	obj_adata_t    *adata;
-} acookie_t;
-
-
 static int
 obj_use_record(attr_record_t * cur_rec, int skip_big)
 {
@@ -516,121 +506,125 @@ obj_use_record(attr_record_t * cur_rec, int skip_big)
 	return (1);
 }
 
+struct acookie {
+	size_t		offset;
+	obj_adata_t	*adata;
+};
+
 int
-obj_get_attr_first(obj_attr_t * attr, unsigned char **buf, size_t * len, 
-		void **cookie, int skip_big)
+obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
+		   struct acookie **cookie, int skip_big)
 {
-	size_t          offset;
+	size_t		offset;
 	obj_adata_t    *cur_adata;
 	attr_record_t  *cur_rec;
-	acookie_t      *acookie;
-
 
 	for (cur_adata = attr->attr_dlist; cur_adata != NULL;
-	     cur_adata = cur_adata->adata_next) {
-
+	     cur_adata = cur_adata->adata_next)
+	{
 		offset = 0;
 		while (offset < cur_adata->adata_len) {
 			cur_rec =
-			    (attr_record_t *) & cur_adata->adata_data[offset];
-			if (obj_use_record(cur_rec, skip_big)) {
-				acookie =
-				    (acookie_t *) malloc(sizeof(*acookie));
-				assert(acookie != NULL);
+			    (attr_record_t *)&cur_adata->adata_data[offset];
 
-				acookie->offset = offset + cur_rec->rec_len;
-				acookie->adata = cur_adata;
-				*len = cur_rec->rec_len;
-				*buf = (void *) cur_rec;
-				*cookie = (void *) acookie;
-				return (0);
-			}
 			offset += cur_rec->rec_len;
+			if (!obj_use_record(cur_rec, skip_big))
+				continue;
+
+			*len = cur_rec->rec_len;
+			*buf = (void *) cur_rec;
+
+			*cookie = malloc(sizeof(**cookie));
+			assert(*cookie != NULL);
+
+			(*cookie)->offset = offset;
+			(*cookie)->adata = cur_adata;
+			return 0;
 		}
 	}
-	return (ENOENT);
+	*cookie = NULL;
+	return ENOENT;
 }
 
 int
-obj_first_attr(obj_attr_t * attr, char **name, size_t * len, 
-		unsigned char **data, void **cookie)
+obj_first_attr(obj_attr_t *attr, char **name, size_t *len,
+		unsigned char **data, sig_val_t **sig,
+		struct acookie **cookie, int skip_big)
 {
-	attr_record_t  *cur_rec;
-	unsigned char * dbuf;
+	attr_record_t	*cur_rec;
+	unsigned char	*dbuf;
 	size_t		rec_len;
 	int		err;
 
-	err = obj_get_attr_first(attr, &dbuf, &rec_len, cookie, 0);
-	if (err) {
-		return(err);
-	}
+	err = obj_get_attr_first(attr, &dbuf, &rec_len, cookie, skip_big);
+	if (err) return err;
+
 	cur_rec = (attr_record_t *)dbuf;
 
-	*name = (char *)&cur_rec->data[0];
-	*data = &cur_rec->data[cur_rec->name_len];
-	*len = cur_rec->data_len;
-	return(0);
+	if (name) *name = (char *)&cur_rec->data[0];
+	if (data) *data = &cur_rec->data[cur_rec->name_len];
+	if (len) *len = cur_rec->data_len;
+	if (sig) *sig = &cur_rec->attr_sig;
+	return 0;
 }
 
 int
-obj_get_attr_next(obj_attr_t * attr, unsigned char **buf, size_t * len, 
-		void **cookie, int skip_big)
+obj_get_attr_next(obj_attr_t * attr, unsigned char **buf, size_t * len,
+		  struct acookie **cookie, int skip_big)
 {
-	size_t          offset;
+	size_t		offset;
 	obj_adata_t    *cur_adata;
 	attr_record_t  *cur_rec;
-	acookie_t      *acookie;
 
+	if (!*cookie) return ENOENT;
 
-	acookie = (acookie_t *) * cookie;
-
-	for (cur_adata = acookie->adata; cur_adata != NULL;
-	     cur_adata = cur_adata->adata_next) {
-
-		if (cur_adata == acookie->adata) {
-			offset = acookie->offset;
-		} else {
-			offset = 0;
-		}
+	offset = (*cookie)->offset;
+	for (cur_adata = (*cookie)->adata; cur_adata != NULL;
+	     cur_adata = cur_adata->adata_next)
+	{
 		while (offset < cur_adata->adata_len) {
 			cur_rec =
-			    (attr_record_t *) & cur_adata->adata_data[offset];
-			if (obj_use_record(cur_rec, skip_big)) {
-				assert(acookie != NULL);
-				acookie->offset = offset + cur_rec->rec_len;
-				acookie->adata = cur_adata;
-				*len = cur_rec->rec_len;
-				*buf = (void *) cur_rec;
-				*cookie = (void *) acookie;
-				return (0);
-			}
+			    (attr_record_t *)&cur_adata->adata_data[offset];
+
 			offset += cur_rec->rec_len;
+			if (!obj_use_record(cur_rec, skip_big))
+				continue;
+
+			*len = cur_rec->rec_len;
+			*buf = (void *) cur_rec;
+
+			(*cookie)->offset = offset;
+			(*cookie)->adata = cur_adata;
+			return 0;
 		}
+		offset = 0;
 	}
 	free(*cookie);
-	return (ENOENT);
+	*cookie = NULL;
+	return ENOENT;
 }
 
 
 int
-obj_next_attr(obj_attr_t * attr, char **name, size_t * len, 
-	unsigned char **data, void **cookie)
+obj_next_attr(obj_attr_t *attr, char **name, size_t *len,
+	      unsigned char **data, sig_val_t **sig,
+	      struct acookie **cookie, int skip_big)
 {
 	unsigned char * dbuf;
 	attr_record_t  *cur_rec;
 	size_t		rec_len;
 	int		err;
 
-	err = obj_get_attr_next(attr, &dbuf, &rec_len, cookie, 0);
-	if (err) {
-		return(err);
-	}
+	err = obj_get_attr_next(attr, &dbuf, &rec_len, cookie, skip_big);
+	if (err) return err;
+
 	cur_rec = (attr_record_t *)dbuf;
 
-	*name = (char *)&cur_rec->data[0];
-	*len = cur_rec->data_len;
-	*data = &cur_rec->data[cur_rec->name_len];
-	return(0);
+	if (name) *name = (char *)&cur_rec->data[0];
+	if (data) *data = &cur_rec->data[cur_rec->name_len];
+	if (len) *len = cur_rec->data_len;
+	if (sig) *sig = &cur_rec->attr_sig;
+	return 0;
 }
 
 attr_record_t  *

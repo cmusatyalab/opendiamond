@@ -147,20 +147,18 @@ update_attr_policy(cstate_t * cstate)
 static int
 sstub_attr_len(obj_data_t * obj, int drop_attrs)
 {
-	int             err;
-	size_t          len,
-	                total;
-	unsigned char  *buf;
-	void           *cookie;
-
-	total = 0;
+	int		err;
+	size_t		len;
+	size_t		total = 0;
+	unsigned char	*buf;
+	struct acookie	*cookie;
 
 	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie,
 		drop_attrs);
 	while (err == 0) {
 		total += len;
 		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie,
-			drop_attrs);
+					drop_attrs);
 	}
 
 	return (total);
@@ -256,20 +254,8 @@ sstub_write_data(cstate_t *cstate)
 		header_remain = sizeof(cstate->data_tx_oheader) -
 		    header_offset;
 
-		/*
-		 * setup the attribute information 
-		 */
-		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
-					 &cstate->attr_buf,
-					 &cstate->attr_remain,
-					 &cstate->attr_cookie,
-					 cstate->drop_attrs);
 		attr_offset = 0;
-		if (err == ENOENT) {
-			attr_remain = 0;
-		} else {
-			attr_remain = cstate->attr_remain;
-		}
+		attr_remain = cstate->attr_remain;
 
 		data_offset = 0;
 		data_remain = obj->data_len;

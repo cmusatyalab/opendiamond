@@ -334,7 +334,8 @@ lf_first_attr(lf_obj_handle_t ohandle, char **name,
 
 	odata = (obj_data_t *) ohandle;
 	adata = &odata->attr_info;
-	err = obj_first_attr(adata, name, len, data, cookie);
+	err = obj_first_attr(adata, name, len, data, NULL,
+			     (struct acookie **)cookie, 0);
 	return (err);
 }
 
@@ -348,7 +349,8 @@ lf_next_attr(lf_obj_handle_t ohandle, char **name,
 
 	odata = (obj_data_t *) ohandle;
 	adata = &odata->attr_info;
-	err = obj_next_attr(adata, name, len, data, cookie);
+	err = obj_next_attr(adata, name, len, data, NULL,
+			     (struct acookie **)cookie, 0);
 	return (err);
 }
 

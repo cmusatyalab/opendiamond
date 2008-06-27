@@ -399,10 +399,9 @@ void
 ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 {
 	obj_data_t *obj = (obj_data_t *)ohandle;
-	unsigned char *buf;
-	size_t len;
-	void *cookie;
-	attr_record_t *arec;
+	char *attr_name;
+	sig_val_t *attr_sig;
+	struct acookie *cookie;
 	int ret, rc;
 	sqlite_int64 rowid;
 	sqlite3_stmt *res;
@@ -412,7 +411,8 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 		return;
 
 	/* check if there are any initial attributes to add */
-	ret = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie, 0);
+	ret = obj_first_attr(&obj->attr_info, &attr_name, NULL, NULL, &attr_sig,
+			     &cookie, 0);
 	if (ret == ENOENT) return;
 
 	pthread_mutex_lock(&shared_mutex);
@@ -441,20 +441,15 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 
 	rowid = sqlite3_last_insert_rowid(ocache_DB);
 
-	while (ret != ENOENT && rc == SQLITE_OK) {
-		if (buf == NULL) {
-			printf("can not get attr\n");
-			break;
-		}
-		arec = (attr_record_t *) buf;
-
-		rc = sql_query(NULL, ocache_DB,
+	while (ret != ENOENT) {
+		if (rc == SQLITE_OK) {
+			rc = sql_query(NULL, ocache_DB,
 			       "INSERT INTO output_attrs (cache_entry,name,sig)"
 			       "  VALUES (?1, ?2, ?3);", "DSB",
-			       rowid, arec->data,
-			       &arec->attr_sig, sizeof(sig_val_t));
-
-		ret = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie,0);
+			       rowid, attr_name, attr_sig, sizeof(sig_val_t));
+		}
+		ret = obj_next_attr(&obj->attr_info, &attr_name, NULL, NULL,
+				    &attr_sig, &cookie, 0);
 	}
 
 out_fail:

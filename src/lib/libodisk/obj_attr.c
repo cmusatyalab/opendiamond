@@ -74,18 +74,17 @@ obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)
 		assert(adata != NULL);
 
 		adata->adata_len = size;
-		adata->adata_base = (char *) malloc(ALIGN_SIZE(size));
-		assert(adata->adata_base != NULL);
-		adata->adata_data = (char *) ALIGN_VAL(adata->adata_base);
+		adata->adata_data = (char *) malloc(size);
+		assert(adata->adata_data != NULL);
 
 		attr->attr_ndata = 1;
 		adata->adata_next = NULL;
 		attr->attr_dlist = adata;
 
-		rsize = read(attr_fd, adata->adata_data, ALIGN_ROUND(size));
+		rsize = read(attr_fd, adata->adata_data, size);
 		if (rsize != size) {
 			perror("Reading attribute file:");
-			free(adata->adata_base);
+			free(adata->adata_data);
 			attr->attr_ndata = 0;
 			attr->attr_dlist = NULL;
 			close(attr_fd);
@@ -157,7 +156,6 @@ extend_attr_store(obj_attr_t * attr, int new_size)
 	assert(new_adata != NULL);
 	new_adata->adata_len = buf_size;
 	new_adata->adata_data = new_attr;
-	new_adata->adata_base = new_attr;
 
 	/*
 	 * link it on the list of items 

@@ -83,25 +83,11 @@ struct obj_data {
 	pthread_mutex_t	mutex;
 	float			remain_compute;
 	char *			data;
-	char *			base;
 	obj_attr_t		attr_info;
 	session_variables_state_t *session_variables_state;
 };
 
 
-
-/*
- * Some macros for using the O_DIRECT call for aligned buffer
- * management.
- */
-
-/* alignment restriction */
-#define	OBJ_ALIGN	4096
-#define	ALIGN_MASK	(~(OBJ_ALIGN -1))
-
-#define	ALIGN_SIZE(sz)	((sz) + (2 * OBJ_ALIGN))
-#define	ALIGN_VAL(base)	(void*)(((uint32_t)(base)+ OBJ_ALIGN - 1) & ALIGN_MASK)
-#define	ALIGN_ROUND(sz)	(((sz) + OBJ_ALIGN - 1) & ALIGN_MASK)
 
 /* some maintence functions */
 int odisk_write_oids(odisk_state_t * odisk, uint32_t devid);

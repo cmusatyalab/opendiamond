@@ -183,9 +183,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	assert(new_obj != NULL);
 
 	/*
-	 * open and read the data file, since we are streaming through * the
-	 * data we try to use the direct reads to save the memcopy * in the
-	 * buffer cache. 
+	 * open and read the data file
 	 */
 	os_file = open(name, odisk->open_flags);
 	if (os_file == -1) {
@@ -201,9 +199,9 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 		return (ENOENT);
 	}
 
-	base = (char *) malloc(ALIGN_SIZE(stats.st_size));
+	base = (char *) malloc(stats.st_size);
 	assert(base != NULL);
-	data = (char *) ALIGN_VAL(base);
+	data = (char *) base;
 	if (base == NULL) {
 		log_message(LOGT_DISK, LOGL_ERR,
 		     "odisk_load_obj: failed to allocate storage for <%s>",
@@ -214,7 +212,7 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	}
 
 	if (stats.st_size > 0) {
-		size = read(os_file, data, ALIGN_ROUND(stats.st_size));
+		size = read(os_file, data, stats.st_size);
 		if (size != stats.st_size) {
 			log_message(LOGT_DISK, LOGL_ERR,
 		    	    "odisk_load_obj: load file <%s> failed", name);
@@ -226,7 +224,6 @@ odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
 	}
 	close(os_file);
 	new_obj->data = data;
-	new_obj->base = base;
 	new_obj->data_len = stats.st_size;
 	new_obj->ref_count = 1;
 	sig_cal_str(name, &new_obj->id_sig);
@@ -455,14 +452,14 @@ odisk_release_obj(obj_data_t * obj)
 	 */
 	pthread_mutex_unlock(&obj->mutex);
 
-	if (obj->base != NULL) {
-		free(obj->base);
+	if (obj->data != NULL) {
+		free(obj->data);
 	}
 
 	cur = obj->attr_info.attr_dlist;
 	while (cur != NULL) {
 		next = cur->adata_next;
-		free(cur->adata_base);
+		free(cur->adata_data);
 		free(cur);
 		cur = next;
 	}
@@ -665,9 +662,8 @@ odisk_write_obj(odisk_state_t * odisk, obj_data_t * obj, int len,
 		assert(dbuf != NULL);
 		memcpy(dbuf, obj->data, obj->data_len);
 		obj->data_len = total_len;
-		free(obj->base);
+		free(obj->data);
 		obj->data = dbuf;
-		obj->base = dbuf;
 	}
 
 	memcpy(&obj->data[offset], data, len);
@@ -1018,82 +1014,6 @@ odisk_num_waiting(odisk_state_t * odisk)
 
 
 
-#define MAX_TEMP_NAME   64
-#define TEST_BUF_SIZE   8192
-
-/*
- * we want to test the open flags, there has been some problems
- * using  O_DIRECT on some platforms.
- */
-static void
-odisk_setup_open_flags(odisk_state_t * odisk)
-{
-	char           *test_name;
-	char           *buf;
-	int             test_fd;
-	ssize_t         wsize;
-	char           *base;
-	char           *data;
-
-	test_name = (char *) malloc(MAX_TEMP_NAME);
-	if (test_name == NULL) {
-		printf("filename failed \n");
-		assert(0);
-	}
-	sprintf(test_name, "/tmp/%s", "testfileXXXXXX");
-
-	test_fd = mkstemp(test_name);
-	if (test_fd == -1) {
-		free(test_name);
-	}
-
-
-	buf = (char *) calloc(1, TEST_BUF_SIZE);
-	wsize = write(test_fd, buf, TEST_BUF_SIZE);
-	assert(wsize == TEST_BUF_SIZE);
-	close(test_fd);
-	free(buf);
-
-#ifdef	SUPPORT_O_DIRECT
-	/*
-	 * now test the file with direct flag 
-	 */
-	odisk->open_flags = (O_RDONLY | O_DIRECT);
-#else
-	/*
-	 * now test the file with direct flag 
-	 */
-	odisk->open_flags = (O_RDONLY);
-#endif
-
-
-	test_fd = open(test_name, odisk->open_flags);
-	assert(test_fd != -1);
-
-
-
-	base = (char *) malloc(ALIGN_SIZE(TEST_BUF_SIZE));
-	assert(base != NULL);
-	data = (char *) ALIGN_VAL(base);
-
-	wsize = read(test_fd, data, ALIGN_ROUND(TEST_BUF_SIZE));
-	if (wsize != TEST_BUF_SIZE) {
-		close(test_fd);
-		test_fd = odisk->open_flags = O_RDONLY;
-		assert(test_fd != -1);
-
-		wsize = read(test_fd, data, ALIGN_ROUND(TEST_BUF_SIZE));
-		assert(wsize != TEST_BUF_SIZE);
-	}
-
-	free(base);
-	close(test_fd);
-	unlink(test_name);
-	free(test_name);
-}
-
-
-
 int
 odisk_init(odisk_state_t ** odisk, char *dirp)
 {
@@ -1168,8 +1088,7 @@ odisk_init(odisk_state_t ** odisk, char *dirp)
 		sprintf(new_state->odisk_name, "Unknown");
 	}
 	new_state->odisk_name[MAX_HOST_NAME - 1] = '0';
-
-	odisk_setup_open_flags(new_state);
+	new_state->open_flags = O_RDONLY;
 
 	for (i = 0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, NULL,
@@ -1806,7 +1725,6 @@ odisk_null_obj(void)
 
 	new_obj->data_len = 0;
 	new_obj->data = NULL;
-	new_obj->base = NULL;
 	new_obj->ref_count = 1;
 	pthread_mutex_init(&new_obj->mutex, NULL);
 

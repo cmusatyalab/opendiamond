@@ -25,7 +25,6 @@ struct odisk_state;
 typedef struct obj_adata {
 	size_t           	adata_len;
 	char           	*	adata_data;
-	char           	*	adata_base;
 	struct obj_adata *	adata_next;
 } obj_adata_t;
 

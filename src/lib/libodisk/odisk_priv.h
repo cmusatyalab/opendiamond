@@ -90,8 +90,6 @@ struct obj_data {
 
 
 /* some maintence functions */
-int odisk_write_oids(odisk_state_t * odisk, uint32_t devid);
-
 void obj_load_text_attr(odisk_state_t *odisk, char *file_name, 
 	obj_data_t *new_obj);
 
@@ -110,28 +108,9 @@ int odisk_continue(void);
 int odisk_get_obj(struct odisk_state *odisk, obj_data_t **new_obj,
 		  obj_id_t *oid);
 
-int odisk_new_obj(struct odisk_state *odisk, obj_id_t *oid, groupid_t *gid);
-
-int odisk_save_obj(struct odisk_state *odisk, obj_data_t *obj);
-
-int odisk_write_obj(struct odisk_state *odisk, obj_data_t *obj, int len,
-		    int offset, char *buf);
-
-int odisk_read_obj(struct odisk_state *odisk, obj_data_t *obj, int *len,
-		   int offset, char *buf);
-
-int odisk_add_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
-int odisk_rem_gid(struct odisk_state *odisk, obj_data_t *obj, groupid_t *gid);
-
 void odisk_ref_obj(obj_data_t *obj);
 
-
-int odisk_clear_indexes(odisk_state_t * odisk);
-int odisk_build_indexes(odisk_state_t * odisk);
-
 int odisk_load_obj(odisk_state_t *odisk, obj_data_t **o_handle, char *name);
-
-int odisk_delete_obj(struct odisk_state *odisk, obj_data_t *obj);
 
 int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
 

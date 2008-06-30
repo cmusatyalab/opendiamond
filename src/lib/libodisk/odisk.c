@@ -899,16 +899,11 @@ odisk_null_obj(void)
 {
 	obj_data_t     *new_obj;
 
-	new_obj = (obj_data_t *) malloc(sizeof(*new_obj));
+	new_obj = (obj_data_t *) calloc(1, sizeof(*new_obj));
 	assert(new_obj != NULL);
 
-	new_obj->data_len = 0;
-	new_obj->data = NULL;
 	new_obj->ref_count = 1;
 	pthread_mutex_init(&new_obj->mutex, NULL);
-
-	new_obj->attr_info.attr_ndata = 0;
-	new_obj->attr_info.attr_dlist = NULL;
 
 	return (new_obj);
 }

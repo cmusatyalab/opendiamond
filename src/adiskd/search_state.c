@@ -45,6 +45,7 @@
 #include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "lib_dconfig.h"
+#include "dconfig_priv.h"
 #include "lib_log.h"
 #include "rcomb.h"
 #include "lib_filterexec.h"

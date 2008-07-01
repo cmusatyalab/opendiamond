@@ -42,13 +42,6 @@ int nlkup_next_entry(char **name, void **cookie);
 diamond_public
 int glkup_gid_hosts(groupid_t gid, int *num_hosts, char *hosts[]);
 
-
-diamond_public
-char * dconf_get_blob_cachedir(void);
-
-diamond_public
-char * dconf_get_filter_cachedir(void);
-
 #ifdef __cplusplus
 }
 #endif

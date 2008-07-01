@@ -31,6 +31,14 @@ data_type_t	dconf_get_datatype(void);
 
 
 
+diamond_public
+char * dconf_get_blob_cachedir(void);
+
+diamond_public
+char * dconf_get_filter_cachedir(void);
+
+
+
 #ifdef __cplusplus
 }
 #endif

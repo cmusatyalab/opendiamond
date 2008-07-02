@@ -116,44 +116,29 @@ register_stats(cstate_t * cstate)
  */
 
 void
-shutdown_connection(cstate_t * cstate)
+shutdown_connection(cstate_t *cstate)
 {
-	/*
-	 * set the flag to indicate we are shutting down
-	 */
-	pthread_mutex_lock(&cstate->cmutex);
-	cstate->flags |= CSTATE_SHUTTING_DOWN;
-	pthread_mutex_unlock(&cstate->cmutex);
-
-
-	/*
-	 * Notify the "application" through the callback.
-	 */
+	/* Notify the "application" through the callback. */
 	(*cstate->lstate->cb.close_conn_cb) (cstate->app_cookie);
 
-	/*
-	 * if there is a control socket, close it
-	 */
+	mrpc_conn_close(cstate->mrpc_conn);
+	mrpc_conn_close(cstate->blast_conn);
+	cstate->mrpc_conn = cstate->blast_conn = NULL;
+
+	pthread_mutex_lock(&cstate->cmutex);
+	/* if there is a control socket, close it */
 	if (cstate->flags & CSTATE_CNTRL_FD) {
 		close(cstate->control_fd);
 		cstate->flags &= ~CSTATE_CNTRL_FD;
 	}
 
-	/* If the main thread has been started it will clear the remaining
-	 * flags and close the data fd */
-	if (cstate->flags & CSTATE_ESTABLISHED)
-		return;
-
-	/*
-	 * if there is a data socket, close it
-	 */
+	/* if there is a data socket, close it */
 	if (cstate->flags & CSTATE_DATA_FD) {
 		close(cstate->data_fd);
 		cstate->flags &= ~CSTATE_DATA_FD;
 	}
-
-	cstate->flags &= ~CSTATE_SHUTTING_DOWN;
 	cstate->flags &= ~CSTATE_ALLOCATED;
+	pthread_mutex_unlock(&cstate->cmutex);
 }
 
 
@@ -295,6 +280,9 @@ have_full_conn(listener_state_t * list_state, int conn)
 	 * for servicing the connections.
 	 */
 	connection_main(cstate);
+
+	shutdown_connection(cstate);
+	exit(0);
 }
 
 static const sig_val_t nullsig;
@@ -359,7 +347,6 @@ accept_connection(listener_state_t * list_state)
 		conn->flags |= CSTATE_ALLOCATED;
 		conn->flags |= CSTATE_CNTRL_FD;
 		conn->control_fd = sockfd;
-		conn->data_tx_state = DATA_TX_NO_PENDING;
 
 		memcpy(&conn->cinfo.clientaddr, &peer, peerlen);
 		conn->cinfo.clientaddr_len = peerlen;

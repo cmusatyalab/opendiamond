@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libdiamondrpc.la
 
-MINIRPC_FILES = rpc_client_content.mx rpc_preamble.mx
+MINIRPC_FILES = rpc_client_content.mx rpc_preamble.mx blast_channel.mx
 libdiamondrpc_la_SOURCES = socket_trans.c socket_trans.h $(MINIRPC_FILES)
 
 MINIRPC_GENERATED = \

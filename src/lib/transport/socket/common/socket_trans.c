@@ -73,7 +73,8 @@ writen(int fd, const void *vptr, size_t n)
 }
 
 const char *
-diamond_error(int ret) {
+diamond_error(int ret)
+{
 	switch(ret) {
 	case DIAMOND_FAILURE:
 		return "Generic failure.";
@@ -85,5 +86,5 @@ diamond_error(int ret) {
 	case DIAMOND_NOMEM:
 		return "Failed to allocate enough memory.";
 	}
-	return "Unknown Diamond error";
+	return strerror(ret);
 }

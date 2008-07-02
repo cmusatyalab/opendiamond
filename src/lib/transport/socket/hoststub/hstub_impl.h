@@ -24,30 +24,19 @@
  * of the storage devices.
  */
 
-typedef enum {
-    DATA_RX_NO_PENDING,
-    DATA_RX_HEADER,
-    DATA_RX_ATTR,
-    DATA_RX_DATA,
-} data_rx_state_t;
-
 /* flag definitons */
-#define	CINFO_BLOCK_OBJ		0x02
 #define	CINFO_PENDING_CREDIT	0x04
 #define	CINFO_DOWN		0x08
 
 typedef struct conn_info {
 	pthread_mutex_t		mutex; /* protects 'flags' */
-	int	 		flags;
+	int			ref;
+	int			flags;
 	uint32_t		ipv4addr; /* used by device_characteristics() */
-        sig_val_t		session_nonce; /* for pairing control and data conns */
+	sig_val_t		session_nonce; /* for pairing control and data conns */
 	struct mrpc_connection *rpc_client;
-	int			data_fd;
-	data_rx_state_t		data_rx_state;
-	obj_header_t		data_rx_header;
-	int			data_rx_offset;
-	obj_data_t *		data_rx_obj;
-	credit_count_msg_t 	cc_msg;
+	struct mrpc_connection *blast_conn;
+	credit_count_msg_t	cc_msg;
 	int			cc_counter;
 	int			obj_limit;
 	uint32_t            	stat_log_rx;
@@ -91,13 +80,13 @@ void *hstub_main(void *arg);
 /*
  * Functions available in hstub_data.c
  */
-int hstub_read_data(sdevice_state_t *dev);
-int hstub_write_data(sdevice_state_t *dev);
+const struct blast_channel_client_operations *hstub_blast_ops;
+void hstub_send_credits(sdevice_state_t *dev);
 
 /*
  * Functions available in hstub_socket.h.
  */
-int hstub_establish_connection(conn_info_t *cinfo, const char *host);
+int hstub_establish_connection(sdevice_state_t *dev, const char *host);
 
 #endif	/* !_LIB_HSTUB_IMPL_H_ */
 

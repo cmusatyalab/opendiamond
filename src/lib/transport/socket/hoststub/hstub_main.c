@@ -173,23 +173,6 @@ err_out:
 	return err;
 }
 
-static void
-hstub_conn_down(sdevice_state_t * dev)
-{
-	/* callback to mark the search done */
-	(*dev->cb.conn_down_cb) (dev->hcookie);
-
-	/* signal shutdown for the minirpc connection */
-	mrpc_conn_close(dev->con_data.rpc_client);
-
-	/* and make sure the connection is marked as down */
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_DOWN;
-	pthread_mutex_unlock(&dev->con_data.mutex);
-}
-
-
-
 /*
  * The main loop that the per device thread runs while
  * processing data to/from the individual devices
@@ -199,15 +182,8 @@ hstub_main(void *arg)
 {
 	sdevice_state_t *dev;
 	conn_info_t    *cinfo;
-	struct timeval  to;
-	int		err;
-	int		max_fd;
-	struct timeval  this_time;
-	struct timeval  next_time = {0, 0};
-	struct timezone tz;
-	fd_set		read_fds;
-	fd_set		write_fds;
-	fd_set		except_fds;
+	int		closed;
+	int		credit;
 
 	dev = (sdevice_state_t *) arg;
 
@@ -218,9 +194,6 @@ hstub_main(void *arg)
 	 */
 	cinfo = &dev->con_data;
 
-	max_fd = cinfo->data_fd;
-	max_fd += 1;
-
 	/*
 	 * This loop looks at the set of items that we need to handle.
 	 * This includes the ring_queue of of outstanding operations, 
@@ -228,14 +201,14 @@ hstub_main(void *arg)
 	 * is available for processing.
 	 */
 	while (1) {
-		int closed;
+		struct timeval to = { .tv_sec = POLL_SECS, .tv_usec = POLL_USECS };
 
-		/* if the connection has been marked down then we
-		 * exit for now.
+		/* if the connection has been marked down then we exit.
 		 * TODO: future version should possibly start over.
 		 */
 		pthread_mutex_lock(&dev->con_data.mutex);
-		closed = (cinfo->flags & CINFO_DOWN);
+		closed = (cinfo->flags & CINFO_DOWN && cinfo->ref == 0);
+		credit = (cinfo->flags & CINFO_PENDING_CREDIT);
 		pthread_mutex_unlock(&dev->con_data.mutex);
 
 		if (closed) {
@@ -244,81 +217,29 @@ hstub_main(void *arg)
 			break;
 		}
 
-		gettimeofday(&this_time, &tz);
+		if (credit)
+			hstub_send_credits(dev);
 
 		/*
-		 * periodically prove send device statistics and
+		 * periodically send device statistics and
 		 * device characteristic probes.
 		 */
-
-		if (((this_time.tv_sec == next_time.tv_sec) &&
-		     (this_time.tv_usec >= next_time.tv_usec)) ||
-		    (this_time.tv_sec > next_time.tv_sec))
+		if ((request_chars(dev) < 0) ||
+		    (request_stats(dev) < 0))
 		{
-			if ((request_chars(dev) < 0) ||
-			    (request_stats(dev) < 0))
-			{
-				log_message(LOGT_NET, LOGL_CRIT,
-					    "hstub_main: RPC calls are failing."
-					    " Killing thread..\n");
-				break;
-			}
-
-			assert(POLL_USECS < 1000000);
-			next_time.tv_sec = this_time.tv_sec + POLL_SECS;
-			next_time.tv_usec = this_time.tv_usec + POLL_USECS;
-
-			if (next_time.tv_usec >= 1000000)
-			{
-				next_time.tv_usec -= 1000000;
-				next_time.tv_sec += 1;
-			}
-		}
-
-		FD_ZERO(&read_fds);
-		FD_ZERO(&write_fds);
-		FD_ZERO(&except_fds);
-
-		if (!(cinfo->flags & CINFO_BLOCK_OBJ)) {
-			FD_SET(cinfo->data_fd, &read_fds);
-		}
-
-		if (cinfo->flags & CINFO_PENDING_CREDIT) {
-			FD_SET(cinfo->data_fd, &write_fds);
-		}
-
-		FD_SET(cinfo->data_fd, &except_fds);
-
-		to.tv_sec = 1;
-		to.tv_usec = 0;
-
-
-		err = select(max_fd, &read_fds, &write_fds, &except_fds, &to);
-		if (err == -1) {
 			log_message(LOGT_NET, LOGL_CRIT,
-				    "hstub_main: select failed");
+				    "hstub_main: RPC calls are failing."
+				    " Killing thread..\n");
 			break;
 		}
-
-		if (err == 0)
-			continue;
-
-		if (FD_ISSET(cinfo->data_fd, &read_fds))
-			if (hstub_read_data(dev))
-				break;
-
-		if (FD_ISSET(cinfo->data_fd, &write_fds))
-			if (hstub_write_data(dev))
-				break;
-
-		if (FD_ISSET(cinfo->data_fd, &except_fds)) {
-			log_message(LOGT_NET, LOGL_CRIT,
-				    "hstub_main: exception on data fd");
-			break;
-		}
+		select(0, NULL, NULL, NULL, &to);
 	}
 
-	hstub_conn_down(dev);
+	mrpc_conn_unref(cinfo->rpc_client);
+	mrpc_conn_unref(cinfo->blast_conn);
+	cinfo->rpc_client = cinfo->blast_conn = NULL;
+
+	(*dev->cb.conn_down_cb) (dev->hcookie);
 
 	log_message(LOGT_NET, LOGL_CRIT, "hstub_main: Killing thread..\n");
 	pthread_exit(0);

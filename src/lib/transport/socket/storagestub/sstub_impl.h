@@ -16,9 +16,9 @@
 #ifndef	_SSTUB_IMPL_H_
 #define	_SSTUB_IMPL_H_
 
+#include <semaphore.h>
 #include <minirpc/minirpc.h>
 #include "ring.h"
-
 
 /* the max concurrent connections that we currently support */
 #define	MAX_CONNS		64
@@ -28,26 +28,13 @@
 #define	CSTATE_CNTRL_FD		0x0002
 #define	CSTATE_DATA_FD		0x0004
 #define	CSTATE_ALL_FD		(CSTATE_CNTRL_FD|CSTATE_DATA_FD)
-#define	CSTATE_ESTABLISHED	0x0010
-#define	CSTATE_SHUTTING_DOWN	0x0020
-
-#define	CSTATE_CONTROL_DATA	0x0100	/* control messages pending */
-#define	CSTATE_OBJ_DATA		0x0200	/* data objects pending */
-
 
 /*
- * This is the structure that holds the state for each of the conneciton
- * the storage device.  This should roughly correspond to a search
+ * This is the structure that holds the state for each of the connections
+ * to the storage device.  This should roughly correspond to a search
  * context (I.e each search will have a connection to each device 
  * that is involved in the search).
  */
-typedef enum {
-    DATA_TX_NO_PENDING,
-    DATA_TX_HEADER,
-    DATA_TX_ATTR,
-    DATA_TX_DATA,
-} data_tx_state_t;
-
 typedef enum {
     NW_ATTR_POLICY_FIXED = 0,
     NW_ATTR_POLICY_PROPORTIONAL,
@@ -70,29 +57,22 @@ struct listener_state;
 typedef struct cstate {
 	sig_val_t		nonce;
 	unsigned int		flags;
-	pthread_t		thread_id;
 	pthread_mutex_t		cmutex;
+	sem_t			shutdown;
 	struct listener_state	*lstate;
 	session_info_t		cinfo;
 	struct mrpc_connection	*mrpc_conn;
 	int			control_fd;
+	struct mrpc_connection	*blast_conn;
 	int			data_fd;
 	int			pend_obj;
 	int			have_start;
 	void *			app_cookie;
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
-	obj_data_t *		data_tx_obj;
-	data_tx_state_t		data_tx_state;
-	int		        data_tx_offset;
-	obj_header_t		data_tx_oheader;
 	int			attr_policy;
 	unsigned int		attr_threshold;
 	int			attr_ratio;
-	int			drop_attrs;
-	unsigned char *		attr_buf;
-	struct acookie *	attr_cookie;
-	size_t			attr_remain;
 	/* store incoming credit message */
 	credit_count_msg_t	cc_msg;
 	/* number of remaining credits */
@@ -118,7 +98,6 @@ cstate_t;
  */
 
 typedef struct listener_state {
-	pthread_t		thread_id;
 	int			listen_fd;
 	sstub_cb_args_t		cb;
 	cstate_t		conns[MAX_CONNS];
@@ -152,9 +131,8 @@ const struct rpc_client_content_server_operations *sstub_ops;
 /*
  * Functions exported by sstub_data.c
  */
-void sstub_write_data(cstate_t *cstate);
-void sstub_read_data(cstate_t *cstate);
-void sstub_except_data(cstate_t *cstate);
+const struct blast_channel_server_operations *sstub_blast_ops;
+void sstub_send_objects(cstate_t *cstate);
 
 /*
  * Functions exported by sstub_conn.c

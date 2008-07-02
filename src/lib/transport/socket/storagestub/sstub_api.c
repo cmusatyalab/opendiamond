@@ -89,8 +89,6 @@ sstub_send_obj(void *cookie, obj_data_t * obj, int complete)
 	 * XXX log
 	 */
 	pthread_mutex_lock(&cstate->cmutex);
-	cstate->flags |= CSTATE_OBJ_DATA;
-
 	if (complete) {
 		err = ring_enq(cstate->complete_obj_ring, obj);
 	} else {
@@ -98,17 +96,10 @@ sstub_send_obj(void *cookie, obj_data_t * obj, int complete)
 	}
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	if (err) {
-		/*
-		 * XXX log
-		 */
-		/*
-		 * XXX how do we handle this
-		 */
-		return (err);
-	}
+	if (!err)
+	    sstub_send_objects(cstate);
 
-	return (0);
+	return err;
 }
 
 int

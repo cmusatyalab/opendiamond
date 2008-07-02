@@ -44,8 +44,6 @@ int device_list_leafs(void *dev, char *path, int *dlen, dctl_entry_t *dval);
 int device_new_gid(void *handle, groupid_t gid);
 int device_clear_gids(void *handle);
 int device_set_blob(void *handle, char *name, int blob_len, void *blob);
-void device_stop_obj(void *handle);
-void device_enable_obj(void *handle);
 int device_set_limit(void *handle, int limit);
 int device_set_exec_mode(void *handle, uint32_t mode);
 int device_set_user_state(void *handle, uint32_t state);

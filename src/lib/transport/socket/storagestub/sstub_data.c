@@ -42,6 +42,8 @@
 #include "sstub_impl.h"
 #include "odisk_priv.h"
 
+#include "blast_channel_server.h"
+
 int
 sstub_queued_objects(void *cookie)
 {
@@ -143,357 +145,109 @@ update_attr_policy(cstate_t * cstate)
 	return;
 }
 
-
-static int
-sstub_attr_len(obj_data_t * obj, int drop_attrs)
-{
-	int		err;
-	size_t		len;
-	size_t		total = 0;
-	unsigned char	*buf;
-	struct acookie	*cookie;
-
-	err = obj_get_attr_first(&obj->attr_info, &buf, &len, &cookie,
-		drop_attrs);
-	while (err == 0) {
-		total += len;
-		err = obj_get_attr_next(&obj->attr_info, &buf, &len, &cookie,
-					drop_attrs);
-	}
-
-	return (total);
-}
-
-
 void
-sstub_write_data(cstate_t *cstate)
+sstub_send_objects(cstate_t *cstate)
 {
 	obj_data_t	*obj;
-	int		sent;
 	int		err;
-	int		header_remain = 0, header_offset = 0;
-	size_t		attr_remain = 0, attr_offset = 0;
-	int		data_remain = 0, data_offset = 0;
-	char		*data;
+	object_x	object;
+	char		*name;
+	unsigned char	*data;
+	size_t		len;
+	struct acookie	*cookie;
+	int		drop_attrs;
+	int		n;
+	attribute_x	attrs[MAX_ATTRIBUTES];
+	mrpc_status_t	rc;
+	unsigned int	tx_hdr_bytes;
+	unsigned int	tx_data_bytes;
 
-	if (cstate->data_tx_state == DATA_TX_NO_PENDING) {
-		pthread_mutex_lock(&cstate->cmutex);
-		obj = ring_deq(cstate->complete_obj_ring);
-		/*
-		 * If we don't get a complete object, look for a partial.
-		 */
-		if (!obj)
-			obj = ring_deq(cstate->partial_obj_ring);
-
-		/*
-		 * if there is no other data, then clear the obj data flag
-		 */
-		if (!obj) {
-			cstate->flags &= ~CSTATE_OBJ_DATA;
-			pthread_mutex_unlock(&cstate->cmutex);
-			return;
-		}
+next_obj:
+	pthread_mutex_lock(&cstate->cmutex);
+	if (cstate->cc_credits <= 0) {
 		pthread_mutex_unlock(&cstate->cmutex);
-
-		/*
-		 * periodically we want to update our send policy if
-		 * we are dynamic.
-		 */
-		if ((cstate->stats_objs_tx & 0xF) == 0) {
-			update_attr_policy(cstate);
-		}
-
-		cstate->data_tx_obj = obj;
-
-		/*
-		 * Decide if we are going to send the attributes on this
-		 * object.
-		 */
-		cstate->drop_attrs = drop_attributes(cstate);
-
-		/*
-		 * Construct the header for the object we are going
-		 * to send out.
-		 */
-		cstate->data_tx_oheader.obj_magic = htonl(OBJ_MAGIC_HEADER);
-		cstate->data_tx_oheader.attr_len =
-			htonl(sstub_attr_len(obj, cstate->drop_attrs));
-		cstate->data_tx_oheader.data_len = htonl(obj->data_len);
-		cstate->data_tx_oheader.remain_compute =
-			htonl((int) (obj->remain_compute * 1000));
-
-		/*
-		 * setup the remain and offset counters 
-		 */
-		header_offset = 0;
-		header_remain = sizeof(cstate->data_tx_oheader);
-
-		/*
-		 * setup attr setup 
-		 */
-		err = obj_get_attr_first(&cstate->data_tx_obj->attr_info,
-					 &cstate->attr_buf,
-					 &cstate->attr_remain,
-					 &cstate->attr_cookie,
-					 cstate->drop_attrs);
-		attr_offset = 0;
-		if (err == ENOENT) {
-			attr_remain = 0;
-		} else {
-			attr_remain = cstate->attr_remain;
-			cstate->stats_objs_attr_bytes_tx += attr_remain;
-			cstate->stats_objs_total_bytes_tx += attr_remain;
-		}
-		data_offset = 0;
-		data_remain = obj->data_len;
-
-	} else if (cstate->data_tx_state == DATA_TX_HEADER) {
-		obj = cstate->data_tx_obj;
-
-		header_offset = cstate->data_tx_offset;
-		header_remain = sizeof(cstate->data_tx_oheader) -
-		    header_offset;
-
-		attr_offset = 0;
-		attr_remain = cstate->attr_remain;
-
-		data_offset = 0;
-		data_remain = obj->data_len;
-	} else if (cstate->data_tx_state == DATA_TX_ATTR) {
-		obj = cstate->data_tx_obj;
-		header_offset = 0;
-		header_remain = 0;
-		attr_offset = cstate->data_tx_offset;
-		attr_remain = cstate->attr_remain;
-		data_offset = 0;
-		data_remain = obj->data_len;
-	} else {
-		assert(cstate->data_tx_state == DATA_TX_DATA);
-
-		obj = cstate->data_tx_obj;
-
-		header_offset = 0;
-		header_remain = 0;
-		attr_offset = 0;
-		attr_remain = 0;
-		data_offset = cstate->data_tx_offset;
-		data_remain = obj->data_len - data_offset;
+		return;
 	}
 
-	/*
-	 * If we haven't sent all the header yet, then go ahead
-	 * and send it.
-	 */
+	obj = ring_deq(cstate->complete_obj_ring);
+	/* If we don't get a complete object, look for a partial. */
+	if (!obj)
+		obj = ring_deq(cstate->partial_obj_ring);
 
-	if (header_remain > 0) {
-		data = (char *) &cstate->data_tx_oheader;
-		sent = send(cstate->data_fd, &data[header_offset],
-			    header_remain, 0);
-
-		if (sent < 0) {
-			if (errno == EAGAIN) {
-				cstate->data_tx_state = DATA_TX_HEADER;
-				cstate->data_tx_offset = header_offset;
-				return;
-			} else {
-				/*
-				 * XXX what errors should we handles ?? 
-				 */
-				perror("send oheader ");
-				printf("XXX error while sending oheader\n");
-				exit(1);
-			}
-
-		}
-		if (sent != header_remain) {
-			cstate->data_tx_state = DATA_TX_HEADER;
-			cstate->data_tx_offset = header_offset + sent;
-			return;
-		}
+	if (!obj) {
+		pthread_mutex_unlock(&cstate->cmutex);
+		return;
 	}
 
-	/*
-	 * If there is still some attributes to send, then go ahead and
-	 * send it.
-	 */
+	/* decrement credit count */
+	cstate->cc_credits--;
+	pthread_mutex_unlock(&cstate->cmutex);
 
-      more_attrs:
+	/* periodically we want to update our send policy if we are dynamic. */
+	if ((cstate->stats_objs_tx & 0xF) == 0)
+		update_attr_policy(cstate);
 
-	if (attr_remain) {
-		sent = send(cstate->data_fd, &cstate->attr_buf[attr_offset],
-			    attr_remain, 0);
+	/* Decide if we are going to send the attributes on this object. */
+	drop_attrs = drop_attributes(cstate);
 
-		if (sent < 0) {
-			if (errno == EAGAIN) {
-				cstate->data_tx_state = DATA_TX_ATTR;
-				cstate->data_tx_offset = attr_offset;
-				cstate->attr_remain = attr_remain;
-				return;
-			} else {
-				/*
-				 * XXX what errors should we handles ??
-				 */
-				perror("send attr ");
-				exit(1);
-			}
+	object.search_id = 0;
+	object.data.data_len = obj->data_len;
+	object.data.data_val = obj->data;
 
-		}
-		if (sent != attr_remain) {
-			cstate->data_tx_state = DATA_TX_ATTR;
-			cstate->data_tx_offset = attr_offset + sent;
-			cstate->attr_remain = attr_remain - sent;
-			return;
-		} else {
-			err =
-			    obj_get_attr_next(&cstate->data_tx_obj->attr_info,
-					      &cstate->attr_buf, &attr_remain,
-					      &cstate->attr_cookie,
-					      cstate->drop_attrs);
-			if (err == ENOENT) {
-				attr_remain = 0;
-			} else {
-				cstate->stats_objs_attr_bytes_tx +=
-				    attr_remain;
-				cstate->stats_objs_total_bytes_tx +=
-				    attr_remain;
-				attr_offset = 0;
-				goto more_attrs;
-			}
-		}
-		/*
-		 * XXX fix up attr bytes send !!! 
-		 */
+	tx_hdr_bytes = sizeof(object_x);
+	tx_data_bytes = obj->data_len;
+
+	err = obj_first_attr(&obj->attr_info, &name, &len, &data, NULL,
+			     &cookie, drop_attrs);
+
+	for (n = 0; err == 0 && n < MAX_ATTRIBUTES; n++)
+	{
+		attrs[n].name = name;
+		attrs[n].data.data_len = len;
+		attrs[n].data.data_val = (void *)data;
+
+		tx_hdr_bytes += sizeof(attribute_x);
+		tx_data_bytes += len;
+
+		err = obj_next_attr(&obj->attr_info, &name, &len, &data, NULL,
+				    &cookie, drop_attrs);
 	}
+	object.attrs.attrs_len = n;
+	object.attrs.attrs_val = attrs;
 
+	rc = blast_channel_send_object(cstate->blast_conn, &object);
+	assert(rc == MINIRPC_OK);
 
-	/*
-	 * If there is still data to be sent, then go ahead and
-	 * send it.
-	 */
-
-	if (data_remain) {
-		data = (char *) cstate->data_tx_obj->data;
-		sent = send(cstate->data_fd, &data[data_offset],
-			    data_remain, 0);
-
-		if (sent < 0) {
-			if (errno == EAGAIN) {
-				cstate->data_tx_state = DATA_TX_DATA;
-				cstate->data_tx_offset = data_offset;
-				return;
-			} else {
-				/*
-				 * XXX what errors should we handles ?? 
-				 */
-				perror("send data ");
-				exit(1);
-			}
-
-		}
-		if (sent != data_remain) {
-			cstate->data_tx_state = DATA_TX_DATA;
-			cstate->data_tx_offset = data_offset + sent;
-			return;
-		}
-	}
-
-	/*
-	 * some stats 
-	 */
 	cstate->stats_objs_tx++;
-	cstate->stats_objs_data_bytes_tx += obj->data_len;
-	cstate->stats_objs_hdr_bytes_tx += sizeof(cstate->data_tx_oheader);
-	cstate->stats_objs_total_bytes_tx += sizeof(cstate->data_tx_oheader) +
-	    obj->data_len;
+	cstate->stats_objs_hdr_bytes_tx += tx_hdr_bytes;
+	cstate->stats_objs_data_bytes_tx += tx_data_bytes;
+	cstate->stats_objs_total_bytes_tx += tx_hdr_bytes + tx_data_bytes;
 
 	/*
-	 * If we make it here, then we have sucessfully sent
+	 * If we make it here, then we have successfully sent
 	 * the object so we need to make sure our state is set
 	 * to no data pending, and we will call the callback the frees
 	 * the object.
 	 */
-
-	cstate->data_tx_state = DATA_TX_NO_PENDING;
-	(*cstate->lstate->cb.release_obj_cb) (cstate->app_cookie,
-					      cstate->data_tx_obj);
-
-	/*
-	 * decrement credit count
-	 */
-	/*
-	 * XXX do I need to lock
-	 */
-	if (cstate->cc_credits > 0)
-	  cstate->cc_credits--;
-
-	return;
+	(*cstate->lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
+	goto next_obj;
 }
 
-void
-sstub_except_data(cstate_t * cstate)
+static void
+update_credit(void *conn_data, struct mrpc_message *msg, credit_x *in)
 {
-	printf("XXX except data \n");
-	/*
-	 * Handle the case where we are shutting down 
-	 */
-	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
-		return;
-	}
+	cstate_t *cstate = (cstate_t *)conn_data;
 
-	return;
+	pthread_mutex_lock(&cstate->cmutex);
+	cstate->cc_credits = in->credits;
+	pthread_mutex_unlock(&cstate->cmutex);
+
+	mrpc_release_event();
+	sstub_send_objects(cstate);
 }
 
+static const struct blast_channel_server_operations ops = {
+	.update_credit = update_credit
+};
+const struct blast_channel_server_operations *sstub_blast_ops = &ops;
 
-
-void
-sstub_read_data(cstate_t * cstate)
-{
-
-	char	*data;
-	size_t	data_size;
-	size_t	rsize;
-
-	/*
-	 * Handle the case where we are shutting down
-	 */
-	if (cstate->flags & CSTATE_SHUTTING_DOWN) {
-		return;
-	}
-
-	/*
-	 * XXX handle case where we did read all the data last time. XXXX
-	 * this should probably never occur ... 
-	 */
-	data = (char *) &cstate->cc_msg;
-	data_size = sizeof(credit_count_msg_t);
-
-	while (data_size > 0) {
-		rsize = recv(cstate->data_fd, data, data_size, 0);
-
-		/*
-		 * make sure we read the whole message and that it has the
-		 * right header
-		 */
-		if (rsize == -1) {
-                	if (errno == EAGAIN) {
-				continue;
-			} else {
-				perror("sstub_read_data");
-				return;
-			}
-		} else if (rsize == 0) {
-	        	// printf("no data \n");
-	        	return;
-		}
-		data_size -= rsize;
-		data += rsize;
-	}
-	assert(ntohl(cstate->cc_msg.cc_magic) == CC_MAGIC_HEADER);
-
-	/*
-	 * update the count 
-	 */
-	cstate->cc_credits = ntohl(cstate->cc_msg.cc_count);
-
-	return;
-}

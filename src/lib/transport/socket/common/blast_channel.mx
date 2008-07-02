@@ -1,0 +1,39 @@
+/*
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 3
+ *
+ *  Copyright (c) 2008 Carnegie Mellon University
+ *  All rights reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+const MAX_ATTRIBUTES = 128;
+const MAX_ATTRIBUTE_NAME = 256;
+
+struct attribute_x {
+    string	name<MAX_ATTRIBUTE_NAME>;
+    opaque	data<>;
+};
+
+struct object_x {
+    unsigned int search_id;	/* search identifier */
+    opaque	 data<>;
+    attribute_x  attrs<MAX_ATTRIBUTES>;
+};
+
+struct credit_x {
+    unsigned int credits;
+};
+
+clientmsgs {
+    send_object(object_x) = 1;
+}
+
+servermsgs {
+    update_credit(credit_x) = 1;
+}
+

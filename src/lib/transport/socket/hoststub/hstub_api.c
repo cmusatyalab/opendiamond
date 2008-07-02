@@ -150,9 +150,7 @@ device_terminate(void *handle)
 	retval = rpc_client_content_device_terminate(dev->con_data.rpc_client);
 
 	/* mark the connection as closing/closed */
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_DOWN;
-	pthread_mutex_unlock(&dev->con_data.mutex);
+	mrpc_conn_close(dev->con_data.rpc_client);
 
 	return rpc_postproc(__FUNCTION__, retval);
 }
@@ -683,27 +681,6 @@ device_set_session_variables(void *handle, device_session_vars_t *vars)
 }
 
 
-void
-device_stop_obj(void *handle)
-{
-	sdevice_state_t *dev = (sdevice_state_t *) handle;
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags |= CINFO_BLOCK_OBJ;
-	pthread_mutex_unlock(&dev->con_data.mutex);
-
-}
-
-void
-device_enable_obj(void *handle)
-{
-	sdevice_state_t *dev = (sdevice_state_t *) handle;
-
-	pthread_mutex_lock(&dev->con_data.mutex);
-	dev->con_data.flags &= ~CINFO_BLOCK_OBJ;
-	pthread_mutex_unlock(&dev->con_data.mutex);
-}
-
 static void
 setup_stats(sdevice_state_t * dev, const char *host)
 {
@@ -787,7 +764,7 @@ device_init(const char *host, void *hcookie, hstub_cb_args_t *cb_list)
 	/*
 	 * Open the sockets to the new host.
 	 */
-	err = hstub_establish_connection(&new_dev->con_data, host);
+	err = hstub_establish_connection(new_dev, host);
 	if (err) {
 		log_message(LOGT_NET, LOGL_ERR,
 			    "device_init: failed to establish connection");

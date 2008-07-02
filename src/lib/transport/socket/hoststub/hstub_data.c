@@ -43,351 +43,98 @@
 #include "hstub_impl.h"
 #include "odisk_priv.h"
 
+#include "blast_channel_client.h"
 
-/*
- * This is called when there is data waiting on
- * the object socket.
- */
-int
-hstub_read_data(sdevice_state_t * dev)
+/* This is called when adiskd sends a new object */
+static void
+recv_object(void *conn_data, struct mrpc_message *msg,  object_x *object)
 {
-	obj_data_t     *obj;
-	obj_adata_t    *attr_data;
-	conn_info_t    *cinfo;
-	int             header_offset,
-	                header_remain;
-	int             attr_offset,
-	                attr_remain;
-	int             data_offset,
-	                data_remain;
-	ssize_t         rsize;
-	uint32_t        alen,
-	                dlen;
-	char           *adata;
-	char           *odata;
-	char           *data;
-	int             err;
+	sdevice_state_t *dev = (sdevice_state_t *)conn_data;
+	conn_info_t	*cinfo = &dev->con_data;
+	obj_data_t	*obj;
+	void		*obj_data = NULL;
+	attribute_x	*attr;
+	size_t		hdr_len, attr_len = 0;
+	unsigned int	i;
+	int		err;
 
-	cinfo = &dev->con_data;
-
-	/*
-	 * Look at the current state, if we have partial recieved
-	 * some data then continue geting the object, otherwise
-	 * start a new object.
-	 */
-
-	if (cinfo->data_rx_state == DATA_RX_NO_PENDING) {
-		header_offset = 0;
-		header_remain = sizeof(obj_header_t);
-		attr_offset = 0;
-		attr_remain = 0;
-		data_offset = 0;
-		data_remain = 0;
-
-	} else if (cinfo->data_rx_state == DATA_RX_HEADER) {
-		header_offset = cinfo->data_rx_offset;
-		header_remain = sizeof(obj_header_t) - header_offset;
-		attr_offset = 0;
-		attr_remain = 0;
-		data_offset = 0;
-		data_remain = 0;
-
-
-	} else if (cinfo->data_rx_state == DATA_RX_ATTR) {
-		header_offset = 0;
-		header_remain = 0;
-		attr_offset = cinfo->data_rx_offset;
-		attr_remain =
-		    cinfo->data_rx_obj->attr_info.attr_dlist->adata_len -
-		    attr_offset;
-		data_offset = 0;
-		data_remain = cinfo->data_rx_obj->data_len;
-
-	} else {
-		assert(cinfo->data_rx_state == DATA_RX_DATA);
-
-		header_offset = 0;
-		header_remain = 0;
-		attr_offset = 0;
-		attr_remain = 0;
-		data_offset = cinfo->data_rx_offset;
-		data_remain = cinfo->data_rx_obj->data_len - data_offset;
-	}
-
-
-
-	/*
-	 * if there is still some remaining header data, then try
-	 * to finish the remainder.
-	 */
-	if (header_remain > 0) {
-		data = (char *) &cinfo->data_rx_header;
-
-		rsize = recv(cinfo->data_fd, &data[header_offset],
-			     header_remain, 0);
-		if (rsize < 0) {
-			if (errno == EAGAIN) {
-				/*
-				 * We don't have any data to read just now, 
-				 * This probably should not happen.
-				 */
-				cinfo->data_rx_state = DATA_RX_HEADER;
-				cinfo->data_rx_offset = header_offset;
-				return 0;
-			} else {
-			    	log_message(LOGT_NET, LOGL_CRIT,
-			    	    "hstub_read_data: broken socket");
-				return -1;
-			}
-		}
-
-		/*
-		 * XXX look for zero for shutdown connections 
-		 */
-
-		if (rsize != header_remain) {
-			cinfo->data_rx_state = DATA_RX_HEADER;
-			cinfo->data_rx_offset = header_offset + rsize;
-			return 0;
-		}
-
-
-		/*
-		 * Okay, if we get here, we have the complete object header 
-		 * from the network.  Now we parse it and allocate the other
-		 * data structures that we are going to need to use
-		 * the pull in the rest of the data.
-		 */
-		if (ntohl(cinfo->data_rx_header.obj_magic)
-		    != OBJ_MAGIC_HEADER) {
+	/* Allocate storage for the data. */
+	if (object->data.data_len) {
+		obj_data = (char *) malloc(object->data.data_len);
+		if (obj_data == NULL) {
 			log_message(LOGT_NET, LOGL_CRIT,
-			    "hstub_read_data: bad magic");
-			return -1;
-		}
-
-		/*
-		 * Extract lengths of the two fields from the header.
-		 */
-		alen = ntohl(cinfo->data_rx_header.attr_len);
-		dlen = ntohl(cinfo->data_rx_header.data_len);
-
-
-		/*
-		 * try to allocate storage for the attributes 
-		 */
-		if (alen > 0) {
-			adata = (char *) malloc(alen);
-			if (adata == NULL) {
-				log_message(LOGT_NET, LOGL_CRIT,
-			    	    "hstub_read_data: malloc failed");
-				return -1;
-			}
-		} else {
-			adata = NULL;
-		}
-
-		/*
-		 * Allocate storage for the data attributes.
-		 */
-		if (dlen > 0) {
-			odata = (char *) malloc(dlen);
-			if (odata == NULL) {
-				log_message(LOGT_NET, LOGL_CRIT,
-			    	    "hstub_read_data: malloc failed");
-				return -1;
-			}
-		} else {
-			odata = NULL;
-		}
-
-
-		/*
-		 * allocate an obj_data_t structure to hold the object
-		 * and populate it.
-		 */
-
-		obj = odisk_null_obj();
-		assert(obj != NULL);
-
-		obj->data_len = dlen;
-		obj->data = odata;
-
-		attr_data = (obj_adata_t *) malloc(sizeof(*attr_data));
-		attr_data->adata_data = adata;
-		attr_data->adata_len = alen;
-		attr_data->adata_next = NULL;
-
-		obj->attr_info.attr_ndata = 1;
-		obj->attr_info.attr_dlist = attr_data;
-		obj->remain_compute =
-		    (float) ntohl(cinfo->data_rx_header.remain_compute) /
-		    1000.0;
-		cinfo->data_rx_obj = obj;
-
-		attr_offset = 0;
-		attr_remain = alen;
-		data_offset = 0;
-		data_remain = dlen;
-	}
-
-
-	/*
-	 * If there is attribute data, then get it .
-	 */
-	if (attr_remain > 0) {
-		data = cinfo->data_rx_obj->attr_info.attr_dlist->adata_data;
-
-		rsize = recv(cinfo->data_fd, &data[attr_offset],
-			     attr_remain, 0);
-		if (rsize < 0) {
-			if (errno == EAGAIN) {
-				/*
-				 * We don't have enough data, so we 
-				 * need to recover
-				 * by saving the partial state and returning.
-				 */
-				cinfo->data_rx_state = DATA_RX_ATTR;
-				cinfo->data_rx_offset = attr_offset;
-				return 0;
-			} else {
-				log_message(LOGT_NET, LOGL_CRIT,
-			    	    "hstub_read_data: socket down");
-				return -1;
-			}
-		}
-
-		if (rsize != attr_remain) {
-			/*
-			 * XXX save partial results 
-			 */
-			cinfo->data_rx_state = DATA_RX_ATTR;
-			cinfo->data_rx_offset = attr_offset + rsize;
-			return 0;
+				    "recv_object: malloc failed");
+			return;
 		}
 	}
 
+	/* allocate an obj_data_t structure to hold the object. */
+	obj = odisk_null_obj();
+	assert(obj != NULL);
 
+	memcpy(obj_data, object->data.data_val, object->data.data_len);
 
-	/*
-	 * If we got here, we have the attribute data, now we need
-	 * to try and get the payload of the object.
-	 */
-	if (data_remain > 0) {
-		data = cinfo->data_rx_obj->data;
+	obj->data_len = object->data.data_len;
+	obj->data = obj_data;
 
-		rsize = recv(cinfo->data_fd, &data[data_offset],
-			     data_remain, 0);
-		if (rsize < 0) {
-			if (errno == EAGAIN) {
-				/*
-				 * We don't have enough data, so we need to 
-				 * recover  by saving the partial state 
-				 * and returning.
-				 */
-				cinfo->data_rx_state = DATA_RX_DATA;
-				cinfo->data_rx_offset = data_offset;
-				return 0;
-			} else {
-				log_message(LOGT_NET, LOGL_CRIT,
-			    	    "hstub_read_data: socket down");
-				return -1;
-			}
+	hdr_len = sizeof(object_x);
+
+	for (i = 0; i < object->attrs.attrs_len; i++) {
+		attr = &object->attrs.attrs_val[i];
+		err = obj_write_attr(&obj->attr_info, attr->name,
+				     attr->data.data_len,
+				     (unsigned char *)attr->data.data_val);
+		if (err) {
+			log_message(LOGT_NET, LOGL_CRIT,
+				    "recv_object: obj_write_attr failed");
+			return;
 		}
-
-		if (rsize != data_remain) {
-			/*
-			 * we got some data but not all we need,  so
-			 * we update our state machine and return.
-			 */
-
-			cinfo->data_rx_state = DATA_RX_DATA;
-			cinfo->data_rx_offset = data_offset + rsize;
-			return 0;
-		}
+		hdr_len += sizeof(attribute_x);
+		attr_len += strlen(attr->name) + attr->data.data_len;
 	}
 
 	cinfo->stat_obj_rx++;
-	cinfo->stat_obj_attr_byte_rx +=
-	    cinfo->data_rx_obj->attr_info.attr_dlist->adata_len;
-	cinfo->stat_obj_hdr_byte_rx += sizeof(obj_header_t);
-	cinfo->stat_obj_data_byte_rx += cinfo->data_rx_obj->data_len;
-	cinfo->stat_obj_total_byte_rx +=
-	    cinfo->data_rx_obj->attr_info.attr_dlist->adata_len +
-	    sizeof(obj_header_t) + cinfo->data_rx_obj->data_len;
+	cinfo->stat_obj_attr_byte_rx += attr_len;
+	cinfo->stat_obj_hdr_byte_rx += hdr_len;
+	cinfo->stat_obj_data_byte_rx += object->data.data_len;
+	cinfo->stat_obj_total_byte_rx += object->data.data_len +
+	    hdr_len + attr_len;
 
-	cinfo->data_rx_state = DATA_RX_NO_PENDING;
-
-	if ((cinfo->data_rx_obj->data_len == 0) &&
-	    (cinfo->data_rx_obj->attr_info.attr_dlist->adata_len == 0))
+	if (obj->data_len == 0 && attr_len == 0)
 	{
 		(*dev->cb.search_done_cb) (dev->hcookie);
-		odisk_release_obj(cinfo->data_rx_obj);
+		odisk_release_obj(obj);
 	} else {
 		/* XXX put it into the object ring */
-		err = ring_enq(dev->obj_ring, cinfo->data_rx_obj);
+		err = ring_enq(dev->obj_ring, obj);
 		assert(err == 0);
-		dev->con_data.flags |= CINFO_PENDING_CREDIT;
+		cinfo->flags |= CINFO_PENDING_CREDIT;
 	}
-	return 0;
+	return;
 }
 
+static const struct blast_channel_client_operations ops = {
+	.send_object = recv_object,
+};
+const struct blast_channel_client_operations *hstub_blast_ops = &ops;
 
-/*
- * This is called when we want to write the credit
- * count onto the data channel.
- */
 
-int
-hstub_write_data(sdevice_state_t * dev)
+/* This is called when we want to write the credit count. */
+void hstub_send_credits(sdevice_state_t *dev)
 {
-	conn_info_t    *cinfo;
-	char           *data;
-	ssize_t          send_size, mcount;
-	int             count;
-
-	cinfo = &dev->con_data;
-
-	/*
-	 * the only data we should ever need to write is 
-	 * credit count messages.
-	 */
+	conn_info_t *cinfo = &dev->con_data;
+	credit_x credit = { .credits = 0 };
+	mrpc_status_t rc;
 
 	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0)
-		return 0;
+		return;
 
-	/*
-	 * build the credit count messages using the current state 
-	 */
-	cinfo->cc_msg.cc_magic = htonl(CC_MAGIC_HEADER);
+	if (cinfo->obj_limit > ring_count(dev->obj_ring))
+		credit.credits = cinfo->obj_limit - ring_count(dev->obj_ring);
 
-	count = cinfo->obj_limit - ring_count(dev->obj_ring);
-	if (count < 0) {
-		count = 0;
-	}
-	cinfo->cc_msg.cc_count = htonl(count);
+	rc = blast_channel_update_credit(cinfo->blast_conn, &credit);
 
-	/*
-	 * send the messages 
-	 */
-	data = (char *) &cinfo->cc_msg;
-	mcount = sizeof(credit_count_msg_t);
-	while (mcount > 0) {
-		send_size = send(cinfo->data_fd, data, mcount, 0);
-		if (send_size == -1) {
-			if (errno != EAGAIN) {
-				perror("hstub_write_data");
-				return -1;
-			}
-			continue;
-		}
-		mcount -= send_size;
-		data += send_size;
-	}
-
-	/*
-	 * if successful, clear the flag 
-	 */
+	/* if successful, clear the flag */
 	cinfo->flags &= ~CINFO_PENDING_CREDIT;
-	return 0;
 }
 

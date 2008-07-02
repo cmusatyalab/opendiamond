@@ -37,6 +37,12 @@
 #include "odisk_priv.h"
 #include "sig_calc_priv.h"
 
+static int obj_get_attr_first(obj_attr_t *attr, unsigned char **buf,
+			      size_t *len, struct acookie **cookie,
+			      int skip_big);
+static int obj_get_attr_next(obj_attr_t *attr, unsigned char **buf,
+			     size_t *len, struct acookie **cookie,
+			     int skip_big);
 int
 obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)
 {
@@ -509,7 +515,7 @@ struct acookie {
 	obj_adata_t	*adata;
 };
 
-int
+static int
 obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
 		   struct acookie **cookie, int skip_big)
 {
@@ -546,8 +552,8 @@ obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
 
 int
 obj_first_attr(obj_attr_t *attr, char **name, size_t *len,
-		unsigned char **data, sig_val_t **sig,
-		struct acookie **cookie, int skip_big)
+	       unsigned char **data, sig_val_t **sig,
+	       struct acookie **cookie, int skip_big)
 {
 	attr_record_t	*cur_rec;
 	unsigned char	*dbuf;
@@ -566,8 +572,8 @@ obj_first_attr(obj_attr_t *attr, char **name, size_t *len,
 	return 0;
 }
 
-int
-obj_get_attr_next(obj_attr_t * attr, unsigned char **buf, size_t * len,
+static int
+obj_get_attr_next(obj_attr_t *attr, unsigned char **buf, size_t *len,
 		  struct acookie **cookie, int skip_big)
 {
 	size_t		offset;

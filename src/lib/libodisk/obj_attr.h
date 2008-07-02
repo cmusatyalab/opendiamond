@@ -86,11 +86,6 @@ int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname,
 int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
 
 struct acookie;
-int obj_get_attr_first(obj_attr_t *attr, unsigned char **buf, size_t *len,
-		       struct acookie **cookie, int skip_big);
-int obj_get_attr_next(obj_attr_t *attr, unsigned char **buf, size_t *len,
-		      struct acookie **cookie, int skip_big);
-
 int obj_first_attr(obj_attr_t *attr, char **name, size_t *len,
 		   unsigned char **data, sig_val_t **sig,
 		   struct acookie **cookie, int skip_big);

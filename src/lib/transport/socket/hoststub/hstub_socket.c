@@ -43,19 +43,27 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 #include "ports.h"
+
 #include "rpc_client_content_client.h"
+#include "blast_channel_client.h"
 
 
 static void disconnect_cb(void *conn_data, enum mrpc_disc_reason reason)
 {
-	conn_info_t *cinfo = (conn_info_t *)conn_data;
+	struct sdevice_state *dev = (struct sdevice_state *)conn_data;
 
-	pthread_mutex_lock(&cinfo->mutex);
-	cinfo->flags |= CINFO_DOWN;
-	pthread_mutex_unlock(&cinfo->mutex);
+	log_message(LOGT_NET, LOGL_ERR, "disconnecting");
+
+	mrpc_conn_close(dev->con_data.rpc_client);
+	mrpc_conn_close(dev->con_data.blast_conn);
+
+	pthread_mutex_lock(&dev->con_data.mutex);
+	if (--dev->con_data.ref == 0)
+		dev->con_data.flags |= CINFO_DOWN;
+	pthread_mutex_unlock(&dev->con_data.mutex);
 }
 
-static struct mrpc_conn_set *mrpc_cset;
+static struct mrpc_conn_set *mrpc_cset, *mrpc_bset;
 static int init_minirpc(void)
 {
 	if (mrpc_cset) return 0;
@@ -63,42 +71,47 @@ static int init_minirpc(void)
 	if (mrpc_conn_set_create(&mrpc_cset, rpc_client_content_client, NULL)) {
 		log_message(LOGT_NET, LOGL_ERR,
 			    "mrpc_conn_set_create failed");
-		return -1;
+		goto err_out;
 	}
-	if (mrpc_set_disconnect_func(mrpc_cset, disconnect_cb)) {
-		log_message(LOGT_NET, LOGL_ERR,
-			    "mrpc_set_disconnect_func failed");
-		mrpc_conn_set_unref(mrpc_cset);
-		return -1;
-	}
+
 	if (mrpc_start_dispatch_thread(mrpc_cset)) {
 		log_message(LOGT_NET, LOGL_ERR,
 			    "mrpc_start_dispatch_thread failed");
-		mrpc_conn_set_unref(mrpc_cset);
-		return -1;
+		goto err_out;
+	}
+
+	if (mrpc_set_disconnect_func(mrpc_cset, disconnect_cb)) {
+		log_message(LOGT_NET, LOGL_ERR,
+			    "mrpc_set_disconnect_func failed");
+		goto err_out;
+	}
+
+	if (mrpc_conn_set_create(&mrpc_bset, blast_channel_client, NULL)) {
+		log_message(LOGT_NET, LOGL_ERR,
+			    "mrpc_conn_set_create failed");
+		goto err_out;
+	}
+
+	mrpc_set_max_buf_len(mrpc_bset, UINT_MAX);
+
+	if (mrpc_start_dispatch_thread(mrpc_bset)) {
+		log_message(LOGT_NET, LOGL_ERR,
+			    "mrpc_start_dispatch_thread failed");
+		goto err_out;
+	}
+
+	if (mrpc_set_disconnect_func(mrpc_bset, disconnect_cb)) {
+		log_message(LOGT_NET, LOGL_ERR,
+			    "mrpc_set_disconnect_func failed");
+		goto err_out;
 	}
 	return 0;
-}
 
-
-/*
- * set a socket to non-blocking
- */
-static void
-socket_non_block(int fd)
-{
-	int flags, err;
-
-	flags = fcntl(fd, F_GETFL, 0);
-	if (flags == -1) {
-		log_message(LOGT_NET, LOGL_ERR, "hstub: issue fcntl");
-		return;
-	}
-	err = fcntl(fd, F_SETFL, (flags | O_NONBLOCK));
-	if (err == -1) {
-		log_message(LOGT_NET, LOGL_ERR, "hstub: failed to set fcntl");
-		return;
-	}
+err_out:
+	mrpc_conn_set_unref(mrpc_cset);
+	mrpc_conn_set_unref(mrpc_bset);
+	mrpc_cset = mrpc_bset = NULL;
+	return -1;
 }
 
 
@@ -177,13 +190,15 @@ err_out:
  * side.
  */
 int
-hstub_establish_connection(conn_info_t *cinfo, const char *host)
+hstub_establish_connection(sdevice_state_t *dev, const char *host)
 {
+	conn_info_t *cinfo = &dev->con_data;
 	struct addrinfo *ai, hints = {
 		.ai_family = AF_INET,
 		.ai_socktype = SOCK_STREAM
 	};
-	int control_fd;
+	int control_fd = -1;
+	int data_fd = -1;
 	int err;
 
 	if (!mrpc_cset && init_minirpc())
@@ -200,7 +215,6 @@ hstub_establish_connection(conn_info_t *cinfo, const char *host)
 		cinfo->ipv4addr = INADDR_NONE;
 
 	/* open the control socket and receive a cookie */
-	cinfo->data_fd = -1;
 	memset(&cinfo->session_nonce, 0, sizeof(cinfo->session_nonce));
 	control_fd = create_connection(host, &cinfo->session_nonce);
 	if (control_fd < 0 ) {
@@ -210,36 +224,62 @@ hstub_establish_connection(conn_info_t *cinfo, const char *host)
 	}
 
 	/* Now we open the data socket and send the cookie on it. */
-	cinfo->data_fd = create_connection(host, &cinfo->session_nonce);
-	if (cinfo->data_fd < 0) {
+	data_fd = create_connection(host, &cinfo->session_nonce);
+	if (data_fd < 0) {
 		log_message(LOGT_NET, LOGL_ERR,
 			    "hstub: connect data port failed");
 		goto err_out;
 	}
 
-	socket_non_block(cinfo->data_fd);
-
-	/*
-	 * Set the state machines variables.
-	 */
-	cinfo->data_rx_state = DATA_RX_NO_PENDING;
-
-	/* hand the control socket over to minirpc. */
-	if (mrpc_conn_create(&cinfo->rpc_client, mrpc_cset, cinfo)) {
+	/* create minirpc_connections for control and data. */
+	if (mrpc_conn_create(&cinfo->rpc_client, mrpc_cset, dev)) {
+		log_message(LOGT_NET, LOGL_ERR, "mrpc_conn_create failed");
+		goto err_out;
+	}
+	if (mrpc_conn_create(&cinfo->blast_conn, mrpc_bset, dev)) {
 		log_message(LOGT_NET, LOGL_ERR, "mrpc_conn_create failed");
 		goto err_out;
 	}
 
+	blast_channel_client_set_operations(cinfo->blast_conn, hstub_blast_ops);
+
+	/* bind control socket */
+	pthread_mutex_lock(&cinfo->mutex);
+	cinfo->ref++;
+	pthread_mutex_unlock(&cinfo->mutex);
+
 	if (mrpc_bind_fd(cinfo->rpc_client, control_fd)) {
 		log_message(LOGT_NET, LOGL_ERR, "mrpc_connect failed");
+
+		pthread_mutex_lock(&cinfo->mutex);
+		cinfo->ref--;
+		pthread_mutex_unlock(&cinfo->mutex);
 		goto err_out;
 	}
-	return (0);
+	control_fd = -1;
+
+	/* bind data socket */
+	pthread_mutex_lock(&cinfo->mutex);
+	cinfo->ref++;
+	pthread_mutex_unlock(&cinfo->mutex);
+
+	if (mrpc_bind_fd(cinfo->blast_conn, data_fd)) {
+		log_message(LOGT_NET, LOGL_ERR, "mrpc_connect failed");
+
+		pthread_mutex_lock(&cinfo->mutex);
+		cinfo->ref--;
+		pthread_mutex_unlock(&cinfo->mutex);
+
+		close(data_fd);
+		mrpc_conn_close(cinfo->rpc_client);
+		return 0; /* have the disconnect callback has to clean things up */
+	}
+	return 0;
 
 err_out:
-	if (cinfo->data_fd >= 0)
-		close(cinfo->data_fd);
+	if (data_fd >= 0)
+		close(data_fd);
 	if (control_fd >= 0)
 		close(control_fd);
-	return (ENOENT);
+	return -1;
 }

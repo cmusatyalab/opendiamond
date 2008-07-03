@@ -15,6 +15,7 @@
 #define	_DCTL_IMPL_H_	1
 
 #include <sys/queue.h>
+#include <fcntl.h>
 
 #include "diamond_features.h"
 
@@ -40,7 +41,7 @@ typedef	struct {
 
 typedef struct {
   dctl_data_type_t  dt;
-  int               len;
+  size_t            len;
   char             *dbuf;
 } dctl_rleaf_t;
 
@@ -60,16 +61,16 @@ typedef struct {
  * These are the function prototypes that are associated with the
  * read and write operations for the given data node.
  */
-typedef int (*dctl_read_fn)(void *cookie, int *data_len, char *data);
-typedef int (*dctl_write_fn)(void *cookie, int data_len, char *data);
+typedef int (*dctl_read_fn)(void *cookie, size_t *data_len, char *data);
+typedef int (*dctl_write_fn)(void *cookie, size_t data_len, char *data);
 
 /*
  * These are the function prototypes for the callback functions used
  * when establishing a "mount" point.
  */
 typedef int (*dctl_fwd_rleaf_fn)(char *leaf_name, dctl_data_type_t *dtype,
-				 int *len, char *data, void *cookie);
-typedef int (*dctl_fwd_wleaf_fn)(char *leaf_name, int len, char *data,
+				 size_t *len, char *data, void *cookie);
+typedef int (*dctl_fwd_wleaf_fn)(char *leaf_name, size_t len, char *data,
 				 void *cookie);
 typedef int (*dctl_fwd_lnodes_fn)(char *parent_node, int *num_ents,
 	                                  dctl_entry_t *entry_space, void *cookie);
@@ -127,26 +128,18 @@ int dctl_register_fwd_node(char *parent_node, char *node_name,
 				  dctl_fwd_cbs_t *cbs);
 int dctl_unregister_fwd_node(char *parent_node, char *node_name);
 
-int dctl_read_uint64(void *cookie, int *len, char *data);
-int dctl_write_uint64(void *cookie, int len, char *data);
-int dctl_read_char(void *cookie, int *len, char *data);
-int dctl_write_char(void *cookie, int len, char *data);
-int dctl_read_string(void *cookie, int *len, char *data);
-
-
 diamond_public
 int dctl_register_node(char *path, char *node_name);
 
 diamond_public
-int dctl_register_leaf(char *path, char *leaf_name,
-       dctl_data_type_t dctl_data_t, dctl_read_fn read_cb,
-		       dctl_write_fn write_cb, void *cookie);
+int dctl_register_leaf(char *path, char *leaf_name, dctl_data_type_t data_type,
+		       dctl_read_fn read_cb, dctl_write_fn write_cb, void *cookie);
 
 diamond_public
 int dctl_read_leaf(char *leaf_name, dctl_data_type_t *type,
-		   int *len, char *data);
+		   size_t *len, char *data);
 diamond_public
-int dctl_write_leaf(char *leaf_name, int len, char *data);
+int dctl_write_leaf(char *leaf_name, size_t len, char *data);
 
 diamond_public
 int dctl_list_nodes(char *parent_node, int *num_ents, dctl_entry_t *
@@ -157,18 +150,16 @@ int dctl_list_leafs(char *parent_node, int *num_ents, dctl_entry_t *
 		    entry_space);
 
 /*
- * The following are a set of helper functions for reading, writing
- * commoon data types.  The callers can use these are the read and
- * write functions passed to dctl_register_leaf().  The cookie must
- * be the pointer to the data of the appropriate type.
+ * The following are helper functions for reading, writing common data types.
+ * The callers can use these are the read and write functions passed to
+ * dctl_register_leaf().  The cookie must be the pointer to the data of the
+ * appropriate type.
  */
 diamond_public
-int dctl_read_uint32(void *cookie, int *len, char *data);
+void dctl_register_u32(char *path, char *leaf, int mode, uint32_t *item);
 
 diamond_public
-int dctl_write_uint32(void *cookie, int len, char *data);
-
+void dctl_register_u64(char *path, char *leaf, int mode, uint64_t *item);
 
 #endif	/* !defined(_DCTL_IMPL_H_) */
-
 

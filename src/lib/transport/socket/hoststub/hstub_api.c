@@ -700,40 +700,29 @@ setup_stats(sdevice_state_t * dev, const char *host)
 	err = dctl_register_node(HOST_NETWORK_PATH, node_name);
 	assert(err == 0);
 
-	dctl_register_leaf(path_name, "obj_rx", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL,
-			   &dev->con_data.stat_obj_rx);
-	dctl_register_leaf(path_name, "obj_total_bytes_rx", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &dev->con_data.stat_obj_total_byte_rx);
-	dctl_register_leaf(path_name, "obj_hdr_bytes_rx", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &dev->con_data.stat_obj_hdr_byte_rx);
-	dctl_register_leaf(path_name, "obj_attr_bytes_rx", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &dev->con_data.stat_obj_attr_byte_rx);
-	dctl_register_leaf(path_name, "obj_data_bytes_rx", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &dev->con_data.stat_obj_data_byte_rx);
+	dctl_register_u32(path_name, "obj_rx", O_RDONLY,
+			  &dev->con_data.stat_obj_rx);
+	dctl_register_u64(path_name, "obj_total_bytes_rx", O_RDONLY,
+			  &dev->con_data.stat_obj_total_byte_rx);
+	dctl_register_u64(path_name, "obj_hdr_bytes_rx", O_RDONLY,
+			  &dev->con_data.stat_obj_hdr_byte_rx);
+	dctl_register_u64(path_name, "obj_attr_bytes_rx", O_RDONLY,
+			  &dev->con_data.stat_obj_attr_byte_rx);
+	dctl_register_u64(path_name, "obj_data_bytes_rx", O_RDONLY,
+			  &dev->con_data.stat_obj_data_byte_rx);
 
-	dctl_register_leaf(path_name, "control_rx", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL,
-			   &dev->con_data.stat_control_rx);
-	dctl_register_leaf(path_name, "control_byte_rx", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &dev->con_data.stat_control_byte_rx);
-	dctl_register_leaf(path_name, "control_tx", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL,
-			   &dev->con_data.stat_control_tx);
-	dctl_register_leaf(path_name, "control_byte_tx", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &dev->con_data.stat_control_byte_tx);
-	dctl_register_leaf(path_name, "log_rx", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL,
-			   &dev->con_data.stat_log_rx);
-	dctl_register_leaf(path_name, "log_byte_rx", DCTL_DT_UINT64,
-			   dctl_read_uint64, NULL,
-			   &dev->con_data.stat_log_byte_rx);
+	dctl_register_u32(path_name, "control_rx", O_RDONLY,
+			  &dev->con_data.stat_control_rx);
+	dctl_register_u64(path_name, "control_byte_rx", O_RDONLY,
+			  &dev->con_data.stat_control_byte_rx);
+	dctl_register_u32(path_name, "control_tx", O_RDONLY,
+			  &dev->con_data.stat_control_tx);
+	dctl_register_u64(path_name, "control_byte_tx", O_RDONLY,
+			  &dev->con_data.stat_control_byte_tx);
+	dctl_register_u32(path_name, "log_rx", O_RDONLY,
+			  &dev->con_data.stat_log_rx);
+	dctl_register_u64(path_name, "log_byte_rx", O_RDONLY,
+			  &dev->con_data.stat_log_byte_rx);
 	free(node_name);
 }
 

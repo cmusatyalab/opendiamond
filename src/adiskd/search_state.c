@@ -989,62 +989,52 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
 	dctl_register_node(ROOT_PATH, SEARCH_NAME);
 
-	dctl_register_leaf(DEV_SEARCH_PATH, "work_ahead", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32, 
-			   &sstate->work_ahead);
-	dctl_register_leaf(DEV_SEARCH_PATH, "obj_total", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->obj_total);
-	dctl_register_leaf(DEV_SEARCH_PATH, "obj_processed", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->obj_processed);
-	dctl_register_leaf(DEV_SEARCH_PATH, "obj_dropped", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->obj_dropped);
-	dctl_register_leaf(DEV_SEARCH_PATH, "obj_pass", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->obj_passed);
-	dctl_register_leaf(DEV_SEARCH_PATH, "obj_skipped", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->obj_skipped);
+	dctl_register_u32(DEV_SEARCH_PATH, "work_ahead", O_RDWR,
+			  &sstate->work_ahead);
+	dctl_register_u32(DEV_SEARCH_PATH, "obj_total", O_RDONLY,
+			  &sstate->obj_total);
+	dctl_register_u32(DEV_SEARCH_PATH, "obj_processed", O_RDONLY,
+			  &sstate->obj_processed);
+	dctl_register_u32(DEV_SEARCH_PATH, "obj_dropped", O_RDONLY,
+			  &sstate->obj_dropped);
+	dctl_register_u32(DEV_SEARCH_PATH, "obj_pass", O_RDONLY,
+			  &sstate->obj_passed);
+	dctl_register_u32(DEV_SEARCH_PATH, "obj_skipped", O_RDONLY,
+			  &sstate->obj_skipped);
 
-	dctl_register_leaf(DEV_SEARCH_PATH, "nw_stalls", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->network_stalls);
+	dctl_register_u32(DEV_SEARCH_PATH, "nw_stalls", O_RDONLY,
+			  &sstate->network_stalls);
+	dctl_register_u32(DEV_SEARCH_PATH, "tx_full_stalls", O_RDONLY,
+			  &sstate->tx_full_stalls);
+	dctl_register_u32(DEV_SEARCH_PATH, "tx_idles", O_RDONLY,
+			  &sstate->tx_idles);
 
-	dctl_register_leaf(DEV_SEARCH_PATH, "tx_full_stalls", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->tx_full_stalls);
-
-	dctl_register_leaf(DEV_SEARCH_PATH, "tx_idles", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->tx_idles);
-
-	dctl_register_leaf(DEV_SEARCH_PATH, "pend_objs", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->pend_objs);
-	dctl_register_leaf(DEV_SEARCH_PATH, "pend_maximum", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &sstate->pend_max);
-	dctl_register_leaf(DEV_SEARCH_PATH, "split_type", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &sstate->split_type);
-	dctl_register_leaf(DEV_SEARCH_PATH, "split_ratio", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &sstate->split_ratio);
-	dctl_register_leaf(DEV_SEARCH_PATH, "split_auto_step", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &sstate->split_auto_step);
-	dctl_register_leaf(DEV_SEARCH_PATH, "split_bp_thresh", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &sstate->split_bp_thresh);
-	dctl_register_leaf(DEV_SEARCH_PATH, "split_multiplier",
-			   DCTL_DT_UINT32, dctl_read_uint32,
-			   dctl_write_uint32, &sstate->split_mult);
-	dctl_register_leaf(DEV_SEARCH_PATH, "average_ratio", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL, &sstate->avg_int_ratio);
-	dctl_register_leaf(DEV_SEARCH_PATH, "smoothed_beta", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL,
-			   &sstate->smoothed_int_ratio);
+	dctl_register_u32(DEV_SEARCH_PATH, "pend_objs", O_RDONLY,
+			  &sstate->pend_objs);
+	dctl_register_u32(DEV_SEARCH_PATH, "pend_maximum", O_RDWR,
+			  &sstate->pend_max);
+	dctl_register_u32(DEV_SEARCH_PATH, "split_type", O_RDWR,
+			  &sstate->split_type);
+	dctl_register_u32(DEV_SEARCH_PATH, "split_ratio", O_RDWR,
+			  &sstate->split_ratio);
+	dctl_register_u32(DEV_SEARCH_PATH, "split_auto_step", O_RDWR,
+			  &sstate->split_auto_step);
+	dctl_register_u32(DEV_SEARCH_PATH, "split_bp_thresh", O_RDWR,
+			  &sstate->split_bp_thresh);
+	dctl_register_u32(DEV_SEARCH_PATH, "split_multiplier", O_RDWR,
+			  &sstate->split_mult);
+	dctl_register_u32(DEV_SEARCH_PATH, "average_ratio", O_RDONLY,
+			  &sstate->avg_int_ratio);
+	dctl_register_u32(DEV_SEARCH_PATH, "smoothed_beta", O_RDONLY,
+			  &sstate->smoothed_int_ratio);
 
 	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
 	dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
 	dctl_register_node(ROOT_PATH, DEV_OBJ_NODE);
 	dctl_register_node(ROOT_PATH, DEV_CACHE_NODE);
-	
-	/* 
-	 * Initialize the log for the new process 
+
+	/*
+	 * Initialize the log for the new process
 	 */
 	log_init(LOG_PREFIX, DEV_SEARCH_PATH);
 

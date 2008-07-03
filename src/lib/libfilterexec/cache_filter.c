@@ -248,18 +248,15 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 
 	new_state = (ceval_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
-	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_table", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &use_cache_table);
-	dctl_register_leaf(DEV_CACHE_PATH, "use_cache_oattr", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &use_cache_oattr);
-	dctl_register_leaf(DEV_CACHE_PATH, "add_cache_entries", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &add_cache_entries);
-	dctl_register_leaf(DEV_CACHE_PATH, "hybrid_mode_enabled", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &hybrid_mode_enabled);
+
+	dctl_register_u32(DEV_CACHE_PATH, "use_cache_table", O_RDWR,
+			  &use_cache_table);
+	dctl_register_u32(DEV_CACHE_PATH, "use_cache_oattr", O_RDWR,
+			  &use_cache_oattr);
+	dctl_register_u32(DEV_CACHE_PATH, "add_cache_entries", O_RDWR,
+			  &add_cache_entries);
+	dctl_register_u32(DEV_CACHE_PATH, "hybrid_mode_enabled", O_RDWR,
+			  &hybrid_mode_enabled);
 
 	new_state->odisk = odisk;
 	new_state->cookie = cookie;

@@ -147,7 +147,7 @@ lookup_dev_by_name(search_context_t * sc, const char *host)
 
 
 static int
-remote_write_leaf(char *path, int len, char *data, void *cookie)
+remote_write_leaf(char *path, size_t len, char *data, void *cookie)
 {
 	void *handle = ((device_handle_t *)cookie)->dev_handle;
 	return device_write_leaf(handle, path, len, data);
@@ -155,7 +155,7 @@ remote_write_leaf(char *path, int len, char *data, void *cookie)
 
 
 static int
-remote_read_leaf(char *path, dctl_data_type_t *dtype, int *len, char *data,
+remote_read_leaf(char *path, dctl_data_type_t *dtype, size_t *len, char *data,
 		 void *cookie)
 {
 	void *handle = ((device_handle_t *)cookie)->dev_handle;
@@ -180,7 +180,7 @@ remote_list_leafs(char *path, int *num_ents, dctl_entry_t *space, void *cookie)
 
 
 static int
-read_float_as_uint32(void *cookie, int *len, char *data)
+read_float_as_uint32(void *cookie, size_t *len, char *data)
 {
 
 	assert(cookie != NULL);
@@ -232,31 +232,19 @@ register_remote_dctl(const char *host, device_handle_t * dev_handle)
 
 	err = snprintf(cr_name, 128, "%s_%s", "credit_incr", node_name);
 
-	/*
-	 * also register a dctl for the credit count 
-	 */
-	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-				 dctl_read_uint32, dctl_write_uint32,
-				 &dev_handle->credit_incr);
+	/* also register a dctl for the credit count */
+	dctl_register_u32(HOST_DEVICE_PATH, cr_name, O_RDWR,
+			  &dev_handle->credit_incr);
 
 	err = snprintf(cr_name, 128, "%s_%s", "cur_credits", node_name);
-	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-				 read_float_as_uint32, NULL,
-				 &dev_handle->cur_credits);
+	dctl_register_leaf(HOST_DEVICE_PATH, cr_name,
+			   DCTL_DT_UINT32, read_float_as_uint32, NULL,
+			   &dev_handle->cur_credits);
 
 	err = snprintf(cr_name, 128, "%s_%s", "be_serviced", node_name);
+	dctl_register_u32(HOST_DEVICE_PATH, cr_name, O_RDONLY,
+			  &dev_handle->serviced);
 
-	/*
-	 * also register a dctl for the credit count 
-	 */
-	err = dctl_register_leaf(HOST_DEVICE_PATH, cr_name, DCTL_DT_UINT32,
-				 dctl_read_uint32, NULL,
-				 &dev_handle->serviced);
-	if (err) {
-		log_message(LOGT_BG, LOGL_ERR, 
-		    "register_remove_remove:  failed to register leaf - err=%d",
-		    err);
-	}
 	free(node_name);
 }
 

@@ -63,8 +63,8 @@ typedef struct device_handle {
 	float				prate;
 	int				obj_total;
 	float				cur_credits;	/* credits for current iteration */
-	int				credit_incr;	/* incremental credits to add */
-	int				serviced;	/* times data removed */
+	uint32_t			credit_incr;	/* incremental credits to add */
+	uint32_t			serviced;	/* times data removed */
 	struct 				search_context *	sc;
 } device_handle_t;
 
@@ -103,10 +103,10 @@ typedef struct search_context {
 	ring_data_t *		bg_ops;		/* unprocessed objects */
 	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
-	int			bg_credit_policy;
+	uint32_t		bg_credit_policy;
 	struct filter_data *	bg_fdata; 	/* filter_data_t  */
-	int			pend_lw;	/* pending lw mark */
-	int			dev_queue_limit; /* # objs queued at dev*/
+	uint32_t		pend_lw;	/* pending lw mark */
+	uint32_t		dev_queue_limit; /* # objs queued at dev*/
 	int 		search_exec_mode;  /* a search_mode_t */
 	host_stats_t	host_stats;		/* object stats for this search */
 } search_context_t;

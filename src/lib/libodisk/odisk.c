@@ -781,15 +781,12 @@ odisk_init(odisk_state_t ** odisk, char *dirp)
 	new_state = (odisk_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
 
-	dctl_register_leaf(DEV_OBJ_PATH, "obj_load", DCTL_DT_UINT32,
-			   dctl_read_uint32, NULL,
-			   &new_state->obj_load);
-	dctl_register_leaf(DEV_OBJ_PATH, "next_blocked",
-			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-			   &new_state->next_blocked);
-	dctl_register_leaf(DEV_OBJ_PATH, "readahead_blocked",
-			   DCTL_DT_UINT32, dctl_read_uint32, NULL,
-			   &new_state->readahead_full);
+	dctl_register_u32(DEV_OBJ_PATH, "obj_load", O_RDONLY,
+			  &new_state->obj_load);
+	dctl_register_u32(DEV_OBJ_PATH, "next_blocked", O_RDONLY,
+			  &new_state->next_blocked);
+	dctl_register_u32(DEV_OBJ_PATH, "readahead_blocked", O_RDONLY,
+			  &new_state->readahead_full);
 
 	/*
 	 * the length has already been tested above 

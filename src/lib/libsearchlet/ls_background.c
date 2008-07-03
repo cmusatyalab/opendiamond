@@ -134,7 +134,7 @@ update_device_queue(search_context_t * sc)
  * uint32_t that the cookie points to.
  */
 static int
-dctl_write_dev_queue(void *cookie, int len, char *data)
+dctl_write_dev_queue(void *cookie, size_t len, char *data)
 {
 	search_context_t * sc;
 	assert(cookie != NULL);
@@ -152,7 +152,7 @@ dctl_write_dev_queue(void *cookie, int len, char *data)
 }
 
 static int
-dctl_read_dev_queue(void *cookie, int *len, char *data)
+dctl_read_dev_queue(void *cookie, size_t *len, char *data)
 {
 	search_context_t * sc;
 
@@ -272,15 +272,15 @@ update_delta_rate(search_context_t * sc)
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
 			continue;
 		}
-		target = (int) (cur_dev->delta * scale);
+		target = cur_dev->delta * scale;
 		if (target > MAX_CREDIT_INCR) {
 			target = MAX_CREDIT_INCR;
 		} else if (target < 1) {
 			target = 1;
 		}
-		if (target > cur_dev->credit_incr) {
+		if (target > (int)cur_dev->credit_incr) {
 			cur_dev->credit_incr++;
-		} else if (target < cur_dev->credit_incr) {
+		} else if (target < (int)cur_dev->credit_incr) {
 			cur_dev->credit_incr--;
 		}
 	}
@@ -463,7 +463,6 @@ bg_main(void *arg)
 	struct timezone tz;
 	struct timespec timeout;
 	uint32_t        loop_count = 0;
-	uint32_t        dummy = 0;
 	uint32_t		exec_mode_thresh_low = MAXINT;
 	uint32_t		exec_mode_thresh_high = MAXINT;
 
@@ -471,47 +470,22 @@ bg_main(void *arg)
 
 	err = dctl_register_node(HOST_PATH, HOST_BACKGROUND);
 	assert(err == 0);
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "loop_count",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &loop_count);
-	assert(err == 0);
 
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "cpu_split",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &do_cpu_update);
-	assert(err == 0);
+	dctl_register_u32(HOST_BACKGROUND_PATH, "loop_count", O_RDWR,
+			  &loop_count);
+	dctl_register_u32(HOST_BACKGROUND_PATH, "cpu_split", O_RDWR,
+			  &do_cpu_update);
+	dctl_register_leaf(HOST_BACKGROUND_PATH, "dev_queue_max", DCTL_DT_UINT32,
+			   dctl_read_dev_queue, dctl_write_dev_queue, sc);
+	dctl_register_u32(HOST_BACKGROUND_PATH, "pend_queue_max", O_RDWR,
+			  &sc->pend_lw);
 
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "dev_queue_max",
-				 DCTL_DT_UINT32, dctl_read_dev_queue,
-				 dctl_write_dev_queue, sc);
-	assert(err == 0);
-
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "pend_queue_max",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &sc->pend_lw);
-	assert(err == 0);
-
-
-	err =
-	    dctl_register_leaf(HOST_BACKGROUND_PATH, "dummy", DCTL_DT_UINT32,
-			       dctl_read_uint32, dctl_write_uint32, &dummy);
-	assert(err == 0);
-
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "credit_policy",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &sc->bg_credit_policy);
-	assert(err == 0);
-
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "exec_mode_thresh_lo",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &exec_mode_thresh_low);
-	assert(err == 0);
-
-	err = dctl_register_leaf(HOST_BACKGROUND_PATH, "exec_mode_thresh_hi",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &exec_mode_thresh_high);
-	assert(err == 0);
-
+	dctl_register_u32(HOST_BACKGROUND_PATH, "credit_policy", O_RDWR,
+			  &sc->bg_credit_policy);
+	dctl_register_u32(HOST_BACKGROUND_PATH, "exec_mode_thresh_lo", O_RDWR,
+			  &exec_mode_thresh_low);
+	dctl_register_u32(HOST_BACKGROUND_PATH, "exec_mode_thresh_hi", O_RDWR,
+			  &exec_mode_thresh_high);
 
 	sc->avg_proc_time = 0.01;
 
@@ -574,8 +548,8 @@ bg_main(void *arg)
 				     * current mode and the number of objects in 
 				     * the proc_ring.
 				     */
-					int proc_ring_count = ring_count(sc->proc_ring);
-					int new_mode = sc->search_exec_mode;
+				    uint32_t proc_ring_count = ring_count(sc->proc_ring);
+				    int new_mode = sc->search_exec_mode;
 
 				    log_message(LOGT_BG, LOGL_DEBUG,
 						"Search %d objects queued for app, limit %d",

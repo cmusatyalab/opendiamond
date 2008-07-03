@@ -441,12 +441,8 @@ dctl_register_leaf(char *path, char *leaf_name, dctl_data_type_t data_type,
 	new_leaf->leaf_write_cb = write_cb;
 	new_leaf->leaf_cookie = cookie;
 
-
 	return (0);
 }
-
-
-
 
 int
 dctl_unregister_leaf(char *path, char *leaf_name)
@@ -652,7 +648,7 @@ dctl_list_leafs(char *path, int *num_ents, dctl_entry_t * entry_space)
 
 
 int
-dctl_read_leaf(char *leaf_name, dctl_data_type_t * dtype, int *len,
+dctl_read_leaf(char *leaf_name, dctl_data_type_t * dtype, size_t *len,
 	       char *data)
 {
 	dctl_leaf_t    *leaf;
@@ -718,7 +714,7 @@ dctl_read_leaf(char *leaf_name, dctl_data_type_t * dtype, int *len,
 
 
 int
-dctl_write_leaf(char *leaf_name, int len, char *data)
+dctl_write_leaf(char *leaf_name, size_t len, char *data)
 {
 	dctl_leaf_t    *leaf;
 	dctl_node_t    *pnode;

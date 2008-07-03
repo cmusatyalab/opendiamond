@@ -70,9 +70,9 @@ typedef struct cstate {
 	void *			app_cookie;
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
-	int			attr_policy;
+	uint32_t		attr_policy;
 	unsigned int		attr_threshold;
-	int			attr_ratio;
+	uint32_t		attr_ratio;
 	/* store incoming credit message */
 	credit_count_msg_t	cc_msg;
 	/* number of remaining credits */

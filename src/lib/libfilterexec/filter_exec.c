@@ -121,9 +121,9 @@ static opt_policy_t policy_arr[] = {
 /*
  * Global state for the filter init code.
  */
-int             fexec_bypass_type = BP_NONE;
-int             fexec_autopart_type = AUTO_PART_NONE;
-static int				fexec_frequency_threshold = 1;  /* threshold for filter history */
+uint32_t	fexec_bypass_type = BP_NONE;
+uint32_t	fexec_autopart_type = AUTO_PART_NONE;
+static uint32_t	fexec_frequency_threshold = 1;  /* threshold for filter history */
 
 void
 fexec_system_init(void)
@@ -133,21 +133,16 @@ fexec_system_init(void)
 	int             rbytes;
 
 	/*
-	 * it will default to STD if this doesnt work 
+	 * it will default to STD if this doesnt work
 	 */
 	rtimer_system_init(RTIMER_PAPI);
 
-	dctl_register_leaf(DEV_FEXEC_PATH, "split_policy", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &fexec_bypass_type);
-
-	dctl_register_leaf(DEV_FEXEC_PATH, "dynamic_method", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &fexec_autopart_type);
-
-	dctl_register_leaf(DEV_FEXEC_PATH, "frequency_threshold", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &fexec_frequency_threshold);
+	dctl_register_u32(DEV_FEXEC_PATH, "split_policy", O_RDWR,
+			  &fexec_bypass_type);
+	dctl_register_u32(DEV_FEXEC_PATH, "dynamic_method", O_RDWR,
+			  &fexec_autopart_type);
+	dctl_register_u32(DEV_FEXEC_PATH, "frequency_threshold", O_RDWR,
+			  &fexec_frequency_threshold);
 
 	// #ifdef VERBOSE
 	fprintf(stderr, "fexec_system_init: policy = %d\n",

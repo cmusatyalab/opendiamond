@@ -141,7 +141,7 @@ static void
 process_request(dctl_msg_hdr_t * msg, char *data, int conn)
 {
 	int             err;
-	int             len;
+	size_t		len;
 	dctl_op_t       cmd;
 	char           *path;
 	char           *arg;

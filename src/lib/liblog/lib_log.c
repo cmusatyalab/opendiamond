@@ -355,15 +355,9 @@ void log_init(char *log_prefix, char *control_prefix)
 	  snprintf(log_path, DCTL_NAME_LEN, "%s.%s.%s", 
 		   control_prefix, LOG_PATH, log_prefix);
 	}
-	
-	err = dctl_register_leaf(log_path, "log_level",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &log_state->level);
-	assert(err == 0);
-	err = dctl_register_leaf(log_path, "log_type",
-				 DCTL_DT_UINT32, dctl_read_uint32,
-				 dctl_write_uint32, &log_state->type);
-	assert(err == 0);
+
+	dctl_register_u32(log_path, "log_level", O_RDWR, &log_state->level);
+	dctl_register_u32(log_path, "log_type", O_RDWR, &log_state->type);
 
 	/* start the thread */
 	err = pthread_create(&log_state->writer, NULL, log_writer, NULL);

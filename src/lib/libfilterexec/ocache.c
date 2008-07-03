@@ -698,15 +698,11 @@ ocache_init(char *dirp)
 		return (EPERM);
 	}
 
-	/*
-	 * dctl control 
-	 */
-	dctl_register_leaf(DEV_CACHE_PATH, "cache_table", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &if_cache_table);
-	dctl_register_leaf(DEV_CACHE_PATH, "cache_oattr", DCTL_DT_UINT32,
-			   dctl_read_uint32, dctl_write_uint32,
-			   &if_cache_oattr);
+	/* dctl control */
+	dctl_register_u32(DEV_CACHE_PATH, "cache_table", O_RDWR,
+			  &if_cache_table);
+	dctl_register_u32(DEV_CACHE_PATH, "cache_oattr", O_RDWR,
+			  &if_cache_oattr);
 
 	/*
 	 * set callback functions so we get notifice on read/and writes

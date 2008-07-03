@@ -19,15 +19,14 @@
 #include <stdint.h>
 #include <errno.h>
 
-
 #include "dctl_impl.h"
 
 /*
  * helper function that returns the value of the
  * uint32_t stored at the cookie location.
  */
-int
-dctl_read_uint32(void *cookie, int *len, char *data)
+static int
+dctl_read_uint32(void *cookie, size_t *len, char *data)
 {
 
 	assert(cookie != NULL);
@@ -50,8 +49,8 @@ dctl_read_uint32(void *cookie, int *len, char *data)
  * helper function that write the value passed in the data to the
  * uint32_t that the cookie points to.
  */
-int
-dctl_write_uint32(void *cookie, int len, char *data)
+static int
+dctl_write_uint32(void *cookie, size_t len, char *data)
 {
 	assert(cookie != NULL);
 	assert(data != NULL);
@@ -65,13 +64,23 @@ dctl_write_uint32(void *cookie, int len, char *data)
 	return (0);
 }
 
+void dctl_register_u32(char *path, char *leaf, int mode, uint32_t *item)
+{
+    dctl_read_fn read   = mode != O_WRONLY ? dctl_read_uint32 : NULL;
+    dctl_write_fn write = mode != O_RDONLY ? dctl_write_uint32 : NULL;
+    int err;
+
+    err = dctl_register_leaf(path, leaf, DCTL_DT_UINT32, read, write, item);
+    assert(err == 0);
+}
+
 
 /*
  * helper function that returns the value of the
  * uint64_t stored at the cookie location.
  */
-int
-dctl_read_uint64(void *cookie, int *len, char *data)
+static int
+dctl_read_uint64(void *cookie, size_t *len, char *data)
 {
 
 	assert(cookie != NULL);
@@ -99,8 +108,8 @@ dctl_read_uint64(void *cookie, int *len, char *data)
  * helper function that write the value passed in the data to the
  * uint64_t that the cookie points to.
  */
-int
-dctl_write_uint64(void *cookie, int len, char *data)
+static int
+dctl_write_uint64(void *cookie, size_t len, char *data)
 {
 	assert(cookie != NULL);
 	assert(data != NULL);
@@ -114,88 +123,14 @@ dctl_write_uint64(void *cookie, int len, char *data)
 	return (0);
 }
 
-/*
- * helper function that returns the value of the
- * character stored at the cookie location.
- */
-
-int
-dctl_read_char(void *cookie, int *len, char *data)
+void dctl_register_u64(char *path, char *leaf, int mode, uint64_t *item)
 {
+    dctl_read_fn  read  = mode != O_WRONLY ? dctl_read_uint64 : NULL;
+    dctl_write_fn write = mode != O_RDONLY ? dctl_write_uint64 : NULL;
+    int err;
 
-	assert(cookie != NULL);
-	assert(data != NULL);
-
-	/*
-	 * make sure there is a enough space 
-	 */
-	if (*len < sizeof(char)) {
-		*len = sizeof(char);
-		return (ENOMEM);
-	}
-
-
-	/*
-	 * store the data and the data size 
-	 */
-	*len = sizeof(char);
-	*(char *) data = *(char *) cookie;
-	return (0);
-
+    err = dctl_register_leaf(path, leaf, DCTL_DT_UINT64, read, write, item);
+    assert(err == 0);
 }
 
 
-/*
- * helper function that write the value passed in the data to the
- * character that the cookie points to.
- */
-
-int
-dctl_write_char(void *cookie, int len, char *data)
-{
-	assert(cookie != NULL);
-	assert(data != NULL);
-
-	if (len < sizeof(char)) {
-		return (ENOMEM);
-	}
-
-	*(char *) cookie = *(char *) data;
-	return (0);
-}
-
-
-/*
- * helper function that returns the value of the
- * string stored at the cookie location.
- *
- * Note that we do not provide a equivalent write function
- * because of space allocation difficulties.
- */
-
-int
-dctl_read_string(void *cookie, int *len, char *data)
-{
-	int             slen;
-
-	assert(cookie != NULL);
-	assert(data != NULL);
-
-	slen = strlen((char *) cookie);
-	slen += 1;		/* include the null term */
-
-	/*
-	 * make sure there is a enough space 
-	 */
-	if (*len < slen) {
-		*len = slen;
-		return (ENOMEM);
-	}
-
-	/*
-	 * store the data and the data size 
-	 */
-	*len = slen;
-	memcpy((char *) data, (char *) cookie, slen);
-	return (0);
-}

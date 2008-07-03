@@ -256,10 +256,8 @@ extern filter_info_t *fexec_active_filter;
 extern enum policy_type_t filter_exec_current_policy;
 
 
-
-extern int             fexec_bypass_type;
-extern int             fexec_autopart_type;
-
+extern uint32_t fexec_bypass_type;
+extern uint32_t fexec_autopart_type;
 
 
 #endif                    /* ! _FILTER_PRIV_H_ */

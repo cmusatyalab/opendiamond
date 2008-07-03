@@ -23,7 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include "lib_tools.h"
-#include "lib_dctl.h"
+#include "dctl_impl.h"
 #include "dctl_socket.h"
 
 

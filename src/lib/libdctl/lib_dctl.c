@@ -23,7 +23,6 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include "lib_dctl.h"
 #include "dctl_impl.h"
 
 

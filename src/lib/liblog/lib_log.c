@@ -29,8 +29,8 @@
 
 #include "diamond_types.h"
 #include "lib_dconfig.h"
-#include "lib_dctl.h"
 #include "dctl_common.h"
+#include "dctl_impl.h"
 #include "lib_log.h"
 #include "dconfig_priv.h"
 

@@ -34,7 +34,7 @@
 #include "diamond_types.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
-#include "lib_dctl.h"
+#include "dctl_impl.h"
 #include "lib_sstub.h"
 #include "lib_log.h"
 #include "rcomb.h"

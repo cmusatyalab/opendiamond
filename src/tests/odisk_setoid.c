@@ -28,7 +28,6 @@
 #include "lib_tools.h"
 #include "lib_odisk.h"
 #include "lib_log.h"
-#include "lib_dctl.h"
 #include "odisk_priv.h"
 
 

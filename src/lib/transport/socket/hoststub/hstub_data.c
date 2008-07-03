@@ -38,7 +38,6 @@
 #include "obj_attr.h"
 #include "lib_log.h"
 #include "lib_odisk.h"
-#include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 #include "odisk_priv.h"

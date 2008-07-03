@@ -16,6 +16,8 @@
 #ifndef	_LIB_HSTUB_H_
 #define	_LIB_HSTUB_H_
 
+#include "dctl_impl.h"
+
 typedef struct {
 	void (*log_data_cb)	(void *hcookie, char *data, int len, int dev);
 	void (*search_done_cb)	(void *hcookie);

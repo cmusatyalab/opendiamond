@@ -39,7 +39,7 @@
 #include "lib_odisk.h"
 #include "lib_search_priv.h"
 #include "lib_log.h"
-#include "lib_dctl.h"
+#include "dctl_impl.h"
 #include "lib_hstub.h"
 #include "lib_dconfig.h"
 #include "dctl_common.h"

@@ -18,8 +18,9 @@
 #include <assert.h>
 #include <stdint.h>
 #include <errno.h>
-#include "lib_dctl.h"
 
+
+#include "dctl_impl.h"
 
 /*
  * helper function that returns the value of the

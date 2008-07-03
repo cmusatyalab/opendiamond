@@ -17,6 +17,7 @@
 #ifndef	_LIB_SSTUB_H_
 #define	_LIB_SSTUB_H_
 
+#include "dctl_impl.h"
 
 /*
  * Callback functions that are passed when initializing the library.

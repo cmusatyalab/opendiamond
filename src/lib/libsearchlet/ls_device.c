@@ -40,7 +40,6 @@
 #include "log_socket.h"
 #include "log_impl.h"
 #include "assert.h"
-#include "lib_dctl.h"
 #include "lib_hstub.h"
 #include "dctl_common.h"
 #include "dctl_impl.h"

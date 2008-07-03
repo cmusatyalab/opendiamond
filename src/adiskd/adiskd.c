@@ -30,7 +30,6 @@
 #include "lib_tools.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
-#include "lib_dctl.h"
 #include "lib_sstub.h"
 #include "lib_filterexec.h"
 #include "search_state.h"

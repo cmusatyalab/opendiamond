@@ -189,7 +189,7 @@ next_obj:
 	/* Decide if we are going to send the attributes on this object. */
 	drop_attrs = drop_attributes(cstate);
 
-	object.search_id = 0;
+	object.search_id = cstate->search_id;
 	object.data.data_len = obj->data_len;
 	object.data.data_val = obj->data;
 

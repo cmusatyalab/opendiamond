@@ -56,6 +56,7 @@ typedef struct conn_info {
 typedef struct sdevice_state {
 	struct sdevice_state * 	next;
 	pthread_t	        thread_id;
+	unsigned int		search_id;
 	ring_data_t *	    	obj_ring;
 	conn_info_t 	    	con_data;
 	void *		    	hcookie;

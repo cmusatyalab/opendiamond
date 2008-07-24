@@ -46,7 +46,7 @@
 
 /* This is called when adiskd sends a new object */
 static void
-recv_object(void *conn_data, struct mrpc_message *msg,  object_x *object)
+recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 {
 	sdevice_state_t *dev = (sdevice_state_t *)conn_data;
 	conn_info_t	*cinfo = &dev->con_data;
@@ -56,6 +56,13 @@ recv_object(void *conn_data, struct mrpc_message *msg,  object_x *object)
 	size_t		hdr_len, attr_len = 0;
 	unsigned int	i;
 	int		err;
+
+	/* is this a result from a previous search? */
+	if (object->search_id != dev->search_id) {
+		log_message(LOGT_NET, LOGL_INFO,
+			    "recv_object: dropping object from another search");
+		return;
+	}
 
 	/* Allocate storage for the data. */
 	if (object->data.data_len) {

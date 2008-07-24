@@ -21,6 +21,10 @@ typedef opaque		sig_val_x<SIG_SIZE>;
 typedef unsigned int	mode_x;
 typedef unsigned int	state_x;
 
+struct start_x {
+    unsigned int search_id;
+};
+
 struct stop_x {
     int		host_objs_received;
     int		host_objs_queued;
@@ -91,7 +95,7 @@ struct diamond_session_vars_x {
 
 serverprocs {
     /**** Client calls ****/
-    device_start(void, void) = 1;
+    device_start(start_x, void) = 1;
     device_stop(stop_x, void) = 2;
     device_terminate(void, void) = 3;
     device_clear_gids(void, void) = 4;

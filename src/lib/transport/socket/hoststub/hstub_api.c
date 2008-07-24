@@ -163,10 +163,13 @@ device_start(void *handle)
 {
 	sdevice_state_t *dev;
 	mrpc_status_t	retval;
+	start_x		sx;
 
 	dev = (sdevice_state_t *) handle;
 
-	retval = rpc_client_content_device_start(dev->con_data.rpc_client);
+	sx.search_id = ++(dev->search_id);
+
+	retval = rpc_client_content_device_start(dev->con_data.rpc_client, &sx);
 
 	return rpc_postproc(__FUNCTION__, retval);
 }

@@ -49,9 +49,11 @@
 #include "rpc_client_content_server.h"
 
 static mrpc_status_t
-device_start(void *conn_data, struct mrpc_message *msg)
+device_start(void *conn_data, struct mrpc_message *msg, start_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
+
+	cstate->search_id = in->search_id;
 
 	fprintf(stderr, "have_start pend %d\n", cstate->pend_obj);
 	if (cstate->pend_obj == 0) {

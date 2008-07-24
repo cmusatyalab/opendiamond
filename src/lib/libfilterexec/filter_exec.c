@@ -274,7 +274,6 @@ save_filter_state(filter_data_t *fdata, filter_info_t *cur_filt)
 int
 fexec_init_search(filter_data_t * fdata)
 {
-	void           *data;
 	filter_info_t  *cur_filt;
 	filter_id_t     fid;
 	int             err;
@@ -293,28 +292,13 @@ fexec_init_search(filter_data_t * fdata)
 	update_filter_history(filter_histories, FALSE);
 	 
 	/*
-	 * Go through all the filters and call the init function 
+	 * Go through all the filters and save some information
 	 */
 	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
 		cur_filt = &fdata->fd_filters[fid];
 		if (fid == fdata->fd_app_id) {
 			continue;
 		}
-
-		err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
-					   cur_filt->fi_arglist,
-					   cur_filt->fi_blob_len,
-					   cur_filt->fi_blob_data,
-					   cur_filt->fi_name, &data);
-
-		if (err != 0) {
-			/*
-			 * XXXX what now 
-			 */
-			assert(0);
-		}
-
-		cur_filt->fi_filt_arg = data;
 
 		/*
 		 * XXX this need some works 
@@ -1113,6 +1097,9 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 			assert(time_ns < SANITY_NS_PER_FILTER);
 		} else {
+			/* do lazy initialization if necessary */
+			fexec_possibly_init_filter(cur_filter);
+
 			rt_init(&rt);
 			rt_start(&rt);	/* assume only one thread here */
 
@@ -1222,4 +1209,31 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 #endif
 
 	return pass;
+}
+
+void
+fexec_possibly_init_filter(filter_info_t *cur_filt)
+{
+	void           *data;
+	int err;
+
+	if (cur_filt->fi_is_initialized) {
+		return;
+	}
+
+	err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
+				   cur_filt->fi_arglist,
+				   cur_filt->fi_blob_len,
+				   cur_filt->fi_blob_data,
+				   cur_filt->fi_name, &data);
+
+	if (err != 0) {
+		/*
+		 * XXXX what now 
+		 */
+		assert(0);
+	}
+
+	cur_filt->fi_filt_arg = data;
+	cur_filt->fi_is_initialized = true;
 }

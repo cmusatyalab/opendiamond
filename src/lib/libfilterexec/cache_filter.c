@@ -833,6 +833,9 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 			assert(cur_filter->fi_eval_fp);
 
+			/* do lazy initialization if necessary */
+			fexec_possibly_init_filter(cur_filter);
+
 			/* mark beginning of filter eval */
 			if (add_cache_entries) {
 				ocache_add_start(obj_handle,

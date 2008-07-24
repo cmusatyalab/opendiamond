@@ -15,6 +15,7 @@
 #define _FILTER_PRIV_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <limits.h>
 #include <sys/queue.h>
 
@@ -82,6 +83,7 @@ typedef struct filter_info {
 	char          **fi_arglist;
 	filter_id_t     fi_filterid;    /* id of this filter */
 	void           *fi_filt_arg;    /* associated argument data */
+	bool            fi_is_initialized;  /* for lazy calling of fi_init_fp */
 
 	int             fi_blob_len;    /* associated blob len */
 	void           *fi_blob_data;   /* associated blob of data */
@@ -246,7 +248,7 @@ const char           *fexec_cur_filtname(void);
 int             fexec_estimate_cost(filter_data_t * fdata,
 				    permutation_t * perm, int gen, int indep,
 				    float *cost);
-
+void            fexec_possibly_init_filter(filter_info_t *cur_filt);
 
 extern filter_info_t *fexec_active_filter;
 

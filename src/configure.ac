@@ -1,5 +1,5 @@
 #  The OpenDiamond Platform for Interactive Search
-#  Version 3 
+#  Version 4
 #
 #  Copyright (c) 2007 Carnegie Mellon University
 #  All rights reserved.
@@ -10,7 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-AC_INIT([opendiamond], [3.99.0], [diamond@cs.cmu.edu])
+AC_INIT([opendiamond], [4.0.0], [diamond@cs.cmu.edu])
 AC_PREREQ([2.59])
 AC_CONFIG_SRCDIR([config.h.in])
 AM_INIT_AUTOMAKE([foreign 1.8.5])

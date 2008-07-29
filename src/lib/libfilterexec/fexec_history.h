@@ -1,6 +1,6 @@
 /*
  *  The OpenDiamond Platform for Interactive Search
- *  Version 3
+ *  Version 4
  *
  *  Copyright (c) 2002-2006 Intel Corporation
  *  All rights reserved.

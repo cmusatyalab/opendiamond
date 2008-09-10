@@ -156,7 +156,7 @@ sstub_send_objects(cstate_t *cstate)
 	struct acookie	*cookie;
 	int		drop_attrs;
 	int		n;
-	attribute_x	attrs[MAX_ATTRIBUTES];
+	attribute_x	*attrs;
 	mrpc_status_t	rc;
 	unsigned int	tx_hdr_bytes;
 	unsigned int	tx_data_bytes;
@@ -196,10 +196,19 @@ next_obj:
 	tx_hdr_bytes = sizeof(object_x);
 	tx_data_bytes = obj->data_len;
 
+	/* how many attributes are we sending? */
+	err = obj_first_attr(&obj->attr_info, NULL, NULL, NULL, NULL,
+			     &cookie, drop_attrs);
+	for (n = 0; err == 0; n++)
+		err = obj_next_attr(&obj->attr_info, NULL, NULL, NULL, NULL,
+				    &cookie, drop_attrs);
+
+	attrs = malloc(n * sizeof(attribute_x));
+	assert(attrs != NULL || n == 0);
+
 	err = obj_first_attr(&obj->attr_info, &name, &len, &data, NULL,
 			     &cookie, drop_attrs);
-
-	for (n = 0; err == 0 && n < MAX_ATTRIBUTES; n++)
+	for (n = 0; err == 0; n++)
 	{
 		attrs[n].name = name;
 		attrs[n].data.data_len = len;
@@ -216,6 +225,8 @@ next_obj:
 
 	rc = blast_channel_send_object(cstate->blast_conn, &object);
 	assert(rc == MINIRPC_OK);
+
+	free(attrs);
 
 	cstate->stats_objs_tx++;
 	cstate->stats_objs_hdr_bytes_tx += tx_hdr_bytes;

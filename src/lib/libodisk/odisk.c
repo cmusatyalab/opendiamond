@@ -369,7 +369,7 @@ odisk_release_obj(obj_data_t * obj)
 
 	pthread_mutex_destroy(&obj->mutex);
 	free(obj);
-	return (1);
+	return (0);
 }
 
 static void

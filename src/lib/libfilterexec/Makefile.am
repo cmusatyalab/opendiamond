@@ -12,3 +12,5 @@ libfilterexec_la_SOURCES = filter_exec.c filter_spec.l fexec_stats.c \
 	fexec_history.h ocache_priv.h sql.c sql.h lib_filterexec.h lib_ocache.h
 
 CLEANFILES = filter_spec.c
+
+AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)

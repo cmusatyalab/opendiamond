@@ -63,6 +63,8 @@ AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/common -I$(top_srcdir)/lib/
 
 AC_SUBST(AM_CFLAGS, ['-Wall -Wextra -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -fvisibility=hidden -Wno-unused-parameter $(GLIB2_CFLAGS)'])
 
+AC_SUBST(OPENDIAMOND_LIB_CPPFLAGS, ['-DG_LOG_DOMAIN=\"OpenDiamond\"'])
+
 
 # done
 AC_CONFIG_FILES([

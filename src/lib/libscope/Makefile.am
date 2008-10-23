@@ -11,3 +11,5 @@ install-exec-hook:
 libscope_la_SOURCES = lib_scope.c
 
 pkginclude_HEADERS = lib_scope.h
+
+AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)

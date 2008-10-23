@@ -57,8 +57,7 @@ static void disconnect_cb(void *conn_data, enum mrpc_disc_reason reason)
 	mrpc_conn_close(dev->con_data.blast_conn);
 
 	pthread_mutex_lock(&dev->con_data.mutex);
-	if (--dev->con_data.ref == 0)
-		dev->con_data.flags |= CINFO_DOWN;
+	dev->con_data.ref--;
 	pthread_mutex_unlock(&dev->con_data.mutex);
 }
 

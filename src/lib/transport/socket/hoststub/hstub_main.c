@@ -206,7 +206,7 @@ hstub_main(void *arg)
 		 * TODO: future version should possibly start over.
 		 */
 		pthread_mutex_lock(&dev->con_data.mutex);
-		closed = (cinfo->flags & CINFO_DOWN && cinfo->ref == 0);
+		closed = (cinfo->ref <= 0);
 		credit = (cinfo->flags & CINFO_PENDING_CREDIT);
 		pthread_mutex_unlock(&dev->con_data.mutex);
 
@@ -223,13 +223,13 @@ hstub_main(void *arg)
 		 * periodically send device statistics and
 		 * device characteristic probes.
 		 */
-		if ((request_chars(dev) < 0) ||
-		    (request_stats(dev) < 0))
+		if (request_chars(dev) < 0 || request_stats(dev) < 0)
 		{
 			log_message(LOGT_NET, LOGL_CRIT,
 				    "hstub_main: RPC calls are failing."
 				    " Killing thread..\n");
-			break;
+			mrpc_conn_close(cinfo->rpc_client);
+			mrpc_conn_close(cinfo->blast_conn);
 		}
 		select(0, NULL, NULL, NULL, &to);
 	}

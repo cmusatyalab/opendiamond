@@ -26,7 +26,6 @@
 
 /* flag definitons */
 #define	CINFO_PENDING_CREDIT	0x04
-#define	CINFO_DOWN		0x08
 
 typedef struct conn_info {
 	pthread_mutex_t		mutex; /* protects 'flags' */

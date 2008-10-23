@@ -47,6 +47,9 @@ PKG_CHECK_MODULES(MINIRPC, [minirpc > 0.2])
 MINIRPCGEN="`pkg-config --variable=MINIRPCGEN minirpc`"
 AC_SUBST(MINIRPCGEN)
 
+# libcurl
+PKG_CHECK_MODULES(LIBCURL, [libcurl])
+
 # libs
 AC_SEARCH_LIBS([sqrt], [m],, AC_MSG_FAILURE([cannot find math library]))
 AC_SEARCH_LIBS([dlopen], [dl],, AC_MSG_FAILURE([cannot find dlopen function]))

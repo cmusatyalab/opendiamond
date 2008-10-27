@@ -423,7 +423,7 @@ cache_spec(char *oname, sig_val_t *sig)
 
 	file_get_lock(name_buf);
 	/* create the new file */
-	fd = open(name_buf, O_CREAT|O_EXCL|O_WRONLY, 0744);
+	fd = open(name_buf, O_CREAT|O_EXCL|O_WRONLY, 0644);
 	if (fd < 0) {
 		file_release_lock(name_buf);
 		if (errno == EEXIST) {

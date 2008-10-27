@@ -122,7 +122,7 @@ device_set_spec(void *conn_data, struct mrpc_message *msg, spec_file_x *in)
 	int fd;
 
 	spec_len = in->data.data_len;
-	sent_sig = (sig_val_t *)&in->sig.sig_val_x_val;
+	sent_sig = (sig_val_t *)in->sig.sig_val_x_val;
 
 	/*
 	 * create a file for storing the searchlet library.
@@ -139,7 +139,7 @@ device_set_spec(void *conn_data, struct mrpc_message *msg, spec_file_x *in)
 
 	/* create the new file */
 	file_get_lock(specpath);
-	fd = open(specpath, O_CREAT | O_EXCL | O_WRONLY, 0744);
+	fd = open(specpath, O_CREAT | O_EXCL | O_WRONLY, 0644);
 	if (fd < 0) {
 		int err = errno;
 		file_release_lock(specpath);

@@ -51,8 +51,10 @@
 
 
 #define	PROC_RING_SIZE		1024
-#define	UNPROC_RING_SIZE	1024
-#define LOG_PREFIX			"diamond_client"
+#define LOG_PREFIX		"diamond_client"
+
+/* used to keep results from different searches separate. */
+static unsigned int global_search_id;
 
 /*
  * XXX locking for multi-threaded apps !! 
@@ -185,8 +187,6 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 	 * change to indicated we are shutting down 
 	 */
 	sc->cur_status = SS_SHUTDOWN;
-
-	drain_queues(sc);
 
 	/*
 	 * XXX think more about the shutdown.  How do we 
@@ -784,7 +784,9 @@ ls_start_search(ls_search_handle_t handle)
 	}
 
 	memset(&sc->host_stats, 0, sizeof(host_stats_t));
-	
+
+	drain_queues(sc);
+
 	err = bg_start_search(sc);
 	if (err) {
 		/*
@@ -793,6 +795,8 @@ ls_start_search(ls_search_handle_t handle)
 	}
 
 	time(&cur_time);
+
+	global_search_id++;
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
@@ -803,7 +807,7 @@ ls_start_search(ls_search_handle_t handle)
 		 */
 		cur_dev->flags &= ~DEV_FLAG_COMPLETE;
 		cur_dev->start_time = cur_time;
-		err = device_start(cur_dev->dev_handle);
+		err = device_start(cur_dev->dev_handle, global_search_id);
 		if (err != 0) {
 			log_dev_error(cur_dev->dev_name,
 			    "failed starting search");
@@ -963,7 +967,7 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 		 * Make sure we are still processing data.
 		 */
 
-		if (sc->cur_status == SS_DONE) {
+		if (sc->cur_status != SS_ACTIVE) {
 			log_message(LOGT_BG, LOGL_TRACE, 
 				    "ls_next_object: --> no more objects");
 			return (ENOENT);

@@ -159,7 +159,7 @@ device_terminate(void *handle)
  * This start a search that has been setup.  
  */
 int
-device_start(void *handle)
+device_start(void *handle, unsigned int search_id)
 {
 	sdevice_state_t *dev;
 	mrpc_status_t	retval;
@@ -167,7 +167,7 @@ device_start(void *handle)
 
 	dev = (sdevice_state_t *) handle;
 
-	sx.search_id = ++(dev->search_id);
+	sx.search_id = dev->search_id = search_id;
 
 	retval = rpc_client_content_device_start(dev->con_data.rpc_client, &sx);
 
@@ -211,6 +211,9 @@ device_drain_objs(void *handle)
 {
 	sdevice_state_t *dev = (sdevice_state_t *) handle;
 	obj_data_t     *obj;
+
+	/* prevent addition of more objects to the ring. */
+	dev->search_id = 0;
 
 	while ((obj = ring_deq(dev->obj_ring)) != NULL)
 		odisk_release_obj(obj);

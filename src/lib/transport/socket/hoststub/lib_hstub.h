@@ -33,7 +33,7 @@ void *device_init(const char *host, void *cookie, hstub_cb_args_t *cbs);
 
 int device_stop(void *dev, host_stats_t *hstats);
 int device_terminate(void *dev);
-int device_start(void *dev);
+int device_start(void *dev, unsigned int search_id);
 int device_set_lib(void *dev, sig_val_t *sig);
 int device_set_spec(void *dev, char *spec, sig_val_t *spec_sig);
 int device_characteristics(void *handle, device_char_t *dev_chars);

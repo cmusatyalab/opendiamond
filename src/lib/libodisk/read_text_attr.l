@@ -43,7 +43,6 @@
 
 
 static void have_value(yyscan_t scanner);
-static void have_ref(yyscan_t scanner);
 static void have_error(char *input);
 
 
@@ -65,7 +64,6 @@ WS	[ \t]*
 ^#.*\n						{printf("comment\n"); }
 \n					
 {WS}{NAME}{WS}={WS}{VALUE}.*\n			{ have_value(yyscanner);   }
-{WS}{NAME}{WS}@{WS}{VALUE}.*\n			{ have_ref(yyscanner);   }
 .						{ have_error(yyget_text(yyscanner)); }
 %%
 
@@ -110,12 +108,12 @@ extract_name_value(char *input, char *name, char *value)
 	/* skip the " */
 	offset++;
 	
-	/* look for = or @ */
-	while ((input[offset] != '=') && (input[offset] != '@')) {
+	/* look for = */
+	while (input[offset] != '=') {
 		offset++;
 		if (offset >= inlen) {
 			log_message(LOGT_DISK, LOGL_ERR,
-		    	    "extract_name_value: missing '=' or '@' (%s)",
+		    	    "extract_name_value: missing '=' (%s)",
 			    input);
 			return(1);
 		}
@@ -179,128 +177,6 @@ have_value(yyscan_t scanner)
 		    "have_value: failed to write attribute (%s)",
 			    extra->attr_name);
 	}
-}
-
-static int
-load_ref_file(char *afile, size_t *dlen, unsigned char **dref,
-	      char *cur_base, odisk_state_t *cur_odisk)
-{
-	struct stat     stats;
-	char            attr_name[NAME_MAX];
-	int		len;
-	int		os_file;
-	unsigned char * data;
-	size_t		size;
-	int		err;
-
-	/* if leading / then this is absolute path */
-	if (afile[0] == '/') {
-		len = snprintf(attr_name, NAME_MAX, "%s", afile);
-		if (len >= NAME_MAX) {
-			log_message(LOGT_DISK, LOGL_ERR,
-		    	   "load_ref_file: filename too long (%s)", attr_name);
-			return(1);
-		}
-	} else {
-		char *	offset;
-		int	remain_len;
-
-		len = snprintf(attr_name, NAME_MAX, "%s", cur_base);
-		if (len >= NAME_MAX) {
-			log_message(LOGT_DISK, LOGL_ERR,
-		    	   "load_ref_file: filename too long (%s)", attr_name);
-			return(1);
-		}
-		offset = rindex(attr_name, '/');
-		if (offset == NULL) {
-			log_message(LOGT_DISK, LOGL_ERR,
-		    	   "load_ref_file: no prefix (%s)", attr_name);
-			return(1);
-		}
-	
-		remain_len = NAME_MAX - (int)(offset + 1 - attr_name);
-		len = snprintf(offset+1, remain_len, "%s", afile);
-		if (len >= remain_len) {
-			log_message(LOGT_DISK, LOGL_ERR,
-		    	   "load_ref_file: file name too long (%s)", attr_name);
-			return(1);
-		}
-	}
-
-	/* try to open the file */
-        os_file = open(attr_name, cur_odisk->open_flags);
-        if (os_file == -1) {
-		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "load_ref_file: failed to open (%s)", attr_name);
-                return (1);
-        }
-
-	err = fstat(os_file, &stats);
-        if (err != 0) {
-		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "load_ref_file: failed to stat file (%s)", attr_name);
-                return (1);
-        }
-        
-	data = (unsigned char *)malloc(stats.st_size);
-	if (data == NULL) {
-		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "load_ref_file: failed to malloc %d bytes",
-		    stats.st_size);
-                return (1);
-	} 
-
-	size = read(os_file, data, stats.st_size);
-	if (size != stats.st_size) {
-		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "load_ref_file: failed to read data");
-		free(data);
-		close(os_file);
-		return (1);
-	}
-        close(os_file);
-
-	*dlen = stats.st_size;
-	*dref = data;
-
-	return(0);
-}
-
-
-static void
-have_ref(yyscan_t scanner)
-{
-	int			err;
-	size_t			dlen = 0;
-	unsigned char *		data = NULL;
-	struct read_state *extra = (struct read_state *) yyget_extra(scanner);
-
-	err = extract_name_value(yyget_text(scanner),
-				 extra->attr_name, extra->attr_value);
-	if (err) {
-		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "have_ref: failed extract name value from (%s)", input);
-		return;
-	}
-
-	err = load_ref_file(extra->attr_value, &dlen, &data,
-			    extra->cur_base, extra->cur_odisk);
-	if (err) {
-		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "have_ref: failed to load ref file (%s)",
-			    extra->attr_value);
-	}
-
-	/* attr value is the file name to load the data */
-
-	err = obj_write_attr(&extra->cur_obj->attr_info, extra->attr_name, dlen,
-		data);
-	if (err) {
-		log_message(LOGT_DISK, LOGL_ERR,
-	       	    "have_ref: failed to write attributes (%s)",
-			    extra->attr_name);
-	}
-	free(data);
 }
 
 static FILE *

@@ -11,6 +11,12 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+#if defined(RPC_HDR) || defined(RPC_XDR) || defined(MINIRPC)
+%#include "rpc_preamble_xdr.h"
+#else
+#include "rpc_preamble.mx"
+#endif
+
 const SIG_SIZE = 16;
 const MAX_FILTER_NAME = 128;
 const MAX_FILTERS = 64;
@@ -93,6 +99,12 @@ struct diamond_session_vars_x {
     diamond_session_var_x vars<>;
 };
 
+typedef string attr_name_x<MAX_ATTRIBUTE_NAME>;
+
+struct attr_set_x {
+    attr_name_x attrs<>;
+};
+
 serverprocs {
     /**** Client calls ****/
     device_start(start_x, void) = 1;
@@ -127,4 +139,7 @@ serverprocs {
     /**** Anomaly detection ****/
     session_variables_get(void, diamond_session_vars_x) = 18;
     session_variables_set(diamond_session_vars_x, void) = 19;
+
+    /* Limit set of pushed attributes (thumbnail set) */
+    device_set_thumbnail_attrs(attr_set_x, void) = 20;
 }

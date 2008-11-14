@@ -18,6 +18,7 @@
 
 #include <semaphore.h>
 #include <minirpc/minirpc.h>
+#include <glib.h>
 #include "ring.h"
 
 /* the max concurrent connections that we currently support */
@@ -74,6 +75,7 @@ typedef struct cstate {
 	uint32_t		attr_policy;
 	unsigned int		attr_threshold;
 	uint32_t		attr_ratio;
+	GArray *		thumbnail_set;
 	/* store incoming credit message */
 	credit_count_msg_t	cc_msg;
 	/* number of remaining credits */

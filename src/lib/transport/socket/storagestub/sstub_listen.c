@@ -124,6 +124,11 @@ shutdown_connection(cstate_t *cstate)
 		close(cstate->data_fd);
 		cstate->flags &= ~CSTATE_DATA_FD;
 	}
+
+	if (cstate->thumbnail_set) {
+		g_array_free(cstate->thumbnail_set, TRUE);
+		cstate->thumbnail_set = NULL;
+	}
 	cstate->flags &= ~CSTATE_ALLOCATED;
 	pthread_mutex_unlock(&cstate->cmutex);
 }

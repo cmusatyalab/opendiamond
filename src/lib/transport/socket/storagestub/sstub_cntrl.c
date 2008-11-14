@@ -161,6 +161,33 @@ done:
 
 
 static mrpc_status_t
+device_set_thumbnail_attrs(void *conn_data, struct mrpc_message *msg,
+			   attr_set_x *in)
+{
+	cstate_t *cstate = (cstate_t *)conn_data;
+	GArray *push_set;
+	unsigned int i, len;
+
+	len = in->attrs.attrs_len;
+	push_set = g_array_sized_new(FALSE, FALSE, sizeof(GQuark), len);
+
+	for (i = 0; i < len; i++)
+	{
+		GQuark q = g_quark_from_string(in->attrs.attrs_val[i]);
+		g_array_append_val(push_set, q);
+	}
+
+	pthread_mutex_lock(&cstate->cmutex);
+	if (cstate->thumbnail_set)
+		g_array_free(cstate->thumbnail_set, TRUE);
+	cstate->thumbnail_set = push_set;
+	pthread_mutex_unlock(&cstate->cmutex);
+
+	return MINIRPC_OK;
+}
+
+
+static mrpc_status_t
 device_set_blob(void *conn_data, struct mrpc_message *msg, blob_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
@@ -518,6 +545,7 @@ static const struct rpc_client_content_server_operations ops = {
 	.device_clear_gids = device_clear_gids,
 	.device_new_gid = device_new_gid,
 	.device_set_spec = device_set_spec,
+	.device_set_thumbnail_attrs = device_set_thumbnail_attrs,
 	.device_write_leaf = device_write_leaf,
 	.device_read_leaf = device_read_leaf,
 	.device_list_nodes = device_list_nodes,

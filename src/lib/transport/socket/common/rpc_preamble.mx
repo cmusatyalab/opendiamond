@@ -31,3 +31,5 @@ enum diamond_error_t {
 	DIAMOND_NOMEM		= 503
 };
 
+const MAX_ATTRIBUTE_NAME = 256;
+

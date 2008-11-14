@@ -11,7 +11,11 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-const MAX_ATTRIBUTE_NAME = 256;
+#if defined(RPC_HDR) || defined(RPC_XDR) || defined(MINIRPC)
+%#include "rpc_preamble_xdr.h"
+#else
+#include "rpc_preamble.mx"
+#endif
 
 struct attribute_x {
     string	name<MAX_ATTRIBUTE_NAME>;

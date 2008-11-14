@@ -144,6 +144,20 @@ update_attr_policy(cstate_t * cstate)
 	return;
 }
 
+static int push_attribute(GArray *push_set, const char *attr)
+{
+	GQuark attrq = g_quark_from_string(attr);
+	unsigned int i;
+
+	/* send all attributes if the user didn't specify any */
+	if (!push_set) return 1;
+
+	for (i = 0; i < push_set->len; i++)
+		if (attrq == g_array_index(push_set, GQuark, i))
+			return 1;
+	return 0;
+}
+
 void
 sstub_send_objects(cstate_t *cstate)
 {
@@ -208,15 +222,19 @@ next_obj:
 
 	err = obj_first_attr(&obj->attr_info, &name, &len, &data, NULL,
 			     &cookie, drop_attrs);
-	for (n = 0; err == 0; n++)
+	n = 0;
+	while (err == 0)
 	{
-		attrs[n].name = name;
-		attrs[n].data.data_len = len;
-		attrs[n].data.data_val = (void *)data;
+		if (push_attribute(cstate->thumbnail_set, name))
+		{
+			attrs[n].name = name;
+			attrs[n].data.data_len = len;
+			attrs[n].data.data_val = (void *)data;
+			n++;
 
-		tx_hdr_bytes += sizeof(attribute_x);
-		tx_data_bytes += len;
-
+			tx_hdr_bytes += sizeof(attribute_x);
+			tx_data_bytes += len;
+		}
 		err = obj_next_attr(&obj->attr_info, &name, &len, &data, NULL,
 				    &cookie, drop_attrs);
 	}

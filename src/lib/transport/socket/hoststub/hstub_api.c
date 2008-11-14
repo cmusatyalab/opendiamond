@@ -309,6 +309,37 @@ err_out:
 }
 
 int
+device_set_thumbnail_attrs(void *handle, const char **attrs)
+{
+	sdevice_state_t *dev;
+	attr_set_x	ax;
+	int		n = 0;
+	mrpc_status_t	retval;
+	int		err;
+
+	dev = (sdevice_state_t *) handle;
+
+	/* count nr. of attribute names */
+	while (attrs[n] != NULL) n++;
+
+	ax.attrs.attrs_len = n;
+	ax.attrs.attrs_val = malloc(n * sizeof(attr_name_x));
+	if (ax.attrs.attrs_val == NULL)
+		return -1;
+
+	/* copy references to attribute names */
+	for (n = 0; attrs[n] != NULL; n++)
+		ax.attrs.attrs_val[n] = (char *)attrs[n];
+
+	retval = rpc_client_content_device_set_thumbnail_attrs
+					(dev->con_data.rpc_client, &ax);
+	err = rpc_postproc(__FUNCTION__, retval);
+
+	free(ax.attrs.attrs_val);
+	return err;
+}
+
+int
 device_set_lib(void *handle, sig_val_t *obj_sig)
 {
 	char		*data = NULL;

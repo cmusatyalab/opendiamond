@@ -36,6 +36,7 @@ int device_terminate(void *dev);
 int device_start(void *dev, unsigned int search_id);
 int device_set_lib(void *dev, sig_val_t *sig);
 int device_set_spec(void *dev, char *spec, sig_val_t *spec_sig);
+int device_set_thumbnail_attrs(void *handle, const char **attrs);
 int device_characteristics(void *handle, device_char_t *dev_chars);
 int device_statistics(void *dev, dev_stats_t *dev_stats, int *stat_len);
 int device_write_leaf(void *dev, char *path, int len, char *data);

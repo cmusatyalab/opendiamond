@@ -53,7 +53,7 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	obj_data_t	*obj;
 	void		*obj_data = NULL;
 	attribute_x	*attr;
-	size_t		hdr_len, attr_len = 0;
+	size_t		obj_len, hdr_len, attr_len = 0;
 	unsigned int	i;
 	int		err;
 
@@ -65,8 +65,9 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	}
 
 	/* Allocate storage for the data. */
-	if (object->data.data_len) {
-		obj_data = (char *) malloc(object->data.data_len);
+	obj_len = object->object.object_id_x_len;
+	if (obj_len) {
+		obj_data = (char *) malloc(obj_len);
 		if (obj_data == NULL) {
 			log_message(LOGT_NET, LOGL_CRIT,
 				    "recv_object: malloc failed");
@@ -78,9 +79,9 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	obj = odisk_null_obj();
 	assert(obj != NULL);
 
-	memcpy(obj_data, object->data.data_val, object->data.data_len);
+	memcpy(obj_data, object->object.object_id_x_val, obj_len);
 
-	obj->data_len = object->data.data_len;
+	obj->data_len = obj_len;
 	obj->data = obj_data;
 
 	hdr_len = sizeof(object_x);
@@ -102,9 +103,8 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	cinfo->stat_obj_rx++;
 	cinfo->stat_obj_attr_byte_rx += attr_len;
 	cinfo->stat_obj_hdr_byte_rx += hdr_len;
-	cinfo->stat_obj_data_byte_rx += object->data.data_len;
-	cinfo->stat_obj_total_byte_rx += object->data.data_len +
-	    hdr_len + attr_len;
+	cinfo->stat_obj_data_byte_rx += obj_len;
+	cinfo->stat_obj_total_byte_rx += obj_len + hdr_len + attr_len;
 
 	if (obj->data_len == 0 && attr_len == 0)
 	{
@@ -116,7 +116,6 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 		assert(err == 0);
 		cinfo->flags |= CINFO_PENDING_CREDIT;
 	}
-	return;
 }
 
 static const struct blast_channel_client_operations ops = {

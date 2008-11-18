@@ -99,10 +99,17 @@ struct diamond_session_vars_x {
     diamond_session_var_x vars<>;
 };
 
-typedef string attr_name_x<MAX_ATTRIBUTE_NAME>;
+struct attr_name_list_x {
+    attr_name_x	attrs<>;
+};
 
-struct attr_set_x {
+struct reexecute_x {
+    object_id_x object;
     attr_name_x attrs<>;
+};
+
+struct attribute_list_x {
+    attribute_x	attrs<>;
 };
 
 serverprocs {
@@ -140,6 +147,8 @@ serverprocs {
     session_variables_get(void, diamond_session_vars_x) = 18;
     session_variables_set(diamond_session_vars_x, void) = 19;
 
-    /* Limit set of pushed attributes (thumbnail set) */
-    device_set_thumbnail_attrs(attr_set_x, void) = 20;
+    /* Limit set of pushed attributes (thumbnail set) and filter reexecution */
+    device_set_thumbnail_attrs(attr_name_list_x, void) = 20;
+    device_reexecute_filters(reexecute_x, attribute_list_x) = 21;
 }
+

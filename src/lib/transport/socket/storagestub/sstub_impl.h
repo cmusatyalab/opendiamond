@@ -17,9 +17,11 @@
 #define	_SSTUB_IMPL_H_
 
 #include <semaphore.h>
-#include <minirpc/minirpc.h>
 #include <glib.h>
 #include "ring.h"
+
+#include <minirpc/minirpc.h>
+#include "rpc_client_content_server.h"
 
 /* the max concurrent connections that we currently support */
 #define	MAX_CONNS		64
@@ -146,8 +148,9 @@ void connection_main(cstate_t *cstate);
 /*
  * Other private functions
  */
-int sstub_send_log(void *cookie, char *buf, int len);
 int sstub_queued_objects(void *cookie);
-
+int sstub_get_attributes(obj_attr_t *obj_attr, GArray *result_set,
+			 attribute_x **result_val, unsigned int *result_len,
+			 int drop_attrs);
 
 #endif /* !_SSTUB_IMPL_H_ */

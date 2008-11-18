@@ -17,14 +17,9 @@
 #include "rpc_preamble.mx"
 #endif
 
-struct attribute_x {
-    string	name<MAX_ATTRIBUTE_NAME>;
-    opaque	data<>;
-};
-
 struct object_x {
     unsigned int search_id;	/* search identifier */
-    opaque	 data<>;
+    object_id_x  object;
     attribute_x  attrs<>;
 };
 

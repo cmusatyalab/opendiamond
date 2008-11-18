@@ -45,6 +45,8 @@
 #include "hstub_impl.h"
 #include "dconfig_priv.h"
 #include "dctl_impl.h"
+#include "odisk_priv.h"
+
 #include "rpc_client_content_client.h"
 
 /*
@@ -312,7 +314,7 @@ int
 device_set_thumbnail_attrs(void *handle, const char **attrs)
 {
 	sdevice_state_t *dev;
-	attr_set_x	ax;
+	attr_name_list_x req;
 	int		n = 0;
 	mrpc_status_t	retval;
 	int		err;
@@ -322,22 +324,74 @@ device_set_thumbnail_attrs(void *handle, const char **attrs)
 	/* count nr. of attribute names */
 	while (attrs[n] != NULL) n++;
 
-	ax.attrs.attrs_len = n;
-	ax.attrs.attrs_val = malloc(n * sizeof(attr_name_x));
-	if (ax.attrs.attrs_val == NULL)
+	req.attrs.attrs_len = n;
+	req.attrs.attrs_val = malloc(n * sizeof(attr_name_x));
+	if (req.attrs.attrs_val == NULL)
 		return -1;
-
-	/* copy references to attribute names */
 	for (n = 0; attrs[n] != NULL; n++)
-		ax.attrs.attrs_val[n] = (char *)attrs[n];
+		req.attrs.attrs_val[n] = (char *)attrs[n];
 
 	retval = rpc_client_content_device_set_thumbnail_attrs
-					(dev->con_data.rpc_client, &ax);
+					(dev->con_data.rpc_client, &req);
 	err = rpc_postproc(__FUNCTION__, retval);
 
-	free(ax.attrs.attrs_val);
+	dev->thumbnails = (err == 0);
+
+	free(req.attrs.attrs_val);
 	return err;
 }
+
+int
+device_reexecute_filters(void *handle, obj_data_t *obj, const char **attrs)
+{
+	sdevice_state_t *dev = (sdevice_state_t *) handle;
+	attribute_list_x *res = NULL;
+	reexecute_x	req;
+	unsigned int	i = 0;
+	mrpc_status_t	retval;
+	int		err;
+
+	if (!obj->data_len) return 0;
+
+	/* count nr. of attribute names */
+	while (attrs[i] != NULL) i++;
+
+	req.object.object_id_x_len = obj->data_len;
+	req.object.object_id_x_val = obj->data;
+
+	req.attrs.attrs_len = i;
+	req.attrs.attrs_val = malloc(i * sizeof(attr_name_x));
+	if (req.attrs.attrs_val == NULL)
+		return -1;
+
+	for (i = 0; attrs[i] != NULL; i++)
+		req.attrs.attrs_val[i] = (char *)attrs[i];
+
+	retval = rpc_client_content_device_reexecute_filters
+					(dev->con_data.rpc_client, &req, &res);
+	err = rpc_postproc(__FUNCTION__, retval);
+	if (err) goto err_out;
+
+	for (i = 0; i < res->attrs.attrs_len; i++)
+	{
+		attribute_x *in = &res->attrs.attrs_val[i];
+
+		err = obj_write_attr(&obj->attr_info, in->name,
+				     in->data.data_len,
+				     (unsigned char *)in->data.data_val);
+		if (err) {
+			log_message(LOGT_NET, LOGL_CRIT,
+				    "reexecute_filter: obj_write_attr failed");
+			break;
+		}
+	}
+
+err_out:
+	free_attribute_list_x(res, 1);
+	free(req.attrs.attrs_val);
+	return err;
+}
+
 
 int
 device_set_lib(void *handle, sig_val_t *obj_sig)

@@ -44,6 +44,7 @@
 #include "dconfig_priv.h"
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
+#include "odisk_priv.h"
 
 #include <minirpc/minirpc.h>
 #include "rpc_client_content_server.h"
@@ -159,23 +160,28 @@ done:
 	return MINIRPC_OK;
 }
 
+static GArray *get_attrset(attr_name_x *names, unsigned int len)
+{
+	unsigned int i;
+	GArray *result;
+	
+	result = g_array_sized_new(FALSE, FALSE, sizeof(GQuark), len);
+	for (i = 0; i < len; i++)
+	{
+		GQuark q = g_quark_from_string(names[i]);
+		g_array_append_val(result, q);
+	}
+	return result;
+}
 
 static mrpc_status_t
 device_set_thumbnail_attrs(void *conn_data, struct mrpc_message *msg,
-			   attr_set_x *in)
+			   attr_name_list_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	GArray *push_set;
-	unsigned int i, len;
 
-	len = in->attrs.attrs_len;
-	push_set = g_array_sized_new(FALSE, FALSE, sizeof(GQuark), len);
-
-	for (i = 0; i < len; i++)
-	{
-		GQuark q = g_quark_from_string(in->attrs.attrs_val[i]);
-		g_array_append_val(push_set, q);
-	}
+	push_set = get_attrset(in->attrs.attrs_val, in->attrs.attrs_len);
 
 	pthread_mutex_lock(&cstate->cmutex);
 	if (cstate->thumbnail_set)
@@ -183,6 +189,32 @@ device_set_thumbnail_attrs(void *conn_data, struct mrpc_message *msg,
 	cstate->thumbnail_set = push_set;
 	pthread_mutex_unlock(&cstate->cmutex);
 
+	return MINIRPC_OK;
+}
+
+static mrpc_status_t
+device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
+			 reexecute_x *in, attribute_list_x *out)
+{
+	cstate_t *cstate = (cstate_t *)conn_data;
+	obj_data_t *obj;
+	GArray *result_set;
+	int err;
+
+	obj = (*cstate->lstate->cb.reexecute_filters) (cstate->app_cookie,
+		    in->object.object_id_x_val, in->object.object_id_x_len);
+	if (!obj) return DIAMOND_FAILURE;
+
+	result_set = get_attrset(in->attrs.attrs_val, in->attrs.attrs_len);
+
+	err = sstub_get_attributes(&obj->attr_info, result_set,
+				   &out->attrs.attrs_val, &out->attrs.attrs_len,
+				   0);
+	g_array_free(result_set, TRUE);
+
+	(*cstate->lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
+
+	if (err) return DIAMOND_NOMEM;
 	return MINIRPC_OK;
 }
 
@@ -546,6 +578,7 @@ static const struct rpc_client_content_server_operations ops = {
 	.device_new_gid = device_new_gid,
 	.device_set_spec = device_set_spec,
 	.device_set_thumbnail_attrs = device_set_thumbnail_attrs,
+	.device_reexecute_filters = device_reexecute_filters,
 	.device_write_leaf = device_write_leaf,
 	.device_read_leaf = device_read_leaf,
 	.device_list_nodes = device_list_nodes,

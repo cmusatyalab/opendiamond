@@ -144,17 +144,50 @@ update_attr_policy(cstate_t * cstate)
 	return;
 }
 
-static int push_attribute(GArray *push_set, const char *attr)
+int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
+			 attribute_x **result_val, unsigned int *result_len,
+			 int drop_attrs)
 {
-	GQuark attrq = g_quark_from_string(attr);
-	unsigned int i;
+	struct acookie *cookie;
+	attribute_x *attrs;
+	unsigned int i, n;
+	char *name;
+	void *data;
+	size_t len;
+	int err;
 
-	/* send all attributes if the user didn't specify any */
-	if (!push_set) return 1;
+	/* how many attributes could we be sending? (worst case) */
+	err = obj_first_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie,
+			     drop_attrs);
+	for (n = 0; err == 0; n++)
+		err = obj_next_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie,
+				    drop_attrs);
 
-	for (i = 0; i < push_set->len; i++)
-		if (attrq == g_array_index(push_set, GQuark, i))
-			return 1;
+	attrs = malloc(n * sizeof(attribute_x));
+	if (n != 0 && attrs == NULL)
+		return -1;
+
+	err = obj_first_attr(obj_attr, &name, &len, (unsigned char **)&data,
+			     NULL, &cookie, drop_attrs);
+	for (n = 0; err == 0;)
+	{
+		GQuark attrq = g_quark_from_string(name);
+
+		for (i = 0; i < output_set->len; i++) {
+			if (attrq == g_array_index(output_set, GQuark, i))
+			{
+			    attrs[n].name = name;
+			    attrs[n].data.data_len = len;
+			    attrs[n].data.data_val = data;
+			    n++;
+			}
+		}
+		err = obj_next_attr(obj_attr, &name, &len,
+				    (unsigned char **)&data, NULL, &cookie,
+				    drop_attrs);
+	}
+	*result_val = attrs;
+	*result_len = n;
 	return 0;
 }
 
@@ -164,13 +197,8 @@ sstub_send_objects(cstate_t *cstate)
 	obj_data_t	*obj;
 	int		err;
 	object_x	object;
-	char		*name;
-	unsigned char	*data;
-	size_t		len;
-	struct acookie	*cookie;
 	int		drop_attrs;
-	int		n;
-	attribute_x	*attrs;
+	unsigned int	n;
 	mrpc_status_t	rc;
 	unsigned int	tx_hdr_bytes;
 	unsigned int	tx_data_bytes;
@@ -204,47 +232,29 @@ next_obj:
 	drop_attrs = drop_attributes(cstate);
 
 	object.search_id = cstate->search_id;
-	object.data.data_len = obj->data_len;
-	object.data.data_val = obj->data;
+	object.object.object_id_x_len = obj->data_len;
+	object.object.object_id_x_val = obj->data;
 
 	tx_hdr_bytes = sizeof(object_x);
 	tx_data_bytes = obj->data_len;
 
-	/* how many attributes are we sending? */
-	err = obj_first_attr(&obj->attr_info, NULL, NULL, NULL, NULL,
-			     &cookie, drop_attrs);
-	for (n = 0; err == 0; n++)
-		err = obj_next_attr(&obj->attr_info, NULL, NULL, NULL, NULL,
-				    &cookie, drop_attrs);
-
-	attrs = malloc(n * sizeof(attribute_x));
-	assert(attrs != NULL || n == 0);
-
-	err = obj_first_attr(&obj->attr_info, &name, &len, &data, NULL,
-			     &cookie, drop_attrs);
-	n = 0;
-	while (err == 0)
-	{
-		if (push_attribute(cstate->thumbnail_set, name))
-		{
-			attrs[n].name = name;
-			attrs[n].data.data_len = len;
-			attrs[n].data.data_val = (void *)data;
-			n++;
-
-			tx_hdr_bytes += sizeof(attribute_x);
-			tx_data_bytes += len;
-		}
-		err = obj_next_attr(&obj->attr_info, &name, &len, &data, NULL,
-				    &cookie, drop_attrs);
+	err = sstub_get_attributes(&obj->attr_info, cstate->thumbnail_set,
+				   &object.attrs.attrs_val,
+				   &object.attrs.attrs_len, drop_attrs);
+	if (err) {
+	    free_object_x(&object, FALSE);
+	    return;
 	}
-	object.attrs.attrs_len = n;
-	object.attrs.attrs_val = attrs;
+
+	for (n = 0; n < object.attrs.attrs_len; n++)
+	{
+		tx_hdr_bytes += sizeof(attribute_x);
+		tx_data_bytes += object.attrs.attrs_val[n].data.data_len;
+	}
+	free_object_x(&object, FALSE);
 
 	rc = blast_channel_send_object(cstate->blast_conn, &object);
 	assert(rc == MINIRPC_OK);
-
-	free(attrs);
 
 	cstate->stats_objs_tx++;
 	cstate->stats_objs_hdr_bytes_tx += tx_hdr_bytes;

@@ -164,7 +164,7 @@ static GArray *get_attrset(attr_name_x *names, unsigned int len)
 {
 	unsigned int i;
 	GArray *result;
-	
+
 	result = g_array_sized_new(FALSE, FALSE, sizeof(GQuark), len);
 	for (i = 0; i < len; i++)
 	{
@@ -208,8 +208,8 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 	result_set = get_attrset(in->attrs.attrs_val, in->attrs.attrs_len);
 
 	err = sstub_get_attributes(&obj->attr_info, result_set,
-				   &out->attrs.attrs_val, &out->attrs.attrs_len,
-				   0);
+				   &out->attrs.attrs_val,
+				   &out->attrs.attrs_len);
 	g_array_free(result_set, TRUE);
 
 	(*cstate->lstate->cb.release_obj_cb) (cstate->app_cookie, obj);

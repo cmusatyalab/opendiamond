@@ -43,110 +43,8 @@
 
 #include "blast_channel_server.h"
 
-int
-sstub_queued_objects(void *cookie)
-{
-	cstate_t       *cstate = (cstate_t *) cookie;
-	int             count;
-
-	count = ring_count(cstate->partial_obj_ring);
-	count += ring_count(cstate->complete_obj_ring);
-	return (count);
-}
-
-static int
-drop_attributes(cstate_t * cstate)
-{
-	unsigned int    rv;
-	int             tx_count;
-	if ((cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) ||
-	    (cstate->attr_policy == NW_ATTR_POLICY_FIXED)) {
-		rv = random();
-		if (rv > cstate->attr_threshold) {
-			return (1);
-		} else {
-			return (0);
-		}
-	} else if (cstate->attr_policy == NW_ATTR_POLICY_QUEUE) {
-		tx_count = sstub_queued_objects(cstate);
-		if ((tx_count > DESIRED_MAX_TX_THRESH) &&
-		    (cstate->cc_credits >= DESIRED_CREDIT_THRESH)) {
-			return (1);
-		} else {
-			return (0);
-		}
-	}
-	return (0);
-}
-
-static float
-prop_get_tx_ratio(cstate_t * cstate)
-{
-	float           ratio;
-	int             count;
-
-	count = sstub_queued_objects(cstate);
-	ratio = ((float) count) / (float) DESIRED_MAX_TX_QUEUE;
-	if (ratio > 1.0) {
-		ratio = 1.0;
-	} else if (ratio < 0) {
-		ratio = 0.0;
-	}
-	return (ratio);
-}
-
-static float
-prop_get_rx_ratio(cstate_t * cstate)
-{
-	float           ratio;
-
-	ratio = ((float) cstate->cc_credits) / (float) DESIRED_MAX_CREDITS;
-	if (ratio > 1.0) {
-		ratio = 1.0;
-	} else if (ratio < 0) {
-		ratio = 0.0;
-	}
-	return (ratio);
-}
-
-
-static void
-update_attr_policy(cstate_t * cstate)
-{
-	float           tx_ratio;
-	float           rx_ratio;
-
-	/*
-	 * we only do updates for the proportional scheduling today.
-	 */
-	if (cstate->attr_policy == NW_ATTR_POLICY_PROPORTIONAL) {
-		tx_ratio = prop_get_tx_ratio(cstate);
-		rx_ratio = prop_get_rx_ratio(cstate);
-		/*
-		 * we use the min to set the threshold 
-		 */
-		if (rx_ratio < tx_ratio) {
-			cstate->attr_threshold = rx_ratio * RAND_MAX;
-			cstate->attr_ratio = (int) (rx_ratio * 100.0);
-		} else {
-			cstate->attr_threshold = tx_ratio * RAND_MAX;
-			cstate->attr_ratio = (int) (tx_ratio * 100.0);
-		}
-
-	} else if (cstate->attr_policy == NW_ATTR_POLICY_FIXED) {
-		if (cstate->attr_ratio == 100) {
-			cstate->attr_threshold = RAND_MAX;
-		} else {
-			cstate->attr_threshold =
-			    (RAND_MAX / 100) * cstate->attr_ratio;
-		}
-	}
-	return;
-}
-
 int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
-			 attribute_x **result_val, unsigned int *result_len,
-			 int drop_attrs)
+			 attribute_x **result_val, unsigned int *result_len)
 {
 	struct acookie *cookie;
 	attribute_x *attrs;
@@ -157,18 +55,16 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 	int err;
 
 	/* how many attributes could we be sending? (worst case) */
-	err = obj_first_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie,
-			     drop_attrs);
+	err = obj_first_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie);
 	for (n = 0; err == 0; n++)
-		err = obj_next_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie,
-				    drop_attrs);
+		err = obj_next_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie);
 
 	attrs = malloc(n * sizeof(attribute_x));
 	if (n != 0 && attrs == NULL)
 		return -1;
 
 	err = obj_first_attr(obj_attr, &name, &len, (unsigned char **)&data,
-			     NULL, &cookie, drop_attrs);
+			     NULL, &cookie);
 	for (n = 0; err == 0;)
 	{
 		GQuark attrq = g_quark_from_string(name);
@@ -183,8 +79,7 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 			}
 		}
 		err = obj_next_attr(obj_attr, &name, &len,
-				    (unsigned char **)&data, NULL, &cookie,
-				    drop_attrs);
+				    (unsigned char **)&data, NULL, &cookie);
 	}
 	*result_val = attrs;
 	*result_len = n;
@@ -197,7 +92,6 @@ sstub_send_objects(cstate_t *cstate)
 	obj_data_t	*obj;
 	int		err;
 	object_x	object;
-	int		drop_attrs;
 	unsigned int	n;
 	mrpc_status_t	rc;
 	unsigned int	tx_hdr_bytes;
@@ -224,13 +118,6 @@ next_obj:
 	cstate->cc_credits--;
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	/* periodically we want to update our send policy if we are dynamic. */
-	if ((cstate->stats_objs_tx & 0xF) == 0)
-		update_attr_policy(cstate);
-
-	/* Decide if we are going to send the attributes on this object. */
-	drop_attrs = drop_attributes(cstate);
-
 	object.search_id = cstate->search_id;
 	object.object.object_id_x_len = obj->data_len;
 	object.object.object_id_x_val = obj->data;
@@ -240,7 +127,7 @@ next_obj:
 
 	err = sstub_get_attributes(&obj->attr_info, cstate->thumbnail_set,
 				   &object.attrs.attrs_val,
-				   &object.attrs.attrs_len, drop_attrs);
+				   &object.attrs.attrs_len);
 	if (err) {
 	    free_object_x(&object, FALSE);
 	    return;

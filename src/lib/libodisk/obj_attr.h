@@ -66,8 +66,6 @@ typedef struct attr_record {
 #define	ATTR_INCREMENT	4096
 #define	ATTR_MIN_FRAG	(sizeof(attr_record_t) + 64)
 
-#define	ATTR_BIG_THRESH	1000
-
 
 /*
  * These are the object attribute managment calls.
@@ -81,22 +79,22 @@ int obj_read_attr(obj_attr_t *attr, const char *name,
 
 int obj_omit_attr(obj_attr_t *attr, const char *name);
 int obj_del_attr(obj_attr_t *attr, const char *name);
-int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname, 
-		obj_attr_t *attr);
+int obj_read_attr_file(struct odisk_state *odisk, char *attr_fname,
+		       obj_attr_t *attr);
 int obj_write_attr_file(char *attr_fname, obj_attr_t *attr);
 
 struct acookie;
 int obj_first_attr(obj_attr_t *attr, char **name, size_t *len,
 		   unsigned char **data, sig_val_t **sig,
-		   struct acookie **cookie, int skip_big);
+		   struct acookie **cookie);
 int obj_next_attr(obj_attr_t *attr, char **name, size_t *len,
 		  unsigned char **data, sig_val_t **sig,
-		  struct acookie **cookie, int skip_big);
+		  struct acookie **cookie);
 
 
 /* used publicly only by adiskd */
 diamond_public
-int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len, 
-		unsigned char **data);
+int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len,
+		 unsigned char **data);
 
-#endif                          /* ! _OBJ_ATTR_H_ */
+#endif /* ! _OBJ_ATTR_H_ */

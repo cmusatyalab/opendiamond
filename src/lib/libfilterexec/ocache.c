@@ -412,7 +412,7 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 
 	/* check if there are any initial attributes to add */
 	ret = obj_first_attr(&obj->attr_info, &attr_name, NULL, NULL, &attr_sig,
-			     &cookie, 0);
+			     &cookie);
 	if (ret == ENOENT) return;
 
 	pthread_mutex_lock(&shared_mutex);
@@ -449,7 +449,7 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 			       rowid, attr_name, attr_sig, sizeof(sig_val_t));
 		}
 		ret = obj_next_attr(&obj->attr_info, &attr_name, NULL, NULL,
-				    &attr_sig, &cookie, 0);
+				    &attr_sig, &cookie);
 	}
 
 out_fail:

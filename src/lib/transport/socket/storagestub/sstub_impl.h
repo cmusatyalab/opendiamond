@@ -38,21 +38,6 @@
  * context (I.e each search will have a connection to each device 
  * that is involved in the search).
  */
-typedef enum {
-    NW_ATTR_POLICY_FIXED = 0,
-    NW_ATTR_POLICY_PROPORTIONAL,
-    NW_ATTR_POLICY_QUEUE
-} nw_attr_policy;
-
-
-#define DESIRED_MAX_TX_QUEUE    20
-#define DESIRED_MAX_TX_THRESH   10
-#define DESIRED_MAX_CREDITS    	8
-#define DESIRED_CREDIT_THRESH  	6
-
-#define DEFAULT_NW_ATTR_POLICY  (NW_ATTR_POLICY_FIXED)
-#define DEFAULT_NW_ATTR_RATIO   (100)
-
 
 /* XXX forward ref */
 struct listener_state;
@@ -74,9 +59,6 @@ typedef struct cstate {
 	void *			app_cookie;
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
-	uint32_t		attr_policy;
-	unsigned int		attr_threshold;
-	uint32_t		attr_ratio;
 	GArray *		thumbnail_set;
 	/* store incoming credit message */
 	credit_count_msg_t	cc_msg;
@@ -148,9 +130,7 @@ void connection_main(cstate_t *cstate);
 /*
  * Other private functions
  */
-int sstub_queued_objects(void *cookie);
 int sstub_get_attributes(obj_attr_t *obj_attr, GArray *result_set,
-			 attribute_x **result_val, unsigned int *result_len,
-			 int drop_attrs);
+			 attribute_x **result_val, unsigned int *result_len);
 
 #endif /* !_SSTUB_IMPL_H_ */

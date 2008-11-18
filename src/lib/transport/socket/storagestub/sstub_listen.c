@@ -88,10 +88,6 @@ register_stats(cstate_t * cstate)
 	dctl_register_u64(DEV_NETWORK_PATH, "control_bytes_recv", O_RDONLY,
 			  &cstate->stats_control_bytes_rx);
 
-	dctl_register_u32(DEV_NETWORK_PATH, "attr_policy", O_RDWR,
-			  &cstate->attr_policy);
-	dctl_register_u32(DEV_NETWORK_PATH, "attr_ratio", O_RDWR,
-			  &cstate->attr_ratio);
 	dctl_register_u32(DEV_NETWORK_PATH, "cc_credits", O_RDONLY,
 			  &cstate->cc_credits);
 }
@@ -262,10 +258,6 @@ have_full_conn(listener_state_t * list_state, int conn)
 	 * done after the new_conn_cb()  !!!.
 	 */
 	register_stats(cstate);
-
-	cstate->attr_policy = DEFAULT_NW_ATTR_POLICY;
-	cstate->attr_threshold = RAND_MAX;
-	cstate->attr_ratio = DEFAULT_NW_ATTR_RATIO;
 
 	/*
 	 * the main thread of this process is used

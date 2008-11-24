@@ -417,29 +417,9 @@ fexec_term_search(filter_data_t * fdata)
 }
 
 static int
-load_filter_lib(char *so_name, filter_data_t * fdata, 
-    sig_val_t * sig)
+load_filter_lib(char *so_name, filter_data_t * fdata,
+		sig_val_t * sig)
 {
-	void           *handle;
-	filter_info_t  *cur_filt;
-	filter_eval_proto fe;
-	filter_init_proto fi;
-	filter_fini_proto ff;
-	filter_id_t     fid;
-	char           *error;
-
-	file_get_lock(so_name);
-	handle = dlopen(so_name, RTLD_LAZY | RTLD_LOCAL);
-	if (!handle) {
-		/*
-		 * XXX error log 
-		 */
-		fprintf(stderr, "failed to open lib <%s> \n", so_name);
-		fputs(dlerror(), stderr);
-		exit(1);
-	}
-	file_release_lock(so_name);
-
 	/*
 	 * Store information about this lib.
 	 */
@@ -455,53 +435,15 @@ load_filter_lib(char *so_name, filter_data_t * fdata,
 		fdata->max_libs += FLIB_INCREMENT;
 	}
 
-	fdata->lib_info[fdata->num_libs].dl_handle = handle;
+	/* don't dlopen here, that is done in fexec_possibly_init_filter */
+	fdata->lib_info[fdata->num_libs].dl_handle = NULL;
+
 	fdata->lib_info[fdata->num_libs].lib_name = strdup(so_name);
 	assert(fdata->lib_info[fdata->num_libs].lib_name != NULL);
 
 	memcpy(&fdata->lib_info[fdata->num_libs].lib_sig, sig, sizeof(*sig));
 	fdata->num_libs++;
 
-	/*
-	 * XXX keep the handle somewhere 
-	 */
-	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
-		cur_filt = &fdata->fd_filters[fid];
-		if (fid == fdata->fd_app_id) {
-			continue;
-		}
-		if (cur_filt->fi_eval_fp == NULL) {
-			fe = dlsym(handle, cur_filt->fi_eval_name);
-			if ((error = dlerror()) == NULL) {
-				cur_filt->fi_eval_fp = fe;
-			}
-		}
-
-
-		if (cur_filt->fi_init_fp == NULL) {
-			fi = dlsym(handle, cur_filt->fi_init_name);
-			if ((error = dlerror()) == NULL) {
-				cur_filt->fi_init_fp = fi;
-			}
-		}
-
-		if (cur_filt->fi_fini_fp == NULL) {
-			ff = dlsym(handle, cur_filt->fi_fini_name);
-			if ((error = dlerror()) == NULL) {
-				cur_filt->fi_fini_fp = ff;
-			}
-		}
-
-		/*
-		 * JIAYING: temporaryly pass in lib name. we may want to use 
-		 * separate lib for each filter later 
-		 */
-		if (strlen(so_name) > PATH_MAX) {
-			return (EINVAL);
-		}
-		memcpy(cur_filt->lib_name, so_name, strlen(so_name) + 1);
-
-	}
 	return (0);
 }
 
@@ -1098,7 +1040,12 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			assert(time_ns < SANITY_NS_PER_FILTER);
 		} else {
 			/* do lazy initialization if necessary */
-			fexec_possibly_init_filter(cur_filter);
+			fexec_possibly_init_filter(cur_filter,
+						   fdata->num_libs,
+						   fdata->lib_info,
+						   fdata->fd_num_filters,
+						   fdata->fd_filters,
+						   fdata->fd_app_id);
 
 			rt_init(&rt);
 			rt_start(&rt);	/* assume only one thread here */
@@ -1212,15 +1159,77 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 }
 
 void
-fexec_possibly_init_filter(filter_info_t *cur_filt)
+fexec_possibly_init_filter(filter_info_t *cur_filt,
+			   int num_libs, flib_info_t *flibs,
+			   int fd_num_filters, filter_info_t *fd_filters,
+			   filter_id_t fd_app_id)
 {
 	void           *data;
 	int err;
+	int i;
 
 	if (cur_filt->fi_is_initialized) {
 		return;
 	}
 
+	// first, dlopen everything
+	for (i = 0; i < num_libs; i++) {
+		flib_info_t *fl = flibs + i;
+		char *so_name = fl->lib_name;
+		void *handle;
+		char *error;
+
+		if (fl->dl_handle) {
+			continue; // already initialized
+		}
+
+		file_get_lock(so_name);
+		handle = dlopen(so_name, RTLD_LAZY | RTLD_LOCAL);
+		if (!handle) {
+			/*
+			 * XXX error log 
+			 */
+			fprintf(stderr, "failed to open lib <%s> \n", so_name);
+			fputs(dlerror(), stderr);
+			exit(1);
+		}
+		file_release_lock(so_name);
+
+		fl->dl_handle = handle;
+
+		// resolve the functions for all filters and save them
+		filter_info_t *filt;
+		filter_id_t fid;
+		filter_eval_proto fe;
+		filter_init_proto fi;
+		filter_fini_proto ff;
+
+		for (fid = 0; fid < fd_num_filters; fid++) {
+			filt = &fd_filters[fid];
+			if (fid == fd_app_id) {
+				continue;
+			}
+
+			if (filt->fi_eval_fp == NULL) {
+				fe = dlsym(handle, filt->fi_eval_name);
+				if ((error = dlerror()) == NULL) {
+					filt->fi_eval_fp = fe;
+				}
+
+				fi = dlsym(handle, filt->fi_init_name);
+				if ((error = dlerror()) == NULL) {
+					filt->fi_init_fp = fi;
+				}
+
+				ff = dlsym(handle, filt->fi_fini_name);
+				if ((error = dlerror()) == NULL) {
+					filt->fi_fini_fp = ff;
+				}
+			}
+		}
+	}
+
+	// now, try the initializer for the current filter
 	err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
 				   cur_filt->fi_arglist,
 				   cur_filt->fi_blob_len,

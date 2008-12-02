@@ -351,13 +351,13 @@ device_reexecute_filters(void *handle, obj_data_t *obj, const char **attrs)
 	mrpc_status_t	retval;
 	int		err;
 
-	if (!obj->data_len) return 0;
+	/* obj->data should be a null terminated string */
+	if (!obj->data_len || ((char *)obj->data)[obj->data_len-1] != '\0')
+		return 0;
+	req.object_id = obj->data;
 
 	/* count nr. of attribute names */
 	while (attrs[i] != NULL) i++;
-
-	req.object.object_id_x_len = obj->data_len;
-	req.object.object_id_x_val = obj->data;
 
 	req.attrs.attrs_len = i;
 	req.attrs.attrs_val = malloc(i * sizeof(attr_name_x));

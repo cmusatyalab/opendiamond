@@ -33,7 +33,6 @@ enum diamond_error_t {
 
 const MAX_ATTRIBUTE_NAME = 256;
 
-typedef opaque object_id_x<>;
 typedef string attr_name_x<MAX_ATTRIBUTE_NAME>;
 struct attribute_x {
     attr_name_x	name;

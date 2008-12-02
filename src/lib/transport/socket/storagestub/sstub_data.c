@@ -119,8 +119,8 @@ next_obj:
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	object.search_id = cstate->search_id;
-	object.object.object_id_x_len = obj->data_len;
-	object.object.object_id_x_val = obj->data;
+	object.object.object_len = obj->data_len;
+	object.object.object_val = obj->data;
 
 	tx_hdr_bytes = sizeof(object_x);
 	tx_data_bytes = obj->data_len;

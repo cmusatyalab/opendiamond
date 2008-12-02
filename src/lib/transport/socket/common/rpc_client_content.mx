@@ -104,7 +104,7 @@ struct attr_name_list_x {
 };
 
 struct reexecute_x {
-    object_id_x object;
+    string object_id<>;
     attr_name_x attrs<>;
 };
 

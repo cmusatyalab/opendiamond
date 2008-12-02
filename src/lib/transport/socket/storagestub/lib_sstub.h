@@ -48,8 +48,7 @@ dctl_lnode_t*	(*lnode_cb)	(void *app_cookie, char *path);
 device_session_vars_t* (*get_session_vars_cb) (void *app_cookie);
 	int	(*set_session_vars_cb) (void *app_cookie,
 					device_session_vars_t *vars);
-	obj_data_t *(*reexecute_filters) (void *app_cookie, const void *obj_id,
-					  size_t len);
+	obj_data_t *(*reexecute_filters) (void *app_cookie, const char *obj_id);
 } sstub_cb_args_t;
 
 diamond_public

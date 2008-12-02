@@ -19,7 +19,7 @@
 
 struct object_x {
     unsigned int search_id;	/* search identifier */
-    object_id_x  object;
+    opaque	 object<>;
     attribute_x  attrs<>;
 };
 

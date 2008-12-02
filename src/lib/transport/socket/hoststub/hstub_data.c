@@ -65,7 +65,7 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	}
 
 	/* Allocate storage for the data. */
-	obj_len = object->object.object_id_x_len;
+	obj_len = object->object.object_len;
 	if (obj_len) {
 		obj_data = (char *) malloc(obj_len);
 		if (obj_data == NULL) {
@@ -79,7 +79,7 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	obj = odisk_null_obj();
 	assert(obj != NULL);
 
-	memcpy(obj_data, object->object.object_id_x_val, obj_len);
+	memcpy(obj_data, object->object.object_val, obj_len);
 
 	obj->data_len = obj_len;
 	obj->data = obj_data;

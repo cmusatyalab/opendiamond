@@ -961,7 +961,8 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	 */
 	fdata->fd_avg_wall = (0.95 * fdata->fd_avg_wall) + (0.05 * temp);
 	temp = rt_time2secs(stack_ns);
-	*elapsed = temp;
+	if (elapsed)
+		*elapsed = temp;
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
 	return pass;

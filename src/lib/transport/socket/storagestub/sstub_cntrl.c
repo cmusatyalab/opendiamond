@@ -201,6 +201,9 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 	GArray *result_set;
 	int err;
 
+	if (cstate->lstate->cb.reexecute_filters == NULL)
+	    return MINIRPC_PROCEDURE_UNAVAIL;
+
 	obj = (*cstate->lstate->cb.reexecute_filters) (cstate->app_cookie,
 		    in->object.object_id_x_val, in->object.object_id_x_len);
 	if (!obj) return DIAMOND_FAILURE;

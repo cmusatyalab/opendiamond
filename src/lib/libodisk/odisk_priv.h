@@ -110,8 +110,6 @@ int odisk_get_obj(struct odisk_state *odisk, obj_data_t **new_obj,
 
 void odisk_ref_obj(obj_data_t *obj);
 
-int odisk_load_obj(odisk_state_t *odisk, obj_data_t **o_handle, char *name);
-
 int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
 
 

@@ -151,7 +151,7 @@ obj_set_sysattr(odisk_state_t * odisk, obj_data_t * obj, char *name)
 }
 
 int
-odisk_load_obj(odisk_state_t * odisk, obj_data_t ** obj_handle, char *name)
+odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 {
 	obj_data_t     *new_obj;
 	struct stat     stats;

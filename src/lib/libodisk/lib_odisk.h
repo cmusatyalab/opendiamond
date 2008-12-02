@@ -67,6 +67,10 @@ obj_data_t     * odisk_null_obj(void);
 diamond_public
 int odisk_flush(odisk_state_t *odisk);
 
+diamond_public
+int odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle,
+		   const char *obj_name);
+
 #ifdef	__cplusplus
 }
 #endif

@@ -71,6 +71,7 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	obj_len = object->object.object_len;
 	obj_write_attr(&obj->attr_info, OBJ_DATA, obj_len,
 		       (unsigned char *)object->object.object_val);
+	obj_omit_attr(&obj->attr_info, OBJ_DATA);
 
 	hdr_len = sizeof(object_x);
 

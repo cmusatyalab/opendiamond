@@ -203,7 +203,7 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	obj_data_t *obj;
-	GArray *result_set;
+	GArray *result_set = NULL;
 	int err;
 
 	if (cstate->lstate->cb.reexecute_filters == NULL)
@@ -213,7 +213,12 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 						       in->object_id);
 	if (!obj) return DIAMOND_FAILURE;
 
-	result_set = get_attrset(in->attrs.attrs_val, in->attrs.attrs_len);
+	/* only get attribute set if specific attributes were specified,
+	 * otherwise we will return all attributes. */
+	if (in->attrs.attrs_len) {
+		result_set = get_attrset(in->attrs.attrs_val,
+					 in->attrs.attrs_len);
+	}
 
 	err = sstub_get_attributes(&obj->attr_info, result_set,
 				   &out->attrs.attrs_val,

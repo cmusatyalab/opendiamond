@@ -56,6 +56,10 @@
 /* used to keep results from different searches separate. */
 static unsigned int global_search_id;
 
+/* define this to make ls_terminate_search only stop the currently active
+ * search but not disconnect from the servers. */
+#define TERMINATE_ABORTS 1
+
 /*
  * XXX locking for multi-threaded apps !! 
  */
@@ -172,27 +176,33 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 			err = device_stop(cur_dev->dev_handle, &sc->host_stats);
 			if (err != 0) {
 				/*
-				 * if we get an error we note it for * the
-				 * return value but try to process the rest * 
-				 * of the devices 
+				 * if we get an error we note it for the
+				 * return value but try to process the rest
+				 * of the devices
 				 */
 				/*
-				 * XXX logging 
+				 * XXX logging
 				 */
 			}
 		}
 	}
 
 	/*
-	 * change to indicated we are shutting down 
+	 * change to indicated we are shutting down
 	 */
 	sc->cur_status = SS_SHUTDOWN;
 
 	/*
-	 * XXX think more about the shutdown.  How do we 
+	 * XXX think more about the shutdown.  How do we
 	 * make sure everything is done.
 	 */
+#ifdef TERMINATE_ABORTS
+	bg_stop_search(sc);
+	drain_queues(sc);
 
+	/* change the current state to idle */
+	sc->cur_status = SS_IDLE;
+#else
 	/*
 	 * Now we need to shutdown each of the device specific
 	 * handlers.
@@ -209,11 +219,11 @@ ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as)
 			 * of the devices
 			 */
 			/*
-			 * XXX logging 
+			 * XXX logging
 			 */
 		}
 	}
-
+#endif
 	return (0);
 }
 

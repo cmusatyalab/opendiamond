@@ -367,7 +367,7 @@ fexec_term_search(filter_data_t * fdata)
 	}	
 
 	/*
-	 * Go through all the filters and call the init function 
+	 * Go through all the filters and call the fini function 
 	 */
 	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
 		cur_filt = &fdata->fd_filters[fid];
@@ -391,11 +391,10 @@ fexec_term_search(filter_data_t * fdata)
 
 		free(sig_str);
 
-		if (fid == fdata->fd_app_id) {
-			continue;
-		}
+		err = 0;
+		if (cur_filt->fi_fini_fp)
+			err = cur_filt->fi_fini_fp(cur_filt->fi_filt_arg);
 
-		err = cur_filt->fi_fini_fp(cur_filt->fi_filt_arg);
 		if (err != 0) {
 			/*
 			 * XXXX what now 

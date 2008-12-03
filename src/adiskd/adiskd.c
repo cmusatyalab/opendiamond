@@ -162,6 +162,7 @@ main(int argc, char **argv)
 	cb_args.set_user_state_cb = search_set_user_state;
 	cb_args.get_session_vars_cb = search_get_session_vars;
 	cb_args.set_session_vars_cb = search_set_session_vars;
+	cb_args.reexecute_filters = search_reexecute_filters;
 
 	cookie = sstub_init(&cb_args, bind_locally);
 	if (cookie == NULL) {

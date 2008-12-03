@@ -106,6 +106,7 @@ int             search_start(void *app_cookie);
 int             search_stop(void *app_cookie, host_stats_t *hs);
 int             search_set_spec(void *app_cookie, sig_val_t *spec_sig);
 int             search_set_obj(void *app_cookie, sig_val_t *obj_sig);
+obj_data_t *	search_reexecute_filters(void *app_cookie, const char *obj_id);
 int             search_term(void *app_cookie);
 dev_stats_t *   search_get_stats(void *app_cookie);
 int             search_release_obj(void *app_cookie, obj_data_t * obj);

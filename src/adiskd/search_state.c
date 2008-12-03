@@ -1635,3 +1635,42 @@ int search_set_session_vars(void *app_cookie, device_session_vars_t *vars)
 
   return 0;
 }
+
+
+obj_data_t *
+search_reexecute_filters(void *app_cookie, const char *obj_id)
+{
+	search_state_t *sstate = (search_state_t *) app_cookie;
+	obj_data_t *obj = NULL;
+	int err, pass;
+
+	/* reexecute filters */
+	log_message(LOGT_DISK, LOGL_TRACE, "search_reexecute_filters");
+
+	/* need a better obj_id -> obj_name mapping so that client can't just
+	 * reexecute filters against any arbitrary object on the server,
+	 * however the filter code that was sent by the client can already do
+	 * that anyways */
+	err = odisk_load_obj(sstate->ostate, &obj, obj_id);
+	if (err) return NULL;
+
+	sstate->obj_processed++;
+	//sstate->obj_re_processed++;
+
+	pass = ceval_filters2(obj, sstate->fdata, 1, NULL, sstate->exec_mode,
+			      NULL, NULL, NULL);
+
+	if (pass == 0) {
+		sstate->obj_dropped++;
+		//sstate->obj_re_dropped++;
+		odisk_release_obj(obj);
+		obj = NULL;
+	} else {
+		sstate->obj_passed++;
+		//sstate->obj_re_passed++;
+	}
+
+	return obj;
+}
+
+

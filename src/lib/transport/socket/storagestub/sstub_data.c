@@ -67,7 +67,7 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 	size_t len;
 	int err;
 
-	/* how many attributes could we be sending? (worst case) */
+	/* how many attributes are we sending? */
 	err = obj_first_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie);
 	for (n = 0; err == 0; n++)
 		err = obj_next_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie);
@@ -78,15 +78,14 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 
 	err = obj_first_attr(obj_attr, &name, &len, (unsigned char **)&data,
 			     NULL, &cookie);
-	for (n = 0; err == 0;)
+	for (n = 0; err == 0; n++)
 	{
-		if (!output_set || is_array_member(output_set, name))
-		{
-			attrs[n].name = name;
-			attrs[n].data.data_len = len;
-			attrs[n].data.data_val = data;
-			n++;
-		}
+		int send_data = !output_set || is_array_member(output_set, name);
+
+		attrs[n].name = name;
+		attrs[n].data.data_len = send_data ? len : 0;
+		attrs[n].data.data_val = send_data ? data : NULL;
+
 		err = obj_next_attr(obj_attr, &name, &len,
 				    (unsigned char **)&data, NULL, &cookie);
 	}

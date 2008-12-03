@@ -46,6 +46,7 @@
 #include "dconfig_priv.h"
 #include "dctl_impl.h"
 #include "odisk_priv.h"
+#include "sys_attr.h"
 
 #include "rpc_client_content_client.h"
 
@@ -350,11 +351,15 @@ device_reexecute_filters(void *handle, obj_data_t *obj, const char **attrs)
 	unsigned int	i = 0;
 	mrpc_status_t	retval;
 	int		err;
+	size_t		id_len = 0;
+	unsigned char  *id;
+	
+	obj_ref_attr(&obj->attr_info, OBJ_ID, &id_len, &id);
 
 	/* obj->data should be a null terminated string */
-	if (!obj->data_len || ((char *)obj->data)[obj->data_len-1] != '\0')
+	if (!id_len || id[id_len-1] != '\0')
 		return 0;
-	req.object_id = obj->data;
+	req.object_id = id;
 
 	/* count nr. of attribute names */
 	while (attrs[i] != NULL) i++;

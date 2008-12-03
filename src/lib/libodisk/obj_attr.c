@@ -51,10 +51,8 @@ obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)
 	size_t          rsize;
 	obj_adata_t    *adata;
 
-	/*
-	 * Open the file or create it.
-	 */
-	attr_fd = open(attr_fname, odisk->open_flags, 00777);
+	/* Open the file. */
+	attr_fd = open(attr_fname, O_RDONLY, 0700);
 	if (attr_fd == -1) {
 		attr->attr_ndata = 0;
 		attr->attr_dlist = NULL;

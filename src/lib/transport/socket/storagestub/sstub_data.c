@@ -40,15 +40,28 @@
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 #include "odisk_priv.h"
+#include "sys_attr.h"
 
 #include "blast_channel_server.h"
+
+static int is_array_member(GArray *output_set, const char *item)
+{
+	GQuark q = g_quark_from_string(item);
+	int i;
+
+	for (i = 0; i < output_set->len; i++) {
+		if (q == g_array_index(output_set, GQuark, i))
+			return 1;
+	}
+	return 0;
+}
 
 int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 			 attribute_x **result_val, unsigned int *result_len)
 {
 	struct acookie *cookie;
 	attribute_x *attrs;
-	unsigned int i, n;
+	unsigned int n;
 	char *name;
 	void *data;
 	size_t len;
@@ -67,16 +80,12 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 			     NULL, &cookie);
 	for (n = 0; err == 0;)
 	{
-		GQuark attrq = g_quark_from_string(name);
-
-		for (i = 0; i < output_set->len; i++) {
-			if (attrq == g_array_index(output_set, GQuark, i))
-			{
-			    attrs[n].name = name;
-			    attrs[n].data.data_len = len;
-			    attrs[n].data.data_val = data;
-			    n++;
-			}
+		if (!output_set || is_array_member(output_set, name))
+		{
+			attrs[n].name = name;
+			attrs[n].data.data_len = len;
+			attrs[n].data.data_val = data;
+			n++;
 		}
 		err = obj_next_attr(obj_attr, &name, &len,
 				    (unsigned char **)&data, NULL, &cookie);
@@ -119,26 +128,31 @@ next_obj:
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	object.search_id = cstate->search_id;
-	object.object.object_len = obj->data_len;
-	object.object.object_val = obj->data;
+	object.object.object_len = 0;
+	object.object.object_val = NULL;
+
+	/* The 'main' object data we return contains the object's contents
+	 * if no thumbnail set was specified */
+	if (!cstate->thumbnail_set) {
+		obj_ref_attr(&obj->attr_info, OBJ_DATA,
+			     &object.object.object_len,
+			     (unsigned char **)&object.object.object_val);
+		obj_omit_attr(&obj->attr_info, OBJ_DATA);
+	}
 
 	tx_hdr_bytes = sizeof(object_x);
-	tx_data_bytes = obj->data_len;
+	tx_data_bytes = object.object.object_len;
 
 	err = sstub_get_attributes(&obj->attr_info, cstate->thumbnail_set,
 				   &object.attrs.attrs_val,
 				   &object.attrs.attrs_len);
-	if (err) {
-	    free_object_x(&object, FALSE);
-	    return;
-	}
+	if (err) goto drop;
 
 	for (n = 0; n < object.attrs.attrs_len; n++)
 	{
 		tx_hdr_bytes += sizeof(attribute_x);
 		tx_data_bytes += object.attrs.attrs_val[n].data.data_len;
 	}
-	free_object_x(&object, FALSE);
 
 	rc = blast_channel_send_object(cstate->blast_conn, &object);
 	assert(rc == MINIRPC_OK);
@@ -147,6 +161,11 @@ next_obj:
 	cstate->stats_objs_hdr_bytes_tx += tx_hdr_bytes;
 	cstate->stats_objs_data_bytes_tx += tx_data_bytes;
 	cstate->stats_objs_total_bytes_tx += tx_hdr_bytes + tx_data_bytes;
+
+drop:
+	/* dont' use free_object_x because we do not want to free the
+	 * referenced object attributes */
+	free(object.attrs.attrs_val); /* this is the only malloc'ed bit */
 
 	/*
 	 * If we make it here, then we have successfully sent

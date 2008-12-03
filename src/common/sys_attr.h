@@ -27,9 +27,10 @@
 #define	MTIME		"SYS_MTIME"
 #define	CTIME		"SYS_CTIME"
 
-#define OBJ_NAME        "Display-Name"
-#define DISPLAY_NAME	OBJ_NAME
+#define OBJ_ID		"ObjectID"
+#define OBJ_DATA	""
 
+#define DISPLAY_NAME    "Display-Name"
 #define DEVICE_NAME     "Device-Name"
 
 #define OBJ_PATH        "_path.cstring"

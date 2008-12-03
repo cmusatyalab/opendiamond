@@ -45,6 +45,7 @@
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
 #include "odisk_priv.h"
+#include "sys_attr.h"
 
 #include <minirpc/minirpc.h>
 #include "rpc_client_content_server.h"
@@ -164,11 +165,15 @@ static GArray *get_attrset(attr_name_x *names, unsigned int len)
 {
 	unsigned int i;
 	GArray *result;
+	GQuark id = g_quark_from_string(OBJ_ID);
 
 	result = g_array_sized_new(FALSE, FALSE, sizeof(GQuark), len);
+	g_array_append_val(result, id); /* always send the ObjectId */
+
 	for (i = 0; i < len; i++)
 	{
 		GQuark q = g_quark_from_string(names[i]);
+		if (q == id) continue;
 		g_array_append_val(result, q);
 	}
 	return result;

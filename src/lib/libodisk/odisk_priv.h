@@ -35,7 +35,6 @@ struct odisk_state {
 	int             num_gids;
 	int             max_files;
 	int             cur_file;
-	int             open_flags;
 	pthread_t       thread_id;
 	DIR *           odisk_dir;
 	uint32_t        obj_load;
@@ -74,7 +73,6 @@ struct pr_obj {
 	 * This is the state associated with the object
 	 */
 struct obj_data {
-	off_t			data_len;
 	off_t			cur_offset;
 	uint64_t       		local_id;
 	sig_val_t      		id_sig;
@@ -82,7 +80,6 @@ struct obj_data {
 	int		    	ref_count;
 	pthread_mutex_t	mutex;
 	float			remain_compute;
-	char *			data;
 	obj_attr_t		attr_info;
 	session_variables_state_t *session_variables_state;
 };

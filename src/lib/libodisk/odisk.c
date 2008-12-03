@@ -112,7 +112,8 @@ odisk_next_index_ent(FILE * idx_file, char *file_name)
  * Set an attribute if it is not defined to the name value passed in 
  */
 static void
-obj_set_notdef(obj_data_t * obj, char *attr_name, void *val, size_t len)
+obj_set_notdef(obj_data_t * obj, const char *attr_name,
+	       const void *val, size_t len)
 {
 	int             err;
 	size_t          rlen;
@@ -123,7 +124,6 @@ obj_set_notdef(obj_data_t * obj, char *attr_name, void *val, size_t len)
 	if (err == ENOENT) {
 		err = obj_write_attr(&obj->attr_info, attr_name, len, val);
 	}
-
 }
 
 /*
@@ -131,7 +131,7 @@ obj_set_notdef(obj_data_t * obj, char *attr_name, void *val, size_t len)
  * the object.
  */
 static void
-obj_set_sysattr(odisk_state_t * odisk, obj_data_t * obj, char *name)
+obj_set_sysattr(odisk_state_t * odisk, obj_data_t * obj, const char *name)
 {
 	size_t          len;
 
@@ -146,24 +146,18 @@ obj_set_sysattr(odisk_state_t * odisk, obj_data_t * obj, char *name)
 	 */
 	len = strlen(odisk->odisk_name) + 1;
 	obj_set_notdef(obj, DEVICE_NAME, odisk->odisk_name, len);
-
-
 }
 
 int
 odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 {
 	obj_data_t     *new_obj;
-	struct stat     stats;
-	int             os_file;
-	char           *data;
-	char           *base;
-	int             err,
-	                len;
-	size_t          size;
+	int		len;
 	uint64_t        local_id;
-	char           *ptr;
+	const char     *ptr;
 	char            attr_name[NAME_MAX];
+	gchar	       *contents;
+	gsize		length;
 
 	assert(name != NULL);
 	if (strlen(name) >= NAME_MAX) {
@@ -175,52 +169,9 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 	new_obj = malloc(sizeof(*new_obj));
 	assert(new_obj != NULL);
 
-	/*
-	 * open and read the data file
-	 */
-	os_file = open(name, odisk->open_flags);
-	if (os_file == -1) {
-		log_message(LOGT_DISK, LOGL_ERR,
-		    "odisk_load_obj: open file <%s> failed", name);
-		free(new_obj);
-		return (ENOENT);
-	}
-
-	err = fstat(os_file, &stats);
-	if (err != 0) {
-		free(new_obj);
-		return (ENOENT);
-	}
-
-	base = (char *) malloc(stats.st_size);
-	assert(base != NULL);
-	data = (char *) base;
-	if (base == NULL) {
-		log_message(LOGT_DISK, LOGL_ERR,
-		     "odisk_load_obj: failed to allocate storage for <%s>",
-		     name);
-		close(os_file);
-		free(new_obj);
-		return (ENOENT);
-	}
-
-	if (stats.st_size > 0) {
-		size = read(os_file, data, stats.st_size);
-		if (size != stats.st_size) {
-			log_message(LOGT_DISK, LOGL_ERR,
-		    	    "odisk_load_obj: load file <%s> failed", name);
-			free(base);
-			close(os_file);
-			free(new_obj);
-			return (ENOENT);
-		}
-	}
-	close(os_file);
-	new_obj->data = data;
-	new_obj->data_len = stats.st_size;
-	new_obj->ref_count = 1;
 	sig_cal_str(name, &new_obj->id_sig);
 	pthread_mutex_init(&new_obj->mutex, NULL);
+	new_obj->ref_count = 1;
 
 	ptr = rindex(name, '/');
 	if (ptr == NULL) {
@@ -238,6 +189,21 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 	assert(len < NAME_MAX);
 	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
 
+	/* open and read the object data */
+	if (!g_file_get_contents(name, &contents, &length, NULL))
+	{
+		log_message(LOGT_DISK, LOGL_ERR,
+		    "odisk_load_obj: open file <%s> failed", name);
+		free(new_obj);
+		return (ENOENT);
+	}
+
+	obj_write_attr(&new_obj->attr_info, OBJ_DATA,
+		       length, (unsigned char *)contents);
+	obj_write_attr(&new_obj->attr_info, OBJ_ID,
+		       strlen(name)+1, (unsigned char *)name);
+	free(contents);
+
 	/*
 	 * Load text attributes, if any.
 	 */
@@ -245,9 +211,8 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 	assert(len < NAME_MAX);
 	obj_load_text_attr(odisk, attr_name, new_obj);
 
-
 	/*
-	 * set any system specific attributes for the object 
+	 * set any system specific attributes for the object
 	 */
 	obj_set_sysattr(odisk, new_obj, name);
 
@@ -354,10 +319,6 @@ odisk_release_obj(obj_data_t * obj)
 	 * (or else someone screwed up).
 	 */
 	pthread_mutex_unlock(&obj->mutex);
-
-	if (obj->data != NULL) {
-		free(obj->data);
-	}
 
 	cur = obj->attr_info.attr_dlist;
 	while (cur != NULL) {
@@ -805,7 +766,6 @@ odisk_init(odisk_state_t ** odisk, char *dirp)
 		sprintf(new_state->odisk_name, "Unknown");
 	}
 	new_state->odisk_name[MAX_HOST_NAME - 1] = '0';
-	new_state->open_flags = O_RDONLY;
 
 	for (i = 0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, NULL,

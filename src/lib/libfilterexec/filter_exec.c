@@ -927,8 +927,8 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	u_int64_t       stack_ns;	/* time for whole filter stack */
 
 	sig_str = sig_string(&obj_handle->id_sig);
-	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters(%s): Entering, obj size=%lu",
-		    sig_str, obj_handle->data_len);
+	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters(%s): Entering",
+		    sig_str);
 	free(sig_str);
 
 	fdata->obj_counter++;

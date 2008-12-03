@@ -41,6 +41,7 @@
 #include "lib_hstub.h"
 #include "hstub_impl.h"
 #include "odisk_priv.h"
+#include "sys_attr.h"
 
 #include "blast_channel_client.h"
 
@@ -51,7 +52,6 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	sdevice_state_t *dev = (sdevice_state_t *)conn_data;
 	conn_info_t	*cinfo = &dev->con_data;
 	obj_data_t	*obj;
-	void		*obj_data = NULL;
 	attribute_x	*attr;
 	size_t		obj_len, hdr_len, attr_len = 0;
 	unsigned int	i;
@@ -64,25 +64,13 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 		return;
 	}
 
-	/* Allocate storage for the data. */
-	obj_len = object->object.object_len;
-	if (obj_len) {
-		obj_data = (char *) malloc(obj_len);
-		if (obj_data == NULL) {
-			log_message(LOGT_NET, LOGL_CRIT,
-				    "recv_object: malloc failed");
-			return;
-		}
-	}
-
 	/* allocate an obj_data_t structure to hold the object. */
 	obj = odisk_null_obj();
 	assert(obj != NULL);
 
-	memcpy(obj_data, object->object.object_val, obj_len);
-
-	obj->data_len = obj_len;
-	obj->data = obj_data;
+	obj_len = object->object.object_len;
+	obj_write_attr(&obj->attr_info, OBJ_DATA, obj_len,
+		       (unsigned char *)object->object.object_val);
 
 	hdr_len = sizeof(object_x);
 
@@ -106,7 +94,7 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 	cinfo->stat_obj_data_byte_rx += obj_len;
 	cinfo->stat_obj_total_byte_rx += obj_len + hdr_len + attr_len;
 
-	if (obj->data_len == 0 && attr_len == 0)
+	if (obj_len == 0 && attr_len == 0)
 	{
 		(*dev->cb.search_done_cb) (dev->hcookie);
 		odisk_release_obj(obj);

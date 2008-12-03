@@ -42,6 +42,7 @@
 #include "lib_log.h"
 #include "odisk_priv.h"
 #include "filter_priv.h"
+#include "sys_attr.h"
 
 
 static read_attr_cb read_attr_fn = NULL;
@@ -177,15 +178,19 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	size_t          length;
 	size_t          remain;
 	int             max_blocks;
+	size_t		data_len;
+	unsigned char  *data;
 
 	odata = (obj_data_t *) obj_handle;
+
+	obj_ref_attr(&odata->attr_info, OBJ_DATA, &data_len, &data);
 
 	/*
 	 * See if there is any data to read.
 	 */
-	if (odata->data_len <= odata->cur_offset) {
-		printf("Beyond file len: off %lx len %lx \n",
-		       odata->cur_offset, odata->data_len);
+	if (data_len <= odata->cur_offset) {
+		printf("Beyond file len: off %lx len %x \n",
+		       odata->cur_offset, data_len);
 		*len = 0;
 		assert(0);
 		return (EINVAL);
@@ -201,7 +206,7 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	} else {
 		length = num_blocks * odata->cur_blocksize;
 	}
-	remain = odata->data_len - odata->cur_offset;
+	remain = data_len - odata->cur_offset;
 	if (length > remain) {
 		length = remain;
 	}
@@ -214,9 +219,9 @@ lf_next_block(lf_obj_handle_t obj_handle,
 		return (ENOSPC);
 	}
 
-	memcpy(buf, &odata->data[odata->cur_offset], length);
+	memcpy(buf, &data[odata->cur_offset], length);
 #else
-	buf = (unsigned char *)&odata->data[odata->cur_offset];
+	buf = (unsigned char *)&data[odata->cur_offset];
 #endif
 	odata->cur_offset += length;
 	*len = length;
@@ -253,18 +258,22 @@ lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
 	obj_data_t     *odata;
 	size_t          length;
 	size_t          remain;
+	size_t		data_len;
+	unsigned char  *data;
 
 	odata = (obj_data_t *) obj_handle;
+
+	obj_ref_attr(&odata->attr_info, OBJ_DATA, &data_len, &data);
 
 	/*
 	 * See if there is any data to skip past.  
 	 */
-	if (odata->data_len <= odata->cur_offset) {
+	if (data_len <= odata->cur_offset) {
 		return (ENOENT);
 	}
 
 	length = num_blocks * odata->cur_blocksize;
-	remain = odata->data_len - odata->cur_offset;
+	remain = data_len - odata->cur_offset;
 
 	if (length > remain) {
 		length = remain;

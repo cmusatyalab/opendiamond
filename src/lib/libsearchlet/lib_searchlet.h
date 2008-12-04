@@ -253,6 +253,30 @@ int ls_set_blob(ls_search_handle_t handle, char *filter_name,
 
 
 /*!
+ * This call sets the list of pushed, or thumbnail, attributes for which data
+ * will be returned to the client over the blast channel when the searchlet has
+ * not dropped the object. The pushed attribute set will implicitly include the
+ * "_ObjectID" attribute as it is needed for filter reexecution.
+ *
+ * See also ls_reexecute_filters()
+ *
+ * \param handle
+ *		The search handle returned by ls_init_search().
+ *
+ * \param attributes
+ *		A NULL terminated array of attribute names.
+ *
+ * \return 0
+ *		The call succeeded.
+ *
+ * \return EINVAL
+ *		If the handle is not valid.
+ */
+diamond_public
+int ls_set_push_attributes(ls_search_handle_t handle, const char **attributes);
+
+
+/*!
  * This call begins the execution of a searchlet.  For this call to 
  * succeed there must be an active searchlet that was set by lib_set_searchlet()
  *
@@ -313,6 +337,71 @@ int ls_next_object(ls_search_handle_t handle,
  * Flags  for ls_next_object()
  */
 #define	LSEARCH_NO_BLOCK		0x01 	/** Do not block */
+
+/*!
+ * This call obtains a unique identifier which can be used in conjuction with
+ * ls_reexecute_filters to reexecute filters and get back a new object handle.
+ *
+ * \param handle
+ *		The search handle returned by ls_init_search().
+ *
+ * \param obj_handle
+ *		A handle to the object for which we want a unique identifier.
+ *
+ * \param objectid
+ *		Will be set to an allocated string that contains an unique
+ *		object identifier which can be passed to ls_reexecute_filters.
+ *
+ * \return 0
+ *		Returns an allocated string that contains a unique object
+ *		identifier which can be passed to ls_reexecute_filters.
+ *
+ * \return EINVAL
+ *		If we are unable to get a valid objectid for the object.
+ *
+ * \return ENODEV
+ *		If the device that sent the object could not be found.
+ */
+diamond_public
+int ls_get_objectid(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
+		    const char **objectid);
+
+/*!
+ * This call forces searchlet reexecution for the given object and retrieves
+ * attribute data for the specified attributes.
+ *
+ * \param handle
+ *		The search handle returned by ls_init_search().
+ *
+ * \param objectid
+ *		An unique object identifier as returned by a previous call to
+ *		ls_get_objectid().
+ *
+ * \param attributes
+ *		A NULL terminated array of attribute names. If the array is
+ *		NULL, the returned object will be populated with all
+ *		attributes.
+ *
+ * \param obj_handle
+ *		A pointer to the location where the new object handle will
+ *		stored upon successful completion of the call.
+ *
+ * \return 0
+ *		Successful, obj_handle contains pointer to a new object.
+ *
+ * \return EINVAL
+ *		If the objectid is invalid.
+ *
+ * \return ENODEV
+ *		If the device that sent the object could not be found.
+ *
+ * \return ENOTCONN
+ *		If the device that sent the object is no longer available.
+ */
+diamond_public
+int ls_reexecute_filters(ls_search_handle_t handle,
+			 const char *objectid, const char **attributes,
+			 ls_obj_handle_t *obj_handle);
 
 
 /*!

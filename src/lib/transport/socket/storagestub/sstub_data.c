@@ -80,11 +80,15 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 			     NULL, &cookie);
 	for (n = 0; err == 0; n++)
 	{
-		int send_data = !output_set || is_array_member(output_set, name);
+		int senddata = !output_set || is_array_member(output_set, name);
 
-		attrs[n].name = name;
-		attrs[n].data.data_len = send_data ? len : 0;
-		attrs[n].data.data_val = send_data ? data : NULL;
+		int size = senddata ? len : 0;
+		void *buf = senddata ? malloc(size) : NULL;
+		if (senddata) memcpy(buf, data, len);
+
+		attrs[n].name = strdup(name);
+		attrs[n].data.data_len = size;
+		attrs[n].data.data_val = buf;
 
 		err = obj_next_attr(obj_attr, &name, &len,
 				    (unsigned char **)&data, NULL, &cookie);
@@ -133,10 +137,16 @@ next_obj:
 	/* The 'main' object data we return contains the object's contents
 	 * if no thumbnail set was specified */
 	if (!cstate->thumbnail_set) {
+		unsigned char *data;
+		size_t len;
+
 		obj_ref_attr(&obj->attr_info, OBJ_DATA,
-			     &object.object.object_len,
-			     (unsigned char **)&object.object.object_val);
+			     &len, &data);
 		obj_omit_attr(&obj->attr_info, OBJ_DATA);
+
+		object.object.object_len = len;
+		object.object.object_val = malloc(len);
+		memcpy(object.object.object_val, data, len);
 	}
 
 	tx_hdr_bytes = sizeof(object_x);
@@ -162,9 +172,7 @@ next_obj:
 	cstate->stats_objs_total_bytes_tx += tx_hdr_bytes + tx_data_bytes;
 
 drop:
-	/* dont' use free_object_x because we do not want to free the
-	 * referenced object attributes */
-	free(object.attrs.attrs_val); /* this is the only malloc'ed bit */
+	free_object_x(&object, FALSE);
 
 	/*
 	 * If we make it here, then we have successfully sent

@@ -90,6 +90,7 @@ static int init_minirpc(void)
 		goto err_out;
 	}
 
+	mrpc_set_max_buf_len(mrpc_cset, UINT_MAX);
 	mrpc_set_max_buf_len(mrpc_bset, UINT_MAX);
 
 	if (mrpc_start_dispatch_thread(mrpc_bset)) {

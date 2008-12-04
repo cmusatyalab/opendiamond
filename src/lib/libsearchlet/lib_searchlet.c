@@ -1314,3 +1314,88 @@ int ls_set_user_state(ls_search_handle_t handle, user_state_t state)
 	return(err);
 }
 
+
+int ls_set_push_attributes(ls_search_handle_t handle, const char **attributes)
+{
+	search_context_t *sc = (search_context_t *)handle;
+	device_handle_t *cur_dev;
+	int err = 0;
+
+	for (cur_dev = sc->dev_list; cur_dev; cur_dev = cur_dev->next)
+	{
+		if (cur_dev->flags & DEV_FLAG_DOWN)
+			continue;
+
+		err = device_set_push_attrs(cur_dev->dev_handle, attributes);
+		if (err) {
+			log_dev_error(cur_dev->dev_name,
+				      "failed to push attributes");
+			break;
+		}
+	}
+	return err;
+}
+
+
+int ls_get_objectid(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
+		    const char **objectid)
+{
+	search_context_t *sc = (search_context_t *)handle;
+	obj_data_t *obj = (obj_data_t *)obj_handle;
+	device_handle_t *cur_dev;
+	unsigned char *obj_id;
+	char *result;
+	size_t len = 0;
+	int err;
+
+	for (cur_dev = sc->dev_list; cur_dev; cur_dev = cur_dev->next)
+		if (cur_dev->dev_handle == obj->dev_cookie)
+			break;
+
+	/* no matching device found, is this an invalid object handle? */
+	if (!cur_dev) return ENODEV;
+
+	err = obj_ref_attr(&obj->attr_info, OBJ_ID, &len, &obj_id);
+	if (err) return EINVAL;
+
+	result = malloc(2 + (sizeof(void *) * 2) + 1 + len + 1);
+	if (result) sprintf(result, "%p %s", obj->dev_cookie, obj_id);
+
+	*objectid = result;
+
+	return 0;
+}
+
+int ls_reexecute_filters(ls_search_handle_t handle, const char *objectid,
+			 const char **attributes, ls_obj_handle_t *obj_handle)
+{
+	search_context_t *sc = (search_context_t *)handle;
+	device_handle_t *cur_dev;
+	obj_data_t *obj;
+	void *dev_cookie;
+	char *obj_id;
+
+	dev_cookie = (void *)strtol(objectid, &obj_id, 16);
+	if (*obj_id != ' ') return EINVAL;
+	obj_id++;
+
+	for (cur_dev = sc->dev_list; cur_dev; cur_dev = cur_dev->next)
+		if (cur_dev->dev_handle == dev_cookie)
+			break;
+
+	/* no matching device found, is this an invalid object handle? */
+	if (!cur_dev) return ENODEV;
+
+	/* is the device no longer connected? */
+	if (cur_dev->flags & DEV_FLAG_DOWN)
+		return ENOTCONN;
+
+	obj = odisk_null_obj();
+	obj_write_attr(&obj->attr_info, OBJ_ID, strlen(obj_id)+1,
+		       (unsigned char *)obj_id);
+	obj->dev_cookie = dev_cookie;
+
+	*obj_handle = (ls_obj_handle_t)obj;
+	return device_reexecute_filters(cur_dev->dev_handle, obj, attributes);
+}
+

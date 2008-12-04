@@ -148,7 +148,7 @@ serverprocs {
     session_variables_set(diamond_session_vars_x, void) = 19;
 
     /* Limit set of pushed attributes (thumbnail set) and filter reexecution */
-    device_set_thumbnail_attrs(attr_name_list_x, void) = 20;
+    device_set_push_attrs(attr_name_list_x, void) = 20;
     device_reexecute_filters(reexecute_x, attribute_list_x) = 21;
 }
 

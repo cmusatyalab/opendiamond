@@ -82,6 +82,7 @@ struct obj_data {
 	float			remain_compute;
 	obj_attr_t		attr_info;
 	session_variables_state_t *session_variables_state;
+	void			*dev_cookie;
 };
 
 

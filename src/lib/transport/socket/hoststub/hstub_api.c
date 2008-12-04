@@ -53,7 +53,6 @@
 /*
  * XXX move to common header 
  */
-#define	HSTUB_RING_SIZE	512
 #define OBJ_RING_SIZE	512
 
 int rpc_postproc(const char *func, mrpc_status_t ret)
@@ -312,7 +311,7 @@ err_out:
 }
 
 int
-device_set_thumbnail_attrs(void *handle, const char **attrs)
+device_set_push_attrs(void *handle, const char **attrs)
 {
 	sdevice_state_t *dev;
 	attr_name_list_x req;
@@ -332,7 +331,7 @@ device_set_thumbnail_attrs(void *handle, const char **attrs)
 	for (n = 0; attrs[n] != NULL; n++)
 		req.attrs.attrs_val[n] = (char *)attrs[n];
 
-	retval = rpc_client_content_device_set_thumbnail_attrs
+	retval = rpc_client_content_device_set_push_attrs
 					(dev->con_data.rpc_client, &req);
 	err = rpc_postproc(__FUNCTION__, retval);
 
@@ -353,7 +352,7 @@ device_reexecute_filters(void *handle, obj_data_t *obj, const char **attrs)
 	int		err;
 	size_t		id_len = 0;
 	unsigned char  *id;
-	
+
 	obj_ref_attr(&obj->attr_info, OBJ_ID, &id_len, &id);
 
 	/* obj->data should be a null terminated string */
@@ -362,14 +361,14 @@ device_reexecute_filters(void *handle, obj_data_t *obj, const char **attrs)
 	req.object_id = id;
 
 	/* count nr. of attribute names */
-	while (attrs[i] != NULL) i++;
+	while (attrs && attrs[i] != NULL) i++;
 
 	req.attrs.attrs_len = i;
 	req.attrs.attrs_val = malloc(i * sizeof(attr_name_x));
 	if (req.attrs.attrs_val == NULL)
 		return -1;
 
-	for (i = 0; attrs[i] != NULL; i++)
+	for (i = 0; attrs && attrs[i] != NULL; i++)
 		req.attrs.attrs_val[i] = (char *)attrs[i];
 
 	retval = rpc_client_content_device_reexecute_filters
@@ -390,6 +389,9 @@ device_reexecute_filters(void *handle, obj_data_t *obj, const char **attrs)
 			break;
 		}
 	}
+
+	/* avoid showing the object's data attribute in iterators */
+	obj_omit_attr(&obj->attr_info, OBJ_DATA);
 
 err_out:
 	free_attribute_list_x(res, 1);

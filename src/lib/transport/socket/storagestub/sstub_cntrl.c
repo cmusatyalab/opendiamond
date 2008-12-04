@@ -180,8 +180,8 @@ static GArray *get_attrset(attr_name_x *names, unsigned int len)
 }
 
 static mrpc_status_t
-device_set_thumbnail_attrs(void *conn_data, struct mrpc_message *msg,
-			   attr_name_list_x *in)
+device_set_push_attrs(void *conn_data, struct mrpc_message *msg,
+		      attr_name_list_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	GArray *push_set;
@@ -223,7 +223,9 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 	err = sstub_get_attributes(&obj->attr_info, result_set,
 				   &out->attrs.attrs_val,
 				   &out->attrs.attrs_len);
-	g_array_free(result_set, TRUE);
+
+	if (result_set)
+		g_array_free(result_set, TRUE);
 
 	(*cstate->lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
 
@@ -590,7 +592,7 @@ static const struct rpc_client_content_server_operations ops = {
 	.device_clear_gids = device_clear_gids,
 	.device_new_gid = device_new_gid,
 	.device_set_spec = device_set_spec,
-	.device_set_thumbnail_attrs = device_set_thumbnail_attrs,
+	.device_set_push_attrs = device_set_push_attrs,
 	.device_reexecute_filters = device_reexecute_filters,
 	.device_write_leaf = device_write_leaf,
 	.device_read_leaf = device_read_leaf,

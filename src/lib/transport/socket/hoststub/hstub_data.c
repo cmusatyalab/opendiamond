@@ -101,6 +101,7 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 		odisk_release_obj(obj);
 	} else {
 		/* XXX put it into the object ring */
+		obj->dev_cookie = dev;
 		err = ring_enq(dev->obj_ring, obj);
 		assert(err == 0);
 		cinfo->flags |= CINFO_PENDING_CREDIT;

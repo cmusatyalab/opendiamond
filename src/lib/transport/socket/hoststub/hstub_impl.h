@@ -65,7 +65,7 @@ typedef struct sdevice_state {
 	void *			dctl_cookie;
 	void *			log_cookie;
 	hstub_cb_args_t		cb;
-	int			thumbnails;	/* defined thumbnail attr set */
+	int			thumbnails;	/* defined push/thumbnail set */
 } sdevice_state_t;
 
 /*

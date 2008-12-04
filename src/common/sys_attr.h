@@ -27,7 +27,7 @@
 #define	MTIME		"SYS_MTIME"
 #define	CTIME		"SYS_CTIME"
 
-#define OBJ_ID		"ObjectID"
+#define OBJ_ID		"_ObjectID"
 #define OBJ_DATA	""
 
 #define DISPLAY_NAME    "Display-Name"

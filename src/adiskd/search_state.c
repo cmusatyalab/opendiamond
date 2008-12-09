@@ -62,6 +62,8 @@
 
 static void    *update_bypass(void *arg);
 
+pthread_mutex_t object_eval_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /*
  * XXX other place 
  */
@@ -720,7 +722,7 @@ device_main(void *arg)
 	init_good_objs(&gobj);
 
 	log_message(LOGT_DISK, LOGL_DEBUG, "adiskd: device_main: 0x%x", arg);
-	
+
 	/*
 	 * XXX need to open comm channel with device
 	 */
@@ -735,6 +737,10 @@ device_main(void *arg)
 
 		if (sstate->pend_compute >= sstate->pend_max) {
 		}
+
+		/* odisk_load_obj & ceval_filters2 cannot be run
+		 * concurrently */
+		pthread_mutex_lock(&object_eval_mutex);
 
 		/*
 		 * XXX look for data from device to process.
@@ -810,6 +816,7 @@ device_main(void *arg)
 				/*
 				 * sleep(1); 
 				 */
+				pthread_mutex_unlock(&object_eval_mutex);
 				continue;
 			} else {
 				any = 1;
@@ -899,6 +906,8 @@ device_main(void *arg)
 		} else {
 			sstate->tx_full_stalls++;
 		}
+
+		pthread_mutex_unlock(&object_eval_mutex);
 
 		/*
 		 * intra-search background processing - 
@@ -1646,29 +1655,34 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 
 	/* reexecute filters */
 	log_message(LOGT_DISK, LOGL_TRACE, "search_reexecute_filters");
+	fprintf(stderr, "reexecuting filters\n");
+
+	/* odisk_load_obj & ceval_filters2 cannot be run concurrently from
+	 * different threads */
+	pthread_mutex_lock(&object_eval_mutex);
 
 	/* need a better obj_id -> obj_name mapping so that client can't just
 	 * reexecute filters against any arbitrary object on the server,
 	 * however the filter code that was sent by the client can already do
 	 * that anyways */
 	err = odisk_load_obj(sstate->ostate, &obj, obj_id);
-	if (err) return NULL;
+	if (!err)  {
+		//sstate->obj_reexecution_processed++;
 
-	sstate->obj_processed++;
-	//sstate->obj_re_processed++;
+		pass = ceval_filters2(obj, sstate->fdata, 1, NULL,
+				      sstate->exec_mode, NULL, NULL, NULL);
 
-	pass = ceval_filters2(obj, sstate->fdata, 1, NULL, sstate->exec_mode,
-			      NULL, NULL, NULL);
-
-	if (pass == 0) {
-		sstate->obj_dropped++;
-		//sstate->obj_re_dropped++;
-		odisk_release_obj(obj);
-		obj = NULL;
-	} else {
-		sstate->obj_passed++;
-		//sstate->obj_re_passed++;
+		if (pass == 0) {
+			//sstate->obj_reexecution_dropped++;
+			search_free_obj(sstate, obj);
+			obj = NULL;
+		} else  {
+			sstate->pend_objs++;
+			obj->remain_compute = 0.0;
+		}
 	}
+
+	pthread_mutex_unlock(&object_eval_mutex);
 
 	return obj;
 }

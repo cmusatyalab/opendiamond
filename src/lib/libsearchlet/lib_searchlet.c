@@ -1349,7 +1349,7 @@ int ls_get_objectid(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
 	int err;
 
 	for (cur_dev = sc->dev_list; cur_dev; cur_dev = cur_dev->next)
-		if (cur_dev->dev_handle == obj->dev_cookie)
+		if ((intptr_t)cur_dev->dev_handle == obj->dev_cookie)
 			break;
 
 	/* no matching device found, is this an invalid object handle? */
@@ -1359,7 +1359,7 @@ int ls_get_objectid(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
 	if (err) return EINVAL;
 
 	result = malloc(2 + (sizeof(void *) * 2) + 1 + len + 1);
-	if (result) sprintf(result, "%p %s", obj->dev_cookie, obj_id);
+	if (result) sprintf(result, "%#x %s", obj->dev_cookie, obj_id);
 
 	*objectid = result;
 
@@ -1372,15 +1372,15 @@ int ls_reexecute_filters(ls_search_handle_t handle, const char *objectid,
 	search_context_t *sc = (search_context_t *)handle;
 	device_handle_t *cur_dev;
 	obj_data_t *obj;
-	void *dev_cookie;
+	intptr_t dev_cookie;
 	char *obj_id;
 
-	dev_cookie = (void *)strtol(objectid, &obj_id, 16);
+	dev_cookie = strtol(objectid, &obj_id, 16);
 	if (*obj_id != ' ') return EINVAL;
 	obj_id++;
 
 	for (cur_dev = sc->dev_list; cur_dev; cur_dev = cur_dev->next)
-		if (cur_dev->dev_handle == dev_cookie)
+		if ((intptr_t)cur_dev->dev_handle == dev_cookie)
 			break;
 
 	/* no matching device found, is this an invalid object handle? */
@@ -1391,7 +1391,7 @@ int ls_reexecute_filters(ls_search_handle_t handle, const char *objectid,
 		return ENOTCONN;
 
 	obj = odisk_null_obj();
-	obj_write_attr(&obj->attr_info, OBJ_ID, strlen(obj_id)+1,
+	obj_write_attr(&obj->attr_info, OBJ_ID, strlen(obj_id) + 1,
 		       (unsigned char *)obj_id);
 	obj->dev_cookie = dev_cookie;
 

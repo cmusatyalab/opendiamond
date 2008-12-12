@@ -322,13 +322,13 @@ device_set_push_attrs(void *handle, const char **attrs)
 	dev = (sdevice_state_t *) handle;
 
 	/* count nr. of attribute names */
-	while (attrs[n] != NULL) n++;
+	while (attrs && attrs[n] != NULL) n++;
 
 	req.attrs.attrs_len = n;
 	req.attrs.attrs_val = malloc(n * sizeof(attr_name_x));
 	if (req.attrs.attrs_val == NULL)
 		return -1;
-	for (n = 0; attrs[n] != NULL; n++)
+	for (n = 0; attrs && attrs[n] != NULL; n++)
 		req.attrs.attrs_val[n] = (char *)attrs[n];
 
 	retval = rpc_client_content_device_set_push_attrs

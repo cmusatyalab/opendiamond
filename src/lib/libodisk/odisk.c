@@ -860,6 +860,7 @@ odisk_null_obj(void)
 	assert(new_obj != NULL);
 
 	new_obj->ref_count = 1;
+	new_obj->cur_blocksize = 1024;
 	pthread_mutex_init(&new_obj->mutex, NULL);
 
 	return (new_obj);

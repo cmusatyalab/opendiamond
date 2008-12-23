@@ -1,9 +1,10 @@
-<!--  $Id:$  
+<!--
 /*
  *  The OpenDiamond Platform for Interactive Search
  *  Version 4
  *
  *  Copyright (c) 2007 Intel Corporation
+ *  Copyright (c) 2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -12,33 +13,51 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 -->
+<?php
+    $stylesheet = $G['WEBROOT'] . "/css/gatekeeper_main.css";
+    $favicon = $G['WEBROOT'] . "/images/favicon.ico";
+?>
+<html><head><title><?php echo $G['PAGE_TITLE'] ?></title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" href="<?php echo $stylesheet ?>" />
+<link rel="shortcut icon" href="<?php echo $favicon ?>" />
+<script type="text/javascript">
+function toggle(elem) {
+    while (elem && elem.tagName != 'DD') { elem = elem.nextSibling; }
+    if (!elem) { return; }
+    if (elem.style.display != 'none') { elem.style.display = 'none'; }
+    else { elem.style.display = 'block'; }
+}
+function collapseDLs() {
+    if (!document.getElementsByTagName) { return; }
+    var dls = document.getElementsByTagName('DL');
+    for (var i = 0; i < dls.length; i++) {
+	if (dls[i].className == 'collapse') {
+	    var dts = dls[i].getElementsByTagName('DT');
+	    for (var j = 0; j < dts.length; j++) {
+		dts[j].onclick = new Function('toggle(this); return false;');
+		toggle(dts[j]);
+	    }
+	}
+    }
+}
+window.onload = function () { collapseDLs(); }
+</script>
+</head><body>
 
-
-<?php echo $header;?>
 <?php $logo = $G['IMAGE_LIB'] ."/". $G['LOGO_MAIN']; ?>
 
-<table width=100%>
-    <tr>
-        <td class=header>
-            <div class=center>
-            <img src="<?php echo $logo ?>">
-            </div>
-        </td>
-    </tr>
-</table>
-<table class=gatekeeper border=0>
-    <tr>
-        <td class="tdleft">
-            <?php include ($left_menu); ?>
-        </td>
+<h1>OpenDiamond Gatekeeper</h1>
 
-        <td class="gatekeeper">
-            <div class=center>
-            <?php include ($main_content); ?>
-            </div>
-        </td>
-    </tr>
-</table>
-</html>
+<div id="nav">
+<?php include ($left_menu); ?>
+</div>
 
-<?php echo $footer;?>
+<div id="main">
+<?php include ($main_content); ?>
+</div>
+
+<div id="footer">
+<a href="http://diamond.cs.cmu.edu/">OpenDiamond</a>
+</div></body></html>
+

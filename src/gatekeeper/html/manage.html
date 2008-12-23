@@ -1,0 +1,70 @@
+<!--
+/*
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 3
+ *
+ *  Copyright (c) 2007 Intel Corporation
+ *  All rights reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+-->
+<?php
+    $form_url = $G['WEBROOT'] . "/index.php?action=manage";
+    $all_users = $a->list_users();
+    $all_collections = array_keys($a->get_collections());
+    sort($all_users);
+    sort($all_collections);
+?>
+<form action="<?php echo $form_url; ?>" method="POST">
+<input type="submit" value="Update" />
+<select name="username" onchange="updateCollections(this.value);">
+<option value=""<?php if (!$username) { echo " selected"; } ?>>New user</option>
+<?php
+    foreach ($all_users as $user) {
+	echo "<option";
+	if ($username == $user) {
+	    echo " selected";
+	}
+	print ">$user</option>\n";
+    }
+?>
+</select>
+<input type="text" name="username" />
+<ul>
+<?php foreach ($all_collections as $coll) { ?>
+    <li><input type="checkbox" name="coll[]" value="<?php echo $coll; ?>" />
+    <?php echo $coll; ?></li>
+<?php } ?>
+</ul>
+</form>
+<script type="text/javascript">
+var membership = {
+<?php
+    foreach ($all_users as $user) {
+	print "\"$user\":{";
+	$collections = $a->member_of($user);
+	foreach ($collections as $coll) {
+	    print "\"$coll\":1,";
+	}
+	print "},\n";
+    }
+?>
+};
+function updateCollections(username) {
+    var ismemberof = membership[username] || {};
+    var inputs = document.getElementsByTagName('INPUT');
+    for (var i = 0; i < inputs.length; i++) {
+	if (inputs[i].type == "text") {
+	    inputs[i].disabled = (username != "");
+	}
+	if (inputs[i].type == "checkbox") {
+	    inputs[i].checked = ismemberof[inputs[i].value];
+	}
+    }
+}
+<?php if ($username) { print "updateCollections(\"$username\");"; } ?>
+</script>

@@ -1,5 +1,4 @@
 /*
-/*
  *  The OpenDiamond Platform for Interactive Search
  *  Version 4
  *
@@ -12,12 +11,8 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
-/*
- *  $Id:$  
- */
-
 /*  Setup defaults for page  */
-body,table,tr,td {
+body {
     font-family : "lucida sans unicode", verdana, arial, sans-serif;
     font-size : 12pt;
     padding : 0;
@@ -39,83 +34,50 @@ img {
     text-align : center;
 }
 
-
-table.logbox {
-    width : 50%;
-    text-align : center;
-    border : solid #F6DDC4;
+h1 {
+    text-align: center;
 }
- 
-table.logbox td {
-    background-color : #FAF0E6;
-    -moz-border-radius: 6px 6px 6px 6px;
-
+#nav {
+    float: left;
+    width: 160px;
+    border-top: solid 2px gray;
+    text-align: center;
 }
-
-td.tdcenter {
-    text-align : center;
+#nav a {
+    padding: .5em;
+    border-bottom: solid 2px gray;
+    display: block;
 }
-
-td.tdleft {
-    text-align : left;
-    vertical-align : top;
-    width : 25%;
+a.selected {
+    font-weight: bold;
 }
-td.tdmain{
-    text-align : left;
-    vertical-align : top;
-    padding : 10px 10px 10px 10px;
-    width : 75%;
+#main {
+    margin-left: 160px;
+    padding: .5em;
+    border: medium double gray;
 }
-
-td.footer {
-    width : 50%;
-    text-align : center;
+ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
 }
-
-td.header {
-    width : 100%;
-    text-align : center;
-    /* border : medium double blue; */
+dl.collapse {
+    border: solid 1px #ddd;
+    margin: 0;
 }
-
-td.tdright {
-    text-align : right;
+.collapse dt {
+    background-color: #f0f0f0;
+    border-top: solid 1px #ddd;
+    border-bottom: solid 1px #ddd;
+    padding: 3px;
 }
-
-div.xxlarge {
-    font-size : xx-large;
+input[type=submit] {
+    float: right;
 }
-
-div.large {
-    font-size : large;
+#footer {
+    text-align: center;
+}
+#footer a {
+    padding: .5em;
 }
 
-div.center {
-    text-align : center;
-}
-
-table.gatekeeper{
-    width : 100%;
-    text-align : center;
-    /* border : medium double blue; */
-}
-
-td.gatekeeper{
-    text-align : center;
-}
-
-table.add_user {
-    border : medium double grey;
-    text-align : center;
-    vertical-align : center;
-    width : 400px;
-}
-table.scope {
-    width : 40%;
-    text-align : center;
-    border : medium double grey;
-}
-td.scope {
-    border-bottom : medium double blue;
-}

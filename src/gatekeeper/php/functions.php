@@ -1,7 +1,7 @@
 <?
 /*
  *  The OpenDiamond Platform for Interactive Search
- *  Version 4
+ *  Version 3
  *
  *  Copyright (c) 2007 Intel Corporation
  *  All rights reserved.
@@ -18,66 +18,66 @@ class admin {
     var $acl_file;
 
     function admin ($G) {
-        $this->db_dir = $G['ABSROOT'] . "/" . $G['DB_DIR'];
-        $this->acl_file = $G['ABSROOT'] . "/" . $G['ACL_FILE'];
-        $this->auth_method = $G['AUTH_METHOD'];
-        $this->auth_file = $G['AUTH_FILE'];
+	$this->db_dir = $G['ABSROOT'] . "/" . $G['DB_DIR'];
+	$this->acl_file = $G['ABSROOT'] . "/" . $G['ACL_FILE'];
+	$this->auth_method = $G['AUTH_METHOD'];
+	$this->auth_file = $G['AUTH_FILE'];
     }
- 
-    /**  
+
+    /**
      *  authenticate
      *  @param username  Username that is being checked
      *  return 1 on success, 0 on fail
      */
     function is_admin($username) {
-        if ($this->auth_method = "htaccess") {
-            $auth_array = file ($this->auth_file);
-        }
-        if ($this->auth_method = "webiso") {
-            $auth_array = file ($this->auth_file);
-        }
+	if ($this->auth_method = "htaccess") {
+	    $auth_array = file ($this->auth_file);
+	}
+	if ($this->auth_method = "webiso") {
+	    $auth_array = file ($this->auth_file);
+	}
 
-        #if (in_array($username, $auth_array)) {
-        $isauth = 0;
-        for ($i = 0; $i < count($auth_array); $i++) {
-            if (trim($username) == trim($auth_array[$i])) {
-                $isauth = 1;
-                break;
-            }
-        }
-        return $isauth;
+	#if (in_array($username, $auth_array)) {
+	$isauth = 0;
+	for ($i = 0; $i < count($auth_array); $i++) {
+	    if (trim($username) == trim($auth_array[$i])) {
+		$isauth = 1;
+		break;
+	    }
+	}
+	return $isauth;
     }
 
-    /**  
+    /**
      *  Get the list of collections
      *  @return list of collection array
      */
     function get_collections () {
-        $dir_handle = opendir($this->db_dir);
-        $collections = array();
+	$dir_handle = opendir($this->db_dir);
+	$collections = array();
 
-        $dirents = $this->list_dir($dir_handle);        
-        foreach ($dirents as $entry) {
-            $query = "select distinct collection from metadata;";
+	$dirents = $this->list_dir($dir_handle);
+	foreach ($dirents as $entry) {
+	    $query = "select distinct collection from metadata;";
 
-            $db_file = $this->db_dir . '/' . $entry;
-            $db_handle =  sqlite3_open($db_file);
-            $query_handle = sqlite3_query($db_handle, $query);
-            if($query_handle == FALSE) {
+	    $db_file = $this->db_dir . '/' . $entry;
+	    $db_handle =  sqlite3_open($db_file);
+	    $query_handle = sqlite3_query($db_handle, $query);
+	    if($query_handle == FALSE) {
 		echo "sqlite3 error opening $db_file: " . sqlite3_error($db_handle);
-                echo "<br />";
-                sqlite3_close($db_handle);
-                continue;
-            }
+		echo "<br />";
+		sqlite3_close($db_handle);
+		continue;
+	    }
 
-            while($row = sqlite3_fetch_array($query_handle)) {
+	    while($row = sqlite3_fetch_array($query_handle)) {
 		$keys = array_keys($row);
 		$coll = $row['collection'];
 		$collections[$coll] = $db_file;
-            }
-        }
+	    }
+	}
 
-        return $collections;
+	return $collections;
     }
 
 
@@ -111,214 +111,111 @@ class admin {
 
       $result = "";
       while($myarray = sqlite3_fetch_array ($query_handle)) {
-        $result .= $myarray['server'] . " ";
+	  $result .= $myarray['server'] . " ";
       }
 
       return $result;
     }
 
 
-    /**  
-     *  Add a user
-     *  @param  username to add
-     *  @param  collection 
-     *  @return 
+    /**
+     *  Read ACL file
+     *  @return array with key=users and value=array of collections
      */
-    function add_user ($username, $collection) {
-        $acl_file = file($this->acl_file);
-        $cur_array = array();
-        //  Read acl file and put in cur_array
-        for ($i = 0; $i < count($acl_file); $i++) {
-            $val = explode ("|", $acl_file[$i]);
-            $c = $val[0];
-            $names = trim ($val[1]);
+    function read_acl_file () {
+	$acl_file = file($this->acl_file);
 
-            if ($names != "") {
-                $cur_array[$c] = $names;
-            }
-        }
-        foreach($collection as $col) {
-            if (!(array_key_exists($col, $cur_array))) {
-                $cur_array[$col] = $username;
-            } else {
-                $cur_array[$col] = $cur_array[$col] . "," . $username;
-            }
-        }
-        //  If there is a new db added 
-        //  Write the file out
-        $contents = "";
-        foreach($cur_array as $col => $users) {
-            $vals = explode (",", $users);
-            $new_vals = array_unique($vals);
-            $contents .= $col . "|";
-            for ($i = 0; $i < count($new_vals); $i++) {
-                $contents .= $new_vals[$i];
-                if ($i < count($new_vals)-1) {
-                    $contents .= ",";
-                }
-            }
-            $contents .= "\n";
-        }
-        file_put_contents($this->acl_file, $contents);
+	//  Read acl file and populate users array
+	$users = array();
+	for ($i = 0; $i < count($acl_file); $i++) {
+	    $val = explode ("|", $acl_file[$i]);
+	    $collection = $val[0];
+	    $names = trim($val[1]);
+	    if ($names) {
+		$names = explode (",", $names);
+		foreach($names as $user) {
+		    if (!array_key_exists($user, $users)) {
+			$users[$user] = array();
+		    }
+		    $users[$user][] = $collection;
+		}
+	    }
+	}
+	return $users;
     }
+
+
+    /**
+     *  Write ACL file
+     *  @param array with key=users and value=array of collections
+     */
+    function write_acl_file($users) {
+	/* map collections-by-user to users-by-collection */
+	$collections = array();
+	foreach ($users as $user => $cols) {
+	    foreach ($cols as $col) {
+		if (!array_key_exists($col, $collections)) {
+		    $collections[$col] = array();
+		}
+		$collections[$col][] = $user;
+	    }
+	}
+	/*  Write the file out */
+	$contents = "";
+	foreach($collections as $col => $users) {
+	    $users = array_unique($users);
+	    $contents .= $col . '|' . implode(",", $users) . "\n";
+	}
+	file_put_contents($this->acl_file, $contents);
+    }
+
+    /**
+     *  Manage which collections a user can see
+     *  @param username
+     *  @param list of collections
+     *  @return
+     */
+    function manage_user ($user, $collections) {
+	$users = $this->read_acl_file();
+
+	/* replace the set of collections for the specified user */
+	if (!$collections) $collections = array();
+	$users[$user] = $collections;
+
+	$this->write_acl_file($users);
+    }
+
 
     /**
      *  list_users
      *  @return array with users
      */
     function list_users () {
-        $acl_file = file($this->acl_file);
-        $all_users = array();
-        for ($i = 0; $i < count($acl_file); $i++) {
-            $val = explode ("|", $acl_file[$i]);
-            $collection = $val[0];
-            $names = trim ($val[1]);
-            $names_array = explode (",", $names);
-            foreach($names_array as $key => $value) {
-                array_push ($all_users, $value);
-            }
-             
-        }
-        return array_unique($all_users);
-    }
-    /**
-     *  delete_users
-     *  @param username
-     *  @param collection Optional.  If specified, it only deletes a user from 
-     *  a single collection
-     */
-    function delete_user ($username, $collection=NULL) {
-        $cur_array = array();
-        $acl_file = file($this->acl_file);
-        for ($i = 0; $i < count($acl_file); $i++) {
-            $val = explode ("|", $acl_file[$i]);
-            $c = $val[0];
-            $names = trim ($val[1]);
-
-            if ($names != "") {
-                $cur_array[$c] = $names;
-            }
-        }
-
-        if ($collection != NULL) {
-            $val = explode (",", $cur_array[$collection]);
-            $tmp = "";
-            foreach($val as $user) {
-                if ($user != $username) {
-                    $tmp .= $user . " ";
-                }
-            }
-            $newval = ereg_replace(" ", ",", trim($tmp));
-            $cur_array[$collection] = $newval;
-        }
-
-
-        $new_array = array();
-        foreach($cur_array as $col => $users) {
-            $val = explode (",", $users);
-            for ($i = 0; $i < count($val); $i++) {
-                if ($collection == NULL) {
-                    if ($username != $val[$i]){
-                        $new_array[$col][$i] = $val[$i];
-                    }
-                }else {
-                    $new_array[$col][$i] = $val[$i];
-                }
-            }
-        }
-        file_put_contents($this->acl_file, $this->generate_acl($new_array));
+	$users = $this->read_acl_file();
+	return array_keys($users);
     }
 
-    /**
-     *  delete_user_from_collection
-     *  @param username
-     *  @param collection name 
-     */
-    function delete_user_from_collection ($username, $collection) {
-        $cur_array = array();
-        $acl_file = file($this->acl_file);
-        for ($i = 0; $i < count($acl_file); $i++) {
-            $val = explode ("|", $acl_file[$i]);
-            $c = $val[0];
-            $names = trim ($val[1]);
 
-            if ($names != "") {
-                $cur_array[$c] = $names;
-            }
-        }
-        $val = explode (",", $cur_array[$collection]);
-        $tmp = "";
-        foreach($val as $user) {
-            if ($user != $username) {
-                $tmp .= $user . " ";
-            }
-        }
-        $newval = ereg_replace(" ", ",", trim($tmp));
-        $cur_array[$collection] = $newval;
-
-        //  Do this so I can call my function
-        $new_array = array();
-        foreach($cur_array as $col => $users) {
-            $val = explode (",", $users);
-            for ($i = 0; $i < count($val); $i++) {
-                $new_array[$col][$i] = $val[$i];
-            }
-        }
-        file_put_contents($this->acl_file, $this->generate_acl($new_array));
-
-        
-        
-
-    } 
     /**
      *  is_member
      *  @param username
      *  @return 0/1
-     */ 
+     */
     function is_member ($username, $collection) {
+	$users = $this->read_acl_file();
+	return in_array($collection, $users[$username]);
     }
 
-    /**
-     *  generate_acl
-     *  @param 2D array 
-     *  [collection] => Array ([0] => username); 
-     *  @return content string to be written
-     */
-    function generate_acl($my_array) {
-        $content = "";
-        foreach($my_array as $col => $users) {
-            $content .= $col . "|";
-            $i = 0;
-            foreach($users as $name) {
-                $content .= $name;
-                if ($i < count($users)-1) {
-                    $content .= ",";
-                }
-                $i++;
-            }
-            $content .= "\n";
-        }
-        return $content;
-    }
 
     /**
      *  member_of
      *  Check to see if a user is a member of a collection
      *  @username  username
-     *  @return array of collections user is a member of 
+     *  @return array of collections user is a member of
      */
     function member_of ($username) {
-        $member = array();
-        $acl_file = file($this->acl_file);
-        for ($i = 0; $i < count($acl_file); $i++) {
-            $val = explode ("|", $acl_file[$i]);
-            $collection = $val[0];
-            $names = trim ($val[1]);
-            if (strstr($names, $username)) {
-                array_push ($member, $collection);
-            }
-        }
-        return $member;
+	$users = $this->read_acl_file();
+	return $users[$username];
     }
 
     /**
@@ -328,15 +225,15 @@ class admin {
      */
     function list_dir ($handle)
     {
-        $contents = array();
-        $x = 0;
-        while (false !== ($filez = readdir($handle))) {
-           if ($filez!= "." && $filez!= ".."
-               && ereg (".*\.[Dd][Bb]$", $filez)) {
-                array_push ($contents , $filez);
-            }
-        }
-        return $contents;
+	$contents = array();
+	$x = 0;
+	while (false !== ($filez = readdir($handle))) {
+	    if ($filez!= "." && $filez!= ".."
+		&& ereg (".*\.[Dd][Bb]$", $filez)) {
+		array_push ($contents , $filez);
+	    }
+	}
+	return $contents;
     }
 
 }

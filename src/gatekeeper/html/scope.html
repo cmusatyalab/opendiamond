@@ -1,10 +1,10 @@
-<!--  $Id:$
+<!--
 /*
  *  The OpenDiamond Platform for Interactive Search
  *  Version 4
  *
  *  Copyright (c) 2007 Intel Corporation
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007,2008 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -13,49 +13,23 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 -->
-
-<html>
-<center>
-<form action="index.php?action=define_scope" method="POST"> 
-<table border=0 class=scope>
-    <tr>
-        <td colspan=2>
-             Define Scope
-        </td>
-    </tr>
-    <tr>
-        <td>
-            User 
-        </td>
-        <td>
-            Collection
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <?php print "$me"; ?><br>
-        </td>
-        <td align=right>
-
-            <?php 
-                $col_list = $a->member_of($me);
-                $i = 0;
-                foreach ($col_list as $col) { 
-                    print "$col";
-                    print "<input type=\"checkbox\" name=\"scope[$i]\" value=\"$col\"><br>";
-                    $i++;
-                }
-            ?>
-        </td>
-    </tr>
-    <tr>
-        <td colspan=2>
-            <center>
-            <input type=submit value="Define Scope">
-            </center>
-        </td>
-    </tr>
-</table>
-</center>
+<?php
+    $form_url = $G['WEBROOT'] . "/index.php?action=define_scope";
+    $col_list = $a->member_of($me);
+    sort($col_list);
+?>
+<form action="<?php echo $form_url; ?>" method="POST">
+<input type="submit" value="Define Scope">
+<!-- dl class="collapse">
+<dt>Collections</dt>
+<dd -->
+<ul>
+<?php foreach ($col_list as $coll) { ?>
+    <li><input type="checkbox" name="coll[]" value="<?php echo $coll; ?>" />
+    <?php echo $coll; ?></li>
+<?php } ?>
+</ul>
+<!-- /dd>
+</dl -->
 </form>
-</html>
+

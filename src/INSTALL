@@ -8,6 +8,10 @@ Notes
 -- OpenDiamond does NOT work with the latest version of gcc. Downgrade gcc until you stop getting "can't compile with both -static and -shared".
 -- adiskd can't find data -> check the number of zeros in GIDIDX0000...000...
 
+Dependencies
+-------------------
+
+    automake autoconf flex openssl glib2.0 sqlite3 minirpc curl
 
 Building the system
 -------------------

@@ -1,26 +1,67 @@
 #!/usr/bin/python
 
 import sys, os, socket
-from hashlib import sha1
-from itertools import cycle
+from optparse import OptionParser
+from subprocess import Popen, PIPE, STDOUT
+import zlib
 
-servers=sys.argv[3:]
+# tiara.diamond doesn't have hashlib
+#from hashlib import sha1
+import sha
+sha1 = sha.sha
+
+# tiara.diamond has the older pysqlite-1.1.7
+# to convert to the new api change sqlite to sqlite3 and replace the %s in
+# the INSERT queries with ?
+import sqlite
+
+usage = "usage: %prog [options] servers+"
+parser = OptionParser(usage=usage, description="""
+    Volcano is a tool used to distribute a collections of objects across a
+    group of servers. The objects are copied with sftp the decision where to
+    place each object is based on the content hash which makes the process
+    repeatable.
+""")
+parser.add_option("-v", "--verbose",
+		  action="store_true", dest="verbose", default=False,
+		  help="print more detailed status messages to stdout")
+parser.add_option("-p", "--path",
+		  action="append", dest="path",
+		  help="include objects found below this directory (required, may be specified multiple times)")
+parser.add_option("-c", "--collection",
+		  action="store", dest="collection",
+		  help="specify collection name, defaults to the name of the first path")
+parser.add_option("-s", "--simple",
+		  action="store_false", dest="use_sha1", default=True,
+		  help="distribute based on the adler32 hash instead of sha1")
+(options, servers) = parser.parse_args()
+
+if not options.path:
+  parser.error("no object source path specified")
+
+if len(servers) == 0:
+  parser.error("no servers specified")
+
 nservers = len(servers)
-if not servers:
-  print "Usage: volcano <collection> <path> <servers>+"
-  sys.exit(1)
-
-collection = sys.argv[1]
-path = os.path.abspath(sys.argv[2])
+if not options.collection:
+    options.collection = os.path.basename(options.path[0])
 
 USER="diamond"
-GID="%s" % sha1(collection).hexdigest()[:16].upper()
+GID="%s" % sha1(options.collection).hexdigest()[:16].upper()
+diamond_gid = ':'.join(map(lambda x,y:x+y, GID[0::2], GID[1::2]))
+
+provdb = sqlite.connect('provenance-%s.db' % options.collection)
+provcur = provdb.cursor()
+provcur.execute("""CREATE TABLE IF NOT EXISTS objects
+		(groupid TEXT, server TEXT, oldpath TEXT, newpath TEXT)""")
+provcur.execute("""CREATE TABLE IF NOT EXISTS collections
+		(collection TEXT, groupid TEXT, localhost TEXT,
+		 uid INTEGER, time TEXT, server TEXT)""")
 
 #
 # Wrapper around sftp, probably could be in it's own file.
 #
-from subprocess import Popen, PIPE, STDOUT
-SFTPCMD = "/usr/bin/sftp"
+SFTPCMD = "sftp"
 class SFTPError(Exception):
     def __init__(self, server):
 	self.server = server
@@ -51,8 +92,8 @@ class SFTP(Popen):
 	return self
 
     def __log(self, msg):
-	#print "%s: %s" % (self.server, msg)
-	pass
+	if options.verbose:
+	    print "%s: %s" % (self.server, msg)
 
     def cd(self, rpath, **kwargs):
 	self.__log("Changing directory to %s" % rpath)
@@ -128,6 +169,8 @@ class Server(SFTP):
 	self.mkpath(os.path.dirname(remote_path))
 	self.put(local_path, remote_path)
 	self.m.write(remote_path + '\n')
+	provcur.execute("""INSERT INTO objects VALUES (%s, %s, %s, %s)""",
+			diamond_gid, self.server, local_path, remote_path)
 
     def close(self):
 	self.m.close()
@@ -148,39 +191,76 @@ def sha1sum(path):
     f.close()
     return hash
 
+def adler32(path):
+    crc = 0
+    f = open(path, 'rb')
+    while 1:
+	block = f.read(32768)
+	if not block: break
+	crc = zlib.adler32(block, crc)
+    f.close()
+    return crc & 0xffffffff
+
 print "Counting number of files to send"
 total = 0
-for root, dirs, files in os.walk(path):
-    total += len(files)
+for path in options.path:
+    path = os.path.abspath(path)
+    for root, dirs, files in os.walk(path):
+	total += len(files)
 
 # and push all files
 count = 0
 print "Starting file transfers"
-for root, dirs, files in os.walk(path):
-    for file in files:
-	lpath = os.path.join(root, file)
+for path in options.path:
+    path = os.path.abspath(path)
+    for root, dirs, files in os.walk(path):
+	for file in files:
+	    lpath = os.path.join(root, file)
 
-	hash = sha1sum(lpath)
-	idx = ord(hash.digest()[0])
-	file, ext = os.path.splitext(lpath)
-	rpath = "%s/%02x/%s%s" % (collection, idx, hash.hexdigest(), ext)
+	    if options.use_sha1:
+		hash = sha1sum(lpath)
+		sha1 = hash.hexdigest()
+		idx = ord(hash.digest()[0])
+		file, ext = os.path.splitext(file)
+		rpath = "%s/%02x/%s%s" % (options.collection, idx, sha1, ext)
+	    else:
+		sha1 = ''
+		idx = adler32(lpath)
+		file, ext = os.path.splitext(file)
+		rpath = "%s/%s%s" % (options.collection, file, ext)
 
-	conns[idx % nservers].add(lpath, rpath)
-	count += 1
-	if count % 10 == 0:
-	    cnt = "[%d/%d]" % (count, total)
-	    n = 75 - len(cnt)
-	    x = (n * count) / total
-	    print "\r%s |%s>%s|" % (cnt, '='*x, ' '*(n-x)),
+	    # skip empty files
+	    if sha1 != 'da39a3ee5e6b4b0d3255bfef95601890afd80709':
+		conns[idx % nservers].add(lpath, rpath)
+
+	    count += 1
+	    if count % 10 == 0:
+		cnt = "[%d/%d]" % (count, total)
+		n = 75 - len(cnt)
+		x = (n * count) / total
+		print "\r%s |%s>%s|" % (cnt, '='*x, ' '*(n-x)),
 print
 
-diamond_gid = ':'.join(map(lambda x,y:x+y, GID[0::2], GID[1::2]))
-print "[name_map]"
-print collection, diamond_gid
-print
-print "[gid_map]"
-print diamond_gid,
+metadb = sqlite.connect('metadata-%s.db' % options.collection)
+metacur = metadb.cursor()
+metacur.execute("""CREATE TABLE IF NOT EXISTS metadata
+		(collection TEXT, groupid TEXT, server TEXT)""")
+
+import socket, os, time
+localhost = socket.gethostname()
+uid = os.getuid()
+timep = time.ctime()
+
 for conn in conns:
-    print conn.server,
+    metacur.execute("""INSERT INTO metadata VALUES (%s, %s, %s)""",
+		    options.collection, diamond_gid, conn.server)
+    provcur.execute("""INSERT INTO collections VALUES (%s, %s, %s, %s, %s, %s)""",
+		    options.collection, diamond_gid, localhost, uid, timep,
+		    conn.server)
     conn.close()
+
+metadb.commit()
+metadb.close()
+provdb.commit()
+provdb.close()
 

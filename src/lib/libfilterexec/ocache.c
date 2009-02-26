@@ -227,18 +227,16 @@ cache_setup(const char *dir)
 "    cache_entry INTEGER NOT NULL,"
 "    name	 TEXT NOT NULL,"
 "    sig	 BLOB NOT NULL,"
-"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
+"    PRIMARY KEY (cache_entry, name)"
 ");"
 ""
 "CREATE TABLE IF NOT EXISTS output_attrs ("
 "    cache_entry INTEGER NOT NULL,"
 "    name	 TEXT NOT NULL,"
 "    sig	 BLOB NOT NULL,"
-"    PRIMARY KEY (cache_entry, name) ON CONFLICT REPLACE"
+"    PRIMARY KEY (cache_entry, name)"
 ");"
 ""
-/* We used to have ON CONFLICT IGNORE defined here, but we still got constraint
- * violation errors, so now we use INSERT OR IGNORE in cache_add_end */
 "CREATE TABLE IF NOT EXISTS oattr.attrs ("
 "    name	TEXT NOT NULL,"
 "    sig	BLOB NOT NULL,"
@@ -281,11 +279,11 @@ cache_setup(const char *dir)
 "    sig	BLOB NOT NULL"
 ");"
 "CREATE TEMP TABLE temp_iattrs ("
-"    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+"    name	TEXT PRIMARY KEY NOT NULL,"
 "    sig	BLOB NOT NULL"
 ");"
 "CREATE TEMP TABLE temp_oattrs ("
-"    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+"    name	TEXT PRIMARY KEY NOT NULL,"
 "    sig	BLOB NOT NULL,"
 "    length	INTEGER"
 ");", NULL, NULL, &errmsg);
@@ -444,7 +442,7 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 	while (ret != ENOENT) {
 		if (rc == SQLITE_OK) {
 			rc = sql_query(NULL, ocache_DB,
-			       "INSERT INTO output_attrs (cache_entry,name,sig)"
+		    "INSERT OR REPLACE INTO output_attrs (cache_entry,name,sig)"
 			       "  VALUES (?1, ?2, ?3);", "DSB",
 			       rowid, attr_name, attr_sig, sizeof(sig_val_t));
 		}
@@ -473,7 +471,7 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 
 	sql_query(NULL, ocache_DB, "DELETE FROM current_attrs;", NULL);
 	sql_query(NULL, ocache_DB,
-		  "INSERT INTO current_attrs (name, sig)"
+		  "INSERT OR REPLACE INTO current_attrs (name, sig)"
 		  " SELECT name, sig FROM cache JOIN output_attrs"
 		  " USING(cache_entry)"
 		  " WHERE object_sig = ?1 AND filter_sig ISNULL;",
@@ -527,7 +525,7 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 	odisk_get_attr_sig(obj, name, &sig);
 
 	sql_query(NULL, ocache_DB,
-		  "INSERT INTO temp_iattrs (name, sig) VALUES (?1, ?2);",
+	    "INSERT OR REPLACE INTO temp_iattrs (name, sig) VALUES (?1, ?2);",
 		  "SB", name, &sig, sizeof(sig_val_t));
 
 	pthread_mutex_unlock(&shared_mutex);
@@ -552,7 +550,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 	odisk_get_attr_sig(obj, name, &sig);
 
 	sql_query(NULL, ocache_DB,
-		  "INSERT INTO temp_oattrs (name, sig, length)"
+		  "INSERT OR REPLACE INTO temp_oattrs (name, sig, length)"
 		  " VALUES (?1, ?2, ?3);", "SBd",
 		  name, &sig, sizeof(sig_val_t), len);
 
@@ -601,14 +599,14 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int score,
 
 	debug("Cache add input attributes\n");
 	rc = sql_query(NULL, ocache_DB,
-		       "INSERT INTO input_attrs (cache_entry, name, sig)"
+		"INSERT OR REPLACE INTO input_attrs (cache_entry, name, sig)"
 		       "  SELECT ?1, name, sig FROM temp_iattrs;",
 		       "D", rowid);
 	if (rc != SQLITE_OK) goto out_fail;
 
 	debug("Cache add output attributes\n");
 	rc = sql_query(NULL, ocache_DB,
-		       "INSERT INTO output_attrs (cache_entry, name, sig)"
+		"INSERT OR REPLACE INTO output_attrs (cache_entry, name, sig)"
 		       "  SELECT ?1, name, sig FROM temp_oattrs;",
 		       "D", rowid);
 	if (rc != SQLITE_OK) goto out_fail;

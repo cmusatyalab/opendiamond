@@ -1232,7 +1232,6 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		}
 	}
 
-	cur_filt->fi_filt_arg = data;
 	cur_filt->fi_is_initialized = true;
 
 	// check the functions
@@ -1253,4 +1252,5 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		 */
 		assert(0);
 	}
+	cur_filt->fi_filt_arg = data;
 }

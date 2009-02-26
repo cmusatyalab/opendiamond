@@ -81,292 +81,6 @@ typedef struct {
 } bg_cmd_data_t;
 
 
-static void
-update_dev_stats(search_context_t * sc)
-{
-	device_handle_t *cur_dev;
-	int             err;
-	dev_stats_t    *dstats;
-	int             size;
-	int             remain;
-
-	dstats = (dev_stats_t *) malloc(DEV_STATS_SIZE(20));
-	assert(dstats != NULL);
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		size = DEV_STATS_SIZE(20);
-		err = device_statistics(cur_dev->dev_handle, dstats, &size);
-		assert(err == 0);
-
-		remain = dstats->ds_objs_total - dstats->ds_objs_processed;
-		if (remain < 0)
-			remain = 0;
-		if (remain == 0) {
-			continue;
-		}
-		cur_dev->obj_total = dstats->ds_objs_total;
-		cur_dev->remain_old = cur_dev->remain_mid;
-		cur_dev->remain_mid = cur_dev->remain_new;
-		cur_dev->remain_new = remain;
-		cur_dev->prate = ((float) dstats->ds_avg_obj_time) / 1000.0;
-		cur_dev->done =
-		    ((float) cur_dev->remain_new) / cur_dev->prate;
-
-	}
-	free(dstats);
-}
-
-static void
-update_device_queue(search_context_t * sc)
-{
-	device_handle_t *cur_dev;
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN)
-			continue;
-		device_set_limit(cur_dev->dev_handle, sc->dev_queue_limit);
-	}
-}
-/*
- * helper function that write the value passed in the data to the
- * uint32_t that the cookie points to.
- */
-static int
-dctl_write_dev_queue(void *cookie, size_t len, char *data)
-{
-	search_context_t * sc;
-	assert(cookie != NULL);
-	assert(data != NULL);
-
-	if (len < sizeof(uint32_t)) {
-		return (ENOMEM);
-	}
-
-	sc = (search_context_t *)cookie;
-	sc->dev_queue_limit = *(int *) data;
-
-	update_device_queue(sc);
-	return (0);
-}
-
-static int
-dctl_read_dev_queue(void *cookie, size_t *len, char *data)
-{
-	search_context_t * sc;
-
-	if (*len < sizeof(uint32_t)) {
-		return (ENOMEM);
-	}
-
-	sc = (search_context_t *)cookie;
-
-        *len = sizeof(uint32_t);
-	*(uint32_t *) data = sc->dev_queue_limit;
-
-	return (0);
-}
-
-
-
-
-
-
-static void
-update_total_rate(search_context_t * sc)
-{
-	device_handle_t *cur_dev;
-	float           min_done = 1000000.0;
-	float           max_delta = 0;
-
-	update_dev_stats(sc);
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		if (cur_dev->done < min_done) {
-			min_done = cur_dev->done;
-		}
-	}
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		cur_dev->delta = cur_dev->done - min_done;
-		if (cur_dev->delta < 0.0) {
-			cur_dev->delta = 0.0;
-		}
-		if (cur_dev->delta > max_delta) {
-			max_delta = cur_dev->delta;
-		}
-	}
-
-	/*
-	 * now adjust all the values 
-	 */
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		cur_dev->credit_incr =
-		    (int) ((cur_dev->delta / max_delta) * MAX_CREDIT_INCR);
-		if (cur_dev->credit_incr > MAX_CREDIT_INCR) {
-			cur_dev->credit_incr = MAX_CREDIT_INCR;
-		} else if (cur_dev->credit_incr < 1) {
-			cur_dev->credit_incr = 1;
-		}
-	}
-}
-
-
-static void
-update_delta_rate(search_context_t * sc)
-{
-	device_handle_t *cur_dev;
-	float           min_done = 1000000.0;
-	float           max_delta = 0;
-	int             target;
-	float           scale;
-
-	update_dev_stats(sc);
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		if (cur_dev->done < min_done) {
-			min_done = cur_dev->done;
-		}
-	}
-	if (min_done == 0.0) {
-		min_done = 1.0;
-	}
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		cur_dev->delta = ((float) (cur_dev->done - min_done)) /
-		    (float) min_done;
-		if (cur_dev->delta < 0.0) {
-			cur_dev->delta = 0.0;
-		}
-		if (cur_dev->delta > max_delta) {
-			max_delta = cur_dev->delta;
-		}
-	}
-
-	if (max_delta == 0) {
-		max_delta = 1.0;
-	}
-
-	scale = (float) MAX_CREDIT_INCR / (float) max_delta;
-
-	/*
-	 * now adjust all the values 
-	 */
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		target = cur_dev->delta * scale;
-		if (target > MAX_CREDIT_INCR) {
-			target = MAX_CREDIT_INCR;
-		} else if (target < 1) {
-			target = 1;
-		}
-		if (target > (int)cur_dev->credit_incr) {
-			cur_dev->credit_incr++;
-		} else if (target < (int)cur_dev->credit_incr) {
-			cur_dev->credit_incr--;
-		}
-	}
-}
-
-static void
-update_rail(search_context_t * sc)
-{
-	device_handle_t *cur_dev;
-	float           max_done = 0.0;
-	float           target;
-
-	update_dev_stats(sc);
-
-	/*
-	 * find the one that will finish the latest 
-	 */
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		if (cur_dev->done > max_done) {
-			max_done = cur_dev->done;
-		}
-	}
-
-	/*
-	 * now adjust all the values 
-	 */
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		if (cur_dev->done == max_done) {
-			target = MAX_CREDIT_INCR;
-		} else {
-			target = 1.0;
-		}
-		if (target > (float) cur_dev->credit_incr) {
-			cur_dev->credit_incr++;
-		} else if (target < (float) cur_dev->credit_incr) {
-			cur_dev->credit_incr--;
-		}
-	}
-}
-
-static void
-update_rates(search_context_t * sc)
-{
-	// printf("update rates \n");
-
-	switch (sc->bg_credit_policy) {
-	case CREDIT_POLICY_RAIL:
-		update_rail(sc);
-		break;
-
-	case CREDIT_POLICY_PROP_TOTAL:
-		update_total_rate(sc);
-		break;
-
-	case CREDIT_POLICY_PROP_DELTA:
-		update_delta_rate(sc);
-		break;
-
-	case CREDIT_POLICY_STATIC:
-	default:
-		break;
-	}
-}
-
-static void
-refill_credits(search_context_t * sc)
-{
-	device_handle_t *cur_dev;
-
-	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		cur_dev->cur_credits += (float) cur_dev->credit_incr;
-		if (cur_dev->cur_credits > (float) MAX_CUR_CREDIT) {
-			cur_dev->cur_credits = (float) MAX_CUR_CREDIT;
-		}
-	}
-}
-
 /*
  * XXX constant config 
  */
@@ -393,13 +107,11 @@ redo:
 			cur_dev = cur_dev->next;
 			continue;
 		}
-		if (cur_dev->cur_credits > 0.0) {
-			obj = device_next_obj(cur_dev->dev_handle);
-			if (obj) {
-				cur_dev->serviced++;
-				sc->last_dev = cur_dev;
-				return obj;
-			}
+		obj = device_next_obj(cur_dev->dev_handle);
+		if (obj) {
+			cur_dev->serviced++;
+			sc->last_dev = cur_dev;
+			return obj;
 		}
 		cur_dev = cur_dev->next;
 	}
@@ -416,25 +128,10 @@ redo:
 	} else if (loop == 1) {
 		loop = 2;
 		cur_dev = sc->dev_list;
-		refill_credits(sc);
 		goto redo;
 	}
 	return NULL;
 }
-
-static void
-dec_object_credit(search_context_t * sc, double etime)
-{
-	double          credit = etime / sc->avg_proc_time;
-	if (sc->last_dev != NULL) {
-		sc->last_dev->cur_credits -= credit;
-		// printf("dec_credits: id=%08x new %f delta %f \n",
-		// sc->last_dev->dev_id,
-		// sc->last_dev->cur_credits, credit);
-	}
-}
-
-
 
 static int
 bg_val(void *cookie)
@@ -475,13 +172,9 @@ bg_main(void *arg)
 			  &loop_count);
 	dctl_register_u32(HOST_BACKGROUND_PATH, "cpu_split", O_RDWR,
 			  &do_cpu_update);
-	dctl_register_leaf(HOST_BACKGROUND_PATH, "dev_queue_max", DCTL_DT_UINT32,
-			   dctl_read_dev_queue, dctl_write_dev_queue, sc);
 	dctl_register_u32(HOST_BACKGROUND_PATH, "pend_queue_max", O_RDWR,
 			  &sc->pend_lw);
 
-	dctl_register_u32(HOST_BACKGROUND_PATH, "credit_policy", O_RDWR,
-			  &sc->bg_credit_policy);
 	dctl_register_u32(HOST_BACKGROUND_PATH, "exec_mode_thresh_lo", O_RDWR,
 			  &exec_mode_thresh_low);
 	dctl_register_u32(HOST_BACKGROUND_PATH, "exec_mode_thresh_hi", O_RDWR,
@@ -524,7 +217,6 @@ bg_main(void *arg)
 				sc->avg_proc_time =
 				    (0.90 * sc->avg_proc_time) +
 				    (0.10 * etime);
-				dec_object_credit(sc, etime);
 				if (err == 0) {
 					ls_release_object(sc, new_obj);
 				} else {
@@ -552,9 +244,8 @@ bg_main(void *arg)
 				    int new_mode = sc->search_exec_mode;
 
 				    log_message(LOGT_BG, LOGL_DEBUG,
-						"Search %d objects queued for app, limit %d",
-						proc_ring_count,
-						sc->dev_queue_limit);
+						"Search %d objects queued for app",
+						proc_ring_count);
 
 				    if (sc->search_exec_mode == FM_CURRENT) {
 				    	if (proc_ring_count > exec_mode_thresh_high) {
@@ -623,8 +314,6 @@ bg_main(void *arg)
 		if (((this_time.tv_sec == next_time.tv_sec) &&
 		     (this_time.tv_usec >= next_time.tv_usec)) ||
 		    (this_time.tv_sec > next_time.tv_sec)) {
-
-			update_rates(sc);
 
 			assert(POLL_USECS < 1000000);
 			next_time.tv_sec = this_time.tv_sec + POLL_SECS;

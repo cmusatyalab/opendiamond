@@ -38,12 +38,6 @@
 
 struct search_context;
 
-#define       DEFAULT_CREDIT_INCR             4.0
-#define       MAX_CREDIT_INCR                 20.0
-#define       MAX_CUR_CREDIT                  100.0
-
-#define	DEFAULT_QUEUE_LEN		10
-
 #define	MAX_DEV_GROUPS		64
 
 typedef struct device_handle {
@@ -59,11 +53,8 @@ typedef struct device_handle {
 	int				remain_mid;
 	int				remain_new;
 	float				done;
-	float				delta;
 	float				prate;
 	int				obj_total;
-	float				cur_credits;	/* credits for current iteration */
-	uint32_t			credit_incr;	/* incremental credits to add */
 	uint32_t			serviced;	/* times data removed */
 	struct 				search_context *	sc;
 } device_handle_t;
@@ -77,15 +68,6 @@ typedef enum {
     SS_IDLE
 } search_status_t;
 
-typedef enum {
-    CREDIT_POLICY_STATIC = 0,
-    CREDIT_POLICY_RAIL,
-    CREDIT_POLICY_PROP_TOTAL,
-    CREDIT_POLICY_PROP_DELTA
-
-} credit_policies_t;
-
-#define	BG_DEFAULT_CREDIT_POLICY	(CREDIT_POLICY_STATIC)
 /*
  * This defines the structures that keeps track of the current search
  * context.  This is the internal state that is kept for consistency,
@@ -103,10 +85,8 @@ typedef struct search_context {
 	ring_data_t *		bg_ops;		/* unprocessed objects */
 	ring_data_t *		log_ring;	/* data to log */
 	unsigned long		bg_status;
-	uint32_t		bg_credit_policy;
 	struct filter_data *	bg_fdata; 	/* filter_data_t  */
 	uint32_t		pend_lw;	/* pending lw mark */
-	uint32_t		dev_queue_limit; /* # objs queued at dev*/
 	int 		search_exec_mode;  /* a search_mode_t */
 	host_stats_t	host_stats;		/* object stats for this search */
 } search_context_t;

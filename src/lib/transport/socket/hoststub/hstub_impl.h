@@ -27,19 +27,15 @@
  * of the storage devices.
  */
 
-/* flag definitons */
-#define	CINFO_PENDING_CREDIT	0x04
-
 typedef struct conn_info {
-	pthread_mutex_t		mutex; /* protects 'flags' */
+	pthread_mutex_t		mutex; /* protects 'objects_consumed' */
 	int			ref;
-	int			flags;
+	int			objects_consumed;
 	uint32_t		ipv4addr; /* used by device_characteristics() */
 	sig_val_t		session_nonce; /* for pairing control and data conns */
 	struct mrpc_connection *rpc_client;
 	struct mrpc_connection *blast_conn;
 	credit_count_msg_t	cc_msg;
-	int			cc_counter;
 	int			obj_limit;
 	uint32_t            	stat_log_rx;
 	uint64_t            	stat_log_byte_rx;

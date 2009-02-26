@@ -103,8 +103,15 @@ recv_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 		/* XXX put it into the object ring */
 		obj->dev_cookie = (intptr_t)dev;
 		err = ring_enq(dev->obj_ring, obj);
-		assert(err == 0);
-		cinfo->flags |= CINFO_PENDING_CREDIT;
+		if (err != 0)
+		{
+		  g_error("Too many objects coming at us at once, probably "
+			  "because you have connected to "
+			  "more than %d servers for the "
+			  "first time. Either fix the code or increase "
+			  "OBJ_RING_SIZE as a terrible, dirty hack.",
+			  OBJ_RING_SIZE / DEFAULT_QUEUE_LEN);
+		}
 	}
 }
 
@@ -118,18 +125,19 @@ const struct blast_channel_client_operations *hstub_blast_ops = &ops;
 void hstub_send_credits(sdevice_state_t *dev)
 {
 	conn_info_t *cinfo = &dev->con_data;
-	credit_x credit = { .credits = 0 };
+	credit_x credit;
 	mrpc_status_t rc;
 
-	if ((cinfo->flags & CINFO_PENDING_CREDIT) == 0)
+	pthread_mutex_lock(&cinfo->mutex);
+	credit.credit_offset = cinfo->objects_consumed;
+	cinfo->objects_consumed = 0;
+	pthread_mutex_unlock(&cinfo->mutex);
+
+	if (credit.credit_offset == 0)
 		return;
 
-	if (cinfo->obj_limit > ring_count(dev->obj_ring))
-		credit.credits = cinfo->obj_limit - ring_count(dev->obj_ring);
+	//	g_debug("sending %d credit_offset to %d", credit.credit_offset, cinfo->ipv4addr);
 
-	rc = blast_channel_update_credit(cinfo->blast_conn, &credit);
-
-	/* if successful, clear the flag */
-	cinfo->flags &= ~CINFO_PENDING_CREDIT;
+	rc = blast_channel_offset_credit(cinfo->blast_conn, &credit);
 }
 

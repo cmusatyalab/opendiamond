@@ -182,7 +182,6 @@ hstub_main(void *arg)
 	sdevice_state_t *dev;
 	conn_info_t    *cinfo;
 	int		closed;
-	int		credit;
 
 	dev = (sdevice_state_t *) arg;
 
@@ -207,7 +206,6 @@ hstub_main(void *arg)
 		 */
 		pthread_mutex_lock(&dev->con_data.mutex);
 		closed = (cinfo->ref <= 0);
-		credit = (cinfo->flags & CINFO_PENDING_CREDIT);
 		pthread_mutex_unlock(&dev->con_data.mutex);
 
 		if (closed) {
@@ -216,8 +214,7 @@ hstub_main(void *arg)
 			break;
 		}
 
-		if (credit)
-			hstub_send_credits(dev);
+		hstub_send_credits(dev);
 
 		/*
 		 * periodically send device statistics and

@@ -24,7 +24,7 @@ struct object_x {
 };
 
 struct credit_x {
-    unsigned int credits;
+    int credit_offset;
 };
 
 clientmsgs {
@@ -32,6 +32,6 @@ clientmsgs {
 }
 
 servermsgs {
-    update_credit(credit_x) = 1;
+    offset_credit(credit_x) = 1;
 }
 

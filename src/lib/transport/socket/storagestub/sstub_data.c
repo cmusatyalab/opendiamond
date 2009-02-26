@@ -128,6 +128,7 @@ next_obj:
 
 	/* decrement credit count */
 	cstate->cc_credits--;
+	//g_debug("credits remaining: %d", cstate->cc_credits);
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	object.search_id = cstate->search_id;
@@ -185,12 +186,13 @@ drop:
 }
 
 static void
-update_credit(void *conn_data, struct mrpc_message *msg, credit_x *in)
+offset_credit(void *conn_data, struct mrpc_message *msg, credit_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 
 	pthread_mutex_lock(&cstate->cmutex);
-	cstate->cc_credits = in->credits;
+	cstate->cc_credits += in->credit_offset;
+	//g_debug("credits remaining: %d", cstate->cc_credits);
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	mrpc_release_event();
@@ -198,7 +200,7 @@ update_credit(void *conn_data, struct mrpc_message *msg, credit_x *in)
 }
 
 static const struct blast_channel_server_operations ops = {
-	.update_credit = update_credit
+	.offset_credit = offset_credit
 };
 const struct blast_channel_server_operations *sstub_blast_ops = &ops;
 

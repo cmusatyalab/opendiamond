@@ -230,17 +230,6 @@ register_remote_dctl(const char *host, device_handle_t * dev_handle)
 		return;
 	}
 
-	err = snprintf(cr_name, 128, "%s_%s", "credit_incr", node_name);
-
-	/* also register a dctl for the credit count */
-	dctl_register_u32(HOST_DEVICE_PATH, cr_name, O_RDWR,
-			  &dev_handle->credit_incr);
-
-	err = snprintf(cr_name, 128, "%s_%s", "cur_credits", node_name);
-	dctl_register_leaf(HOST_DEVICE_PATH, cr_name,
-			   DCTL_DT_UINT32, read_float_as_uint32, NULL,
-			   &dev_handle->cur_credits);
-
 	err = snprintf(cr_name, 128, "%s_%s", "be_serviced", node_name);
 	dctl_register_u32(HOST_DEVICE_PATH, cr_name, O_RDONLY,
 			  &dev_handle->serviced);
@@ -276,8 +265,6 @@ create_new_device(search_context_t * sc, const char *host)
 	new_dev->remain_mid = 100002;
 	new_dev->remain_new = 100001;
 
-	new_dev->cur_credits = DEFAULT_CREDIT_INCR;
-	new_dev->credit_incr = DEFAULT_CREDIT_INCR;
 	new_dev->serviced = 0;
 
 	cb_data.log_data_cb = dev_log_data_cb;
@@ -292,8 +279,6 @@ create_new_device(search_context_t * sc, const char *host)
 		free(new_dev);
 		return (NULL);
 	}
-
-	device_set_limit(new_dev->dev_handle, sc->dev_queue_limit);
 
 	/*
 	 * Put this device on the list of devices involved

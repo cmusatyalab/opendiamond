@@ -189,17 +189,19 @@ device_next_obj(void *handle)
 {
 	sdevice_state_t *dev;
 	obj_data_t     *obj;
+	conn_info_t    *cinfo;
 
 	dev = (sdevice_state_t *) handle;
 	obj = ring_deq(dev->obj_ring);
 
-	if (obj != NULL) {
-		dev->con_data.flags |= CINFO_PENDING_CREDIT;
+	if (obj) {
+		/* increment consumed count */
+		cinfo = &dev->con_data;
+		pthread_mutex_lock(&cinfo->mutex);
+		cinfo->objects_consumed++;
+		pthread_mutex_unlock(&cinfo->mutex);
 	}
-	else if (dev->con_data.cc_counter++ > 100) {
-		dev->con_data.flags |= CINFO_PENDING_CREDIT;
-		dev->con_data.cc_counter = 0;
-	}
+
 	return obj;
 }
 
@@ -214,8 +216,6 @@ device_drain_objs(void *handle)
 
 	while ((obj = ring_deq(dev->obj_ring)) != NULL)
 		odisk_release_obj(obj);
-
-	dev->con_data.flags |= CINFO_PENDING_CREDIT;
 }
 
 int
@@ -662,20 +662,6 @@ device_set_blob(void *handle, char *name, int blob_len, void *blob)
 	retval = rpc_client_content_device_set_blob
 					(dev->con_data.rpc_client, &bx);
 	return rpc_postproc(__FUNCTION__, retval);
-}
-
-int
-device_set_limit(void *handle, int limit)
-{
-	sdevice_state_t *dev;
-	dev = (sdevice_state_t *) handle;
-
-	if (dev->con_data.obj_limit != limit) {
-		dev->con_data.flags |= CINFO_PENDING_CREDIT;
-		dev->con_data.obj_limit = limit;
-	}
-
-	return (0);
 }
 
 int

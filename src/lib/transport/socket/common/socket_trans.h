@@ -22,6 +22,10 @@
 #include "rpc_preamble_xdr.h"
 
 
+/* default number of credits to start with on the server */
+#define DEFAULT_QUEUE_LEN	10
+
+
 #define	OBJ_MAGIC_HEADER	0x54124567
 typedef struct object_header {
 	uint32_t	obj_magic;	/* for debugging */

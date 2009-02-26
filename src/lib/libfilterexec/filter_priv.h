@@ -165,8 +165,8 @@ typedef struct filter_prob {
 
 typedef struct flib_info {
 	sig_val_t	lib_sig;
-	void *		dl_handle;
 	char *		lib_name;
+	bool		is_initialized;
 } flib_info_t;
 
 /*

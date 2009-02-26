@@ -435,7 +435,7 @@ load_filter_lib(char *so_name, filter_data_t * fdata,
 	}
 
 	/* don't dlopen here, that is done in fexec_possibly_init_filter */
-	fdata->lib_info[fdata->num_libs].dl_handle = NULL;
+	fdata->lib_info[fdata->num_libs].is_initialized = false;
 
 	fdata->lib_info[fdata->num_libs].lib_name = strdup(so_name);
 	assert(fdata->lib_info[fdata->num_libs].lib_name != NULL);
@@ -1178,7 +1178,7 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		void *handle;
 		char *error;
 
-		if (fl->dl_handle) {
+		if (fl->is_initialized) {
 			continue; // already initialized
 		}
 
@@ -1190,11 +1190,15 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 			 */
 			fprintf(stderr, "failed to open lib <%s> \n", so_name);
 			fputs(dlerror(), stderr);
-			exit(1);
 		}
 		file_release_lock(so_name);
 
-		fl->dl_handle = handle;
+		fl->is_initialized = true;
+
+		if (!handle) {
+			// don't fail if we can't read a particular object
+			continue;
+		}
 
 		// resolve the functions for all filters and save them
 		filter_info_t *filt;
@@ -1228,6 +1232,14 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		}
 	}
 
+	cur_filt->fi_filt_arg = data;
+	cur_filt->fi_is_initialized = true;
+
+	// check the functions
+	g_return_if_fail (cur_filt->fi_init_fp &&
+			  cur_filt->fi_eval_fp &&
+			  cur_filt->fi_fini_fp);
+
 	// now, try the initializer for the current filter
 	err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
 				   cur_filt->fi_arglist,
@@ -1241,7 +1253,4 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		 */
 		assert(0);
 	}
-
-	cur_filt->fi_filt_arg = data;
-	cur_filt->fi_is_initialized = true;
 }

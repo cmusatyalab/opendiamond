@@ -277,7 +277,7 @@ cache_setup(const char *dir)
 	sql_begin(ocache_DB);
 	rc = sqlite3_exec(ocache_DB,
 "CREATE TEMP TABLE current_attrs ("
-"    name	TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+"    name	TEXT PRIMARY KEY NOT NULL,"
 "    sig	BLOB NOT NULL"
 ");"
 "CREATE TEMP TABLE temp_iattrs ("
@@ -350,7 +350,7 @@ cache_combine_attr_set(query_info_t *qid, int64_t cache_entry)
 	debug("Cache combine attr set\n");
 
 	sql_query(NULL, ocache_DB,
-		  "INSERT INTO current_attrs (name, sig)"
+		  "INSERT OR REPLACE INTO current_attrs (name, sig)"
 		  "  SELECT name, sig FROM output_attrs"
 		  "  WHERE cache_entry = ?1;",
 		  "D", cache_entry);

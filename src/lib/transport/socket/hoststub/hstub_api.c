@@ -50,11 +50,6 @@
 
 #include "rpc_client_content_client.h"
 
-/*
- * XXX move to common header 
- */
-#define OBJ_RING_SIZE	512
-
 int rpc_postproc(const char *func, mrpc_status_t ret)
 {
 	if (ret < 0) { /* minirpc error */

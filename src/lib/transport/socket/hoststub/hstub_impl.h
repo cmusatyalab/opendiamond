@@ -19,6 +19,9 @@
 #include <minirpc/minirpc.h>
 #include "ring.h"
 
+#define OBJ_RING_SIZE	512
+
+
 /*
  * This structure keeps track of the state associated with each
  * of the storage devices.

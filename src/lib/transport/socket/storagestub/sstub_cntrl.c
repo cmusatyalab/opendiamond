@@ -254,6 +254,56 @@ device_set_blob(void *conn_data, struct mrpc_message *msg, blob_x *in)
 
 
 static mrpc_status_t
+device_set_blob_by_signature(void *conn_data, struct mrpc_message *msg, blob_sig_x *in)
+{
+	cstate_t *cstate = (cstate_t *)conn_data;
+	char	*name;
+	gsize	blen;
+	gchar	*blob;
+
+	sig_val_t *sent_sig;
+	sig_val_t calc_sig;
+
+	char *cache_dir;
+	char *name_buf;
+	char *sig_str;
+
+	name = in->filter_name;
+	sent_sig = (sig_val_t *) in->sig.sig_val_x_val;
+
+	sig_str = sig_string(sent_sig);
+	cache_dir = dconf_get_blob_cachedir();
+	name_buf = g_strdup_printf(BLOB_FORMAT, cache_dir, sig_str);
+	free(sig_str);
+	free(cache_dir);
+
+	//g_debug("looking up %s in cache", name_buf);
+
+	g_file_get_contents(name_buf, &blob, &blen, NULL);
+	g_free(name_buf);
+
+	if (blob == NULL) {
+	  // not in cache
+	  //g_debug("not in cache");
+	  return DIAMOND_FCACHEMISS;
+	}
+
+	sig_cal(blob, blen, &calc_sig);
+	if (!sig_match(sent_sig, &calc_sig)) {
+	  // invalid in cache
+	  //g_debug("invalid in cache");
+	  g_free(blob);
+	  return DIAMOND_FCACHEMISS;
+	}
+
+	//g_debug("in cache");
+	(*cstate->lstate->cb.set_blob_cb)(cstate->app_cookie, name, blen, blob);
+	g_free(blob);
+	return MINIRPC_OK;
+}
+
+
+static mrpc_status_t
 request_stats(void *conn_data, struct mrpc_message *msg, dev_stats_x *out)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
@@ -609,5 +659,6 @@ static const struct rpc_client_content_server_operations ops = {
 	.device_send_obj = device_send_obj,
 	.session_variables_get = session_variables_get,
 	.session_variables_set = session_variables_set,
+	.device_set_blob_by_signature = device_set_blob_by_signature,
 };
 const struct rpc_client_content_server_operations *sstub_ops = &ops;

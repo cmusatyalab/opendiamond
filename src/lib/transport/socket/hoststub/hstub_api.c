@@ -47,6 +47,7 @@
 #include "dctl_impl.h"
 #include "odisk_priv.h"
 #include "sys_attr.h"
+#include "sig_calc_priv.h"
 
 #include "rpc_client_content_client.h"
 
@@ -650,15 +651,38 @@ int
 device_set_blob(void *handle, char *name, int blob_len, void *blob)
 {
 	sdevice_state_t *dev;
+	sig_val_t	sig;
+	blob_sig_x	bsx;
 	blob_x		bx;
 	mrpc_status_t	retval;
+	int		err;
+	bool		cachemiss;
 
 	dev = (sdevice_state_t *) handle;
 
+	/* compute signature */
+	sig_cal(blob, blob_len, &sig);
+
+	/* inform server of signature, hopefully it's already cached */
+	bsx.filter_name = name;
+	bsx.sig.sig_val_x_val = (char *)&sig;
+	bsx.sig.sig_val_x_len = sizeof(sig_val_t);
+	retval = rpc_client_content_device_set_blob_by_signature
+	  (dev->con_data.rpc_client, &bsx);
+
+	/* was it on the server already? */
+	cachemiss = retval == DIAMOND_FCACHEMISS;
+	if (cachemiss) retval = DIAMOND_SUCCESS;
+
+	err = rpc_postproc(__FUNCTION__, retval);
+	if (err || !cachemiss) return err;
+
+	/* if not on server, send it */
 	bx.filter_name = name;
 	bx.blob_data.blob_data_len = blob_len;
 	bx.blob_data.blob_data_val = blob;
 
+	//g_debug("sending blob of length %d", blob_len);
 	retval = rpc_client_content_device_set_blob
 					(dev->con_data.rpc_client, &bx);
 	return rpc_postproc(__FUNCTION__, retval);

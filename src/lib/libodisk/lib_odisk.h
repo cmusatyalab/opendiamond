@@ -75,6 +75,13 @@ diamond_public
 int odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle,
 		   const char *obj_uri);
 
+diamond_public
+int odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **obj_handle,
+		  odisk_state_t * odisk);
+
+diamond_public
+void odisk_release_pr_obj(pr_obj_t *pobj);
+
 #ifdef	__cplusplus
 }
 #endif

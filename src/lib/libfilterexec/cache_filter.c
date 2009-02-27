@@ -46,9 +46,6 @@
 
 #define	MAX_PERM_NUM	5
 
-static int      ceval_filters1(char *objname, filter_data_t * fdata, void *cookie);
-
-
 static permutation_t *cached_perm[MAX_PERM_NUM];
 static int      cached_perm_num = 0;
 static int      perm_done = 0;
@@ -57,6 +54,7 @@ static int      search_active = 0;
 static int      ceval_blocked = 0;
 static pthread_mutex_t ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t active_cv = PTHREAD_COND_INITIALIZER;	/* active */
+static pthread_mutex_t ceval_filters1_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static opt_policy_t policy_arr[] = {
 	{NULL_POLICY, NULL, NULL, NULL, NULL, 0},
@@ -112,6 +110,7 @@ ceval_main(void *arg)
 	char           *new_name;
 	inject_names_t *names; 
 	int             err;
+	pr_obj_t       *probj;
 
 	while (1) {
 		pthread_mutex_lock(&ceval_mutex);
@@ -138,12 +137,15 @@ ceval_main(void *arg)
 			new_name = odisk_next_obj_name(cstate->odisk);
 		}
 
-		if (new_name != NULL) {
-			ceval_filters1(new_name, cstate->fdata, cstate);
-		} else {
+		if (!new_name) {
 			mark_end();
 			search_active = 0;
+			continue;
 		}
+
+		probj = ceval_filters1(new_name, cstate->fdata, cstate);
+		if (probj)
+			odisk_pr_add(probj);
 	}
 }
 
@@ -418,10 +420,9 @@ void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 }
 #endif
 
-static int
-ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
+pr_obj_t *ceval_filters1(const char *objname, filter_data_t *fdata,
+			 ceval_state_t *cstate)
 {
-	ceval_state_t  *cstate = (ceval_state_t *) cookie;
 	filter_info_t  *cur_filter;
 	int             conf;
 	int             err;
@@ -449,7 +450,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 
 	if (fdata->fd_num_filters == 0) {
 		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters1: no filters");
-		return 1;
+		return NULL;
 	}
 
 	/*
@@ -471,9 +472,10 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 		pr_obj->obj_name = objname;
 		pr_obj->oattr_fnum = 0;
 		pr_obj->stack_ns = 0;
-		odisk_pr_add(pr_obj);
-		return 1;
+		return pr_obj;
 	}
+
+	pthread_mutex_lock(&ceval_filters1_mutex);
 
 	stack_ns = 0;
 
@@ -546,7 +548,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 					cur_filter->fi_called++;
 					cur_filter->fi_cache_drop++;
 					cur_filter->fi_drop++;
-					
+
 #if 0
 					/* 
 				 	 * determine when this hit was created 
@@ -579,8 +581,8 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 				time_ns = rt_nanos(&rt);
 
 				fexec_update_prob(fdata, cur_fid,
-					  		pmArr(fdata->fd_perm), cur_fidx,
-					  		pass);
+							pmArr(fdata->fd_perm), cur_fidx,
+							pass);
 
 				char *sig_str = sig_string(&id_sig);
 				log_message(LOGT_FILT, LOGL_TRACE,
@@ -600,7 +602,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 				free(sig_str);
 			}
 
-			cur_filter->fi_time_ns += time_ns;	
+			cur_filter->fi_time_ns += time_ns;
 			stack_ns += time_ns;
 
 			if (!hit)
@@ -657,6 +659,8 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 	temp = rt_time2secs(stack_ns);
 	fdata->fd_avg_exec = (0.95 * fdata->fd_avg_exec) + (0.05 * temp);
 
+	pthread_mutex_unlock(&ceval_filters1_mutex);
+
 	/*
 	 * if pass, add the obj & oattr_fname list into the odisk queue 
 	 */
@@ -664,12 +668,12 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 		pr_obj->obj_name = objname;
 		pr_obj->stack_ns = stack_ns;
 		pr_obj->oattr_fnum = use_cache_oattr ? oattr_fnum : 0;
-		odisk_pr_add(pr_obj);
 	} else {
 		free(objname);
 		free(pr_obj);
+		pr_obj = NULL;
 	}
-	return pass;
+	return pr_obj;
 }
 
 

@@ -1583,6 +1583,7 @@ obj_data_t *
 search_reexecute_filters(void *app_cookie, const char *obj_id)
 {
 	search_state_t *sstate = (search_state_t *) app_cookie;
+	pr_obj_t *pobj;
 	obj_data_t *obj = NULL;
 	int err;
 
@@ -1590,27 +1591,31 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 	log_message(LOGT_DISK, LOGL_TRACE, "search_reexecute_filters");
 	fprintf(stderr, "reexecuting filters\n");
 
-	/* increment the reexec_active counter will block the background
+	/* increment the reexec_active counter, this will block the background
 	 * filter execution thread */
 	pthread_mutex_lock(&reexec_active_mutex);
 	reexec_active++;
 	pthread_mutex_unlock(&reexec_active_mutex);
 
-	/* odisk_load_obj & ceval_filters2 cannot be run concurrently from
-	 * different threads */
-	pthread_mutex_lock(&object_eval_mutex);
-
 	/* need a better obj_id -> obj_name mapping so that client can't just
 	 * reexecute filters against any arbitrary object on the server,
 	 * however the filter code that was sent by the client can already do
 	 * that anyways */
-	err = odisk_load_obj(sstate->ostate, &obj, obj_id);
-	if (!err)  {
-		//sstate->obj_reexecution_processed++;
+	pobj = ceval_filters1(strdup(obj_id), sstate->fdata, sstate->cstate);
+	if (!pobj) goto done;
 
-		ceval_filters2(obj, sstate->fdata, 1, NULL, NULL, NULL, NULL);
-	}
+	/* odisk_load_obj & ceval_filters2 cannot run concurrently */
+	pthread_mutex_lock(&object_eval_mutex);
 
+	err = odisk_pr_load(pobj, &obj, sstate->ostate);
+	odisk_release_pr_obj(pobj);
+	if (err) goto done;
+
+	//sstate->obj_reexecution_processed++;
+
+	ceval_filters2(obj, sstate->fdata, 1, NULL, NULL, NULL, NULL);
+
+done:
 	/* make sure to keep search state correct, pend_objs is decremented
 	 * when the object is released. */
 	if (obj) {

@@ -179,8 +179,7 @@ odisk_release_obj(obj_data_t * obj)
 	return (0);
 }
 
-static void
-odisk_release_pr_obj(pr_obj_t * pobj)
+void odisk_release_pr_obj(pr_obj_t * pobj)
 {
 	if (pobj == NULL) {
 		return;
@@ -281,9 +280,8 @@ odisk_pr_next(pr_obj_t ** new_object)
 	}
 }
 
-static int
-odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
-	      odisk_state_t * odisk)
+int odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
+		  odisk_state_t * odisk)
 {
 	int             err;
 	int		i;

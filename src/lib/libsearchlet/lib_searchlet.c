@@ -1373,7 +1373,7 @@ int ls_reexecute_filters(ls_search_handle_t handle, const char *objectid,
 	intptr_t dev_cookie;
 	char *obj_id;
 
-	dev_cookie = strtol(objectid, &obj_id, 16);
+	dev_cookie = strtoul(objectid, &obj_id, 16);
 	if (*obj_id != ' ') return EINVAL;
 	obj_id++;
 

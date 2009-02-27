@@ -141,13 +141,13 @@ next_obj:
 		unsigned char *data;
 		size_t len;
 
-		obj_ref_attr(&obj->attr_info, OBJ_DATA,
-			     &len, &data);
-		obj_omit_attr(&obj->attr_info, OBJ_DATA);
+		if (obj_ref_attr(&obj->attr_info, OBJ_DATA, &len, &data) == 0) {
+		    obj_omit_attr(&obj->attr_info, OBJ_DATA);
 
-		object.object.object_len = len;
-		object.object.object_val = malloc(len);
-		memcpy(object.object.object_val, data, len);
+		    object.object.object_len = len;
+		    object.object.object_val = malloc(len);
+		    memcpy(object.object.object_val, data, len);
+		}
 	}
 
 	tx_hdr_bytes = sizeof(object_x);

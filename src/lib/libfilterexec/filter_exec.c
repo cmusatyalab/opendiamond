@@ -177,27 +177,18 @@ fexec_cur_filtname(void)
 static void
 save_blob_data(void *data, size_t dlen, sig_val_t *sig)
 {
-	char * cache_dir;
-	char name_buf[PATH_MAX];
+	char *cache_dir;
+	char *name_buf;
 	char *sig_str;
-	FILE *fp;
 
 	sig_str = sig_string(sig);
-
 	cache_dir = dconf_get_blob_cachedir();
-	snprintf(name_buf, PATH_MAX, BLOB_FORMAT, cache_dir, sig_str);
+	name_buf = g_strdup_printf(BLOB_FORMAT, cache_dir, sig_str);
 	free(sig_str);
 	free(cache_dir);
 
-	fp = fopen(name_buf, "w+");
-	if (fp == NULL) {
-		/* XXX log */
-		return;
-	}
-	if (fwrite(data, dlen, 1, fp) != 1) {
-		assert(0);
-	}
-	fclose(fp);
+	g_file_set_contents(name_buf, data, dlen, NULL);
+	g_free(name_buf);
 }
 
 

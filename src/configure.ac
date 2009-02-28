@@ -13,6 +13,7 @@
 AC_INIT([opendiamond], [4.1.0], [diamond@cs.cmu.edu])
 AC_PREREQ([2.59])
 AC_CONFIG_SRCDIR([config.h.in])
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign 1.8.5])
 AC_CONFIG_HEADERS([config.h])
 

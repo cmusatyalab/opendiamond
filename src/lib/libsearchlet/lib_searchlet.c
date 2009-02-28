@@ -33,6 +33,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <inttypes.h>
 #include "lib_tools.h"
 #include "lib_searchlet.h"
 #include "sys_attr.h"
@@ -1357,7 +1358,7 @@ int ls_get_objectid(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
 	if (err) return EINVAL;
 
 	result = malloc(2 + (sizeof(void *) * 2) + 1 + len + 1);
-	if (result) sprintf(result, "%#x %s", obj->dev_cookie, obj_id);
+	if (result) sprintf(result, "%#" PRIxPTR " %s", obj->dev_cookie, obj_id);
 
 	*objectid = result;
 

@@ -192,7 +192,6 @@ lf_next_block(lf_obj_handle_t obj_handle,
 		printf("Beyond file len: off %lx len %x \n",
 		       odata->cur_offset, data_len);
 		*len = 0;
-		assert(0);
 		return (EINVAL);
 	}
 
@@ -214,7 +213,6 @@ lf_next_block(lf_obj_handle_t obj_handle,
 	buf = (char *) malloc(length);
 	if (buf == NULL) {
 		printf("failed to allocate block \n");
-		assert(0);
 		*len = 0;
 		return (ENOSPC);
 	}

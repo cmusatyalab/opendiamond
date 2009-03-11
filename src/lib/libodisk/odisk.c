@@ -182,13 +182,6 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 	sscanf(ptr, "OBJ%016llX", &local_id);
 	new_obj->local_id = local_id;
 
-	/*
-	 * Load the binary attributes, if any.
-	 */
-	len = snprintf(attr_name, NAME_MAX, "%s%s", name, BIN_ATTR_EXT);
-	assert(len < NAME_MAX);
-	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
-
 	/* open and read the object data */
 	if (!g_file_get_contents(name, &contents, &length, NULL))
 	{
@@ -198,10 +191,16 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 		return (ENOENT);
 	}
 
+	/* Load the binary attributes, if any. */
+	len = snprintf(attr_name, NAME_MAX, "%s%s", name, BIN_ATTR_EXT);
+	assert(len < NAME_MAX);
+	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
+
 	obj_write_attr(&new_obj->attr_info, OBJ_DATA,
 		       length, (unsigned char *)contents);
 	obj_write_attr(&new_obj->attr_info, OBJ_ID,
 		       strlen(name)+1, (unsigned char *)name);
+
 	free(contents);
 
 	/*

@@ -20,7 +20,6 @@
     sort($all_collections);
 ?>
 <form action="<?php echo $form_url; ?>" method="POST">
-<input type="submit" value="Update" />
 <select name="username" onchange="updateCollections(this.value);">
 <option value=""<?php if (!$username) { echo " selected"; } ?>>New user</option>
 <?php
@@ -40,6 +39,7 @@
     <?php echo $coll; ?></li>
 <?php } ?>
 </ul>
+<input type="submit" value="Update" />
 </form>
 <script type="text/javascript">
 var membership = {

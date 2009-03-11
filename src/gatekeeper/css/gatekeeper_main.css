@@ -72,7 +72,7 @@ dl.collapse {
     padding: 3px;
 }
 input[type=submit] {
-    float: right;
+    margin-top: .5em;
 }
 #footer {
     text-align: center;

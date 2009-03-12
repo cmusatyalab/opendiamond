@@ -309,7 +309,7 @@ static void *log_writer(void *arg) {
 	return NULL;
 }
 
-void log_init(char *log_prefix, char *control_prefix)
+void log_init(const char *log_prefix, const char *control_prefix)
 {
 	int		err;
 	char log_path[DCTL_NAME_LEN];

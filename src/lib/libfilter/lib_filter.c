@@ -304,7 +304,7 @@ lf_skip_block(lf_obj_handle_t obj_handle, int num_blocks)
 #define	MAX_LOG_BUF	80
 
 void
-lf_log(int level, char *fmt, ...)
+lf_log(int level, const char *fmt, ...)
 {
 	va_list         ap;
 	va_list         new_ap;

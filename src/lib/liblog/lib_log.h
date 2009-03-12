@@ -62,7 +62,7 @@ extern "C"
 #endif
 
 diamond_public
-void log_init(char *prefix, char *control);
+void log_init(const char *prefix, const char *control);
 
 diamond_public
 void log_term(void);

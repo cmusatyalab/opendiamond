@@ -299,7 +299,7 @@ int lf_omit_attr(lf_obj_handle_t ohandle, char *name);
  */
 
 diamond_public
-void lf_log(int level, char *fmt, ...);
+void lf_log(int level, const char *fmt, ...);
 
 
 /*!

@@ -62,6 +62,9 @@
 
 static void    *update_bypass(void *arg);
 
+static int reexec_active = 0;
+pthread_cond_t reexec_done = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t reexec_active_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t object_eval_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
@@ -742,10 +745,15 @@ device_main(void *arg)
 		if (sstate->pend_compute >= sstate->pend_max) {
 		}
 
+		/* allow reexecution to preempt the background processing */
+		pthread_mutex_lock(&reexec_active_mutex);
+		while (reexec_active)
+		    pthread_cond_wait(&reexec_done, &reexec_active_mutex);
+		pthread_mutex_unlock(&reexec_active_mutex);
+
 		/* odisk_load_obj & ceval_filters2 cannot be run
 		 * concurrently */
 		pthread_mutex_lock(&object_eval_mutex);
-
 		/*
 		 * XXX look for data from device to process.
 		 */
@@ -1661,6 +1669,12 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 	log_message(LOGT_DISK, LOGL_TRACE, "search_reexecute_filters");
 	fprintf(stderr, "reexecuting filters\n");
 
+	/* increment the reexec_active counter will block the background
+	 * filter execution thread */
+	pthread_mutex_lock(&reexec_active_mutex);
+	reexec_active++;
+	pthread_mutex_unlock(&reexec_active_mutex);
+
 	/* odisk_load_obj & ceval_filters2 cannot be run concurrently from
 	 * different threads */
 	pthread_mutex_lock(&object_eval_mutex);
@@ -1687,6 +1701,12 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 	}
 
 	pthread_mutex_unlock(&object_eval_mutex);
+
+	/* and now wake up the background thread, if necessary. */
+	pthread_mutex_lock(&reexec_active_mutex);
+	if (--reexec_active == 0)
+	    pthread_cond_signal(&reexec_done);
+	pthread_mutex_unlock(&reexec_active_mutex);
 
 	return obj;
 }

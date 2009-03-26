@@ -213,7 +213,6 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 
 	obj = (*cstate->lstate->cb.reexecute_filters) (cstate->app_cookie,
 						       in->object_id);
-	if (!obj) return DIAMOND_FAILURE;
 
 	/* only get attribute set if specific attributes were specified,
 	 * otherwise we will return all attributes. */

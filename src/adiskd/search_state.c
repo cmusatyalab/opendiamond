@@ -1663,7 +1663,7 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 {
 	search_state_t *sstate = (search_state_t *) app_cookie;
 	obj_data_t *obj = NULL;
-	int err, pass;
+	int err;
 
 	/* reexecute filters */
 	log_message(LOGT_DISK, LOGL_TRACE, "search_reexecute_filters");
@@ -1687,17 +1687,8 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 	if (!err)  {
 		//sstate->obj_reexecution_processed++;
 
-		pass = ceval_filters2(obj, sstate->fdata, 1, NULL,
-				      sstate->exec_mode, NULL, NULL, NULL);
-
-		if (pass == 0) {
-			//sstate->obj_reexecution_dropped++;
-			search_free_obj(sstate, obj);
-			obj = NULL;
-		} else  {
-			sstate->pend_objs++;
-			obj->remain_compute = 0.0;
-		}
+		ceval_filters2(obj, sstate->fdata, 1, NULL,
+			       sstate->exec_mode, NULL, NULL, NULL);
 	}
 
 	pthread_mutex_unlock(&object_eval_mutex);

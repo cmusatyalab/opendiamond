@@ -166,7 +166,7 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 		return (EINVAL);
 	}
 
-	new_obj = malloc(sizeof(*new_obj));
+	new_obj = calloc(1, sizeof(*new_obj));
 	assert(new_obj != NULL);
 
 	sig_cal_str(name, &new_obj->id_sig);

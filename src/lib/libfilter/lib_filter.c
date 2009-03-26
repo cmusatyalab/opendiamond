@@ -369,6 +369,10 @@ lf_get_session_variables(lf_obj_handle_t ohandle,
   obj_data_t *odata = (obj_data_t *) ohandle;
   session_variables_state_t *sv = odata->session_variables_state;
 
+  if (sv == NULL) {
+    return 0;
+  }
+
   pthread_mutex_lock(&sv->mutex);
 
   // walk the list given, and fill in the values
@@ -401,6 +405,10 @@ int lf_update_session_variables(lf_obj_handle_t ohandle,
 {
   obj_data_t *odata = (obj_data_t *) ohandle;
   session_variables_state_t *sv = odata->session_variables_state;
+
+  if (sv == NULL) {
+    return 0;
+  }
 
   pthread_mutex_lock(&sv->mutex);
 

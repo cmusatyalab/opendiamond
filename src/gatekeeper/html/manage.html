@@ -20,7 +20,7 @@
     sort($all_collections);
 ?>
 <form action="<?php echo $form_url; ?>" method="POST">
-<select name="username" onchange="updateCollections(this.value);">
+<select name="username" id="username">
 <option value=""<?php if (!$username) { echo " selected"; } ?>>New user</option>
 <?php
     foreach ($all_users as $user) {
@@ -55,16 +55,19 @@ var membership = {
 ?>
 };
 function updateCollections(username) {
-    var ismemberof = membership[username] || {};
-    var inputs = document.getElementsByTagName('INPUT');
-    for (var i = 0; i < inputs.length; i++) {
-	if (inputs[i].type == "text") {
-	    inputs[i].disabled = (username != "");
-	}
-	if (inputs[i].type == "checkbox") {
-	    inputs[i].checked = ismemberof[inputs[i].value];
-	}
+    var ismember = membership[username] || {};
+    if (username != "") {
+	$("input:text").fadeOut("slow");
+    } else {
+	$("input:text").fadeIn("slow");
     }
+    $("input:checkbox").attr("checked", function () {
+	return ismember[this.value] && "checked" || "";
+    });
 }
-<?php if ($username) { print "updateCollections(\"$username\");"; } ?>
+$(function () {
+    $("select#username")
+	.change(function () { updateCollections(this.value); })
+	.change();
+});
 </script>

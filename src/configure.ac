@@ -75,6 +75,7 @@ AC_CONFIG_FILES([
 Makefile
 adiskd/Makefile
 common/Makefile
+dataretriever/Makefile
 sqlite/Makefile
 lib/Makefile
 lib/libdconfig/Makefile

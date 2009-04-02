@@ -4,6 +4,7 @@
 *.la
 *.loT
 *.pc
+*.pyc
 Makefile
 Makefile.in
 .deps

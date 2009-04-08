@@ -937,12 +937,8 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	/*
 	 * save the total time info attribute
 	 */
-	err = obj_write_attr(&obj_handle->attr_info,
-			     FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
-	if (err != 0) {
-		printf("CHECK OBJECT %016llX ATTR FILE\n",
-		       obj_handle->local_id);
-	}
+	obj_write_attr(&obj_handle->attr_info, FLTRTIME,
+		       sizeof(stack_ns), (void *) &stack_ns);
 
 	/*
 	 * track per-object info

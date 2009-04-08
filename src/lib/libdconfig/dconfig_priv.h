@@ -21,7 +21,6 @@ typedef enum {
 
 
 FILE * dconfig_open_config_file(const char *conf_file);
-char * dconf_get_dataroot(void);
 char * dconf_get_indexdir(void);
 char * dconf_get_logdir(void);
 char * dconf_get_cachedir(void);

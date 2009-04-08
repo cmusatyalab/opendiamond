@@ -41,98 +41,6 @@ static int obj_get_attr_first(obj_attr_t *attr, unsigned char **buf,
 			      size_t *len, struct acookie **cookie);
 static int obj_get_attr_next(obj_attr_t *attr, unsigned char **buf,
 			     size_t *len, struct acookie **cookie);
-int
-obj_read_attr_file(odisk_state_t * odisk, char *attr_fname, obj_attr_t * attr)
-{
-	int             attr_fd;
-	struct stat     stats;
-	int             err;
-	size_t          size;
-	size_t          rsize;
-	obj_adata_t    *adata;
-
-	/* Open the file. */
-	attr_fd = open(attr_fname, O_RDONLY, 0700);
-	if (attr_fd == -1) {
-		attr->attr_ndata = 0;
-		attr->attr_dlist = NULL;
-		return (0);
-	}
-
-	err = fstat(attr_fd, &stats);
-	if (err != 0) {
-		attr->attr_ndata = 0;
-		attr->attr_dlist = NULL;
-		return (0);
-	}
-
-	size = stats.st_size;
-
-	if (size == 0) {
-		attr->attr_ndata = 0;
-		attr->attr_dlist = NULL;
-	} else {
-		adata = (obj_adata_t *) malloc(sizeof(*adata));
-		assert(adata != NULL);
-
-		adata->adata_len = size;
-		adata->adata_data = (char *) malloc(size);
-		assert(adata->adata_data != NULL);
-
-		attr->attr_ndata = 1;
-		adata->adata_next = NULL;
-		attr->attr_dlist = adata;
-
-		rsize = read(attr_fd, adata->adata_data, size);
-		if (rsize != size) {
-			perror("Reading attribute file:");
-			free(adata->adata_data);
-			attr->attr_ndata = 0;
-			attr->attr_dlist = NULL;
-			close(attr_fd);
-			return (0);
-		}
-	}
-
-	close(attr_fd);
-	return (0);
-}
-
-int
-obj_write_attr_file(char *attr_fname, obj_attr_t * attr)
-{
-	int		attr_fd;
-	off_t		wsize;
-	size_t		len;
-	unsigned char *	buf;
-	int		err;
-	struct acookie  *cookie;
-
-	/*
-	 * Open the file or create it.
-	 */
-	attr_fd = open(attr_fname, O_CREAT | O_WRONLY | O_TRUNC, 00700);
-	if (attr_fd == -1) {
-		perror("failed to open stat file");
-		exit(1);
-	}
-
-	err = obj_get_attr_first(attr, &buf, &len, &cookie);
-	while (err != ENOENT) {
-		wsize = write(attr_fd, buf, len);
-		if (wsize != len) {
-			perror("failed to write attributes \n");
-			exit(1);
-		}
-		err = obj_get_attr_next(attr, &buf, &len, &cookie);
-	}
-
-	close(attr_fd);
-	return (0);
-}
-
-
-
 static char    *
 extend_attr_store(obj_attr_t * attr, int new_size)
 {
@@ -443,8 +351,8 @@ obj_ref_attr(obj_attr_t * attr, const char *name, size_t * len,
 		return (ENOENT);
 	}
 
-	*len = record->data_len;
-	*data = &record->data[record->name_len];
+	if (len)  *len = record->data_len;
+	if (data) *data = &record->data[record->name_len];
 
 	return (0);
 }

@@ -1,9 +1,8 @@
-AM_LFLAGS = -olex.yy.c
-
 noinst_LTLIBRARIES = libodisk.la
 
-libodisk_la_SOURCES = odisk.c read_text_attr.l obj_attr.c odisk_priv.h obj_attr.h lib_odisk.h
+libodisk_la_SOURCES = odisk.c obj_attr.c dataretriever.c \
+    odisk_priv.h obj_attr.h lib_odisk.h \
+    uri_util.c uri_util.h
 
-CLEANFILES = read_text_attr.c
-
-AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)
+AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS) $(LIBCURL_CFLAGS)
+AM_LDFLAGS = $(LIBCURL_LIBS)

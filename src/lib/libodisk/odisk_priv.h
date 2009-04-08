@@ -27,7 +27,7 @@ typedef struct gid_idx_ent {
 #define MAX_HOST_NAME	255
 
 struct odisk_state {
-	char            odisk_dataroot[MAX_DIR_PATH];
+	char *		baseurl;
 	char            odisk_indexdir[MAX_DIR_PATH];
 	groupid_t       gid_list[MAX_GID_FILTER];
 	FILE *          index_files[MAX_GID_FILTER];
@@ -36,7 +36,6 @@ struct odisk_state {
 	int             max_files;
 	int             cur_file;
 	pthread_t       thread_id;
-	DIR *           odisk_dir;
 	uint32_t        obj_load;
 	uint32_t        next_blocked;
 	uint32_t        readahead_full;
@@ -74,7 +73,6 @@ struct pr_obj {
 	 */
 struct obj_data {
 	off_t			cur_offset;
-	uint64_t       		local_id;
 	sig_val_t      		id_sig;
 	int		    	cur_blocksize;
 	int		    	ref_count;
@@ -84,12 +82,6 @@ struct obj_data {
 	session_variables_state_t *session_variables_state;
 	intptr_t		dev_cookie;
 };
-
-
-
-/* some maintence functions */
-void obj_load_text_attr(odisk_state_t *odisk, char *file_name, 
-	obj_data_t *new_obj);
 
 
 /*
@@ -102,10 +94,6 @@ int odisk_continue(void);
 
 
 
-
-int odisk_get_obj(struct odisk_state *odisk, obj_data_t **new_obj,
-		  obj_id_t *oid);
-
 void odisk_ref_obj(obj_data_t *obj);
 
 int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
@@ -117,8 +105,8 @@ int odisk_pr_add(pr_obj_t *pr_obj);
 
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
 
-
-
+/* dataretriever.c */
+obj_data_t *dataretriever_fetch_object(const char *name);
 
 #endif	/* !_ODISK_PRIV_H_ */
 

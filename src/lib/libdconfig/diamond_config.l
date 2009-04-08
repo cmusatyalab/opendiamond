@@ -35,7 +35,6 @@
 #include "dconfig_priv.h"
 
 static int  have_error(yyscan_t scanner);
-static int  set_data_root(char *name);
 static int  set_cache_dir(char *name);
 static int  set_index_dir(char *name);
 static int  set_log_dir(char *name);
@@ -45,7 +44,6 @@ static char * eat_token(char *str);
 static void do_init(void);
 
 typedef struct	dconfig_info {
-	char *		dconf_dataroot;
 	char *		dconf_cachedir;
 	char *		dconf_indexdir;
 	char *      dconf_logdir;
@@ -69,7 +67,7 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
                                                                                 
 %%
 #.*\n
-DATAROOT[ \t]+[[:alnum:]\-_\/]+	{set_data_root(eat_token(yyget_text(yyscanner)));}
+DATAROOT[ \t]+.*\n
 CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yyget_text(yyscanner)));}
 INDEXDIR[ \t]+[[:alnum:]\-_\/]+	{set_index_dir(eat_token(yyget_text(yyscanner)));}
 LOGDIR[ \t]+[[:alnum:]\-_\/]+	{set_log_dir(eat_token(yyget_text(yyscanner)));}
@@ -110,22 +108,6 @@ have_error(yyscan_t scanner)
  * of it.
  */
  
-
-static int
-set_data_root(char *dir)
-{
-	dinfo->dconf_dataroot = strdup(dir);
-	return(0);
-}
-
-char *
-dconf_get_dataroot(void)
-{
-	char *dir;
-	do_init();
-	dir = strdup(dinfo->dconf_dataroot);
-	return(dir);
-}
 
 static int
 set_cache_dir(char *dir)

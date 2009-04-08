@@ -45,11 +45,10 @@
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
 #include "ring.h"
+#include "uri_util.h"
 
 
 #define	MAX_READ_THREADS	1
-
-#define	CACHE_EXT	".CACHEFL"
 
 /*
  * XXX shared state , move into state descriptor ???
@@ -108,122 +107,45 @@ odisk_next_index_ent(FILE * idx_file, char *file_name)
 	return (1);
 }
 
-/*
- * Set an attribute if it is not defined to the name value passed in 
- */
+/* Set an attribute if it is not defined to the name value passed in */
 static void
 obj_set_notdef(obj_data_t * obj, const char *attr_name,
-	       const void *val, size_t len)
+	       size_t len, const void *val)
 {
-	int             err;
-	size_t          rlen;
-
-	rlen = 0;
-
-	err = obj_read_attr(&obj->attr_info, attr_name, &rlen, NULL);
-	if (err == ENOENT) {
-		err = obj_write_attr(&obj->attr_info, attr_name, len, val);
-	}
-}
-
-/*
- * Set some system defined attributes if they are not already defined on
- * the object.
- */
-static void
-obj_set_sysattr(odisk_state_t * odisk, obj_data_t * obj, const char *name)
-{
-	size_t          len;
-
-	/*
-	 * set the object name 
-	 */
-	len = strlen(name) + 1;
-	obj_set_notdef(obj, DISPLAY_NAME, name, len);
-
-	/*
-	 * set the object name 
-	 */
-	len = strlen(odisk->odisk_name) + 1;
-	obj_set_notdef(obj, DEVICE_NAME, odisk->odisk_name, len);
+	int err;
+	err = obj_ref_attr(&obj->attr_info, attr_name, NULL, NULL);
+	if (err == ENOENT)
+		obj_write_attr(&obj->attr_info, attr_name, len, val);
 }
 
 int
 odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
 {
-	obj_data_t     *new_obj;
-	int		len;
-	uint64_t        local_id;
-	const char     *ptr;
-	char            attr_name[NAME_MAX];
-	gchar	       *contents;
-	gsize		length;
+	obj_data_t *obj;
+	size_t len;
 
-	assert(name != NULL);
-	if (strlen(name) >= NAME_MAX) {
-		log_message(LOGT_DISK, LOGL_ERR,
-		    "odisk_load_obj: file name <%s> exceeds NAME_MAX", name);
-		return (EINVAL);
-	}
+	obj = dataretriever_fetch_object(name);
+	if (!obj) return ENOENT;
 
-	new_obj = calloc(1, sizeof(*new_obj));
-	assert(new_obj != NULL);
+	sig_cal_str(name, &obj->id_sig);
+	pthread_mutex_init(&obj->mutex, NULL);
+	obj->ref_count = 1;
 
-	sig_cal_str(name, &new_obj->id_sig);
-	pthread_mutex_init(&new_obj->mutex, NULL);
-	new_obj->ref_count = 1;
+	obj_write_attr(&obj->attr_info, OBJ_ID, strlen(name)+1, (void *)name);
 
-	ptr = rindex(name, '/');
-	if (ptr == NULL) {
-		ptr = name;
-	} else {
-		ptr++;
-	}
-	sscanf(ptr, "OBJ%016llX", &local_id);
-	new_obj->local_id = local_id;
-
-	/* open and read the object data */
-	if (!g_file_get_contents(name, &contents, &length, NULL))
-	{
-		log_message(LOGT_DISK, LOGL_ERR,
-		    "odisk_load_obj: open file <%s> failed", name);
-		free(new_obj);
-		return (ENOENT);
-	}
-
-	/* Load the binary attributes, if any. */
-	len = snprintf(attr_name, NAME_MAX, "%s%s", name, BIN_ATTR_EXT);
-	assert(len < NAME_MAX);
-	obj_read_attr_file(odisk, attr_name, &new_obj->attr_info);
-
-	obj_write_attr(&new_obj->attr_info, OBJ_DATA,
-		       length, (unsigned char *)contents);
-	obj_write_attr(&new_obj->attr_info, OBJ_ID,
-		       strlen(name)+1, (unsigned char *)name);
-
-	free(contents);
-
-	/*
-	 * Load text attributes, if any.
-	 */
-	len = snprintf(attr_name, NAME_MAX, "%s%s", name, TEXT_ATTR_EXT);
-	assert(len < NAME_MAX);
-	obj_load_text_attr(odisk, attr_name, new_obj);
-
-	/*
-	 * set any system specific attributes for the object
-	 */
-	obj_set_sysattr(odisk, new_obj, name);
-
-	*obj_handle = (obj_data_t *) new_obj;
-	odisk->obj_load++;
+	/* Set some system defined attributes if they are not already defined */
+	len = strlen(name) + 1;
+	obj_set_notdef(obj, DISPLAY_NAME, len, name);
+	len = strlen(odisk->odisk_name) + 1;
+	obj_set_notdef(obj, DEVICE_NAME, len, odisk->odisk_name);
 
 	/* add attributes to the ocache */
-	ocache_add_initial_attrs(*obj_handle);
+	ocache_add_initial_attrs(obj);
 
-	return (0);
+	odisk->obj_load++;
+	*obj_handle = obj;
+	return 0;
 }
-
 
 
 float
@@ -258,28 +180,6 @@ odisk_get_obj_cnt(odisk_state_t * odisk)
 		fclose(new_file);
 	}
 	return (count);
-}
-
-int
-odisk_get_obj(odisk_state_t * odisk, obj_data_t ** obj, obj_id_t * oid)
-{
-	char            buf[NAME_MAX];
-	int             err;
-	int             len;
-
-
-	len = snprintf(buf, NAME_MAX, "%s/OBJ%016llX", odisk->odisk_dataroot,
-		       oid->local_id);
-
-	assert(len < NAME_MAX);
-
-	err = odisk_load_obj(odisk, obj, buf);
-	if (err == 0) {
-		(*obj)->local_id = oid->local_id;
-	} else {
-		printf("get obj failed \n");
-	}
-	return (err);
 }
 
 void
@@ -480,7 +380,7 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 }
 
 int
-odisk_pr_add(pr_obj_t * pr_obj)
+odisk_pr_add(pr_obj_t *pr_obj)
 {
 	pthread_mutex_lock(&odisk_mutex);
 
@@ -506,31 +406,21 @@ odisk_pr_add(pr_obj_t * pr_obj)
 	}
 }
 
-
 char           *
 odisk_next_obj_name(odisk_state_t * odisk)
 {
-	char            file_name[NAME_MAX];
-	char            path_name[NAME_MAX];
-	char           *ncopy;
+	gchar *path_name;
+	char            url[NAME_MAX];
 	int             i, ret;
 
 again:
 	for (i = odisk->cur_file; i < odisk->max_files; i++) {
 		if (odisk->index_files[i] != NULL) {
-			ret = odisk_next_index_ent(odisk->index_files[i],
-						   file_name);
+			ret = odisk_next_index_ent(odisk->index_files[i], url);
 			if (ret == 1) {
-				ret = snprintf(path_name, NAME_MAX, "%s/%s",
-					odisk->odisk_dataroot, file_name);
-				if (ret >= NAME_MAX) {
-					log_message(LOGT_DISK, LOGL_ERR,
-			    			"next_obj_name: name to big");
-					continue;
-				}
-				ncopy = strdup(path_name);
+				path_name = uri_normalize(url, odisk->baseurl);
 				odisk->cur_file = i;
-				return (ncopy);
+				return path_name;
 			} else {
 				fclose(odisk->index_files[i]);
 				odisk->index_files[i] = NULL;
@@ -695,34 +585,21 @@ odisk_num_waiting(odisk_state_t * odisk)
 
 
 int
-odisk_init(odisk_state_t ** odisk, char *dirp)
+odisk_init(odisk_state_t ** odisk, char *baseurl)
 {
 	odisk_state_t  *new_state;
 	int             err;
-	char           *dataroot;
 	char           *indexdir;
 	int             i;
 
-	if (dirp == NULL) {
-		dataroot = dconf_get_dataroot();
-	} else {
-		dataroot = strdup(dirp);
-	}
-
-	if (strlen(dataroot) > (MAX_DIR_PATH - 1)) {
-		log_message(LOGT_DISK, LOGL_ERR,
-		    "odisk_init: dataroot (%s) exceeds MAX_DIR_PATH",
-		    dataroot);
-		free(dataroot);
-		return (EINVAL);
-	}
+	if (!baseurl)
+	    baseurl = "http://localhost:5873/object/";
 
 	indexdir = dconf_get_indexdir();
 	if (strlen(indexdir) > (MAX_DIR_PATH - 1)) {
 		log_message(LOGT_DISK, LOGL_ERR,
 		    "odisk_init: indexdir (%s) exceeds MAX_DIR_PATH",
 		    indexdir);
-		free(dataroot);
 		free(indexdir);
 		return (EINVAL);
 	}
@@ -748,13 +625,10 @@ odisk_init(odisk_state_t ** odisk, char *dirp)
 	dctl_register_u32(DEV_OBJ_PATH, "readahead_blocked", O_RDONLY,
 			  &new_state->readahead_full);
 
-	/*
-	 * the length has already been tested above 
-	 */
-	strcpy(new_state->odisk_dataroot, dataroot);
-	strcpy(new_state->odisk_indexdir, indexdir);
+	new_state->baseurl = strdup(baseurl);
 
-	free(dataroot);
+	/* the length has already been tested above */
+	strcpy(new_state->odisk_indexdir, indexdir);
 	free(indexdir);
 
 	/*
@@ -834,15 +708,9 @@ odisk_continue(void)
 int
 odisk_term(odisk_state_t * odisk)
 {
-	int             err;
-
-
-	err = closedir(odisk->odisk_dir);
-
-	odisk->odisk_dir = NULL;
-
+	free(odisk->baseurl);
 	free(odisk);
-	return (err);
+	return 0;
 }
 
 /*

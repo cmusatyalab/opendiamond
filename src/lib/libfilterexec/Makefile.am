@@ -13,4 +13,4 @@ libfilterexec_la_SOURCES = filter_exec.c filter_spec.l fexec_stats.c \
 
 CLEANFILES = filter_spec.c
 
-AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)
+AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS) $(LIBSOUP_CFLAGS)

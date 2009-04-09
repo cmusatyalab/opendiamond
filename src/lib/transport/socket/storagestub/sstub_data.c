@@ -56,7 +56,7 @@ static int is_array_member(GArray *output_set, const char *item)
 	return 0;
 }
 
-int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
+int sstub_get_attributes(obj_data_t *obj, GArray *output_set,
 			 attribute_x **result_val, unsigned int *result_len)
 {
 	struct acookie *cookie;
@@ -68,16 +68,17 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 	int err;
 
 	/* how many attributes are we sending? */
-	err = obj_first_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie);
+	err = obj_first_attr(&obj->attr_info, NULL, NULL, NULL, NULL, &cookie);
 	for (n = 0; err == 0; n++)
-		err = obj_next_attr(obj_attr, NULL, NULL, NULL, NULL, &cookie);
+		err = obj_next_attr(&obj->attr_info, NULL, NULL, NULL, NULL,
+				    &cookie);
 
 	attrs = malloc(n * sizeof(attribute_x));
 	if (n != 0 && attrs == NULL)
 		return -1;
 
-	err = obj_first_attr(obj_attr, &name, &len, (unsigned char **)&data,
-			     NULL, &cookie);
+	err = obj_first_attr(&obj->attr_info, &name, &len,
+			     (unsigned char **)&data, NULL, &cookie);
 	for (n = 0; err == 0; n++)
 	{
 		int senddata = !output_set || is_array_member(output_set, name);
@@ -90,7 +91,7 @@ int sstub_get_attributes(obj_attr_t *obj_attr, GArray *output_set,
 		attrs[n].data.data_len = size;
 		attrs[n].data.data_val = buf;
 
-		err = obj_next_attr(obj_attr, &name, &len,
+		err = obj_next_attr(&obj->attr_info, &name, &len,
 				    (unsigned char **)&data, NULL, &cookie);
 	}
 	*result_val = attrs;
@@ -153,7 +154,7 @@ next_obj:
 	tx_hdr_bytes = sizeof(object_x);
 	tx_data_bytes = object.object.object_len;
 
-	err = sstub_get_attributes(&obj->attr_info, cstate->thumbnail_set,
+	err = sstub_get_attributes(obj, cstate->thumbnail_set,
 				   &object.attrs.attrs_val,
 				   &object.attrs.attrs_len);
 	if (err) goto drop;

@@ -14,6 +14,8 @@
 #ifndef	_ODISK_PRIV_H_
 #define	_ODISK_PRIV_H_ 	1
 
+#include <libsoup/soup.h>
+#include <stdio.h>
 #include "obj_attr.h"
 
 typedef struct gid_idx_ent {
@@ -27,7 +29,7 @@ typedef struct gid_idx_ent {
 #define MAX_HOST_NAME	255
 
 struct odisk_state {
-	char *		baseurl;
+	SoupURI *	base_uri;
 	char            odisk_indexdir[MAX_DIR_PATH];
 	groupid_t       gid_list[MAX_GID_FILTER];
 	FILE *          index_files[MAX_GID_FILTER];
@@ -106,7 +108,7 @@ int odisk_pr_add(pr_obj_t *pr_obj);
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
 
 /* dataretriever.c */
-obj_data_t *dataretriever_fetch_object(const char *name);
+obj_data_t *dataretriever_fetch_object(SoupURI *uri);
 
 #endif	/* !_ODISK_PRIV_H_ */
 

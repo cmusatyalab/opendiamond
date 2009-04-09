@@ -5,4 +5,4 @@ libstoragestub_la_SOURCES = sstub_api.c sstub_cntrl.c sstub_conn.c \
 
 AM_CPPFLAGS += -I$(top_builddir)/lib/transport/socket/common
 
-AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)
+AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS) $(LIBSOUP_CFLAGS)

@@ -130,7 +130,7 @@ void connection_main(cstate_t *cstate);
 /*
  * Other private functions
  */
-int sstub_get_attributes(obj_attr_t *obj_attr, GArray *result_set,
+int sstub_get_attributes(obj_data_t *obj, GArray *result_set,
 			 attribute_x **result_val, unsigned int *result_len);
 
 #endif /* !_SSTUB_IMPL_H_ */

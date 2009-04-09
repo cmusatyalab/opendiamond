@@ -44,7 +44,6 @@
 #include "dconfig_priv.h"
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
-#include "odisk_priv.h"
 #include "sys_attr.h"
 
 #include <minirpc/minirpc.h>
@@ -221,7 +220,7 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 					 in->attrs.attrs_len);
 	}
 
-	err = sstub_get_attributes(&obj->attr_info, result_set,
+	err = sstub_get_attributes(obj, result_set,
 				   &out->attrs.attrs_val,
 				   &out->attrs.attrs_len);
 

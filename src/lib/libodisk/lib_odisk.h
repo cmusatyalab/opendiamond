@@ -69,7 +69,7 @@ int odisk_flush(odisk_state_t *odisk);
 
 diamond_public
 int odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle,
-		   const char *obj_name);
+		   const char *obj_uri);
 
 #ifdef	__cplusplus
 }

@@ -45,7 +45,6 @@
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
 #include "ring.h"
-#include "uri_util.h"
 
 
 #define	MAX_READ_THREADS	1
@@ -119,23 +118,26 @@ obj_set_notdef(obj_data_t * obj, const char *attr_name,
 }
 
 int
-odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle, const char *name)
+odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle,
+	       const char *obj_uri)
 {
 	obj_data_t *obj;
 	size_t len;
+	SoupURI *uri = soup_uri_new(obj_uri);
 
-	obj = dataretriever_fetch_object(name);
+	obj = dataretriever_fetch_object(uri);
 	if (!obj) return ENOENT;
 
-	sig_cal_str(name, &obj->id_sig);
+	sig_cal_str(obj_uri, &obj->id_sig);
 	pthread_mutex_init(&obj->mutex, NULL);
 	obj->ref_count = 1;
 
-	obj_write_attr(&obj->attr_info, OBJ_ID, strlen(name)+1, (void *)name);
+	obj_write_attr(&obj->attr_info, OBJ_ID,
+		       strlen(obj_uri)+1, (void *)obj_uri);
 
 	/* Set some system defined attributes if they are not already defined */
-	len = strlen(name) + 1;
-	obj_set_notdef(obj, DISPLAY_NAME, len, name);
+	len = strlen(obj_uri) + 1;
+	obj_set_notdef(obj, DISPLAY_NAME, len, obj_uri);
 	len = strlen(odisk->odisk_name) + 1;
 	obj_set_notdef(obj, DEVICE_NAME, len, odisk->odisk_name);
 
@@ -409,7 +411,8 @@ odisk_pr_add(pr_obj_t *pr_obj)
 char           *
 odisk_next_obj_name(odisk_state_t * odisk)
 {
-	gchar *path_name;
+	SoupURI *uri;
+	char *path_name;
 	char            url[NAME_MAX];
 	int             i, ret;
 
@@ -418,7 +421,10 @@ again:
 		if (odisk->index_files[i] != NULL) {
 			ret = odisk_next_index_ent(odisk->index_files[i], url);
 			if (ret == 1) {
-				path_name = uri_normalize(url, odisk->baseurl);
+				uri=soup_uri_new_with_base(odisk->base_uri,url);
+				path_name = soup_uri_to_string(uri, FALSE);
+				soup_uri_free(uri);
+
 				odisk->cur_file = i;
 				return path_name;
 			} else {
@@ -585,15 +591,15 @@ odisk_num_waiting(odisk_state_t * odisk)
 
 
 int
-odisk_init(odisk_state_t ** odisk, char *baseurl)
+odisk_init(odisk_state_t ** odisk, char *base_uri)
 {
 	odisk_state_t  *new_state;
 	int             err;
 	char           *indexdir;
 	int             i;
 
-	if (!baseurl)
-	    baseurl = "http://localhost:5873/object/";
+	if (!base_uri)
+	    base_uri = "http://localhost:5873/object/";
 
 	indexdir = dconf_get_indexdir();
 	if (strlen(indexdir) > (MAX_DIR_PATH - 1)) {
@@ -625,7 +631,7 @@ odisk_init(odisk_state_t ** odisk, char *baseurl)
 	dctl_register_u32(DEV_OBJ_PATH, "readahead_blocked", O_RDONLY,
 			  &new_state->readahead_full);
 
-	new_state->baseurl = strdup(baseurl);
+	new_state->base_uri = soup_uri_new(base_uri);
 
 	/* the length has already been tested above */
 	strcpy(new_state->odisk_indexdir, indexdir);
@@ -708,7 +714,7 @@ odisk_continue(void)
 int
 odisk_term(odisk_state_t * odisk)
 {
-	free(odisk->baseurl);
+	soup_uri_free(odisk->base_uri);
 	free(odisk);
 	return 0;
 }

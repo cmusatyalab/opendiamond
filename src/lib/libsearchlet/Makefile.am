@@ -5,4 +5,4 @@ libsearchlet_la_SOURCES = lib_searchlet.c ls_background.c ls_device.c \
 
 pkginclude_HEADERS = lib_searchlet.h
 
-AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)
+AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS) $(LIBSOUP_CFLAGS)

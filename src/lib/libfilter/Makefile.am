@@ -4,4 +4,4 @@ libfilter_la_SOURCES = lib_filter.c lib_filter_priv.h lib_filter_sys.h
 
 pkginclude_HEADERS = lib_filter.h
 
-AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)
+AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS) $(LIBSOUP_CFLAGS)

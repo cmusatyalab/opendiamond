@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 #  The OpenDiamond Platform for Interactive Search
 #  Version 4

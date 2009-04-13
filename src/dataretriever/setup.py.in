@@ -1,0 +1,19 @@
+#!@PYTHON@
+
+from distutils.core import setup
+
+setup(
+    name = "dataretriever",
+    version = "@VERSION@",
+    packages = ['dataretriever'],
+    package_dir = { 'dataretriever': '' },
+    scripts = ['dataretriever'],
+
+    author = "OpenDiamond project, Carnegie Mellon University",
+    author_email = "diamond@cs.cmu.edu",
+    description = "Data access modules for OpenDiamond",
+    license = "Eclipse Public License, Version 1.0",
+    keywords = "opendiamond non-indexed search",
+    url = "http://diamond.cs.cmu.edu/"
+)
+

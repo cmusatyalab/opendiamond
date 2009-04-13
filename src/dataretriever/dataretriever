@@ -25,14 +25,19 @@ app = DataRetriever({
     'object':		diamond_object_app,
 })
 
-try:
-    from paste import httpserver
-    httpserver.serve(app, host=HOST, port=PORT, server_version=server_version,
-		     protocol_version='HTTP/1.1', daemon_threads=True)
-except ImportError:
-    from wsgiref.simple_server import make_server
-    httpd = make_server(HOST, PORT, app)
-    sa = httpd.socket.getsockname()
-    print "DataRetriever listening on", sa[0], "port", sa[1], "..."
-    httpd.serve_forever()
+def run():
+    try:
+	from paste import httpserver
+	httpserver.serve(app, host=HOST, port=PORT,
+			 server_version=server_version,
+			 protocol_version='HTTP/1.1',
+			 daemon_threads=True)
+    except ImportError:
+	from wsgiref.simple_server import make_server
+	httpd = make_server(HOST, PORT, app)
+	sa = httpd.socket.getsockname()
+	print "DataRetriever listening on", sa[0], "port", sa[1], "..."
+	httpd.serve_forever()
 
+if __name__ == '__main__':
+    run()

@@ -19,6 +19,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_PROG_CC
 AM_PROG_LEX
+AM_PATH_PYTHON([2.5])
 
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
@@ -76,6 +77,7 @@ Makefile
 adiskd/Makefile
 common/Makefile
 dataretriever/Makefile
+dataretriever/setup.py
 sqlite/Makefile
 lib/Makefile
 lib/libdconfig/Makefile

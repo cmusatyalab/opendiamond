@@ -72,40 +72,6 @@ static pthread_cond_t pr_bg_queue_cv = PTHREAD_COND_INITIALIZER;
  */
 #define MAX_GID_FILTER  64
 
-static int
-odisk_next_index_ent(FILE * idx_file, char *file_name)
-{
-	int             offset;
-	int             val;
-
-	offset = 0;
-	while (offset < (NAME_MAX - 1)) {
-		val = fgetc(idx_file);
-		if (val == EOF) {
-			if (offset > 0) {
-				file_name[offset++] = '\0';
-				return (1);
-			} else {
-				return (0);
-			}
-		}
-		if ((val == '\0') || (val == '\n')) {
-			if (offset > 0) {
-				file_name[offset++] = '\0';
-				return (1);
-			}
-		} else {
-			file_name[offset++] = (char) val;
-		}
-	}
-
-	/*
-	 * if we get here we have overflowed ... 
-	 */
-	file_name[offset++] = '\0';
-	return (1);
-}
-
 /* Set an attribute if it is not defined to the name value passed in */
 static void
 obj_set_notdef(obj_data_t * obj, const char *attr_name,
@@ -123,9 +89,8 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle,
 {
 	obj_data_t *obj;
 	size_t len;
-	SoupURI *uri = soup_uri_new(obj_uri);
 
-	obj = dataretriever_fetch_object(uri);
+	obj = dataretriever_fetch_object(obj_uri);
 	if (!obj) return ENOENT;
 
 	sig_cal_str(obj_uri, &obj->id_sig);
@@ -159,29 +124,7 @@ odisk_get_erate(odisk_state_t * odisk)
 int
 odisk_get_obj_cnt(odisk_state_t * odisk)
 {
-	int             count = 0;
-	char            idx_file[NAME_MAX];
-	char            file_name[NAME_MAX];
-	FILE           *new_file;
-	int             i;
-	int             len;
-	int             ret;
-
-	for (i = 0; i < odisk->num_gids; i++) {
-		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX",
-			       odisk->odisk_indexdir, GID_IDX,
-			       odisk->gid_list[i]);
-		assert(len < NAME_MAX);
-		new_file = fopen(idx_file, "r");
-		if (new_file == NULL) {
-			continue;
-		}
-		while ((ret = odisk_next_index_ent(new_file, file_name))) {
-			count++;
-		}
-		fclose(new_file);
-	}
-	return (count);
+    return odisk->count;
 }
 
 void
@@ -252,6 +195,7 @@ odisk_release_pr_obj(pr_obj_t * pobj)
 int
 odisk_clear_gids(odisk_state_t * odisk)
 {
+	dataretriever_stop_search(odisk);
 	odisk->num_gids = 0;
 	return (0);
 }
@@ -277,8 +221,11 @@ odisk_set_gid(odisk_state_t * odisk, groupid_t gid)
 		return (ENOMEM);
 	}
 
+	/* make sure there is no active search */
+	dataretriever_stop_search(odisk);
 	odisk->gid_list[odisk->num_gids] = gid;
 	odisk->num_gids++;
+
 	return (0);
 }
 
@@ -408,42 +355,9 @@ odisk_pr_add(pr_obj_t *pr_obj)
 	}
 }
 
-char           *
-odisk_next_obj_name(odisk_state_t * odisk)
+char *odisk_next_obj_name(odisk_state_t * odisk)
 {
-	SoupURI *uri;
-	char *path_name;
-	char            url[NAME_MAX];
-	int             i, ret;
-
-again:
-	for (i = odisk->cur_file; i < odisk->max_files; i++) {
-		if (odisk->index_files[i] != NULL) {
-			ret = odisk_next_index_ent(odisk->index_files[i], url);
-			if (ret == 1) {
-				uri=soup_uri_new_with_base(odisk->base_uri,url);
-				path_name = soup_uri_to_string(uri, FALSE);
-				soup_uri_free(uri);
-
-				odisk->cur_file = i;
-				return path_name;
-			} else {
-				fclose(odisk->index_files[i]);
-				odisk->index_files[i] = NULL;
-			}
-		}
-	}
-
-	/*
-	 * if we get here, either we need to start at the begining,
-	 * or there is no more data.
-	 */
-	if (odisk->cur_file != 0) {
-		odisk->cur_file = 0;
-		goto again;
-	} else {
-		return (NULL);
-	}
+    return dataretriever_next_object_uri(odisk);
 }
 
 
@@ -487,6 +401,8 @@ odisk_flush(odisk_state_t * odisk)
 	err = pthread_mutex_unlock(&odisk_mutex);
 	assert(err == 0);
 	printf("odisk_flush done\n");
+
+	dataretriever_stop_search(odisk);
 
 	return (0);
 }
@@ -562,7 +478,6 @@ odisk_main(void *arg)
 int
 odisk_next_obj(obj_data_t ** new_object, odisk_state_t * odisk)
 {
-
 	pthread_mutex_lock(&odisk_mutex);
 	while (1) {
 		if (!ring_empty(obj_ring)) {
@@ -599,7 +514,9 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 	int             i;
 
 	if (!base_uri)
-	    base_uri = "http://localhost:5873/object/";
+	    base_uri = "http://localhost:5873/collection/";
+
+	dataretriever_init(base_uri);
 
 	indexdir = dconf_get_indexdir();
 	if (strlen(indexdir) > (MAX_DIR_PATH - 1)) {
@@ -628,10 +545,6 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 			  &new_state->obj_load);
 	dctl_register_u32(DEV_OBJ_PATH, "next_blocked", O_RDONLY,
 			  &new_state->next_blocked);
-	dctl_register_u32(DEV_OBJ_PATH, "readahead_blocked", O_RDONLY,
-			  &new_state->readahead_full);
-
-	new_state->base_uri = soup_uri_new(base_uri);
 
 	/* the length has already been tested above */
 	strcpy(new_state->odisk_indexdir, indexdir);
@@ -641,10 +554,8 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 	 * get the host name 
 	 */
 	err = gethostname(new_state->odisk_name, MAX_HOST_NAME);
-	if (err) {
-		sprintf(new_state->odisk_name, "Unknown");
-	}
-	new_state->odisk_name[MAX_HOST_NAME - 1] = '0';
+	if (err) sprintf(new_state->odisk_name, "Unknown");
+	new_state->odisk_name[MAX_HOST_NAME - 1] = '\0';
 
 	for (i = 0; i < MAX_READ_THREADS; i++) {
 		err = pthread_create(&new_state->thread_id, NULL,
@@ -659,44 +570,13 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 int
 odisk_reset(odisk_state_t * odisk)
 {
-	char            idx_file[NAME_MAX];
-	FILE           *new_file;
-	int             i;
-	int             len;
-
-	/*
-	 * First go through all the index files and close them.
-	 */
-	for (i = 0; i < odisk->max_files; i++) {
-		if (odisk->index_files[i] != NULL) {
-			fclose(odisk->index_files[i]);
-			odisk->index_files[i] = NULL;
-		}
-	}
-
-	for (i = 0; i < odisk->num_gids; i++) {
-		len = snprintf(idx_file, NAME_MAX, "%s/%s%016llX",
-			       odisk->odisk_indexdir, GID_IDX,
-			       odisk->gid_list[i]);
-		assert(len < NAME_MAX);
-		new_file = fopen(idx_file, "r");
-		if (new_file == NULL) {
-			fprintf(stderr, "unable to open idx %s \n", idx_file);
-		} else {
-			odisk->index_files[i] = new_file;
-		}
-	}
-
-	odisk->max_files = odisk->num_gids;
-	odisk->cur_file = 0;
-
 	pthread_mutex_lock(&odisk_mutex);
+	dataretriever_start_search(odisk);
 	search_active = 1;
 	search_done = 0;
 	pthread_cond_signal(&bg_active_cv);
 	pthread_mutex_unlock(&odisk_mutex);
-
-	return (0);
+	return 0;
 }
 
 
@@ -714,7 +594,7 @@ odisk_continue(void)
 int
 odisk_term(odisk_state_t * odisk)
 {
-	soup_uri_free(odisk->base_uri);
+	dataretriever_stop_search(odisk);
 	free(odisk);
 	return 0;
 }

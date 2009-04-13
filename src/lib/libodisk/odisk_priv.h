@@ -14,8 +14,7 @@
 #ifndef	_ODISK_PRIV_H_
 #define	_ODISK_PRIV_H_ 	1
 
-#include <libsoup/soup.h>
-#include <stdio.h>
+#include <glib.h>
 #include "obj_attr.h"
 
 typedef struct gid_idx_ent {
@@ -29,18 +28,17 @@ typedef struct gid_idx_ent {
 #define MAX_HOST_NAME	255
 
 struct odisk_state {
-	SoupURI *	base_uri;
 	char            odisk_indexdir[MAX_DIR_PATH];
 	groupid_t       gid_list[MAX_GID_FILTER];
-	FILE *          index_files[MAX_GID_FILTER];
 	char		odisk_name[MAX_HOST_NAME];
 	int             num_gids;
-	int             max_files;
-	int             cur_file;
 	pthread_t       thread_id;
 	uint32_t        obj_load;
 	uint32_t        next_blocked;
-	uint32_t        readahead_full;
+
+	GAsyncQueue	*queue;
+	gint		fetchers;
+	uint64_t        count;
 };
 
 typedef struct gid_list {
@@ -108,7 +106,11 @@ int odisk_pr_add(pr_obj_t *pr_obj);
 attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
 
 /* dataretriever.c */
-obj_data_t *dataretriever_fetch_object(SoupURI *uri);
+void dataretriever_init(const char *base_uri);
+void dataretriever_start_search(odisk_state_t *odisk);
+void dataretriever_stop_search(odisk_state_t *odisk);
+char *dataretriever_next_object_uri(odisk_state_t *odisk);
+obj_data_t *dataretriever_fetch_object(const char *uri_string);
 
 #endif	/* !_ODISK_PRIV_H_ */
 

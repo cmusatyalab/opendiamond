@@ -62,7 +62,6 @@ typedef struct search_state {
 	pthread_cond_t  log_cond;
 	pthread_t       bypass_id;
 	filter_data_t  *fdata;
-	uint            obj_total;
 	uint            obj_processed;		/* really objects read */
 	uint            obj_dropped;
 	uint            obj_passed;

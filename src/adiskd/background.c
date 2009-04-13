@@ -605,8 +605,6 @@ bg_new_search(filter_opts_t *fops)
 
 	dctl_register_u32(DEV_SEARCH_PATH, "work_ahead", O_RDWR,
 			  &sstate->work_ahead);
-	dctl_register_u32(DEV_SEARCH_PATH, "obj_total", O_RDONLY,
-			  &sstate->obj_total);
 	dctl_register_u32(DEV_SEARCH_PATH, "obj_processed", O_RDONLY,
 			  &sstate->obj_processed);
 	dctl_register_u32(DEV_SEARCH_PATH, "obj_dropped", O_RDONLY,
@@ -752,10 +750,7 @@ bg_new_search(filter_opts_t *fops)
 		return;
 	}
 
-	sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
 	sstate->flags |= DEV_FLAG_RUNNING;
-
-
 
 	/* run the eval loop */
 	background_eval(sstate);

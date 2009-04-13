@@ -256,7 +256,6 @@ search_set_obj(void *app_cookie, sig_val_t * objsig)
 static void
 clear_ss_stats(search_state_t * sstate)
 {
-	sstate->obj_total = 0;
 	sstate->obj_processed = 0;
 	sstate->obj_dropped = 0;
 	sstate->obj_passed = 0;
@@ -389,7 +388,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			return;
 		}
 
-		sstate->obj_total = odisk_get_obj_cnt(sstate->ostate);
 		sstate->flags |= DEV_FLAG_RUNNING;
 		break;
 
@@ -1012,8 +1010,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 
 	dctl_register_u32(DEV_SEARCH_PATH, "work_ahead", O_RDWR,
 			  &sstate->work_ahead);
-	dctl_register_u32(DEV_SEARCH_PATH, "obj_total", O_RDONLY,
-			  &sstate->obj_total);
 	dctl_register_u32(DEV_SEARCH_PATH, "obj_processed", O_RDONLY,
 			  &sstate->obj_processed);
 	dctl_register_u32(DEV_SEARCH_PATH, "obj_dropped", O_RDONLY,
@@ -1281,7 +1277,7 @@ search_get_stats(void *app_cookie)
 	/*
 	 * Fill in the state we can handle here.
 	 */
-	stats->ds_objs_total = sstate->obj_total;
+	stats->ds_objs_total = odisk_get_obj_cnt(sstate->ostate);
 	stats->ds_objs_processed = sstate->obj_processed;
 	stats->ds_objs_dropped = sstate->obj_dropped;
 	stats->ds_objs_nproc = sstate->obj_skipped;

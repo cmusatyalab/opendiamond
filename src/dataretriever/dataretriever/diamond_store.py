@@ -38,10 +38,16 @@ def diamond_scope_app(environ, start_response):
     path = environ['PATH_INFO']
     index = 'GIDIDX' + path.replace(':','').upper()
     index = os.path.join(INDEXDIR, index)
-    f = open(index, 'r')
 
+    f = open(index, 'r')
+    nentries = 0
+    for line in f:
+	nentries = nentries + 1
+    f.close();
+
+    f = open(index, 'r')
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return ScopelistWrapper(f, BASEURI)
+    return ScopelistWrapper(f, BASEURI, nentries)
 
 # Get file handle and attributes for a Diamond object
 def diamond_object_app(environ, start_response):

@@ -26,11 +26,13 @@ def guess_mime_type(path):
     else:
 	return extensions['']
 
-def ScopelistWrapper(list, base_uri):
+def ScopelistWrapper(list, base_uri, nentries=0):
     yield '<?xml version="1.0" encoding="UTF-8" ?>'
     if STYLE:
 	yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>'
-    yield '<objectlist>'
+    count = ''
+    if nentries: count='count="%d"' % nentries
+    yield '<objectlist %s>' % count
     for path in list:
 	yield '<object src="%s/%s" />' % (base_uri, path.strip())
     if hasattr(list, 'close'):

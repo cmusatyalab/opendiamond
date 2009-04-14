@@ -45,6 +45,9 @@
 
     $action = (isset($_GET['action'])) ?  $_GET['action'] : "front_page";
     $username = (isset($_POST['username'])) ?  $_POST['username'] : "";
+    if ($username == '') {
+	$username = (isset($_POST['newuser'])) ?  $_POST['newuser'] : "";
+    }
     $collections = (isset($_POST['coll'])) ?  $_POST['coll'] : "";
 
     // Update set of accessible collections for a user

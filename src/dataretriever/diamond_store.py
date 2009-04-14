@@ -15,6 +15,7 @@
 #
 
 from dataretriever.util import ScopelistWrapper, guess_mime_type
+import rfc822
 import os
 import re
 
@@ -62,20 +63,27 @@ def diamond_scope_app(environ, start_response):
 
 # Get file handle and attributes for a Diamond object
 def diamond_object_app(environ, start_response):
-    path = environ['PATH_INFO']
-    path = os.path.join(DATAROOT, path)
-    f = open(path, 'rb')
+    path = os.path.join(DATAROOT, environ['PATH_INFO'])
 
-    # http response headers
-    fs = os.fstat(f.fileno())
-    headers = [
-	('Content-Type', guess_mime_type(path)),
-	('Content-Length', str(fs[6])),
-    ]
+    f = open(path, 'rb')
+    stat = os.fstat(f.fileno())
+    etag = str(stat.st_mtime) + "_" + str(stat.st_size)
+    headers = [('Content-Type', guess_mime_type(path)),
+	       ('Content-Length', str(stat.st_size)),
+	       ('Last-Modified', rfc822.formatdate(stat.st_mtime)),
+	       ('ETag', etag)]
+
     for key, value in diamond_textattr(path):
-	# we probably should filter out characters that are invalid in HTTP headers
+	# we probably should filter out invalid characters for HTTP headers
 	key = 'x-attr-' + key
 	headers.append((key, value))
+
+    if_modified = environ.get('HTTP_IF_MODIFIED_SINCE')
+    if_none = environ.get('HTTP_IF_NONE_MATCH')
+    if (if_modified and (rfc822.parsedate(if_modified) >= stat.st_mtime)) or \
+       (if_none and (if_none == '*' or etag in if_none)):
+	start_response("304 Not Modified", headers)
+	return [""]
 
     start_response("200 OK", headers)
     # wrap the file object in an iterator that reads the file in 64KB blocks

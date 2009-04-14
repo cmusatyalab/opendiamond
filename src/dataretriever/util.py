@@ -88,8 +88,7 @@ class DataRetriever:
 	self.handlers['scopelist.xsl'] = scopelist_xsl
 
     def __call__(self, environ, start_response):
-	if 'wsgi.file_wrapper' not in environ:
-	    environ['wsgi.file_wrapper'] = FileWrapper
+	environ.setdefault('wsgi.file_wrapper', FileWrapper)
 
 	root = shift_path_info(environ)
 
@@ -102,9 +101,13 @@ class DataRetriever:
 
 	try:
 	    handler = self.handlers[root]
-	    return handler(environ, start_response)
+	    response = handler(environ, start_response)
 	except KeyError, IOError:
 	    headers = [("Content-Type", "text/plain")]
 	    start_response("404 Object not found", headers)
-	    return ['Object not found']
+	    response = ['Object not found']
+
+	if environ['REQUEST_METHOD'] == 'HEAD':
+	    return [""]
+	return response
 

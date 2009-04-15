@@ -22,10 +22,11 @@ parser.add_option("-p", "--port",   dest="port", default="5873")
 (options, args) = parser.parse_args()
 
 from dataretriever.util import DataRetriever
-from dataretriever import diamond_store
+from dataretriever import diamond_store, mirage_store
 
 app = DataRetriever({
     'collection':	diamond_store.scope_app,
+    'mirage':		mirage_store.scope_app,
 })
 
 def run():

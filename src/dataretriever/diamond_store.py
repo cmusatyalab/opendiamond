@@ -77,7 +77,7 @@ def scope_app(environ, start_response):
     if root == 'obj':
 	return object_app(environ, start_response)
 
-    index = 'GIDIDX' + root.replace(':','').upper()
+    index = 'GIDIDX' + root.upper()
     index = os.path.join(INDEXDIR, index)
 
     start_response("200 OK", [('Content-Type', "text/xml")])

@@ -13,6 +13,7 @@
 
 #include <strings.h>
 #include <string.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -233,12 +234,7 @@ void dataretriever_start_search(odisk_state_t *odisk)
 	SoupURI *uri;
 	groupid_t gid = odisk->gid_list[i];
 
-	snprintf(gid_string, 40,
-		 "%02X%%3A%02X%%3A%02X%%3A%02X%%3A%02X%%3A%02X%%3A%02X%%3A%02X",
-		 (uint32_t)((gid >> 56) & 0xff), (uint32_t)((gid >> 48) & 0xff),
-		 (uint32_t)((gid >> 40) & 0xff), (uint32_t)((gid >> 32) & 0xff),
-		 (uint32_t)((gid >> 24) & 0xff), (uint32_t)((gid >> 16) & 0xff),
-		 (uint32_t)((gid >>  8) & 0xff), (uint32_t)(gid & 0xff));
+	snprintf(gid_string, 40, "%016" PRIX64, gid);
 
 	uri = soup_uri_new_with_base(collection_base_uri, gid_string);
 	dataretriever_fetch_scopelist(uri, odisk->queue);

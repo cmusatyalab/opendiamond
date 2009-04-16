@@ -40,6 +40,8 @@ AC_SUBST(PKGCONFIG_REQUIRES)
 
 # glib
 PKG_CHECK_MODULES(GLIB2, [glib-2.0, gthread-2.0])
+PKG_CHECK_EXISTS([glib-2.0 < 2.16],
+    [ AC_DEFINE([HAVE_GLIB2_OLD], [1], [Have a old version of glib-2.0]) ])
 
 # minirpc
 PKG_CHECK_MODULES(MINIRPC, [minirpc > 0.2])
@@ -47,7 +49,10 @@ MINIRPCGEN="`pkg-config --variable=MINIRPCGEN minirpc`"
 AC_SUBST(MINIRPCGEN)
 
 # libsoup
-PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.24])
+PKG_CHECK_EXISTS([libsoup-2.4],
+    [ PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.24.3]) ],
+    [ PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.2 >= 2.2.100],
+	[ AC_DEFINE([HAVE_LIBSOUP22], [1], [Have libsoup version 2.2]) ]) ])
 
 # libs
 AC_SEARCH_LIBS([sqrt], [m],, AC_MSG_FAILURE([cannot find math library]))

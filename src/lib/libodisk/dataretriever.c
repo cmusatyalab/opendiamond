@@ -11,6 +11,10 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <strings.h>
 #include <string.h>
 #include <inttypes.h>
@@ -24,6 +28,60 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 #include "lib_log.h"
+
+
+/* compatibility wrappers for libsoup-2.2 */
+#ifdef HAVE_LIBSOUP22
+#define SoupURI SoupUri
+#define soup_session_cancel_message(session, message, status) \
+	soup_session_cancel_message(session, message)
+#define soup_session_pause_message(session, message) \
+	soup_message_io_pause(message)
+#define soup_session_unpause_message(session, message) \
+	soup_message_io_unpause(message)
+#define soup_message_set_accumulate(msg, yesno) do { \
+	guint flags = soup_message_get_flags(msg); \
+	if (yesno) flags &= ~SOUP_MESSAGE_OVERWRITE_CHUNKS; \
+	else       flags |= SOUP_MESSAGE_OVERWRITE_CHUNKS; \
+	soup_message_set_flags(msg, flags); \
+    } while(0)
+#define soup_message_headers_foreach(headers, function, user_data) \
+	soup_message_foreach_header(headers, (GHFunc)function, user_data)
+#define soup_message_body_flatten(body) ((void *)0)
+#define soup_buffer_free(buf)
+#define SoupBuffer void
+
+#define scopelist_got_chunk(message, buffer, user_data) \
+	scopelist_got_chunk(message, user_data)
+#define RESPONSE_BUFFER ((void *)(msg)->response.body)
+#define RESPONSE_LENGTH ((msg)->response.length)
+
+#else /* HAVE_LIBSOUP24 */
+#define soup_message_set_accumulate(msg, yesno) \
+	soup_message_body_set_accumulate((msg)->response_body, yesno)
+#define RESPONSE_BUFFER ((void *)(buf)->data)
+#define RESPONSE_LENGTH ((buf)->length)
+#endif
+
+#ifdef HAVE_GLIB2_OLD
+#define g_async_queue_new_full(freeitem) g_async_queue_new()
+
+#define G_MARKUP_COLLECT_INVALID  0
+#define G_MARKUP_COLLECT_STRING   0
+#define G_MARKUP_COLLECT_OPTIONAL 0
+/* extremely minimal implementation as we only need to find one string value */
+gboolean g_markup_collect_attributes (const gchar *element_name,
+	const gchar **attribute_names, const gchar **attribute_values,
+	GError **error, int type, const gchar *attr, const gchar **value, ...)
+{
+    for (; *attribute_names; attribute_names++, attribute_values++)
+	if (strcmp(*attribute_names, attr) == 0)
+	    break;
+    *value = *attribute_values;
+    return (*attribute_names != NULL);
+}
+#endif
+
 
 /*************************************/
 /* Initialize data retriever globals */
@@ -98,7 +156,6 @@ void dataretriever_init(const char *base_uri)
     collection_base_uri = soup_uri_new(base_uri);
 
     scopelist_sess = soup_session_sync_new_with_options(
-	SOUP_SESSION_USER_AGENT,	"OpenDiamond-adiskd ",
 	SOUP_SESSION_MAX_CONNS,		 1,
 	SOUP_SESSION_MAX_CONNS_PER_HOST, 1,
 	NULL);
@@ -106,17 +163,9 @@ void dataretriever_init(const char *base_uri)
 		     G_CALLBACK(request_unqueued), NULL);
 
     object_session = soup_session_sync_new_with_options(
-	SOUP_SESSION_USER_AGENT,	"OpenDiamond-adiskd ",
 	SOUP_SESSION_MAX_CONNS,		64,
 	SOUP_SESSION_MAX_CONNS_PER_HOST, 8,
 	NULL);
-
-    if (odisk_http_debug) {
-	SoupLogger *logger = soup_logger_new(SOUP_LOGGER_LOG_HEADERS, -1);
-	soup_session_add_feature(scopelist_sess, SOUP_SESSION_FEATURE(logger));
-	soup_session_add_feature(object_session, SOUP_SESSION_FEATURE(logger));
-	g_object_unref(logger);
-    }
 }
 
 
@@ -174,13 +223,14 @@ static const GMarkupParser scopelist_parser = {
 /* Fetch scopelist from the data retriever and pass it to the XML parser */
 
 /* Called as the scope list is received from the data retriever */
-static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *b, gpointer ud)
+static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *buf, gpointer ud)
 {
     struct fetch_state *state = ud;
     struct queue_msg *qmsg;
 
     if (state->error) return;
-    if (!g_markup_parse_context_parse(state->context, b->data, b->length,
+    if (!g_markup_parse_context_parse(state->context,
+				      RESPONSE_BUFFER, RESPONSE_LENGTH,
 				      &state->error))
     {
 	soup_session_cancel_message(scopelist_sess, msg, SOUP_STATUS_MALFORMED);
@@ -208,7 +258,7 @@ static void dataretriever_fetch_scopelist(SoupURI *uri, GAsyncQueue *queue)
 	g_markup_parse_context_new(&scopelist_parser, 0, state, NULL);
 
     msg = soup_message_new_from_uri("GET", uri);
-    soup_message_body_set_accumulate(msg->response_body, FALSE);
+    soup_message_set_accumulate(msg, FALSE);
 
     g_object_set_data(G_OBJECT(msg), "parse-context", state);
     g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk), state);
@@ -316,7 +366,7 @@ static void get_attribute(const char *name, const char *value, gpointer udata)
 obj_data_t *dataretriever_fetch_object(const char *uri_string)
 {
     SoupMessage *msg;
-    SoupBuffer *body;
+    SoupBuffer *buf;
     obj_data_t *obj;
 
     msg = soup_message_new("GET", uri_string);
@@ -334,9 +384,10 @@ obj_data_t *dataretriever_fetch_object(const char *uri_string)
 
     soup_message_headers_foreach(msg->response_headers,
 				 get_attribute, &obj->attr_info);
-    body = soup_message_body_flatten(msg->response_body);
-    obj_write_attr(&obj->attr_info, OBJ_DATA, body->length, (void *)body->data);
-    soup_buffer_free(body);
+
+    buf = soup_message_body_flatten(msg->response_body);
+    obj_write_attr(&obj->attr_info, OBJ_DATA, RESPONSE_LENGTH, RESPONSE_BUFFER);
+    soup_buffer_free(buf);
 
     g_object_unref(msg);
     return obj;

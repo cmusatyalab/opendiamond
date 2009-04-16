@@ -38,18 +38,57 @@ static long odisk_http_debug;
 	fprintf(stderr, "%s: " msg, __FUNCTION__, ## __VA_ARGS__); \
 } while(0)
 
+struct fetch_state {
+    SoupURI *scope_uri;
+    GAsyncQueue *queue;
+    GMarkupParseContext *context;
+    GError *error;
+};
+
+struct queue_msg {
+    enum { URI, COUNT, PAUSED, DONE } type;
+    union {
+	SoupURI *uri;
+	int64_t count;
+	SoupMessage *msg;
+    } u;
+};
+
+static void free_queue_msg(gpointer data)
+{
+    struct queue_msg *qmsg = data;
+    if (qmsg->type == URI)
+	soup_uri_free(qmsg->u.uri);
+    else if (qmsg->type == PAUSED)
+	soup_session_cancel_message(scopelist_sess, qmsg->u.msg,
+				    SOUP_STATUS_CANCELLED);
+    g_slice_free(struct queue_msg, qmsg);
+}
+
 /* Called when a request has completed */
 static void request_unqueued(SoupSession *session, SoupMessage *msg,
 			     SoupSocket *socket, gpointer user_data)
 {
-    GMarkupParseContext *context =
-	g_object_get_data(G_OBJECT(msg), "parse-context");
-    DBG("msg %p context %p\n", msg, context);
-    if (context) {
-	g_markup_parse_context_end_parse(context, NULL);
-	g_markup_parse_context_free(context);
-	g_object_set_data(G_OBJECT(msg), "parse-context", NULL);
-    }
+    struct fetch_state *state;
+    struct queue_msg *qmsg;
+
+    state = g_object_get_data(G_OBJECT(msg), "parse-context");
+    if (!state) return;
+    g_object_set_data(G_OBJECT(msg), "parse-context", NULL);
+
+    if (!state->error)
+	g_markup_parse_context_end_parse(state->context, &state->error);
+
+    qmsg = g_slice_new0(struct queue_msg);
+    qmsg->type = DONE;
+    g_async_queue_push(state->queue, qmsg);
+
+    /* release resources */
+    g_async_queue_unref(state->queue);
+    soup_uri_free(state->scope_uri);
+    g_markup_parse_context_free(state->context);
+    if (state->error) g_error_free(state->error);
+    g_free(state);
 }
 
 void dataretriever_init(const char *base_uri)
@@ -83,45 +122,6 @@ void dataretriever_init(const char *base_uri)
 
 /*******************************************/
 /* Parse scopelist and extract object URLs */
-
-struct queue_msg {
-    enum { URI, COUNT, PAUSED, DONE } type;
-    union {
-	SoupURI *uri;
-	int64_t count;
-	SoupMessage *msg;
-    } u;
-};
-
-static void free_queue_msg(gpointer data)
-{
-    struct queue_msg *qmsg = data;
-    if (qmsg->type == URI)
-	soup_uri_free(qmsg->u.uri);
-    else if (qmsg->type == PAUSED)
-	soup_session_cancel_message(scopelist_sess, qmsg->u.msg,
-				    SOUP_STATUS_CANCELLED);
-    g_slice_free(struct queue_msg, qmsg);
-}
-
-struct fetch_state {
-    SoupURI *scope_uri;
-    GAsyncQueue *queue;
-};
-
-static void free_fetch_state(gpointer data)
-{
-    struct fetch_state *state = data;
-    struct queue_msg *qmsg = g_slice_new0(struct queue_msg);
-
-    DBG("state %p\n", state);
-    qmsg->type = DONE;
-    g_async_queue_push(state->queue, qmsg);
-    g_async_queue_unref(state->queue);
-    soup_uri_free(state->scope_uri);
-    g_free(state);
-}
-
 static void start_element(GMarkupParseContext *ctx, const gchar *element_name,
 			  const gchar **attr_names, const gchar **attr_values,
 			  gpointer user_data, GError **err)
@@ -176,12 +176,16 @@ static const GMarkupParser scopelist_parser = {
 /* Called as the scope list is received from the data retriever */
 static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *b, gpointer ud)
 {
-    GMarkupParseContext *context = ud;
-    struct fetch_state *state = g_markup_parse_context_get_user_data(context);
+    struct fetch_state *state = ud;
     struct queue_msg *qmsg;
 
-    if (!g_markup_parse_context_parse(context, b->data, b->length, NULL))
+    if (state->error) return;
+    if (!g_markup_parse_context_parse(state->context, b->data, b->length,
+				      &state->error))
+    {
 	soup_session_cancel_message(scopelist_sess, msg, SOUP_STATUS_MALFORMED);
+	return;
+    }
 
     DBG("Pausing %p (qlen %d)\n", msg, g_async_queue_length(state->queue));
     soup_session_pause_message(scopelist_sess, msg);
@@ -194,22 +198,20 @@ static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *b, gpointer ud)
 
 static void dataretriever_fetch_scopelist(SoupURI *uri, GAsyncQueue *queue)
 {
-    GMarkupParseContext *context;
-    SoupMessage *msg;
     struct fetch_state *state;
+    SoupMessage *msg;
 
     state = g_new0(struct fetch_state, 1);
     state->scope_uri = uri;
     state->queue = g_async_queue_ref(queue);
-
-    context = g_markup_parse_context_new(&scopelist_parser, 0,
-					 state, free_fetch_state);
+    state->context =
+	g_markup_parse_context_new(&scopelist_parser, 0, state, NULL);
 
     msg = soup_message_new_from_uri("GET", uri);
     soup_message_body_set_accumulate(msg->response_body, FALSE);
 
-    g_object_set_data(G_OBJECT(msg), "parse-context", context);
-    g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk),context);
+    g_object_set_data(G_OBJECT(msg), "parse-context", state);
+    g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk), state);
 
     soup_session_queue_message(scopelist_sess, msg, NULL, NULL);
 }

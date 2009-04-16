@@ -41,9 +41,6 @@ AC_SUBST(PKGCONFIG_REQUIRES)
 # glib
 PKG_CHECK_MODULES(GLIB2, [glib-2.0, gthread-2.0])
 
-# sqlite3
-PKG_CHECK_MODULES(SQLITE3, [sqlite3])
-
 # minirpc
 PKG_CHECK_MODULES(MINIRPC, [minirpc > 0.2])
 MINIRPCGEN="`pkg-config --variable=MINIRPCGEN minirpc`"

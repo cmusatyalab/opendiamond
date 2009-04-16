@@ -2,7 +2,7 @@ Source: opendiamond
 Section: unknown
 Priority: optional
 Maintainer: diamond <diamond@cs.cmu.edu>
-Build-Depends: debhelper (>= 4.0.0), automake, libtool, flex, libssl-dev (>= 0.9.7), libglib2.0-dev, libsqlite3-dev, libminirpc-dev, libcurl-ssl-dev
+Build-Depends: debhelper (>= 4.0.0), automake, libtool, flex, libssl-dev (>= 0.9.7), libglib2.0-dev, libminirpc-dev, libsoup2.4-dev
 Build-Conflicts: autoconf2.13
 Standards-Version: 3.6.2
 

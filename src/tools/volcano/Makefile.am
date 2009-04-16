@@ -1,6 +1,6 @@
 bin_PROGRAMS = volcano
 
-volcano_LDADD = $(top_builddir)/lib/libopendiamond.la  ${SQLITE3_LIBS}
-AM_CPPFLAGS += ${SQLITE3_CFLAGS}
+AM_CPPFLAGS += -I../../sqlite
+volcano_LDADD = $(top_builddir)/lib/libopendiamond.la ../../sqlite/libsqlite.la
 
 volcano_SOURCES = volcano.c helper.c helper.h

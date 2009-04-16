@@ -28,7 +28,6 @@ typedef struct gid_idx_ent {
 #define MAX_HOST_NAME	255
 
 struct odisk_state {
-	char            odisk_indexdir[MAX_DIR_PATH];
 	groupid_t       gid_list[MAX_GID_FILTER];
 	char		odisk_name[MAX_HOST_NAME];
 	int             num_gids;

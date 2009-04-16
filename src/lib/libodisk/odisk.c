@@ -510,22 +510,12 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 {
 	odisk_state_t  *new_state;
 	int             err;
-	char           *indexdir;
 	int             i;
 
 	if (!base_uri)
 	    base_uri = "http://localhost:5873/collection/";
 
 	dataretriever_init(base_uri);
-
-	indexdir = dconf_get_indexdir();
-	if (strlen(indexdir) > (MAX_DIR_PATH - 1)) {
-		log_message(LOGT_DISK, LOGL_ERR,
-		    "odisk_init: indexdir (%s) exceeds MAX_DIR_PATH",
-		    indexdir);
-		free(indexdir);
-		return (EINVAL);
-	}
 
 	/*
 	 * make sure we have a reasonable umask 
@@ -545,10 +535,6 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 			  &new_state->obj_load);
 	dctl_register_u32(DEV_OBJ_PATH, "next_blocked", O_RDONLY,
 			  &new_state->next_blocked);
-
-	/* the length has already been tested above */
-	strcpy(new_state->odisk_indexdir, indexdir);
-	free(indexdir);
 
 	/*
 	 * get the host name 

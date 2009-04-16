@@ -36,7 +36,6 @@
 
 static int  have_error(yyscan_t scanner);
 static int  set_cache_dir(char *name);
-static int  set_index_dir(char *name);
 static int  set_log_dir(char *name);
 static int  set_data_type(data_type_t type);
 
@@ -45,8 +44,7 @@ static void do_init(void);
 
 typedef struct	dconfig_info {
 	char *		dconf_cachedir;
-	char *		dconf_indexdir;
-	char *      dconf_logdir;
+	char *		dconf_logdir;
 	data_type_t	dconf_dtype;
 } dconf_info_t;
 
@@ -68,8 +66,8 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
 %%
 #.*\n
 DATAROOT[ \t]+.*\n
+INDEXDIR[ \t]+.*\n
 CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yyget_text(yyscanner)));}
-INDEXDIR[ \t]+[[:alnum:]\-_\/]+	{set_index_dir(eat_token(yyget_text(yyscanner)));}
 LOGDIR[ \t]+[[:alnum:]\-_\/]+	{set_log_dir(eat_token(yyget_text(yyscanner)));}
 DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
 DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
@@ -164,26 +162,10 @@ dconf_get_spec_cachedir(void)
 }
 
 static int
-set_index_dir(char *dir)
-{
-	dinfo->dconf_indexdir = strdup(dir);
-	return(0);
-}
-
-static int
 set_log_dir(char *dir)
 {
 	dinfo->dconf_logdir = strdup(dir);
 	return(0);
-}
-
-char *
-dconf_get_indexdir(void)
-{
-	char *dir;
-	do_init();
-	dir = strdup(dinfo->dconf_indexdir);
-	return(dir);
 }
 
 char *

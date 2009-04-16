@@ -21,12 +21,11 @@ parser.add_option("-l", "--listen", dest="host", default="127.0.0.1",
 parser.add_option("-p", "--port",   dest="port", default="5873")
 (options, args) = parser.parse_args()
 
-from dataretriever.diamond_store import diamond_scope_app, diamond_object_app
 from dataretriever.util import DataRetriever
+from dataretriever import diamond_store
 
 app = DataRetriever({
-    'collection':	diamond_scope_app,
-    'object':		diamond_object_app,
+    'collection':	diamond_store.scope_app,
 })
 
 def run():
@@ -45,3 +44,4 @@ def run():
 
 if __name__ == '__main__':
     run()
+

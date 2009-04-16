@@ -14,10 +14,22 @@
 # Functions to access the OpenDiamond content store
 #
 
-from dataretriever.util import ScopelistWrapper, guess_mime_type
+# we could return file URLs iff running locally and there are no text attributes
+#OBJECT_URI = 'file://' + DATAROOT
+OBJECT_URI = 'obj'
+
+# include a reference to xslt stylesheet (only useful for debugging)
+STYLE = False
+
+from dataretriever.util import guess_mime_type
+from wsgiref.util import shift_path_info
+from urllib import quote
 import rfc822
 import os
 import re
+
+__all__ = ['scope_app', 'object_app']
+
 
 # Read settings from $HOME/.diamond/diamond.config
 def diamond_config():
@@ -42,15 +54,7 @@ dconfig = diamond_config()
 INDEXDIR = dconfig['INDEXDIR']
 DATAROOT = dconfig['DATAROOT']
 
-# we could return file URLs iff running locally and there are no text attributes
-BASEURI = '/object'
-#BASEURI = 'file://' + DATAROOT
-
-def diamond_scope_app(environ, start_response):
-    path = environ['PATH_INFO']
-    index = 'GIDIDX' + path.replace(':','').upper()
-    index = os.path.join(INDEXDIR, index)
-
+def GIDIDXParser(index):
     f = open(index, 'r')
     nentries = 0
     for line in f:
@@ -58,12 +62,31 @@ def diamond_scope_app(environ, start_response):
     f.close();
 
     f = open(index, 'r')
+    yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
+    if STYLE:
+	yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
+    yield '<objectlist count="%d">\n' % nentries
+    for path in f:
+	yield '<object src="%s/%s" />\n' % (OBJECT_URI, quote(path.strip()))
+    yield '</objectlist>'
+    f.close()
+
+
+def scope_app(environ, start_response):
+    root = shift_path_info(environ)
+    if root == 'obj':
+	return object_app(environ, start_response)
+
+    index = 'GIDIDX' + root.replace(':','').upper()
+    index = os.path.join(INDEXDIR, index)
+
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return ScopelistWrapper(f, BASEURI, nentries)
+    return GIDIDXParser(index)
+
 
 # Get file handle and attributes for a Diamond object
-def diamond_object_app(environ, start_response):
-    path = os.path.join(DATAROOT, environ['PATH_INFO'])
+def object_app(environ, start_response):
+    path = os.path.join(DATAROOT, environ['PATH_INFO'][1:])
 
     f = open(path, 'rb')
     stat = os.fstat(f.fileno())

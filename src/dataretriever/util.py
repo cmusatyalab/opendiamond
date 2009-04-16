@@ -14,9 +14,7 @@
 # Helper functions for an OpenDiamond DataRetriever WSGI application
 #
 
-STYLE = False	# export XML stylesheet for web browsers
-
-__all__ = ["guess_mime_type", "ScopelistWrapper", "DataRetriever", "run_server"]
+__all__ = ["guess_mime_type", "DataRetriever", "run_server"]
 
 # the following mime type guessing is from SimpleHTTPServer.py
 import posixpath
@@ -37,19 +35,6 @@ def guess_mime_type(path):
 	return extensions[ext]
     else:
 	return extensions['']
-
-def ScopelistWrapper(list, base_uri, nentries=0):
-    yield '<?xml version="1.0" encoding="UTF-8" ?>'
-    if STYLE:
-	yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>'
-    count = ''
-    if nentries: count='count="%d"' % nentries
-    yield '<objectlist %s>' % count
-    for path in list:
-	yield '<object src="%s/%s" />' % (base_uri, path.strip())
-    if hasattr(list, 'close'):
-	list.close()
-    yield '</objectlist>'
 
 # return xslt stylesheet which makes browsers show the scope list as thumbnails.
 # guaranteed to bring chaos with any decent data set.
@@ -93,10 +78,8 @@ class DataRetriever:
 	root = shift_path_info(environ)
 
 	# clean up remaining path components
-	path = environ['PATH_INFO']
-	path = posixpath.normpath(path)
-	comp = path.split('/')
-	comp = filter(lambda x: x and x not in ('.','..'), comp)
+	path = posixpath.normpath(environ['PATH_INFO'])
+	comp = [p for p in path.split('/') if p not in ('.', '..')]
 	environ['PATH_INFO'] = '/'.join(comp)
 
 	try:

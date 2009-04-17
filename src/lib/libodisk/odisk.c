@@ -313,18 +313,13 @@ odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 
 		/* update total filter run time */
 		sprintf(timebuf, FLTRTIME_FN, pr_obj->filters[i]);
-		err = obj_write_attr(&(*new_object)->attr_info, timebuf,
-				     sizeof(time_ns), (void *) &time_ns);
-		if (err != 0)
-			printf("CHECK OBJECT %016llX ATTR FILE\n",
-			       pr_obj->obj_id);
+		obj_write_attr(&(*new_object)->attr_info, timebuf,
+			       sizeof(time_ns), (void *) &time_ns);
 	}
 
 	/* update total filter run time */
-	err = obj_write_attr(&(*new_object)->attr_info,
-			     FLTRTIME, sizeof(stack_ns), (void *) &stack_ns);
-	if (err != 0)
-		printf("CHECK OBJECT %016llX ATTR FILE\n", pr_obj->obj_id);
+	obj_write_attr(&(*new_object)->attr_info, FLTRTIME, sizeof(stack_ns),
+		       (void *) &stack_ns);
 	return (0);
 }
 

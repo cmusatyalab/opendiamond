@@ -99,7 +99,6 @@ mark_end(void)
 
 	pr_obj = (pr_obj_t *) malloc(sizeof(*pr_obj));
 	assert(pr_obj != NULL);
-	pr_obj->obj_id = 0;
 	pr_obj->obj_name = NULL;
 	pr_obj->oattr_fnum = -1;
 	pr_obj->stack_ns = 0;

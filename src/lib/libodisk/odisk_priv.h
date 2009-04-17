@@ -58,7 +58,6 @@ struct session_variables_state {
 
 
 struct pr_obj {
-	uint64_t 	obj_id;
 	char *		obj_name;
 	int 		oattr_fnum;
 	char *		filters[MAX_FILTERS];

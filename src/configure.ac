@@ -50,7 +50,7 @@ AC_SUBST(MINIRPCGEN)
 
 # libsoup
 PKG_CHECK_EXISTS([libsoup-2.4],
-    [ PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.24.3]) ],
+    [ PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.24.1]) ],
     [ PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.2 >= 2.2.100],
 	[ AC_DEFINE([HAVE_LIBSOUP22], [1], [Have libsoup version 2.2]) ]) ])
 

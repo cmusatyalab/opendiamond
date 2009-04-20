@@ -399,7 +399,7 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 	obj_data_t *obj = (obj_data_t *)ohandle;
 	char *attr_name;
 	sig_val_t *attr_sig;
-	struct acookie *cookie;
+	struct acookie *cookie = NULL;
 	int ret, rc;
 	sqlite_int64 rowid;
 	sqlite3_stmt *res;
@@ -451,6 +451,9 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 	}
 
 out_fail:
+	if (cookie)
+		free(cookie);
+
 	if (rc != SQLITE_OK)
 		sql_rollback(ocache_DB);
 	else	sql_commit(ocache_DB);

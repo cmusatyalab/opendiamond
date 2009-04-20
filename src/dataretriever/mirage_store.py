@@ -50,12 +50,7 @@ def MirageListVerboseParser(image_id):
 	if res['size'] == '0': # skip empty objects
 	    continue
 
-	attrs = '<attr name="content-id">%s</attr>' % image_id
-	for key, value in res.items():
-	    attrs = attrs + '<attr name="%s">%s</attr>' % (key, quote(value))
-
-	yield '<count adjust="1"><object src="obj/%s">%s</object>\n' % \
-	    (res['sha1sum'], attrs)
+	yield '<count adjust="1"><object src="obj/%s"/>\n' % res['sha1sum']
     yield '</objectlist>'
     p.stdout.close()
 
@@ -118,7 +113,7 @@ def scope_app(environ, start_response):
 
 
 def object_app(environ, start_response):
-    sha1sum = environ['PATH_INFO'].lower()
+    sha1sum = environ['PATH_INFO'][1:].lower()
     f = MirageObject(sha1sum)
 
     headers = [('Content-Length', str(f.length)), ('ETag', sha1sum)]

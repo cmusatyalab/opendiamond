@@ -671,6 +671,7 @@ ceval_filters1(char *objname, filter_data_t * fdata, void *cookie)
 		pr_obj->oattr_fnum = use_cache_oattr ? oattr_fnum : 0;
 		odisk_pr_add(pr_obj);
 	} else {
+		free(objname);
 		free(pr_obj);
 	}
 	return pass;

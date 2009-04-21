@@ -210,7 +210,7 @@ int sql_set_busy_handler(sqlite3 *db)
 /* This validates both the primary and attached databases */
 int sql_validate_db(sqlite3 *db)
 {
-	sqlite3_stmt *stmt;
+	sqlite3_stmt *stmt = NULL;
 	const char *str;
 	int result;
 

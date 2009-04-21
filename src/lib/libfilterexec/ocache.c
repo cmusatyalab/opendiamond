@@ -180,6 +180,7 @@ cache_setup(const char *dir)
 
 	sql_query(NULL, ocache_DB, "PRAGMA temp_store = MEMORY;", NULL);
 	sql_query(NULL, ocache_DB, "PRAGMA synchronous = OFF;", NULL);
+	sql_query(NULL, ocache_DB, "PRAGMA journal_mode = MEMORY;", NULL);
 	sql_query(&res, ocache_DB, "PRAGMA user_version;", NULL);
 	assert(res); /* PRAGMA user_version should always succeed */
 
@@ -308,7 +309,7 @@ int
 cache_lookup(sig_val_t *idsig, sig_val_t *fsig, query_info_t *qid,
 	     int *score, int64_t *cache_entry)
 {
-	sqlite3_stmt *res;
+	sqlite3_stmt *res = NULL;
 	int found = 0;
 
 	if (ocache_DB == NULL)
@@ -360,7 +361,7 @@ cache_combine_attr_set(query_info_t *qid, int64_t cache_entry)
 int
 cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry)
 {
-	sqlite3_stmt *res;
+	sqlite3_stmt *res = NULL;
 	int ret, err = ENOENT; /* return a non-zero error if we had no
 				  attributes cached for this cache_entry */
 	char *name;
@@ -402,7 +403,7 @@ ocache_add_initial_attrs(lf_obj_handle_t ohandle)
 	struct acookie *cookie = NULL;
 	int ret, rc;
 	sqlite_int64 rowid;
-	sqlite3_stmt *res;
+	sqlite3_stmt *res = NULL;
 	sqlite_int64 have_initial_attrs = 0;
 
 	if (!if_cache_table || ocache_DB == NULL)
@@ -489,7 +490,7 @@ cache_reset_current_attrs(query_info_t *qid, sig_val_t *idsig)
 int
 ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig)
 {
-	sqlite3_stmt *res;
+	sqlite3_stmt *res = NULL;
 	sqlite_int64 nattr = 0;
 
 	if (!if_cache_table || ocache_DB == NULL)
@@ -631,6 +632,7 @@ ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int score,
 
 	debug("Cache add attributes values\n");
 
+	res = NULL;
 	rc = sql_query(&res, ocache_DB,
 		       "SELECT name, sig FROM temp_oattrs;", NULL);
 	while (rc == SQLITE_ROW) {

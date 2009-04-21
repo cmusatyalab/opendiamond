@@ -14,13 +14,13 @@
 # Helper functions for an OpenDiamond DataRetriever WSGI application
 #
 
-__all__ = ["guess_mime_type", "DataRetriever", "run_server"]
+__all__ = ["guess_mime_type", "DataRetriever"]
 
-# the following mime type guessing is from SimpleHTTPServer.py
 import posixpath
 import mimetypes
 from wsgiref.util import FileWrapper, shift_path_info
 
+# the following mime type guessing is from SimpleHTTPServer.py
 if not mimetypes.inited:
     mimetypes.init()
 extensions = mimetypes.types_map.copy()

@@ -37,8 +37,11 @@ def run():
 			 protocol_version='HTTP/1.1',
 			 daemon_threads=True)
     except ImportError:
-	from wsgiref.simple_server import make_server
-	httpd = make_server(options.host, int(options.port), app)
+	from SocketServer import ForkingMixIn
+	from wsgiref.simple_server import WSGIServer, make_server
+	class Server(ForkingMixIn, WSGIServer): pass
+	httpd = make_server(options.host, int(options.port), app,
+			    server_class=Server)
 	sa = httpd.socket.getsockname()
 	print "DataRetriever listening on", sa[0], "port", sa[1], "..."
 	httpd.serve_forever()

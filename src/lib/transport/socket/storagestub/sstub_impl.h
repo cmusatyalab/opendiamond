@@ -53,7 +53,7 @@ typedef struct cstate {
 	int			control_fd;
 	struct mrpc_connection	*blast_conn;
 	int			data_fd;
-	int			search_id;
+	unsigned int		search_id;
 	int			pend_obj;
 	int			have_start;
 	void *			app_cookie;

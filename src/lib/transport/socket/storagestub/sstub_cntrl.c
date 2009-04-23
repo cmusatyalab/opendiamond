@@ -60,7 +60,8 @@ device_start(void *conn_data, struct mrpc_message *msg, start_x *in)
 
 	fprintf(stderr, "have_start pend %d\n", cstate->pend_obj);
 	if (cstate->pend_obj == 0) {
-		(*cstate->lstate->cb.start_cb) (cstate->app_cookie);
+		(*cstate->lstate->cb.start_cb)(cstate->app_cookie,
+					       cstate->search_id);
 	} else {
 		cstate->have_start = 1;
 	}
@@ -563,7 +564,8 @@ device_send_obj(void *conn_data, struct mrpc_message *msg, obj_x *in)
 	cstate->pend_obj--;
 
 	if (cstate->pend_obj== 0 && cstate->have_start) {
-		(*cstate->lstate->cb.start_cb) (cstate->app_cookie);
+		(*cstate->lstate->cb.start_cb)(cstate->app_cookie,
+					       cstate->search_id);
 		cstate->have_start = 0;
 	}
 	return MINIRPC_OK;

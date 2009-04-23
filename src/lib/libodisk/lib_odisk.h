@@ -53,7 +53,7 @@ diamond_public
 int odisk_clear_gids(struct odisk_state *odisk);
 
 diamond_public
-int odisk_reset(struct odisk_state *odisk);
+int odisk_reset(struct odisk_state *odisk, unsigned int search_id);
 
 diamond_public
 int odisk_num_waiting(struct odisk_state *odisk);

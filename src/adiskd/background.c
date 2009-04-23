@@ -593,6 +593,7 @@ bg_new_search(filter_opts_t *fops)
 	search_state_t *sstate;
 	query_info_t qinfo;
 	int err,i;
+	unsigned int search_id;
 
 	sstate = (search_state_t *) calloc(1, sizeof(*sstate));
 	if (sstate == NULL) {
@@ -729,7 +730,9 @@ bg_new_search(filter_opts_t *fops)
 
  	ceval_init_search(sstate->fdata, &qinfo, sstate->cstate);
 
-	err = odisk_reset(sstate->ostate);
+	/* pick a somewhat random-ish search_id */
+	srand(time(NULL)); search_id = rand();
+	err = odisk_reset(sstate->ostate, search_id);
 	if (err) {
 		/* XXX */
 		return;

@@ -246,10 +246,12 @@ static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *buf, gpointer ud)
     g_async_queue_push(state->queue, qmsg);
 }
 
-static void dataretriever_fetch_scopelist(SoupURI *uri, GAsyncQueue *queue)
+static void dataretriever_fetch_scopelist(SoupURI *uri, GAsyncQueue *queue,
+					  unsigned int search_id)
 {
     struct fetch_state *state;
     SoupMessage *msg;
+    char searchid[11];
 
     state = g_new0(struct fetch_state, 1);
     state->scope_uri = uri;
@@ -259,6 +261,9 @@ static void dataretriever_fetch_scopelist(SoupURI *uri, GAsyncQueue *queue)
 
     msg = soup_message_new_from_uri("GET", uri);
     soup_message_set_accumulate(msg, FALSE);
+
+    snprintf(searchid, 11, "%u", search_id);
+    soup_message_headers_replace(msg->request_headers, "x-searchid", searchid);
 
     g_object_set_data(G_OBJECT(msg), "parse-context", state);
     g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk), state);
@@ -289,7 +294,7 @@ void dataretriever_start_search(odisk_state_t *odisk)
 	snprintf(gid_string, 40, "%016" PRIX64, gid);
 
 	uri = soup_uri_new_with_base(collection_base_uri, gid_string);
-	dataretriever_fetch_scopelist(uri, odisk->queue);
+	dataretriever_fetch_scopelist(uri, odisk->queue, odisk->search_id);
     }
 }
 

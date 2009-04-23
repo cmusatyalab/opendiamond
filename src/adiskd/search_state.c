@@ -103,6 +103,7 @@ typedef struct {
 	union {
 		dev_blob_data_t bdata;
 		host_stats_t    hdata;
+		unsigned int	search_id;
 	} extra_data;
 } dev_cmd_data_t;
 
@@ -175,7 +176,7 @@ search_setlog(void *app_cookie, uint32_t level, uint32_t src)
 
 
 int
-search_start(void *app_cookie)
+search_start(void *app_cookie, unsigned int search_id)
 {
 	dev_cmd_data_t *cmd;
 	search_state_t *sstate;
@@ -193,6 +194,7 @@ search_start(void *app_cookie)
 		return (1);
 	}
 	cmd->cmd = DEV_START;
+	cmd->extra_data.search_id = search_id;
 
 	g_async_queue_push(sstate->control_ops, cmd);
 
@@ -364,7 +366,7 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		ceval_init_search(sstate->fdata, &qinfo, sstate->cstate);
 
 		// LBM - odisk group
-		err = odisk_reset(sstate->ostate);
+		err = odisk_reset(sstate->ostate, cmd->extra_data.search_id);
 		if (err) {
 			/*
 			 * XXX log 

@@ -549,9 +549,10 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 
 
 int
-odisk_reset(odisk_state_t * odisk)
+odisk_reset(odisk_state_t *odisk, unsigned int search_id)
 {
 	pthread_mutex_lock(&odisk_mutex);
+	odisk->search_id = search_id;
 	dataretriever_start_search(odisk);
 	search_active = 1;
 	search_done = 0;

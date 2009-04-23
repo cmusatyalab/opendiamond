@@ -101,7 +101,7 @@ typedef struct search_state {
 
 int             search_new_conn(void *cookie, void **app_cookie);
 int             search_close_conn(void *app_cookie);
-int             search_start(void *app_cookie);
+int             search_start(void *app_cookie, unsigned int search_id);
 int             search_stop(void *app_cookie, host_stats_t *hs);
 int             search_set_spec(void *app_cookie, sig_val_t *spec_sig);
 int             search_set_obj(void *app_cookie, sig_val_t *obj_sig);

@@ -1691,6 +1691,13 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 			       sstate->exec_mode, NULL, NULL, NULL);
 	}
 
+	/* make sure to keep search state correct, pend_objs is decremented
+	 * when the object is released. */
+	if (obj) {
+		sstate->pend_objs++;
+		sstate->pend_compute += obj->remain_compute;
+	}
+
 	pthread_mutex_unlock(&object_eval_mutex);
 
 	/* and now wake up the background thread, if necessary. */

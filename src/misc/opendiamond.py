@@ -5,7 +5,7 @@ import UserDict
 
 class odiskobj(UserDict.DictMixin):
     def __init__(self):
-        opendiamond = CDLL("libopendiamond.so.3")
+        opendiamond = CDLL("libopendiamond.so.3", mode=RTLD_GLOBAL)
 
         self._odisk_null_obj = opendiamond.odisk_null_obj
         self._odisk_null_obj.argtypes = []
@@ -48,7 +48,7 @@ class odiskobj(UserDict.DictMixin):
         return value.raw
 
     def __setitem__(self, key, value):
-        data = bytes(value)
+	data = str(value)
         self._lf_write_attr(self._obj, key, len(data), data)
 
     def keys(self):
@@ -68,9 +68,40 @@ class odiskobj(UserDict.DictMixin):
                                      byref(cookie))
         return result
 
+class rgbimg_filter():
+    def __init__(self):
+        filter = CDLL("/home/jaharkes/git/snapfind/src/target/lib/fil_rgb.so")
+
+        self._f_init = filter.f_init_img2rgb
+        self._f_init.argtypes = [c_int, c_void_p, c_int, c_void_p, c_char_p, c_void_p]
+        self._f_init.restype = c_int
+
+        self._f_fini = filter.f_fini_img2rgb
+        self._f_fini.argtypes = [c_void_p]
+        self._f_fini.restype = c_int
+
+        self._f_eval = filter.f_eval_img2rgb
+        self._f_eval.argtypes = [c_void_p, c_void_p]
+        self._f_eval.restype = c_int
+
+	self._data = c_void_p()
+	self._f_init(0, None, 0, None, "RGBIMG", byref(self._data))
+
+    def __del__(self):
+	self._f_fini(self._data)
+
+    def __call__(self, obj):
+	self._f_eval(obj._obj, self._data)
 
 if __name__ == '__main__':
     o = odiskobj()
     o['a'] = 12
     o['b'] = 'hello\0'
     print o
+
+    o[''] = open("img.jpg").read()
+
+    filter = rgbimg_filter()
+    filter(o)
+
+    print o 

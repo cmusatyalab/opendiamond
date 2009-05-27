@@ -52,7 +52,7 @@ void
 sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature)
 {
 	EVP_MD_CTX mdctx;
-	unsigned int i;
+	int i;
 
 	sig_cal_init();
 

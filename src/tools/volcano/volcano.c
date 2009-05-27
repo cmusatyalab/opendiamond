@@ -791,14 +791,6 @@ static void usage_create(void) {
                   "<content-server-1> [content-server-2]...\n");
 }
 
-static void usage_list(void) {
-  //TODO
-}
-
-static void usage_remove(void) {
-  //TODO
-}
-
 static void usage(void) {
   fprintf(stderr, "usage: volcano <command> <parameters>\n");
   fprintf(stderr, "Try volcano --help for help.\n");

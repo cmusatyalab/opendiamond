@@ -47,7 +47,7 @@
 static int is_array_member(GArray *output_set, const char *item)
 {
 	GQuark q = g_quark_from_string(item);
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < output_set->len; i++) {
 		if (q == g_array_index(output_set, GQuark, i))

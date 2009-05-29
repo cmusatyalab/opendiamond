@@ -1,5 +1,5 @@
-SUBDIRS = libtools libdconfig libdctl liblog libodisk libfilter \
-	libfilterexec transport libsearchlet libscope
+SUBDIRS = libtools libdconfig libdctl liblog libscope libodisk libfilter \
+	libfilterexec transport libsearchlet
 
 lib_LTLIBRARIES = libopendiamond.la
 

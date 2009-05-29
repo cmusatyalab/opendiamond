@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006 Carnegie Mellon University
+ *  Copyright (c) 2006-2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -140,8 +140,9 @@ main(int argc, char **argv)
 	cb_args.wleaf_cb = search_write_leaf;
 	cb_args.lnode_cb = search_list_nodes;
 	cb_args.lleaf_cb = search_list_leafs;
-	cb_args.sgid_cb = search_set_gid;
-	cb_args.clear_gids_cb = search_clear_gids;
+	cb_args.clear_scope_cb = search_clear_scope;
+	cb_args.set_scope_cb = search_set_scope;
+	cb_args.set_gid_cb = search_set_gid;
 	cb_args.set_blob_cb = search_set_blob;
 	cb_args.set_user_state_cb = search_set_user_state;
 	cb_args.get_session_vars_cb = search_get_session_vars;

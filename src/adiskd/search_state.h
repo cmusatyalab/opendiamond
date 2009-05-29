@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007-2008 Carnegie Mellon University
+ *  Copyright (c) 2007-2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -112,8 +112,9 @@ int             search_write_leaf(void *app_cookie, char *path, int len,
 				  char *data);
 dctl_lnode_t *  search_list_nodes(void *app_cookie, char *path);
 dctl_lleaf_t *  search_list_leafs(void *app_cookie, char *path);
+int		search_clear_scope(void *app_cookie);
+int		search_set_scope(void *app_cookie, const char *scope);
 int		search_set_gid(void *app_cookie, groupid_t gid);
-int		search_clear_gids(void *app_cookie);
 int		search_set_blob(void *app_cookie, char *name,
 				int blob_len, void *blob_data);
 int		search_set_user_state(void *app_cookie, uint32_t state);

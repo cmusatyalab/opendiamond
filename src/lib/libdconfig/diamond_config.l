@@ -7,6 +7,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -34,8 +35,9 @@
 #include "dconfig_priv.h"
 
 static int  have_error(yyscan_t scanner);
-static int  set_cache_dir(char *name);
-static int  set_log_dir(char *name);
+static int  set_cache_dir(const char *name);
+static int  set_log_dir(const char *name);
+static int  set_certfile(const char *name);
 static int  set_data_type(data_type_t type);
 
 static char * eat_token(char *str);
@@ -44,6 +46,7 @@ static void do_init(void);
 typedef struct	dconfig_info {
 	char *		dconf_cachedir;
 	char *		dconf_logdir;
+	char *		dconf_certfile;
 	data_type_t	dconf_dtype;
 } dconf_info_t;
 
@@ -68,6 +71,7 @@ DATAROOT[ \t]+.*\n
 INDEXDIR[ \t]+.*\n
 CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yyget_text(yyscanner)));}
 LOGDIR[ \t]+[[:alnum:]\-_\/]+	{set_log_dir(eat_token(yyget_text(yyscanner)));}
+CERTS[ \t]+[[:alnum:]\-_\/]+	{set_certfile(eat_token(yyget_text(yyscanner)));}
 DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
 DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
 .				{have_error(yyscanner); }
@@ -107,7 +111,7 @@ have_error(yyscan_t scanner)
  
 
 static int
-set_cache_dir(char *dir)
+set_cache_dir(const char *dir)
 {
 	dinfo->dconf_cachedir = strdup(dir);
 	return(0);
@@ -161,7 +165,7 @@ dconf_get_spec_cachedir(void)
 }
 
 static int
-set_log_dir(char *dir)
+set_log_dir(const char *dir)
 {
 	dinfo->dconf_logdir = strdup(dir);
 	return(0);
@@ -174,6 +178,21 @@ dconf_get_logdir(void)
 	do_init();
 	dir = strdup(dinfo->dconf_logdir);
 	return(dir);
+}
+
+static int
+set_certfile(const char *certfile)
+{
+	dinfo->dconf_certfile = strdup(certfile);
+	return(0);
+}
+
+char *
+dconf_get_certfile(void)
+{
+	do_init();
+	if (!dinfo->dconf_certfile) return NULL;
+	return strdup(dinfo->dconf_certfile);
 }
 
 static int

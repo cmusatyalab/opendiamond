@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007-2008 Carnegie Mellon University
+ *  Copyright (c) 2007-2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -1409,9 +1409,8 @@ search_set_gid(void *app_cookie, groupid_t gid)
 	return (0);
 }
 
-
 int
-search_clear_gids(void *app_cookie)
+search_clear_scope(void *app_cookie)
 {
 	int             err;
 	search_state_t *sstate;
@@ -1420,10 +1419,18 @@ search_clear_gids(void *app_cookie)
 	 * XXX check gen num 
 	 */
 	sstate = (search_state_t *) app_cookie;
-	err = odisk_clear_gids(sstate->ostate);
+	err = odisk_clear_scope(sstate->ostate);
 	assert(err == 0);
 	return (0);
 }
+
+int
+search_set_scope(void *app_cookie, const char *cookie)
+{
+	search_state_t *sstate = (search_state_t *) app_cookie;
+	return odisk_set_scope(sstate->ostate, cookie);
+}
+
 
 int
 search_set_blob(void *app_cookie, char *name, int blob_len, void *blob)

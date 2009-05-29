@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -19,6 +20,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <stddef.h>
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -44,6 +46,7 @@
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
 #include "ring.h"
+#include "scope_priv.h"
 
 
 #define	MAX_READ_THREADS	1
@@ -192,40 +195,60 @@ odisk_release_pr_obj(pr_obj_t * pobj)
 }
 
 int
-odisk_clear_gids(odisk_state_t * odisk)
+odisk_clear_scope(odisk_state_t *odisk)
 {
-	dataretriever_stop_search(odisk);
-	odisk->num_gids = 0;
-	return (0);
-}
-
-int
-odisk_set_gid(odisk_state_t * odisk, groupid_t gid)
-{
-	int             i;
-
-	/*
-	 * make sure this GID is not already in the list 
-	 */
-	for (i = 0; i < odisk->num_gids; i++) {
-		if (odisk->gid_list[i] == gid) {
-			return (0);
-		}
-	}
-
-	/*
-	 * make sure there is room for this new entry.
-	 */
-	if (odisk->num_gids >= MAX_GID_FILTER) {
-		return (ENOMEM);
-	}
+	struct scopecookie *cookie;
 
 	/* make sure there is no active search */
 	dataretriever_stop_search(odisk);
-	odisk->gid_list[odisk->num_gids] = gid;
-	odisk->num_gids++;
 
-	return (0);
+	/* drop scope cookies */
+	while (odisk->scope->len) {
+	    cookie = g_ptr_array_remove_index_fast(odisk->scope, 0);
+	    scopecookie_free(cookie);
+	}
+	return 0;
+}
+
+int
+odisk_set_scope(odisk_state_t *odisk, const char *scope)
+{
+	struct scopecookie *cookie;
+	int err;
+
+	/* make sure there is no active search */
+	dataretriever_stop_search(odisk);
+
+	cookie = scopecookie_parse(scope);
+	err = scopecookie_validate(cookie);
+	if (err) {
+	    scopecookie_free(cookie);
+	    return err;
+	}
+
+	g_ptr_array_add(odisk->scope, cookie);
+	return 0;
+}
+
+int
+odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
+{
+	struct scopecookie *cookie;
+	gchar *hosts[] = { "localhost", NULL };
+
+	/* make sure there is no active search */
+	dataretriever_stop_search(odisk);
+
+	/* create a fake scopecookie */
+	cookie = g_new0(struct scopecookie, 1);
+	cookie->servers = g_strdupv(hosts);
+	cookie->scopedata = g_strdup_printf("/collection/%016" PRIX64, gid);
+
+	cookie->rawdata = cookie->scopedata;
+	cookie->rawlen = strlen(cookie->scopedata);
+
+	g_ptr_array_add(odisk->scope, cookie);
+	return 0;
 }
 
 static int
@@ -507,7 +530,7 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 	int             i;
 
 	if (!base_uri)
-	    base_uri = "http://localhost:5873/collection/";
+	    base_uri = "http://localhost:5873/";
 
 	dataretriever_init(base_uri);
 
@@ -542,6 +565,8 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 				     odisk_main, (void *) new_state);
 	}
 
+	new_state->scope = g_ptr_array_new();
+
 	*odisk = new_state;
 	return (0);
 }
@@ -575,7 +600,8 @@ odisk_continue(void)
 int
 odisk_term(odisk_state_t * odisk)
 {
-	dataretriever_stop_search(odisk);
+	odisk_clear_scope(odisk);
+	g_ptr_array_free(odisk->scope, TRUE);
 	free(odisk);
 	return 0;
 }

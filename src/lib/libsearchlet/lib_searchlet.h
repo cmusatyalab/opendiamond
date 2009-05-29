@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -104,17 +105,14 @@ int ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as);
 
 /*!
  * This determines the set of objects we are going to search.  This takes
- * a list of group ID's that contain the set of objects we are going
- * to search.
+ * a scope definition which specifies the set of objects we are going to
+ * search.
  *
  * \param handle
  *		the search handle returned by ls_init_search().
  *
- * \param num_groups
- * 		the number of groups in the list.
- *
- * \param glist
- *		An array of groups with num_groups elements.
+ * \param megacookie
+ * 		one or more (concatenated) opendiamond scope cookies
  *
  * \return 0
  *		the call was successful.
@@ -123,13 +121,12 @@ int ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as);
  *		a search is currently active.
  *
  * \return EINVAL
- *		the handle or the search list is not valid.
+ *		the handle or the cookie was not valid.
  *
  */
 
 diamond_public
-int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
-                      groupid_t *glist);
+int ls_set_scope(ls_search_handle_t handle, const char *megacookie);
 
 
 /*!

@@ -3,7 +3,7 @@
 #  The OpenDiamond Platform for Interactive Search
 #  Version 4
 #
-#  Copyright (c) 2007 Carnegie Mellon University
+#  Copyright (c) 2007-2009 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -18,16 +18,12 @@
 #  scope file into ~/.diamond/ for libscope to read and parse.
 #
 
-
-# Remove All Blank Lines
-sed -i '/^$/d' $1
-
 # Ensure ~/.diamond exists
-mkdir -p ~/.diamond
-
-# Move NEWSCOPE into place
-cp $1 ~/.diamond/NEWSCOPE
+mkdir -p $HOME/.diamond
 
 # Set permissions
-chmod 644 ~/.diamond/NEWSCOPE 
+chmod 600 $1
+
+# Move NEWSCOPE into place
+mv $1 $HOME/.diamond/NEWSCOPE
 

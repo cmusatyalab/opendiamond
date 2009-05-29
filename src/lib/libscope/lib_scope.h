@@ -2,7 +2,7 @@
  *  The OpenDiamond Platform for Interactive Search
  *  Version 4
  *
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007-2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -31,6 +31,9 @@ extern "C"
 {
 #endif
 
+#include <glib.h>
+#include "lib_searchlet.h"
+
 /*!
  * \file lib_scope.h
  * \ingroup scope
@@ -38,9 +41,13 @@ extern "C"
  * future searches in the OpenDiamond system.
  */
 
+/* wrapper around ls_set_scope that loads the content of ~/.diamond/NEWSCOPE */
 diamond_public
-int ls_define_scope(void);
+int ls_define_scope(ls_search_handle_t handle);
 
+/* helpers for libsearchlet */
+gchar **scope_split_cookies(const gchar *megacookie);
+gchar **scope_get_servers(const gchar *cookie);
 
 #ifdef __cplusplus
 }

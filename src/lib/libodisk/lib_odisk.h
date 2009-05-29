@@ -3,6 +3,7 @@
  *  Version 4
  *
  *  Copyright (c) 2002-2005 Intel Corporation
+ *  Copyright (c) 2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -50,7 +51,10 @@ diamond_public
 int odisk_set_gid(struct odisk_state *odisk, groupid_t gid);
 
 diamond_public
-int odisk_clear_gids(struct odisk_state *odisk);
+int odisk_clear_scope(struct odisk_state *odisk);
+
+diamond_public
+int odisk_set_scope(struct odisk_state *odisk, const char *scope);
 
 diamond_public
 int odisk_reset(struct odisk_state *odisk, unsigned int search_id);

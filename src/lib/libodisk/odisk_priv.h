@@ -3,6 +3,7 @@
  *  Version 4
  *
  *  Copyright (c) 2002-2005 Intel Corporation
+ *  Copyright (c) 2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -24,14 +25,12 @@ typedef struct gid_idx_ent {
 
 /* maybe we need to remove this later */
 #define MAX_DIR_PATH    512
-#define MAX_GID_FILTER  64
 #define MAX_HOST_NAME	255
 
 struct odisk_state {
 	unsigned int	search_id;
-	groupid_t       gid_list[MAX_GID_FILTER];
+	GPtrArray	*scope;
 	char		odisk_name[MAX_HOST_NAME];
-	int             num_gids;
 	pthread_t       thread_id;
 	uint32_t        obj_load;
 	uint32_t        next_blocked;
@@ -40,16 +39,6 @@ struct odisk_state {
 	gint		fetchers;
 	uint64_t        count;
 };
-
-typedef struct gid_list {
-	int         num_gids;
-	groupid_t   gids[0];
-} gid_list_t;
-
-#define GIDLIST_SIZE(num)   (sizeof(gid_list_t) + (sizeof(groupid_t) * (num)))
-
-#define GIDLIST_NAME        "gid_list"
-
 
 struct session_variables_state {
 	pthread_mutex_t mutex;

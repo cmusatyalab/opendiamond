@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007-2008 Carnegie Mellon University
+ *  Copyright (c) 2007-2009 Carnegie Mellon University
  *
  *  All rights reserved.
  *
@@ -39,8 +39,6 @@ dctl_rleaf_t*	(*rleaf_cb)	(void *app_cookie, char *path);
 				 char *data);
 dctl_lleaf_t*	(*lleaf_cb)	(void *app_cookie, char *path);
 dctl_lnode_t*	(*lnode_cb)	(void *app_cookie, char *path);
-	int	(*sgid_cb)	(void *app_cookie, groupid_t gid);
-	int	(*clear_gids_cb) (void *app_cookie);
 	int	(*set_blob_cb)	(void *app_cookie, char *name,
 				 int blen, void *blob);
 	int	(*set_user_state_cb) (void *app_cookie, uint32_t state);
@@ -48,6 +46,9 @@ device_session_vars_t* (*get_session_vars_cb) (void *app_cookie);
 	int	(*set_session_vars_cb) (void *app_cookie,
 					device_session_vars_t *vars);
 	obj_data_t *(*reexecute_filters) (void *app_cookie, const char *obj_id);
+	int	(*clear_scope_cb) (void *app_cookie);
+	int	(*set_scope_cb)	(void *app_cookie, const char *scope);
+	int	(*set_gid_cb)	(void *app_cookie, groupid_t gid);
 } sstub_cb_args_t;
 
 diamond_public

@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2008 Carnegie Mellon University
+ *  Copyright (c) 2008-2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -45,8 +45,8 @@ int device_read_leaf(void *dev, char *path,
 		     dctl_data_type_t *dtype, int *dlen, void *dval);
 int device_list_nodes(void *dev, char *path, int *dlen, dctl_entry_t *dval);
 int device_list_leafs(void *dev, char *path, int *dlen, dctl_entry_t *dval);
-int device_new_gid(void *handle, groupid_t gid);
-int device_clear_gids(void *handle);
+int device_set_scope(void *handle, const char *cookie);
+int device_clear_scope(void *handle);
 int device_set_blob(void *handle, char *name, int blob_len, void *blob);
 int device_set_user_state(void *handle, uint32_t state);
 int device_get_session_variables(void *handle, device_session_vars_t **vars);

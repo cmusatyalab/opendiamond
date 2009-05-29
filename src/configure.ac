@@ -1,7 +1,7 @@
 #  The OpenDiamond Platform for Interactive Search
 #  Version 4
 #
-#  Copyright (c) 2007 Carnegie Mellon University
+#  Copyright (c) 2007-2009 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -54,6 +54,10 @@ PKG_CHECK_EXISTS([libsoup-2.4],
     [ PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.2 >= 2.2.100],
 	[ AC_DEFINE([HAVE_LIBSOUP22], [1], [Have libsoup version 2.2]) ]) ])
 
+# scopecookie libaries, gnutls + uuid
+PKG_CHECK_MODULES(GNUTLS, [gnutls])
+PKG_CHECK_MODULES(UUID, [uuid])
+
 # libs
 AC_SEARCH_LIBS([sqrt], [m],, AC_MSG_FAILURE([cannot find math library]))
 AC_SEARCH_LIBS([dlopen], [dl],, AC_MSG_FAILURE([cannot find dlopen function]))
@@ -66,7 +70,7 @@ AC_SEARCH_LIBS([clock_gettime],
 
 
 # some options and includes
-AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/common -I$(top_srcdir)/lib/libdconfig -I$(top_srcdir)/lib/libdctl -I$(top_srcdir)/lib/libfilter -I$(top_srcdir)/lib/libfilterexec -I$(top_srcdir)/lib/liblog -I$(top_srcdir)/lib/libodisk -I$(top_srcdir)/lib/libsearchlet -I$(top_srcdir)/lib/libtools -I$(top_srcdir)/lib/transport/socket/common -I$(top_srcdir)/lib/transport/socket/hoststub -I$(top_srcdir)/lib/transport/socket/storagestub -DG_DISABLE_DEPRECATED -DG_DISABLE_SINGLE_INCLUDES'])
+AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/common -I$(top_srcdir)/lib/libdconfig -I$(top_srcdir)/lib/libdctl -I$(top_srcdir)/lib/libfilter -I$(top_srcdir)/lib/libfilterexec -I$(top_srcdir)/lib/liblog -I$(top_srcdir)/lib/libodisk -I$(top_srcdir)/lib/libscope -I$(top_srcdir)/lib/libsearchlet -I$(top_srcdir)/lib/libtools -I$(top_srcdir)/lib/transport/socket/common -I$(top_srcdir)/lib/transport/socket/hoststub -I$(top_srcdir)/lib/transport/socket/storagestub -DG_DISABLE_DEPRECATED -DG_DISABLE_SINGLE_INCLUDES'])
 
 AC_SUBST(AM_CFLAGS, ['-Wall -Wextra -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -fvisibility=hidden -Wno-unused-parameter $(GLIB2_CFLAGS)'])
 

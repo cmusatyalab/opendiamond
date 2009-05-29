@@ -28,6 +28,7 @@
 #include "lib_odisk.h"
 #include "odisk_priv.h"
 #include "lib_log.h"
+#include "scope_priv.h"
 
 
 /* compatibility wrappers for libsoup-2.2 */
@@ -86,7 +87,7 @@ gboolean g_markup_collect_attributes (const gchar *element_name,
 /*************************************/
 /* Initialize data retriever globals */
 
-static SoupURI *collection_base_uri;
+static SoupURI *BASE_URI;
 static SoupSession *scopelist_sess;
 static SoupSession *object_session;
 static long odisk_http_debug;
@@ -149,11 +150,11 @@ static void request_unqueued(SoupSession *session, SoupMessage *msg,
     g_free(state);
 }
 
-void dataretriever_init(const char *base_uri)
+void dataretriever_init(const char *base_url)
 {
     g_type_init();
 
-    collection_base_uri = soup_uri_new(base_uri);
+    BASE_URI = soup_uri_new(base_url);
 
     scopelist_sess = soup_session_sync_new_with_options(
 	SOUP_SESSION_MAX_CONNS,		 1,
@@ -274,28 +275,38 @@ static void dataretriever_fetch_scopelist(SoupURI *uri, GAsyncQueue *queue,
 
 /*********************/
 /* Start/stop search */
+static void dispatch_fetchers(gpointer data, gpointer user_data)
+{
+    odisk_state_t *odisk = user_data;
+    struct scopecookie *cookie = data;
+    SoupURI *uri;
+    gchar **scope;
+    unsigned int i;
+
+    scope = g_strsplit(cookie->scopedata, "\n", 0);
+    for (i = 0; scope[i]; i++)
+    {
+	if (*scope[i] == '\0') continue;
+
+	uri = soup_uri_new_with_base(BASE_URI, scope[i]);
+
+	odisk->fetchers++;
+	dataretriever_fetch_scopelist(uri, odisk->queue, odisk->search_id);
+    }
+    g_strfreev(scope);
+}
 
 void dataretriever_start_search(odisk_state_t *odisk)
 {
-    int i;
-
     /* make sure active scopelist fetches are aborted */
     dataretriever_stop_search(odisk);
 
-    odisk->fetchers = odisk->num_gids;
+    odisk->fetchers = odisk->count = 0;
     odisk->queue = g_async_queue_new_full(free_queue_msg);
-    odisk->count = 0;
 
-    for (i = 0; i < odisk->num_gids; i++) {
-	char gid_string[40];
-	SoupURI *uri;
-	groupid_t gid = odisk->gid_list[i];
-
-	snprintf(gid_string, 40, "%016" PRIX64, gid);
-
-	uri = soup_uri_new_with_base(collection_base_uri, gid_string);
-	dataretriever_fetch_scopelist(uri, odisk->queue, odisk->search_id);
-    }
+    odisk->fetchers++;
+    g_ptr_array_foreach(odisk->scope, dispatch_fetchers, odisk);
+    odisk->fetchers--;
 }
 
 void dataretriever_stop_search(odisk_state_t *odisk)

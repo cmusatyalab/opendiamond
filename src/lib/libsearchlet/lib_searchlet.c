@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -42,13 +43,13 @@
 #include "lib_log.h"
 #include "dctl_impl.h"
 #include "lib_hstub.h"
-#include "lib_dconfig.h"
 #include "dctl_common.h"
 #include "lib_filterexec.h"
 #include "dconfig_priv.h"
 #include "tools_priv.h"
 #include "sig_calc_priv.h"
 #include "odisk_priv.h"
+#include "lib_scope.h"
 
 
 #define	PROC_RING_SIZE		1024
@@ -234,75 +235,46 @@ log_dev_error(const char *host, const char *str)
 	log_message(LOGT_BG, LOGL_CRIT, "%s for device %s", str, host);
 }
 
-
-#define	MAX_HOST_IDS	64
-
 int
-ls_set_searchlist(ls_search_handle_t handle, int num_groups,
-		  groupid_t * glist)
+ls_set_scope(ls_search_handle_t handle, const char *megacookie)
 {
 	search_context_t *sc;
-	groupid_t       cur_gid;
 	device_handle_t *cur_dev;
-	char		*hosts[MAX_HOST_IDS];
-	int             nhosts;
-	int             i,
-	                j;
-	int             err;
-	char 			buf[MAX_LOG_ENTRY], gbuf[MAX_GID_NAME];
-	
+	gchar **servers;
+	unsigned int i, j;
+
+	log_message(LOGT_BG, LOGL_TRACE, "ls_set_scope");
+
 	sc = (search_context_t *) handle;
 
-	buf[0]='\0';
-	for (i = 0; i < num_groups; i++) {
-		sprintf(gbuf, "%d ", (int) glist[i]);
-		strcat(buf, gbuf);
-	}
-
-	log_message(LOGT_BG, LOGL_TRACE, "ls_set_searchlist: groups(%d) %s",
-		    num_groups, buf);
-	/*
-	 * we have two steps.  One is to clear the current
-	 * searchlist on all the devices that
-	 * we are currently connected to.  The to add the gid
-	 * to each of the devices.
-	 */
-	/*
-	 * XXX todo, clean up connection not involved in search after this
-	 * call. 
-	 */
-
-	/*
-	 * clear the state 
-	 */
+	/* clear the state */
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
-			continue;
-		}
-		cur_dev->num_groups = 0;
-		err = device_clear_gids(cur_dev->dev_handle);
-		if (err != 0) {
-			log_dev_error(cur_dev->dev_name, "failed clear gid");
-		}
+	    if (cur_dev->flags & DEV_FLAG_DOWN)
+		continue;
+
+	    if (device_clear_scope(cur_dev->dev_handle))
+		log_dev_error(cur_dev->dev_name, "Failed to clear scope");
 	}
 
-
-	/*
-	 * for each of the groups, get the list
-	 * of machines that have some of this data.
-	 */
-	for (i = 0; i < num_groups; i++) {
-		cur_gid = glist[i];
-		nhosts = MAX_HOST_IDS;
-		glkup_gid_hosts(cur_gid, &nhosts, hosts);
-		for (j = 0; j < nhosts; j++) {
-			err = device_add_gid(sc, cur_gid, hosts[j]);
-			if (err) {
-				log_dev_error(hosts[j], "Failed to add gid");
-			}
-		}
+	g_strfreev(sc->cookies);
+	sc->cookies = scope_split_cookies(megacookie);
+	if (!sc->cookies) {
+	    fprintf(stderr, "Failed to read scope cookie\n");
+	    return -1;
 	}
-	return (0);
+
+	for (i = 0; sc->cookies[i]; i++)
+	{
+	    servers = scope_get_servers(sc->cookies[i]);
+	    for (j = 0; servers[j]; j++)
+	    {
+		if (device_add_scope(sc, sc->cookies[i], servers[j]))
+		    log_dev_error(servers[j], "Failed to add scope");
+	    }
+	    g_strfreev(servers);
+	}
+
+	return 0;
 }
 
 static int

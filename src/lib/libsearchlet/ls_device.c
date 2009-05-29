@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2008 Carnegie Mellon University
+ *  Copyright (c) 2008-2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -260,7 +260,6 @@ create_new_device(search_context_t * sc, const char *host)
 	new_dev->dev_name = strdup(host);
 	new_dev->flags = 0;
 	new_dev->sc = sc;
-	new_dev->num_groups = 0;
 
 	new_dev->serviced = 0;
 
@@ -293,44 +292,20 @@ create_new_device(search_context_t * sc, const char *host)
 
 
 int
-device_add_gid(search_context_t * sc, groupid_t gid, const char *host)
+device_add_scope(search_context_t *sc, const char *cookie, const char *host)
 {
-
 	device_handle_t *cur_dev;
-	int             i;
 
 	cur_dev = lookup_dev_by_name(sc, host);
 	if (cur_dev == NULL) {
 		cur_dev = create_new_device(sc, host);
 		if (cur_dev == NULL) {
 			log_message(LOGT_BG, LOGL_CRIT, 
-		    	    "device_add_gid: create_device failed");
+				    "device_add_scope: create_device failed");
 			return (ENOENT);
 		}
 	}
 
-	/*
-	 * If so, then we don't need to do anything.
-	 */
-	for (i = 0; i < cur_dev->num_groups; i++) {
-		if (cur_dev->dev_groups[i] == gid) {
-			return (0);
-		}
-	}
-
-
-	/*
-	 * check to see if we can add more groups, if so add it to the list
-	 */
-	if (cur_dev->num_groups >= MAX_DEV_GROUPS) {
-		log_message(LOGT_BG, LOGL_CRIT, 
-		    "device_add_gid: MAX_DEV_GROUP exceeded");
-		return (ENOENT);
-	}
-
-	device_new_gid(cur_dev->dev_handle, gid);
-
-	cur_dev->dev_groups[cur_dev->num_groups] = gid;
-	cur_dev->num_groups++;
-	return (0);
+	device_set_scope(cur_dev->dev_handle, cookie);
+	return 0;
 }

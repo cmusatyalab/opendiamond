@@ -172,14 +172,14 @@ device_start(void *handle, unsigned int search_id)
 }
 
 int
-device_clear_gids(void *handle)
+device_clear_scope(void *handle)
 {
 	sdevice_state_t *dev;
 	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
 
-	retval = rpc_client_content_device_clear_gids(dev->con_data.rpc_client);
+	retval = rpc_client_content_device_clear_scope(dev->con_data.rpc_client);
 	return rpc_postproc(__FUNCTION__, retval);
 }
 
@@ -219,16 +219,16 @@ device_drain_objs(void *handle)
 }
 
 int
-device_new_gid(void *handle, groupid_t gid)
+device_set_scope(void *handle, const char *cookie)
 {
 	sdevice_state_t *dev;
-	groupid_x	x;
+	scope_x		x;
 	mrpc_status_t	retval;
 
 	dev = (sdevice_state_t *) handle;
-	x = gid;
+	x.cookie = (char *)cookie;
 
-	retval = rpc_client_content_device_new_gid(dev->con_data.rpc_client,&x);
+	retval = rpc_client_content_device_set_scope(dev->con_data.rpc_client, &x);
 	return rpc_postproc(__FUNCTION__, retval);
 }
 

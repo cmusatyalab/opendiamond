@@ -93,22 +93,28 @@ device_terminate(void *conn_data, struct mrpc_message *msg)
 	return MINIRPC_OK;
 }
 
-
 static mrpc_status_t
-device_clear_gids(void *conn_data, struct mrpc_message *msg)
+device_clear_scope(void *conn_data, struct mrpc_message *msg)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
-	(*cstate->lstate->cb.clear_gids_cb) (cstate->app_cookie);
+	(*cstate->lstate->cb.clear_scope_cb) (cstate->app_cookie);
 	return MINIRPC_OK;
 }
 
+static mrpc_status_t
+device_set_scope(void *conn_data, struct mrpc_message *msg, scope_x *in)
+{
+	cstate_t *cstate = (cstate_t *)conn_data;
+	(*cstate->lstate->cb.set_scope_cb) (cstate->app_cookie, in->cookie);
+	return MINIRPC_OK;
+}
 
 static mrpc_status_t
 device_new_gid(void *conn_data, struct mrpc_message *msg, groupid_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	groupid_t gid = *in;
-	(*cstate->lstate->cb.sgid_cb) (cstate->app_cookie, gid);
+	(*cstate->lstate->cb.set_gid_cb) (cstate->app_cookie, gid);
 	return MINIRPC_OK;
 }
 
@@ -637,7 +643,8 @@ static const struct rpc_client_content_server_operations ops = {
 	.device_start = device_start,
 	.device_stop = device_stop,
 	.device_terminate = device_terminate,
-	.device_clear_gids = device_clear_gids,
+	.device_clear_scope = device_clear_scope,
+	.device_set_scope = device_set_scope,
 	.device_new_gid = device_new_gid,
 	.device_set_spec = device_set_spec,
 	.device_set_push_attrs = device_set_push_attrs,

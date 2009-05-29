@@ -118,12 +118,16 @@ struct attribute_list_x {
     attribute_x	attrs<>;
 };
 
+struct scope_x {
+    string cookie<>;
+};
+
 serverprocs {
     /**** Client calls ****/
     device_start(start_x, void) = 1;
     device_stop(stop_x, void) = 2;
     device_terminate(void, void) = 3;
-    device_clear_gids(void, void) = 4;
+    device_clear_scope(void, void) = 4;
     device_new_gid(groupid_x, void) = 5;
     device_set_spec(spec_file_x, void) = 6;
 
@@ -159,4 +163,7 @@ serverprocs {
 
     /* Blob caching */
     device_set_blob_by_signature(blob_sig_x, void) = 22;
+
+    /* Specify search scope */
+    device_set_scope(scope_x, void) = 24;
 }

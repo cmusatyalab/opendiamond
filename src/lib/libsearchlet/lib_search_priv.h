@@ -4,6 +4,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
+ *  Copyright (c) 2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -38,18 +39,12 @@
 
 struct search_context;
 
-#define	MAX_DEV_GROUPS		64
-
 typedef struct device_handle {
 	struct device_handle * 		next;
 	char *				dev_name;
-	groupid_t			dev_groups[MAX_DEV_GROUPS];
-	int				num_groups;
 	unsigned int			flags;
 	void *				dev_handle;
 	time_t				start_time;
-	float				done;
-	float				prate;
 	int				obj_total;
 	uint32_t			serviced;	/* times data removed */
 	struct 				search_context *	sc;
@@ -84,6 +79,7 @@ typedef struct search_context {
 	struct filter_data *	bg_fdata; 	/* filter_data_t  */
 	uint32_t		pend_lw;	/* pending lw mark */
 	host_stats_t	host_stats;		/* object stats for this search */
+	gchar **		cookies;
 } search_context_t;
 
 /*
@@ -92,8 +88,7 @@ typedef struct search_context {
  */
 int dev_new_obj_cb(void *hcookie, obj_data_t *odata, int vno);
 void dev_log_data_cb(void *cookie, char *data, int len, int devid);
-int lookup_group_hosts(groupid_t gid, int *num_hosts, char *hosts[]);
-int device_add_gid(search_context_t *sc, groupid_t gid, const char *host);
+int device_add_scope(search_context_t *sc, const char *cookie,const char *host);
 /*
  * These are background processing functions.
  */

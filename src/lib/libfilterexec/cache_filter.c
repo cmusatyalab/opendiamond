@@ -697,8 +697,7 @@ timespec_sub(struct timespec *a, struct timespec *b, struct timespec *result)
 
 int
 ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
-	       double *elapsed,	filter_exec_mode_t exec_mode,
-	       query_info_t *qinfo,
+	       double *elapsed,	query_info_t *qinfo,
 	       void *cookie, int (*continue_cb) (void *cookie))
 {
 	filter_info_t  *cur_filter;

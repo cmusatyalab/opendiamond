@@ -453,9 +453,6 @@ device_list_leafs(void *conn_data, struct mrpc_message *msg,
 static mrpc_status_t
 device_set_exec_mode(void *conn_data, struct mrpc_message *msg, mode_x *in)
 {
-	cstate_t *cstate = (cstate_t *)conn_data;
-	unsigned int mode = *in;
-	(*cstate->lstate->cb.set_exec_mode_cb) (cstate->app_cookie, mode);
 	return MINIRPC_OK;
 }
 

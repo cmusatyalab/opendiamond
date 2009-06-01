@@ -67,16 +67,7 @@ typedef struct {
 	sig_val_t	spec_sig;
 	int		num_objfiles;
 	sig_val_t	obj_sigs[MAX_OBJ_FILES];
-
-
-
 } filter_config_t;
-
-typedef enum {		/* filter execution mode */
-	FM_CURRENT,		/* execute currently defined filters */
-	FM_HYBRID,		/* hybrid of current and historical filters */
-	FM_MODEL		/* model (history) based filter execution */
-} filter_exec_mode_t;
 
 
 /*

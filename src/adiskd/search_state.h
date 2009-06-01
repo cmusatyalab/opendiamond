@@ -86,7 +86,6 @@ typedef struct search_state {
 	uint            old_proc;	/* last number run */
 	float           avg_ratio;	/* floating point avg ratio */
 	unsigned char  *sig;
-	filter_exec_mode_t	exec_mode;  /* filter execution mode */
 	user_state_t	user_state;
 	session_variables_state_t *session_variables_state;
 } search_state_t;
@@ -117,7 +116,6 @@ int		search_set_gid(void *app_cookie, groupid_t gid);
 int		search_clear_gids(void *app_cookie);
 int		search_set_blob(void *app_cookie, char *name,
 				int blob_len, void *blob_data);
-int		search_set_exec_mode(void *app_cookie, uint32_t mode);
 int		search_set_user_state(void *app_cookie, uint32_t state);
 
 device_session_vars_t * search_get_session_vars(void *app_cookie);

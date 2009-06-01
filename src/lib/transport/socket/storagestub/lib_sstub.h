@@ -43,7 +43,6 @@ dctl_lnode_t*	(*lnode_cb)	(void *app_cookie, char *path);
 	int	(*clear_gids_cb) (void *app_cookie);
 	int	(*set_blob_cb)	(void *app_cookie, char *name,
 				 int blen, void *blob);
-	int	(*set_exec_mode_cb) (void *app_cookie, uint32_t mode);
 	int	(*set_user_state_cb) (void *app_cookie, uint32_t state);
 device_session_vars_t* (*get_session_vars_cb) (void *app_cookie);
 	int	(*set_session_vars_cb) (void *app_cookie,

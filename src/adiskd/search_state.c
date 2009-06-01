@@ -842,7 +842,6 @@ device_main(void *arg)
 				qinfo.session = sstate->cinfo;
 				pass = ceval_filters2(new_obj, sstate->fdata,
 						      force_eval, &elapsed,
-						      sstate->exec_mode,
 						      &qinfo, sstate, continue_fn);
 
 				if (pass == 0) {
@@ -891,8 +890,7 @@ device_main(void *arg)
 
 				qinfo.session = sstate->cinfo;
 				pass = ceval_filters2(new_obj, sstate->fdata,
-						      1, &elapsed,
-						      sstate->exec_mode, &qinfo,
+						      1, &elapsed, &qinfo,
 						      sstate, NULL);
 				if (pass == 0) {
 					sstate->obj_dropped++;
@@ -1059,7 +1057,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->split_bp_thresh = SPLIT_DEFAULT_BP_THRESH;
 	sstate->split_mult = SPLIT_DEFAULT_MULT;
 	
-	sstate->exec_mode = FM_CURRENT;
 	sstate->user_state = USER_UNKNOWN;
 
 	/*
@@ -1406,18 +1403,6 @@ search_set_gid(void *app_cookie, groupid_t gid)
 {
 	int             err;
 	search_state_t *sstate;
-	char path[PATH_MAX];
-	char *prefix;
-	FILE *fp;
-
-	prefix = dconf_get_filter_cachedir();
-
-	snprintf(path, PATH_MAX, "%s/GID_LIST", prefix);
-	fp = fopen(path, "a+");
-	fprintf(fp, "%llu\n", gid);
-	fclose(fp);
-
-	free(prefix);
 
 	sstate = (search_state_t *) app_cookie;
 	err = odisk_set_gid(sstate->ostate, gid);
@@ -1469,17 +1454,6 @@ search_set_blob(void *app_cookie, char *name, int blob_len, void *blob)
 
 	g_async_queue_push(sstate->control_ops, cmd);
 	return (0);
-}
-
-int search_set_exec_mode(void *app_cookie, uint32_t mode)
-{
-	search_state_t *sstate;
-	
-	log_message(LOGT_DISK, LOGL_TRACE, "search_set_exec_mode: %d", mode);
-	
-	sstate = (search_state_t *) app_cookie;
-	sstate->exec_mode = (filter_exec_mode_t) mode;
-	return(0);
 }
 
 int search_set_user_state(void *app_cookie, uint32_t state)
@@ -1628,8 +1602,7 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 	if (!err)  {
 		//sstate->obj_reexecution_processed++;
 
-		ceval_filters2(obj, sstate->fdata, 1, NULL,
-			       sstate->exec_mode, NULL, NULL, NULL);
+		ceval_filters2(obj, sstate->fdata, 1, NULL, NULL, NULL, NULL);
 	}
 
 	/* make sure to keep search state correct, pend_objs is decremented

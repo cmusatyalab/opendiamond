@@ -31,7 +31,6 @@
 #include <limits.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
-#include "lib_dconfig.h"
 #include "dconfig_priv.h"
 
 static int  have_error(yyscan_t scanner);

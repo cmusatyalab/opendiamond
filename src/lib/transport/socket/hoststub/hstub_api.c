@@ -41,7 +41,6 @@
 #include "lib_odisk.h"
 #include "dctl_common.h"
 #include "lib_hstub.h"
-#include "lib_dconfig.h"
 #include "hstub_impl.h"
 #include "dconfig_priv.h"
 #include "dctl_impl.h"

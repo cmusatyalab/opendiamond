@@ -39,7 +39,6 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 #include "lib_ocache.h"
-#include "lib_dconfig.h"
 #include "ocache_priv.h"
 #include "odisk_priv.h"
 #include "sig_calc_priv.h"

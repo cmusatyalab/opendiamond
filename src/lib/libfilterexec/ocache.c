@@ -45,7 +45,6 @@
 #include "lib_odisk.h"
 #include "lib_filterexec.h"
 #include "lib_ocache.h"
-#include "lib_dconfig.h"
 #include "dconfig_priv.h"
 #include "odisk_priv.h"
 #include "filter_priv.h"

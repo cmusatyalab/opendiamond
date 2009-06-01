@@ -30,7 +30,6 @@
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "lib_filterexec.h"
-#include "lib_dconfig.h"
 #include "dconfig_priv.h"
 #include "fexec_history.h"
 #include "sig_calc_priv.h"

@@ -28,7 +28,6 @@
 #include <glib.h>
 
 #include "diamond_types.h"
-#include "lib_dconfig.h"
 #include "dctl_common.h"
 #include "dctl_impl.h"
 #include "lib_log.h"

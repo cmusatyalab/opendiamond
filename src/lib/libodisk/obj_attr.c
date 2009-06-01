@@ -30,7 +30,6 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
-#include "lib_dconfig.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "lib_log.h"

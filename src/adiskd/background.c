@@ -42,7 +42,6 @@
 #include "search_state.h"
 #include "dctl_common.h"
 #include "lib_ocache.h"
-#include "lib_dconfig.h"
 #include "dconfig_priv.h"
 #include "sys_attr.h"
 #include "obj_attr.h"

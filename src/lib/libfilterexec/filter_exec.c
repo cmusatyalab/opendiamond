@@ -42,7 +42,6 @@
 #include "fexec_stats.h"
 #include "fexec_opt.h"
 #include "lib_ocache.h"
-#include "lib_dconfig.h"
 #include "fexec_history.h"
 #include "dconfig_priv.h"
 #include "odisk_priv.h"

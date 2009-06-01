@@ -44,7 +44,6 @@
 #include "lib_odisk.h"
 #include "dctl_impl.h"
 #include "lib_sstub.h"
-#include "lib_dconfig.h"
 #include "dconfig_priv.h"
 #include "lib_log.h"
 #include "rcomb.h"

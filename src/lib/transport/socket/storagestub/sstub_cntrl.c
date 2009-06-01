@@ -39,7 +39,6 @@
 #include "socket_trans.h"
 #include "dctl_impl.h"
 #include "lib_sstub.h"
-#include "lib_dconfig.h"
 #include "sstub_impl.h"
 #include "dconfig_priv.h"
 #include "tools_priv.h"

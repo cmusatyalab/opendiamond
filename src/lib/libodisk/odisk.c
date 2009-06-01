@@ -32,7 +32,6 @@
 #include "lib_tools.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
-#include "lib_dconfig.h"
 #include "lib_log.h"
 #include "lib_ocache.h"
 #include "dctl_common.h"

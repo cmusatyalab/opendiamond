@@ -563,8 +563,7 @@ ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 
 int
 ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int score,
-	       query_info_t *qinfo, filter_exec_mode_t exec_mode,
-	       struct timespec *elapsed)
+	       query_info_t *qinfo, struct timespec *elapsed)
 {
 	sqlite3_stmt *res;
 	obj_data_t *obj = (obj_data_t *) ohandle;

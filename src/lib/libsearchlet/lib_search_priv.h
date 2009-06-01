@@ -47,11 +47,7 @@ typedef struct device_handle {
 	int				num_groups;
 	unsigned int			flags;
 	void *				dev_handle;
-	int				ver_no;
 	time_t				start_time;
-	int				remain_old;
-	int				remain_mid;
-	int				remain_new;
 	float				done;
 	float				prate;
 	int				obj_total;
@@ -87,7 +83,6 @@ typedef struct search_context {
 	unsigned long		bg_status;
 	struct filter_data *	bg_fdata; 	/* filter_data_t  */
 	uint32_t		pend_lw;	/* pending lw mark */
-	int 		search_exec_mode;  /* a search_mode_t */
 	host_stats_t	host_stats;		/* object stats for this search */
 } search_context_t;
 

@@ -40,8 +40,7 @@ int ocache_stop_search(sig_val_t *fsig);
 
 int ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig);
 int ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
-		   query_info_t *qid, filter_exec_mode_t exec_mode,
-		   struct timespec *elapsed);
+		   query_info_t *qid, struct timespec *elapsed);
 
 
 

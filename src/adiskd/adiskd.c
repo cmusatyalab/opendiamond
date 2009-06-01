@@ -43,10 +43,6 @@ int             do_daemon = 1;
 int             do_fork = 1;
 int             not_silent = 0;
 int             bind_locally = 0;
-int             active_searches = 0;
-int             do_background = 0;
-int             idle_background = 1;	/* only run background when idle */
-pid_t		background_pid = -1;	/* pid_t of the background process */
 
 static void
 usage(void)
@@ -69,8 +65,6 @@ main(int argc, char **argv)
 	void           *cookie;
 	sstub_cb_args_t cb_args;
 	int             c;
-	pid_t		wait_pid;
-	int		wait_status;
 
 	/*
 	 * Parse any of the command line arguments.
@@ -82,11 +76,6 @@ main(int argc, char **argv)
 			break;
 		}
 		switch (c) {
-		case 'b':
-			/* enable background processing */
-			do_background = 1;
-			break;
-
 		case 'd':
 			do_daemon = 0;
 			break;
@@ -94,9 +83,6 @@ main(int argc, char **argv)
 		case 'h':
 			usage();
 			exit(0);
-			break;
-		case 'i':
-			idle_background = 0;
 			break;
 
 		case 'l':
@@ -107,7 +93,6 @@ main(int argc, char **argv)
 			/* this is a debugging mode where we don't
 			 * want extra processes so diable most of them.
 			 */
-			do_background = 0;
 			do_fork = 0;
 			do_daemon = 0;
 			break;
@@ -185,27 +170,7 @@ main(int argc, char **argv)
 		 * to ignore, so we will do a periodic nonblocking
 		 * wait to clean up the zombies.
 		 */
-		wait_pid = waitpid(-1, &wait_status, WNOHANG | WUNTRACED);
-		if (wait_pid > 0) {
-			if (wait_pid == background_pid) {
-				background_pid = -1;
-			} else {
-				active_searches--;
-			}	
-		}
-
-		if ((background_pid == -1)  && (active_searches == 0) && 
-		    (do_background)) {
-			if (do_fork)  {
-				background_pid = fork();
-				if (background_pid == 0) {
-					start_background();
-					exit(0);
-				}
-			} else {
-				start_background();
-			}
-		}
+		waitpid(-1, NULL, WNOHANG | WUNTRACED);
 	}
 
 	exit(0);

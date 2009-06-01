@@ -103,7 +103,6 @@ ls_init_search()
 	sc->bg_status = 0;
 	sc->pend_lw = LS_OBJ_PEND_LW;
 	sc->last_dev = NULL;
-	sc->search_exec_mode = FM_CURRENT;
 	err = ring_init(&sc->proc_ring, PROC_RING_SIZE);
 	if (err) {
 		/*
@@ -1273,22 +1272,11 @@ int ls_set_user_state(ls_search_handle_t handle, user_state_t state)
 	search_context_t *sc;
 	device_handle_t *cur_dev;
 	int             err = 0;
-	filter_exec_mode_t new_mode;
 
 	sc = (search_context_t *) handle;
 
 	log_message(LOGT_BG, LOGL_TRACE, "ls_set_user_state: state %s",
 		    state == USER_BUSY ? "BUSY" : "WAITING");
-
-	/*
-	 * set execution mode to current for waiting users,
-	 * and hybrid for busy users.
-	 */
-	if (state == USER_WAITING) {
-	 	new_mode = FM_CURRENT;
-	} else {
-	 	new_mode = FM_HYBRID;
-	}
 
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
 		if (cur_dev->flags & DEV_FLAG_DOWN) {
@@ -1300,14 +1288,6 @@ int ls_set_user_state(ls_search_handle_t handle, user_state_t state)
 				      "failed to set user state");
 			return(err);
 		}
-		
-		err = device_set_exec_mode(cur_dev->dev_handle, new_mode);
-		if (err != 0) {
-			log_dev_error(cur_dev->dev_name,
-				      "failed to set exec mode");
-			return(err);
-		}
-				
 	}
 	
 	return(err);

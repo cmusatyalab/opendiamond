@@ -72,12 +72,6 @@ pthread_mutex_t object_eval_mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 extern int      do_cleanup;
 extern int      do_fork;
-extern int 		do_background;
-extern int      active_searches;
-extern int      idle_background;
-extern pid_t    background_pid;
-
-int	background_search;
 
 static int      search_free_obj(search_state_t * sstate, obj_data_t * obj);
 
@@ -262,9 +256,6 @@ clear_ss_stats(search_state_t * sstate)
 	sstate->obj_dropped = 0;
 	sstate->obj_passed = 0;
 	sstate->obj_skipped = 0;
-	sstate->obj_bg_processed = 0;
-	sstate->obj_bg_dropped = 0;
-	sstate->obj_bg_passed = 0;
 	sstate->network_stalls = 0;
 	sstate->tx_full_stalls = 0;
 	sstate->tx_idles = 0;
@@ -720,8 +711,6 @@ device_main(void *arg)
 	int				pass;
 	good_objs_t		gobj;
 	query_info_t	qinfo;
-	pid_t		wait_pid;
-	int		wait_status;
 	double          elapsed;
 
 	sstate = (search_state_t *) arg;
@@ -922,35 +911,6 @@ device_main(void *arg)
 		pthread_mutex_unlock(&object_eval_mutex);
 
 		/*
-		 * intra-search background processing - 
-		 * clean up zombies from earlier processing
-		 */
-		if (background_pid != -1) {
-			wait_pid = waitpid(-1, &wait_status, WNOHANG | WUNTRACED);
-			if (wait_pid > 0) {
-				if (wait_pid == background_pid) {
-					background_pid = -1;
-					background_search = 0;
-				} 
-			}
-		}
-		
-		/*
-		 * start a new background search if enabled
-		 */
-		if (do_background && background_search && (background_pid == -1)) {
-			if (do_fork)  {
-				background_pid = fork();
-				if (background_pid == 0) {
-					start_background();
-					exit(0);
-				}
-			} else {
-				start_background();
-			}
-		}
-
-		/*
 		 * If we didn't have any work to process this time around,
 		 * then we sleep on a cond variable for a small amount
 		 * of time.
@@ -978,11 +938,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	int             err;
 	pid_t			new_proc;
 
-	/* kill any background processing if appropriate */
-	if ((idle_background) && (background_pid != -1)) {
-		kill(background_pid, SIGHUP);
-	}
-
 	/*
 	 * We have a new connection decide whether to fork or not
 	 */
@@ -993,7 +948,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
     }
 	
 	if (new_proc != 0) {
-		active_searches++;
 		return 1;
 	}
 
@@ -1520,22 +1474,11 @@ search_set_blob(void *app_cookie, char *name, int blob_len, void *blob)
 int search_set_exec_mode(void *app_cookie, uint32_t mode)
 {
 	search_state_t *sstate;
-	filter_exec_mode_t old_mode;
 	
 	log_message(LOGT_DISK, LOGL_TRACE, "search_set_exec_mode: %d", mode);
 	
 	sstate = (search_state_t *) app_cookie;
-	old_mode = sstate->exec_mode;
 	sstate->exec_mode = (filter_exec_mode_t) mode;
-	if (old_mode != FM_MODEL && sstate->exec_mode == FM_MODEL) {
-		/* enable background search */
-		background_search = 1;
-	} else if (old_mode == FM_MODEL && sstate->exec_mode != FM_MODEL) {
-		/* stop background search */
-		if (background_pid != -1) {
-			kill(background_pid, SIGHUP);
-		}
-	}
 	return(0);
 }
 

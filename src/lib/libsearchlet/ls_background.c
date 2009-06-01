@@ -160,8 +160,6 @@ bg_main(void *arg)
 	struct timezone tz;
 	struct timespec timeout;
 	uint32_t        loop_count = 0;
-	uint32_t		exec_mode_thresh_low = MAXINT;
-	uint32_t		exec_mode_thresh_high = MAXINT;
 
 	sc = (search_context_t *) arg;
 
@@ -174,11 +172,6 @@ bg_main(void *arg)
 			  &do_cpu_update);
 	dctl_register_u32(HOST_BACKGROUND_PATH, "pend_queue_max", O_RDWR,
 			  &sc->pend_lw);
-
-	dctl_register_u32(HOST_BACKGROUND_PATH, "exec_mode_thresh_lo", O_RDWR,
-			  &exec_mode_thresh_low);
-	dctl_register_u32(HOST_BACKGROUND_PATH, "exec_mode_thresh_hi", O_RDWR,
-			  &exec_mode_thresh_high);
 
 	sc->avg_proc_time = 0.01;
 
@@ -234,46 +227,6 @@ bg_main(void *arg)
 					}
 
 					sc->host_stats.hs_objs_queued++;
-
-				    /*
-				     * change filter execution modes based on the
-				     * current mode and the number of objects in 
-				     * the proc_ring.
-				     */
-				    uint32_t proc_ring_count = ring_count(sc->proc_ring);
-				    int new_mode = sc->search_exec_mode;
-
-				    log_message(LOGT_BG, LOGL_DEBUG,
-						"Search %d objects queued for app",
-						proc_ring_count);
-
-				    if (sc->search_exec_mode == FM_CURRENT) {
-				    	if (proc_ring_count > exec_mode_thresh_high) {
-				    		new_mode = FM_MODEL;
-				    	} else if (proc_ring_count > exec_mode_thresh_low) {
-				    		new_mode = FM_HYBRID;
-				    	} 
-					} else if (sc->search_exec_mode == FM_HYBRID) {
-				    	if (proc_ring_count <= exec_mode_thresh_low) {
-				    		new_mode = FM_CURRENT;
-				    	} else if (proc_ring_count > exec_mode_thresh_high) {
-				    		new_mode = FM_MODEL;
-				    	} 
-				    } else if (sc->search_exec_mode == FM_MODEL) {
-				    	if (proc_ring_count <= exec_mode_thresh_low) {
-				    		new_mode = FM_CURRENT;
-				    	} else if (proc_ring_count <= exec_mode_thresh_high) {
-				    		new_mode = FM_HYBRID;
-				    	} 
-				    }
-				    
-				    if (sc->search_exec_mode != new_mode) {			    
-						for (cur_dev = sc->dev_list; cur_dev != NULL;
-					    	 cur_dev = cur_dev->next) {
-						device_set_exec_mode(cur_dev->dev_handle,
-								     new_mode);
-					    }
-				    }
 				}
 			} else {
 				/*

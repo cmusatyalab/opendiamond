@@ -261,9 +261,6 @@ create_new_device(search_context_t * sc, const char *host)
 	new_dev->flags = 0;
 	new_dev->sc = sc;
 	new_dev->num_groups = 0;
-	new_dev->remain_old = 100003;
-	new_dev->remain_mid = 100002;
-	new_dev->remain_new = 100001;
 
 	new_dev->serviced = 0;
 

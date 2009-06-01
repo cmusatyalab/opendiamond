@@ -66,9 +66,6 @@ typedef struct search_state {
 	uint            obj_dropped;
 	uint            obj_passed;
 	uint            obj_skipped;
-	uint		obj_bg_processed;	
-	uint		obj_bg_dropped;
-	uint		obj_bg_passed;
 	uint            network_stalls;
 	uint            tx_full_stalls;
 	uint            tx_idles;

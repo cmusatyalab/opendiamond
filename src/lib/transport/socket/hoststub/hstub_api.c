@@ -689,21 +689,6 @@ device_set_blob(void *handle, char *name, int blob_len, void *blob)
 }
 
 int
-device_set_exec_mode(void *handle, uint32_t mode)
-{
-	sdevice_state_t *dev;
-	mrpc_status_t	retval;
-
-	dev = (sdevice_state_t *) handle;
-
-	retval = rpc_client_content_device_set_exec_mode
-					(dev->con_data.rpc_client, &mode);
-
-	return rpc_postproc(__FUNCTION__, retval);
-}
-
-
-int
 device_set_user_state(void *handle, uint32_t state)
 {
 	sdevice_state_t	*dev;

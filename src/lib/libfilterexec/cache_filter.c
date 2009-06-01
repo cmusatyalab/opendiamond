@@ -75,7 +75,6 @@ static opt_policy_t policy_arr[] = {
 static unsigned int    use_cache_table = 1;
 static unsigned int    use_cache_oattr = 1;
 static unsigned int	add_cache_entries = 1;
-static unsigned int	hybrid_mode_enabled = 1;
 
 /*
  * data structure to keep track of the good names we need to process
@@ -254,8 +253,6 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 			  &use_cache_oattr);
 	dctl_register_u32(DEV_CACHE_PATH, "add_cache_entries", O_RDWR,
 			  &add_cache_entries);
-	dctl_register_u32(DEV_CACHE_PATH, "hybrid_mode_enabled", O_RDWR,
-			  &hybrid_mode_enabled);
 
 	new_state->odisk = odisk;
 	new_state->cookie = cookie;
@@ -748,20 +745,10 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);
 
-	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm); cur_fidx++) {
-
-		if ((pass == 0) && (fdata->full_eval == 0) && 
-			 (!hybrid_mode_enabled || (exec_mode != FM_HYBRID)))
+	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm); cur_fidx++)
+	{
+		if (pass == 0 && fdata->full_eval == 0)
 			break;
-		/*
-		 * in hybrid filter execution mode, continue
-		 * executing tagged filters even if the object
-		 * is to be discarded for this search
-		 */
-		if ((pass == 0) && 
-			hybrid_mode_enabled && (exec_mode == FM_HYBRID) && 
-			(fdata->hybrid_eval == 0))
-			continue;
 
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
 		cur_filter = &fdata->fd_filters[cur_fid];
@@ -860,10 +847,8 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 				timespec_sub(&filter_end, &filter_start,
 					     &filter_elapsed);
 
-				ocache_add_end(obj_handle,
-					       &cur_filter->fi_sig,
-					       conf, qinfo, exec_mode,
-					       &filter_elapsed);
+				ocache_add_end(obj_handle, &cur_filter->fi_sig,
+					       conf, qinfo, &filter_elapsed);
 			}
 
 			cur_filter->fi_compute++;

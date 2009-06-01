@@ -198,7 +198,6 @@ struct filter_data {
 	int		num_libs;
 	sig_val_t	spec_sig;
 	int		full_eval;
-	int 	hybrid_eval;
 	flib_info_t *	lib_info;
 	
 	filter_info_t   fd_filters[0];  /* variable size struct */

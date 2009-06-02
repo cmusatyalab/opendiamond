@@ -70,8 +70,7 @@ static int scope_x509_validate_signature(const GString *keyid, const GString *si
 	    tmp = g_renew(char, tmp, len);
 	    continue; /* retry */
 	}
-	if (rc == 0 && len == keyid->len &&
-	    memcmp(tmp, keyid->str, len) == 0)
+	if (rc == 0 && len == keyid->len && memcmp(tmp, keyid->str, len) == 0)
 	    break;
 	i++;
     }

@@ -302,10 +302,9 @@ device_add_scope(search_context_t *sc, const char *cookie, const char *host)
 		if (cur_dev == NULL) {
 			log_message(LOGT_BG, LOGL_CRIT, 
 				    "device_add_scope: create_device failed");
-			return (ENOENT);
+			return ENOENT;
 		}
 	}
 
-	device_set_scope(cur_dev->dev_handle, cookie);
-	return 0;
+	return device_set_scope(cur_dev->dev_handle, cookie);
 }

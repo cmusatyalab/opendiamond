@@ -242,6 +242,7 @@ ls_set_scope(ls_search_handle_t handle, const char *megacookie)
 	device_handle_t *cur_dev;
 	gchar **servers;
 	unsigned int i, j;
+	int err = 0;
 
 	log_message(LOGT_BG, LOGL_TRACE, "ls_set_scope");
 
@@ -268,13 +269,15 @@ ls_set_scope(ls_search_handle_t handle, const char *megacookie)
 	    servers = scope_get_servers(sc->cookies[i]);
 	    for (j = 0; servers[j]; j++)
 	    {
-		if (device_add_scope(sc, sc->cookies[i], servers[j]))
-		    log_dev_error(servers[j], "Failed to add scope");
+		if (device_add_scope(sc, sc->cookies[i], servers[j])) {
+		    fprintf(stderr, "Failed to set scope on %s, cookie expired?\n",
+			    servers[j]);
+		    err = -1;
+		}
 	    }
 	    g_strfreev(servers);
 	}
-
-	return 0;
+	return err;
 }
 
 static int

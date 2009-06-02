@@ -105,7 +105,10 @@ static mrpc_status_t
 device_set_scope(void *conn_data, struct mrpc_message *msg, scope_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
-	(*cstate->lstate->cb.set_scope_cb) (cstate->app_cookie, in->cookie);
+	int err;
+	err = (*cstate->lstate->cb.set_scope_cb) (cstate->app_cookie, in->cookie);
+	if (err)
+		return DIAMOND_FAILURE;
 	return MINIRPC_OK;
 }
 

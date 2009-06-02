@@ -21,9 +21,9 @@
 # Ensure ~/.diamond exists
 mkdir -p $HOME/.diamond
 
-# Set permissions
-chmod 600 $1
+# Concatenate the scope files as NEWSCOPE
+cat "$@" /dev/null > $HOME/.diamond/NEWSCOPE
 
-# Move NEWSCOPE into place
-mv $1 $HOME/.diamond/NEWSCOPE
+# Set permissions
+chmod 600 $HOME/.diamond/NEWSCOPE
 

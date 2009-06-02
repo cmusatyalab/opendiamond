@@ -22,19 +22,20 @@
 #include <time.h>
 #include "scope_priv.h"
 
-#define DESC \
-    "Reads scope definition from stdin and generates an OpenDiamond(r) cookie."
+#define SUMM "Generates an OpenDiamond(r) cookie. If no --scopeurl argument has been given it will\nread the scope specification from stdin."
 
 static gchar	**servers;
 static gint	expiry = 3600;
 static gboolean	verbose = FALSE;
 static gchar	*keyfile;
+static gchar	**scopeurls;
 
 static GOptionEntry options[] = {
     { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Increase verbosity", NULL},
     { "server", 's', 0, G_OPTION_ARG_STRING_ARRAY, &servers, "Specify server that accepts the cookie (can be repeated)", "host"},
     { "expire", 'e', 0, G_OPTION_ARG_INT, &expiry, "Time in seconds until cookie expires (3600)", NULL},
     { "key", 'k', 0, G_OPTION_ARG_FILENAME, &keyfile, "X509 private key ($HOME/.diamond/key.pem)", NULL},
+    { "scopeurl", 'u', 0, G_OPTION_ARG_STRING_ARRAY, &scopeurls, "URL from which scopelist can be retrieved (can be repeated)", "host"},
     { .long_name=NULL }
 };
 
@@ -168,7 +169,7 @@ int main(int argc, char **argv)
     int rc;
 
     context = g_option_context_new("- generate scope cookie");
-    g_option_context_set_summary(context, DESC);
+    g_option_context_set_summary(context, SUMM);
     g_option_context_add_main_entries(context, options, NULL);
     g_option_context_parse(context, &argc, &argv, &error);
     g_option_context_free(context);
@@ -203,10 +204,16 @@ int main(int argc, char **argv)
 	exit(0);
     }
 
-    /* read the scope description from stdin */
-    gio = g_io_channel_unix_new(STDIN_FILENO);
-    g_io_channel_read_to_end(gio, &scope, &len, NULL);
-    g_io_channel_unref(gio);
+    if (scopeurls) {
+	scope = g_strjoinv("\n", scopeurls);
+	len = strlen(scope);
+	g_strfreev(scopeurls);
+    } else {
+	/* read the scope description from stdin */
+	gio = g_io_channel_unix_new(STDIN_FILENO);
+	g_io_channel_read_to_end(gio, &scope, &len, NULL);
+	g_io_channel_unref(gio);
+    }
 
     /* get expiration time */
     g_get_current_time(&expires);

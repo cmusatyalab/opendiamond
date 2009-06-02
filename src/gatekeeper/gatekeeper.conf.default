@@ -83,6 +83,9 @@ function init_globals () {
     //  Diamond Config
     $G['DIAMOND_CONFIG_DIR'] = "/homes/rgass/.diamond";
 
+    // Program that generates scope cookies
+    $G['COOKIECUTTER'] = "/usr/local/bin/cookiecutter --key=/home/diamond/scopekey.pem";
+
     return ($G);
 }
 ?>

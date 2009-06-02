@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+    <mime-type type="application/x-diamond-scope">
+	<comment>Diamond scope</comment>
+	<magic>
+	    <match type="string" offset="0" value="-----BEGIN OPENDIAMOND SCOPECOOKIE"/>
+	</magic>
+	<glob pattern="*.scope"/>
+    </mime-type>
+</mime-info>

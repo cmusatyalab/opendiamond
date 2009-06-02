@@ -39,7 +39,7 @@ esac
 AC_SUBST(PKGCONFIG_REQUIRES)
 
 # glib
-PKG_CHECK_MODULES(GLIB2, [glib-2.0, gthread-2.0])
+PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.12, gthread-2.0])
 PKG_CHECK_EXISTS([glib-2.0 < 2.16],
     [ AC_DEFINE([HAVE_GLIB2_OLD], [1], [Have a old version of glib-2.0]) ])
 

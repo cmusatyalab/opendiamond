@@ -64,15 +64,18 @@
 
 	$col_array = $a->get_collections();
 	$col_list = array_keys($col_array);
-
 	$main_content = "html/scope.html";
 
 	if ($collections && ($me != "")) {
 
-	    $content = "1\n";
-	    $gids = 0;
+	    $cookie = isset($_POST['submit']) && $_POST['submit'] == "Generate Cookie";
+	    $filename = $cookie ? "opendiamond.scope" : "diamond_config_scope";
 
-	    $content .= "collection ";
+	    header('Content-type: application/x-diamond-scope');
+	    header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+	    $content = "1\ncollection ";
+	    $gids = 0;
 
 	    foreach ($collections as $coll) {
 		$namemap_info = $a->get_namemap_entry($col_array[$coll], $coll);
@@ -87,16 +90,21 @@
 		$namemap_info = $a->get_namemap_entry($dbfile, $coll);
 		$gid = $namemap_info['groupid'];
 		$servers = $a->get_gidmap_entry($dbfile, $coll, $gid);
-		$content .= $gid . " ";
-		$content .= $servers . "\n";
-	    }
-	    file_put_contents ("testfile.txt", $content);
-	    $filename = "diamond_config_scope";
 
-	    header('Content-type: application/x-diamond-scope');
-	    header('Content-Disposition: attachment; filename="'.$filename.'"');
-	    echo $content;
-	    exit;
+		$content .= $gid . " " . implode(" ". $servers) . "\n";
+
+		$command = $G['COOKIECUTTER'];
+		foreach ($servers as $server) {
+		    $command .= " --server " . $server;
+		}
+		$command .= " --scopeurl /collection/" . str_replace(":","",$gid);
+		if ($cookie) { passthru($command); }
+	    }
+	    if (!$cookie) {
+		file_put_contents ("testfile.txt", $content);
+		echo $content;
+	    }
+	    exit();
 	}
     }
     include ("html/page_layout.html");

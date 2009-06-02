@@ -109,9 +109,9 @@ class admin {
       $db_handle = sqlite3_open($db_file);
       $query_handle = sqlite3_query($db_handle, $query);
 
-      $result = "";
+      $result = array();
       while($myarray = sqlite3_fetch_array ($query_handle)) {
-	  $result .= $myarray['server'] . " ";
+	  $result[] = $myarray['server'];
       }
 
       return $result;

@@ -26,37 +26,16 @@ import fnmatch
 
 __all__ = ['scope_app', 'object_app']
 
-
-# this expression only matches files because the mode has to start with '-'
-def MirageListVerboseParser(image_id, paths):
-    pathregex = '|'.join(fnmatch.translate(path)[:-1] for path in paths)
-
-    mglv_re = re.compile(r"""
-	(?P<mode>-.{9})\s+
-	(?P<nlink>\d+)\s+
-	\d+\s+\d+\s+
-	(?P<size>\d+)\s
-	(?P<mtime>.{16})\s
-	(?P<sha1sum>[a-fA-F0-9]{40})\s
-	\.(?P<path>%s)$""" % pathregex, re.X)
-
-    p = subprocess.Popen(['sudo', 'mg', 'list-verbose', '-R',
-			  "file://" + MIRAGE_REPOSITORY, image_id],
-			 stdout=subprocess.PIPE, close_fds=True)
-    yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
-    yield '<objectlist>\n'
-    for line in p.stdout:
-	m = mglv_re.match(line)
-	if not m: continue
-
-	res = m.groupdict()
-	if res['size'] == '0': # skip empty objects
-	    continue
-
-	yield '<count adjust="1"/><object src="obj/%s"/>\n' % res['sha1sum']
-    yield '</objectlist>'
-    p.stdout.close()
-
+# this expression only matches files because the mode starts with '-'
+MGLV_RE = r"""
+    (?P<mode>-.{9})\s+
+    (?P<nlink>\d+)\s+
+    (?P<uid>%s)\s+
+    (?P<gid>\d+)\s+
+    (?P<size>\d+)\s
+    (?P<mtime>.{16})\s
+    (?P<sha1sum>[a-fA-F0-9]{40})\s
+    \.(?P<path>%s)$"""
 
 # Create file-like wrapper around objects in the Mirage content store
 class MirageParseError(Exception):
@@ -96,12 +75,64 @@ class MirageObject:
     def close(self):
 	self.f.close()
 
-    def read(self, size=4096):
+    def read(self, size=None):
+	if not size:
+	    size = self.length
 	if size > self.length:
 	    size = self.length
 	chunk = self.f.read(size)
 	self.length = self.length - len(chunk)
 	return chunk
+
+
+def MirageListObjIDs(image_id, paths, uidregex="\d+"):
+    pathregex = '|'.join(fnmatch.translate(path)[:-1] for path in paths)
+    mglv_re = re.compile(MGLV_RE % (uidregex, pathregex), re.X)
+
+    p = subprocess.Popen(['sudo', 'mg', 'list-verbose', '-R',
+			  "file://" + MIRAGE_REPOSITORY, image_id],
+			 stdout=subprocess.PIPE, close_fds=True)
+    for line in p.stdout:
+	m = mglv_re.match(line)
+	if not m: continue
+	res = m.groupdict()
+	if res['size'] == '0': continue
+	yield res['path'], res['sha1sum']
+    p.stdout.close()
+
+
+def MirageExtractEtcPasswd(image_id):
+    uidmap = {}
+    for path, sha1sum in MirageListObjIDs(image_id, ['/etc/passwd', '/etc/group']):
+	if path == '/etc/passwd':
+	    file = MirageObject(sha1sum).read()
+	    for line in file.split('\n'):
+		try:
+		    user, secret, uid, gid, name, dir, shell = line.split(':')
+		    uidmap[user] = uid
+		except ValueError:
+		    pass
+	if uidmap:
+	    break
+    return uidmap
+
+
+def MirageListVerbose(image_id, paths, users=None):
+    yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
+    yield '<objectlist>\n'
+    try:
+        if users:
+            uidmap = MirageExtractEtcPasswd(image_id)
+            uidregex = '|'.join(str(uidmap[user]) for user in users)
+        else:
+            uidregex = '\d+'
+
+        for _, sha1sum in MirageListObjIDs(image_id, paths, uidregex):
+            yield '<count adjust="1"/><object src="obj/%s"/>\n' % sha1sum
+
+    except KeyError:
+        pass
+    yield '</objectlist>'
 
 
 def scope_app(environ, start_response):
@@ -117,7 +148,9 @@ def scope_app(environ, start_response):
     image_id = 'com.ibm.mirage.sha1id/' + root.lower()
 
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return MirageListVerboseParser(image_id, querydict.get('path', ['*']))
+    return MirageListVerbose(image_id,
+			     querydict.get('path', ['*']),
+			     querydict.get('user', None))
 
 
 def object_app(environ, start_response):

@@ -138,14 +138,15 @@ static void request_unqueued(SoupSession *session, SoupMessage *msg,
     if (!state->error)
 	g_markup_parse_context_end_parse(state->context, &state->error);
 
+    DBG("Done %p (qlen %d)\n", msg, g_async_queue_length(state->queue));
     qmsg = g_slice_new0(struct queue_msg);
     qmsg->type = DONE;
     g_async_queue_push(state->queue, qmsg);
 
     /* release resources */
+    g_markup_parse_context_free(state->context);
     g_async_queue_unref(state->queue);
     soup_uri_free(state->scope_uri);
-    g_markup_parse_context_free(state->context);
     if (state->error) g_error_free(state->error);
     g_free(state);
 }
@@ -234,9 +235,13 @@ static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *buf, gpointer ud)
 				      RESPONSE_BUFFER, RESPONSE_LENGTH,
 				      &state->error))
     {
+	fprintf(stderr, "Scope parse error: %s\n", state->error->message);
 	soup_session_cancel_message(scopelist_sess, msg, SOUP_STATUS_MALFORMED);
 	return;
     }
+
+    /* XXX pausing occasionally seems to cause a persistent connection freeze */
+    return;
 
     DBG("Pausing %p (qlen %d)\n", msg, g_async_queue_length(state->queue));
     soup_session_pause_message(scopelist_sess, msg);
@@ -247,51 +252,40 @@ static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *buf, gpointer ud)
     g_async_queue_push(state->queue, qmsg);
 }
 
-static void dataretriever_fetch_scopelist(SoupURI *uri, GAsyncQueue *queue,
-					  unsigned int search_id)
-{
-    struct fetch_state *state;
-    SoupMessage *msg;
-    char searchid[11];
-
-    state = g_new0(struct fetch_state, 1);
-    state->scope_uri = uri;
-    state->queue = g_async_queue_ref(queue);
-    state->context =
-	g_markup_parse_context_new(&scopelist_parser, 0, state, NULL);
-
-    msg = soup_message_new_from_uri("GET", uri);
-    soup_message_set_accumulate(msg, FALSE);
-
-    snprintf(searchid, 11, "%u", search_id);
-    soup_message_headers_replace(msg->request_headers, "x-searchid", searchid);
-
-    g_object_set_data(G_OBJECT(msg), "parse-context", state);
-    g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk), state);
-
-    soup_session_queue_message(scopelist_sess, msg, NULL, NULL);
-}
-
-
 /*********************/
 /* Start/stop search */
 static void dispatch_fetchers(gpointer data, gpointer user_data)
 {
     odisk_state_t *odisk = user_data;
     struct scopecookie *cookie = data;
-    SoupURI *uri;
+    char searchid[11];
     gchar **scope;
     unsigned int i;
+    struct fetch_state *state;
+    SoupMessage *msg;
+
+    snprintf(searchid, 11, "%u", odisk->search_id);
 
     scope = g_strsplit(cookie->scopedata, "\n", 0);
     for (i = 0; scope[i]; i++)
     {
 	if (*scope[i] == '\0') continue;
 
-	uri = soup_uri_new_with_base(BASE_URI, scope[i]);
+	state = g_new0(struct fetch_state, 1);
+	state->scope_uri = soup_uri_new_with_base(BASE_URI, scope[i]);
+	state->queue = g_async_queue_ref(odisk->queue);
+	state->context = g_markup_parse_context_new(&scopelist_parser, 0, state, NULL);
+
+	msg = soup_message_new_from_uri("GET", state->scope_uri);
+	soup_message_set_accumulate(msg, FALSE);
+
+	soup_message_headers_replace(msg->request_headers, "x-searchid", searchid);
+
+	g_object_set_data(G_OBJECT(msg), "parse-context", state);
+	g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk), state);
 
 	odisk->fetchers++;
-	dataretriever_fetch_scopelist(uri, odisk->queue, odisk->search_id);
+	soup_session_queue_message(scopelist_sess, msg, NULL, NULL);
     }
     g_strfreev(scope);
 }

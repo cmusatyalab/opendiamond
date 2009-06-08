@@ -17,26 +17,29 @@
 MIRAGE_REPOSITORY="/var/lib/mirage"
 
 from wsgiref.util import shift_path_info
-from urllib import quote
+from urllib import quote, unquote_plus
 import subprocess
 import os
 import re
 import struct
+import fnmatch
 
 __all__ = ['scope_app', 'object_app']
 
 
 # this expression only matches files because the mode has to start with '-'
-mglv_re = re.compile(r"""
-    (?P<mode>-.{9})\s+
-    (?P<nlink>\d+)\s+
-    \d+\s+\d+\s+
-    (?P<size>\d+)\s
-    (?P<mtime>.{16})\s
-    (?P<sha1sum>[a-fA-F0-9]{40})\s
-    (?P<path>.+)$""", re.X)
+def MirageListVerboseParser(image_id, paths):
+    pathregex = '|'.join(fnmatch.translate(path)[:-1] for path in paths)
 
-def MirageListVerboseParser(image_id):
+    mglv_re = re.compile(r"""
+	(?P<mode>-.{9})\s+
+	(?P<nlink>\d+)\s+
+	\d+\s+\d+\s+
+	(?P<size>\d+)\s
+	(?P<mtime>.{16})\s
+	(?P<sha1sum>[a-fA-F0-9]{40})\s
+	\.(?P<path>%s)$""" % pathregex, re.X)
+
     p = subprocess.Popen(['sudo', 'mg', 'list-verbose', '-R',
 			  "file://" + MIRAGE_REPOSITORY, image_id],
 			 stdout=subprocess.PIPE, close_fds=True)
@@ -50,7 +53,7 @@ def MirageListVerboseParser(image_id):
 	if res['size'] == '0': # skip empty objects
 	    continue
 
-	yield '<count adjust="1"><object src="obj/%s"/>\n' % res['sha1sum']
+	yield '<count adjust="1"/><object src="obj/%s"/>\n' % res['sha1sum']
     yield '</objectlist>'
     p.stdout.close()
 
@@ -106,10 +109,15 @@ def scope_app(environ, start_response):
     if root == 'obj':
 	return object_app(environ, start_response)
 
+    querydict = {}
+    qs = environ.get('QUERY_STRING', '').split('&')
+    ql = [ map(unquote_plus, comp.split('=', 1)) for comp in qs if '=' in comp ]
+    for k,v in ql: querydict.setdefault(k, []).append(v)
+
     image_id = 'com.ibm.mirage.sha1id/' + root.lower()
 
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return MirageListVerboseParser(image_id)
+    return MirageListVerboseParser(image_id, querydict.get('path', ['*']))
 
 
 def object_app(environ, start_response):

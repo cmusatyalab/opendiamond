@@ -103,36 +103,6 @@ diamond_public
 int ls_terminate_search_extended(ls_search_handle_t handle, app_stats_t *as);
 
 /*!
- * This determines the set of objects we are going to search.  This takes
- * a list of group ID's that contain the set of objects we are going
- * to search.
- *
- * \param handle
- *		the search handle returned by ls_init_search().
- *
- * \param num_groups
- * 		the number of groups in the list.
- *
- * \param glist
- *		An array of groups with num_groups elements.
- *
- * \return 0
- *		the call was successful.
- *
- * \return EBUSY
- *		a search is currently active.
- *
- * \return EINVAL
- *		the handle or the search list is not valid.
- *
- */
-
-diamond_public
-int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
-                      groupid_t *glist);
-
-
-/*!
  * This call sets the searchlet for this instance of the search. This
  * can only be called when a search is not active.  If this is called more
  * than once the latest call overwrites the searchlet that was previously 

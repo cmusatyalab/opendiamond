@@ -14,6 +14,9 @@
 #ifndef	_ODISK_PRIV_H_
 #define	_ODISK_PRIV_H_ 	1
 
+#include <sys/types.h>
+#include <dirent.h>
+#include "lib_odisk.h"
 #include "obj_attr.h"
 
 typedef struct gid_idx_ent {

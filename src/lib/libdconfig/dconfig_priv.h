@@ -14,6 +14,8 @@
 #ifndef _DCONFIG_PRIV_H_
 #define _DCONFIG_PRIV_H_
 
+#include "diamond_types.h"
+
 typedef enum {
 	DATA_TYPE_OBJECT = 1,
 	DATA_TYPE_NATIVE
@@ -37,7 +39,16 @@ char * dconf_get_blob_cachedir(void);
 diamond_public
 char * dconf_get_filter_cachedir(void);
 
+/* Name lookup functions that map names into a collection of group ids. */
+/* returns list of gids for name */
+int nlkup_lookup_collection(char *name, int *num_gids, groupid_t * gids);
 
+/* iterates through all names of collections (const name).  */
+int nlkup_first_entry(char **name, void **cookie);
+int nlkup_next_entry(char **name, void **cookie);
+
+/* Functions that map groups into a set of hosts.  */
+int glkup_gid_hosts(groupid_t gid, int *num_hosts, char *hosts[]);
 
 #ifdef __cplusplus
 }

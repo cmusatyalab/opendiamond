@@ -15,8 +15,8 @@
 #ifndef _LIB_SEARCH_PRIV_H_
 #define _LIB_SEARCH_PRIV_H_
 
-
 #include "ring.h"
+#include "odisk_priv.h"
 
 /*
  * This is header file defines the internal state that is used
@@ -246,8 +246,9 @@ int ls_set_device_searchlet(ls_search_handle_t handle,
                             char *filter_spec_name);
 
 
-
-
+/* Determine the set of objects we are going to search. */
+int ls_set_searchlist(ls_search_handle_t handle, int num_groups,
+                      groupid_t *glist);
 
 
 #endif

@@ -7,6 +7,4 @@ libdconfig_la_SOURCES = group_lookup.l name_lookup.l diamond_config.l \
 
 CLEANFILES = group_lookup.c name_lookup.c diamond_config.c
 
-pkginclude_HEADERS = lib_dconfig.h
-
 AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)

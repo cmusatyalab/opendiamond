@@ -25,6 +25,7 @@
  *
  * */
 
+#include "lib_searchlet.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -38,8 +39,9 @@ extern "C"
  * future searches in the OpenDiamond system.
  */
 
+/* loads the content of ~/.diamond/NEWSCOPE */
 diamond_public
-int ls_define_scope(void);
+int ls_define_scope(ls_search_handle_t handle);
 
 
 #ifdef __cplusplus

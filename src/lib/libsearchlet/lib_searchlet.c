@@ -42,7 +42,6 @@
 #include "lib_log.h"
 #include "dctl_impl.h"
 #include "lib_hstub.h"
-#include "lib_dconfig.h"
 #include "dctl_common.h"
 #include "lib_filterexec.h"
 #include "dconfig_priv.h"

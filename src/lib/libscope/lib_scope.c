@@ -22,6 +22,10 @@
 #include <fcntl.h>
 #include <sys/param.h>
 #include <unistd.h>
+#include <assert.h>
+#include <glib.h>
+#include "dconfig_priv.h"
+#include "lib_search_priv.h"
 #include "lib_scope.h"
 
 
@@ -84,9 +88,37 @@ static int copy_mapdata(const char *name, FILE *fp)
     return err;
 }
 
+static int set_gidlist(ls_search_handle_t handle)
+{
+    void *cookie;
+    char *name;
+    int err;
+    GArray *groupids;
+
+    groupids = g_array_new(FALSE, FALSE, sizeof(groupid_t));
+
+    err = nlkup_first_entry(&name, &cookie);
+    while (!err) {
+	int ngids = 64;
+	groupid_t gids[64];
+
+	err = nlkup_lookup_collection(name, &ngids, gids);
+	assert(!err);
+
+	g_array_append_vals(groupids, gids, ngids);
+
+	err = nlkup_next_entry(&name, &cookie);
+    }
+
+    err = ls_set_searchlist(handle, groupids->len, (groupid_t *)groupids->data);
+
+    g_array_free(groupids, TRUE);
+    return err;
+}
+
 /* Parse the NEWSCOPE file and write out name_map and gid_map files for the
  * Diamond application to read. */
-int ls_define_scope(void)
+int ls_define_scope(ls_search_handle_t handle)
 {
     FILE *fp;
     char path[MAXPATHLEN], *home;
@@ -117,6 +149,7 @@ int ls_define_scope(void)
     err = copy_mapdata(path, fp);
     if (err) goto exit;
 
+    err = set_gidlist(handle);
 exit:
     fclose(fp);
     return err;

@@ -46,10 +46,13 @@ def FlickrObjList(search_params):
   while 1:
     photos = flickr.photos_search(**search_params).find('photos')
 
-    total = int(photos.attrib['total'])
-    if nphotos != total:
-      yield '<count adjust="%d"/>\n' % (total - nphotos)
-      nphotos = total
+    try:
+      total = int(photos.attrib['total'])
+      if nphotos != total:
+        yield '<count adjust="%d"/>\n' % (total - nphotos)
+        nphotos = total
+    except (KeyError, ValueError):
+      pass
 
     for photo in photos.findall('photo'):
       yield '<object src="obj/%s"/>\n' % photo.attrib['id']

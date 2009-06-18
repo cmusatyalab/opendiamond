@@ -77,7 +77,7 @@ ls_init_search()
 	search_context_t *sc;
 	int             err;
 
-	sc = (search_context_t *) malloc(sizeof(*sc));
+	sc = (search_context_t *) calloc(1, sizeof(*sc));
 	if (sc == NULL) {
 		/*
 		 * XXX error log 

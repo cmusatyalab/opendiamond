@@ -75,9 +75,7 @@ class MirageObject:
     def close(self):
 	self.f.close()
 
-    def read(self, size=None):
-	if not size:
-	    size = self.length
+    def read(self, size=4096):
 	if size > self.length:
 	    size = self.length
 	chunk = self.f.read(size)
@@ -105,7 +103,7 @@ def MirageExtractEtcPasswd(image_id):
     uidmap = {}
     for path, sha1sum in MirageListObjIDs(image_id, ['/etc/passwd', '/etc/group']):
 	if path == '/etc/passwd':
-	    file = MirageObject(sha1sum).read()
+	    file = MirageObject(sha1sum).read(1024*1024)
 	    for line in file.split('\n'):
 		try:
 		    user, secret, uid, gid, name, dir, shell = line.split(':')

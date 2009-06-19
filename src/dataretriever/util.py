@@ -68,11 +68,17 @@ def scopelist_xsl(environ, start_response):
 # WSGI middleware that cleans up PATH_INFO, dispatches requests based on a
 # dictionary of handlers and catches exceptions.
 class DataRetriever:
-    def __init__(self, handlers):
+    def __init__(self, handlers, hosts_allow=['127.0.0.1']):
 	self.handlers = handlers
 	self.handlers['scopelist.xsl'] = scopelist_xsl
+	self.hosts_allow = hosts_allow
 
     def __call__(self, environ, start_response):
+	if environ['REMOTE_ADDR'] not in self.hosts_allow:
+	    headers = [("Content-Type", "text/plain")]
+	    start_response("403 Forbidden", headers)
+	    return "Client not authorized"
+
 	environ.setdefault('wsgi.file_wrapper', FileWrapper)
 
 	root = shift_path_info(environ)

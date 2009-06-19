@@ -39,11 +39,11 @@ def parseScope(base_url, index, count):
     yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
     yield '<objectlist>\n'
 
-    context = iterparse(obj, events=("start","end"))
-    context = iter(context)
-    _, root = context.next()
-    for ev, el in context:
-	if ev == "end" and el.tag == 'object':
+    root = None
+    for ev, el in iterparse(obj, events=("start","end")):
+	if event == 'start' and root is None:
+	    root = el
+	if ev == 'end' and el.tag == 'object':
 	    if seen % count == index:
 		src = urljoin(base_url, el.attrib['src'])
 		yield '<count adjust="1"/><object src="%s"/>\n' % src

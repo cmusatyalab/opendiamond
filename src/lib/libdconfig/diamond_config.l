@@ -69,9 +69,9 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
 #.*\n
 DATAROOT[ \t]+.*\n
 INDEXDIR[ \t]+.*\n
-CACHEDIR[ \t]+[[:alnum:]\-_\/]+	{set_cache_dir(eat_token(yyget_text(yyscanner)));}
-LOGDIR[ \t]+[[:alnum:]\-_\/]+	{set_log_dir(eat_token(yyget_text(yyscanner)));}
-CERTS[ \t]+[[:alnum:]\-_\/]+	{set_certfile(eat_token(yyget_text(yyscanner)));}
+CACHEDIR[ \t]+[[:alnum:]\-_\/\.]+ {set_cache_dir(eat_token(yyget_text(yyscanner)));}
+LOGDIR[ \t]+[[:alnum:]\-_\/\.]+	  {set_log_dir(eat_token(yyget_text(yyscanner)));}
+CERTFILE[ \t]+[[:alnum:]\-_\/\.]+ {set_certfile(eat_token(yyget_text(yyscanner)));}
 DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
 DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
 .				{have_error(yyscanner); }

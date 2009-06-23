@@ -24,6 +24,7 @@ typedef enum {
 FILE * dconfig_open_config_file(const char *conf_file);
 char * dconf_get_logdir(void);
 char * dconf_get_certfile(void);
+char **dconf_get_serverids(void);
 char * dconf_get_cachedir(void);
 char * dconf_get_spec_cachedir(void);
 char * dconf_get_binary_cachedir(void);

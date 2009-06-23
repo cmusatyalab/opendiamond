@@ -19,6 +19,7 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
@@ -30,6 +31,7 @@
 #include <netdb.h>
 #include <assert.h>
 #include <limits.h>
+#include <glib.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "dconfig_priv.h"
@@ -38,6 +40,7 @@ static int  have_error(yyscan_t scanner);
 static int  set_cache_dir(const char *name);
 static int  set_log_dir(const char *name);
 static int  set_certfile(const char *name);
+static int  set_serverid(const char *name);
 static int  set_data_type(data_type_t type);
 
 static char * eat_token(char *str);
@@ -47,6 +50,7 @@ typedef struct	dconfig_info {
 	char *		dconf_cachedir;
 	char *		dconf_logdir;
 	char *		dconf_certfile;
+	GPtrArray *	dconf_serverids;
 	data_type_t	dconf_dtype;
 } dconf_info_t;
 
@@ -72,6 +76,7 @@ INDEXDIR[ \t]+.*\n
 CACHEDIR[ \t]+[[:alnum:]\-_\/\.]+ {set_cache_dir(eat_token(yyget_text(yyscanner)));}
 LOGDIR[ \t]+[[:alnum:]\-_\/\.]+	  {set_log_dir(eat_token(yyget_text(yyscanner)));}
 CERTFILE[ \t]+[[:alnum:]\-_\/\.]+ {set_certfile(eat_token(yyget_text(yyscanner)));}
+SERVERID[ \t]+[[:alnum:]\-_\/\.]+ {set_serverid(eat_token(yyget_text(yyscanner)));}
 DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
 DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
 .				{have_error(yyscanner); }
@@ -196,6 +201,20 @@ dconf_get_certfile(void)
 }
 
 static int
+set_serverid(const char *name)
+{
+	g_ptr_array_add(dinfo->dconf_serverids, strdup(name));
+	return(0);
+}
+
+char **
+dconf_get_serverids(void)
+{
+	do_init();
+	return (char **)dinfo->dconf_serverids->pdata;
+}
+
+static int
 set_data_type(data_type_t type)
 {
 	dinfo->dconf_dtype = type;
@@ -248,7 +267,7 @@ do_init(void)
 	/* XXX other defaults */
 	dinfo->dconf_cachedir = DEFAULT_DIAMOND_CACHE;
 	dinfo->dconf_logdir = DEFAULT_DIAMOND_LOG;
-
+	dinfo->dconf_serverids = g_ptr_array_new();
 
 
 	f = dconfig_open_config_file(DIAMOND_CONFIG_FILE_NAME);
@@ -267,6 +286,23 @@ do_init(void)
 		  exit(1);
 		}
 	}
+
+	/* if no hostnames were specified, find all of our fqdns */
+	if (dinfo->dconf_serverids->len == 0) {
+	    char name[NI_MAXHOST];
+	    struct addrinfo *p, *ai = NULL;
+
+	    gethostname(name, sizeof(name));
+	    getaddrinfo(name, NULL, NULL, &ai);
+	    for (p = ai; p; p = p->ai_next) {
+		if (getnameinfo(p->ai_addr, p->ai_addrlen, name, sizeof(name),
+				NULL, 0, 0))
+		    continue;
+		g_ptr_array_add(dinfo->dconf_serverids, name);
+	    }
+	    freeaddrinfo(ai);
+	}
+	g_ptr_array_add(dinfo->dconf_serverids, NULL);
 
 	/* setup all the directories we need if they don't exist */
 	setup_dir(dinfo->dconf_logdir);

@@ -108,6 +108,8 @@ int scopecookie_validate(struct scopecookie *scope)
     GString *sig;
     gchar *tmp;
     gsize data_len;
+    char **serverids;
+    unsigned int i, j;
     int rc;
     static int initialized = 0;
 
@@ -139,7 +141,20 @@ int scopecookie_validate(struct scopecookie *scope)
 	return -1;
     }
 
-#warning "SCOPECOOKIE: check if we are listed as one of the servers"
+    /* check if the scope cookie is addressed to one of our fqdn names */
+    serverids = dconf_get_serverids();
+    for (i = 0; scope->servers[i]; i++) {
+	for (j = 0; serverids[j]; j++) {
+	    if (strcmp(scope->servers[i], serverids[j]) == 0)
+		break;
+	}
+	if (serverids[j])
+	    break;
+    }
+    if (!scope->servers[i]) {
+	fprintf(stderr, "Unable to find matching server name\n");
+	return -1;
+    }
 
     sig = g_string_new_len(scope->rawdata, tmp - scope->rawdata);
     string_hex_decode(sig);

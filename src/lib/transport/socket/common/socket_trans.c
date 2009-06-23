@@ -85,6 +85,8 @@ diamond_error(int ret)
 		       " (Is a search running?)";
 	case DIAMOND_NOMEM:
 		return "Failed to allocate enough memory.";
+	case DIAMOND_COOKIE_EXPIRED:
+		return "Scope cookie is no longer valid.";
 	}
 	return strerror(ret);
 }

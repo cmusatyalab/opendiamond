@@ -107,6 +107,8 @@ device_set_scope(void *conn_data, struct mrpc_message *msg, scope_x *in)
 	cstate_t *cstate = (cstate_t *)conn_data;
 	int err;
 	err = (*cstate->lstate->cb.set_scope_cb) (cstate->app_cookie, in->cookie);
+	if (err == EKEYEXPIRED)
+		return DIAMOND_COOKIE_EXPIRED;
 	if (err)
 		return DIAMOND_FAILURE;
 	return MINIRPC_OK;

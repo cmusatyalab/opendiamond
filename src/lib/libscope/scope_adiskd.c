@@ -16,11 +16,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 #include "diamond_features.h"
 #include "dconfig_priv.h"
 #include "scope_priv.h"
-
-#define CERT_FILE "CA.pem"
 
 static int scope_x509_import_certificates(gnutls_x509_crt_t **certs)
 {
@@ -52,7 +51,8 @@ static int scope_x509_import_certificates(gnutls_x509_crt_t **certs)
     return n;
 }
 
-static int scope_x509_validate_signature(const GString *keyid, const GString *sig,
+static int scope_x509_validate_signature(const GString *keyid,
+					 const GString *sig,
 					 const void *data, gsize data_len)
 {
     gnutls_datum_t s, b;
@@ -78,7 +78,7 @@ static int scope_x509_validate_signature(const GString *keyid, const GString *si
 
     if (i >= n) { /* n can be -1 when import fails! */
 	fprintf(stderr, "Unable to find certificate for cookie signer\n");
-	rc = -1;
+	rc = ENOKEY;
 	goto out;
     }
 
@@ -91,7 +91,7 @@ static int scope_x509_validate_signature(const GString *keyid, const GString *si
     if (!gnutls_x509_crt_verify_data(certs[i], 0, &b, &s))
     {
 	fprintf(stderr, "Cookie signature is incorrect\n");
-	rc = -1;
+	rc = EKEYREJECTED;
     }
 
 out: /* cleanup */
@@ -102,6 +102,12 @@ out: /* cleanup */
     return rc;
 }
 
+/* Checks validity of a scope cookie, returns:
+ * EINVAL	- when scopecookie is missing or fails to parse
+ * EKEYEXPIRED	- if scopecookie has timed out
+ * EKEYREJECTED	- cookie was not addressed to us or sig doesn't validate
+ * ENOKEY	- if signature or signer is not found.
+ */
 int scopecookie_validate(struct scopecookie *scope)
 {
     time_t now = time(NULL);
@@ -121,24 +127,17 @@ int scopecookie_validate(struct scopecookie *scope)
 
     if (!scope) {
 	fprintf(stderr, "No cookie found\n");
-	return -1;
+	return EINVAL;
     }
 
     if (scope->version != SCOPECOOKIE_VERSION) {
 	fprintf(stderr, "Cookie has unknown version %d\n", scope->version);
-	//return -1;
+	//return EINVAL;
     }
 
     if (scope->expires <= now) {
 	fprintf(stderr, "Cookie expired as of %s\n", ctime(&scope->expires));
-	return -1;
-    }
-
-    /* extract signature */
-    tmp = g_strstr_len(scope->rawdata, scope->rawlen, "\n");
-    if (!tmp) {
-	fprintf(stderr, "Unable to find cookie signature\n");
-	return -1;
+	return EKEYEXPIRED;
     }
 
     /* check if the scope cookie is addressed to one of our fqdn names */
@@ -153,7 +152,14 @@ int scopecookie_validate(struct scopecookie *scope)
     }
     if (!scope->servers[i]) {
 	fprintf(stderr, "Unable to find matching server name\n");
-	return -1;
+	return EKEYREJECTED;
+    }
+
+    /* extract signature */
+    tmp = g_strstr_len(scope->rawdata, scope->rawlen, "\n");
+    if (!tmp) {
+	fprintf(stderr, "Unable to find cookie signature\n");
+	return ENOKEY;
     }
 
     sig = g_string_new_len(scope->rawdata, tmp - scope->rawdata);

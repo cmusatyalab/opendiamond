@@ -14,56 +14,46 @@
  */
 
 #include <errno.h>
-#include <openssl/evp.h>
+#include <gcrypt.h>
 #include <assert.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "sig_calc.h"
 #include "sig_calc_priv.h"
 
-
-static const EVP_MD *md;
-
 static int
 sig_cal_init(void)
 {
-	/*
-	 * make sure we only call once
-	 */
-	if (md != NULL) {
-		return (0);
-	}
-
-	OpenSSL_add_all_digests();
-	md = EVP_get_digestbyname("md5");
-	if (!md) {
-		perror("Unknown message digest md5");
-		assert(md != NULL);
-		// exit(1);
-	}
+	/* make sure the md5 digest algorithm is available for use */
+	assert(gcry_md_test_algo(GCRY_MD_MD5) == 0);
 
 	/* make sure the digest will fit in our sig_val_t buffer */
-	assert(EVP_MD_size(md) == SIG_SIZE);
+	assert(gcry_md_get_algo_dlen(GCRY_MD_MD5) == SIG_SIZE);
 	return (0);
 }
 
 void
 sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature)
 {
-	EVP_MD_CTX mdctx;
+	gcry_md_hd_t mdctx;
+	gcry_error_t rc;
+	unsigned char *digest;
 	int i;
 
 	sig_cal_init();
 
-	EVP_MD_CTX_init(&mdctx);
-	EVP_DigestInit_ex(&mdctx, md, NULL);
+	rc = gcry_md_open(&mdctx, GCRY_MD_MD5, 0);
+	assert(rc == 0);
 
 	for (i = 0; i < iovcnt; i++)
-		EVP_DigestUpdate(&mdctx, iov[i].iov_base, iov[i].iov_len);
+		gcry_md_write(mdctx, iov[i].iov_base, iov[i].iov_len);
 
-	EVP_DigestFinal_ex(&mdctx, signature->sig, NULL);
-	EVP_MD_CTX_cleanup(&mdctx);
+	digest = gcry_md_read(mdctx, 0);
+	memcpy(signature->sig, digest, SIG_SIZE);
+
+	gcry_md_close(mdctx);
 }
 
 int

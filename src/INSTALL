@@ -3,15 +3,10 @@ Welcome
 
 In this file, ">>" indicates a line to execute. The intent is that reading through this file while executing these lines provides a reasonable way to install and build OpenDiamond.
 
-Notes
--------------------
--- OpenDiamond does NOT work with the latest version of gcc. Downgrade gcc until you stop getting "can't compile with both -static and -shared".
--- adiskd can't find data -> check the number of zeros in GIDIDX0000...000...
-
 Dependencies
 -------------------
 
-    automake autoconf flex openssl glib2.0 sqlite3 minirpc curl
+    automake autoconf flex glib2.0 minirpc libsoup-2.2/2.4 libgnutls libuuid
 
 Building the system
 -------------------
@@ -90,6 +85,9 @@ the file should be something like
 	INDEXDIR /index_file_directory
 	CACHEDIR /cache_storage
 	DATATYPE NATIVE
+	CERTFILE /scope_server_certificates
+	SERVERID fully_qualified_host_name1
+	SERVERID fully_qualified_host_name2
 
 The line DATAROOT gives a prefix relative
 to all the files.  Each file being searched is opened

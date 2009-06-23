@@ -13,7 +13,7 @@
 
 #include <dirent.h>
 #include <fcntl.h>
-#include <openssl/sha.h>
+#include <gcrypt.h>
 #include <pthread.h>
 #include <sqlite3.h>
 #include <stdio.h>
@@ -27,6 +27,8 @@
 #include <time.h>
 #include <unistd.h>
 #include "helper.h"
+
+#define SHA_DIGEST_LENGTH 20
 
 #define OBJHEXLEN (SHA_DIGEST_LENGTH*2) //*2 because bytes become 2 hex chars
 #define GIDHEXLEN 16
@@ -317,13 +319,7 @@ generate_object_names(object_list_t *list) {
 
     fprintf(stderr, ".");
 
-    if(SHA1((const unsigned char *)file, buf.st_size, hash) == NULL) {
-      fprintf(stderr, "SHA1() returned NULL!\n");
-      pthread_mutex_unlock(&list->mutex);
-      munmap(file, buf.st_size);
-      close(fd);
-      return -1;
-    }
+    gcry_md_hash_buffer(GCRY_MD_SHA1, hash, file, buf.st_size);
     
     if(binary_to_hex_string(OBJHEXLEN, trav->new_filename, MAXPATHLEN, 
 			    hash, SHA_DIGEST_LENGTH) < 0) {

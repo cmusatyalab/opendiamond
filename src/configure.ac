@@ -63,8 +63,6 @@ AC_SEARCH_LIBS([sqrt], [m],, AC_MSG_FAILURE([cannot find math library]))
 AC_SEARCH_LIBS([dlopen], [dl],, AC_MSG_FAILURE([cannot find dlopen function]))
 AC_SEARCH_LIBS([pthread_create],
 	[pthread],, AC_MSG_FAILURE([cannot find pthread_create function]))
-AC_SEARCH_LIBS([OpenSSL_add_all_digests],
-	[ssl],, AC_MSG_FAILURE([cannot find ssl function]))
 AC_SEARCH_LIBS([clock_gettime],
 	[rt],, AC_MSG_FAILURE([cannot find POSIX clock functions]))
 

@@ -1,0 +1,32 @@
+#
+#  The OpenDiamond Platform for Interactive Search
+#  Version 4
+#
+#  Copyright (c) 2009 Carnegie Mellon University
+#  All rights reserved.
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
+from django.db import models
+from django.contrib.auth.models import User
+from os.path import basename
+
+class Server(models.Model):
+    host = models.CharField(max_length=100)
+
+    def __unicode__(self):
+	return self.host
+
+class Collection(models.Model):
+    name = models.CharField(max_length=100)
+    gid = models.CharField(max_length=23)
+    allowed_users = models.ManyToManyField(User, blank=True)
+    servers = models.ManyToManyField(Server)
+
+    def __unicode__(self):
+	return self.name
+

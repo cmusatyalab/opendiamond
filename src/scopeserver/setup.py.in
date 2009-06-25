@@ -1,0 +1,27 @@
+#!@PYTHON@
+
+from distutils.core import setup
+
+setup(
+    name = "scopeserver",
+    version = "@VERSION@",
+    packages = [
+	'scopeserver',
+	'scopeserver.flickr',
+	'scopeserver.gatekeeper',
+	'scopeserver.vmfind',
+    ],
+    package_dir = { 'scopeserver': '' },
+    package_data = {
+	'scopeserver':		  [ 'templates/*.html' ],
+	'scopeserver.gatekeeper': [ 'templates/*.html' ],
+    },
+
+    author = "OpenDiamond project, Carnegie Mellon University",
+    author_email = "diamond@cs.cmu.edu",
+    description = "Scope server components for OpenDiamond",
+    license = "Eclipse Public License, Version 1.0",
+    keywords = "opendiamond non-indexed search",
+    url = "http://diamond.cs.cmu.edu/"
+)
+

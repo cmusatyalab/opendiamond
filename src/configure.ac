@@ -82,6 +82,8 @@ adiskd/Makefile
 common/Makefile
 dataretriever/Makefile
 dataretriever/setup.py
+scopeserver/Makefile
+scopeserver/setup.py
 sqlite/Makefile
 lib/Makefile
 lib/libdconfig/Makefile

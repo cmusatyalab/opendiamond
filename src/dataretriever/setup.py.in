@@ -6,8 +6,8 @@ setup(
     name = "dataretriever",
     version = "@VERSION@",
     packages = ['dataretriever'],
-    package_dir = { 'dataretriever': '' },
-    scripts = ['dataretriever'],
+    package_dir = { 'dataretriever': '@srcdir@' },
+    scripts = ['@srcdir@/dataretriever'],
 
     author = "OpenDiamond project, Carnegie Mellon University",
     author_email = "diamond@cs.cmu.edu",

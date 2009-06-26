@@ -11,6 +11,7 @@ setup(
 	'scopeserver_gatekeeper',
 	'scopeserver_vmfind',
     ],
+    package_dir = { '': '@srcdir@' },
     package_data = {
 	'scopeserver_flickr':	  [ 'templates/*.html' ],
 	'scopeserver_gatekeeper': [ 'templates/*.html' ],

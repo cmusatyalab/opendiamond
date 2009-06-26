@@ -31,16 +31,18 @@
 
 #ifdef HAVE_GLIB2_OLD
 #include <stdint.h>
+#include <string.h>
+#include <assert.h>
 
-typedef struct MD5Context {
-	u_int32_t state[4];   /* state (ABCD) */
-	u_int32_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
+struct MD5Context {
+	uint32_t state[4];   /* state (ABCD) */
+	uint32_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
 	unsigned char buffer[64];     /* input buffer */
-} GChecksum;
+};
 
-/* Encodes input (u_int32_t) into output (unsigned char). Assumes len is a
+/* Encodes input (uint32_t) into output (unsigned char). Assumes len is a
  * multiple of 4. */
-static void Encode(unsigned char *output, u_int32_t *input, unsigned int len)
+static void Encode(unsigned char *output, uint32_t *input, unsigned int len)
 {
 	unsigned int i, j;
 	for (i = 0, j = 0; j < len; i++, j += 4) {
@@ -51,17 +53,17 @@ static void Encode(unsigned char *output, u_int32_t *input, unsigned int len)
 	}
 }
 
-/* Decodes input (unsigned char) into output (u_int32_t). Assumes len is a
+/* Decodes input (unsigned char) into output (uint32_t). Assumes len is a
  * multiple of 4. */
-static void Decode(u_int32_t *output, const unsigned char *input,
+static void Decode(uint32_t *output, const unsigned char *input,
 		   unsigned int len)
 {
 	unsigned int i, j;
 	for (i = 0, j = 0; j < len; i++, j += 4) {
-		output[i] = ((u_int32_t)input[j]) |
-			    (((u_int32_t)input[j+1]) << 8) |
-			    (((u_int32_t)input[j+2]) << 16) |
-			    (((u_int32_t)input[j+3]) << 24);
+		output[i] = ((uint32_t)input[j]) |
+			    (((uint32_t)input[j+1]) << 8) |
+			    (((uint32_t)input[j+2]) << 16) |
+			    (((uint32_t)input[j+3]) << 24);
 	}
 }
 
@@ -85,30 +87,30 @@ static unsigned char PADDING[64] = {
  * Rotation is separate from addition to prevent recomputation.
  */
 #define FF(a, b, c, d, x, s, ac) { \
-	(a) += F ((b), (c), (d)) + (x) + (u_int32_t)(ac); \
+	(a) += F ((b), (c), (d)) + (x) + (uint32_t)(ac); \
 	(a) = ROTATE_LEFT ((a), (s)); \
 	(a) += (b); \
 	}
 #define GG(a, b, c, d, x, s, ac) { \
-	(a) += G ((b), (c), (d)) + (x) + (u_int32_t)(ac); \
+	(a) += G ((b), (c), (d)) + (x) + (uint32_t)(ac); \
 	(a) = ROTATE_LEFT ((a), (s)); \
 	(a) += (b); \
 	}
 #define HH(a, b, c, d, x, s, ac) { \
-	(a) += H ((b), (c), (d)) + (x) + (u_int32_t)(ac); \
+	(a) += H ((b), (c), (d)) + (x) + (uint32_t)(ac); \
 	(a) = ROTATE_LEFT ((a), (s)); \
 	(a) += (b); \
 	}
 #define II(a, b, c, d, x, s, ac) { \
-	(a) += I ((b), (c), (d)) + (x) + (u_int32_t)(ac); \
+	(a) += I ((b), (c), (d)) + (x) + (uint32_t)(ac); \
 	(a) = ROTATE_LEFT ((a), (s)); \
 	(a) += (b); \
 	}
 
 /* MD5 basic transformation. Transforms state based on block. */
-static void MD5Transform(u_int32_t state[4], const unsigned char block[64])
+static void MD5Transform(uint32_t state[4], const unsigned char block[64])
 {
-	u_int32_t a = state[0], b = state[1], c = state[2], d = state[3], x[16];
+	uint32_t a = state[0], b = state[1], c = state[2], d = state[3], x[16];
 
 	Decode (x, block, 64);
 
@@ -238,10 +240,10 @@ void g_checksum_update(GChecksum *context, const guchar *input, gssize len)
 	index = (unsigned int)((context->count[0] >> 3) & 0x3F);
 
 	/* Update number of bits */
-	if ((context->count[0] += ((u_int32_t)len << 3))
-	    < ((u_int32_t)len << 3))
+	if ((context->count[0] += ((uint32_t)len << 3))
+	    < ((uint32_t)len << 3))
 		context->count[1]++;
-	context->count[1] += ((u_int32_t)len >> 29);
+	context->count[1] += ((uint32_t)len >> 29);
 
 	partLen = 64 - index;
 

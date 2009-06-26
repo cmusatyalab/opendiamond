@@ -21,6 +21,7 @@
 #ifdef HAVE_GLIB2_OLD
 #include <glib.h>
 #define G_CHECKSUM_MD5 0x4d443500
+typedef struct MD5Context GChecksum;
 GChecksum *g_checksum_new(int type);
 void g_checksum_update(GChecksum *context, const guchar *input, gssize len);
 void g_checksum_get_digest(GChecksum *context, guint8 *digest, gsize *len);

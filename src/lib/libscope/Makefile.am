@@ -14,7 +14,7 @@ cookiecutter_SOURCES = cookiecutter.c
 install-data-hook:
 	desktop-file-install --rebuild-mime-info-cache --vendor diamond $(srcdir)/scope.desktop \
 	|| desktop-file-install --dir $$HOME/.local/share/applications --rebuild-mime-info-cache --vendor diamond $(srcdir)/scope.desktop
-	update-mime-database $(datarootdir)/mime
+#	update-mime-database $(datarootdir)/mime
 
 AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS) $(GNUTLS_CFLAGS) $(UUID_CFLAGS)
 AM_LDFLAGS = $(GLIB2_LIBS) $(GNUTLS_LIBS) $(UUID_LIBS)

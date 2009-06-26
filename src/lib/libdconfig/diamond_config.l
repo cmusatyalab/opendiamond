@@ -239,15 +239,13 @@ setup_dir(const char *dir)
 }
 
 
-
 static void
 do_init(void)
 {
-	int ret;
-	char *dir;
-
+	int i, ret;
+	char *tmp, name[NI_MAXHOST];
+	struct addrinfo *p, *ai = NULL;
 	yyscan_t scanner;
-
 	FILE *f;
 
 	/* use a mutex to ensure lexer is re-entrant */
@@ -289,18 +287,23 @@ do_init(void)
 
 	/* if no hostnames were specified, find all of our fqdns */
 	if (dinfo->dconf_serverids->len == 0) {
-	    char name[NI_MAXHOST];
-	    struct addrinfo *p, *ai = NULL;
-
 	    gethostname(name, sizeof(name));
 	    getaddrinfo(name, NULL, NULL, &ai);
 	    for (p = ai; p; p = p->ai_next) {
 		if (getnameinfo(p->ai_addr, p->ai_addrlen, name, sizeof(name),
-				NULL, 0, 0))
+				NULL, 0, NI_NAMEREQD))
 		    continue;
 		g_ptr_array_add(dinfo->dconf_serverids, name);
 	    }
 	    freeaddrinfo(ai);
+	}
+
+	/* can't actually use log_message here, because we are called as part
+	 * of the logging initialization because it tries to find the log dir */
+	fprintf(stderr, "Server names:\n");
+	for (i = 0; i < dinfo->dconf_serverids->len; i++) {
+	    tmp = g_ptr_array_index(dinfo->dconf_serverids, i);
+	    fprintf(stderr, "\t%s\n", tmp);
 	}
 	g_ptr_array_add(dinfo->dconf_serverids, NULL);
 
@@ -309,21 +312,21 @@ do_init(void)
 
 	setup_dir(dinfo->dconf_cachedir);
 
-	dir = concatpath(dinfo->dconf_cachedir, SPEC_DIAMOND_CACHE);
-	setup_dir(dir);
-	free(dir);
+	tmp = concatpath(dinfo->dconf_cachedir, SPEC_DIAMOND_CACHE);
+	setup_dir(tmp);
+	free(tmp);
 
-	dir = concatpath(dinfo->dconf_cachedir, BINARY_DIAMOND_CACHE);
-	setup_dir(dir);
-	free(dir);
+	tmp = concatpath(dinfo->dconf_cachedir, BINARY_DIAMOND_CACHE);
+	setup_dir(tmp);
+	free(tmp);
 
-	dir = concatpath(dinfo->dconf_cachedir, FILTER_DIAMOND_CACHE);
-	setup_dir(dir);
-	free(dir);
+	tmp = concatpath(dinfo->dconf_cachedir, FILTER_DIAMOND_CACHE);
+	setup_dir(tmp);
+	free(tmp);
 
-	dir = concatpath(dinfo->dconf_cachedir, BLOB_DIAMOND_CACHE);
-	setup_dir(dir);
-	free(dir);
+	tmp = concatpath(dinfo->dconf_cachedir, BLOB_DIAMOND_CACHE);
+	setup_dir(tmp);
+	free(tmp);
 
 	pthread_mutex_unlock(&lexlock);
 	return;

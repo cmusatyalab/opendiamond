@@ -14,7 +14,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import QueryDict, HttpResponse
 from django.shortcuts import render_to_response
-from scopeserver.opendiamond import GenerateCookie
+from opendiamond.helpers import GenerateCookie
 from forms import FlickrForm
 
 @login_required

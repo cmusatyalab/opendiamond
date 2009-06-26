@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import simplejson
 from django.shortcuts import render_to_response
-from scopeserver.opendiamond import GenerateCookie
+from opendiamond.helpers import GenerateCookie
 from forms import CollectionForm, ManageForm
 
 @login_required

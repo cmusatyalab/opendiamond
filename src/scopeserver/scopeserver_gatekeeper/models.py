@@ -13,7 +13,6 @@
 
 from django.db import models
 from django.contrib.auth.models import User
-from os.path import basename
 
 class Server(models.Model):
     host = models.CharField(max_length=100)

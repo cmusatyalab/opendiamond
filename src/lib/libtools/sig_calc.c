@@ -4,56 +4,44 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007-2009 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
  *  License, Version 1.0 which can be found in the file named LICENSE.
  *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ *
  */
 
 #include <errno.h>
-#include <gcrypt.h>
 #include <assert.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <glib.h>
 
 #include "sig_calc.h"
 #include "sig_calc_priv.h"
-
-static int
-sig_cal_init(void)
-{
-	/* make sure the md5 digest algorithm is available for use */
-	assert(gcry_md_test_algo(GCRY_MD_MD5) == 0);
-
-	/* make sure the digest will fit in our sig_val_t buffer */
-	assert(gcry_md_get_algo_dlen(GCRY_MD_MD5) == SIG_SIZE);
-	return (0);
-}
+#include "g_checksum_compat.h"
 
 void
 sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature)
 {
-	gcry_md_hd_t mdctx;
-	gcry_error_t rc;
-	unsigned char *digest;
+	GChecksum *mdctx;
+	unsigned int len = SIG_SIZE;
 	int i;
 
-	sig_cal_init();
-
-	rc = gcry_md_open(&mdctx, GCRY_MD_MD5, 0);
-	assert(rc == 0);
+	mdctx = g_checksum_new(G_CHECKSUM_MD5);
+	assert(mdctx);
 
 	for (i = 0; i < iovcnt; i++)
-		gcry_md_write(mdctx, iov[i].iov_base, iov[i].iov_len);
+	    g_checksum_update(mdctx, iov[i].iov_base, iov[i].iov_len);
 
-	digest = gcry_md_read(mdctx, 0);
-	memcpy(signature->sig, digest, SIG_SIZE);
+	g_checksum_get_digest(mdctx, signature->sig, &len);
+	assert(len == SIG_SIZE);
 
-	gcry_md_close(mdctx);
+	g_checksum_free(mdctx);
 }
 
 int
@@ -137,16 +125,11 @@ sig_hash(const sig_val_t * sig)
 int
 sig_match(const sig_val_t * sig1, const sig_val_t * sig2)
 {
-	if (memcmp(sig1, sig2, sizeof(sig_val_t)) == 0) {
-		return (1);
-	} else {
-		return (0);
-	}
+	return memcmp(sig1, sig2, sizeof(sig_val_t)) == 0;
 }
 
 void
 sig_clear(sig_val_t * sig)
 {
 	memset(sig, 0, sizeof(sig_val_t));
-
 }

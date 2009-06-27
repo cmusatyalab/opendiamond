@@ -46,6 +46,8 @@
 	else       flags |= SOUP_MESSAGE_OVERWRITE_CHUNKS; \
 	soup_message_set_flags(msg, flags); \
     } while(0)
+#define	soup_message_headers_append(headers, name, value) \
+	soup_message_add_header(headers, name, value)
 #define soup_message_headers_foreach(headers, function, user_data) \
 	soup_message_foreach_header(headers, (GHFunc)function, user_data)
 #define soup_message_body_flatten(body) ((void *)0)
@@ -71,7 +73,7 @@
 #define G_MARKUP_COLLECT_STRING   0
 #define G_MARKUP_COLLECT_OPTIONAL 0
 /* extremely minimal implementation as we only need to find one string value */
-gboolean g_markup_collect_attributes (const gchar *element_name,
+static gboolean g_markup_collect_attributes (const gchar *element_name,
 	const gchar **attribute_names, const gchar **attribute_values,
 	GError **error, int type, const gchar *attr, const gchar **value, ...)
 {
@@ -279,7 +281,7 @@ static void dispatch_fetchers(gpointer data, gpointer user_data)
 	msg = soup_message_new_from_uri("GET", state->scope_uri);
 	soup_message_set_accumulate(msg, FALSE);
 
-	soup_message_headers_replace(msg->request_headers, "x-searchid", searchid);
+	soup_message_headers_append(msg->request_headers,"x-searchid",searchid);
 
 	g_object_set_data(G_OBJECT(msg), "parse-context", state);
 	g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk), state);

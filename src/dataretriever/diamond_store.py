@@ -37,8 +37,11 @@ def diamond_config():
     path = os.path.join(os.environ['HOME'], '.diamond', 'diamond_config')
     for line in open(path):
 	if line[0] == '#': continue
-	key, value = line.split(None, 1)
-	config[key] = value.strip()
+        try:
+	    key, value = line.split(None, 1)
+	    config[key] = value.strip()
+	except ValueError:
+	    pass
     return config
 
 def diamond_textattr(path):

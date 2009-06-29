@@ -1,5 +1,5 @@
 EXTRA_DIST = setup.py dataretriever __init__.py util.py \
-     diamond_store.py mirage_store.py
+     diamond_store.py mirage_store.py flickr_store.py proxy_store.py
 
 all-local: setup.py $(EXTRA_DIST)
 	$(PYTHON) setup.py build

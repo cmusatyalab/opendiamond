@@ -90,6 +90,7 @@ static gboolean g_markup_collect_attributes (const gchar *element_name,
 /* Initialize data retriever globals */
 
 static SoupURI *BASE_URI;
+static GAsyncQueue *scopelist_queue;
 static SoupSession *scopelist_sess;
 static SoupSession *object_session;
 static long odisk_http_debug;
@@ -101,6 +102,7 @@ static long odisk_http_debug;
 
 struct fetch_state {
     SoupURI *scope_uri;
+    gchar *search_id;
     GAsyncQueue *queue;
     GMarkupParseContext *context;
     GError *error;
@@ -126,21 +128,16 @@ static void free_queue_msg(gpointer data)
     g_slice_free(struct queue_msg, qmsg);
 }
 
-/* Called when a request has completed */
-static void request_unqueued(SoupSession *session, SoupMessage *msg,
-			     SoupSocket *socket, gpointer user_data)
+static void free_fetch_state(gpointer data)
 {
-    struct fetch_state *state;
+    struct fetch_state *state = data;
     struct queue_msg *qmsg;
-
-    state = g_object_get_data(G_OBJECT(msg), "parse-context");
-    if (!state) return;
-    g_object_set_data(G_OBJECT(msg), "parse-context", NULL);
 
     if (!state->error)
 	g_markup_parse_context_end_parse(state->context, &state->error);
 
-    DBG("Done %p (qlen %d)\n", msg, g_async_queue_length(state->queue));
+    /* signal that we are done */
+    DBG("Done (qlen %d)\n", g_async_queue_length(state->queue));
     qmsg = g_slice_new0(struct queue_msg);
     qmsg->type = DONE;
     g_async_queue_push(state->queue, qmsg);
@@ -150,26 +147,34 @@ static void request_unqueued(SoupSession *session, SoupMessage *msg,
     g_async_queue_unref(state->queue);
     soup_uri_free(state->scope_uri);
     if (state->error) g_error_free(state->error);
+    g_free(state->search_id);
     g_free(state);
 }
 
+static void *scopelist_fetcher(void *arg);
+
 void dataretriever_init(const char *base_url)
 {
+    pthread_t thread;
+
     g_type_init();
 
     BASE_URI = soup_uri_new(base_url);
+
+    scopelist_queue = g_async_queue_new_full(free_fetch_state);
 
     scopelist_sess = soup_session_sync_new_with_options(
 	SOUP_SESSION_MAX_CONNS,		 1,
 	SOUP_SESSION_MAX_CONNS_PER_HOST, 1,
 	NULL);
-    g_signal_connect(scopelist_sess, "request-unqueued",
-		     G_CALLBACK(request_unqueued), NULL);
 
     object_session = soup_session_sync_new_with_options(
 	SOUP_SESSION_MAX_CONNS,		64,
 	SOUP_SESSION_MAX_CONNS_PER_HOST, 8,
 	NULL);
+
+    pthread_create(&thread, NULL, scopelist_fetcher, scopelist_queue);
+    pthread_detach(thread);
 }
 
 
@@ -254,60 +259,76 @@ static void scopelist_got_chunk(SoupMessage *msg, SoupBuffer *buf, gpointer ud)
     g_async_queue_push(state->queue, qmsg);
 }
 
-/*********************/
-/* Start/stop search */
-static void dispatch_fetchers(gpointer data, gpointer user_data)
+static void *scopelist_fetcher(void *arg)
 {
-    odisk_state_t *odisk = user_data;
-    struct scopecookie *cookie = data;
-    char searchid[11];
-    gchar **scope;
-    unsigned int i;
+    GAsyncQueue *scopelist_queue = arg;
     struct fetch_state *state;
     SoupMessage *msg;
 
-    snprintf(searchid, 11, "%u", odisk->search_id);
-
-    scope = g_strsplit(cookie->scopedata, "\n", 0);
-    for (i = 0; scope[i]; i++)
+    while(1)
     {
-	if (*scope[i] == '\0') continue;
-
-	state = g_new0(struct fetch_state, 1);
-	state->scope_uri = soup_uri_new_with_base(BASE_URI, scope[i]);
-	state->queue = g_async_queue_ref(odisk->queue);
-	state->context = g_markup_parse_context_new(&scopelist_parser, 0, state, NULL);
+	state = g_async_queue_pop(scopelist_queue);
 
 	msg = soup_message_new_from_uri("GET", state->scope_uri);
 	soup_message_set_accumulate(msg, FALSE);
+	soup_message_headers_append(msg->request_headers, "x-searchid",
+				    state->search_id);
+	g_signal_connect(msg,"got-chunk",G_CALLBACK(scopelist_got_chunk),state);
 
-	soup_message_headers_append(msg->request_headers,"x-searchid",searchid);
+	soup_session_send_message(scopelist_sess, msg);
 
-	g_object_set_data(G_OBJECT(msg), "parse-context", state);
-	g_signal_connect(msg, "got-chunk", G_CALLBACK(scopelist_got_chunk), state);
-
-	odisk->fetchers++;
-	soup_session_queue_message(scopelist_sess, msg, NULL, NULL);
+	free_fetch_state(state);
     }
-    g_strfreev(scope);
 }
 
+/*********************/
+/* Start/stop search */
 void dataretriever_start_search(odisk_state_t *odisk)
 {
+    struct scopecookie *cookie;
+    struct fetch_state *state;
+    gchar *search_id, **scope;
+    unsigned int i, j;
+
     /* make sure active scopelist fetches are aborted */
     dataretriever_stop_search(odisk);
 
     odisk->fetchers = odisk->count = 0;
     odisk->queue = g_async_queue_new_full(free_queue_msg);
+    search_id = g_strdup_printf("%u", odisk->search_id);
 
-    odisk->fetchers++;
-    g_ptr_array_foreach(odisk->scope, dispatch_fetchers, odisk);
-    odisk->fetchers--;
+    for (i = 0; i < odisk->scope->len; i++)
+    {
+	cookie = g_ptr_array_index(odisk->scope, i);
+	scope = g_strsplit(cookie->scopedata, "\n", 0);
+
+	for (j = 0; scope[j]; j++)
+	{
+	    if (*scope[j] == '\0') continue;
+
+	    state = g_new0(struct fetch_state, 1);
+	    state->scope_uri = soup_uri_new_with_base(BASE_URI, scope[j]);
+	    state->queue = g_async_queue_ref(odisk->queue);
+	    state->search_id = g_strdup(search_id);
+	    state->context = g_markup_parse_context_new(&scopelist_parser, 0,
+			    				state, NULL);
+	    odisk->fetchers++;
+	    g_async_queue_push(scopelist_queue, state);
+	}
+	g_strfreev(scope);
+    }
+    g_free(search_id);
 }
 
 void dataretriever_stop_search(odisk_state_t *odisk)
 {
+    struct fetch_state *state;
+
     if (!odisk->queue) return;
+
+    /* dequeue pending requests */
+    while ((state = g_async_queue_try_pop(scopelist_queue)))
+	free_fetch_state(state);
 
     /* Abort remaining transfers so they fail the request. This calls the
      * msg->finished callback. which destroys the XML parse context. That
@@ -336,6 +357,7 @@ char *dataretriever_next_object_uri(odisk_state_t *odisk)
 
     while (odisk->fetchers && !uri_string)
     {
+	DBG("next_object (qlen %d)\n", g_async_queue_length(odisk->queue));
 	qmsg = g_async_queue_pop(odisk->queue);
 
 	if (qmsg->type == URI) {

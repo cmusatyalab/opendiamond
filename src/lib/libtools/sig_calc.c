@@ -36,7 +36,8 @@ sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature)
 	assert(mdctx);
 
 	for (i = 0; i < iovcnt; i++)
-	    g_checksum_update(mdctx, iov[i].iov_base, iov[i].iov_len);
+	    if (iov[i].iov_len)
+		g_checksum_update(mdctx, iov[i].iov_base, iov[i].iov_len);
 
 	g_checksum_get_digest(mdctx, signature->sig, &len);
 	assert(len == SIG_SIZE);

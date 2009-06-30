@@ -41,7 +41,7 @@ def parseScope(base_url, index, count):
 
     root = None
     for ev, el in iterparse(obj, events=("start","end")):
-	if event == 'start' and root is None:
+	if ev == 'start' and root is None:
 	    root = el
 	if ev == 'end' and el.tag == 'object':
 	    if seen % count == index:

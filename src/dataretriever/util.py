@@ -84,7 +84,7 @@ class DataRetriever:
 	root = shift_path_info(environ)
 
 	# clean up remaining path components
-	path = posixpath.normpath(environ['PATH_INFO'])
+	path = environ['PATH_INFO']
 	comp = [p for p in path.split('/') if p not in ('.', '..')]
 	environ['PATH_INFO'] = '/'.join(comp)
 

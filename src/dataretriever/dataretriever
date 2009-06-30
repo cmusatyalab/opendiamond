@@ -19,6 +19,8 @@ parser = optparse.OptionParser()
 parser.add_option("-l", "--listen", dest="host", default="127.0.0.1",
 		  help="Bind with the specified listen address")
 parser.add_option("-p", "--port",   dest="port", default="5873")
+parser.add_option("-d", "--daemonize", dest="daemonize", action="store_true",
+		  default=False)
 (options, args) = parser.parse_args()
 
 from dataretriever.util import DataRetriever
@@ -33,6 +35,18 @@ app = DataRetriever({
 })
 
 def run():
+    if options.daemonize:
+	import os
+	if (os.fork()): os._exit(0)
+	os.setsid()
+	if (os.fork()): os._exit(0)
+	for fd in range(1024):
+	    try: os.close(fd)
+	    except OSError: pass
+	os.open("/dev/null", os.O_RDWR)
+	os.dup2(0, 1)
+	os.dup2(0, 2)
+
     try:
 	from paste import httpserver
 	httpserver.serve(app, host=options.host, port=options.port,

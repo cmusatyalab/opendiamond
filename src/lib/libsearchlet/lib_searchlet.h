@@ -495,6 +495,10 @@ int ls_dev_characteristics(ls_search_handle_t handle,
                            ls_dev_handle_t dev_handle,
                            device_char_t *dev_chars);
 
+diamond_public
+const char *ls_get_dev_name(ls_search_handle_t handle,
+			    ls_dev_handle_t dev_handle);
+
 /*!
  * This call gets the current statistics from device specified by the device
  * handle.  This includes statistics on the device as well as any currently 

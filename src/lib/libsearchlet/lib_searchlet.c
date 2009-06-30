@@ -1132,6 +1132,13 @@ ls_dev_characteristics(ls_search_handle_t handle, ls_dev_handle_t dev_handle,
 }
 
 
+const char *
+ls_get_dev_name(ls_search_handle_t handle,
+		ls_dev_handle_t dev_handle)
+{
+	device_handle_t *dev = dev_handle;
+	return dev->dev_name;
+}
 
 
 /*

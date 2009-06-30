@@ -39,7 +39,7 @@ def index(request):
 	  else:
 	    cookie = []
 	    for collection in form.cleaned_data['collections']:
-		scope = [ "/collection/%s" % collection.gid ]
+		scope = [ "/collection/%s" % collection.gid.replace(':','') ]
 		servers = {}
 		for server in collection.servers.all():
 		    servers[server.host] = True

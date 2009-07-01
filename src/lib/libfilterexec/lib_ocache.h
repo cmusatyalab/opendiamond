@@ -65,7 +65,7 @@ diamond_public
 int ceval_stop(filter_data_t * fdata);
 
 diamond_public
-pr_obj_t *ceval_filters1(const char *objname, filter_data_t *fdata,
+pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 			 ceval_state_t *cstate);
 
 diamond_public

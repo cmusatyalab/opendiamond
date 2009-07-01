@@ -420,7 +420,7 @@ void source_cache_hit(filter_info_t *f, sig_val_t *oid_sig,
 }
 #endif
 
-pr_obj_t *ceval_filters1(const char *objname, filter_data_t *fdata,
+pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 			 ceval_state_t *cstate)
 {
 	filter_info_t  *cur_filter;

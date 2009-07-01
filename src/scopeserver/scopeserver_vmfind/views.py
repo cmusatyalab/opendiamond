@@ -42,7 +42,7 @@ def index(request):
 	    scope = [ "/mirage/%s%s" % (image, query) for image in
 			 form.cleaned_data['vmimages']]
 
-	    cookie = GenerateCookie(scope, SERVERS).read()
+	    cookie = GenerateCookie(scope, SERVERS)
 	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
 	    resp['Content-Disposition']='attachment; filename=opendiamond.scope'
 	    return resp

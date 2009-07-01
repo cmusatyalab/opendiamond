@@ -42,7 +42,7 @@ def index(request):
 	    scope = [ "/flickr/?%s" % query ]
 	    servers = [ "westphal.isr.cs.cmu.edu" ]
 
-	    cookie = GenerateCookie(scope, servers).read()
+	    cookie = GenerateCookie(scope, servers)
 	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
 	    resp['Content-Disposition']='attachment; filename=opendiamond.scope'
 	    return resp

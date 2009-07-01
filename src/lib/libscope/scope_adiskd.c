@@ -151,7 +151,10 @@ int scopecookie_validate(struct scopecookie *scope)
 	    break;
     }
     if (!scope->servers[i]) {
-	fprintf(stderr, "Unable to find matching server name\n");
+	fprintf(stderr, "Unable to find matching name in scope cookie\n");
+	fprintf(stderr, "Known server names:\n");
+	for (j = 0; serverids[j]; j++)
+	    fprintf(stderr, "\t%s\n", serverids[j]);
 	return EKEYREJECTED;
     }
 

@@ -242,7 +242,7 @@ setup_dir(const char *dir)
 static void
 do_init(void)
 {
-	int i, ret;
+	int ret;
 	char *tmp, name[NI_MAXHOST];
 	struct addrinfo *p, *ai = NULL;
 	yyscan_t scanner;
@@ -296,14 +296,6 @@ do_init(void)
 		g_ptr_array_add(dinfo->dconf_serverids, name);
 	    }
 	    freeaddrinfo(ai);
-	}
-
-	/* can't actually use log_message here, because we are called as part
-	 * of the logging initialization because it tries to find the log dir */
-	fprintf(stderr, "Server names:\n");
-	for (i = 0; i < dinfo->dconf_serverids->len; i++) {
-	    tmp = g_ptr_array_index(dinfo->dconf_serverids, i);
-	    fprintf(stderr, "\t%s\n", tmp);
 	}
 	g_ptr_array_add(dinfo->dconf_serverids, NULL);
 

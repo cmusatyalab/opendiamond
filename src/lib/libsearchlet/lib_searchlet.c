@@ -1067,7 +1067,7 @@ ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t * handle_list,
 {
 	search_context_t *sc;
 	device_handle_t *cur_dev;
-	int             dev_count;
+	int             avail, dev_count;
 
 	if (!handle_list)
 		return EINVAL;
@@ -1080,16 +1080,25 @@ ls_get_dev_list(ls_search_handle_t handle, ls_dev_handle_t * handle_list,
 	 */
 	dev_count = 0;
 	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
-		if (cur_dev->flags & DEV_FLAG_DOWN) {
+		if (cur_dev->flags & DEV_FLAG_DOWN)
 			continue;
-		}
-		if (*num_handles <= dev_count)
-			return ENOSPC;
 		dev_count++;
+	}
+
+	avail = *num_handles;
+	*num_handles = dev_count;
+
+	for (cur_dev = sc->dev_list; cur_dev != NULL; cur_dev = cur_dev->next) {
+		if (cur_dev->flags & DEV_FLAG_DOWN)
+			continue;
+
+		if (avail == 0)
+			return ENOSPC;
+
 		*handle_list = cur_dev;
 		handle_list++;
+		avail--;
 	}
-	*num_handles = dev_count;
 	return 0;
 }
 

@@ -29,7 +29,7 @@ void
 sig_cal_vec(const struct ciovec *iov, int iovcnt, sig_val_t *signature)
 {
 	GChecksum *mdctx;
-	unsigned int len = SIG_SIZE;
+	gsize len = SIG_SIZE;
 	int i;
 
 	mdctx = g_checksum_new(G_CHECKSUM_MD5);

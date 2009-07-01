@@ -887,7 +887,7 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	 */
 	rtimer_t        rt;
 	u_int64_t       time_ns;	/* time for one filter */
-	u_int64_t       stack_ns;	/* time for whole filter stack */
+	u_int64_t       stack_ns = 0;	/* time for whole filter stack */
 
 	sig_str = sig_string(&obj_handle->id_sig);
 	log_message(LOGT_FILT, LOGL_TRACE, "eval_filters(%s): Entering",
@@ -914,14 +914,8 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 	 * save the total time info attribute 
 	 */
 	asize = sizeof(stack_ns);
-	err = obj_read_attr(&obj_handle->attr_info, FLTRTIME,
-			    &asize, (void *) &stack_ns);
-	if (err != 0) {
-		/*
-		 * If we didn't find it, then set our count to 0. 
-		 */
-		stack_ns = 0;
-	}
+	obj_read_attr(&obj_handle->attr_info, FLTRTIME,
+		      &asize, (void *) &stack_ns);
 
 	err = gettimeofday(&wstart, &tz);
 	assert(err == 0);

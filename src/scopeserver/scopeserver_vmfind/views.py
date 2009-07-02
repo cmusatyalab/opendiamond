@@ -11,7 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import permission_required
+from django.conf import settings
 from django.http import QueryDict, HttpResponse
 from django.shortcuts import render_to_response
 from opendiamond.helpers import GenerateCookie
@@ -19,8 +20,7 @@ from forms import VMFindForm
 
 SERVERS = [ "westphal.isr.cs.cmu.edu" ]
 
-@permission_required('access.search')
-@login_required
+@permission_required('access.search', login_url=settings.LOGIN_REDIRECT_URL)
 def index(request):
     if request.method == 'POST':
 	form = VMFindForm(request.POST)

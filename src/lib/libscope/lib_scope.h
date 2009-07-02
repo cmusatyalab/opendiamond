@@ -31,7 +31,6 @@ extern "C"
 {
 #endif
 
-#include <glib.h>
 #include "lib_searchlet.h"
 
 /*!
@@ -46,8 +45,8 @@ diamond_public
 int ls_define_scope(ls_search_handle_t handle);
 
 /* helpers for libsearchlet */
-gchar **scope_split_cookies(const gchar *megacookie);
-gchar **scope_get_servers(const gchar *cookie);
+char **scope_split_cookies(const char *megacookie);
+char **scope_get_servers(const char *cookie);
 
 #ifdef __cplusplus
 }

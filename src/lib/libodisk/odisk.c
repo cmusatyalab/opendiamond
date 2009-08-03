@@ -459,6 +459,7 @@ odisk_main(void *arg)
 		if (err) {
 			log_message(LOGT_DISK, LOGL_ERR,
 			    "odisk_main: failed to load object");
+			continue;
 		}
 
 		/*

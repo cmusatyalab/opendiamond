@@ -125,19 +125,9 @@ const struct blast_channel_client_operations *hstub_blast_ops = &ops;
 void hstub_send_credits(sdevice_state_t *dev)
 {
 	conn_info_t *cinfo = &dev->con_data;
-	credit_x credit;
-	mrpc_status_t rc;
+	credit_x credit = { .credit_offset = 1 };
 
-	pthread_mutex_lock(&cinfo->mutex);
-	credit.credit_offset = cinfo->objects_consumed;
-	cinfo->objects_consumed = 0;
-	pthread_mutex_unlock(&cinfo->mutex);
-
-	if (credit.credit_offset == 0)
-		return;
-
-	//	g_debug("sending %d credit_offset to %d", credit.credit_offset, cinfo->ipv4addr);
-
-	rc = blast_channel_offset_credit(cinfo->blast_conn, &credit);
+	//g_debug("sending %d credit_offset to %d", credit.credit_offset, cinfo->ipv4addr);
+	blast_channel_offset_credit(cinfo->blast_conn, &credit);
 }
 

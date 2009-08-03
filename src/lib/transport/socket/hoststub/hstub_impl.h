@@ -30,7 +30,6 @@
 typedef struct conn_info {
 	pthread_mutex_t		mutex; /* protects 'objects_consumed' */
 	int			ref;
-	int			objects_consumed;
 	uint32_t		ipv4addr; /* used by device_characteristics() */
 	sig_val_t		session_nonce; /* for pairing control and data conns */
 	struct mrpc_connection *rpc_client;

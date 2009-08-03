@@ -214,8 +214,6 @@ hstub_main(void *arg)
 			break;
 		}
 
-		hstub_send_credits(dev);
-
 		/*
 		 * periodically send device statistics and
 		 * device characteristic probes.

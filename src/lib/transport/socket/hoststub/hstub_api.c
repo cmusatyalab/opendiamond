@@ -189,18 +189,12 @@ device_next_obj(void *handle)
 {
 	sdevice_state_t *dev;
 	obj_data_t     *obj;
-	conn_info_t    *cinfo;
 
 	dev = (sdevice_state_t *) handle;
 	obj = ring_deq(dev->obj_ring);
 
-	if (obj) {
-		/* increment consumed count */
-		cinfo = &dev->con_data;
-		pthread_mutex_lock(&cinfo->mutex);
-		cinfo->objects_consumed++;
-		pthread_mutex_unlock(&cinfo->mutex);
-	}
+	if (obj)
+		hstub_send_credits(dev);
 
 	return obj;
 }

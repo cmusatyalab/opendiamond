@@ -253,31 +253,18 @@ odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
 static int
 odisk_pr_next(pr_obj_t ** new_object)
 {
-	pr_obj_t       *tmp;
-
 	pthread_mutex_lock(&odisk_mutex);
-	while (1) {
-		if (!ring_empty(obj_pr_ring)) {
-			tmp = ring_deq(obj_pr_ring);
-
-			pthread_cond_signal(&pr_bg_queue_cv);
-			if (tmp->oattr_fnum == -1) {
-				free(tmp);
-				search_done = 1;
-			} else {
-				*new_object = tmp;
-				pthread_mutex_unlock(&odisk_mutex);
-				return (0);
-			}
-		} else {
-			if (search_done) {
-				*new_object = NULL;
-				pthread_mutex_unlock(&odisk_mutex);
-				return (ENOENT);
-			}
-			pthread_cond_wait(&pr_fg_cv, &odisk_mutex);
-		}
+	while ((*new_object = ring_deq(obj_pr_ring)) == NULL) {
+		pthread_cond_wait(&pr_fg_cv, &odisk_mutex);
 	}
+	pthread_mutex_unlock(&odisk_mutex);
+
+	if ((*new_object)->oattr_fnum == -1) {
+		free(*new_object);
+		return ENOENT;
+	}
+	pthread_cond_signal(&pr_bg_queue_cv);
+	return 0;
 }
 
 int odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
@@ -346,28 +333,24 @@ int odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 int
 odisk_pr_add(pr_obj_t *pr_obj)
 {
-	pthread_mutex_lock(&odisk_mutex);
-
 	/*
 	 * Loop until there is space on the queue to put the object
 	 * or we find out the search has gone inactive.
 	 */
+	pthread_mutex_lock(&odisk_mutex);
 	while (1) {
 		if (search_active == 0) {
 			odisk_release_pr_obj(pr_obj);
-			pthread_mutex_unlock(&odisk_mutex);
-			return (0);
+			break;
 		}
+		if (ring_enq(obj_pr_ring, pr_obj) == 0)
+			break;
 
-		if (!ring_full(obj_pr_ring)) {
-			ring_enq(obj_pr_ring, pr_obj);
-			pthread_cond_signal(&pr_fg_cv);
-			pthread_mutex_unlock(&odisk_mutex);
-			return (0);
-		} else {
-			pthread_cond_wait(&pr_bg_queue_cv, &odisk_mutex);
-		}
+		pthread_cond_wait(&pr_bg_queue_cv, &odisk_mutex);
 	}
+	pthread_mutex_unlock(&odisk_mutex);
+	pthread_cond_signal(&pr_fg_cv);
+	return (0);
 }
 
 char *odisk_next_obj_name(odisk_state_t * odisk)
@@ -383,6 +366,8 @@ odisk_flush(odisk_state_t * odisk)
 	obj_data_t     *obj;
 	int             err;
 
+	dataretriever_stop_search(odisk);
+
 	err = pthread_mutex_lock(&odisk_mutex);
 	assert(err == 0);
 	search_active = 0;
@@ -390,22 +375,14 @@ odisk_flush(odisk_state_t * odisk)
 	/*
 	 * drain the pr ring 
 	 */
-	while (!ring_empty(obj_pr_ring)) {
-		pobj = ring_deq(obj_pr_ring);
-		if (pobj != NULL) {
-			odisk_release_pr_obj(pobj);
-		}
-	}
+	while ((pobj = ring_deq(obj_pr_ring)))
+		odisk_release_pr_obj(pobj);
 
 	/*
 	 * drain the object ring 
 	 */
-	while (!ring_empty(obj_ring)) {
-		obj = ring_deq(obj_ring);
-		if (obj != NULL) {
-			odisk_release_obj(obj);
-		}
-	}
+	while ((obj = ring_deq(obj_ring)))
+		odisk_release_obj(obj);
 
 	pthread_cond_signal(&pr_bg_queue_cv);
 	/*
@@ -416,8 +393,6 @@ odisk_flush(odisk_state_t * odisk)
 	err = pthread_mutex_unlock(&odisk_mutex);
 	assert(err == 0);
 	printf("odisk_flush done\n");
-
-	dataretriever_stop_search(odisk);
 
 	return (0);
 }
@@ -444,12 +419,7 @@ odisk_main(void *arg)
 		if (err == ENOENT) {
 			search_active = 0;
 			search_done = 1;
-			pthread_mutex_lock(&odisk_mutex);
 			pthread_cond_signal(&fg_data_cv);
-			pthread_mutex_unlock(&odisk_mutex);
-			continue;
-		} else if (err) {
-			odisk_release_pr_obj(pobj);
 			continue;
 		}
 
@@ -479,37 +449,35 @@ odisk_main(void *arg)
 			 * will get an error.  If error we sleep until more
 			 * space is available.
 			 */
-			err = ring_enq(obj_ring, nobj);
-			if (err == 0) {
-				pthread_cond_signal(&fg_data_cv);
+			if (ring_enq(obj_ring, nobj) == 0)
 				break;
-			} else {
-				pthread_cond_wait(&bg_queue_cv, &odisk_mutex);
-			}
+
+			//fprintf(stderr, "odisk_main: obj_ring full\n");
+			pthread_cond_wait(&bg_queue_cv, &odisk_mutex);
 		}
 		pthread_mutex_unlock(&odisk_mutex);
+		pthread_cond_signal(&fg_data_cv);
 	}
 }
 
 int
 odisk_next_obj(obj_data_t ** new_object, odisk_state_t * odisk)
 {
+	int ret = 0;
 	pthread_mutex_lock(&odisk_mutex);
-	while (1) {
-		if (!ring_empty(obj_ring)) {
-			*new_object = ring_deq(obj_ring);
-			pthread_cond_signal(&bg_queue_cv);
-			pthread_mutex_unlock(&odisk_mutex);
-			return (0);
-		} else {
-			if (search_done) {
-				pthread_mutex_unlock(&odisk_mutex);
-				return (ENOENT);
-			}
-			odisk->next_blocked++;
-			pthread_cond_wait(&fg_data_cv, &odisk_mutex);
+	while ((*new_object = ring_deq(obj_ring)) == NULL)
+	{
+		if (search_done) {
+			ret = ENOENT;
+			break;
 		}
+		odisk->next_blocked++;
+		//fprintf(stderr, "odisk_next_obj: obj_ring empty\n");
+		pthread_cond_wait(&fg_data_cv, &odisk_mutex);
 	}
+	pthread_mutex_unlock(&odisk_mutex);
+	pthread_cond_signal(&bg_queue_cv);
+	return ret;
 }
 
 

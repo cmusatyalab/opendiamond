@@ -26,7 +26,7 @@
 
 
 /* do we try to continue evaluating objects when stalled */ 
-#define	SSTATE_DEFAULT_WORKAHEAD	1
+#define	SSTATE_DEFAULT_WORKAHEAD	0
 
 /* name to use for logs */
 #define LOG_PREFIX 	"adiskd"

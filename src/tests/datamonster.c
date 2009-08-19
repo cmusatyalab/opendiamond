@@ -1,3 +1,20 @@
+/*
+ *  The OpenDiamond Platform for Interactive Search
+ *  Version 4
+ *
+ *  Copyright (c) 2009 Carnegie Mellon University
+ *  All rights reserved.
+ *
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+ */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -10,6 +27,7 @@
 
 static gboolean presort;
 static gboolean sort;
+static gboolean decompress;
 static gchar *dataroot;
 static gchar **idxfiles;
 
@@ -18,6 +36,10 @@ static GOptionEntry options[] = {
 	"Sort index files by name", NULL },
     { "sort", 's', 0, G_OPTION_ARG_NONE, &sort,
 	"Sort index files by inode", NULL },
+#ifdef HAVE_JPEGLIB_H
+    { "jpeg", 'j', 0, G_OPTION_ARG_NONE, &decompress,
+	"Decompress jpeg files", NULL },
+#endif
     { "dataroot", 'd', 0, G_OPTION_ARG_FILENAME, &dataroot,
 	"Directory containing files", "DATAROOT" },
     { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &idxfiles,
@@ -94,6 +116,70 @@ static void collect_inos(GArray *array)
     }
 }
 
+#ifdef HAVE_JPEGLIB_H
+#include <jpeglib.h>
+
+/* helper functions for the jpeg decompressor */
+static void init_source(j_decompress_ptr cinfo)
+{
+}
+
+static boolean fill_input_buffer(j_decompress_ptr cinfo)
+{
+    return TRUE;
+}
+
+static void skip_input_data(j_decompress_ptr cinfo, long num_bytes)
+{
+    if (num_bytes <= 0) return;
+    cinfo->src->next_input_byte += (size_t)num_bytes;
+    cinfo->src->bytes_in_buffer -= (size_t)num_bytes;
+}
+
+static void term_source(j_decompress_ptr cinfo)
+{
+}
+
+static void decompress_jpeg(const gchar *buf, gsize len)
+{
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    struct jpeg_source_mgr source;
+    JSAMPROW line;
+
+    if (len < 2 || buf[0] != (gchar)0xff || buf[1] != (gchar)0xd8)
+	return;
+
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_decompress(&cinfo);
+
+    cinfo.src = &source;
+    cinfo.src->next_input_byte = (const JOCTET *)buf;
+    cinfo.src->bytes_in_buffer = len;
+    cinfo.src->init_source = init_source;
+    cinfo.src->fill_input_buffer = fill_input_buffer;
+    cinfo.src->skip_input_data = skip_input_data;
+    cinfo.src->term_source = term_source;
+
+    jpeg_read_header(&cinfo, TRUE);
+    jpeg_start_decompress(&cinfo);
+
+    line = g_new(JSAMPLE, cinfo.output_width * cinfo.output_components);
+
+    while(cinfo.output_scanline < cinfo.output_height)
+	jpeg_read_scanlines(&cinfo, &line, 1);
+
+    g_free(line);
+
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+}
+#else
+static void decompress_jpeg(const gchar *buf, gsize len)
+{
+}
+#endif
+
 int main(int argc, char **argv)
 {
     GOptionContext *context;
@@ -147,6 +233,9 @@ int main(int argc, char **argv)
     for (i = 0; i < files->len; i++) {
 	g_file_get_contents(g_array_index(files, struct elem, i).file,
 			    &buf, &len, NULL);
+	if (decompress) 
+	    decompress_jpeg(buf, len);
+
 	g_free(buf);
 	nbytes += len;
     }

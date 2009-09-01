@@ -366,8 +366,6 @@ odisk_flush(odisk_state_t * odisk)
 	obj_data_t     *obj;
 	int             err;
 
-	dataretriever_stop_search(odisk);
-
 	err = pthread_mutex_lock(&odisk_mutex);
 	assert(err == 0);
 	search_active = 0;
@@ -393,6 +391,8 @@ odisk_flush(odisk_state_t * odisk)
 	err = pthread_mutex_unlock(&odisk_mutex);
 	assert(err == 0);
 	printf("odisk_flush done\n");
+
+	dataretriever_stop_search(odisk);
 
 	return (0);
 }

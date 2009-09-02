@@ -242,7 +242,7 @@ odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
 	cookie = g_new0(struct scopecookie, 1);
 	cookie->servers = g_strdupv(hosts);
 	cookie->scopedata = g_strdup_printf("/collection/%016" PRIX64, gid);
-
+	cookie->keyid = g_string_new("");
 	cookie->rawdata = cookie->scopedata;
 	cookie->rawlen = strlen(cookie->scopedata);
 

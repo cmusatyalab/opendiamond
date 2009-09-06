@@ -605,9 +605,11 @@ session_variables_get(void *conn_data, struct mrpc_message *msg,
 	}
 	err = MINIRPC_OK;
 err_out:
-	free(vars->names);
-	free(vars->values);
-	free(vars);
+	if (vars != NULL) {
+		free(vars->names);
+		free(vars->values);
+		free(vars);
+	}
 	return err;
 }
 
@@ -638,9 +640,11 @@ session_variables_set(void *conn_data, struct mrpc_message *msg,
 	(*cstate->lstate->cb.set_session_vars_cb) (cstate->app_cookie, vars);
 	err = MINIRPC_OK;
 err_out:
-	free(vars->names);
-	free(vars->values);
-	free(vars);
+	if (vars != NULL) {
+		free(vars->names);
+		free(vars->values);
+		free(vars);
+	}
 	return err;
 }
 

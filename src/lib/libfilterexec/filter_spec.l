@@ -14,6 +14,9 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+// stop flex from printing garbage to stdout
+#define ECHO
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>

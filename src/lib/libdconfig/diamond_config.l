@@ -16,6 +16,9 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+// stop flex from printing garbage to stdout
+#define ECHO
+
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/types.h>

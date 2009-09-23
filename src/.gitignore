@@ -9,6 +9,7 @@ Makefile
 Makefile.in
 .deps
 .libs
+.dirstamp
 /aclocal.m4
 /autom4te.cache
 /libtool

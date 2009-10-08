@@ -1319,7 +1319,7 @@ int ls_get_objectid(ls_search_handle_t handle, ls_obj_handle_t obj_handle,
 	int err;
 
 	for (cur_dev = sc->dev_list; cur_dev; cur_dev = cur_dev->next)
-		if ((intptr_t)cur_dev->dev_handle == obj->dev_cookie)
+		if (obj && (intptr_t)cur_dev->dev_handle == obj->dev_cookie)
 			break;
 
 	/* no matching device found, is this an invalid object handle? */

@@ -288,10 +288,10 @@ device_set_blob_by_signature(void *conn_data, struct mrpc_message *msg, blob_sig
 
 	//g_debug("looking up %s in cache", name_buf);
 
-	g_file_get_contents(name_buf, &blob, &blen, NULL);
+	bool file_in_cache = g_file_get_contents(name_buf, &blob, &blen, NULL);
 	g_free(name_buf);
 
-	if (blob == NULL) {
+	if (!file_in_cache) {
 	  // not in cache
 	  //g_debug("not in cache");
 	  return DIAMOND_FCACHEMISS;

@@ -254,6 +254,11 @@ have_full_conn(listener_state_t * list_state, int conn)
 	cstate->app_cookie = new_cookie;
 
 	/*
+	 * stop listening, we are the child
+	 */
+	close(cstate->lstate->listen_fd);
+
+	/*
 	 * Register the statistics with dctl.  This needs to be
 	 * done after the new_conn_cb()  !!!.
 	 */

@@ -61,10 +61,12 @@
 
 static void    *update_bypass(void *arg);
 
-static int reexec_active = 0;
-pthread_cond_t reexec_done = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t reexec_active_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t object_eval_mutex = PTHREAD_MUTEX_INITIALIZER;
+/* reexecution conditions */
+static pthread_mutex_t	reexecute_can_start_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t reexecute_can_start_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t	reexecute_done_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t reexecute_done_cond = PTHREAD_COND_INITIALIZER;
+
 
 /*
  * XXX other place 
@@ -80,7 +82,8 @@ typedef enum {
 	DEV_START,
 	DEV_SPEC,
 	DEV_OBJ,
-	DEV_BLOB
+	DEV_BLOB,
+	DEV_REEXECUTE
 } dev_op_type_t;
 
 
@@ -91,12 +94,18 @@ typedef struct {
 } dev_blob_data_t;
 
 typedef struct {
+	bool reexecute_can_start;
+	bool reexecute_done;
+} dev_reexecute_data_t;
+
+typedef struct {
 	dev_op_type_t   cmd;
 	sig_val_t	sig;
 	union {
 		dev_blob_data_t bdata;
 		host_stats_t    hdata;
 		unsigned int	search_id;
+		dev_reexecute_data_t	reexecdata;
 	} extra_data;
 } dev_cmd_data_t;
 
@@ -422,6 +431,24 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			break;
 	}
 
+	case DEV_REEXECUTE:
+		/* signal that the device thread is quiet */
+		pthread_mutex_lock(&reexecute_can_start_mutex);
+		cmd->extra_data.reexecdata.reexecute_can_start = true;
+		//printf("<- sending reexecute_can_start \n");
+		pthread_cond_signal(&reexecute_can_start_cond);
+		pthread_mutex_unlock(&reexecute_can_start_mutex);
+
+		/* now wait for the reexecution to finish */
+		pthread_mutex_lock(&reexecute_done_mutex);
+		while (!cmd->extra_data.reexecdata.reexecute_done) {
+			pthread_cond_wait(&reexecute_done_cond,
+					  &reexecute_done_mutex);
+		}
+		//printf(" -> reexecute_done received\n");
+		pthread_mutex_unlock(&reexecute_done_mutex);
+		break;
+
 	default:
 		printf("unknown command %d \n", cmd->cmd);
 		break;
@@ -735,15 +762,6 @@ device_main(void *arg)
 		if (sstate->pend_compute >= sstate->pend_max) {
 		}
 
-		/* allow reexecution to preempt the background processing */
-		pthread_mutex_lock(&reexec_active_mutex);
-		while (reexec_active)
-		    pthread_cond_wait(&reexec_done, &reexec_active_mutex);
-		pthread_mutex_unlock(&reexec_active_mutex);
-
-		/* odisk_load_obj & ceval_filters2 cannot be run
-		 * concurrently */
-		pthread_mutex_lock(&object_eval_mutex);
 		/*
 		 * XXX look for data from device to process.
 		 */
@@ -818,7 +836,6 @@ device_main(void *arg)
 				/*
 				 * sleep(1); 
 				 */
-				pthread_mutex_unlock(&object_eval_mutex);
 				continue;
 			} else {
 				any = 1;
@@ -906,8 +923,6 @@ device_main(void *arg)
 		} else {
 			sstate->tx_full_stalls++;
 		}
-
-		pthread_mutex_unlock(&object_eval_mutex);
 
 		/*
 		 * If we didn't have any work to process this time around,
@@ -1586,20 +1601,39 @@ int search_set_session_vars(void *app_cookie, device_session_vars_t *vars)
 obj_data_t *
 search_reexecute_filters(void *app_cookie, const char *obj_id)
 {
+	/*
+	 * we want to wait until the device thread is quiescent, and
+	 * then have the the device thread wait until we are done
+	 * with reexecution, so we will use a pair of conditions
+	 */
 	search_state_t *sstate = (search_state_t *) app_cookie;
 	pr_obj_t *pobj;
 	obj_data_t *obj = NULL;
 	int err;
+	dev_cmd_data_t *cmd;
+
+	cmd = (dev_cmd_data_t *) calloc(1, sizeof(*cmd));
+	if (cmd == NULL) {
+		return NULL;
+	}
+
+	cmd->cmd = DEV_REEXECUTE;
+
+	/* send message */
+	g_async_queue_push(sstate->control_ops, cmd);
+
+	/* wait for the device thread to be ready */
+	pthread_mutex_lock(&reexecute_can_start_mutex);
+	while (!cmd->extra_data.reexecdata.reexecute_can_start) {
+		pthread_cond_wait(&reexecute_can_start_cond,
+				  &reexecute_can_start_mutex);
+	}
+	//printf(" -> reexecute_can_start received\n");
+	pthread_mutex_unlock(&reexecute_can_start_mutex);
 
 	/* reexecute filters */
 	log_message(LOGT_DISK, LOGL_TRACE, "search_reexecute_filters");
 	fprintf(stderr, "reexecuting filters\n");
-
-	/* increment the reexec_active counter, this will block the background
-	 * filter execution thread */
-	pthread_mutex_lock(&reexec_active_mutex);
-	reexec_active++;
-	pthread_mutex_unlock(&reexec_active_mutex);
 
 	/* need a better obj_id -> obj_name mapping so that client can't just
 	 * reexecute filters against any arbitrary object on the server,
@@ -1607,9 +1641,6 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 	 * that anyways */
 	pobj = ceval_filters1(strdup(obj_id), sstate->fdata, sstate->cstate);
 	if (!pobj) goto done;
-
-	/* odisk_load_obj & ceval_filters2 cannot run concurrently */
-	pthread_mutex_lock(&object_eval_mutex);
 
 	err = odisk_pr_load(pobj, &obj, sstate->ostate);
 	odisk_release_pr_obj(pobj);
@@ -1627,13 +1658,12 @@ done:
 		sstate->pend_compute += obj->remain_compute;
 	}
 
-	pthread_mutex_unlock(&object_eval_mutex);
-
-	/* and now wake up the background thread, if necessary. */
-	pthread_mutex_lock(&reexec_active_mutex);
-	if (--reexec_active == 0)
-	    pthread_cond_signal(&reexec_done);
-	pthread_mutex_unlock(&reexec_active_mutex);
+	/* and now tell the background thread it can continue */
+	pthread_mutex_lock(&reexecute_done_mutex);
+	cmd->extra_data.reexecdata.reexecute_done = true;
+	//printf("<- sending reexecute_done \n");
+	pthread_cond_signal(&reexecute_done_cond);
+	pthread_mutex_unlock(&reexecute_done_mutex);
 
 	return obj;
 }

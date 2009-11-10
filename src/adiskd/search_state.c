@@ -591,6 +591,8 @@ update_bypass(void *arg)
 		ts.tv_nsec = SAMPLE_TIME_NANO;
 		nanosleep(&ts, NULL);
 	}
+
+	return NULL;
 }
 
 /*
@@ -918,6 +920,8 @@ device_main(void *arg)
 			nanosleep(&timeout, NULL);
 		}
 	}
+
+	return NULL;
 }
 
 

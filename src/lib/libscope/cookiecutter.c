@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#include <limits.h>
 #include "scope_priv.h"
 
 #define SUMM "Generates an OpenDiamond(r) cookie. If no --scopeurl argument has been given it will\nread the scope specification from stdin."
@@ -216,8 +217,13 @@ int main(int argc, char **argv)
     }
 
     /* get expiration time */
-    g_get_current_time(&expires);
-    expires.tv_sec += expiry;
+    if (expiry) {
+	g_get_current_time(&expires);
+	expires.tv_sec += expiry;
+    } else {
+	expires.tv_sec = INT_MAX;
+	expires.tv_usec = 0;
+    }
 
     cookie = scopecookie_create(&expires, servers, scope, len, &key);
     fputs(cookie, stdout);

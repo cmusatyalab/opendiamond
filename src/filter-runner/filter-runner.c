@@ -326,17 +326,18 @@ static void run_filter(struct filter_ops *ops,
 		       int stdin_orig, int stdout_orig, int stderr_orig,
 		       int stdout_log, int stderr_log) {
   // make files
-  FILE *err = fdopen(stderr_orig, "r");
+  FILE *err = fdopen(stderr_orig, "w");
   if (!err) {
     exit(EXIT_FAILURE);
   }
+  setbuf(err, NULL);
 
   FILE *in = fdopen(stdin_orig, "r");
   if (!in) {
     fprintf(err, "%s\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
-  FILE *out = fdopen(stdout_orig, "r");
+  FILE *out = fdopen(stdout_orig, "w");
   if (!out) {
     fprintf(err, "%s\n", strerror(errno));
     exit(EXIT_FAILURE);

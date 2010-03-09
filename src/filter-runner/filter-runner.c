@@ -296,6 +296,8 @@ static gpointer logger(gpointer data) {
   sigfillset(&set);
   pthread_sigmask(SIG_SETMASK, &set, NULL);
 
+  fprintf(err, "Logger thread is ready\n");
+
   // go
   while (true) {
     fd_set rfds;

@@ -156,7 +156,9 @@ static void init_file_descriptors(int *stdin_orig, int *stdout_orig, int *stderr
 
   // dup to stdout/stderr
   assert_result(dup2(stdout_pipe[1], 1));
+  assert_result(close(stdout_pipe[1]));
   assert_result(dup2(stderr_pipe[1], 2));
+  assert_result(close(stderr_pipe[1]));
 
   // save
   *stdout_log = stdout_pipe[0];

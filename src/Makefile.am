@@ -1,5 +1,5 @@
 SUBDIRS = sqlite common lib adiskd dataretriever scopeserver tools tests \
-	target debian
+	target debian filter-runner
 
 EXTRA_DIST = CREDITS LICENSE INSTALL
 

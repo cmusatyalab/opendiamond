@@ -89,6 +89,7 @@ dataretriever/setup.py
 scopeserver/Makefile
 scopeserver/setup.py
 sqlite/Makefile
+filter-runner/Makefile
 lib/Makefile
 lib/libdconfig/Makefile
 lib/libdctl/Makefile

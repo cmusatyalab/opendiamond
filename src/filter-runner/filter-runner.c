@@ -18,14 +18,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <dlfcn.h>
 #include <string.h>
 #include <errno.h>
 
 #include "lib_filter.h"
+#include "filter-runner.h"
+#include "util.h"
 
 static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
+
+const char *_filter_name;
+FILE *_in;
+FILE *_out;
 
 struct filter_ops {
   filter_eval_proto eval;
@@ -33,107 +40,11 @@ struct filter_ops {
   void *data;
 };
 
-struct ohandle {
-  FILE *in;
-  FILE *out;
-};
-
 static void assert_result(int result) {
   if (result == -1) {
     perror("error");
     exit(EXIT_FAILURE);
   }
-}
-
-static int get_size_or_die(FILE *in) {
-  char *line = NULL;
-  size_t n;
-  int result;
-
-  if (getline(&line, &n, in) == -1) {
-    fprintf(stderr, "Can't read size\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // if there is no string, then return -1
-  if (strlen(line) == 1) {
-    result = -1;
-  } else {
-    result = atoi(line);
-  }
-
-  free(line);
-
-  fprintf(stderr, "size: %d\n", result);
-  return result;
-}
-
-static char *get_string_or_die(FILE *in) {
-  int size = get_size_or_die(in);
-
-  if (size == -1) {
-    return NULL;
-  }
-
-  char *result = g_malloc(size + 1);
-  result[size] = '\0';
-
-  if (fread(result, size, 1, in) != 1) {
-    fprintf(stderr, "Can't read string\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // read trailing '\n'
-  getc(in);
-
-  return result;
-}
-
-static char **get_strings_or_die(FILE *in) {
-  GSList *list = NULL;
-
-  char *str;
-  while ((str = get_string_or_die(in)) != NULL) {
-    list = g_slist_prepend(list, str);
-  }
-
-  // convert to strv
-  int len = g_slist_length(list);
-  char **result = g_new(char *, len + 1);
-  result[len] = NULL;
-
-  list = g_slist_reverse(list);
-
-  int i = 0;
-  while (list != NULL) {
-    result[i++] = list->data;
-    list = g_slist_delete_link(list, list);
-  }
-
-  return result;
-}
-
-static void *get_blob_or_die(FILE *in, int *bloblen_OUT) {
-  int size = get_size_or_die(in);
-  *bloblen_OUT = size;
-
-  uint8_t *blob;
-
-  if (size == 0) {
-    blob = NULL;
-  } else {
-    blob = g_malloc(size);
-
-    if (fread(blob, size, 1, in) != 1) {
-      fprintf(stderr, "Can't read blob\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-
-  // read trailing '\n'
-  getc(in);
-
-  return blob;
 }
 
 static void init_file_descriptors(int *stdin_orig, int *stdout_orig,
@@ -167,32 +78,32 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
   char *error;
 
   // read shared object name
-  char *filename = get_string_or_die(in);
+  char *filename = get_string(in);
   fprintf(stderr, "filename: %s\n", filename);
 
   // read init function name
-  char *init_name = get_string_or_die(in);
+  char *init_name = get_string(in);
   fprintf(stderr, "init_name: %s\n", init_name);
 
   // read eval function name
-  char *eval_name = get_string_or_die(in);
+  char *eval_name = get_string(in);
   fprintf(stderr, "eval_name: %s\n", eval_name);
 
   // read fini function name
-  char *fini_name = get_string_or_die(in);
+  char *fini_name = get_string(in);
   fprintf(stderr, "fini_name: %s\n", fini_name);
 
   // read argument list
-  char **args = get_strings_or_die(in);
+  char **args = get_strings(in);
   fprintf(stderr, "args len: %d\n", g_strv_length(args));
 
   // read name
-  char *filter_name = get_string_or_die(in);
-  fprintf(stderr, "filter_name: %s\n", filter_name);
+  _filter_name = get_string(in);
+  fprintf(stderr, "filter_name: %s\n", _filter_name);
 
   // read blob
   int bloblen;
-  uint8_t *blob = get_blob_or_die(in, &bloblen);
+  uint8_t *blob = get_blob(in, &bloblen);
   fprintf(stderr, "bloblen: %d\n", bloblen);
 
   // dlopen
@@ -214,7 +125,7 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
 
   int result = (*filter_init)(g_strv_length(args), args,
 			      bloblen, blob,
-			      filter_name, &ops->data);
+			      _filter_name, &ops->data);
   if (result != 0) {
     fprintf(stderr, "filter init failed\n");
     exit(EXIT_FAILURE);
@@ -240,7 +151,6 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
   g_free(eval_name);
   g_free(fini_name);
   g_strfreev(args);
-  g_free(filter_name);
   g_free(blob);
 }
 
@@ -272,7 +182,7 @@ static gpointer logger(gpointer data) {
     // read from fd
     size = read(stdout_log, buf, BUFSIZ);
     if (size <= 0) {
-      fprintf(stderr, "Can't read\n");
+      perror("Can't read");
       exit(EXIT_FAILURE);
     }
 
@@ -306,31 +216,29 @@ static void run_filter(struct filter_ops *ops,
 		       int stdin_orig, int stdout_orig,
 		       int stdout_log) {
   // make files
-  FILE *in = fdopen(stdin_orig, "r");
-  if (!in) {
-    fprintf(stderr, "%s\n", strerror(errno));
+  _in = fdopen(stdin_orig, "r");
+  if (!_in) {
+    perror("Can't open stdin_orig");
     exit(EXIT_FAILURE);
   }
-  FILE *out = fdopen(stdout_orig, "w");
-  if (!out) {
-    fprintf(stderr, "%s\n", strerror(errno));
+  _out = fdopen(stdout_orig, "w");
+  if (!_out) {
+    perror("Can't open stdout_orig");
     exit(EXIT_FAILURE);
   }
 
   // start logging thread
-  struct logger_data data = { out, stdout_log };
+  struct logger_data data = { _out, stdout_log };
   if (g_thread_create(logger, &data, false, NULL) == NULL) {
     fprintf(stderr, "Can't create logger thread\n");
     exit(EXIT_FAILURE);
   }
 
-  struct ohandle ohandle = { in, out };
-
   while (true) {
     // eval and return result
-    int result = (*ops->eval)(&ohandle, ops->data);
+    int result = (*ops->eval)(NULL, ops->data);
 
-    send_result(out, result);
+    send_result(_out, result);
   }
 }
 

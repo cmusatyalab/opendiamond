@@ -208,7 +208,8 @@ static gpointer logger(gpointer data) {
 
 
 static void send_result(FILE *out, int result) {
-  
+  send_tag(out, "result");
+  send_int(out, result);
 }
 
 

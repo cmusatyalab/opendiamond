@@ -264,60 +264,6 @@ int lf_omit_attr(lf_obj_handle_t ohandle, char *name);
 diamond_public
 void lf_log(int level, const char *fmt, ...);
 
-
-/*!
- * Get pointer to first attribute and it's data.  
- * \param ohandle
- * 		the object handle.
- *
- * \param name
- *		Pointer where name pointer will be stored 
- *
- * \param len
- *		A pointer to the location where the length
- * 		attribute data will be stored.
- *
- * \param data
- *		A pointer to where the data pointer will be stored.
- *
- * \return 0
- *		Attributes were read successfully.
- *
- * \return EINVAL
- *		One or more of the arguments was invalid.
- */
-
-diamond_public
-int lf_first_attr(lf_obj_handle_t ohandle, char **name, 
-		size_t *len, unsigned char **data, void **cookie);
-
-/*!
- * Get pointer to first attribute and it's data.  
- * \param ohandle
- * 		the object handle.
- *
- * \param name
- *		Pointer where name pointer will be stored 
- *
- * \param len
- *		A pointer to the location where the length
- * 		attribute data will be stored.
- *
- * \param data
- *		A pointer to where the data pointer will be stored.
- *
- * \return 0
- *		Attributes were read successfully.
- *
- * \return EINVAL
- *		One or more of the arguments was invalid.
- */
-
-diamond_public
-int lf_next_attr(lf_obj_handle_t ohandle, char **name, 
-		size_t *len, unsigned char **data, void **cookie);
-
-
 /* anomaly detection */
 typedef struct {
   char *name;

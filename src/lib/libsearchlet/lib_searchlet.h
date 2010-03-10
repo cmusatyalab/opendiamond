@@ -592,6 +592,60 @@ diamond_public
 int ls_set_user_state(ls_search_handle_t handle, user_state_t state);
 
 
+/*!
+ * Get pointer to first attribute and it's data.  
+ * \param ohandle
+ * 		the object handle.
+ *
+ * \param name
+ *		Pointer where name pointer will be stored 
+ *
+ * \param len
+ *		A pointer to the location where the length
+ * 		attribute data will be stored.
+ *
+ * \param data
+ *		A pointer to where the data pointer will be stored.
+ *
+ * \return 0
+ *		Attributes were read successfully.
+ *
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
+ */
+
+diamond_public
+int ls_first_attr(ls_obj_handle_t ohandle, char **name, 
+		  size_t *len, unsigned char **data, void **cookie);
+
+/*!
+ * Get pointer to first attribute and it's data.  
+ * \param ohandle
+ * 		the object handle.
+ *
+ * \param name
+ *		Pointer where name pointer will be stored 
+ *
+ * \param len
+ *		A pointer to the location where the length
+ * 		attribute data will be stored.
+ *
+ * \param data
+ *		A pointer to where the data pointer will be stored.
+ *
+ * \return 0
+ *		Attributes were read successfully.
+ *
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
+ */
+
+diamond_public
+int ls_next_attr(ls_obj_handle_t ohandle, char **name, 
+		 size_t *len, unsigned char **data, void **cookie);
+
+
+
 
 #ifdef __cplusplus
 }

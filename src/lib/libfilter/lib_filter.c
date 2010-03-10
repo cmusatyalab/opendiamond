@@ -189,38 +189,6 @@ lf_log(int level, const char *fmt, ...)
 
 }
 
-
-int
-lf_first_attr(lf_obj_handle_t ohandle, char **name,
-	      size_t *len, unsigned char **data, void **cookie)
-{
-	obj_data_t     *odata;
-	obj_attr_t     *adata;
-	int		err;
-
-	odata = (obj_data_t *) ohandle;
-	adata = &odata->attr_info;
-	err = obj_first_attr(adata, name, len, data, NULL,
-			     (struct acookie **)cookie);
-	return (err);
-}
-
-int
-lf_next_attr(lf_obj_handle_t ohandle, char **name,
-	     size_t *len, unsigned char **data, void **cookie)
-{
-	obj_data_t     *odata;
-	obj_attr_t     *adata;
-	int		err;
-
-	odata = (obj_data_t *) ohandle;
-	adata = &odata->attr_info;
-	err = obj_next_attr(adata, name, len, data, NULL,
-			     (struct acookie **)cookie);
-	return (err);
-}
-
-
 int
 lf_get_session_variables(lf_obj_handle_t ohandle,
 			 lf_session_variable_t **list)

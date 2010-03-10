@@ -1364,3 +1364,33 @@ int ls_reexecute_filters(ls_search_handle_t handle, const char *objectid,
 	return device_reexecute_filters(cur_dev->dev_handle, obj, attributes);
 }
 
+
+int
+ls_first_attr(ls_obj_handle_t ohandle, char **name,
+	      size_t *len, unsigned char **data, void **cookie)
+{
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int		err;
+
+	odata = (obj_data_t *) ohandle;
+	adata = &odata->attr_info;
+	err = obj_first_attr(adata, name, len, data, NULL,
+			     (struct acookie **)cookie);
+	return (err);
+}
+
+int
+ls_next_attr(ls_obj_handle_t ohandle, char **name,
+	     size_t *len, unsigned char **data, void **cookie)
+{
+	obj_data_t     *odata;
+	obj_attr_t     *adata;
+	int		err;
+
+	odata = (obj_data_t *) ohandle;
+	adata = &odata->attr_info;
+	err = obj_next_attr(adata, name, len, data, NULL,
+			     (struct acookie **)cookie);
+	return (err);
+}

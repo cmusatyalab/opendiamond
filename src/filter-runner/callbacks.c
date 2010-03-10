@@ -122,16 +122,6 @@ int lf_omit_attr(lf_obj_handle_t ohandle, char *name) {
   return get_boolean(_in) ? 0 : ENOENT;
 }
 
-int lf_first_attr(lf_obj_handle_t ohandle, char **name,
-		  size_t *len, unsigned char **data, void **cookie) {
-  // TODO
-}
-
-int lf_next_attr(lf_obj_handle_t ohandle, char **name,
-		 size_t *len, unsigned char **data, void **cookie) {
-  // TODO
-}
-
 int lf_get_session_variables(lf_obj_handle_t ohandle,
 			     lf_session_variable_t **list) {
   // TODO

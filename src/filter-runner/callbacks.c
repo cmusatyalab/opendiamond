@@ -20,17 +20,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "diamond_features.h"
+#include "diamond_consts.h"
 
 #include "lib_filter.h"
 #include "filter-runner.h"
 #include "util.h"
 
 
-// output:
-//    "log"
-//    level   : int
-//    message : string
 void lf_log(int level, const char *fmt, ...) {
   va_list ap;
   char *formatted_filter_name = g_strdup_printf("%s : ", _filter_name);
@@ -53,6 +49,10 @@ void lf_log(int level, const char *fmt, ...) {
 
 int lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len,
 		 unsigned char *data) {
+  if (strlen(name) + 1 > MAX_ATTR_NAME) {
+    return EINVAL;
+  }
+
   struct attribute *attr = get_attribute(_in, _out, obj, name);
 
   // found?
@@ -76,6 +76,10 @@ int lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len,
 
 int lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len,
 		unsigned char **data) {
+  if (strlen(name) + 1 > MAX_ATTR_NAME) {
+    return EINVAL;
+  }
+
   struct attribute *attr = get_attribute(_in, _out, obj, name);
 
   // found?
@@ -87,4 +91,47 @@ int lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len,
   *data = attr->data;
 
   return 0;
+}
+
+int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
+		  unsigned char *data) {
+  if (strlen(name) + 1 > MAX_ATTR_NAME) {
+    return EINVAL;
+  }
+
+  send_tag(_out, "write-attribute");
+  send_string(_out, name);
+  send_binary(_out, len, data);
+}
+
+int lf_omit_attr(lf_obj_handle_t ohandle, char *name) {
+  if (strlen(name) + 1 > MAX_ATTR_NAME) {
+    return EINVAL;
+  }
+
+  send_tag(_out, "omit-attribute");
+  send_string(_out, name);
+
+  // server sends false if non-existent
+  return get_boolean(_in) ? 0 : ENOENT;
+}
+
+int lf_first_attr(lf_obj_handle_t ohandle, char **name,
+		  size_t *len, unsigned char **data, void **cookie) {
+  // TODO
+}
+
+int lf_next_attr(lf_obj_handle_t ohandle, char **name,
+		 size_t *len, unsigned char **data, void **cookie) {
+  // TODO
+}
+
+int lf_get_session_variables(lf_obj_handle_t ohandle,
+			     lf_session_variable_t **list) {
+  // TODO
+}
+
+int lf_update_session_variables(lf_obj_handle_t ohandle,
+				lf_session_variable_t **list) {
+  // TODO
 }

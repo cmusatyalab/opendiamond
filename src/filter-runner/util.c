@@ -119,6 +119,15 @@ void *get_binary(FILE *in, int *len_OUT) {
   return binary;
 }
 
+void send_binary(FILE *out, int len, void *data) {
+  fprintf(out, "%d\n", len);
+  if (fwrite(data, len, 1, out) != 1) {
+    perror("Can't write binary");
+    exit(EXIT_FAILURE);
+  }
+  fprintf(out, "\n");
+}
+
 
 void send_tag(FILE *out, const char *tag) {
   fprintf(out, "%s\n", tag);
@@ -163,4 +172,12 @@ struct attribute *get_attribute(FILE *in, FILE *out,
   }
 
   return attr;
+}
+
+bool get_boolean(FILE *in) {
+  char *str = get_string(in);
+  bool result = (strcmp(str, "true") == 0);
+  g_free(str);
+
+  return result;
 }

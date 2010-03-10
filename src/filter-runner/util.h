@@ -18,6 +18,7 @@
 
 #include <glib.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 struct ohandle {
   GHashTable *attributes;
@@ -38,13 +39,17 @@ char **get_strings(FILE *in);
 
 void *get_binary(FILE *in, int *len_OUT);
 
+struct attribute *get_attribute(FILE *in, FILE *out,
+				struct ohandle *ohandle, const char *name);
+
+bool get_boolean(FILE *in);
+
 void send_tag(FILE *out, const char *tag);
 
 void send_int(FILE *out, int i);
 
 void send_string(FILE *out, const char *str);
 
-struct attribute *get_attribute(FILE *in, FILE *out,
-				struct ohandle *ohandle, const char *name);
+void send_binary(FILE *out, int len, void *data);
 
 #endif

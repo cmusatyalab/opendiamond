@@ -21,7 +21,7 @@
 
 #include "util.h"
 
-static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
+GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
 
 gpointer logger(gpointer data) {
   struct logger_data *l = data;
@@ -187,7 +187,6 @@ void *get_binary(FILE *in, int *len_OUT) {
 }
 
 void send_binary(FILE *out, int len, void *data) {
-  g_static_mutex_lock(&out_mutex);
   if (fprintf(out, "%d\n", len) == -1) {
     if (feof(out)) {
       fprintf(stderr, "EOF\n");
@@ -212,12 +211,10 @@ void send_binary(FILE *out, int len, void *data) {
     }
     exit(EXIT_FAILURE);
   }
-  g_static_mutex_unlock(&out_mutex);
 }
 
 
 void send_tag(FILE *out, const char *tag) {
-  g_static_mutex_lock(&out_mutex);
   if (fprintf(out, "%s\n", tag) == -1) {
     if (feof(out)) {
       fprintf(stderr, "EOF\n");
@@ -226,7 +223,6 @@ void send_tag(FILE *out, const char *tag) {
     }
     exit(EXIT_FAILURE);
   }
-  g_static_mutex_unlock(&out_mutex);
 }
 
 void send_int(FILE *out, int i) {
@@ -237,7 +233,6 @@ void send_int(FILE *out, int i) {
 
 void send_string(FILE *out, const char *str) {
   int len = strlen(str);
-  g_static_mutex_lock(&out_mutex);
   if (fprintf(out, "%d\n%s\n", len, str) == -1) {
     if (feof(out)) {
       fprintf(stderr, "EOF\n");
@@ -246,7 +241,6 @@ void send_string(FILE *out, const char *str) {
     }
     exit(EXIT_FAILURE);
   }
-  g_static_mutex_unlock(&out_mutex);
 }
 
 
@@ -258,8 +252,10 @@ struct attribute *get_attribute(FILE *in, FILE *out,
 
   // retrieve?
   if (attr == NULL) {
+    g_static_mutex_lock(&out_mutex);
     send_tag(out, "get-attribute");
     send_string(out, name);
+    g_static_mutex_unlock(&out_mutex);
 
     int len;
     void *data = get_binary(in, &len);
@@ -288,6 +284,8 @@ bool get_boolean(FILE *in) {
 }
 
 void send_result(FILE *out, int result) {
+  g_static_mutex_lock(&out_mutex);
   send_tag(out, "result");
   send_int(out, result);
+  g_static_mutex_unlock(&out_mutex);
 }

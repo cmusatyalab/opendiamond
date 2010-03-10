@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+extern GStaticMutex out_mutex;
+
 struct ohandle {
   GHashTable *attributes;
 };

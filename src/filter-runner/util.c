@@ -277,6 +277,11 @@ struct attribute *get_attribute(FILE *in, FILE *out,
 
 bool get_boolean(FILE *in) {
   char *str = get_string(in);
+  if (str == NULL) {
+    fprintf(stderr, "Can't get boolean\n");
+    exit(EXIT_FAILURE);
+  }
+
   bool result = (strcmp(str, "true") == 0);
   g_free(str);
 

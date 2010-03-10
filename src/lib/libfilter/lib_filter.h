@@ -126,43 +126,6 @@ typedef int (*filter_fini_proto)(void *filter_args);
 
 
 /*!
- * This gets the next blocks of data in an object.  The block size is
- * specified by the filter specification.  
- *
- *
- * \param obj_handle
- *		the object handle.
- *
- * \param num_blocks
- *		the number of blocks to read.
- *
- * \param lenp
- *		This is a pointer to the number of bytes to read.  On
- *		return this location will hold the number of bytes that
- *		were actually read.
- *
- * \param bufp
- *		A pointer to the location where the buffer pointer
- * 		will be stored.
- *
- * \return 0
- *		the read was successful. 
- *
- * \return ENOSPC
- *		Insufficient resources were available to complete the call.
- * 
- * \return ENOENT
- *		No more data is available.
- *
- * \return EINVAL
- *		One of the parameters was invalid. 
- *
- */
-
-diamond_public
-int lf_next_block(lf_obj_handle_t obj_handle, int num_blocks,  
-			size_t *lenp, unsigned char **bufp);
-/*!
  * Read an attribute from the object into the buffer space provided
  * by the caller.  This does invoke a copy and for large structures
  * it is preferable to use lf_ref_attr() if the caller will not

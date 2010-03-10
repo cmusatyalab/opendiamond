@@ -975,11 +975,6 @@ ls_next_object(ls_search_handle_t handle, ls_obj_handle_t * obj_handle,
 		nanosleep(&timeout, NULL);
 	}
 	sc->host_stats.hs_objs_read++;
-	/*
-	 * XXX how should we get this state really ?? 
-	 */
-	obj_data->cur_offset = 0;
-	obj_data->cur_blocksize = 1024;
 
 	*obj_handle = (ls_obj_handle_t *) obj_data;
 	sigstr = sig_string(&obj_data->id_sig);

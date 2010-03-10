@@ -809,12 +809,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 			cur_filter->fi_called++;
 
 			/*
-			 * initialize obj state for this call 
-			 */
-			obj_handle->cur_offset = 0;
-			obj_handle->cur_blocksize = 1024;	/* XXX */
-
-			/*
 			 * run the filter and update pass 
 			 */
 			rt_init(&rt);

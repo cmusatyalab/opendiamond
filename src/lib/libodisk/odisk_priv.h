@@ -60,9 +60,7 @@ struct pr_obj {
 	 * This is the state associated with the object
 	 */
 struct obj_data {
-	off_t			cur_offset;
 	sig_val_t      		id_sig;
-	int		    	cur_blocksize;
 	int		    	ref_count;
 	pthread_mutex_t	mutex;
 	float			remain_compute;

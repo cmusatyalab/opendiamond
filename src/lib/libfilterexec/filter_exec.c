@@ -979,13 +979,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 
 		/*
-		 * initialize obj state for this call 
-		 */
-		obj_handle->cur_offset = 0;
-		obj_handle->cur_blocksize = 1024;	/* XXX */
-
-
-		/*
 		 * run the filter and update pass 
 		 */
 		if (cb_func) {

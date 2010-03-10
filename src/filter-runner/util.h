@@ -19,6 +19,7 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 struct ohandle {
   GHashTable *attributes;
@@ -28,6 +29,14 @@ struct attribute {
   size_t len;
   void *data;
 };
+
+struct logger_data {
+  FILE *out;
+  int stdout_log;
+};
+
+gpointer logger(gpointer data);
+
 
 void attribute_destroy(gpointer user_data);
 
@@ -51,5 +60,7 @@ void send_int(FILE *out, int i);
 void send_string(FILE *out, const char *str);
 
 void send_binary(FILE *out, int len, void *data);
+
+void send_result(FILE *out, int result);
 
 #endif

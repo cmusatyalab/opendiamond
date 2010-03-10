@@ -28,8 +28,6 @@
 #include "filter-runner.h"
 #include "util.h"
 
-static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
-
 const char *_filter_name;
 FILE *_in;
 FILE *_out;
@@ -132,6 +130,7 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
   }
   fprintf(stderr, "filter init success\n");
 
+
   // save
   *(void **) (&ops->eval) = dlsym(handle, eval_name);
   if ((error = dlerror()) != NULL) {
@@ -155,86 +154,9 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
 }
 
 
-struct logger_data {
-  FILE *out;
-  int stdout_log;
-};
-
-
-static gpointer logger(gpointer data) {
-  struct logger_data *l = data;
-
-  FILE *out = l->out;
-  int stdout_log = l->stdout_log;
-
-  // block signals
-  sigset_t set;
-  sigfillset(&set);
-  pthread_sigmask(SIG_SETMASK, &set, NULL);
-
-  fprintf(stderr, "Logger thread is ready\n");
-
-  // go
-  while (true) {
-    ssize_t size;
-    uint8_t buf[BUFSIZ];
-
-    // read from fd
-    size = read(stdout_log, buf, BUFSIZ);
-    if (size <= 0) {
-      perror("Can't read");
-      exit(EXIT_FAILURE);
-    }
-
-    // print it
-    g_static_mutex_lock(&out_mutex);
-    if (fprintf(out, "stdout\n%d\n", size) == -1) {
-      perror("Can't write");
-      exit(EXIT_FAILURE);
-    }
-    if (fwrite(buf, size, 1, out) != 1) {
-      perror("Can't write");
-      exit(EXIT_FAILURE);
-    }
-    if (fprintf(out, "\n") == -1) {
-      perror("Can't write");
-      exit(EXIT_FAILURE);
-    }
-    g_static_mutex_unlock(&out_mutex);
-  }
-
-  return NULL;
-}
-
-
-static void send_result(FILE *out, int result) {
-  send_tag(out, "result");
-  send_int(out, result);
-}
-
-
 static void run_filter(struct filter_ops *ops,
-		       int stdin_orig, int stdout_orig,
 		       int stdout_log) {
-  // make files
-  _in = fdopen(stdin_orig, "r");
-  if (!_in) {
-    perror("Can't open stdin_orig");
-    exit(EXIT_FAILURE);
-  }
-  _out = fdopen(stdout_orig, "w");
-  if (!_out) {
-    perror("Can't open stdout_orig");
-    exit(EXIT_FAILURE);
-  }
-
-  // start logging thread
-  struct logger_data data = { _out, stdout_log };
-  if (g_thread_create(logger, &data, false, NULL) == NULL) {
-    fprintf(stderr, "Can't create logger thread\n");
-    exit(EXIT_FAILURE);
-  }
-
+  // eval loop
   while (true) {
     GHashTable *attrs = g_hash_table_new_full(g_str_hash, g_str_equal,
 					      g_free, attribute_destroy);
@@ -262,11 +184,30 @@ int main(void) {
 
   if (!g_thread_supported ()) g_thread_init (NULL);
 
-  init_filter(stdin, &ops);
   init_file_descriptors(&stdin_orig, &stdout_orig,
 			&stdout_log);
+
+  // make files
+  _in = fdopen(stdin_orig, "r");
+  if (!_in) {
+    perror("Can't open stdin_orig");
+    exit(EXIT_FAILURE);
+  }
+  _out = fdopen(stdout_orig, "w");
+  if (!_out) {
+    perror("Can't open stdout_orig");
+    exit(EXIT_FAILURE);
+  }
+
+  // start logging thread
+  struct logger_data data = { _out, stdout_log };
+  if (g_thread_create(logger, &data, false, NULL) == NULL) {
+    fprintf(stderr, "Can't create logger thread\n");
+    exit(EXIT_FAILURE);
+  }
+
+  init_filter(_in, &ops);
   run_filter(&ops,
-	     stdin_orig, stdout_orig,
 	     stdout_log);
 
   return EXIT_SUCCESS;

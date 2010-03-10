@@ -103,7 +103,7 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
 
   // read blob
   int bloblen;
-  uint8_t *blob = get_blob(in, &bloblen);
+  uint8_t *blob = get_binary(in, &bloblen);
   fprintf(stderr, "bloblen: %d\n", bloblen);
 
   // dlopen
@@ -235,10 +235,17 @@ static void run_filter(struct filter_ops *ops,
   }
 
   while (true) {
-    // eval and return result
-    int result = (*ops->eval)(NULL, ops->data);
+    GHashTable *attrs = g_hash_table_new_full(g_str_hash, g_str_equal,
+					      g_free, attribute_destroy);
 
+    // init ohandle
+    struct ohandle ohandle = { attrs };
+
+    // eval and return result
+    int result = (*ops->eval)(&ohandle, ops->data);
     send_result(_out, result);
+
+    g_hash_table_unref(attrs);
   }
 }
 

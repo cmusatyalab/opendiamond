@@ -21,6 +21,12 @@
 
 #include "util.h"
 
+void attribute_destroy(gpointer user_data) {
+  struct attribute *attr = user_data;
+
+  g_free(attr->data);
+  g_slice_free(struct attribute, attr);
+}
 
 int get_size(FILE *in) {
   char *line = NULL;
@@ -90,27 +96,27 @@ char **get_strings(FILE *in) {
   return result;
 }
 
-void *get_blob(FILE *in, int *bloblen_OUT) {
+void *get_binary(FILE *in, int *len_OUT) {
   int size = get_size(in);
-  *bloblen_OUT = size;
+  *len_OUT = size;
 
-  uint8_t *blob;
+  uint8_t *binary = NULL;
 
-  if (size == 0) {
-    blob = NULL;
-  } else {
-    blob = g_malloc(size);
+  if (size > 0) {
+    binary = g_malloc(size);
 
-    if (fread(blob, size, 1, in) != 1) {
-      fprintf(stderr, "Can't read blob\n");
+    if (fread(binary, size, 1, in) != 1) {
+      fprintf(stderr, "Can't read binary\n");
       exit(EXIT_FAILURE);
     }
   }
 
-  // read trailing '\n'
-  getc(in);
+  if (size != -1) {
+    // read trailing '\n'
+    getc(in);
+  }
 
-  return blob;
+  return binary;
 }
 
 
@@ -127,4 +133,34 @@ void send_int(FILE *out, int i) {
 void send_string(FILE *out, const char *str) {
   int len = strlen(str);
   fprintf(out, "%d\n%s\n", len, str);
+}
+
+
+struct attribute *get_attribute(FILE *in, FILE *out,
+				struct ohandle *ohandle, const char *name) {
+  // look up in hash table
+  struct attribute *attr = g_hash_table_lookup(ohandle->attributes,
+					       name);
+
+  // retrieve?
+  if (attr == NULL) {
+    send_tag(out, "get-attribute");
+    send_string(out, name);
+
+    int len;
+    void *data = get_binary(in, &len);
+
+    if (len == -1) {
+      // no attribute
+      return NULL;
+    }
+
+    attr = g_slice_new(struct attribute);
+    attr->data = data;
+    attr->len = len;
+
+    g_hash_table_insert(ohandle->attributes, g_strdup(name), attr);
+  }
+
+  return attr;
 }

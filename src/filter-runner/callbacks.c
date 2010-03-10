@@ -16,6 +16,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <glib.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "diamond_features.h"
 
@@ -45,4 +48,43 @@ void lf_log(int level, const char *fmt, ...) {
   g_free(msg);
   g_free(formatted_filter_name);
   g_free(formatted_msg);
+}
+
+
+int lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len,
+		 unsigned char *data) {
+  struct attribute *attr = get_attribute(_in, _out, obj, name);
+
+  // found?
+  if (attr == NULL) {
+    return ENOENT;
+  }
+
+  // check size
+  if (attr->len > *len) {
+    *len = attr->len;
+    return ENOMEM;
+  }
+
+  // copy it in
+  *len = attr->len;
+  memcpy(data, attr->data, attr->len);
+
+  return 0;
+}
+
+
+int lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len,
+		unsigned char **data) {
+  struct attribute *attr = get_attribute(_in, _out, obj, name);
+
+  // found?
+  if (attr == NULL) {
+    return ENOENT;
+  }
+
+  *len = attr->len;
+  *data = attr->data;
+
+  return 0;
 }

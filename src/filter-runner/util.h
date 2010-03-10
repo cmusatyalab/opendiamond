@@ -19,8 +19,16 @@
 #include <glib.h>
 #include <stdlib.h>
 
-#include "util.h"
+struct ohandle {
+  GHashTable *attributes;
+};
 
+struct attribute {
+  size_t len;
+  void *data;
+};
+
+void attribute_destroy(gpointer user_data);
 
 int get_size(FILE *in);
 
@@ -28,12 +36,15 @@ char *get_string(FILE *in);
 
 char **get_strings(FILE *in);
 
-void *get_blob(FILE *in, int *bloblen_OUT);
+void *get_binary(FILE *in, int *len_OUT);
 
 void send_tag(FILE *out, const char *tag);
 
 void send_int(FILE *out, int i);
 
 void send_string(FILE *out, const char *str);
+
+struct attribute *get_attribute(FILE *in, FILE *out,
+				struct ohandle *ohandle, const char *name);
 
 #endif

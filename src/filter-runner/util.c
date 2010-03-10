@@ -34,7 +34,7 @@ int get_size(FILE *in) {
   int result;
 
   if (getline(&line, &n, in) == -1) {
-    fprintf(stderr, "Can't read size\n");
+    perror("Can't read size");
     exit(EXIT_FAILURE);
   }
 
@@ -62,7 +62,7 @@ char *get_string(FILE *in) {
   result[size] = '\0';
 
   if (fread(result, size, 1, in) != 1) {
-    fprintf(stderr, "Can't read string\n");
+    perror("Can't read string");
     exit(EXIT_FAILURE);
   }
 
@@ -106,7 +106,7 @@ void *get_binary(FILE *in, int *len_OUT) {
     binary = g_malloc(size);
 
     if (fread(binary, size, 1, in) != 1) {
-      fprintf(stderr, "Can't read binary\n");
+      perror("Can't read binary");
       exit(EXIT_FAILURE);
     }
   }

@@ -154,6 +154,48 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
 }
 
 
+static gpointer logger(gpointer data) {
+  struct logger_data *l = data;
+
+  FILE *out = l->out;
+  int stdout_log = l->stdout_log;
+
+  // block signals
+  sigset_t set;
+  sigfillset(&set);
+  pthread_sigmask(SIG_SETMASK, &set, NULL);
+
+  fprintf(stderr, "Logger thread is ready\n");
+
+  // go
+  while (true) {
+    ssize_t size;
+    uint8_t buf[BUFSIZ];
+
+    // read from fd
+    size = read(stdout_log, buf, BUFSIZ);
+    if (size <= 0) {
+      perror("Can't read");
+      exit(EXIT_FAILURE);
+    }
+
+    // print it
+    start_output();
+    if (fprintf(out, "stdout\n%d\n", size) == -1) {
+      error_stdio(out, "Can't write");
+    }
+    if (fwrite(buf, size, 1, out) != 1) {
+      error_stdio(out, "Can't write");
+    }
+    if (fprintf(out, "\n") == -1) {
+      error_stdio(out, "Can't write");
+    }
+    end_output();
+  }
+
+  return NULL;
+}
+
 static void run_filter(struct filter_ops *ops,
 		       int stdout_log) {
   // eval loop

@@ -21,63 +21,23 @@
 
 #include "util.h"
 
-GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
+static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
 
-gpointer logger(gpointer data) {
-  struct logger_data *l = data;
+void start_output(void) {
+  g_static_mutex_lock(&out_mutex);
+}
 
-  FILE *out = l->out;
-  int stdout_log = l->stdout_log;
+void end_output(void) {
+  g_static_mutex_unlock(&out_mutex);
+}
 
-  // block signals
-  sigset_t set;
-  sigfillset(&set);
-  pthread_sigmask(SIG_SETMASK, &set, NULL);
-
-  fprintf(stderr, "Logger thread is ready\n");
-
-  // go
-  while (true) {
-    ssize_t size;
-    uint8_t buf[BUFSIZ];
-
-    // read from fd
-    size = read(stdout_log, buf, BUFSIZ);
-    if (size <= 0) {
-      perror("Can't read");
-      exit(EXIT_FAILURE);
-    }
-
-    // print it
-    g_static_mutex_lock(&out_mutex);
-    if (fprintf(out, "stdout\n%d\n", size) == -1) {
-      if (feof(out)) {
-	fprintf(stderr, "EOF\n");
-      } else {
-	perror("Can't write");
-      }
-      exit(EXIT_FAILURE);
-    }
-    if (fwrite(buf, size, 1, out) != 1) {
-      if (feof(out)) {
-	fprintf(stderr, "EOF\n");
-      } else {
-	perror("Can't write");
-      }
-      exit(EXIT_FAILURE);
-    }
-    if (fprintf(out, "\n") == -1) {
-      if (feof(out)) {
-	fprintf(stderr, "EOF\n");
-      } else {
-	perror("Can't write");
-      }
-      exit(EXIT_FAILURE);
-    }
-    g_static_mutex_unlock(&out_mutex);
+void error_stdio(FILE *f, const char *msg) {
+  if (feof(f)) {
+    fprintf(stderr, "EOF\n");
+  } else {
+    perror("Can't write string");
   }
-
-  return NULL;
+  exit(EXIT_FAILURE);
 }
 
 void attribute_destroy(gpointer user_data) {
@@ -121,12 +81,7 @@ char *get_string(FILE *in) {
   result[size] = '\0';
 
   if (fread(result, size, 1, in) != 1) {
-    if (feof(in)) {
-      fprintf(stderr, "EOF\n");
-    } else {
-      perror("Can't read string");
-    }
-    exit(EXIT_FAILURE);
+    error_stdio(in, "Can't read string");
   }
 
   // read trailing '\n'
@@ -169,12 +124,7 @@ void *get_binary(FILE *in, int *len_OUT) {
     binary = g_malloc(size);
 
     if (fread(binary, size, 1, in) != 1) {
-      if (feof(in)) {
-	fprintf(stderr, "EOF\n");
-      } else {
-	perror("Can't read binary");
-      }
-      exit(EXIT_FAILURE);
+      error_stdio(in, "Can't read binary");
     }
   }
 
@@ -188,40 +138,20 @@ void *get_binary(FILE *in, int *len_OUT) {
 
 void send_binary(FILE *out, int len, void *data) {
   if (fprintf(out, "%d\n", len) == -1) {
-    if (feof(out)) {
-      fprintf(stderr, "EOF\n");
-    } else {
-      perror("Can't write binary length");
-    }
-    exit(EXIT_FAILURE);
+    error_stdio(out, "Can't write binary length");
   }
   if (fwrite(data, len, 1, out) != 1) {
-    if (feof(out)) {
-      fprintf(stderr, "EOF\n");
-    } else {
-      perror("Can't write binary");
-    }
-    exit(EXIT_FAILURE);
+    error_stdio(out, "Can't write binary");
   }
   if (fprintf(out, "\n") == -1) {
-    if (feof(out)) {
-      fprintf(stderr, "EOF\n");
-    } else {
-      perror("Can't write end of binary");
-    }
-    exit(EXIT_FAILURE);
+    error_stdio(out, "Can't write end of binary");
   }
 }
 
 
 void send_tag(FILE *out, const char *tag) {
   if (fprintf(out, "%s\n", tag) == -1) {
-    if (feof(out)) {
-      fprintf(stderr, "EOF\n");
-    } else {
-      perror("Can't write tag");
-    }
-    exit(EXIT_FAILURE);
+    error_stdio(out, "Can't write tag");
   }
 }
 
@@ -234,12 +164,16 @@ void send_int(FILE *out, int i) {
 void send_string(FILE *out, const char *str) {
   int len = strlen(str);
   if (fprintf(out, "%d\n%s\n", len, str) == -1) {
-    if (feof(out)) {
-      fprintf(stderr, "EOF\n");
-    } else {
-      perror("Can't write string");
-    }
-    exit(EXIT_FAILURE);
+    error_stdio(out, "Can't write string");
+  }
+}
+
+void send_strings(FILE *out, const char * const *strings) {
+  for (const char * const *str = strings; *str != NULL; str++) {
+    send_string(out, *str);
+  }
+  if (fprintf(out, "\n") == -1) {
+    error_stdio(out, "Can't write newline");
   }
 }
 
@@ -252,10 +186,10 @@ struct attribute *get_attribute(FILE *in, FILE *out,
 
   // retrieve?
   if (attr == NULL) {
-    g_static_mutex_lock(&out_mutex);
+    start_output();
     send_tag(out, "get-attribute");
     send_string(out, name);
-    g_static_mutex_unlock(&out_mutex);
+    end_output();
 
     int len;
     void *data = get_binary(in, &len);
@@ -289,8 +223,8 @@ bool get_boolean(FILE *in) {
 }
 
 void send_result(FILE *out, int result) {
-  g_static_mutex_lock(&out_mutex);
+  start_output();
   send_tag(out, "result");
   send_int(out, result);
-  g_static_mutex_unlock(&out_mutex);
+  end_output();
 }

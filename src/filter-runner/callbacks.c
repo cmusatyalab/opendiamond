@@ -37,11 +37,11 @@ void lf_log(int level, const char *fmt, ...) {
 
   char *msg = g_strconcat(formatted_filter_name, formatted_msg, NULL);
 
-  g_static_mutex_lock(&out_mutex);
+  start_output();
   send_tag(_out, "log");
   send_int(_out, level);
   send_string(_out, msg);
-  g_static_mutex_unlock(&out_mutex);
+  end_output();
 
   g_free(msg);
   g_free(formatted_filter_name);
@@ -101,11 +101,13 @@ int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
     return EINVAL;
   }
 
-  g_static_mutex_lock(&out_mutex);
+  start_output();
   send_tag(_out, "write-attribute");
   send_string(_out, name);
   send_binary(_out, len, data);
-  g_static_mutex_unlock(&out_mutex);
+  end_output();
+
+  return 0;
 }
 
 int lf_omit_attr(lf_obj_handle_t ohandle, char *name) {
@@ -113,10 +115,10 @@ int lf_omit_attr(lf_obj_handle_t ohandle, char *name) {
     return EINVAL;
   }
 
-  g_static_mutex_lock(&out_mutex);
+  start_output();
   send_tag(_out, "omit-attribute");
   send_string(_out, name);
-  g_static_mutex_unlock(&out_mutex);
+  end_output();
 
   // server sends false if non-existent
   return get_boolean(_in) ? 0 : ENOENT;

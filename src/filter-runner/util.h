@@ -21,8 +21,6 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-extern GStaticMutex out_mutex;
-
 struct ohandle {
   GHashTable *attributes;
 };
@@ -37,8 +35,10 @@ struct logger_data {
   int stdout_log;
 };
 
-gpointer logger(gpointer data);
+void start_output(void);
+void end_output(void);
 
+void error_stdio(FILE *f, const char *msg);
 
 void attribute_destroy(gpointer user_data);
 

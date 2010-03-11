@@ -159,7 +159,8 @@ lf_internal_get_session_variables(lf_obj_handle_t ohandle,
 }
 
 int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
-					 lf_session_variable_t **list)
+					 char **names,
+					 double *values)
 {
   obj_data_t *odata = (obj_data_t *) ohandle;
   session_variables_state_t *sv = odata->session_variables_state;
@@ -172,18 +173,18 @@ int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
 
   // walk the list given, and update the values
   int i;
-  for (i = 0; list[i] != NULL; i++) {
-    lf_session_variable_t *cur = list[i];
-    session_variable_value_t *svv = g_hash_table_lookup(sv->store, cur->name);
+  for (i = 0; names[i] != NULL; i++) {
+    char *name = names[i];
+    session_variable_value_t *svv = g_hash_table_lookup(sv->store, name);
     if (svv == NULL) {
       svv = calloc(1, sizeof(session_variable_value_t));
-      g_hash_table_replace(sv->store, strdup(cur->name), svv);
+      g_hash_table_replace(sv->store, strdup(name), svv);
     }
 
     if (sv->between_get_and_set) {
       // the client has gotten local, but not set global
       // in this case, we only update between_get_and_set
-      double val = svv->between_get_and_set_val + cur->value;
+      double val = svv->between_get_and_set_val + values[i];
       /*
       printf(" filter set '%s': _ # %g # %g -> %g\n",
 	     cur->name,
@@ -194,7 +195,7 @@ int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
       svv->between_get_and_set_val = val;
     } else {
       // we are in sync with other clients, update local
-      double val = svv->local_val + cur->value;
+      double val = svv->local_val + values[i];
       /*
       printf(" filter set '%s': %g # _ # %g -> %g\n",
 	     cur->name,

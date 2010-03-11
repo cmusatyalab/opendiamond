@@ -260,7 +260,8 @@ int lf_internal_get_session_variables(lf_obj_handle_t ohandle,
 				      char **names,
 				      double *results);
 int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
-					 lf_session_variable_t **list);
+					 char **names,
+					 double *values);
 
 
 extern filter_info_t *fexec_active_filter;

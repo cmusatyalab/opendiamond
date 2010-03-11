@@ -183,9 +183,12 @@ int lf_update_session_variables(lf_obj_handle_t ohandle,
   start_output();
   send_tag(_out, "update-session-variables");
 
-  // send the list of names and values
+  // send the lists of names and values
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
     send_string(_out, (*v)->name);
+  }
+  send_blank(_out);
+  for (lf_session_variable_t **v = list; *v != NULL; v++) {
     send_double(_out, (*v)->value);
   }
   send_blank(_out);

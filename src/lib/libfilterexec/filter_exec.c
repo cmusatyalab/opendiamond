@@ -281,6 +281,26 @@ get_binary(FILE *in, int *len_OUT) {
   return binary;
 }
 
+static bool
+get_blank(FILE *in) {
+  char *s = get_string(in);
+  g_free(s);
+  return s == NULL;
+}
+
+static bool
+get_double(FILE *in, double *result) {
+  char *s = get_string(in);
+  if (s == NULL) {
+    return false;
+  }
+
+  *result = g_ascii_strtod(s, NULL);
+  g_free(s);
+
+  return true;
+}
+
 
 /*
  * Global state for the filter init code.
@@ -1110,8 +1130,32 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 
       g_free(results);
     } else if (streq(tag, "update-session-variables")) {
-      // TODO
+      // get list of names
+      char **names = get_strings(in);
 
+      // get list of values
+      int count = g_strv_length(names);
+      double *results = g_new(double, count);
+      for (int i = 0; i < count; i++) {
+	double d;
+	if (!get_double(in, &d)) {
+	  fail_filter(cur_filt);
+	  g_free(names);
+	  g_free(results);
+	  return 0;
+	}
+      }
+      if (!get_blank(in)) {
+	  fail_filter(cur_filt);
+	  g_free(names);
+	  g_free(results);
+	  return 0;
+      }
+
+      // done
+      lf_internal_update_session_variables(obj_handle, names, results);
+      g_free(names);
+      g_free(results);
     } else if (streq(tag, "log")) {
       // read level
       int level;

@@ -123,11 +123,24 @@ static void
 send_string(FILE *out, const char *str) {
   int len = strlen(str);
   fprintf(out, "%d\n%s\n", len, str);
+  fflush(out);
+  g_debug("send_string: %d %s", len, str);
 }
 
 static void
 send_blank(FILE *out) {
   fprintf(out, "\n");
+  fflush(out);
+  g_debug("send_blank");
+}
+
+static void
+send_binary(FILE *out, int len, void *data) {
+  fprintf(out, "%d\n", len);
+  fwrite(data, len, 1, out);
+  fprintf(out, "\n");
+  fflush(out);
+  g_debug("send_binary, len: %d", len);
 }
 
 static char *
@@ -146,6 +159,7 @@ get_tag(FILE *in) {
   char *str = g_strdup(line);
   free(line);
 
+  g_debug("get_tag: %s", str);
   return str;
 }
 

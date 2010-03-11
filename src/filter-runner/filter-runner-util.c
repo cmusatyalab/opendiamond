@@ -136,12 +136,18 @@ void send_binary(FILE *out, int len, void *data) {
   if (fprintf(out, "\n") == -1) {
     error_stdio(out, "Can't write end of binary");
   }
+  if (fflush(out) != 0) {
+    error_stdio(out, "Can't flush");
+  }
 }
 
 
 void send_tag(FILE *out, const char *tag) {
   if (fprintf(out, "%s\n", tag) == -1) {
     error_stdio(out, "Can't write tag");
+  }
+  if (fflush(out) != 0) {
+    error_stdio(out, "Can't flush");
   }
 }
 
@@ -155,6 +161,9 @@ void send_string(FILE *out, const char *str) {
   int len = strlen(str);
   if (fprintf(out, "%d\n%s\n", len, str) == -1) {
     error_stdio(out, "Can't write string");
+  }
+  if (fflush(out) != 0) {
+    error_stdio(out, "Can't flush");
   }
 }
 
@@ -174,6 +183,9 @@ bool get_boolean(FILE *in) {
 void send_blank(FILE *out) {
   if (fprintf(out, "\n") == -1) {
     error_stdio(out, "Can't write blank");
+  }
+  if (fflush(out) != 0) {
+    error_stdio(out, "Can't flush");
   }
 }
 

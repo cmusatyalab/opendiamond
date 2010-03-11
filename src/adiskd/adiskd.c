@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <dlfcn.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdint.h>

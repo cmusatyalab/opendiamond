@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dlfcn.h>
 #include <string.h>
 #include <errno.h>
 #include <stddef.h>

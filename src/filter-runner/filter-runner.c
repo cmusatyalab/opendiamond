@@ -187,15 +187,8 @@ static gpointer logger(gpointer data) {
 
     // print it
     start_output();
-    if (fprintf(out, "stdout\n%d\n", size) == -1) {
-      error_stdio(out, "Can't write");
-    }
-    if (fwrite(buf, size, 1, out) != 1) {
-      error_stdio(out, "Can't write");
-    }
-    if (fprintf(out, "\n") == -1) {
-      error_stdio(out, "Can't write");
-    }
+    send_tag(out, "stdout");
+    send_binary(out, size, buf);
     end_output();
   }
 

@@ -227,7 +227,7 @@ void		update_filter_order(filter_data_t * fdata, const permutation_t * perm);
 void	    	optimize_filter_order(filter_data_t * fdata, 
 			opt_policy_t * policy);
 double	    	tv_diff(struct timeval *end, struct timeval *start);
-int             run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle);
+int             run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_filt);
 int             eval_filters(obj_data_t * obj_handle,
 			     filter_data_t * fdata, int force_eval,
 			     double *elapsed,

@@ -143,6 +143,53 @@ send_binary(FILE *out, int len, void *data) {
   g_debug("send_binary, len: %d", len);
 }
 
+static int
+get_size(FILE *in) {
+  char *line = NULL;
+  size_t n;
+  int result;
+
+  if (getline(&line, &n, in) == -1) {
+    return -1;
+  }
+
+  // if there is no string, then return -1
+  if (strlen(line) == 1) {
+    result = -1;
+  } else {
+    result = atoi(line);
+  }
+
+  free(line);
+
+  fprintf(stderr, "size: %d\n", result);
+  return result;
+}
+
+static char
+*get_string(FILE *in) {
+  int size = get_size(in);
+
+  if (size == -1) {
+    return NULL;
+  }
+
+  char *result = g_malloc(size + 1);
+  result[size] = '\0';
+
+  if (size > 0) {
+    if (fread(result, size, 1, in) != 1) {
+      return NULL;
+    }
+  }
+
+  // read trailing '\n'
+  getc(in);
+
+  g_debug("get_string: %d %s", size, result);
+  return result;
+}
+
 static char *
 get_tag(FILE *in) {
   char *line = NULL;
@@ -161,6 +208,45 @@ get_tag(FILE *in) {
 
   g_debug("get_tag: %s", str);
   return str;
+}
+
+static bool
+get_int(FILE *in, int *result) {
+  char *str = get_string(in);
+  if (str == NULL) {
+    return false;
+  }
+
+  if (sscanf(str, "%d", result) != 1) {
+    return false;
+  }
+
+  g_debug("get_int: %d", *result);
+  return true;
+}
+
+static void *
+get_binary(FILE *in, int *len_OUT) {
+  int size = get_size(in);
+  *len_OUT = size;
+
+  uint8_t *binary = NULL;
+
+  if (size > 0) {
+    binary = g_malloc(size);
+
+    if (fread(binary, size, 1, in) != 1) {
+      *len_OUT = -1;
+      return NULL;
+    }
+  }
+
+  if (size != -1) {
+    // read trailing '\n'
+    getc(in);
+  }
+
+  return binary;
 }
 
 
@@ -420,6 +506,18 @@ fexec_term_search(filter_data_t * fdata)
 	if (fd > 0) 
 		close(fd);
 	return (0);
+}
+
+static void
+fail_filter(filter_info_t *cur_filt)
+{
+	if (cur_filt->fi_out_to_runner != NULL) {
+		assert(cur_filt->fi_in_from_runner);
+		fclose(cur_filt->fi_out_to_runner);
+		fclose(cur_filt->fi_in_from_runner);
+	}
+
+	cur_filt->fi_is_initialized = false;
 }
 
 static int
@@ -886,10 +984,132 @@ fexec_get_load(filter_data_t * fdata)
 	return (1.0000000);
 }
 
-int
-run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle)
+static bool
+streq(const char *a, const char *b)
 {
-  // TODO
+	return strcmp(a, b) == 0;
+}
+
+int
+run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_filt)
+{
+  while (true) {
+    // read tag
+    char *tag = get_tag(in);
+    if (tag == NULL) {
+      fail_filter(cur_filt);
+      return 0;
+    }
+
+    g_debug("********* read tag: %s", tag);
+
+    // switch
+    if (streq(tag, "get-attribute")) {
+      // read name
+      char *name = get_string(in);
+      g_debug("get-attribute: \"%s\"", name);
+      if (name == NULL) {
+	fail_filter(cur_filt);
+	return 0;
+      }
+
+      // look up attribute
+      unsigned int len;
+      unsigned char *data;
+      int result = lf_ref_attr(obj_handle, name, &len, &data);
+      g_free(name);
+
+      // write attribute
+      if (result != 0) {
+	// no attribute
+	send_blank(out);
+      } else {
+	send_binary(out, len, data);
+      }
+    } else if (streq(tag, "set-attribute")) {
+      // read name
+      char *name = get_string(in);
+      if (name == NULL) {
+	fail_filter(cur_filt);
+	return 0;
+      }
+
+      // read value
+      int len;
+      void *data = get_binary(in, &len);
+      if (len == -1) {
+	fail_filter(cur_filt);
+	return 0;
+      }
+
+      lf_write_attr(obj_handle, name, len, data);
+      g_free(name);
+      g_free(data);
+    } else if (streq(tag, "omit-attribute")) {
+      // read name
+      char *name = get_string(in);
+      if (name == NULL) {
+	fail_filter(cur_filt);
+	return 0;
+      }
+
+      int result = lf_omit_attr(obj_handle, name);
+      g_free(name);
+
+      // write result
+      if (result == 0) {
+	send_string(out, "true");
+      } else {
+	send_string(out, "false");
+      }
+    } else if (streq(tag, "get-session-variables")) {
+      // TODO
+
+    } else if (streq(tag, "update-session-variables")) {
+      // TODO
+
+    } else if (streq(tag, "log")) {
+      // read level
+      int level;
+      if (!get_int(in, &level)) {
+	fail_filter(cur_filt);
+	return 0;
+      }
+
+      // read message
+      char *msg = get_string(in);
+      if (msg == NULL) {
+	fail_filter(cur_filt);
+	return 0;
+      }
+
+      // log it
+      log_message(LOGT_APP, level, "%s", msg);
+      g_free(msg);
+    } else if (streq(tag, "stdout")) {
+      // read message
+      char *msg = get_string(in);
+      if (msg == NULL) {
+	fail_filter(cur_filt);
+	return 0;
+      }
+
+      // print it
+      printf("%s", msg);
+      g_free(msg);
+    } else if (streq(tag, "result")) {
+      int result;
+      if (get_int(in, &result)) {
+	return result;
+      } else {
+	fail_filter(cur_filt);
+	return 0;
+      }
+    } else {
+      fail_filter(cur_filt);
+      return 0;
+    }
+  }
 }
 
 /*
@@ -1048,7 +1268,8 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 
 			val = run_eval_server(cur_filter->fi_in_from_runner,
 					      cur_filter->fi_out_to_runner,
-					      obj_handle);
+					      obj_handle,
+					      cur_filter);
 
 			/*
 			 * get timing info and update stats 
@@ -1182,13 +1403,13 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 
 		cur_filt->fi_out_to_runner = fdopen(runner_input, "w");
 		if (!cur_filt->fi_out_to_runner) {
-		  perror("Can't make file from runner's stdin");
-		  abort();
+			perror("Can't make file from runner's stdin");
+			abort();
 		}
 		cur_filt->fi_in_from_runner = fdopen(runner_output, "r");
 		if (!cur_filt->fi_in_from_runner) {
-		  perror("Can't make file from runner's stdout");
-		  abort();
+			perror("Can't make file from runner's stdout");
+			abort();
 		}
 
 

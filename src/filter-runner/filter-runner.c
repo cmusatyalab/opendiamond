@@ -26,7 +26,7 @@
 
 #include "lib_filter.h"
 #include "filter-runner.h"
-#include "util.h"
+#include "filter-runner-util.h"
 
 const char *_filter_name;
 FILE *_in;

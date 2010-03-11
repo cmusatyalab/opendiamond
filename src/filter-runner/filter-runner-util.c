@@ -19,7 +19,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "util.h"
+#include "filter-runner-util.h"
 
 void error_stdio(FILE *f, const char *msg) {
   if (feof(f)) {

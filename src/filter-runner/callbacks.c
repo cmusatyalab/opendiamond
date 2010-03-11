@@ -24,7 +24,7 @@
 
 #include "lib_filter.h"
 #include "filter-runner.h"
-#include "util.h"
+#include "filter-runner-util.h"
 
 static struct attribute *get_attribute(FILE *in, FILE *out,
 				       struct ohandle *ohandle, const char *name) {

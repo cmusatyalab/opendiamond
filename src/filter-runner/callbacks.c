@@ -157,10 +157,39 @@ int lf_omit_attr(lf_obj_handle_t ohandle, char *name) {
 
 int lf_get_session_variables(lf_obj_handle_t ohandle,
 			     lf_session_variable_t **list) {
-  // TODO
+  start_output();
+  send_tag(_out, "get-session-variables");
+
+  // send the list of names
+  for (lf_session_variable_t **v = list; *v != NULL; v++) {
+    send_string(_out, (*v)->name);
+  }
+  send_blank(_out);
+
+  end_output();
+
+  // read in the values
+  for (lf_session_variable_t **v = list; *v != NULL; v++) {
+    (*v)->value = get_double(_in);
+  }
+
+  get_blank(_in);
+
+  return 0;
 }
 
 int lf_update_session_variables(lf_obj_handle_t ohandle,
 				lf_session_variable_t **list) {
-  // TODO
+  start_output();
+  send_tag(_out, "update-session-variables");
+
+  // send the list of names and values
+  for (lf_session_variable_t **v = list; *v != NULL; v++) {
+    send_string(_out, (*v)->name);
+    send_double(_out, (*v)->value);
+  }
+  send_blank(_out);
+  end_output();
+
+  return 0;
 }

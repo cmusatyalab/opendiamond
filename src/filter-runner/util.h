@@ -48,14 +48,20 @@ void *get_binary(FILE *in, int *len_OUT);
 
 bool get_boolean(FILE *in);
 
+void get_blank(FILE *in);
+
+double get_double(FILE *in);
+
 void send_tag(FILE *out, const char *tag);
 
 void send_int(FILE *out, int i);
 
 void send_string(FILE *out, const char *str);
 
-void send_strings(FILE *out, const char * const *strings);
-
 void send_binary(FILE *out, int len, void *data);
+
+void send_blank(FILE *out);
+
+void send_double(FILE *out, double d);
 
 #endif

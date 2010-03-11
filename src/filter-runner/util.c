@@ -168,16 +168,6 @@ void send_string(FILE *out, const char *str) {
   }
 }
 
-void send_strings(FILE *out, const char * const *strings) {
-  for (const char * const *str = strings; *str != NULL; str++) {
-    send_string(out, *str);
-  }
-  if (fprintf(out, "\n") == -1) {
-    error_stdio(out, "Can't write newline");
-  }
-}
-
-
 bool get_boolean(FILE *in) {
   char *str = get_string(in);
   if (str == NULL) {
@@ -189,4 +179,36 @@ bool get_boolean(FILE *in) {
   g_free(str);
 
   return result;
+}
+
+void send_blank(FILE *out) {
+  if (fprintf(out, "\n") == -1) {
+    error_stdio(out, "Can't write blank");
+  }
+}
+
+void get_blank(FILE *in) {
+  if (get_string(in) != NULL) {
+    fprintf(stderr, "Expecting blank\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+
+double get_double(FILE *in) {
+  char *s = get_string(in);
+  if (s == NULL) {
+    fprintf(stderr, "Expecting double\n");
+    exit(EXIT_FAILURE);
+  }
+
+  double d = g_ascii_strtod(s, NULL);
+  g_free(s);
+
+  return d;
+}
+
+void send_double(FILE *out, double d) {
+  char buf[G_ASCII_DTOSTR_BUF_SIZE];
+  send_string(out, g_ascii_dtostr (buf, sizeof (buf), d));
 }

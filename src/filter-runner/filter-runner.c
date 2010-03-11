@@ -38,6 +38,16 @@ struct filter_ops {
   void *data;
 };
 
+static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
+
+void start_output(void) {
+  g_static_mutex_lock(&out_mutex);
+}
+
+void end_output(void) {
+  g_static_mutex_unlock(&out_mutex);
+}
+
 static void assert_result(int result) {
   if (result == -1) {
     perror("error");

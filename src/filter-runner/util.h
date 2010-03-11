@@ -30,10 +30,6 @@ struct attribute {
   void *data;
 };
 
-
-void start_output(void);
-void end_output(void);
-
 void error_stdio(FILE *f, const char *msg);
 
 void attribute_destroy(gpointer user_data);

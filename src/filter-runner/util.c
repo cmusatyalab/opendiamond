@@ -21,16 +21,6 @@
 
 #include "util.h"
 
-static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
-
-void start_output(void) {
-  g_static_mutex_lock(&out_mutex);
-}
-
-void end_output(void) {
-  g_static_mutex_unlock(&out_mutex);
-}
-
 void error_stdio(FILE *f, const char *msg) {
   if (feof(f)) {
     fprintf(stderr, "EOF\n");

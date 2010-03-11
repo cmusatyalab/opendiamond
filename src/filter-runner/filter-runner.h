@@ -20,4 +20,9 @@ extern const char *_filter_name;
 extern FILE *_in;
 extern FILE *_out;
 
+
+void start_output(void);
+void end_output(void);
+
+
 #endif

@@ -133,7 +133,7 @@ int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
   }
 
   start_output();
-  send_tag(_out, "write-attribute");
+  send_tag(_out, "set-attribute");
   send_string(_out, name);
   send_binary(_out, len, data);
   end_output();

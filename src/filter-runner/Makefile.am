@@ -1,4 +1,4 @@
-libexec_PROGRAMS = filter-runner
+pkglibexec_PROGRAMS = filter-runner
 
 filter_runner_SOURCES = filter-runner.c callbacks.c util.c
 

@@ -72,7 +72,7 @@ static void init_file_descriptors(int *stdin_orig, int *stdout_orig,
   *stdout_log = stdout_pipe[0];
 }
 
-static void init_filter(FILE *in, struct filter_ops *ops) {
+static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   char *error;
 
   // read shared object name
@@ -111,7 +111,7 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
     exit(EXIT_FAILURE);
   }
 
-  // init
+  // find functions
   int (*filter_init)(int num_arg, char **args, int bloblen,
 		     void *blob_data, const char * filt_name,
 		     void **filter_args);
@@ -121,17 +121,6 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
     exit(EXIT_FAILURE);
   }
 
-  int result = (*filter_init)(g_strv_length(args), args,
-			      bloblen, blob,
-			      _filter_name, &ops->data);
-  if (result != 0) {
-    fprintf(stderr, "filter init failed\n");
-    exit(EXIT_FAILURE);
-  }
-  fprintf(stderr, "filter init success\n");
-
-
-  // save
   *(void **) (&ops->eval) = dlsym(handle, eval_name);
   if ((error = dlerror()) != NULL) {
     fprintf(stderr, "%s\n", error);
@@ -143,6 +132,21 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
     fprintf(stderr, "%s\n", error);
     exit(EXIT_FAILURE);
   }
+
+  // report load success
+  start_output();
+  send_tag(out, "symbols-resolved");
+  end_output();
+
+  // init
+  int result = (*filter_init)(g_strv_length(args), args,
+			      bloblen, blob,
+			      _filter_name, &ops->data);
+  if (result != 0) {
+    fprintf(stderr, "filter init failed\n");
+    exit(EXIT_FAILURE);
+  }
+  fprintf(stderr, "filter init success\n");
 
   // free
   g_free(filename);
@@ -254,7 +258,7 @@ int main(void) {
     exit(EXIT_FAILURE);
   }
 
-  init_filter(_in, &ops);
+  init_filter(_in, _out, &ops);
   run_filter(&ops,
 	     stdout_log);
 

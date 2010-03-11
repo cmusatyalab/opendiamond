@@ -105,14 +105,14 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   char **args = get_strings(in);
   fprintf(stderr, "args len: %d\n", g_strv_length(args));
 
-  // read name
-  _filter_name = get_string(in);
-  fprintf(stderr, "filter_name: %s\n", _filter_name);
-
   // read blob
   int bloblen;
   uint8_t *blob = get_binary(in, &bloblen);
   fprintf(stderr, "bloblen: %d\n", bloblen);
+
+  // read name
+  _filter_name = get_string(in);
+  fprintf(stderr, "filter_name: %s\n", _filter_name);
 
   // dlopen
   void *handle = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);

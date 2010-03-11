@@ -1196,6 +1196,10 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 			      cur_filt->fi_arglist[i2]);
 		}
 		send_blank(cur_filt->fi_out_to_runner);
+		// blob
+		send_binary(cur_filt->fi_out_to_runner,
+			    cur_filt->fi_blob_len,
+			    cur_filt->fi_blob_data);
 		// name
 		send_string(cur_filt->fi_out_to_runner,
 			    cur_filt->fi_name);

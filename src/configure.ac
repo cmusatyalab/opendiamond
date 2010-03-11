@@ -10,7 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-AC_INIT([OpenDiamond], [5.0.7], [diamond@cs.cmu.edu], [opendiamond], [http://diamond.cs.cmu.edu/])
+AC_INIT([OpenDiamond], [5.1.0], [diamond@cs.cmu.edu], [opendiamond], [http://diamond.cs.cmu.edu/])
 AM_INIT_AUTOMAKE([foreign 1.11.1 dist-xz])
 AM_SILENT_RULES([yes])
 
@@ -21,7 +21,7 @@ AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
-AC_PROG_CC
+AC_PROG_CC_C99
 AM_PROG_LEX
 AM_PATH_PYTHON([2.5])
 

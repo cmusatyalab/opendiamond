@@ -154,6 +154,12 @@ static void init_filter(FILE *in, struct filter_ops *ops) {
 }
 
 
+struct logger_data {
+  FILE *out;
+  int stdout_log;
+};
+
+
 static gpointer logger(gpointer data) {
   struct logger_data *l = data;
 
@@ -194,6 +200,13 @@ static gpointer logger(gpointer data) {
   }
 
   return NULL;
+}
+
+static void send_result(FILE *out, int result) {
+  start_output();
+  send_tag(out, "result");
+  send_int(out, result);
+  end_output();
 }
 
 static void run_filter(struct filter_ops *ops,

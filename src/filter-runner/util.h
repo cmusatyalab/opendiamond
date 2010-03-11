@@ -30,10 +30,6 @@ struct attribute {
   void *data;
 };
 
-struct logger_data {
-  FILE *out;
-  int stdout_log;
-};
 
 void start_output(void);
 void end_output(void);
@@ -50,9 +46,6 @@ char **get_strings(FILE *in);
 
 void *get_binary(FILE *in, int *len_OUT);
 
-struct attribute *get_attribute(FILE *in, FILE *out,
-				struct ohandle *ohandle, const char *name);
-
 bool get_boolean(FILE *in);
 
 void send_tag(FILE *out, const char *tag);
@@ -61,8 +54,8 @@ void send_int(FILE *out, int i);
 
 void send_string(FILE *out, const char *str);
 
-void send_binary(FILE *out, int len, void *data);
+void send_strings(FILE *out, const char * const *strings);
 
-void send_result(FILE *out, int result);
+void send_binary(FILE *out, int len, void *data);
 
 #endif

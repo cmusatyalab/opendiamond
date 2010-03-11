@@ -178,37 +178,6 @@ void send_strings(FILE *out, const char * const *strings) {
 }
 
 
-struct attribute *get_attribute(FILE *in, FILE *out,
-				struct ohandle *ohandle, const char *name) {
-  // look up in hash table
-  struct attribute *attr = g_hash_table_lookup(ohandle->attributes,
-					       name);
-
-  // retrieve?
-  if (attr == NULL) {
-    start_output();
-    send_tag(out, "get-attribute");
-    send_string(out, name);
-    end_output();
-
-    int len;
-    void *data = get_binary(in, &len);
-
-    if (len == -1) {
-      // no attribute
-      return NULL;
-    }
-
-    attr = g_slice_new(struct attribute);
-    attr->data = data;
-    attr->len = len;
-
-    g_hash_table_insert(ohandle->attributes, g_strdup(name), attr);
-  }
-
-  return attr;
-}
-
 bool get_boolean(FILE *in) {
   char *str = get_string(in);
   if (str == NULL) {
@@ -220,11 +189,4 @@ bool get_boolean(FILE *in) {
   g_free(str);
 
   return result;
-}
-
-void send_result(FILE *out, int result) {
-  start_output();
-  send_tag(out, "result");
-  send_int(out, result);
-  end_output();
 }

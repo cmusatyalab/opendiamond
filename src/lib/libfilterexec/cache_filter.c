@@ -822,8 +822,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 						   fdata->fd_filters,
 						   fdata->fd_app_id);
 
-			assert(cur_filter->fi_eval_fp);
-
 			/* mark beginning of filter eval */
 			if (add_cache_entries) {
 				ocache_add_start(obj_handle,
@@ -832,8 +830,9 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 			clock_gettime(CLOCK_MONOTONIC, &filter_start);
 
-			conf = cur_filter->fi_eval_fp(obj_handle,
-						      cur_filter->fi_filt_arg);
+			conf = run_eval_server(cur_filter->fi_in_from_runner,
+					       cur_filter->fi_out_to_runner,
+					       obj_handle);
 
 			clock_gettime(CLOCK_MONOTONIC, &filter_end);
 

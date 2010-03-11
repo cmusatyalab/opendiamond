@@ -73,16 +73,14 @@ typedef struct filter_info {
 	char            fi_eval_name[MAX_FILTER_FUNC_NAME];
 	char            fi_init_name[MAX_FILTER_FUNC_NAME];
 	char            fi_fini_name[MAX_FILTER_FUNC_NAME];
-	filter_init_proto fi_init_fp;
-	filter_eval_proto fi_eval_fp;
-	filter_fini_proto fi_fini_fp;
+	FILE           *fi_in_from_runner;
+	FILE           *fi_out_to_runner;
 	int             fi_threshold;
 	int             fi_merit;
 	int             fi_numargs;
 	int             fi_maxargs;
 	char          **fi_arglist;
 	filter_id_t     fi_filterid;    /* id of this filter */
-	void           *fi_filt_arg;    /* associated argument data */
 	bool            fi_is_initialized;  /* for lazy calling of fi_init_fp */
 
 	int             fi_blob_len;    /* associated blob len */
@@ -166,7 +164,6 @@ typedef struct filter_prob {
 typedef struct flib_info {
 	sig_val_t	lib_sig;
 	char *		lib_name;
-	bool		is_initialized;
 } flib_info_t;
 
 /*
@@ -230,6 +227,7 @@ void		update_filter_order(filter_data_t * fdata, const permutation_t * perm);
 void	    	optimize_filter_order(filter_data_t * fdata, 
 			opt_policy_t * policy);
 double	    	tv_diff(struct timeval *end, struct timeval *start);
+int             run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle);
 int             eval_filters(obj_data_t * obj_handle,
 			     filter_data_t * fdata, int force_eval,
 			     double *elapsed,

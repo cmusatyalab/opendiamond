@@ -16,7 +16,6 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dlfcn.h>
 #include <string.h>
 #include <errno.h>
 #include <stddef.h>
@@ -115,6 +114,40 @@ static opt_policy_t policy_arr[] = {
     .policy = NULL_POLICY
   },
 };
+
+
+/*
+ * Some filter-runner stuff that doesn't exit on failure.
+ */
+static void
+send_string(FILE *out, const char *str) {
+  int len = strlen(str);
+  fprintf(out, "%d\n%s\n", len, str);
+}
+
+static void
+send_blank(FILE *out) {
+  fprintf(out, "\n");
+}
+
+static char *
+get_tag(FILE *in) {
+  char *line = NULL;
+  size_t n;
+
+  if (getline(&line, &n, in) == -1) {
+    return NULL;
+  }
+
+  // strip trailing whitespace
+  g_strchomp(line);
+
+  // free old
+  char *str = g_strdup(line);
+  free(line);
+
+  return str;
+}
 
 
 /*
@@ -318,7 +351,7 @@ fexec_term_search(filter_data_t * fdata)
 {
 	filter_info_t  *cur_filt;
 	filter_id_t     fid;
-	int             bytes, err;
+	int             bytes;
 	int		fd = -1;
 	char *		sig_str;
 	char		path[PATH_MAX];
@@ -331,7 +364,7 @@ fexec_term_search(filter_data_t * fdata)
 	}	
 
 	/*
-	 * Go through all the filters and call the fini function 
+	 * Go through all the filters and close its pipes
 	 */
 	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
 		cur_filt = &fdata->fd_filters[fid];
@@ -355,16 +388,12 @@ fexec_term_search(filter_data_t * fdata)
 
 		free(sig_str);
 
-		err = 0;
-		if (cur_filt->fi_fini_fp)
-			err = cur_filt->fi_fini_fp(cur_filt->fi_filt_arg);
-
-		if (err != 0) {
-			/*
-			 * XXXX what now 
-			 */
-			assert(0);
+		if (cur_filt->fi_out_to_runner != NULL) {
+			assert(cur_filt->fi_in_from_runner);
+			fclose(cur_filt->fi_out_to_runner);
+			fclose(cur_filt->fi_in_from_runner);
 		}
+
 		if (fd > 0) {
 			sig_str = sig_string(&cur_filt->fi_sig);
 			bytes = snprintf(path, PATH_MAX, "%s %u %u %u \n",
@@ -397,9 +426,6 @@ load_filter_lib(char *so_name, filter_data_t * fdata,
 		fdata->lib_info = new;
 		fdata->max_libs += FLIB_INCREMENT;
 	}
-
-	/* don't dlopen here, that is done in fexec_possibly_init_filter */
-	fdata->lib_info[fdata->num_libs].is_initialized = false;
 
 	fdata->lib_info[fdata->num_libs].lib_name = strdup(so_name);
 	assert(fdata->lib_info[fdata->num_libs].lib_name != NULL);
@@ -846,6 +872,12 @@ fexec_get_load(filter_data_t * fdata)
 	return (1.0000000);
 }
 
+int
+run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle)
+{
+  // TODO
+}
+
 /*
  * This take an object pointer and a list of filters and evaluates
  * the different filters as appropriate.
@@ -1000,12 +1032,9 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 			rt_init(&rt);
 			rt_start(&rt);	/* assume only one thread here */
 
-			assert(cur_filter->fi_eval_fp);
-			/*
-			 * arg 3 here looks strange -rw 
-			 */
-			val = cur_filter->fi_eval_fp(obj_handle,
-						     cur_filter->fi_filt_arg);
+			val = run_eval_server(cur_filter->fi_in_from_runner,
+					      cur_filter->fi_out_to_runner,
+					      obj_handle);
 
 			/*
 			 * get timing info and update stats 
@@ -1114,94 +1143,85 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 			   int fd_num_filters, filter_info_t *fd_filters,
 			   filter_id_t fd_app_id)
 {
-	void           *data;
-	int err;
 	int i;
 
 	if (cur_filt->fi_is_initialized) {
 		return;
 	}
 
-	// first, dlopen everything
+	// probe all libraries for our functions
 	for (i = 0; i < num_libs; i++) {
 		flib_info_t *fl = flibs + i;
 		char *so_name = fl->lib_name;
-		void *handle;
-		char *error;
 
-		if (fl->is_initialized) {
-			continue; // already initialized
+		// launch runner
+		char *argv[] = { FILTER_RUNNER_PATH, NULL };
+		int runner_input;
+		int runner_output;
+		if (!g_spawn_async_with_pipes (NULL, argv, NULL, 0, NULL, NULL, NULL,
+					       &runner_input,
+					       &runner_output,
+					       NULL, NULL)) {
+			// it is really bad if we can't even start
+			abort();
 		}
 
-		file_get_lock(so_name);
-		handle = dlopen(so_name, RTLD_LAZY | RTLD_LOCAL);
-		if (!handle) {
-			/*
-			 * XXX error log 
-			 */
-			fprintf(stderr, "failed to open lib <%s> \n", so_name);
-			fputs(dlerror(), stderr);
+		cur_filt->fi_out_to_runner = fdopen(runner_input, "w");
+		if (!cur_filt->fi_out_to_runner) {
+		  perror("Can't make file from runner's stdin");
+		  abort();
 		}
-		file_release_lock(so_name);
-
-		fl->is_initialized = true;
-
-		if (!handle) {
-			// don't fail if we can't read a particular object
-			continue;
+		cur_filt->fi_in_from_runner = fdopen(runner_output, "r");
+		if (!cur_filt->fi_in_from_runner) {
+		  perror("Can't make file from runner's stdout");
+		  abort();
 		}
 
-		// resolve the functions for all filters and save them
-		filter_info_t *filt;
-		filter_id_t fid;
-		filter_eval_proto fe;
-		filter_init_proto fi;
-		filter_fini_proto ff;
 
-		for (fid = 0; fid < fd_num_filters; fid++) {
-			filt = &fd_filters[fid];
-			if (fid == fd_app_id) {
-				continue;
-			}
+		// feed it arguments
 
-			if (filt->fi_eval_fp == NULL) {
-				fe = dlsym(handle, filt->fi_eval_name);
-				if ((error = dlerror()) == NULL) {
-					filt->fi_eval_fp = fe;
-				}
-
-				fi = dlsym(handle, filt->fi_init_name);
-				if ((error = dlerror()) == NULL) {
-					filt->fi_init_fp = fi;
-				}
-
-				ff = dlsym(handle, filt->fi_fini_name);
-				if ((error = dlerror()) == NULL) {
-					filt->fi_fini_fp = ff;
-				}
-			}
+		// soname
+		send_string(cur_filt->fi_out_to_runner,
+			    so_name);
+		// init, eval, fini
+		send_string(cur_filt->fi_out_to_runner,
+			    cur_filt->fi_init_name);
+		send_string(cur_filt->fi_out_to_runner,
+			    cur_filt->fi_eval_name);
+		send_string(cur_filt->fi_out_to_runner,
+			    cur_filt->fi_fini_name);
+		// args
+		for (int i2 = 0; i2 < cur_filt->fi_numargs; i2++) {
+		  send_string(cur_filt->fi_out_to_runner,
+			      cur_filt->fi_arglist[i2]);
 		}
+		send_blank(cur_filt->fi_out_to_runner);
+		// name
+		send_string(cur_filt->fi_out_to_runner,
+			    cur_filt->fi_name);
+
+		// read out the string
+		char *result = get_tag(cur_filt->fi_in_from_runner);
+		if (!result || (strcmp(result, "symbols-resolved") != 0)) {
+		  // incorrect so for these symbols, try again
+		  g_free(result);
+		  fclose(cur_filt->fi_in_from_runner);
+		  fclose(cur_filt->fi_out_to_runner);
+
+		  cur_filt->fi_in_from_runner = NULL;
+		  cur_filt->fi_out_to_runner = NULL;
+
+		  continue;
+		}
+		g_free(result);
+
+		// we found it
+		break;
 	}
 
 	cur_filt->fi_is_initialized = true;
 
-	// check the functions
-	g_return_if_fail (cur_filt->fi_init_fp &&
-			  cur_filt->fi_eval_fp &&
-			  cur_filt->fi_fini_fp);
-
-	// now, try the initializer for the current filter
-	err = cur_filt->fi_init_fp(cur_filt->fi_numargs,
-				   cur_filt->fi_arglist,
-				   cur_filt->fi_blob_len,
-				   cur_filt->fi_blob_data,
-				   cur_filt->fi_name, &data);
-
-	if (err != 0) {
-		/*
-		 * XXXX what now 
-		 */
-		assert(0);
-	}
-	cur_filt->fi_filt_arg = data;
+	// check the files
+	g_return_if_fail (cur_filt->fi_in_from_runner &&
+			  cur_filt->fi_out_to_runner);
 }

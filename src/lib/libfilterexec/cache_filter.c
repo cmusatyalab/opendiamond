@@ -146,6 +146,7 @@ ceval_main(void *arg)
 		if (probj)
 			odisk_pr_add(probj);
 	}
+	return NULL;
 }
 
 /*

@@ -23,7 +23,7 @@
 
 void error_stdio(FILE *f, const char *msg) {
   if (feof(f)) {
-    fprintf(stderr, "EOF\n");
+    g_warning("EOF");
   } else {
     perror("Can't write string");
   }
@@ -43,7 +43,7 @@ int get_size(FILE *in) {
   int result;
 
   if (getline(&line, &n, in) == -1) {
-    fprintf(stderr, "Can't read size\n");
+    g_warning("Can't read size");
     exit(EXIT_FAILURE);
   }
 
@@ -56,7 +56,7 @@ int get_size(FILE *in) {
 
   free(line);
 
-  fprintf(stderr, "size: %d\n", result);
+  g_message("size: %d", result);
   return result;
 }
 
@@ -70,8 +70,10 @@ char *get_string(FILE *in) {
   char *result = g_malloc(size + 1);
   result[size] = '\0';
 
-  if (fread(result, size, 1, in) != 1) {
-    error_stdio(in, "Can't read string");
+  if (size > 0) {
+    if (fread(result, size, 1, in) != 1) {
+      error_stdio(in, "Can't read string");
+    }
   }
 
   // read trailing '\n'
@@ -170,7 +172,7 @@ void send_string(FILE *out, const char *str) {
 bool get_boolean(FILE *in) {
   char *str = get_string(in);
   if (str == NULL) {
-    fprintf(stderr, "Can't get boolean\n");
+    g_warning("Can't get boolean");
     exit(EXIT_FAILURE);
   }
 
@@ -191,7 +193,7 @@ void send_blank(FILE *out) {
 
 void get_blank(FILE *in) {
   if (get_string(in) != NULL) {
-    fprintf(stderr, "Expecting blank\n");
+    g_warning("Expecting blank");
     exit(EXIT_FAILURE);
   }
 }
@@ -200,7 +202,7 @@ void get_blank(FILE *in) {
 double get_double(FILE *in) {
   char *s = get_string(in);
   if (s == NULL) {
-    fprintf(stderr, "Expecting double\n");
+    g_warning("Expecting double");
     exit(EXIT_FAILURE);
   }
 

@@ -257,7 +257,8 @@ int lf_internal_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
 			   unsigned char *data);
 int lf_internal_omit_attr(lf_obj_handle_t ohandle, char *name);
 int lf_internal_get_session_variables(lf_obj_handle_t ohandle,
-				      lf_session_variable_t **list);
+				      char **names,
+				      double *results);
 int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
 					 lf_session_variable_t **list);
 

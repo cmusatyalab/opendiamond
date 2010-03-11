@@ -190,6 +190,38 @@ static char
   return result;
 }
 
+static
+char **get_strings(FILE *in) {
+  GSList *list = NULL;
+
+  char *str;
+  while ((str = get_string(in)) != NULL) {
+    list = g_slist_prepend(list, str);
+  }
+
+  // convert to strv
+  int len = g_slist_length(list);
+  char **result = g_new(char *, len + 1);
+  result[len] = NULL;
+
+  list = g_slist_reverse(list);
+
+  int i = 0;
+  while (list != NULL) {
+    result[i++] = list->data;
+    list = g_slist_delete_link(list, list);
+  }
+
+  return result;
+}
+
+static void
+send_double(FILE *out, double d) {
+  char buf[G_ASCII_DTOSTR_BUF_SIZE];
+  send_string(out, g_ascii_dtostr (buf, sizeof (buf), d));
+}
+
+
 static char *
 get_tag(FILE *in) {
   char *line = NULL;
@@ -1001,13 +1033,10 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       return 0;
     }
 
-    g_debug("********* read tag: %s", tag);
-
     // switch
     if (streq(tag, "get-attribute")) {
       // read name
       char *name = get_string(in);
-      g_debug("get-attribute: \"%s\"", name);
       if (name == NULL) {
 	fail_filter(cur_filt);
 	return 0;
@@ -1063,8 +1092,23 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	send_string(out, "false");
       }
     } else if (streq(tag, "get-session-variables")) {
-      // TODO
+      // get list
+      char **names = get_strings(in);
 
+      // populate result
+      int count = g_strv_length(names);
+      double *results = g_new0(double, count);
+      lf_internal_get_session_variables(obj_handle, names, results);
+
+      g_strfreev(names);
+
+      // output result
+      for (int i = 0; i < count; i++) {
+	send_double(out, results[i]);
+      }
+      send_blank(out);
+
+      g_free(results);
     } else if (streq(tag, "update-session-variables")) {
       // TODO
 

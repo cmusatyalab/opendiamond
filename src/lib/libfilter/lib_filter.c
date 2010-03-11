@@ -121,7 +121,8 @@ lf_internal_omit_attr(lf_obj_handle_t obj, char *name)
 
 int
 lf_internal_get_session_variables(lf_obj_handle_t ohandle,
-				  lf_session_variable_t **list)
+				  char **names,
+				  double *results)
 {
   obj_data_t *odata = (obj_data_t *) ohandle;
   session_variables_state_t *sv = odata->session_variables_state;
@@ -134,17 +135,17 @@ lf_internal_get_session_variables(lf_obj_handle_t ohandle,
 
   // walk the list given, and fill in the values
   int i;
-  for (i = 0; list[i] != NULL; i++) {
-    lf_session_variable_t *cur = list[i];
+  for (i = 0; names[i] != NULL; i++) {
+    char *name = names[i];
     //printf(" looking up name: %s\n", cur->name);
-    session_variable_value_t *svv = g_hash_table_lookup(sv->store, cur->name);
+    session_variable_value_t *svv = g_hash_table_lookup(sv->store, name);
     if (svv == NULL) {
-      cur->value = 0.0;
+      results[i] = 0.0;
       continue;
     }
 
     // combine all values (between_get_and_set val will be 0 when not between)
-    cur->value = svv->local_val + svv->global_val + svv->between_get_and_set_val;
+    results[i] = svv->local_val + svv->global_val + svv->between_get_and_set_val;
     /*
     printf(" filter get '%s': %g # %g # %g -> %g\n",
 	   cur->name,

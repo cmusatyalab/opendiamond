@@ -57,29 +57,7 @@ lf_set_read_cb(read_attr_cb cb_fn)
 }
 
 int
-lf_read_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
-	unsigned char *data)
-{
-	obj_data_t     *odata;
-	obj_attr_t     *adata;
-	int             err;
-
-	odata = (obj_data_t *) obj;
-	adata = &odata->attr_info;
-	err = obj_read_attr(adata, name, len, data);
-
-	/*
-	 * pass information about the read to the cache function 
-	 */
-	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn) (obj, name, *len, data);
-	}
-	return (err);
-}
-
-
-int
-lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
+lf_internal_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
 	unsigned char **data)
 {
 	obj_data_t     *odata;
@@ -109,7 +87,7 @@ lf_set_write_cb(write_attr_cb cb_fn)
  * XXX
  */
 int
-lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
+lf_internal_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -128,7 +106,7 @@ lf_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
 }
 
 int
-lf_omit_attr(lf_obj_handle_t obj, char *name)
+lf_internal_omit_attr(lf_obj_handle_t obj, char *name)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -141,57 +119,9 @@ lf_omit_attr(lf_obj_handle_t obj, char *name)
 	return (err);
 }
 
-/*
- * This function allows the programmer to log some data that
- * can be retrieved from the host system.
- *
- * Args:  
- *      level      - The log level associated with the command.  This
- *                   used to limit the amount of information being passed.
- *
- *      name       - The name of the attribute to write.
- *
- *      fmt        - format string used for parsing the data.  This uses
- *                   printf syntax
- *
- *      ...        - the arguments for the format.
- *
- */
-/*
- * XXX this should match the one in log, but doesn't need to 
- */
-#define	MAX_LOG_BUF	80
-
-void
-lf_log(int level, const char *fmt, ...)
-{
-	va_list         ap;
-	va_list         new_ap;
-	char            log_buffer[MAX_LOG_BUF];
-	const char      *cur_filter;
-	int             len;
-	int             remain_len;
-
-	cur_filter = fexec_cur_filtname();
-	len = snprintf(log_buffer, MAX_LOG_BUF, "%s : ", cur_filter);
-	assert((len > 0) || (len < MAX_LOG_BUF));
-
-	remain_len = MAX_LOG_BUF - len;
-
-	va_start(ap, fmt);
-	va_copy(new_ap, ap);
-	vsnprintf(&log_buffer[len], remain_len, fmt, new_ap);
-	va_end(ap);
-
-	log_buffer[MAX_LOG_BUF - 1] = '\0';
-
-	log_message(LOGT_APP, level, "%s", log_buffer);
-
-}
-
 int
-lf_get_session_variables(lf_obj_handle_t ohandle,
-			 lf_session_variable_t **list)
+lf_internal_get_session_variables(lf_obj_handle_t ohandle,
+				  lf_session_variable_t **list)
 {
   obj_data_t *odata = (obj_data_t *) ohandle;
   session_variables_state_t *sv = odata->session_variables_state;
@@ -227,8 +157,8 @@ lf_get_session_variables(lf_obj_handle_t ohandle,
   return 0;
 }
 
-int lf_update_session_variables(lf_obj_handle_t ohandle,
-				lf_session_variable_t **list)
+int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
+					 lf_session_variable_t **list)
 {
   obj_data_t *odata = (obj_data_t *) ohandle;
   session_variables_state_t *sv = odata->session_variables_state;

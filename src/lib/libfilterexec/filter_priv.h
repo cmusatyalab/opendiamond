@@ -250,6 +250,18 @@ void            fexec_possibly_init_filter(filter_info_t *cur_filt,
 					   int fd_num_filters, filter_info_t *fd_filters,
 					   filter_id_t fd_app_id);
 
+
+int lf_internal_ref_attr(lf_obj_handle_t ohandle, const char *name,
+			 size_t *len, unsigned char **data);
+int lf_internal_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
+			   unsigned char *data);
+int lf_internal_omit_attr(lf_obj_handle_t ohandle, char *name);
+int lf_internal_get_session_variables(lf_obj_handle_t ohandle,
+				      lf_session_variable_t **list);
+int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
+					 lf_session_variable_t **list);
+
+
 extern filter_info_t *fexec_active_filter;
 
 /*

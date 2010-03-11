@@ -1016,7 +1016,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       // look up attribute
       unsigned int len;
       unsigned char *data;
-      int result = lf_ref_attr(obj_handle, name, &len, &data);
+      int result = lf_internal_ref_attr(obj_handle, name, &len, &data);
       g_free(name);
 
       // write attribute
@@ -1042,7 +1042,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	return 0;
       }
 
-      lf_write_attr(obj_handle, name, len, data);
+      lf_internal_write_attr(obj_handle, name, len, data);
       g_free(name);
       g_free(data);
     } else if (streq(tag, "omit-attribute")) {
@@ -1053,7 +1053,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	return 0;
       }
 
-      int result = lf_omit_attr(obj_handle, name);
+      int result = lf_internal_omit_attr(obj_handle, name);
       g_free(name);
 
       // write result

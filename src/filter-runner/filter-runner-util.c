@@ -25,7 +25,7 @@ void error_stdio(FILE *f, const char *msg) {
   if (feof(f)) {
     g_warning("EOF");
   } else {
-    perror("Can't write string");
+    perror(msg);
   }
   exit(EXIT_FAILURE);
 }

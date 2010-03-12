@@ -1485,7 +1485,7 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 					       &runner_output,
 					       NULL, NULL)) {
 			// it is really bad if we can't even start
-			abort();
+			g_error("Cannot start filter runner");
 		}
 
 		cur_filt->fi_out_to_runner = fdopen(runner_input, "w");

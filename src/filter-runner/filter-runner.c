@@ -127,19 +127,19 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
 		     void **filter_args);
   *(void **) (&filter_init) = dlsym(handle, init_name);
   if ((error = dlerror()) != NULL) {
-    g_warning("%s", error);
+    //    g_warning("%s", error);
     exit(EXIT_FAILURE);
   }
 
   *(void **) (&ops->eval) = dlsym(handle, eval_name);
   if ((error = dlerror()) != NULL) {
-    g_warning("%s", error);
+    //    g_warning("%s", error);
     exit(EXIT_FAILURE);
   }
 
   *(void **) (&ops->fini) = dlsym(handle, fini_name);
   if ((error = dlerror()) != NULL) {
-    g_warning("%s", error);
+    //    g_warning("%s", error);
     exit(EXIT_FAILURE);
   }
 

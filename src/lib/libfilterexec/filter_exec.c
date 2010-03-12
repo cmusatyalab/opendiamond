@@ -59,7 +59,6 @@
  * Some state to keep track of the active filter. XXX
  */
 filter_info_t  *fexec_active_filter;
-static const char    *no_filter = "None";
 
 
 
@@ -343,16 +342,6 @@ fexec_system_init(void)
 	srandom(seed);
 }
 
-
-const char           *
-fexec_cur_filtname(void)
-{
-	if (fexec_active_filter != NULL) {
-		return (fexec_active_filter->fi_name);
-	} else {
-		return (no_filter);
-	}
-}
 
 static void
 save_blob_data(void *data, size_t dlen, sig_val_t *sig)

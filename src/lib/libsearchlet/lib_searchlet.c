@@ -50,6 +50,7 @@
 #include "sig_calc_priv.h"
 #include "odisk_priv.h"
 #include "lib_scope.h"
+#include "filter_priv.h"
 
 
 #define	PROC_RING_SIZE		1024
@@ -1393,4 +1394,40 @@ ls_next_attr(ls_obj_handle_t ohandle, char **name,
 	err = obj_next_attr(adata, name, len, data, NULL,
 			     (struct acookie **)cookie);
 	return (err);
+}
+
+/*
+ * XXX this should match the one in log, but doesn't need to 
+ */
+#define	MAX_LOG_BUF	80
+
+void
+ls_log(int level, const char *fmt, ...)
+{
+	va_list         ap;
+	char            log_buffer[MAX_LOG_BUF];
+
+	va_start(ap, fmt);
+	vsnprintf(log_buffer, MAX_LOG_BUF, fmt, ap);
+	va_end(ap);
+
+	log_buffer[MAX_LOG_BUF - 1] = '\0';
+
+	log_message(LOGT_APP, level, "None : %s", log_buffer);
+
+}
+
+
+int
+ls_read_attr(ls_obj_handle_t obj, const char *name, size_t * len,
+	     unsigned char *data)
+{
+	return lf_internal_read_attr(obj, name, len, data);
+}
+
+int
+ls_ref_attr(ls_obj_handle_t obj, const char *name, size_t * len,
+	    unsigned char **data)
+{
+	return lf_internal_ref_attr(obj, name, len, data);
 }

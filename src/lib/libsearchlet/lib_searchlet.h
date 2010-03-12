@@ -646,6 +646,94 @@ int ls_next_attr(ls_obj_handle_t ohandle, char **name,
 
 
 
+/*!
+ * This function allows the programmer to log some data that
+ * can be retrieved from the host system.
+ *
+ * \param level
+ *		The log level associated with the command.  This
+ * 		used to limit the amount of information being passed.
+ *
+ * \param fmt
+ *		format string used for parsing the data.  This uses
+ * 		printf syntax
+ *
+ * \param ...
+ *		the arguments for the format.
+ *
+ */
+
+diamond_public
+void ls_log(int level, const char *fmt, ...);
+
+
+/*!
+ * Read an attribute from the object into the buffer space provided
+ * by the caller.  This does invoke a copy and for large structures
+ * it is preferable to use ls_ref_attr() if the caller will not
+ * be modifying the attribute.
+ *
+ * \param ohandle
+ * 		the object handle.
+ *
+ * \param name
+ *		The name of the attribute to read.
+ *
+ * \param len
+ *		A pointer to the location where the length
+ * 		of the data storage is stored.  The caller
+ * 		sets this to the amount of space allocated.
+ *		Upon return this is set to the size of
+ * 		data actually read.  If there is not enough
+ * 		space then ENOSPC is returned and the value is
+ * 		updated to the size needed to successfully complete
+ * 		the call.
+ *
+ * \param data
+ *		The location where the results should be stored.
+ *
+ * \return 0
+ *		Attributes were read successfully.
+ *
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
+ */
+
+diamond_public
+int ls_read_attr(ls_obj_handle_t ohandle, const char *name, size_t *len,
+		 unsigned char *data);
+
+/*!
+ * Get pointer to attribute data in an object.  The returned pointer should
+ * be treated read-only, and is only valid in the current instance of the
+ * filter.  
+ * \param ohandle
+ * 		the object handle.
+ *
+ * \param name
+ *		The name of the attribute to read.
+ *
+ * \param len
+ *		A pointer to the location where the length
+ * 		attribute data will be stored.
+ *
+ * \param data
+ *		A pointer to where the data pointer will be stored.
+ *
+ * \return 0
+ *		Attributes were read successfully.
+ *
+ * \return ENOSPC
+ *		The provided buffer was not large enough to hold
+ *
+ * \return EINVAL
+ *		One or more of the arguments was invalid.
+ */
+
+diamond_public
+int ls_ref_attr(ls_obj_handle_t ohandle, const char *name,
+		size_t *len, unsigned char **data);
+
 
 #ifdef __cplusplus
 }

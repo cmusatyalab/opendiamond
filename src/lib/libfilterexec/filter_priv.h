@@ -240,8 +240,6 @@ int             eval_filters(obj_data_t * obj_handle,
 
 void            fexec_clear_stats(filter_data_t * fdata);
 
-const char           *fexec_cur_filtname(void);
-
 int             fexec_estimate_cost(filter_data_t * fdata,
 				    permutation_t * perm, int gen, int indep,
 				    float *cost);
@@ -251,6 +249,8 @@ void            fexec_possibly_init_filter(filter_info_t *cur_filt,
 					   filter_id_t fd_app_id);
 
 
+int lf_internal_read_attr(lf_obj_handle_t obj, const char *name, size_t * len,
+			  unsigned char *data);
 int lf_internal_ref_attr(lf_obj_handle_t ohandle, const char *name,
 			 size_t *len, unsigned char **data);
 int lf_internal_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,

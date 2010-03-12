@@ -43,12 +43,12 @@ int get_size(FILE *in) {
   int result;
 
   if (getline(&line, &n, in) == -1) {
-    g_warning("Can't read size");
+    // probably EOF
     exit(EXIT_FAILURE);
   }
 
   // if there is no string, then return -1
-  if (strlen(line) == 1) {
+  if (strlen(g_strchomp(line)) == 0) {
     result = -1;
   } else {
     result = atoi(line);

@@ -265,6 +265,9 @@ int main(void) {
     exit(EXIT_FAILURE);
   }
 
+  // unbuffer fake stdout
+  setbuf(stdout, NULL);
+
   // start logging thread
   struct logger_data data = { _out, stdout_log };
   if (g_thread_create(logger, &data, false, NULL) == NULL) {

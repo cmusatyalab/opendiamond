@@ -393,6 +393,12 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 		break;
 
 	case DEV_SPEC:
+		/* clean up any search state from a previous run */
+		if (sstate->fdata) {
+		    ceval_stop(sstate->fdata);
+		    fexec_term_search(sstate->fdata);
+		}
+
 		err = fexec_load_spec(&sstate->fdata, &cmd->sig);
 		if (err) {
 			/*

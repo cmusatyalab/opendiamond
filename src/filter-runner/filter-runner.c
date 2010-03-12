@@ -145,7 +145,7 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
 
   // report load success
   start_output();
-  send_tag(out, "symbols-resolved");
+  send_tag(out, "functions-resolved");
   end_output();
 
   // init

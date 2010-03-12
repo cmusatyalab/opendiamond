@@ -1529,7 +1529,7 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 
 		// read out the string
 		char *result = get_tag(cur_filt->fi_in_from_runner);
-		if (!result || (strcmp(result, "symbols-resolved") != 0)) {
+		if (!result || (strcmp(result, "functions-resolved") != 0)) {
 		  // incorrect so for these symbols, try again
 		  g_free(result);
 		  fclose(cur_filt->fi_in_from_runner);

@@ -43,8 +43,7 @@ int get_size(FILE *in) {
   int result;
 
   if (getline(&line, &n, in) == -1) {
-    // probably EOF
-    exit(EXIT_FAILURE);
+    error_stdio(in, "Can't read size");
   }
 
   // if there is no string, then return -1

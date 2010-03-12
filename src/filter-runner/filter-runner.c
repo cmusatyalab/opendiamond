@@ -148,6 +148,10 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   send_tag(out, "functions-resolved");
   end_output();
 
+
+  // now it is safe to write to stdout
+  //  g_debug("filter_name: %s", _filter_name);
+
   // init
   int result = (*filter_init)(g_strv_length(args), args,
 			      bloblen, blob,

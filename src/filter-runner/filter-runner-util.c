@@ -23,11 +23,12 @@
 
 void error_stdio(FILE *f, const char *msg) {
   if (feof(f)) {
-    g_warning("EOF");
+    //    g_warning("EOF");
+    exit(EXIT_SUCCESS);
   } else {
     perror(msg);
+    exit(EXIT_FAILURE);
   }
-  exit(EXIT_FAILURE);
 }
 
 void attribute_destroy(gpointer user_data) {

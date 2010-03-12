@@ -44,6 +44,7 @@ int get_size(FILE *in) {
   int result;
 
   if (getline(&line, &n, in) == -1) {
+    free(line);
     error_stdio(in, "Can't read size");
   }
 

@@ -149,6 +149,7 @@ get_size(FILE *in) {
   int result;
 
   if (getline(&line, &n, in) == -1) {
+    free(line);
     return -1;
   }
 
@@ -226,6 +227,7 @@ get_tag(FILE *in) {
   size_t n;
 
   if (getline(&line, &n, in) == -1) {
+    free(line);
     return NULL;
   }
 
@@ -1039,13 +1041,17 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
   while (true) {
     // read tag
     char *tag = get_tag(in);
+
     if (tag == NULL) {
+      g_free(tag);
       fail_filter(cur_filt);
       return 0;
     }
 
     // switch
     if (streq(tag, "get-attribute")) {
+      g_free(tag);
+
       // read name
       char *name = get_string(in);
       if (name == NULL) {
@@ -1067,6 +1073,8 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	send_binary(out, len, data);
       }
     } else if (streq(tag, "set-attribute")) {
+      g_free(tag);
+
       // read name
       char *name = get_string(in);
       if (name == NULL) {
@@ -1086,6 +1094,8 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       g_free(name);
       g_free(data);
     } else if (streq(tag, "omit-attribute")) {
+      g_free(tag);
+
       // read name
       char *name = get_string(in);
       if (name == NULL) {
@@ -1103,6 +1113,8 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	send_string(out, "false");
       }
     } else if (streq(tag, "get-session-variables")) {
+      g_free(tag);
+
       // get list
       char **names = get_strings(in);
 
@@ -1121,6 +1133,8 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 
       g_free(results);
     } else if (streq(tag, "update-session-variables")) {
+      g_free(tag);
+
       // get list of names
       char **names = get_strings(in);
 
@@ -1148,6 +1162,8 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       g_free(names);
       g_free(results);
     } else if (streq(tag, "log")) {
+      g_free(tag);
+
       // read level
       int level;
       if (!get_int(in, &level)) {
@@ -1166,6 +1182,8 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       log_message(LOGT_APP, level, "%s", msg);
       g_free(msg);
     } else if (streq(tag, "stdout")) {
+      g_free(tag);
+
       // read message
       char *msg = get_string(in);
       if (msg == NULL) {
@@ -1177,6 +1195,8 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       printf("%s", msg);
       g_free(msg);
     } else if (streq(tag, "result")) {
+      g_free(tag);
+
       int result;
       if (get_int(in, &result)) {
 	return result;

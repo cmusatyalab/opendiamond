@@ -56,7 +56,7 @@ int get_size(FILE *in) {
 
   free(line);
 
-  g_message("size: %d", result);
+  //  g_message("size: %d", result);
   return result;
 }
 

@@ -87,32 +87,32 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
 
   // read shared object name
   char *filename = get_string(in);
-  g_message("filename: %s", filename);
+  //  g_message("filename: %s", filename);
 
   // read init function name
   char *init_name = get_string(in);
-  g_message("init_name: %s", init_name);
+  //  g_message("init_name: %s", init_name);
 
   // read eval function name
   char *eval_name = get_string(in);
-  g_message("eval_name: %s", eval_name);
+  //  g_message("eval_name: %s", eval_name);
 
   // read fini function name
   char *fini_name = get_string(in);
-  g_message("fini_name: %s", fini_name);
+  //  g_message("fini_name: %s", fini_name);
 
   // read argument list
   char **args = get_strings(in);
-  g_message("args len: %d", g_strv_length(args));
+  //  g_message("args len: %d", g_strv_length(args));
 
   // read blob
   int bloblen;
   uint8_t *blob = get_binary(in, &bloblen);
-  g_message("bloblen: %d", bloblen);
+  //  g_message("bloblen: %d", bloblen);
 
   // read name
   _filter_name = get_string(in);
-  g_message("filter_name: %s", _filter_name);
+  //  g_message("filter_name: %s", _filter_name);
 
   // dlopen
   void *handle = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
@@ -156,7 +156,7 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
     g_warning("filter init failed");
     exit(EXIT_FAILURE);
   }
-  g_message("filter init success");
+  //  g_message("filter init success");
 
   // free
   g_free(filename);
@@ -185,7 +185,7 @@ static gpointer logger(gpointer data) {
   sigfillset(&set);
   pthread_sigmask(SIG_SETMASK, &set, NULL);
 
-  g_message("Logger thread is ready");
+  //  g_message("Logger thread is ready");
 
   // go
   while (true) {

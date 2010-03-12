@@ -124,14 +124,14 @@ send_string(FILE *out, const char *str) {
   int len = strlen(str);
   fprintf(out, "%d\n%s\n", len, str);
   fflush(out);
-  g_debug("send_string: %d %s", len, str);
+  //  g_debug("send_string: %d %s", len, str);
 }
 
 static void
 send_blank(FILE *out) {
   fprintf(out, "\n");
   fflush(out);
-  g_debug("send_blank");
+  //  g_debug("send_blank");
 }
 
 static void
@@ -140,7 +140,7 @@ send_binary(FILE *out, int len, void *data) {
   fwrite(data, len, 1, out);
   fprintf(out, "\n");
   fflush(out);
-  g_debug("send_binary, len: %d", len);
+  //  g_debug("send_binary, len: %d", len);
 }
 
 static int
@@ -162,7 +162,6 @@ get_size(FILE *in) {
 
   free(line);
 
-  fprintf(stderr, "size: %d\n", result);
   return result;
 }
 
@@ -186,7 +185,7 @@ static char
   // read trailing '\n'
   getc(in);
 
-  g_debug("get_string: %d %s", size, result);
+  //  g_debug("get_string: %d %s", size, result);
   return result;
 }
 
@@ -238,7 +237,7 @@ get_tag(FILE *in) {
   char *str = g_strdup(line);
   free(line);
 
-  g_debug("get_tag: %s", str);
+  //  g_debug("get_tag: %s", str);
   return str;
 }
 
@@ -253,7 +252,7 @@ get_int(FILE *in, int *result) {
     return false;
   }
 
-  g_debug("get_int: %d", *result);
+  //  g_debug("get_int: %d", *result);
   return true;
 }
 

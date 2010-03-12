@@ -248,8 +248,11 @@ get_int(FILE *in, int *result) {
   }
 
   if (sscanf(str, "%d", result) != 1) {
+    g_free(str);
     return false;
   }
+
+  g_free(str);
 
   //  g_debug("get_int: %d", *result);
   return true;

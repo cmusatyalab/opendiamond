@@ -167,7 +167,11 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
     g_warning("filter init failed");
     exit(EXIT_FAILURE);
   }
-  //  g_message("filter init success");
+
+  // report init success
+  start_output();
+  send_tag(out, "init-success");
+  end_output();
 
   // free
   g_free(filename);

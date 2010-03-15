@@ -82,6 +82,7 @@ typedef struct filter_info {
 	char          **fi_arglist;
 	filter_id_t     fi_filterid;    /* id of this filter */
 	bool            fi_is_initialized;  /* for lazy calling of fi_init_fp */
+	bool            fi_init_success; /* was the init successful yet? */
 
 	int             fi_blob_len;    /* associated blob len */
 	void           *fi_blob_data;   /* associated blob of data */

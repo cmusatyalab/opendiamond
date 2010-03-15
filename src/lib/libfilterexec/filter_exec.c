@@ -562,7 +562,13 @@ fail_filter(filter_info_t *cur_filt)
 		fclose(cur_filt->fi_in_from_runner);
 	}
 
+	// did we fail before init even finished? then die
+	if (!cur_filt->fi_init_success) {
+		g_error("filter failed to initialize: %s", cur_filt->fi_name);
+	}
+
 	cur_filt->fi_is_initialized = false;
+	cur_filt->fi_init_success = false;
 }
 
 static int
@@ -1204,6 +1210,11 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	fail_filter(cur_filt);
 	return 0;
       }
+    } else if (streq(tag, "init-success")) {
+      g_free(tag);
+
+      //      g_debug("init success! %s", cur_filt->fi_name);
+      cur_filt->fi_init_success = true;
     } else {
       fail_filter(cur_filt);
       return 0;

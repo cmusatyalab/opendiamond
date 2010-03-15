@@ -1148,8 +1148,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       int count = g_strv_length(names);
       double *results = g_new(double, count);
       for (int i = 0; i < count; i++) {
-	double d;
-	if (!get_double(in, &d)) {
+	if (!get_double(in, results + i)) {
 	  fail_filter(cur_filt);
 	  g_free(names);
 	  g_free(results);

@@ -36,6 +36,8 @@ struct filter_ops {
   filter_eval_proto eval;
   filter_fini_proto fini;
   void *data;
+  char **args;
+  void *blob;
 };
 
 static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
@@ -102,12 +104,17 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   //  g_message("fini_name: %s", fini_name);
 
   // read argument list
-  char **args = get_strings(in);
-  //  g_message("args len: %d", g_strv_length(args));
+  ops->args = get_strings(in);
+  /*
+  g_message("args len: %d", g_strv_length(ops->args));
+  for (char **arg = ops->args; *arg != NULL; arg++) {
+    g_message(" arg: %s", *arg);
+  }
+  */
 
   // read blob
   int bloblen;
-  uint8_t *blob = get_binary(in, &bloblen);
+  ops->blob = get_binary(in, &bloblen);
   //  g_message("bloblen: %d", bloblen);
 
   // read name
@@ -153,8 +160,8 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   //  g_debug("filter_name: %s", _filter_name);
 
   // init
-  int result = (*filter_init)(g_strv_length(args), args,
-			      bloblen, blob,
+  int result = (*filter_init)(g_strv_length(ops->args), ops->args,
+			      bloblen, ops->blob,
 			      _filter_name, &ops->data);
   if (result != 0) {
     g_warning("filter init failed");
@@ -167,8 +174,6 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   g_free(init_name);
   g_free(eval_name);
   g_free(fini_name);
-  g_strfreev(args);
-  g_free(blob);
 }
 
 

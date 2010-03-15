@@ -161,16 +161,20 @@ int lf_get_session_variables(lf_obj_handle_t ohandle,
   send_tag(_out, "get-session-variables");
 
   // send the list of names
+  //  g_message("* get session variables");
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
     send_string(_out, (*v)->name);
+    //    g_message(" %s", (*v)->name);
   }
   send_blank(_out);
+  //  g_message(" ->");
 
   end_output();
 
   // read in the values
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
     (*v)->value = get_double(_in);
+    //    g_message(" %g", (*v)->value);
   }
 
   get_blank(_in);
@@ -184,12 +188,15 @@ int lf_update_session_variables(lf_obj_handle_t ohandle,
   send_tag(_out, "update-session-variables");
 
   // send the lists of names and values
+  //  g_message("* update session variables");
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
     send_string(_out, (*v)->name);
+    //    g_message(" %s", (*v)->name);
   }
   send_blank(_out);
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
     send_double(_out, (*v)->value);
+    //    g_message(" %g", (*v)->value);
   }
   send_blank(_out);
   end_output();

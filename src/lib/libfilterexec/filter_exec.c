@@ -13,6 +13,8 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+#define _GNU_SOURCE
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +27,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <glib.h>
 

@@ -23,6 +23,7 @@
 #include <dlfcn.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "lib_filter.h"
 #include "filter-runner.h"

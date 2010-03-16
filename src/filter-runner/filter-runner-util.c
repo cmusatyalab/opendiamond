@@ -13,6 +13,8 @@
  *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
+#define _GNU_SOURCE
+
 #include <glib.h>
 #include <stdlib.h>
 #include <stdio.h>

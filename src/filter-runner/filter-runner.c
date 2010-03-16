@@ -230,8 +230,7 @@ static void send_result(FILE *out, int result) {
   end_output();
 }
 
-static void run_filter(struct filter_ops *ops,
-		       int stdout_log) {
+static void run_filter(struct filter_ops *ops) {
   // eval loop
   while (true) {
     GHashTable *attrs = g_hash_table_new_full(g_str_hash, g_str_equal,
@@ -286,8 +285,7 @@ int main(void) {
   }
 
   init_filter(_in, _out, &ops);
-  run_filter(&ops,
-	     stdout_log);
+  run_filter(&ops);
 
   return EXIT_SUCCESS;
 }

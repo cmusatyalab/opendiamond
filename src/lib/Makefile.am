@@ -3,7 +3,7 @@ SUBDIRS = libtools libdconfig libdctl liblog libscope libodisk libfilter \
 
 lib_LTLIBRARIES = libopendiamond.la
 
-libopendiamond_la_LDFLAGS = -version-info 8:0:0
+libopendiamond_la_LDFLAGS = -version-info 8:1:0
 
 libopendiamond_la_SOURCES =
 

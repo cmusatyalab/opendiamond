@@ -1,7 +1,7 @@
 #  The OpenDiamond Platform for Interactive Search
-#  Version 4
+#  Version 5
 #
-#  Copyright (c) 2007-2009 Carnegie Mellon University
+#  Copyright (c) 2007-2010 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -10,7 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-AC_INIT([OpenDiamond], [5.1.0], [diamond@cs.cmu.edu], [opendiamond], [http://diamond.cs.cmu.edu/])
+AC_INIT([OpenDiamond], [5.1.1], [diamond@cs.cmu.edu], [opendiamond], [http://diamond.cs.cmu.edu/])
 AM_INIT_AUTOMAKE([foreign 1.11.1 dist-xz])
 AM_SILENT_RULES([yes])
 

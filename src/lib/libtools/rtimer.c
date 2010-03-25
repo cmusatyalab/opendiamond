@@ -12,79 +12,16 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "rtimer.h"
-#include "rtimer_std.h"
-#include "rtimer_papi.h"
-
-
-static rtimer_mode_t rtimer_mode = 0;
-
-/*
- * should be called at startup 
- */
-void
-rtimer_system_init(rtimer_mode_t mode)
-{
-	switch (mode) {
-#ifdef	PAPI_SUPPORT
-	case RTIMER_PAPI:
-		if (rt_papi_global_init() == 0) {
-			rtimer_mode = RTIMER_PAPI;
-		} else {
-			fprintf(stderr,
-				"rtimer: PAPI error, reverting to STD\n");
-		}
-		break;
-#endif
-
-	case RTIMER_STD:	/* no global init for std */
-	default:
-		rtimer_mode = RTIMER_STD;
-		break;
-	}
-}
-
-
-void
-rt_init(rtimer_t * rt)
-{
-
-	/*
-	 * in case the system was not initialized, revert to std behaviour
-	 * (which doesn't need a global init) 
-	 */
-	if (!rtimer_mode) {
-		rtimer_mode = RTIMER_STD;
-	}
-
-	switch (rtimer_mode) {
-#ifdef	PAPI_SUPPORT
-	case RTIMER_PAPI:
-		rt_papi_init((void *) rt);
-		break;
-#endif
-
-	case RTIMER_STD:
-	default:
-		break;
-	}
-}
 
 
 void
 rt_start(rtimer_t * rt)
 {
-	switch (rtimer_mode) {
-#ifdef	PAPI_SUPPORT
-	case RTIMER_PAPI:
-		rt_papi_start((void *) rt);
-		break;
-#endif
-
-	case RTIMER_STD:
-	default:
-		rt_std_start((void *) rt);
-		break;
+	if (getrusage(RUSAGE_SELF, &rt->ru1) != 0) {
+		perror("getrusage");
+		exit(1);
 	}
 }
 
@@ -92,17 +29,9 @@ rt_start(rtimer_t * rt)
 void
 rt_stop(rtimer_t * rt)
 {
-	switch (rtimer_mode) {
-#ifdef	PAPI_SUPPORT
-	case RTIMER_PAPI:
-		rt_papi_stop((void *) rt);
-		break;
-#endif
-
-	case RTIMER_STD:
-	default:
-		rt_std_stop((void *) rt);
-		break;
+	if (getrusage(RUSAGE_SELF, &rt->ru2) != 0) {
+		perror("getrusage");
+		exit(1);
 	}
 }
 
@@ -110,19 +39,30 @@ rt_stop(rtimer_t * rt)
 rtime_t
 rt_nanos(rtimer_t * rt)
 {
-	switch (rtimer_mode) {
-#ifdef	PAPI_SUPPORT
-	case RTIMER_PAPI:
-		return rt_papi_nanos((void *) rt);
-		break;
-#endif
+	u_int64_t       nanos = 0;
+	static const u_int64_t ns_s = 1000000000;
+	static const u_int64_t us_s = 1000;
 
-	case RTIMER_STD:
-	default:
-		return rt_std_nanos((void *) rt);
-		break;
-	}
-	return 0;		/* not reached */
+	/*
+	 * usr time 
+	 */
+	nanos +=
+	    (u_int64_t) (rt->ru2.ru_utime.tv_sec -
+			 rt->ru1.ru_utime.tv_sec) * ns_s;
+	nanos +=
+	    (u_int64_t) (rt->ru2.ru_utime.tv_usec -
+			 rt->ru1.ru_utime.tv_usec) * us_s;
+	/*
+	 * sys time 
+	 */
+	nanos +=
+	    (u_int64_t) (rt->ru2.ru_stime.tv_sec -
+			 rt->ru1.ru_stime.tv_sec) * ns_s;
+	nanos +=
+	    (u_int64_t) (rt->ru2.ru_stime.tv_usec -
+			 rt->ru1.ru_stime.tv_usec) * us_s;
+
+	return nanos;
 }
 
 

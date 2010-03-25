@@ -301,7 +301,6 @@ int odisk_pr_load(pr_obj_t * pr_obj, obj_data_t ** new_object,
 		if (pr_obj->filters[i] == NULL)
 			continue;
 
-		rt_init(&rt);
 		rt_start(&rt);
 
 		/* get cached attribute values from the ocache.db if possible */

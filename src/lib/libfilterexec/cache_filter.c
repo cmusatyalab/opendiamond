@@ -811,7 +811,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 			/*
 			 * run the filter and update pass 
 			 */
-			rt_init(&rt);
 			rt_start(&rt);	/* assume only one thread here */
 
 			/* do lazy initialization if necessary */

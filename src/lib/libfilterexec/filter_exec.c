@@ -321,11 +321,6 @@ fexec_system_init(void)
 	int             fd;
 	int             rbytes;
 
-	/*
-	 * it will default to STD if this doesnt work
-	 */
-	rtimer_system_init(RTIMER_PAPI);
-
 	dctl_register_u32(DEV_FEXEC_PATH, "split_policy", O_RDWR,
 			  &fexec_bypass_type);
 	dctl_register_u32(DEV_FEXEC_PATH, "dynamic_method", O_RDWR,
@@ -1375,7 +1370,6 @@ eval_filters(obj_data_t * obj_handle, filter_data_t * fdata, int force_eval,
 						   fdata->fd_filters,
 						   fdata->fd_app_id);
 
-			rt_init(&rt);
 			rt_start(&rt);	/* assume only one thread here */
 
 			val = run_eval_server(cur_filter->fi_in_from_runner,

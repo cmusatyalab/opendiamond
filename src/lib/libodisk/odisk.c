@@ -457,6 +457,8 @@ odisk_main(void *arg)
 		pthread_mutex_unlock(&odisk_mutex);
 		pthread_cond_signal(&fg_data_cv);
 	}
+
+	return NULL;
 }
 
 int

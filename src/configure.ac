@@ -112,7 +112,6 @@ tools/Makefile
 tools/dctl/Makefile
 tools/volcano/Makefile
 tests/Makefile
-debian/Makefile
 target/Makefile
 target/bin/Makefile
 opendiamond.pc

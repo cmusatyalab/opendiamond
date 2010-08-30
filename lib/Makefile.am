@@ -1,7 +1,7 @@
 SUBDIRS = libtools libdconfig libdctl liblog libscope libodisk libfilter \
 	libfilterexec transport libsearchlet
 
-lib_LTLIBRARIES = libopendiamond.la
+noinst_LTLIBRARIES = libopendiamond.la
 
 libopendiamond_la_LDFLAGS = -version-info 8:2:0
 

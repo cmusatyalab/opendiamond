@@ -93,6 +93,7 @@ scopeserver/Makefile
 scopeserver/setup.py
 sqlite/Makefile
 filter-runner/Makefile
+volcano/Makefile
 lib/Makefile
 lib/libdconfig/Makefile
 lib/libdctl/Makefile
@@ -108,9 +109,6 @@ lib/transport/socket/Makefile
 lib/transport/socket/common/Makefile
 lib/transport/socket/hoststub/Makefile
 lib/transport/socket/storagestub/Makefile
-tools/Makefile
-tools/dctl/Makefile
-tools/volcano/Makefile
 tests/Makefile
 target/Makefile
 target/bin/Makefile

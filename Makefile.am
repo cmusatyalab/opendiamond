@@ -1,5 +1,5 @@
-SUBDIRS = sqlite common lib adiskd dataretriever scopeserver tools tests \
-	target filter-runner
+SUBDIRS = sqlite common lib adiskd dataretriever scopeserver tests \
+	target filter-runner volcano
 
 EXTRA_DIST = CREDITS LICENSE INSTALL
 

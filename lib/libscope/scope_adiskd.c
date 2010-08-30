@@ -17,7 +17,6 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
-#include "diamond_features.h"
 #include "dconfig_priv.h"
 #include "scope_priv.h"
 

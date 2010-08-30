@@ -74,49 +74,35 @@ typedef struct {
  * functions
  */
 
-diamond_public
 void fexec_system_init(void);
 
-diamond_public
 int  fexec_load_spec(filter_data_t ** fdata, sig_val_t *sig);
 
-diamond_public
 int  fexec_load_obj(filter_data_t * fdata, sig_val_t *sig);
 
-diamond_public
 int             fexec_init_search(filter_data_t * fdata);
 
-diamond_public
 int             fexec_term_search(filter_data_t * fdata);
 
-diamond_public
 int             fexec_num_filters(filter_data_t * fdata);
 
-diamond_public
 double          fexec_get_load(filter_data_t * fdata);
 
-diamond_public
 int             fexec_set_blob(filter_data_t * fdata, char *filter_name,
 			       int blob_len, void *blob_data);
 
-diamond_public
 int             fexec_get_stats(filter_data_t * fdata, int max,
 				filter_stats_t * fstats);
 
-diamond_public
 int             fexec_update_bypass(filter_data_t * fdata, double ratio);
 
-diamond_public
 int             fexec_update_grouping(filter_data_t * fdata, double ratio);
 
-diamond_public
 float           fexec_get_prate(filter_data_t *fdata);
 
-diamond_public
 int             fexec_estimate_cur_cost(filter_data_t * fdata,
 					float *cost);
 
-diamond_public
 void            fexec_set_full_eval(filter_data_t * fdata);
 
 #ifdef __cplusplus

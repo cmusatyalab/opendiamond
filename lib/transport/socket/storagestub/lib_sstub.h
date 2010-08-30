@@ -51,25 +51,18 @@ device_session_vars_t* (*get_session_vars_cb) (void *app_cookie);
 	int	(*set_gid_cb)	(void *app_cookie, groupid_t gid);
 } sstub_cb_args_t;
 
-diamond_public
 void *sstub_init(sstub_cb_args_t *cb_args, int bind_only_locally);
 
-diamond_public
 void sstub_listen(void * cookie);
 
-diamond_public
 int sstub_get_partial(void *cookie, obj_data_t **obj);
 
-diamond_public
 int sstub_flush_objs(void *cookie);
 
-diamond_public
 int sstub_send_obj(void *cookie, obj_data_t *obj, int complete);
 
-diamond_public
 float sstub_get_drate(void *cookie);
 
-diamond_public
 void sstub_get_conn_info(void *cookie, session_info_t *sinfo);
 
 #endif /* !_LIB_SSTUB_H_ */

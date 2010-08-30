@@ -17,8 +17,6 @@
 #include <sys/queue.h>
 #include <fcntl.h>
 
-#include "diamond_features.h"
-
 
 
 typedef enum {
@@ -128,24 +126,18 @@ int dctl_register_fwd_node(char *parent_node, char *node_name,
 				  dctl_fwd_cbs_t *cbs);
 int dctl_unregister_fwd_node(char *parent_node, char *node_name);
 
-diamond_public
 int dctl_register_node(char *path, char *node_name);
 
-diamond_public
 int dctl_register_leaf(char *path, char *leaf_name, dctl_data_type_t data_type,
 		       dctl_read_fn read_cb, dctl_write_fn write_cb, void *cookie);
 
-diamond_public
 int dctl_read_leaf(char *leaf_name, dctl_data_type_t *type,
 		   size_t *len, char *data);
-diamond_public
 int dctl_write_leaf(char *leaf_name, size_t len, char *data);
 
-diamond_public
 int dctl_list_nodes(char *parent_node, int *num_ents, dctl_entry_t *
 		    entry_space);
 
-diamond_public
 int dctl_list_leafs(char *parent_node, int *num_ents, dctl_entry_t *
 		    entry_space);
 
@@ -155,10 +147,8 @@ int dctl_list_leafs(char *parent_node, int *num_ents, dctl_entry_t *
  * dctl_register_leaf().  The cookie must be the pointer to the data of the
  * appropriate type.
  */
-diamond_public
 void dctl_register_u32(char *path, char *leaf, int mode, uint32_t *item);
 
-diamond_public
 void dctl_register_u64(char *path, char *leaf, int mode, uint64_t *item);
 
 #endif	/* !defined(_DCTL_IMPL_H_) */

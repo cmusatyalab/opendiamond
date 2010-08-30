@@ -88,8 +88,6 @@ int obj_next_attr(obj_attr_t *attr, char **name, size_t *len,
 		  struct acookie **cookie);
 
 
-/* used publicly only by adiskd */
-diamond_public
 int obj_ref_attr(obj_attr_t *attr, const char * name, size_t *len,
 		 unsigned char **data);
 

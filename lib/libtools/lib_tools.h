@@ -33,7 +33,6 @@ extern          "C"
  * fill in string name of the current user (assumes
  * string is MAX_USER_NAME bytes long).
  */
-diamond_public
 void get_user_name(char *name);
 
 #ifdef __cplusplus

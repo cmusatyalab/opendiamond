@@ -35,51 +35,36 @@ typedef struct obj_data obj_data_t;
 typedef struct odisk_state odisk_state_t;
 typedef struct session_variables_state session_variables_state_t;
 
-diamond_public
 int odisk_init(struct odisk_state **odisk, char *path_name);
 
-diamond_public
 int odisk_get_obj_cnt(struct odisk_state *odisk);
 
-diamond_public
 int odisk_next_obj(obj_data_t **new_obj, struct odisk_state *odisk);
 
-diamond_public
 int odisk_release_obj(obj_data_t *obj);
 
-diamond_public
 int odisk_set_gid(struct odisk_state *odisk, groupid_t gid);
 
-diamond_public
 int odisk_clear_scope(struct odisk_state *odisk);
 
-diamond_public
 int odisk_set_scope(struct odisk_state *odisk, const char *scope);
 
-diamond_public
 int odisk_reset(struct odisk_state *odisk, unsigned int search_id);
 
-diamond_public
 int odisk_num_waiting(struct odisk_state *odisk);
 
-diamond_public
 float odisk_get_erate(struct odisk_state *odisk);
 
-diamond_public
 obj_data_t     * odisk_null_obj(void);
 
-diamond_public
 int odisk_flush(odisk_state_t *odisk);
 
-diamond_public
 int odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle,
 		   const char *obj_uri);
 
-diamond_public
 int odisk_pr_load(pr_obj_t *pr_obj, obj_data_t **obj_handle,
 		  odisk_state_t * odisk);
 
-diamond_public
 void odisk_release_pr_obj(pr_obj_t *pobj);
 
 #ifdef	__cplusplus

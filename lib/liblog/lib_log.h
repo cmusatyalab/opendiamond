@@ -17,8 +17,6 @@
 #include <stdint.h>
 #include <pthread.h>
 
-#include <diamond_features.h>
-
 /*
  * These are the type definitions that are used to keep track
  * of the different senders of log messages.  These are kept as
@@ -61,19 +59,14 @@ extern "C"
 {
 #endif
 
-diamond_public
 void log_init(const char *prefix, const char *control);
 
-diamond_public
 void log_term(void);
 
-diamond_public
 void log_setlevel(unsigned int level_mask);
 
-diamond_public
 void log_settype(unsigned int type_mask);
 
-diamond_public
 void log_message(unsigned int type, unsigned int level, const char *fmt, ...);
 
 #ifdef __cplusplus

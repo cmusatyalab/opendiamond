@@ -14,7 +14,6 @@
 #ifndef _LIB_SCOPE_H_
 #define	_LIB_SCOPE_H_
 
-#include <diamond_features.h>
 
 /*!  
  * \defgroup scope  Metadata Scoping API
@@ -41,7 +40,6 @@ extern "C"
  */
 
 /* wrapper around ls_set_scope that loads the content of ~/.diamond/NEWSCOPE */
-diamond_public
 int ls_define_scope(ls_search_handle_t handle);
 
 /* helpers for libsearchlet */

@@ -1,10 +1,10 @@
 /*
  *  The OpenDiamond Platform for Interactive Search
- *  Version 4
+ *  Version 5
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2007 Carnegie Mellon University
+ *  Copyright (c) 2007-2010 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -33,13 +33,31 @@
  */
 
 
+// for exporting from shared libraries
+#if __GNUC__ > 3
+# define diamond_public __attribute((visibility("default")))
+#else
+# define diamond_public
+#endif
+
 
 #include <sys/types.h>		/* for size_t */
-#include "lib_log.h"		/* for log levels */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+/*
+ * These are the different log levels that can be defined for finding
+ * out what application are logging.   These are also bit masks.
+ */
+#define	LOGL_CRIT	0x00000001	/* A critical error   */
+#define	LOGL_ERR	0x00000002	/* an error condition */
+#define	LOGL_INFO	0x00000004	/* General Information */
+#define	LOGL_TRACE	0x00000008	/* Tracing information for analysis */
+#define LOGL_DEBUG  0x00000010  /* Debugging */
+#define	LOGL_ALL	0xFFFFFFFF	/* log all levels */
 
 
 /*!

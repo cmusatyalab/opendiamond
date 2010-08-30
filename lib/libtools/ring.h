@@ -15,7 +15,6 @@
 #define	_RING_H_
 
 #include <pthread.h>
-#include <diamond_features.h>
 
 #ifdef __cplusplus
 extern          "C"

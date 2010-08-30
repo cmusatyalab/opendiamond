@@ -40,40 +40,30 @@ typedef struct ceval_state {
 	query_info_t	*qinfo;			// state for current search
 } ceval_state_t;
 
-diamond_public
 int ocache_init(char *path_name);
 
-diamond_public
 int ocache_start(void);
 
-diamond_public
 int ocache_stop(char *path_name);
 
-diamond_public
 int ceval_init_search(filter_data_t * fdata, query_info_t *qinfo,
 		      struct ceval_state *cstate);
 
-diamond_public
 int ceval_init(struct ceval_state **cstate, odisk_state_t *odisk, 
 	void *cookie, stats_drop stats_drop_fn, 
 	stats_process stats_process_fn);
 
-diamond_public
 int ceval_start(filter_data_t * fdata);
 
-diamond_public
 int ceval_stop(filter_data_t * fdata);
 
-diamond_public
 pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 			 ceval_state_t *cstate);
 
-diamond_public
 int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, 
 		   int force_eval, double *elapsed, query_info_t *qinfo,
 		   void *cookie, int (*continue_cb)(void *cookie));
 
-diamond_public
 void ceval_inject_names(char **nl, int nents);
 
 #ifdef	__cplusplus

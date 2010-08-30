@@ -131,7 +131,7 @@ void *get_binary(FILE *in, int *len_OUT) {
   return binary;
 }
 
-void send_binary(FILE *out, int len, void *data) {
+void send_binary(FILE *out, int len, const void *data) {
   if (fprintf(out, "%d\n", len) == -1) {
     error_stdio(out, "Can't write binary length");
   }

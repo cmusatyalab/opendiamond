@@ -101,8 +101,8 @@ typedef	void *	lf_obj_handle_t;
  *		Fatal condition
  */
 
-typedef int (*filter_init_proto)(int num_arg, char **args, int bloblen,
-				 void *blob_data, const char * filt_name,
+typedef int (*filter_init_proto)(int num_arg, const char * const *args, int bloblen,
+				 const void *blob_data, const char * filt_name,
 				 void **filter_args);
 
 
@@ -176,8 +176,8 @@ typedef int (*filter_fini_proto)(void *filter_args);
  */
 
 diamond_public
-int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len, 
-		unsigned char *data);
+int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len,
+		 void *data);
 
 /*!
  * Get pointer to attribute data in an object.  The returned pointer should
@@ -207,8 +207,8 @@ int lf_read_attr(lf_obj_handle_t ohandle, const char *name, size_t *len,
  */
 
 diamond_public
-int lf_ref_attr(lf_obj_handle_t ohandle, const char *name, 
-		size_t *len, unsigned char **data);
+int lf_ref_attr(lf_obj_handle_t ohandle, const char *name,
+		size_t *len, const void **data);
 
 
 /*!
@@ -238,8 +238,8 @@ int lf_ref_attr(lf_obj_handle_t ohandle, const char *name,
  */
 
 diamond_public
-int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len, 
-		unsigned char *data);
+int lf_write_attr(lf_obj_handle_t ohandle, const char *name, size_t len,
+		  const void *data);
 
 
 /*!
@@ -259,7 +259,7 @@ int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
  */
 
 diamond_public
-int lf_omit_attr(lf_obj_handle_t ohandle, char *name);
+int lf_omit_attr(lf_obj_handle_t ohandle, const char *name);
 
 
 /*!

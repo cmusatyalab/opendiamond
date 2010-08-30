@@ -54,7 +54,7 @@ void send_int(FILE *out, int i);
 
 void send_string(FILE *out, const char *str);
 
-void send_binary(FILE *out, int len, void *data);
+void send_binary(FILE *out, int len, const void *data);
 
 void send_blank(FILE *out);
 

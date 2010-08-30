@@ -81,7 +81,7 @@ void lf_log(int level, const char *fmt, ...) {
 
 
 int lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len,
-		 unsigned char *data) {
+		 void *data) {
   if (strlen(name) + 1 > MAX_ATTR_NAME) {
     return EINVAL;
   }
@@ -108,7 +108,7 @@ int lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len,
 
 
 int lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len,
-		unsigned char **data) {
+		const void **data) {
   if (strlen(name) + 1 > MAX_ATTR_NAME) {
     return EINVAL;
   }
@@ -126,8 +126,8 @@ int lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len,
   return 0;
 }
 
-int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
-		  unsigned char *data) {
+int lf_write_attr(lf_obj_handle_t ohandle, const char *name, size_t len,
+		  const void *data) {
   if (strlen(name) + 1 > MAX_ATTR_NAME) {
     return EINVAL;
   }
@@ -141,7 +141,7 @@ int lf_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
   return 0;
 }
 
-int lf_omit_attr(lf_obj_handle_t ohandle, char *name) {
+int lf_omit_attr(lf_obj_handle_t ohandle, const char *name) {
   if (strlen(name) + 1 > MAX_ATTR_NAME) {
     return EINVAL;
   }

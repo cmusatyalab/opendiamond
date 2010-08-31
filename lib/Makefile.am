@@ -1,5 +1,5 @@
 SUBDIRS = libtools libdconfig libdctl liblog libscope libodisk libfilter \
-	libfilterexec transport libsearchlet
+	libfilterexec transport
 
 noinst_LTLIBRARIES = libopendiamond.la
 
@@ -10,6 +10,6 @@ libopendiamond_la_SOURCES =
 libopendiamond_la_LIBADD = libdconfig/libdconfig.la \
 	libdctl/libdctl.la libfilter/libfilter.la \
 	libfilterexec/libfilterexec.la liblog/liblog.la \
-	libodisk/libodisk.la libsearchlet/libsearchlet.la \
+	libodisk/libodisk.la \
 	libtools/libtools.la transport/libtransport.la \
 	libscope/libscope.la

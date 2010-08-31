@@ -1,13 +1,12 @@
 noinst_LTLIBRARIES = libscope.la
 dist_bin_SCRIPTS = diamond-newscope
 bin_PROGRAMS = cookiecutter
-noinst_HEADERS = lib_scope.h
 
 mimepkgdir = $(datarootdir)/mime/packages
 dist_mimepkg_DATA = diamond-scope.xml
 EXTRA_DIST = scope.desktop
 
-libscope_la_SOURCES = lib_scope.c scope_adiskd.c scope_common.c scope_priv.h
+libscope_la_SOURCES = scope_adiskd.c scope_common.c scope_priv.h
 
 cookiecutter_SOURCES = cookiecutter.c
 

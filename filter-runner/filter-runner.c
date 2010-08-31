@@ -133,19 +133,19 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   int (*filter_init)(int num_arg, char **args, int bloblen,
 		     void *blob_data, const char * filt_name,
 		     void **filter_args);
-  *(void **) (&filter_init) = dlsym(handle, init_name);
+  filter_init = dlsym(handle, init_name);
   if ((error = dlerror()) != NULL) {
     //    g_warning("%s", error);
     exit(EXIT_FAILURE);
   }
 
-  *(void **) (&ops->eval) = dlsym(handle, eval_name);
+  ops->eval = dlsym(handle, eval_name);
   if ((error = dlerror()) != NULL) {
     //    g_warning("%s", error);
     exit(EXIT_FAILURE);
   }
 
-  *(void **) (&ops->fini) = dlsym(handle, fini_name);
+  ops->fini = dlsym(handle, fini_name);
   if ((error = dlerror()) != NULL) {
     //    g_warning("%s", error);
     exit(EXIT_FAILURE);

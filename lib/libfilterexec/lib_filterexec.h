@@ -47,19 +47,6 @@ typedef struct opt_policy_t {
 	int             exploit;    /* if we are in exploit mode */
 } opt_policy_t;
 
-enum bypass_type_t {
-    BP_NONE = 0,
-    BP_SIMPLE,
-    BP_GREEDY,
-    BP_HYBRID
-};
-
-enum auto_part_t {
-    AUTO_PART_NONE = 0,
-    AUTO_PART_BYPASS,
-    AUTO_PART_QUEUE
-};
-
 /* XXX */
 #define	MAX_OBJ_FILES	64
 
@@ -93,10 +80,6 @@ int             fexec_set_blob(filter_data_t * fdata, char *filter_name,
 
 int             fexec_get_stats(filter_data_t * fdata, int max,
 				filter_stats_t * fstats);
-
-int             fexec_update_bypass(filter_data_t * fdata, double ratio);
-
-int             fexec_update_grouping(filter_data_t * fdata, double ratio);
 
 float           fexec_get_prate(filter_data_t *fdata);
 

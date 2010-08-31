@@ -61,8 +61,7 @@ pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 			 ceval_state_t *cstate);
 
 int ceval_filters2(obj_data_t * obj_handle, filter_data_t * fdata, 
-		   int force_eval, double *elapsed, query_info_t *qinfo,
-		   void *cookie, int (*continue_cb)(void *cookie));
+		   int force_eval, double *elapsed, query_info_t *qinfo);
 
 void ceval_inject_names(char **nl, int nents);
 

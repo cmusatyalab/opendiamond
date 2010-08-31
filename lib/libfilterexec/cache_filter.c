@@ -700,8 +700,7 @@ timespec_sub(struct timespec *a, struct timespec *b, struct timespec *result)
 
 int
 ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
-	       double *elapsed,	query_info_t *qinfo,
-	       void *cookie, int (*continue_cb) (void *cookie))
+	       double *elapsed,	query_info_t *qinfo)
 {
 	filter_info_t  *cur_filter;
 	int             conf;
@@ -780,32 +779,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 			free(sig_str1);
 			free(sig_str2);
 		} else {
-			/*
-			 * Look at the current filter bypass to see if we should 
-			 * actually run it or pass it.  For the non-auto 
-			 * partitioning, we still use the bypass values
-			 * to determine how much of the allocation to run.
-			 */
-			if (force_eval == 0) {
-				if ((fexec_autopart_type == AUTO_PART_BYPASS)
-				    || (fexec_autopart_type ==
-					AUTO_PART_NONE)) {
-					rv = random();
-					if (rv > cur_filter->fi_bpthresh) {
-						pass = 1;
-						break;
-					}
-				} else
-				    if ((fexec_autopart_type ==
-					 AUTO_PART_QUEUE)
-					&& (cur_filter->fi_firstgroup)) {
-					if ((*continue_cb) (cookie) == 0) {
-						pass = 1;
-						break;
-					}
-				}
-			}
-
 			cur_filter->fi_called++;
 
 			/*

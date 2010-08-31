@@ -97,14 +97,6 @@ typedef struct filter_info {
 	node_t         *fi_gnode;
 
 	/*
-	 * bypass information, the fi_bpcnt keeps track of where we are in the
-	 * loop.  We logically process fi_bprun/fi_bpmax of these objects. 
-	 */
-
-	unsigned int             fi_bpthresh;
-	int             fi_firstgroup;
-
-	/*
 	 * input characteristics 
 	 */
 	int             fi_blocksize_in;
@@ -119,7 +111,6 @@ typedef struct filter_info {
 	 * statistics. these should be local to each device.
 	 */
 	int             fi_called;  /* # of times called */
-	int             fi_bypassed;/* # of times we would have run */
 	int             fi_drop;    /* # times below threshold */
 	int             fi_pass;    /* # times above threshold */
 	int             fi_error;   /* # errors running filter */
@@ -229,16 +220,6 @@ void	    	optimize_filter_order(filter_data_t * fdata,
 			opt_policy_t * policy);
 double	    	tv_diff(struct timeval *end, struct timeval *start);
 int             run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_filt);
-int             eval_filters(obj_data_t * obj_handle,
-			     filter_data_t * fdata, int force_eval,
-			     double *elapsed,
-			     void *cookie,
-			     int (*continue_cb)(void* vookie),
-			     int (*cb_func) (void *cookie, char *name,
-					     int *pass,
-					     uint64_t *
-					     et));
-
 void            fexec_clear_stats(filter_data_t * fdata);
 
 int             fexec_estimate_cost(filter_data_t * fdata,
@@ -271,10 +252,6 @@ extern filter_info_t *fexec_active_filter;
  * update at your own risk! 
  */
 extern enum policy_type_t filter_exec_current_policy;
-
-
-extern uint32_t fexec_bypass_type;
-extern uint32_t fexec_autopart_type;
 
 
 #endif                    /* ! _FILTER_PRIV_H_ */

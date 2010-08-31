@@ -59,8 +59,6 @@
 #define	SAMPLE_TIME_FLOAT	0.2
 #define	SAMPLE_TIME_NANO	200000000
 
-static void    *update_bypass(void *arg);
-
 /* reexecution conditions */
 static pthread_mutex_t	reexecute_can_start_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t reexecute_can_start_cond = PTHREAD_COND_INITIALIZER;
@@ -462,209 +460,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 	}
 }
 
-
-#ifdef	XXX
-static void
-dynamic_update_bypass(search_state_t * sstate)
-{
-	int             err;
-	float           avg_cost;
-
-	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm,
-				  1, 0, &avg_cost);
-	if (err) {
-		avg_cost = 30000000.0;
-	}
-
-	if (sstate->obj_processed != 0) {
-		float           ratio;
-		float           new_val;
-
-		ratio =
-		    (float) sstate->old_proc / (float) sstate->obj_processed;
-		new_val = sstate->avg_ratio * ratio;
-		new_val += sstate->split_ratio * (1 - ratio);
-		sstate->avg_ratio = new_val;
-		sstate->avg_int_ratio = (int) new_val;
-		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
-		    0.5 * new_val;
-		sstate->smoothed_int_ratio = (int) sstate->smoothed_ratio;
-		sstate->old_proc = sstate->obj_processed;
-	}
-
-	sstate->split_ratio = (int) ((sstate->pend_compute *
-				      (float) sstate->split_mult));
-
-	if (sstate->split_ratio < 5) {
-		sstate->split_ratio = 5;
-	}
-	if (sstate->split_ratio > 100) {
-		sstate->split_ratio = 100;
-	}
-}
-#else
-
-static float
-deq_beta(float proc_rate, float erate)
-{
-	float           beta;
-	if ((proc_rate == 0.0) || (erate < 0.00001)) {
-		return (0.5);
-	}
-	beta = proc_rate / erate;
-	return (beta);
-}
-
-static float
-enq_beta(float proc_rate, float drate, int pend_objs)
-{
-	float           beta;
-	float           target;
-
-	if ((proc_rate == 0.0) || (drate < 0.00001)) {
-		return (0.5);
-	}
-
-	target = ((drate * SAMPLE_TIME_FLOAT) +
-		  ((float) (20 - pend_objs))) / SAMPLE_TIME_FLOAT;
-	if (target < 0.0) {
-		target = 0;
-	}
-	beta = 1.0 / ((target / proc_rate) + 1);
-
-	return (beta);
-}
-
-
-static void
-dynamic_update_bypass(search_state_t * sstate)
-{
-	int             err;
-	float           avg_cost;
-	float           betain;
-	float           betaout;
-	float           proc_rate;
-	float           erate;
-	float           drate;
-
-	err = fexec_estimate_cur_cost(sstate->fdata, &avg_cost);
-	if (err) {
-		avg_cost = 30000000.0;
-	}
-
-	if (sstate->obj_processed != 0) {
-		float           ratio;
-		float           new_val;
-
-		ratio =
-		    (float) sstate->old_proc / (float) sstate->obj_processed;
-		new_val = sstate->avg_ratio * ratio;
-		new_val += sstate->split_ratio * (1 - ratio);
-		sstate->avg_ratio = new_val;
-		sstate->avg_int_ratio = (int) new_val;
-		sstate->smoothed_ratio = 0.5 * sstate->smoothed_ratio +
-		    0.5 * new_val;
-		sstate->smoothed_int_ratio = (int) sstate->smoothed_ratio;
-		sstate->old_proc = sstate->obj_processed;
-	}
-
-	drate = sstub_get_drate(sstate->comm_cookie);
-	erate = odisk_get_erate(sstate->ostate);
-	proc_rate = fexec_get_prate(sstate->fdata);
-
-
-	betain = deq_beta(proc_rate, erate);
-	betaout = enq_beta(proc_rate, drate, sstate->pend_objs);
-
-	// printf("betain %f betaout %f drate %f erate %f prate %f\n",
-	// betain, betaout,
-	// drate, erate, proc_rate);
-	if (betain > betaout) {
-		sstate->split_ratio = (int) (betain * 100.0);
-	} else {
-		sstate->split_ratio = (int) (betaout * 100.0);
-	}
-
-	if (sstate->split_ratio < 5) {
-		sstate->split_ratio = 5;
-	}
-	if (sstate->split_ratio > 100) {
-		sstate->split_ratio = 100;
-	}
-}
-#endif
-
-static void    *
-update_bypass(void *arg)
-{
-	search_state_t *sstate = (search_state_t *) arg;
-	uint            old_target;
-	float           ratio;
-	struct timespec ts;
-
-	while (1) {
-		if (sstate->flags & DEV_FLAG_RUNNING) {
-			switch (sstate->split_type) {
-			case SPLIT_TYPE_FIXED:
-				ratio = ((float) sstate->split_ratio) / 100.0;
-				fexec_update_bypass(sstate->fdata, ratio);
-				fexec_update_grouping(sstate->fdata, ratio);
-				break;
-
-			case SPLIT_TYPE_DYNAMIC:
-				old_target = sstate->split_ratio;
-				dynamic_update_bypass(sstate);
-				ratio = ((float) sstate->split_ratio) / 100.0;
-				fexec_update_bypass(sstate->fdata, ratio);
-				fexec_update_grouping(sstate->fdata, ratio);
-				break;
-			}
-		}
-		ts.tv_sec = 0;
-		ts.tv_nsec = SAMPLE_TIME_NANO;
-		nanosleep(&ts, NULL);
-	}
-
-	return NULL;
-}
-
-/*
- * This function is called to see if we should continue
- * processing an object, or put it into the queue.
- */
-static int
-continue_fn(void *cookie)
-{
-	search_state_t *sstate = cookie;
-#ifdef	XXX
-
-	float           avg_cost;
-	int             err;
-	err = fexec_estimate_cost(sstate->fdata, sstate->fdata->fd_perm,
-				  1, 0, &avg_cost);
-	if (err) {
-		avg_cost = 30000000.0;
-	}
-
-	/*
-	 * XXX include input queue size 
-	 */
-	if ((int) (sstate->pend_compute / avg_cost) < sstate->split_bp_thresh) {
-		return (0);
-	} else {
-		return (1);
-	}
-#else
-	if ((sstate->pend_objs < 4)
-	    && (odisk_num_waiting(sstate->ostate) > 4)) {
-		return (0);
-	} else {
-		return (2);
-	}
-#endif
-}
-
-
 typedef struct {
 	int	max_names;
 	int	num_names;
@@ -866,7 +661,7 @@ device_main(void *arg)
 				qinfo.session = sstate->cinfo;
 				pass = ceval_filters2(new_obj, sstate->fdata,
 						      force_eval, &elapsed,
-						      &qinfo, sstate, continue_fn);
+						      &qinfo);
 
 				if (pass == 0) {
 					sstate->obj_dropped++;
@@ -914,8 +709,7 @@ device_main(void *arg)
 
 				qinfo.session = sstate->cinfo;
 				pass = ceval_filters2(new_obj, sstate->fdata,
-						      1, &elapsed, &qinfo,
-						      sstate, NULL);
+						      1, &elapsed, &qinfo);
 				if (pass == 0) {
 					sstate->obj_dropped++;
 					sstate->obj_processed++;
@@ -1098,19 +892,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 		exit(1);
 	}
 
-	/*
-	 * thread to update the ration 
-	 */
-	err = pthread_create(&sstate->bypass_id, NULL, update_bypass,
-			     (void *) sstate);
-	if (err) {
-		/*
-		 * XXX log 
-		 */
-		free(sstate);
-		*app_cookie = NULL;
-	}
-	
 	/*
 	 * Initialize our communications with the object
 	 * disk sub-system.
@@ -1654,7 +1435,7 @@ search_reexecute_filters(void *app_cookie, const char *obj_id)
 
 	//sstate->obj_reexecution_processed++;
 
-	ceval_filters2(obj, sstate->fdata, 1, NULL, NULL, NULL, NULL);
+	ceval_filters2(obj, sstate->fdata, 1, NULL, NULL);
 
 done:
 	/* make sure to keep search state correct, pend_objs is decremented

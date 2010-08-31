@@ -167,11 +167,6 @@ new_filter(yyscan_t scanner)
     extra->fdata->fd_filters[extra->cur_filt_id].fi_maxargs = ARG_CHUNK;
     extra->fdata->fd_filters[extra->cur_filt_id].fi_arglist = arg_data;
 
-    /*
-     * Default values is to run all filters on the storage
-     * device.
-     */
-    extra->fdata->fd_filters[extra->cur_filt_id].fi_bpthresh = RAND_MAX;
     extra->fdata->fd_filters[extra->cur_filt_id].fi_added_bytes = 0;
    
     if (strcmp(name, "APPLICATION") == 0) {

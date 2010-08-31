@@ -60,7 +60,6 @@ typedef struct search_state {
 	GAsyncQueue    *control_ops;
 	pthread_mutex_t log_mutex;
 	pthread_cond_t  log_cond;
-	pthread_t       bypass_id;
 	filter_data_t  *fdata;
 	uint            obj_processed;		/* really objects read */
 	uint            obj_dropped;

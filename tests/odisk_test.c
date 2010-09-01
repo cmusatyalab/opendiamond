@@ -29,28 +29,6 @@
 #include "odisk_priv.h"
 
 static void
-remove_some_attr(obj_attr_t * attr, int size, int num)
-{
-	int             i;
-	int             err;
-	char            name_string[128];
-
-
-
-	for (i = 0; i < num; i++) {
-		sprintf(name_string, "some_attr_%d_%d", size, i);
-		err = obj_del_attr(attr, name_string);
-		if (err) {
-			printf("failed to del  <%s>\n", name_string);
-			exit(1);
-		}
-
-	}
-
-}
-
-
-static void
 check_some_attr(obj_attr_t * attr, int size, int num)
 {
 	char           *base_data;
@@ -163,7 +141,6 @@ test_attrs(obj_attr_t * attr)
 	check_some_attr(attr, 4000027, 10);
 
 
-	remove_some_attr(attr, 15, 10);
 	check_some_attr(attr, 10, 10);
 	check_some_attr(attr, 8099, 10);
 	check_some_attr(attr, 4000027, 10);

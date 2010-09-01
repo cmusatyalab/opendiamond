@@ -57,27 +57,6 @@ lf_set_read_cb(read_attr_cb cb_fn)
 }
 
 int
-lf_internal_read_attr(lf_obj_handle_t obj, const char *name, size_t * len,
-		      unsigned char *data)
-{
-	obj_data_t     *odata;
-	obj_attr_t     *adata;
-	int             err;
-
-	odata = (obj_data_t *) obj;
-	adata = &odata->attr_info;
-	err = obj_read_attr(adata, name, len, data);
-
-	/*
-	 * pass information about the read to the cache function 
-	 */
-	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn) (obj, name, *len, data);
-	}
-	return (err);
-}
-
-int
 lf_internal_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
 	unsigned char **data)
 {

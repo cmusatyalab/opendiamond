@@ -42,14 +42,12 @@
 #include "diamond_types.h"
 #include "obj_attr.h"
 #include "lib_odisk.h"
-#include "dctl_impl.h"
 #include "lib_sstub.h"
 #include "dconfig_priv.h"
 #include "lib_log.h"
 #include "rcomb.h"
 #include "lib_filterexec.h"
 #include "search_state.h"
-#include "dctl_common.h"
 #include "lib_ocache.h"
 #include "sys_attr.h"
 #include "obj_attr.h"
@@ -778,54 +776,10 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	 */
 	*app_cookie = sstate;
 
-	dctl_register_node(ROOT_PATH, SEARCH_NAME);
-
-	dctl_register_u32(DEV_SEARCH_PATH, "work_ahead", O_RDWR,
-			  &sstate->work_ahead);
-	dctl_register_u32(DEV_SEARCH_PATH, "obj_processed", O_RDONLY,
-			  &sstate->obj_processed);
-	dctl_register_u32(DEV_SEARCH_PATH, "obj_dropped", O_RDONLY,
-			  &sstate->obj_dropped);
-	dctl_register_u32(DEV_SEARCH_PATH, "obj_pass", O_RDONLY,
-			  &sstate->obj_passed);
-	dctl_register_u32(DEV_SEARCH_PATH, "obj_skipped", O_RDONLY,
-			  &sstate->obj_skipped);
-
-	dctl_register_u32(DEV_SEARCH_PATH, "nw_stalls", O_RDONLY,
-			  &sstate->network_stalls);
-	dctl_register_u32(DEV_SEARCH_PATH, "tx_full_stalls", O_RDONLY,
-			  &sstate->tx_full_stalls);
-	dctl_register_u32(DEV_SEARCH_PATH, "tx_idles", O_RDONLY,
-			  &sstate->tx_idles);
-
-	dctl_register_u32(DEV_SEARCH_PATH, "pend_objs", O_RDONLY,
-			  &sstate->pend_objs);
-	dctl_register_u32(DEV_SEARCH_PATH, "pend_maximum", O_RDWR,
-			  &sstate->pend_max);
-	dctl_register_u32(DEV_SEARCH_PATH, "split_type", O_RDWR,
-			  &sstate->split_type);
-	dctl_register_u32(DEV_SEARCH_PATH, "split_ratio", O_RDWR,
-			  &sstate->split_ratio);
-	dctl_register_u32(DEV_SEARCH_PATH, "split_auto_step", O_RDWR,
-			  &sstate->split_auto_step);
-	dctl_register_u32(DEV_SEARCH_PATH, "split_bp_thresh", O_RDWR,
-			  &sstate->split_bp_thresh);
-	dctl_register_u32(DEV_SEARCH_PATH, "split_multiplier", O_RDWR,
-			  &sstate->split_mult);
-	dctl_register_u32(DEV_SEARCH_PATH, "average_ratio", O_RDONLY,
-			  &sstate->avg_int_ratio);
-	dctl_register_u32(DEV_SEARCH_PATH, "smoothed_beta", O_RDONLY,
-			  &sstate->smoothed_int_ratio);
-
-	dctl_register_node(ROOT_PATH, DEV_NETWORK_NODE);
-	dctl_register_node(ROOT_PATH, DEV_FEXEC_NODE);
-	dctl_register_node(ROOT_PATH, DEV_OBJ_NODE);
-	dctl_register_node(ROOT_PATH, DEV_CACHE_NODE);
-
 	/*
 	 * Initialize the log for the new process
 	 */
-	log_init(LOG_PREFIX, DEV_SEARCH_PATH);
+	log_init(LOG_PREFIX, "cur_search");
 
 	sstub_get_conn_info(comm_cookie, &sstate->cinfo);
 
@@ -958,9 +912,6 @@ search_get_char(void *app_cookie)
 int
 search_close_conn(void *app_cookie)
 {
-	/*
-	 * JIAYING: may use dctl option later 
-	 */
 	ocache_stop(NULL);
 	// exit(0);
 	return (0);
@@ -1063,145 +1014,6 @@ search_get_stats(void *app_cookie)
 #define MAX_DBUF    1024
 #define MAX_ENTS    512
 
-
-/*
- * The caller must free the returned argument.
- */
-
-dctl_rleaf_t *
-search_read_leaf(void *app_cookie, char *path)
-{
-	/*
-	 * XXX hack for now 
-	 */
-	dctl_rleaf_t      *dtype;
-	int                err;
-	search_state_t    *sstate;
-
-	sstate = (search_state_t *) app_cookie;
-
-	if((dtype = (dctl_rleaf_t *)malloc(sizeof(dctl_rleaf_t))) == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-	if((dtype->dbuf = (char *)malloc(sizeof(char)*MAX_DBUF)) == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-
-	dtype->len = MAX_DBUF;
-	err = dctl_read_leaf(path, &(dtype->dt), &(dtype->len), dtype->dbuf);
-
-	/*
-	 * XXX deal with ENOSPC 
-	 */
-
-	if (err) {
-	  fprintf(stderr, "dctl_read_leaf failed on: %s\n", path);
-	  free(dtype);
-	  return NULL;
-	}
-
-	return dtype;
-}
-
-
-int
-search_write_leaf(void *app_cookie, char *path, int len, char *data)
-{
-	/*
-	 * XXX hack for now 
-	 */
-	int             err;
-	search_state_t *sstate;
-	sstate = (search_state_t *) app_cookie;
-
-	err = dctl_write_leaf(path, len, data);
-	/*
-	 * XXX deal with ENOSPC 
-	 */
-
-	return err;
-}
-
-dctl_lleaf_t *
-search_list_leafs(void *app_cookie, char *path)
-{
-
-	/*
-	 * XXX hack for now 
-	 */
-	dctl_lleaf_t    *lt;
-	search_state_t *sstate;
-
-	sstate = (search_state_t *) app_cookie;
-
-	if((lt = (dctl_lleaf_t *)malloc(sizeof(dctl_lleaf_t))) == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-
-	if((lt->ent_data = (dctl_entry_t *)malloc(sizeof(dctl_entry_t) * MAX_ENTS)) == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-
-	lt->num_ents = MAX_ENTS;
-
-	lt->err = dctl_list_leafs(path, &(lt->num_ents), lt->ent_data);
-	/*
-	 * XXX deal with ENOSPC 
-	 */
-
-	if (lt->err) {
-	  free(lt->ent_data);
-	  free(lt);
-	  return NULL;
-	}
-
-	return lt;
-}
-
-
-/*
- * The caller must free the returned argument.
- */
-dctl_lnode_t *
-search_list_nodes(void *app_cookie, char *path)
-{
-
-	/*
-	 * XXX hack for now 
-	 */
-	dctl_lnode_t   *lt;
-	search_state_t *sstate;
-
-	sstate = (search_state_t *) app_cookie;
-
-	if((lt = (dctl_lnode_t *)malloc(sizeof(dctl_lnode_t))) == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-
-	if((lt->ent_data = (dctl_entry_t *)malloc(sizeof(dctl_entry_t) * MAX_ENTS)) == NULL) {
-	  perror("malloc");
-	  return NULL;
-	}
-
-	lt->num_ents = MAX_ENTS;
-	lt->err = dctl_list_nodes(path, &(lt->num_ents), lt->ent_data);
-	/*
-	 * XXX deal with ENOSPC 
-	 */
-
-	if (lt->err) {
-	  free(lt->ent_data);
-	  free(lt);
-	  return NULL;
-	}
-
-	return lt;
-}
 
 int
 search_set_gid(void *app_cookie, groupid_t gid)

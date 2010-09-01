@@ -96,7 +96,6 @@ filter-runner/Makefile
 volcano/Makefile
 lib/Makefile
 lib/libdconfig/Makefile
-lib/libdctl/Makefile
 lib/libfilter/Makefile
 lib/libfilterexec/Makefile
 lib/liblog/Makefile

@@ -35,10 +35,8 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "socket_trans.h"
-#include "dctl_common.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
-#include "dctl_impl.h"
 
 /*
  * XXX debug 
@@ -63,33 +61,6 @@ socket_non_block(int fd)
 	}
 	fcntl(fd, F_SETFL, (flags | O_NONBLOCK));
 
-}
-
-static void
-register_stats(cstate_t * cstate)
-{
-	dctl_register_u32(DEV_NETWORK_PATH, "obj_sent", O_RDONLY,
-			  &cstate->stats_objs_tx);
-	dctl_register_u64(DEV_NETWORK_PATH, "obj_tot_bytes_sent", O_RDONLY,
-			  &cstate->stats_objs_total_bytes_tx);
-	dctl_register_u64(DEV_NETWORK_PATH, "obj_data_bytes_sent", O_RDONLY,
-			  &cstate->stats_objs_data_bytes_tx);
-	dctl_register_u64(DEV_NETWORK_PATH, "obj_attr_bytes_sent", O_RDONLY,
-			  &cstate->stats_objs_attr_bytes_tx);
-	dctl_register_u64(DEV_NETWORK_PATH, "obj_hdr_bytes_sent", O_RDONLY,
-			  &cstate->stats_objs_hdr_bytes_tx);
-
-	dctl_register_u32(DEV_NETWORK_PATH, "control_sent", O_RDONLY,
-			  &cstate->stats_control_tx);
-	dctl_register_u64(DEV_NETWORK_PATH, "control_bytes_sent", O_RDONLY,
-			  &cstate->stats_control_bytes_tx);
-	dctl_register_u32(DEV_NETWORK_PATH, "control_recv", O_RDONLY,
-			  &cstate->stats_control_rx);
-	dctl_register_u64(DEV_NETWORK_PATH, "control_bytes_recv", O_RDONLY,
-			  &cstate->stats_control_bytes_rx);
-
-	dctl_register_u32(DEV_NETWORK_PATH, "cc_credits", O_RDONLY,
-			  &cstate->cc_credits);
 }
 
 /*
@@ -257,12 +228,6 @@ have_full_conn(listener_state_t * list_state, int conn)
 	 * stop listening, we are the child
 	 */
 	close(cstate->lstate->listen_fd);
-
-	/*
-	 * Register the statistics with dctl.  This needs to be
-	 * done after the new_conn_cb()  !!!.
-	 */
-	register_stats(cstate);
 
 	/*
 	 * the main thread of this process is used

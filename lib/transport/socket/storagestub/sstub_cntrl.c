@@ -37,7 +37,6 @@
 #include "obj_attr.h"
 #include "lib_odisk.h"
 #include "socket_trans.h"
-#include "dctl_impl.h"
 #include "lib_sstub.h"
 #include "sstub_impl.h"
 #include "dconfig_priv.h"
@@ -383,84 +382,6 @@ request_chars(void *conn_data, struct mrpc_message *msg, dev_char_x *out)
 }
 
 static mrpc_status_t
-device_write_leaf(void *conn_data, struct mrpc_message *msg,
-		  dctl_x *in, dctl_x *out)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	int err;
-
-	err = (*cstate->lstate->cb.wleaf_cb)
-			(cstate->app_cookie, in->dctl_data.dctl_data_val,
-			 (in->dctl_data.dctl_data_len - in->dctl_plen),
-			 &(in->dctl_data.dctl_data_val[in->dctl_plen]));
-
-	out->dctl_err = err;
-
-	return MINIRPC_OK;
-}
-
-
-static mrpc_status_t
-device_read_leaf(void *conn_data, struct mrpc_message *msg,
-		 dctl_x *in, dctl_x *out)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	dctl_rleaf_t *rt;
-
-	rt = (*cstate->lstate->cb.rleaf_cb) (cstate->app_cookie,
-					     in->dctl_data.dctl_data_val);
-	if (rt == NULL)
-		return DIAMOND_FAILURE; // XXX: be more specific?
-
-	out->dctl_dtype = rt->dt;
-	out->dctl_data.dctl_data_len = rt->len;
-	out->dctl_data.dctl_data_val = rt->dbuf;
-
-	free(rt);
-	return MINIRPC_OK;
-}
-
-
-static mrpc_status_t
-device_list_nodes(void *conn_data, struct mrpc_message *msg,
-		  dctl_x *in, dctl_x *out)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	dctl_lnode_t *lt;
-
-	lt = (*cstate->lstate->cb.lnode_cb) (cstate->app_cookie,
-					     in->dctl_data.dctl_data_val);
-	if (lt == NULL)
-		return DIAMOND_FAILURE;
-
-	out->dctl_err = lt->err;
-	out->dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
-	out->dctl_data.dctl_data_val = (char *)lt->ent_data;
-
-	free(lt);
-	return MINIRPC_OK;
-}
-
-
-static mrpc_status_t
-device_list_leafs(void *conn_data, struct mrpc_message *msg,
-		  dctl_x *in, dctl_x *out)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	dctl_lleaf_t *lt;
-
-	lt = (*cstate->lstate->cb.lleaf_cb) (cstate->app_cookie,
-					     in->dctl_data.dctl_data_val);
-	out->dctl_err = lt->err;
-	out->dctl_data.dctl_data_len = lt->num_ents * sizeof(dctl_entry_t);
-	out->dctl_data.dctl_data_val = (char *)lt->ent_data;
-
-	free(lt);
-	return MINIRPC_OK;
-}
-
-
-static mrpc_status_t
 device_set_exec_mode(void *conn_data, struct mrpc_message *msg, mode_x *in)
 {
 	return MINIRPC_OK;
@@ -658,10 +579,6 @@ static const struct rpc_client_content_server_operations ops = {
 	.device_set_spec = device_set_spec,
 	.device_set_push_attrs = device_set_push_attrs,
 	.device_reexecute_filters = device_reexecute_filters,
-	.device_write_leaf = device_write_leaf,
-	.device_read_leaf = device_read_leaf,
-	.device_list_nodes = device_list_nodes,
-	.device_list_leafs = device_list_leafs,
 	.device_set_blob = device_set_blob,
 	.device_set_exec_mode = device_set_exec_mode,
 	.device_set_user_state = device_set_user_state,

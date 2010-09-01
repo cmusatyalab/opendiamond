@@ -135,10 +135,6 @@ main(int argc, char **argv)
 	cb_args.get_char_cb = search_get_char;
 	cb_args.get_stats_cb = search_get_stats;
 	cb_args.setlog_cb = search_setlog;
-	cb_args.rleaf_cb = search_read_leaf;
-	cb_args.wleaf_cb = search_write_leaf;
-	cb_args.lnode_cb = search_list_nodes;
-	cb_args.lleaf_cb = search_list_leafs;
 	cb_args.clear_scope_cb = search_clear_scope;
 	cb_args.set_scope_cb = search_set_scope;
 	cb_args.set_gid_cb = search_set_gid;

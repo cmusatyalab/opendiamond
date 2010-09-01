@@ -10,7 +10,6 @@
 /test_log
 /name_test
 /dconf_test
-/test_dctl
 /test_ring
 /test_rtimer
 /test_rcomb

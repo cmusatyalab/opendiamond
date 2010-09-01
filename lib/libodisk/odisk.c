@@ -36,8 +36,6 @@
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "lib_ocache.h"
-#include "dctl_common.h"
-#include "dctl_impl.h"
 #include "odisk_priv.h"
 #include "sys_attr.h"
 #include "dconfig_priv.h"
@@ -515,11 +513,6 @@ odisk_init(odisk_state_t ** odisk, char *base_uri)
 
 	new_state = (odisk_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
-
-	dctl_register_u32(DEV_OBJ_PATH, "obj_load", O_RDONLY,
-			  &new_state->obj_load);
-	dctl_register_u32(DEV_OBJ_PATH, "next_blocked", O_RDONLY,
-			  &new_state->next_blocked);
 
 	/*
 	 * get the host name 

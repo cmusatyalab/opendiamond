@@ -28,12 +28,8 @@
 #include <glib.h>
 
 #include "diamond_types.h"
-#include "dctl_common.h"
-#include "dctl_impl.h"
 #include "lib_log.h"
 #include "dconfig_priv.h"
-
-#define DCTL_NAME_LEN 128
 
 typedef struct log_ent {
 	struct timeval le_ts;   /* timestamp */
@@ -311,7 +307,6 @@ static void *log_writer(void *arg) {
 void log_init(const char *log_prefix, const char *control_prefix)
 {
 	int		err;
-	char log_path[DCTL_NAME_LEN];
 	
 	/*
 	 * make sure we haven't be initialized more than once 
@@ -335,28 +330,6 @@ void log_init(const char *log_prefix, const char *control_prefix)
 	log_state->queue = g_async_queue_new();
 	log_state->prefix = malloc(strlen(log_prefix)+1);
 	strcpy(log_state->prefix, log_prefix);
-
-	/* set up dynamic control of log content */
-	if (control_prefix == NULL ||
-		strcmp(control_prefix, ROOT_PATH) == 0) {
-	  err = dctl_register_node(ROOT_PATH, LOG_PATH);
-	  assert(err == 0);
-	  err = dctl_register_node(LOG_PATH, log_prefix);
-	  assert(err == 0);
-	  snprintf(log_path, DCTL_NAME_LEN, "%s.%s", LOG_PATH, log_prefix);
-	} else {
-	  err = dctl_register_node(control_prefix, LOG_PATH);
-	  assert(err == 0);
-	  snprintf(log_path, DCTL_NAME_LEN, "%s.%s", 
-		   control_prefix, LOG_PATH);
-	  err = dctl_register_node(log_path, log_prefix);
-	  assert(err == 0);
-	  snprintf(log_path, DCTL_NAME_LEN, "%s.%s.%s", 
-		   control_prefix, LOG_PATH, log_prefix);
-	}
-
-	dctl_register_u32(log_path, "log_level", O_RDWR, &log_state->level);
-	dctl_register_u32(log_path, "log_type", O_RDWR, &log_state->type);
 
 	/* start the thread */
 	err = pthread_create(&log_state->writer, NULL, log_writer, NULL);

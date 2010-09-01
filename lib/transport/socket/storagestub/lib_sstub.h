@@ -17,8 +17,6 @@
 #ifndef	_LIB_SSTUB_H_
 #define	_LIB_SSTUB_H_
 
-#include "dctl_impl.h"
-
 /*
  * Callback functions that are passed when initializing the library.
  */
@@ -34,11 +32,6 @@ dev_stats_t*	(*get_stats_cb) (void *app_cookie);
 	int	(*release_obj_cb) (void *app_cookie, obj_data_t *obj);
 device_char_t*	(*get_char_cb)	(void *app_cookie);
 	int	(*setlog_cb)	(void *app_cookie, uint32_t lvl, uint32_t src);
-dctl_rleaf_t*	(*rleaf_cb)	(void *app_cookie, char *path);
-	int	(*wleaf_cb)	(void *app_cookie, char *path, int len,
-				 char *data);
-dctl_lleaf_t*	(*lleaf_cb)	(void *app_cookie, char *path);
-dctl_lnode_t*	(*lnode_cb)	(void *app_cookie, char *path);
 	int	(*set_blob_cb)	(void *app_cookie, char *name,
 				 int blen, void *blob);
 	int	(*set_user_state_cb) (void *app_cookie, uint32_t state);

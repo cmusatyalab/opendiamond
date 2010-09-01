@@ -28,8 +28,6 @@
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
-#include "dctl_common.h"
-#include "dctl_impl.h"
 #include "lib_odisk.h"
 #include "lib_log.h"
 #include "sys_attr.h"
@@ -247,13 +245,6 @@ ceval_init(ceval_state_t ** cstate, odisk_state_t * odisk, void *cookie,
 
 	new_state = (ceval_state_t *) calloc(1, sizeof(*new_state));
 	assert(new_state != NULL);
-
-	dctl_register_u32(DEV_CACHE_PATH, "use_cache_table", O_RDWR,
-			  &use_cache_table);
-	dctl_register_u32(DEV_CACHE_PATH, "use_cache_oattr", O_RDWR,
-			  &use_cache_oattr);
-	dctl_register_u32(DEV_CACHE_PATH, "add_cache_entries", O_RDWR,
-			  &add_cache_entries);
 
 	new_state->odisk = odisk;
 	new_state->cookie = cookie;

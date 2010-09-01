@@ -35,8 +35,6 @@
 #include "diamond_types.h"
 #include "lib_tools.h"
 #include "lib_log.h"
-#include "dctl_common.h"
-#include "dctl_impl.h"
 #include "ocache_priv.h"
 #include "obj_attr.h"
 #include "obj_attr.h"
@@ -57,9 +55,6 @@
 #define debug(args...)
 #endif
 
-/*
- * dctl variables 
- */
 static unsigned int if_cache_table = 1;
 static unsigned int if_cache_oattr = 1;
 
@@ -698,12 +693,6 @@ ocache_init(char *dirp)
 		free(dir_path);
 		return (EPERM);
 	}
-
-	/* dctl control */
-	dctl_register_u32(DEV_CACHE_PATH, "cache_table", O_RDWR,
-			  &if_cache_table);
-	dctl_register_u32(DEV_CACHE_PATH, "cache_oattr", O_RDWR,
-			  &if_cache_oattr);
 
 	/*
 	 * set callback functions so we get notifice on read/and writes

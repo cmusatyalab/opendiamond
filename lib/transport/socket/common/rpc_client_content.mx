@@ -44,13 +44,6 @@ struct spec_file_x {
     opaque	data<>;
 };
 
-struct dctl_x {
-    unsigned int    dctl_err;
-    unsigned int    dctl_plen;
-    unsigned int    dctl_dtype;
-    opaque	    dctl_data<>;
-};
-
 struct blob_x {
     string	filter_name<MAX_FILTER_NAME>;
     opaque	blob_data<>;
@@ -130,12 +123,6 @@ serverprocs {
     device_clear_scope(void, void) = 4;
     device_new_gid(groupid_x, void) = 5;
     device_set_spec(spec_file_x, void) = 6;
-
-    /**** Dctl operations ****/
-    device_write_leaf(dctl_x, dctl_x) = 7;
-    device_read_leaf(dctl_x, dctl_x) = 8;
-    device_list_nodes(dctl_x, dctl_x) = 9;
-    device_list_leafs(dctl_x, dctl_x) = 10;
 
     device_set_blob(blob_x, void) = 11;
     device_set_exec_mode(mode_x, void) = 12;

@@ -43,17 +43,9 @@ int odisk_next_obj(obj_data_t **new_obj, struct odisk_state *odisk);
 
 int odisk_release_obj(obj_data_t *obj);
 
-int odisk_set_gid(struct odisk_state *odisk, groupid_t gid);
-
-int odisk_clear_scope(struct odisk_state *odisk);
-
 int odisk_set_scope(struct odisk_state *odisk, const char *scope);
 
 int odisk_reset(struct odisk_state *odisk, unsigned int search_id);
-
-int odisk_num_waiting(struct odisk_state *odisk);
-
-float odisk_get_erate(struct odisk_state *odisk);
 
 obj_data_t     * odisk_null_obj(void);
 

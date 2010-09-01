@@ -375,26 +375,6 @@ obj_omit_attr(obj_attr_t * attr, const char *name)
 }
 
 
-/*
- * Delete an attribute that was previously associated
- * with the object.
- */
-
-int
-obj_del_attr(obj_attr_t * attr, const char *name)
-{
-	attr_record_t  *record;
-
-	record = find_record(attr, name);
-	if (record == NULL) {
-		return (ENOENT);
-	}
-
-	free_record(attr, record);
-	return (0);
-}
-
-
 static int
 obj_use_record(attr_record_t * cur_rec)
 {
@@ -526,13 +506,4 @@ obj_next_attr(obj_attr_t *attr, char **name, size_t *len,
 	if (len) *len = cur_rec->data_len;
 	if (sig) *sig = &cur_rec->attr_sig;
 	return 0;
-}
-
-attr_record_t  *
-odisk_get_arec(struct obj_data * obj, const char *name)
-{
-	attr_record_t  *arec;
-
-	arec = find_record(&obj->attr_info, name);
-	return (arec);
 }

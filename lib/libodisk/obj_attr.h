@@ -77,7 +77,6 @@ int obj_read_attr(obj_attr_t *attr, const char *name,
 
 
 int obj_omit_attr(obj_attr_t *attr, const char *name);
-int obj_del_attr(obj_attr_t *attr, const char *name);
 
 struct acookie;
 int obj_first_attr(obj_attr_t *attr, char **name, size_t *len,

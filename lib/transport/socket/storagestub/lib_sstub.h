@@ -47,8 +47,6 @@ int sstub_flush_objs(void *cookie);
 
 int sstub_send_obj(void *cookie, obj_data_t *obj, int complete);
 
-float sstub_get_drate(void *cookie);
-
 void sstub_get_conn_info(void *cookie, session_info_t *sinfo);
 
 #endif /* !_LIB_SSTUB_H_ */

@@ -115,30 +115,10 @@ odisk_load_obj(odisk_state_t *odisk, obj_data_t **obj_handle,
 }
 
 
-float
-odisk_get_erate(odisk_state_t * odisk)
-{
-	return (ring_erate(obj_ring));
-}
-
 int
 odisk_get_obj_cnt(odisk_state_t * odisk)
 {
     return odisk->count;
-}
-
-void
-odisk_ref_obj(obj_data_t * obj)
-{
-
-	/*
-	 * increment ref count 
-	 */
-	pthread_mutex_lock(&obj->mutex);
-	obj->ref_count++;
-	pthread_mutex_unlock(&obj->mutex);
-
-	return;
 }
 
 int
@@ -192,22 +172,6 @@ void odisk_release_pr_obj(pr_obj_t * pobj)
 }
 
 int
-odisk_clear_scope(odisk_state_t *odisk)
-{
-	struct scopecookie *cookie;
-
-	/* make sure there is no active search */
-	dataretriever_stop_search(odisk);
-
-	/* drop scope cookies */
-	while (odisk->scope->len) {
-	    cookie = g_ptr_array_remove_index_fast(odisk->scope, 0);
-	    scopecookie_free(cookie);
-	}
-	return 0;
-}
-
-int
 odisk_set_scope(odisk_state_t *odisk, const char *scope)
 {
 	struct scopecookie *cookie;
@@ -222,27 +186,6 @@ odisk_set_scope(odisk_state_t *odisk, const char *scope)
 	    scopecookie_free(cookie);
 	    return err;
 	}
-
-	g_ptr_array_add(odisk->scope, cookie);
-	return 0;
-}
-
-int
-odisk_set_gid(odisk_state_t *odisk, groupid_t gid)
-{
-	struct scopecookie *cookie;
-	gchar *hosts[] = { "localhost", NULL };
-
-	/* make sure there is no active search */
-	dataretriever_stop_search(odisk);
-
-	/* create a fake scopecookie */
-	cookie = g_new0(struct scopecookie, 1);
-	cookie->servers = g_strdupv(hosts);
-	cookie->scopedata = g_strdup_printf("/collection/%016" PRIX64, gid);
-	cookie->keyid = g_string_new("");
-	cookie->rawdata = cookie->scopedata;
-	cookie->rawlen = strlen(cookie->scopedata);
 
 	g_ptr_array_add(odisk->scope, cookie);
 	return 0;
@@ -481,14 +424,6 @@ odisk_next_obj(obj_data_t ** new_object, odisk_state_t * odisk)
 
 
 int
-odisk_num_waiting(odisk_state_t * odisk)
-{
-	return (ring_count(obj_ring));
-}
-
-
-
-int
 odisk_init(odisk_state_t ** odisk, char *base_uri)
 {
 	odisk_state_t  *new_state;
@@ -556,15 +491,6 @@ odisk_continue(void)
 	pthread_cond_signal(&bg_active_cv);
 	pthread_mutex_unlock(&odisk_mutex);
 	return(0);
-}
-
-int
-odisk_term(odisk_state_t * odisk)
-{
-	odisk_clear_scope(odisk);
-	g_ptr_array_free(odisk->scope, TRUE);
-	free(odisk);
-	return 0;
 }
 
 /*

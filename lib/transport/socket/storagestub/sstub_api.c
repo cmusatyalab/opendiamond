@@ -42,20 +42,6 @@
 #include "ports.h"
 #include "tools_priv.h"
 
-/*
- * XXX do we manage the complete ring also?? 
- */
-float
-sstub_get_drate(void *cookie)
-{
-
-	cstate_t       *cstate;
-	cstate = (cstate_t *) cookie;
-
-	return (ring_drate(cstate->partial_obj_ring));
-}
-
-
 void sstub_get_conn_info(void *cookie, session_info_t *cinfo) {
 
 	cstate_t       *cstate;

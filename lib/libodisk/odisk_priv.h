@@ -74,13 +74,10 @@ struct obj_data {
  * These are the function prototypes for the device emulation
  * function in dev_emul.c
  */
-int odisk_term(struct odisk_state *odisk);
 int odisk_continue(void);
 
 
 
-
-void odisk_ref_obj(obj_data_t *obj);
 
 int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
 
@@ -88,8 +85,6 @@ int odisk_get_attr_sig(obj_data_t *obj, const char *name, sig_val_t*sig);
 char * odisk_next_obj_name(odisk_state_t *odisk);
 int odisk_pr_add(pr_obj_t *pr_obj);
 
-
-attr_record_t * odisk_get_arec(struct obj_data *obj, const char *name);
 
 /* dataretriever.c */
 void dataretriever_init(const char *base_uri);

@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test_log datamonster
+noinst_PROGRAMS = test_log datamonster odisk_test test_rcomb test_rtimer
 
 LDADD = $(top_builddir)/lib/libopendiamond.la ${GLIB2_LIBS}
 

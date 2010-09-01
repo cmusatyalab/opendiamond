@@ -177,62 +177,6 @@ ring_init(ring_data_t ** ring, int num_elems)
 
 
 int
-ring_empty(ring_data_t * ring)
-{
-	if (ring->head == ring->tail) {
-		/*
-		 * assume output stall so deq rate will be broken 
-		 */
-		ring->last_deq = 0.0;
-		return (1);
-	} else {
-		return (0);
-	}
-}
-
-int
-ring_full(ring_data_t * ring)
-{
-	int             new_head;
-
-	new_head = ring->head + 1;
-	if (new_head >= ring->size) {
-		new_head = 0;
-	}
-
-	if (new_head == ring->tail) {
-		/*
-		 * assume input stall so enq rate will be broken 
-		 */
-		int             idx = ring_enq_idx(ring);
-		if (idx >= 0) {
-			ring->en_state[idx].last_enq = 0.0;
-		}
-		return (1);
-	} else {
-		return (0);
-	}
-}
-
-int
-ring_count(ring_data_t * ring)
-{
-	int             diff;
-
-	if (ring->head >= ring->tail) {
-		diff = ring->head - ring->tail;
-	} else {
-		diff = (ring->head + ring->size) - ring->tail;
-	}
-
-	assert(diff >= 0);
-	assert(diff <= ring->size);
-
-	return (diff);
-}
-
-
-int
 ring_enq(ring_data_t * ring, void *data)
 {
 	int             new_head;
@@ -286,25 +230,3 @@ ring_deq(ring_data_t * ring)
 	pthread_mutex_unlock(&ring->mutex);
 	return (data);
 }
-
-
-float
-ring_erate(ring_data_t * ring)
-{
-	float           erate;
-	pthread_mutex_lock(&ring->mutex);
-	erate = (float) ring->enq_rate;
-	pthread_mutex_unlock(&ring->mutex);
-	return (erate);
-}
-
-float
-ring_drate(ring_data_t * ring)
-{
-	float           drate;
-	pthread_mutex_lock(&ring->mutex);
-	drate = (float) ring->deq_rate;
-	pthread_mutex_unlock(&ring->mutex);
-	return (drate);
-}
-

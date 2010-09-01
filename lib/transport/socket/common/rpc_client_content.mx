@@ -1,6 +1,6 @@
 /*
  *  The OpenDiamond Platform for Interactive Search
- *  Version 4
+ *  Version 5
  *
  *  Copyright (c) 2007-2009 Carnegie Mellon University
  *  All rights reserved.
@@ -21,22 +21,10 @@ const SIG_SIZE = 16;
 const MAX_FILTER_NAME = 128;
 const MAX_FILTERS = 64;
 
-/* "hyper" is the rpcgen type for a 64-bit quantity. */
-typedef hyper		groupid_x;
 typedef opaque		sig_val_x<SIG_SIZE>;
-typedef unsigned int	mode_x;
-typedef unsigned int	state_x;
 
 struct start_x {
     unsigned int search_id;
-};
-
-struct stop_x {
-    int		host_objs_received;
-    int		host_objs_queued;
-    int		host_objs_read;
-    int		app_objs_queued;
-    int		app_objs_presented;
 };
 
 struct spec_file_x {
@@ -54,12 +42,6 @@ struct blob_sig_x {
     sig_val_x	sig;
 };
 
-
-struct dev_char_x {
-    unsigned int	dcs_isa;
-    unsigned int	dcs_speed;
-    hyper		dcs_mem;
-};
 
 struct filter_stats_x {
     string	fs_name<MAX_FILTER_NAME>;
@@ -118,18 +100,11 @@ struct scope_x {
 serverprocs {
     /**** Client calls ****/
     device_start(start_x, void) = 1;
-    device_stop(stop_x, void) = 2;
-    device_terminate(void, void) = 3;
-    device_clear_scope(void, void) = 4;
-    device_new_gid(groupid_x, void) = 5;
     device_set_spec(spec_file_x, void) = 6;
 
     device_set_blob(blob_x, void) = 11;
-    device_set_exec_mode(mode_x, void) = 12;
-    device_set_user_state(state_x, void) = 13;
 
     /**** Device characteristics and statistics ****/
-    request_chars(void, dev_char_x) = 14;
     request_stats(void, dev_stats_x) = 15;
 
     /**** Filter Caching ****/

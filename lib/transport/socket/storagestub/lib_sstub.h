@@ -1,6 +1,6 @@
 /*
  *  The OpenDiamond Platform for Interactive Search
- *  Version 4
+ *  Version 5
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
@@ -24,24 +24,17 @@ typedef struct {
 	int	(*new_conn_cb)	(void *cookie, void **app_cookie);
 	int	(*close_conn_cb) (void *app_cookie);
 	int	(*start_cb)	(void *app_cookie, unsigned int search_id);
-	int	(*stop_cb)	(void *app_cookie, host_stats_t *stat);
 	int	(*set_fspec_cb)	(void *app_cookie, sig_val_t *specsig);
 	int	(*set_fobj_cb)	(void *app_cookie, sig_val_t *obj_sig);
-	int	(*terminate_cb)	(void *app_cookie);
 dev_stats_t*	(*get_stats_cb) (void *app_cookie);
 	int	(*release_obj_cb) (void *app_cookie, obj_data_t *obj);
-device_char_t*	(*get_char_cb)	(void *app_cookie);
-	int	(*setlog_cb)	(void *app_cookie, uint32_t lvl, uint32_t src);
 	int	(*set_blob_cb)	(void *app_cookie, char *name,
 				 int blen, void *blob);
-	int	(*set_user_state_cb) (void *app_cookie, uint32_t state);
 device_session_vars_t* (*get_session_vars_cb) (void *app_cookie);
 	int	(*set_session_vars_cb) (void *app_cookie,
 					device_session_vars_t *vars);
 	obj_data_t *(*reexecute_filters) (void *app_cookie, const char *obj_id);
-	int	(*clear_scope_cb) (void *app_cookie);
 	int	(*set_scope_cb)	(void *app_cookie, const char *scope);
-	int	(*set_gid_cb)	(void *app_cookie, groupid_t gid);
 } sstub_cb_args_t;
 
 void *sstub_init(sstub_cb_args_t *cb_args, int bind_only_locally);

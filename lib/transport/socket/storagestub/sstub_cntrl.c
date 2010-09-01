@@ -66,40 +66,6 @@ device_start(void *conn_data, struct mrpc_message *msg, start_x *in)
 	return MINIRPC_OK;
 }
 
-
-static mrpc_status_t
-device_stop(void *conn_data, struct mrpc_message *msg, stop_x *in)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	host_stats_t hstats;
-
-	hstats.hs_objs_received = in->host_objs_received;
-	hstats.hs_objs_queued = in->host_objs_queued;
-	hstats.hs_objs_read = in->host_objs_read;
-	hstats.hs_objs_uqueued = in->app_objs_queued;
-	hstats.hs_objs_upresented = in->app_objs_presented;
-
-	(*cstate->lstate->cb.stop_cb) (cstate->app_cookie, &hstats);
-	return MINIRPC_OK;
-}
-
-
-static mrpc_status_t
-device_terminate(void *conn_data, struct mrpc_message *msg)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	(*cstate->lstate->cb.terminate_cb) (cstate->app_cookie);
-	return MINIRPC_OK;
-}
-
-static mrpc_status_t
-device_clear_scope(void *conn_data, struct mrpc_message *msg)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	(*cstate->lstate->cb.clear_scope_cb) (cstate->app_cookie);
-	return MINIRPC_OK;
-}
-
 static mrpc_status_t
 device_set_scope(void *conn_data, struct mrpc_message *msg, scope_x *in)
 {
@@ -112,16 +78,6 @@ device_set_scope(void *conn_data, struct mrpc_message *msg, scope_x *in)
 		return DIAMOND_FAILURE;
 	return MINIRPC_OK;
 }
-
-static mrpc_status_t
-device_new_gid(void *conn_data, struct mrpc_message *msg, groupid_x *in)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	groupid_t gid = *in;
-	(*cstate->lstate->cb.set_gid_cb) (cstate->app_cookie, gid);
-	return MINIRPC_OK;
-}
-
 
 static mrpc_status_t
 device_set_spec(void *conn_data, struct mrpc_message *msg, spec_file_x *in)
@@ -364,40 +320,6 @@ request_stats(void *conn_data, struct mrpc_message *msg, dev_stats_x *out)
 
 
 static mrpc_status_t
-request_chars(void *conn_data, struct mrpc_message *msg, dev_char_x *out)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	device_char_t *chars;
-
-	chars = (*cstate->lstate->cb.get_char_cb) (cstate->app_cookie);
-	if (chars == NULL)
-		return DIAMOND_FAILURE; // XXX: be more specific?
-
-	out->dcs_isa = chars->dc_isa;
-	out->dcs_speed = chars->dc_speed;
-	out->dcs_mem = chars->dc_mem;
-
-	free(chars);
-	return MINIRPC_OK;
-}
-
-static mrpc_status_t
-device_set_exec_mode(void *conn_data, struct mrpc_message *msg, mode_x *in)
-{
-	return MINIRPC_OK;
-}
-
-
-static mrpc_status_t
-device_set_user_state(void *conn_data, struct mrpc_message *msg, state_x *in)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-	unsigned int state = *in;
-	(*cstate->lstate->cb.set_user_state_cb) (cstate->app_cookie, state);
-	return MINIRPC_OK;
-}
-
-static mrpc_status_t
 device_set_obj(void *conn_data, struct mrpc_message *msg, sig_val_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
@@ -571,18 +493,11 @@ err_out:
 
 static const struct rpc_client_content_server_operations ops = {
 	.device_start = device_start,
-	.device_stop = device_stop,
-	.device_terminate = device_terminate,
-	.device_clear_scope = device_clear_scope,
 	.device_set_scope = device_set_scope,
-	.device_new_gid = device_new_gid,
 	.device_set_spec = device_set_spec,
 	.device_set_push_attrs = device_set_push_attrs,
 	.device_reexecute_filters = device_reexecute_filters,
 	.device_set_blob = device_set_blob,
-	.device_set_exec_mode = device_set_exec_mode,
-	.device_set_user_state = device_set_user_state,
-	.request_chars = request_chars,
 	.request_stats = request_stats,
 	.device_set_obj = device_set_obj,
 	.device_send_obj = device_send_obj,

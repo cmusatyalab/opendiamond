@@ -89,33 +89,4 @@ typedef struct search_state {
 	session_variables_state_t *session_variables_state;
 } search_state_t;
 
-
-/*
- * Function prototypes for the search functions.
- */
-
-int             search_new_conn(void *cookie, void **app_cookie);
-int             search_close_conn(void *app_cookie);
-int             search_start(void *app_cookie, unsigned int search_id);
-int             search_stop(void *app_cookie, host_stats_t *hs);
-int             search_set_spec(void *app_cookie, sig_val_t *spec_sig);
-int             search_set_obj(void *app_cookie, sig_val_t *obj_sig);
-obj_data_t *	search_reexecute_filters(void *app_cookie, const char *obj_id);
-int             search_term(void *app_cookie);
-dev_stats_t *   search_get_stats(void *app_cookie);
-int             search_release_obj(void *app_cookie, obj_data_t * obj);
-device_char_t * search_get_char(void *app_cookie);
-int             search_setlog(void *app_cookie, uint32_t level, uint32_t src);
-int		search_clear_scope(void *app_cookie);
-int		search_set_scope(void *app_cookie, const char *scope);
-int		search_set_gid(void *app_cookie, groupid_t gid);
-int		search_set_blob(void *app_cookie, char *name,
-				int blob_len, void *blob_data);
-int		search_set_user_state(void *app_cookie, uint32_t state);
-
-device_session_vars_t * search_get_session_vars(void *app_cookie);
-int search_set_session_vars(void *app_cookie, device_session_vars_t *vars);
-
-void		start_background(void);
-
 #endif				/* ifndef _SEARCH_STATE_H_ */

@@ -76,7 +76,7 @@ send_obj(void *ccookie, int vno)
 	foo->attr_info.attr_data = attr;
 #endif
 
-	sstub_send_obj(ccookie, foo, vno, 1);
+	sstub_send_obj(ccookie, foo, vno);
 
 
 }

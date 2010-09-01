@@ -199,7 +199,7 @@ int             read_filter_spec(char *spec_name, struct filter_data **fdp);
 void            fexec_update_prob(struct filter_data *fdata,
                                   filter_id_t cur_filt,
                                   const filter_id_t * prev_list, int num_prev,
-                                  int pass);
+                                  bool pass);
 
 
 filter_prob_t  *fexec_lookup_prob(filter_data_t * fdata, filter_id_t cur_filt,

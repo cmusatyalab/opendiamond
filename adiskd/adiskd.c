@@ -468,10 +468,9 @@ device_main(void *arg)
 	int             err;
 	int             any;
 	int             lookahead = 0;
-	int             complete;
 	struct timespec timeout;
 	int             force_eval;
-	int				pass;
+	bool            pass;
 	good_objs_t		gobj;
 	query_info_t	qinfo;
 	double          elapsed;
@@ -519,22 +518,6 @@ device_main(void *arg)
 			force_eval = 0;
 			err = odisk_next_obj(&new_obj, sstate->ostate);
 
-			/*
-			 * If no fresh objects, try to get some from
-			 * the partial queue.
-			 */
-			if (err == ENOENT) {
-				err = sstub_get_partial(sstate->comm_cookie,
-						      &new_obj);
-				if (err == 0) {
-					force_eval = 1;
-					sstate->pend_objs--;
-					sstate->pend_compute -=
-					    new_obj->remain_compute;
-				} else {
-					err = ENOENT;
-				}
-			}
 			if (err == ENOENT) {
 				/*
 				 * We have processed all the objects,
@@ -552,7 +535,7 @@ device_main(void *arg)
 				new_obj = odisk_null_obj();
 				new_obj->remain_compute = 0.0;
 				err = sstub_send_obj(sstate->comm_cookie,
-						     new_obj, 1);
+						     new_obj);
 				if (err) {
 					/*
 					 * XXX overflow gracefully  and log
@@ -597,23 +580,18 @@ device_main(void *arg)
 						      force_eval, &elapsed,
 						      &qinfo);
 
-				if (pass == 0) {
+				if (!pass) {
 					sstate->obj_dropped++;
 					search_free_obj(sstate, new_obj);
 				} else {
 					sstate->obj_passed++;
-					if (pass == 1) {
-						complete = 0;
-					} else {
-						complete = 1;
-					}
 
 					sstate->pend_objs++;
 					sstate->pend_compute +=
 					    new_obj->remain_compute;
 
-					err =sstub_send_obj(sstate->comm_cookie,
-							     new_obj, complete);
+					err = sstub_send_obj(sstate->comm_cookie,
+							     new_obj);
 					if (err) {
 						/*
 						 * XXX overflow gracefully 
@@ -644,7 +622,7 @@ device_main(void *arg)
 				qinfo.session = sstate->cinfo;
 				pass = ceval_filters2(new_obj, sstate->fdata,
 						      1, &elapsed, &qinfo);
-				if (pass == 0) {
+				if (!pass) {
 					sstate->obj_dropped++;
 					sstate->obj_processed++;
 				} else {

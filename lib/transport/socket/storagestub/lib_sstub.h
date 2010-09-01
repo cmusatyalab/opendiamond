@@ -41,11 +41,9 @@ void *sstub_init(sstub_cb_args_t *cb_args, int bind_only_locally);
 
 void sstub_listen(void * cookie);
 
-int sstub_get_partial(void *cookie, obj_data_t **obj);
-
 int sstub_flush_objs(void *cookie);
 
-int sstub_send_obj(void *cookie, obj_data_t *obj, int complete);
+int sstub_send_obj(void *cookie, obj_data_t *obj);
 
 void sstub_get_conn_info(void *cookie, session_info_t *sinfo);
 

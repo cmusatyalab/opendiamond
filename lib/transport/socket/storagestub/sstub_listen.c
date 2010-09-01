@@ -202,15 +202,6 @@ have_full_conn(listener_state_t * list_state, int conn)
 		return;
 	}
 
-	err = ring_init(&cstate->partial_obj_ring, OBJ_RING_SIZE);
-	if (err) {
-		/*
-		 * XXX 
-		 */
-		printf("failed to init partial obj ring \n");
-		return;
-	}
-
 	cstate->lstate = list_state;
 
 	parent = (*list_state->cb.new_conn_cb) ((void *) cstate, &new_cookie);

@@ -260,7 +260,7 @@ fexec_new_prob(filter_data_t * fdata, filter_id_t cur_filt, int num_prev,
 
 void
 fexec_update_prob(filter_data_t * fdata, filter_id_t cur_filt,
-		  const filter_id_t * prev_list, int num_prev, int pass)
+		  const filter_id_t * prev_list, int num_prev, bool pass)
 {
 	filter_id_t    *sorted_list;
 	filter_prob_t  *prob;
@@ -751,7 +751,7 @@ fexec_print_cost(const filter_data_t * fdata, const permutation_t * perm)
 
 
 void
-fstat_add_obj_info(filter_data_t * fdata, int pass, rtime_t time_ns)
+fstat_add_obj_info(filter_data_t * fdata, rtime_t time_ns)
 {
 	float           sanity;
 

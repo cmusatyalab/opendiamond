@@ -118,10 +118,6 @@ next_obj:
 	}
 
 	obj = ring_deq(cstate->complete_obj_ring);
-	/* If we don't get a complete object, look for a partial. */
-	if (!obj)
-		obj = ring_deq(cstate->partial_obj_ring);
-
 	if (!obj) {
 		pthread_mutex_unlock(&cstate->cmutex);
 		return;

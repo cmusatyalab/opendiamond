@@ -418,7 +418,7 @@ pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 	int             conf;
 	int             err;
 	int             found;
-	int             pass = 1;	/* return value */
+	bool            pass = true;
 	int             cur_fid,
 	                cur_fidx = 0;
 	struct timeval  wstart;
@@ -510,7 +510,7 @@ pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 				 * modify changed attr set 
 				 */
 				if (conf < cur_filter->fi_threshold) {
-					pass = 0;
+					pass = false;
 					cstate->stats_drop_fn(cstate->cookie);
 					cstate->stats_process_fn(cstate->
 								 cookie);
@@ -633,7 +633,7 @@ pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 	/*
 	 * track per-object info 
 	 */
-	fstat_add_obj_info(fdata, pass, stack_ns);
+	fstat_add_obj_info(fdata, stack_ns);
 
 	/*
 	 * update the average time 
@@ -689,7 +689,7 @@ timespec_sub(struct timespec *a, struct timespec *b, struct timespec *result)
     }
 }
 
-int
+bool
 ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	       double *elapsed,	query_info_t *qinfo)
 {
@@ -698,7 +698,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	char            timebuf[BUFSIZ];
 	int             err;
 	size_t          asize;
-	int             pass = 1;	/* return value */
+	bool            pass = true;	/* return value */
 	long int        rv;
 	int             cur_fid,
 	                cur_fidx;
@@ -719,7 +719,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 	if (fdata->fd_num_filters == 0) {
 		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters2: no filters");
-		return 1;
+		return true;
 	}
 
 	/*
@@ -739,7 +739,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 	for (cur_fidx = 0; cur_fidx < pmLength(fdata->fd_perm); cur_fidx++)
 	{
-		if (pass == 0 && fdata->full_eval == 0)
+		if (!pass && fdata->full_eval == 0)
 			break;
 
 		cur_fid = pmElt(fdata->fd_perm, cur_fidx);
@@ -821,9 +821,9 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 			if (conf == -1) {
 				cur_filter->fi_error++;
-				pass = 0;
+				pass = false;
 			} else if (conf < cur_filter->fi_threshold) {
-				pass = 0;
+				pass = false;
 			}
 
 			char *sig_str1 = sig_string(&obj_handle->id_sig);
@@ -857,7 +857,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 	if ((cur_fidx >= pmLength(fdata->fd_perm)) && pass) {
 		obj_handle->remain_compute = 0.0;
-		pass = 2;
+		pass = true;
 	} else if ((cur_fidx < pmLength(fdata->fd_perm)) && pass) {
 		float           avg;
 		err = fexec_estimate_remaining(fdata, fdata->fd_perm,
@@ -887,7 +887,7 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	/*
 	 * track per-object info
 	 */
-	fstat_add_obj_info(fdata, pass, stack_ns);
+	fstat_add_obj_info(fdata, stack_ns);
 
 	/*
 	 * update the average time

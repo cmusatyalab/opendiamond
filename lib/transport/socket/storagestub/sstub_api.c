@@ -59,7 +59,7 @@ void sstub_get_conn_info(void *cookie, session_info_t *cinfo) {
  * return current queue depth??
  */
 int
-sstub_send_obj(void *cookie, obj_data_t * obj, int complete)
+sstub_send_obj(void *cookie, obj_data_t * obj)
 {
 	cstate_t	*cstate;
 	int		err;
@@ -74,38 +74,13 @@ sstub_send_obj(void *cookie, obj_data_t * obj, int complete)
 	 * XXX log
 	 */
 	pthread_mutex_lock(&cstate->cmutex);
-	if (complete) {
-		err = ring_enq(cstate->complete_obj_ring, obj);
-	} else {
-		err = ring_enq(cstate->partial_obj_ring, obj);
-	}
+	err = ring_enq(cstate->complete_obj_ring, obj);
 	pthread_mutex_unlock(&cstate->cmutex);
 
 	if (!err)
 	    sstub_send_objects(cstate);
 
 	return err;
-}
-
-int
-sstub_get_partial(void *cookie, obj_data_t **obj)
-{
-	cstate_t	*cstate;
-
-	cstate = (cstate_t *) cookie;
-
-	/*
-	 * Set a flag to indicate there is object
-	 * data associated with our connection.
-	 */
-	/*
-	 * XXX log
-	 */
-	pthread_mutex_lock(&cstate->cmutex);
-	*obj = ring_deq(cstate->partial_obj_ring);
-	pthread_mutex_unlock(&cstate->cmutex);
-
-	return (*obj == NULL);
 }
 
 int
@@ -136,16 +111,6 @@ sstub_flush_objs(void *cookie)
 		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
 	}
 
-	while (1) {
-		pthread_mutex_lock(&cstate->cmutex);
-		obj = ring_deq(cstate->partial_obj_ring);
-		pthread_mutex_unlock(&cstate->cmutex);
-
-		/* we got through them all */
-		if (!obj) return 0;
-
-		(*lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
-	}
 	return (0);
 }
 

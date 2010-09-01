@@ -58,7 +58,6 @@ typedef struct cstate {
 	int			have_start;
 	void *			app_cookie;
 	ring_data_t *		complete_obj_ring;
-	ring_data_t *		partial_obj_ring;
 	GArray *		thumbnail_set;
 	/* number of remaining credits */
 	uint32_t		cc_credits;

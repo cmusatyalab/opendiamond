@@ -60,8 +60,6 @@ typedef struct cstate {
 	ring_data_t *		complete_obj_ring;
 	ring_data_t *		partial_obj_ring;
 	GArray *		thumbnail_set;
-	/* store incoming credit message */
-	credit_count_msg_t	cc_msg;
 	/* number of remaining credits */
 	uint32_t		cc_credits;
 	uint32_t            	stats_objs_tx;

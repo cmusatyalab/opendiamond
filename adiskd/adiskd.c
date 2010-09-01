@@ -1145,6 +1145,8 @@ main(int argc, char **argv)
 	sstub_cb_args_t cb_args;
 	int             c;
 
+	if (!g_thread_supported()) g_thread_init(NULL);
+
 	/*
 	 * Parse any of the command line arguments.
 	 */

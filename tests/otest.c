@@ -32,6 +32,8 @@ main(int argc, char **argv)
 	groupid_t       gt;
 	obj_id_t        oid;
 
+	if (!g_thread_supported()) g_thread_init(NULL);
+
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s host message\n", argv[0]);
 		exit(1);

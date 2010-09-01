@@ -315,9 +315,6 @@ void log_init(const char *log_prefix, const char *control_prefix)
 		return;
 	}
 
-	if (!g_thread_supported()) g_thread_init(NULL);
-
-
 	log_state = (log_state_t *) calloc(1, sizeof(*log_state));
 	if (log_state == NULL) {
 		/*

@@ -162,6 +162,8 @@ main(void)
 	obj_data_t     *new_obj;
 	int             err;
 
+	if (!g_thread_supported()) g_thread_init(NULL);
+
 	err = odisk_init(&odisk, NULL);
 	if (err) {
 		errno = err;

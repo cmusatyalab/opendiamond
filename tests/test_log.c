@@ -53,6 +53,7 @@ string_test(void)
 int
 main(void)
 {
+	if (!g_thread_supported()) g_thread_init(NULL);
 	log_init("testlog", NULL);
 	string_test();
 	sleep(5);

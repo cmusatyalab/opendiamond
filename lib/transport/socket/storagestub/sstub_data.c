@@ -107,8 +107,6 @@ sstub_send_objects(cstate_t *cstate)
 	object_x	object;
 	unsigned int	n;
 	mrpc_status_t	rc;
-	unsigned int	tx_hdr_bytes;
-	unsigned int	tx_data_bytes;
 
 next_obj:
 	pthread_mutex_lock(&cstate->cmutex);
@@ -147,27 +145,13 @@ next_obj:
 		}
 	}
 
-	tx_hdr_bytes = sizeof(object_x);
-	tx_data_bytes = object.object.object_len;
-
 	err = sstub_get_attributes(obj, cstate->thumbnail_set,
 				   &object.attrs.attrs_val,
 				   &object.attrs.attrs_len);
 	if (err) goto drop;
 
-	for (n = 0; n < object.attrs.attrs_len; n++)
-	{
-		tx_hdr_bytes += sizeof(attribute_x);
-		tx_data_bytes += object.attrs.attrs_val[n].data.data_len;
-	}
-
 	rc = blast_channel_send_object(cstate->blast_conn, &object);
 	assert(rc == MINIRPC_OK);
-
-	cstate->stats_objs_tx++;
-	cstate->stats_objs_hdr_bytes_tx += tx_hdr_bytes;
-	cstate->stats_objs_data_bytes_tx += tx_data_bytes;
-	cstate->stats_objs_total_bytes_tx += tx_hdr_bytes + tx_data_bytes;
 
 drop:
 	free_object_x(&object, FALSE);

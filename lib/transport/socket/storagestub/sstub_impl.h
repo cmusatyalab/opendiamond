@@ -61,17 +61,6 @@ typedef struct cstate {
 	GArray *		thumbnail_set;
 	/* number of remaining credits */
 	uint32_t		cc_credits;
-	uint32_t            	stats_objs_tx;
-	uint64_t            	stats_objs_attr_bytes_tx;
-	uint64_t            	stats_objs_data_bytes_tx;
-	uint64_t            	stats_objs_hdr_bytes_tx;
-	uint64_t            	stats_objs_total_bytes_tx;
-	uint32_t            	stats_control_tx;
-	uint64_t            	stats_control_bytes_tx;
-	uint32_t            	stats_control_rx;
-	uint64_t            	stats_control_bytes_rx;
-	uint32_t            	stats_log_tx;
-	uint64_t            	stats_log_bytes_tx;
 }
 cstate_t;
 

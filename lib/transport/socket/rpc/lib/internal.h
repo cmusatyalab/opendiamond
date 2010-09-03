@@ -160,9 +160,6 @@ struct mrpc_connection {
 	enum conn_state recv_state;
 	struct mrpc_message *recv_msg;
 
-	uint64_t counters[MRPC_CONNCTR_NR];
-	pthread_mutex_t counters_lock;
-
 	GHashTable *pending_replies;
 	pthread_mutex_t pending_replies_lock;
 

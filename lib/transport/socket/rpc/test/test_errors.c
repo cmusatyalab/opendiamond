@@ -52,7 +52,6 @@ int main(int argc, char **argv)
 	char *port;
 	int fd;
 	int fdpair[2];
-	uint64_t counter;
 	IntParam ip = {INT_VALUE};
 	IntParam *ipp;
 
@@ -182,11 +181,6 @@ int main(int argc, char **argv)
 	expect(proto_client_check_int_async(conn,
 				(proto_client_check_int_callback_fn*)1,
 				NULL, NULL), MINIRPC_INVALID_PROTOCOL);
-	expect(mrpc_conn_get_counter(NULL, 0, &counter), EINVAL);
-	expect(mrpc_conn_get_counter(conn, 0, NULL), EINVAL);
-	expect(mrpc_conn_get_counter(conn, 9999, &counter), EINVAL);
-	expect(mrpc_conn_get_counter(conn, MRPC_CONNCTR_NR, &counter), EINVAL);
-	expect(mrpc_conn_get_counter(conn, 0, &counter), 0);
 	expect(mrpc_conn_close(conn), 0);
 	mrpc_conn_unref(conn);
 

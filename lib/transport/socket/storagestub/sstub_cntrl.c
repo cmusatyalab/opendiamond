@@ -31,6 +31,7 @@
 #include <netdb.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
 #include "diamond_consts.h"
 #include "diamond_types.h"
 #include "lib_tools.h"
@@ -53,8 +54,6 @@ device_start(void *conn_data, struct mrpc_message *msg, start_x *in)
 	cstate_t *cstate = (cstate_t *)conn_data;
 
 	cstate->search_id = in->search_id;
-	cstate->cc_credits = DEFAULT_QUEUE_LEN;
-	//g_debug("credits initialized to %d", cstate->cc_credits);
 
 	fprintf(stderr, "have_start pend %d\n", cstate->pend_obj);
 	if (cstate->pend_obj == 0) {

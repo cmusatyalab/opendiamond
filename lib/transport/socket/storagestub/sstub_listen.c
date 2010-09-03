@@ -39,13 +39,6 @@
 #include "sstub_impl.h"
 
 /*
- * XXX debug 
- */
-#define OBJ_RING_SIZE		512
-#define CONTROL_RING_SIZE	1024
-
-
-/*
  * set a socket to non-blocking 
  */
 static void
@@ -182,7 +175,6 @@ static void
 have_full_conn(listener_state_t * list_state, int conn)
 {
 
-	int		err;
 	void		*new_cookie;
 	cstate_t	*cstate;
 	int		parent;
@@ -193,14 +185,7 @@ have_full_conn(listener_state_t * list_state, int conn)
 	timerclear(&cstate->cinfo.connect_time);
 	gettimeofday(&cstate->cinfo.connect_time, NULL);
 
-	err = ring_init(&cstate->complete_obj_ring, OBJ_RING_SIZE);
-	if (err) {
-		/*
-		 * XXX 
-		 */
-		printf("failed to init complete obj ring \n");
-		return;
-	}
+	cstate->complete_obj_ring = g_async_queue_new();
 
 	cstate->lstate = list_state;
 

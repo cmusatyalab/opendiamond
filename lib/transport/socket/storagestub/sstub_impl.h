@@ -18,13 +18,15 @@
 
 #include <semaphore.h>
 #include <glib.h>
-#include "ring.h"
 
 #include <minirpc/minirpc.h>
 #include "rpc_client_content_server.h"
 
 /* the max concurrent connections that we currently support */
 #define	MAX_CONNS		64
+
+#define OBJ_RING_SIZE		512
+#define CONTROL_RING_SIZE	1024
 
 /* These are the flags for each connection state defined below */
 #define	CSTATE_ALLOCATED	0x0001
@@ -57,10 +59,8 @@ typedef struct cstate {
 	int			pend_obj;
 	int			have_start;
 	void *			app_cookie;
-	ring_data_t *		complete_obj_ring;
+	GAsyncQueue *		complete_obj_ring;
 	GArray *		thumbnail_set;
-	/* number of remaining credits */
-	uint32_t		cc_credits;
 }
 cstate_t;
 
@@ -105,7 +105,6 @@ const struct rpc_client_content_server_operations *sstub_ops;
  * Functions exported by sstub_data.c
  */
 const struct blast_channel_server_operations *sstub_blast_ops;
-void sstub_send_objects(cstate_t *cstate);
 
 /*
  * Functions exported by sstub_conn.c

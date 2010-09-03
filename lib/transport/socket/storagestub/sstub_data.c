@@ -99,36 +99,16 @@ int sstub_get_attributes(obj_data_t *obj, GArray *output_set,
 	return 0;
 }
 
-void
-sstub_send_objects(cstate_t *cstate)
+static mrpc_status_t
+get_object(void *conn_data, struct mrpc_message *msg, object_x *object)
 {
-	obj_data_t	*obj;
-	int		err;
-	object_x	object;
-	unsigned int	n;
-	mrpc_status_t	rc;
+	cstate_t *cstate = (cstate_t *)conn_data;
+	obj_data_t *obj;
+	int err;
 
-next_obj:
-	pthread_mutex_lock(&cstate->cmutex);
-	if (cstate->cc_credits <= 0) {
-		pthread_mutex_unlock(&cstate->cmutex);
-		return;
-	}
+	obj = g_async_queue_pop(cstate->complete_obj_ring);
 
-	obj = ring_deq(cstate->complete_obj_ring);
-	if (!obj) {
-		pthread_mutex_unlock(&cstate->cmutex);
-		return;
-	}
-
-	/* decrement credit count */
-	cstate->cc_credits--;
-	//g_debug("credits remaining: %d", cstate->cc_credits);
-	pthread_mutex_unlock(&cstate->cmutex);
-
-	object.search_id = cstate->search_id;
-	object.object.object_len = 0;
-	object.object.object_val = NULL;
+	object->search_id = cstate->search_id;
 
 	/* The 'main' object data we return contains the object's contents
 	 * if no thumbnail set was specified */
@@ -139,22 +119,16 @@ next_obj:
 		if (obj_ref_attr(&obj->attr_info, OBJ_DATA, &len, &data) == 0) {
 		    obj_omit_attr(&obj->attr_info, OBJ_DATA);
 
-		    object.object.object_len = len;
-		    object.object.object_val = malloc(len);
-		    memcpy(object.object.object_val, data, len);
+		    object->object.object_len = len;
+		    object->object.object_val = malloc(len);
+		    memcpy(object->object.object_val, data, len);
 		}
 	}
 
 	err = sstub_get_attributes(obj, cstate->thumbnail_set,
-				   &object.attrs.attrs_val,
-				   &object.attrs.attrs_len);
-	if (err) goto drop;
-
-	rc = blast_channel_send_object(cstate->blast_conn, &object);
-	assert(rc == MINIRPC_OK);
-
-drop:
-	free_object_x(&object, FALSE);
+				   &object->attrs.attrs_val,
+				   &object->attrs.attrs_len);
+	if (err) return DIAMOND_FAILURE;
 
 	/*
 	 * If we make it here, then we have successfully sent
@@ -163,25 +137,12 @@ drop:
 	 * the object.
 	 */
 	(*cstate->lstate->cb.release_obj_cb) (cstate->app_cookie, obj);
-	goto next_obj;
-}
 
-static void
-offset_credit(void *conn_data, struct mrpc_message *msg, credit_x *in)
-{
-	cstate_t *cstate = (cstate_t *)conn_data;
-
-	pthread_mutex_lock(&cstate->cmutex);
-	cstate->cc_credits += in->credit_offset;
-	//g_debug("credits remaining: %d", cstate->cc_credits);
-	pthread_mutex_unlock(&cstate->cmutex);
-
-	mrpc_release_event();
-	sstub_send_objects(cstate);
+	return MINIRPC_OK;
 }
 
 static const struct blast_channel_server_operations ops = {
-	.offset_credit = offset_credit
+	.get_object = get_object
 };
 const struct blast_channel_server_operations *sstub_blast_ops = &ops;
 

@@ -22,10 +22,6 @@
 #include "rpc_preamble_xdr.h"
 
 
-/* default number of credits to start with on the server */
-#define DEFAULT_QUEUE_LEN	10
-
-
 ssize_t writen(int fd, const void *vptr, size_t n);
 
 #endif /* _SOCKET_TRANS_H_ */

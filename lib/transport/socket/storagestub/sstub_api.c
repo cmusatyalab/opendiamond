@@ -62,25 +62,17 @@ int
 sstub_send_obj(void *cookie, obj_data_t * obj)
 {
 	cstate_t	*cstate;
-	int		err;
 
 	cstate = (cstate_t *) cookie;
 
-	/*
-	 * Set a flag to indicate there is object
-	 * data associated with our connection.
-	 */
-	/*
-	 * XXX log
-	 */
-	pthread_mutex_lock(&cstate->cmutex);
-	err = ring_enq(cstate->complete_obj_ring, obj);
-	pthread_mutex_unlock(&cstate->cmutex);
+	// check size
+	if (g_async_queue_length(cstate->complete_obj_ring) > OBJ_RING_SIZE) {
+	  return 1;
+	}
 
-	if (!err)
-	    sstub_send_objects(cstate);
+	g_async_queue_push(cstate->complete_obj_ring, obj);
 
-	return err;
+	return 0;
 }
 
 int
@@ -101,9 +93,7 @@ sstub_flush_objs(void *cookie)
 	 * XXX log
 	 */
 	while (1) {
-		pthread_mutex_lock(&cstate->cmutex);
-		obj = ring_deq(cstate->complete_obj_ring);
-		pthread_mutex_unlock(&cstate->cmutex);
+		obj = g_async_queue_try_pop(cstate->complete_obj_ring);
 
 		/* we got through them all */
 		if (!obj) break;

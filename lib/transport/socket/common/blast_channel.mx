@@ -27,11 +27,6 @@ struct credit_x {
     int credit_offset;
 };
 
-clientmsgs {
-    send_object(object_x) = 1;
+serverprocs {
+    get_object(void, object_x) = 1;
 }
-
-servermsgs {
-    offset_credit(credit_x) = 1;
-}
-

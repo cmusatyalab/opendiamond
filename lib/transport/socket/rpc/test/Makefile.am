@@ -31,7 +31,6 @@ check_PROGRAMS += test_simultaneous_clients
 check_PROGRAMS += test_set_ops
 check_PROGRAMS += test_bind_fd
 check_PROGRAMS += test_unix
-check_PROGRAMS += test_plug
 check_PROGRAMS += test_dispatch
 check_PROGRAMS += test_refcount
 check_PROGRAMS += test_shutdown

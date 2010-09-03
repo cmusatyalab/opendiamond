@@ -161,7 +161,6 @@ struct mrpc_connection {
 	GQueue *events;	/* protected by set->events_lock */
 	unsigned events_pending;
 	struct mrpc_event *plugged_event;
-	unsigned plugged_user;
 
 	gint next_sequence;  /* atomic operations only */
 };

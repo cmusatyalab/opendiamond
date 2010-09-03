@@ -65,7 +65,7 @@ static void destroy_event(struct mrpc_event *event)
 
 static int conn_is_plugged(struct mrpc_connection *conn)
 {
-	return (conn->plugged_event != NULL || conn->plugged_user != 0);
+	return conn->plugged_event != NULL;
 }
 
 /* set->events_lock must be held */
@@ -199,46 +199,6 @@ static int _mrpc_release_event(struct mrpc_event *event)
 	try_queue_conn(conn);
 	pthread_mutex_unlock(&conn->set->events_lock);
 	return 0;
-}
-
-/* Hidden parameter: "active_event", a thread-local variable set by
-   dispatch_event().  For external use only! */
-exported int mrpc_release_event(void)
-{
-	struct dispatch_thread_data *tdata;
-
-	tdata=pthread_getspecific(dispatch_thread_data);
-	if (tdata == NULL || tdata->active_event == NULL)
-		return EPERM;
-	return _mrpc_release_event(tdata->active_event);
-}
-
-exported int mrpc_stop_events(struct mrpc_connection *conn)
-{
-	if (conn == NULL)
-		return EINVAL;
-	pthread_mutex_lock(&conn->set->events_lock);
-	conn->plugged_user++;
-	try_unqueue_conn(conn);
-	pthread_mutex_unlock(&conn->set->events_lock);
-	return 0;
-}
-
-exported int mrpc_start_events(struct mrpc_connection *conn)
-{
-	int ret=0;
-
-	if (conn == NULL)
-		return EINVAL;
-	pthread_mutex_lock(&conn->set->events_lock);
-	if (conn->plugged_user) {
-		conn->plugged_user--;
-		try_queue_conn(conn);
-	} else {
-		ret=EINVAL;
-	}
-	pthread_mutex_unlock(&conn->set->events_lock);
-	return ret;
 }
 
 exported int mrpc_get_event_fd(struct mrpc_conn_set *set)

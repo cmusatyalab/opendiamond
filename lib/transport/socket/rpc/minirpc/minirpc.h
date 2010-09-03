@@ -301,7 +301,6 @@ int mrpc_set_max_buf_len(struct mrpc_conn_set *set, unsigned len);
  * operations on the connection handle are:
  * - Set the operations structure using the set_operations function for this
  * protocol role
- * - Prevent connection events from being processed with mrpc_stop_events()
  * - Update its refcount with mrpc_conn_ref() / mrpc_conn_unref().  If the last
  * reference is removed with mrpc_conn_unref(), the handle is freed.
  *
@@ -578,67 +577,6 @@ int mrpc_dispatch(struct mrpc_conn_set *set, int max);
  * on the descriptor.
  */
 int mrpc_get_event_fd(struct mrpc_conn_set *set);
-
-/**
- * @brief Disable event processing for a connection
- * @param	conn
- *	The connection
- * @return 0 on success, EALREADY if events were already stopped with
- *	mrpc_stop_events(), or a POSIX error code on error
- *
- * Prevent miniRPC from processing further events for the specified
- * connection until mrpc_start_events() is called.  This function can be
- * called from an event handler.
- *
- * The application may call this function more than once against the same
- * connection.  Event processing for the connection will not resume until
- * the application makes the corresponding number of calls to
- * mrpc_start_events().
- *
- * If this function is called from an event handler for the same connection,
- * and the handler has not called mrpc_release_event(), the application is
- * guaranteed that no further events will be fired on the connection once the
- * call returns.  Otherwise, there is a window after the function returns in
- * which further events may be fired.
- */
-int mrpc_stop_events(struct mrpc_connection *conn);
-
-/**
- * @brief Re-enable event processing for a connection
- * @param	conn
- *	The connection
- * @stdreturn
- *
- * Allow miniRPC to resume processing events against a connection for which
- * event processing has been disabled with mrpc_stop_events().  If
- * mrpc_stop_events() has been called more than once, event processing will
- * not resume until mrpc_start_events() has been called a corresponding
- * number of times.
- */
-int mrpc_start_events(struct mrpc_connection *conn);
-
-/**
- * @brief Allow the current event handler to run in parallel with other
- *	handlers for the same connection
- * @stdreturn
- *
- * By default, miniRPC ensures that only one event is processed at a time
- * for a given connection.  This frees the application from handling
- * concurrency between RPCs on a particular connection.  However, in certain
- * cases, the application may be willing to handle these concurrency issues
- * so that a connection can process multiple events in parallel.
- *
- * This function indicates to miniRPC that the calling event handler should
- * no longer block the handling of additional events on its associated
- * connection.  Note that this call is effective @em only for the current
- * invocation of the calling event handler; it will have no effect on any
- * other event.
- *
- * Returning from an event handler implicitly calls this function.  If
- * called from outside an event handler, this function returns EINVAL
- * and has no other effect.
- */
-int mrpc_release_event(void);
 
 /**
  * @}

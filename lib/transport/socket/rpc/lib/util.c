@@ -75,10 +75,6 @@ exported const char *mrpc_strerror(mrpc_status_t status)
 	switch (code) {
 	case MINIRPC_OK:
 		return "Success";
-	case MINIRPC_PENDING:
-		/* Not really an error code, and the application should never
-		   receive this as a return value */
-		break;
 	case MINIRPC_ENCODING_ERR:
 		return "Serialization error";
 	case MINIRPC_PROCEDURE_UNAVAIL:

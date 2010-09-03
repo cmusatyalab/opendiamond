@@ -182,7 +182,7 @@ exported mrpc_status_t mrpc_send_request_noreply(
 	return send_message(msg);
 }
 
-exported mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol,
+mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol,
 			int cmd, struct mrpc_message *request, void *data)
 {
 	struct mrpc_message *reply;
@@ -202,9 +202,9 @@ exported mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol,
 	return MINIRPC_OK;
 }
 
-exported mrpc_status_t mrpc_send_reply_error(
-			const struct mrpc_protocol *protocol, int cmd,
-			struct mrpc_message *request, mrpc_status_t status)
+mrpc_status_t mrpc_send_reply_error(const struct mrpc_protocol *protocol,
+			int cmd, struct mrpc_message *request,
+			mrpc_status_t status)
 {
 	struct mrpc_message *reply;
 	mrpc_status_t ret;

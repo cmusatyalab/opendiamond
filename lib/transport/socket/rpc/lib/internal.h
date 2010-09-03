@@ -115,6 +115,10 @@ enum sequence_flags {
 	SEQ_DISC_FIRED		= 0x0040,
 };
 
+/* No longer an exported status code; now just an implementation detail
+   to indicate that a message is a request */
+#define MINIRPC_PENDING -1
+
 struct mrpc_connection {
 	struct mrpc_conn_set *set;
 	int fd;
@@ -183,6 +187,11 @@ void mrpc_free_message_data(struct mrpc_message *msg);
 void process_incoming_message(struct mrpc_message *msg);
 void pending_kill(struct mrpc_connection *conn);
 void pending_free(struct pending_reply *pending);
+mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol, int cmd,
+			struct mrpc_message *request, void *data);
+mrpc_status_t mrpc_send_reply_error(const struct mrpc_protocol *protocol,
+			int cmd, struct mrpc_message *request,
+			mrpc_status_t status);
 
 /* event.c */
 void mrpc_event_threadlocal_init(void);

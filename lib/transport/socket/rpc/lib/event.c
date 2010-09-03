@@ -268,21 +268,15 @@ static void dispatch_request(struct mrpc_event *event)
 	ops=g_atomic_pointer_get(&conn->operations);
 	result=conn->set->protocol->request(ops, conn->private, request,
 				request->hdr.cmd, request_data, reply_data);
-	/* Note: if the application returned MINIRPC_PENDING and then
-	   immediately sent its reply from another thread, the request has
-	   already been freed.  So, if result == MINIRPC_PENDING, we can't
-	   access @request anymore. */
 	_mrpc_release_event(event);
 	mrpc_free_argument(request_type, request_data);
 
 	if (doreply) {
-		if (result == MINIRPC_PENDING) {
-			mrpc_free_argument(reply_type, reply_data);
-			return;
-		}
 		if (result)
 			ret=mrpc_send_reply_error(conn->set->protocol,
 						request->hdr.cmd, request,
+						result == MINIRPC_PENDING ?
+						MINIRPC_ENCODING_ERR :
 						result);
 		else
 			ret=mrpc_send_reply(conn->set->protocol,

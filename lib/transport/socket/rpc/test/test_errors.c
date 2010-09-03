@@ -15,34 +15,6 @@
 #include <unistd.h>
 #include "common.h"
 
-mrpc_status_t do_ping(void *conn_data, struct mrpc_message *msg)
-{
-	expect(proto_client_check_int_send_async_reply(msg),
-				MINIRPC_INVALID_PROTOCOL);
-	expect(proto_client_check_int_send_async_reply_error(msg, 1),
-				MINIRPC_INVALID_PROTOCOL);
-	expect(proto_ping_send_async_reply_error(msg, 0),
-				MINIRPC_INVALID_ARGUMENT);
-	expect(proto_check_int_send_async_reply(msg),
-				MINIRPC_INVALID_ARGUMENT);
-	expect(proto_check_int_send_async_reply_error(msg, 1),
-				MINIRPC_INVALID_ARGUMENT);
-	expect(proto_ping_send_async_reply(msg), 0);
-	return MINIRPC_PENDING;
-}
-
-const struct proto_server_operations probe_ops = {
-	.ping = do_ping
-};
-
-void *probe_server_accept(void *set_data, struct mrpc_connection *conn,
-			struct sockaddr *from, socklen_t from_len)
-{
-	if (proto_server_set_operations(conn, &probe_ops))
-		die("Error setting operations struct");
-	return conn;
-}
-
 int main(int argc, char **argv)
 {
 	struct mrpc_conn_set *sset;
@@ -68,7 +40,7 @@ int main(int argc, char **argv)
 	mrpc_dispatcher_remove(NULL);
 	expect(mrpc_dispatch_loop(NULL), EINVAL);
 	expect(mrpc_dispatch(NULL, 0), EINVAL);
-	expect(mrpc_strerror(MINIRPC_PENDING) != NULL, 1);
+	expect(mrpc_strerror(-1) != NULL, 1);
 	expect(strcmp(mrpc_strerror(-12), "Unknown error"), 0);
 	expect(strcmp(mrpc_strerror(12), "Application-specific error"), 0);
 
@@ -102,7 +74,6 @@ int main(int argc, char **argv)
 	expect(mrpc_listen(sset, AF_INET, NULL, &port), 0);
 	expect(mrpc_conn_create(&conn, cset, NULL), 0);
 	expect(mrpc_connect(conn, AF_UNSPEC, NULL, port), 0);
-	expect(proto_ping(conn), 0);
 	mrpc_listen_close(NULL);
 	mrpc_listen_close(sset);
 	mrpc_conn_unref(conn);
@@ -167,9 +138,6 @@ int main(int argc, char **argv)
 	expect(proto_loop_int(NULL, NULL, &ipp), MINIRPC_INVALID_ARGUMENT);
 	expect(ipp == NULL, 1);
 	expect(proto_loop_int(conn, &ip, NULL), MINIRPC_ENCODING_ERR);
-	expect(proto_ping_send_async_reply(NULL), MINIRPC_INVALID_ARGUMENT);
-	expect(proto_ping_send_async_reply_error(NULL, 0),
-				MINIRPC_INVALID_ARGUMENT);
 	expect(proto_client_check_int(conn, NULL), MINIRPC_INVALID_PROTOCOL);
 	expect(mrpc_conn_close(conn), 0);
 	mrpc_conn_unref(conn);
@@ -177,24 +145,6 @@ int main(int argc, char **argv)
 	expect(mrpc_conn_create(&conn, cset, NULL), 0);
 	expect(proto_ping(conn), MINIRPC_INVALID_ARGUMENT);
 	expect(mrpc_conn_close(conn), ENOTCONN);
-	mrpc_conn_unref(conn);
-	mrpc_conn_set_unref(cset);
-	mrpc_listen_close(sset);
-	mrpc_conn_set_unref(sset);
-	free(port);
-
-	sset=spawn_server(&port, proto_server, probe_server_accept, NULL, 1);
-	if (mrpc_set_disconnect_func(sset, disconnect_normal))
-		die("Couldn't set disconnect func");
-	if (mrpc_conn_set_create(&cset, proto_client, NULL))
-		die("Couldn't allocate conn set");
-	if (mrpc_set_disconnect_func(cset, disconnect_user))
-		die("Couldn't set disconnect func");
-	start_monitored_dispatcher(cset);
-	expect(mrpc_conn_create(&conn, cset, NULL), 0);
-	expect(mrpc_connect(conn, AF_INET, NULL, port), 0);
-	expect(proto_ping(conn), 0);
-	expect(mrpc_conn_close(conn), 0);
 	mrpc_conn_unref(conn);
 	mrpc_conn_set_unref(cset);
 	mrpc_listen_close(sset);

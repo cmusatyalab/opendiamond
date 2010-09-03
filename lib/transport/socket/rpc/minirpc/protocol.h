@@ -49,10 +49,5 @@ mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
 			void **out);
 mrpc_status_t mrpc_send_request_noreply(const struct mrpc_protocol *protocol,
 			struct mrpc_connection *conn, int cmd, void *in);
-mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol, int cmd,
-			struct mrpc_message *request, void *data);
-mrpc_status_t mrpc_send_reply_error(const struct mrpc_protocol *protocol,
-			int cmd, struct mrpc_message *request,
-			mrpc_status_t status);
 
 #endif

@@ -30,9 +30,6 @@ struct mrpc_message;
  * @ingroup error
  * @param	MINIRPC_OK
  *	Success
- * @param	MINIRPC_PENDING
- *	Special return code used by request handlers to indicate that they
- *	will complete the request asynchronously
  * @param	MINIRPC_ENCODING_ERR
  *	An error occurred during serialization/deserialization
  * @param	MINIRPC_PROCEDURE_UNAVAIL
@@ -47,7 +44,6 @@ struct mrpc_message;
  */
 enum mrpc_status_codes {
 	MINIRPC_OK			=  0,
-	MINIRPC_PENDING			= -1,
 	MINIRPC_ENCODING_ERR		= -2,
 	MINIRPC_PROCEDURE_UNAVAIL	= -3,
 	MINIRPC_INVALID_ARGUMENT	= -4,

@@ -17,13 +17,11 @@ check_LIBRARIES = libcommon.a libxdr.a
 libxdr_a_SOURCES = proto.mx
 nodist_libxdr_a_SOURCES = $(GEN_XDR)
 libxdr_a_CFLAGS = -pthread
-libcommon_a_SOURCES  = common.c common.h client_sync.c
-libcommon_a_SOURCES += server_sync.c server_async.c proto.mx
+libcommon_a_SOURCES  = common.c common.h client_sync.c server_sync.c proto.mx
 nodist_libcommon_a_SOURCES = $(GEN_NOXDR)
 LDADD = libcommon.a libxdr.a
 
 check_PROGRAMS  = test_basic
-check_PROGRAMS += test_async_server
 check_PROGRAMS += test_sequential_clients
 check_PROGRAMS += test_simultaneous_clients
 check_PROGRAMS += test_set_ops

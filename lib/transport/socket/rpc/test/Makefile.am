@@ -1,9 +1,5 @@
-AM_CPPFLAGS = -I$(top_srcdir)
-CFLAGS_WARNINGS = -W -Wall -Wstrict-prototypes -Wno-unused-parameter
-CFLAGS_WARNINGS += -Wno-missing-field-initializers
-CFLAGS_OTHER = -pthread
-AM_CFLAGS = $(CFLAGS_WARNINGS) $(CFLAGS_OTHER)
-AM_LDFLAGS = -L$(top_builddir)/lib -lminirpc -lpthread
+AM_CFLAGS += -Wno-missing-field-initializers
+AM_LDFLAGS = $(GLIB2_LIBS) -L$(builddir)/../lib -lminirpc -lpthread
 
 # Build generated XDR sources as a separate convenience library with warnings
 # disabled, since rpcgen-produced code generates warnings
@@ -20,7 +16,7 @@ BUILT_SOURCES = $(GEN_NOXDR_H) $(GEN_XDR_H)
 check_LIBRARIES = libcommon.a libxdr.a
 libxdr_a_SOURCES = proto.mx
 nodist_libxdr_a_SOURCES = $(GEN_XDR)
-libxdr_a_CFLAGS = $(CFLAGS_OTHER)
+libxdr_a_CFLAGS = -pthread
 libcommon_a_SOURCES  = common.c common.h client_sync.c client_async.c
 libcommon_a_SOURCES += server_sync.c server_async.c proto.mx
 nodist_libcommon_a_SOURCES = $(GEN_NOXDR)
@@ -52,5 +48,5 @@ TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
 TESTS = $(check_PROGRAMS)
 EXTRA_DIST = $(TESTS_ENVIRONMENT)
 
-%_minirpc.c %_minirpc.h %_client.h %_server.h %_xdr.c %_xdr.h: %.mx $(top_builddir)/minirpcgen
-	$(top_builddir)/minirpcgen $(filter-out %minirpcgen,$^)
+%_minirpc.c %_minirpc.h %_client.h %_server.h %_xdr.c %_xdr.h: %.mx $(builddir)/../minirpcgen
+	$(builddir)/../minirpcgen $(filter-out %minirpcgen,$^)

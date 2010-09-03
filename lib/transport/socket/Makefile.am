@@ -1,7 +1,7 @@
-SUBDIRS = common storagestub
+SUBDIRS = rpc common storagestub
 
 noinst_LTLIBRARIES = libsocket.la
 
 libsocket_la_SOURCES =
-libsocket_la_LIBADD = common/libdiamondrpc.la storagestub/libstoragestub.la \
-	${MINIRPC_LIBS}
+libsocket_la_LIBADD = rpc/lib/libminirpc.la common/libdiamondrpc.la \
+	storagestub/libstoragestub.la

@@ -1,9 +1,6 @@
 bin_SCRIPTS = minirpcgen
 CLEANFILES = minirpcgen
 
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = minirpc.pc
-
 SUBDIRS = . minirpc lib test
 EXTRA_DIST = COPYING minirpcgen.in
 

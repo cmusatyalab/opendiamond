@@ -25,6 +25,20 @@ AC_PROG_CC_C99
 AM_PROG_LEX
 AM_PATH_PYTHON([2.5])
 
+# Perl
+AC_PATH_PROG([PERL], [perl])
+AC_ARG_VAR([PERL], [path to Perl])
+if test z$PERL = z ; then
+	AC_MSG_ERROR([Perl not found])
+fi
+
+# rpcgen
+AC_PATH_PROG([RPCGEN], [rpcgen])
+AC_ARG_VAR([RPCGEN], [RPC compiler command])
+if test z$RPCGEN = z ; then
+	AC_MSG_ERROR([could not locate rpcgen])
+fi
+
 LT_INIT([disable-static])
 
 # Check for recent pkg-config which supports Requires.private
@@ -45,11 +59,6 @@ AC_SUBST(PKGCONFIG_REQUIRES)
 PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.12, gthread-2.0])
 PKG_CHECK_EXISTS([glib-2.0 < 2.16],
     [ AC_DEFINE([HAVE_GLIB2_OLD], [1], [Have a old version of glib-2.0]) ])
-
-# minirpc
-PKG_CHECK_MODULES(MINIRPC, [minirpc > 0.2])
-MINIRPCGEN="`pkg-config --variable=MINIRPCGEN minirpc`"
-AC_SUBST(MINIRPCGEN)
 
 # libsoup
 PKG_CHECK_EXISTS([libsoup-2.4],
@@ -75,7 +84,7 @@ AC_CHECK_LIB([jpeg], [jpeg_read_scanlines], [true],
 AC_CHECK_HEADERS(jpeglib.h)
 
 # some options and includes
-AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/common -I$(top_srcdir)/lib/libdconfig -I$(top_srcdir)/lib/libfilter -I$(top_srcdir)/lib/libfilterexec -I$(top_srcdir)/lib/liblog -I$(top_srcdir)/lib/libodisk -I$(top_srcdir)/lib/libscope -I$(top_srcdir)/lib/libtools -I$(top_srcdir)/lib/transport/socket/common -I$(top_srcdir)/lib/transport/socket/storagestub -DG_DISABLE_DEPRECATED -DG_DISABLE_SINGLE_INCLUDES'])
+AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/common -I$(top_srcdir)/lib/libdconfig -I$(top_srcdir)/lib/libfilter -I$(top_srcdir)/lib/libfilterexec -I$(top_srcdir)/lib/liblog -I$(top_srcdir)/lib/libodisk -I$(top_srcdir)/lib/libscope -I$(top_srcdir)/lib/libtools -I$(top_srcdir)/lib/transport/socket/rpc -I$(top_srcdir)/lib/transport/socket/common -I$(top_srcdir)/lib/transport/socket/storagestub -DG_DISABLE_DEPRECATED -DG_DISABLE_SINGLE_INCLUDES'])
 
 AC_SUBST(AM_CFLAGS, ['-Wall -Wextra -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -fvisibility=hidden -Wno-unused-parameter -ffunction-sections -fdata-sections $(GLIB2_CFLAGS)'])
 
@@ -104,6 +113,10 @@ lib/libscope/Makefile
 lib/libtools/Makefile
 lib/transport/Makefile
 lib/transport/socket/Makefile
+lib/transport/socket/rpc/Makefile
+lib/transport/socket/rpc/lib/Makefile
+lib/transport/socket/rpc/minirpc/Makefile
+lib/transport/socket/rpc/test/Makefile
 lib/transport/socket/common/Makefile
 lib/transport/socket/storagestub/Makefile
 tests/Makefile

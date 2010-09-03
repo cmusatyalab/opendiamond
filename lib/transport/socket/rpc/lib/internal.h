@@ -23,12 +23,7 @@
 #include <minirpc/protocol.h>
 #include "minirpc_xdr.h"
 
-#include "config.h"
-#ifdef HAVE_VISIBILITY
 #define exported __attribute__ ((visibility ("default")))
-#else
-#define exported
-#endif
 
 #define TRASHBUFSIZE 131072
 

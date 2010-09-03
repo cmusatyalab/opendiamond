@@ -17,7 +17,7 @@ CLEANFILES = ${MINIRPC_GENERATED}
 rpc_client_content_xdr.h: rpc_preamble_xdr.h
 
 %_client.h %_server.h %_minirpc.c %_minirpc.h %_xdr.c %_xdr.h: %.mx
-	$(MINIRPCGEN) $<
+	$(builddir)/../rpc/minirpcgen $<
 
 
 AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)

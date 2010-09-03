@@ -64,9 +64,6 @@ static int minirpc_init(void)
 		goto err_out;
 	}
 
-	/* allow for very large incoming packets */
-	mrpc_set_max_buf_len(conn_set, UINT_MAX);
-
 	if (mrpc_start_dispatch_thread(conn_set) ||
 	    mrpc_start_dispatch_thread(data_set))
 	{

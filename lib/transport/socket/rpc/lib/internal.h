@@ -25,8 +25,6 @@
 
 #define exported __attribute__ ((visibility ("default")))
 
-#define TRASHBUFSIZE 131072
-
 /* Suppport for missing network options. */
 #ifndef MSG_MORE
 #define MSG_MORE 0
@@ -48,7 +46,6 @@ struct mrpc_config {
 	mrpc_accept_fn *accept;
 	mrpc_disconnect_fn *disconnect;
 	mrpc_ioerr_fn *ioerr;
-	unsigned msg_max_buf_len;
 };
 
 struct mrpc_conn_set {
@@ -57,7 +54,6 @@ struct mrpc_conn_set {
 
 	const struct mrpc_protocol *protocol;
 	void *private;
-	char *trashbuf;
 
 	GQueue *event_conns;
 	struct selfpipe *events_notify_pipe;
@@ -112,7 +108,6 @@ struct mrpc_message {
 enum conn_state {
 	STATE_HEADER,
 	STATE_DATA,
-	STATE_INVALID
 };
 
 enum sequence_flags {

@@ -93,16 +93,9 @@ static mrpc_status_t process_incoming_header(struct mrpc_connection *conn)
 		return MINIRPC_ENCODING_ERR;
 	}
 
-	if (conn->recv_msg->hdr.datalen >
-				get_config(conn->set, msg_max_buf_len)) {
-		queue_ioerr_event(conn, "Payload over maximum, seq %u len %u",
-					conn->recv_msg->hdr.sequence,
-					conn->recv_msg->hdr.datalen);
-		conn->recv_msg->recv_error=MINIRPC_ENCODING_ERR;
-	} else if (conn->recv_msg->hdr.datalen) {
+	if (conn->recv_msg->hdr.datalen)
 		mrpc_alloc_message_data(conn->recv_msg,
 					conn->recv_msg->hdr.datalen);
-	}
 	return MINIRPC_OK;
 }
 
@@ -130,14 +123,6 @@ static void try_read_conn(void *data)
 						conn->recv_msg->hdr.datalen -
 						conn->recv_remaining;
 			count=conn->recv_remaining;
-			break;
-		case STATE_INVALID:
-			/* We defer allocation of the trash buffer until the
-			   first time we need it, since usually we won't */
-			if (conn->set->trashbuf == NULL)
-				conn->set->trashbuf=g_malloc(TRASHBUFSIZE);
-			buf=conn->set->trashbuf;
-			count=min(conn->recv_remaining, TRASHBUFSIZE);
 			break;
 		default:
 			assert(0);
@@ -169,13 +154,9 @@ static void try_read_conn(void *data)
 				}
 				conn->recv_remaining =
 						conn->recv_msg->hdr.datalen;
-				if (conn->recv_msg->recv_error)
-					conn->recv_state=STATE_INVALID;
-				else
-					conn->recv_state=STATE_DATA;
+				conn->recv_state=STATE_DATA;
 				break;
 			case STATE_DATA:
-			case STATE_INVALID:
 				process_incoming_message(conn->recv_msg);
 				conn->recv_state=STATE_HEADER;
 				conn->recv_msg=NULL;
@@ -806,10 +787,6 @@ static void *listener(void *data)
 	return NULL;
 }
 
-static const struct mrpc_config default_config = {
-	.msg_max_buf_len = 16384,
-};
-
 exported int mrpc_conn_set_create(struct mrpc_conn_set **new_set,
 			const struct mrpc_protocol *protocol, void *set_data)
 {
@@ -828,7 +805,6 @@ exported int mrpc_conn_set_create(struct mrpc_conn_set **new_set,
 	pthread_mutex_init(&set->config_lock, NULL);
 	pthread_mutex_init(&set->events_lock, NULL);
 	pthread_cond_init(&set->events_threads_cond, NULL);
-	set->config=default_config;
 	set->protocol=protocol;
 	g_atomic_int_set(&set->refs, 1);
 	g_atomic_int_set(&set->user_refs, 1);
@@ -885,6 +861,5 @@ static void conn_set_free(struct mrpc_conn_set *set)
 	selfpipe_destroy(set->shutdown_pipe);
 	g_async_queue_unref(set->listeners);
 	g_queue_free(set->event_conns);
-	g_free(set->trashbuf);
 	g_slice_free(struct mrpc_conn_set, set);
 }

@@ -45,11 +45,3 @@ exported int mrpc_set_ioerr_func(struct mrpc_conn_set *set,
 	set_config(set, ioerr, func);
 	return 0;
 }
-
-exported int mrpc_set_max_buf_len(struct mrpc_conn_set *set, unsigned len)
-{
-	if (set == NULL || len == 0)
-		return EINVAL;
-	set_config(set, msg_max_buf_len, len);
-	return 0;
-}

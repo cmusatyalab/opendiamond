@@ -184,8 +184,6 @@ mrpc_status_t unformat_request(struct mrpc_message *msg, void **result)
 	unsigned size;
 	mrpc_status_t ret;
 
-	if (msg->recv_error)
-		return msg->recv_error;
 	if (msg->conn->set->protocol->receiver_request_info(msg->hdr.cmd,
 				&type, &size))
 		return MINIRPC_ENCODING_ERR;

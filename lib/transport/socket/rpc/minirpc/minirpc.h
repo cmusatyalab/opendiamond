@@ -257,27 +257,6 @@ int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
 int mrpc_set_ioerr_func(struct mrpc_conn_set *set, mrpc_ioerr_fn *func);
 
 /**
- * @brief Set the maximum length of a received message payload
- * @param	set
- *	The connection set to configure
- * @param	len
- *	The maximum payload length in bytes.  Must be greater than zero.
- * @stdreturn
- *
- * Set the maximum length, in bytes, of an XDR-encoded message received from
- * the remote system.  The default value is 16384.  Requests exceeding this
- * threshold will be rejected and ::MINIRPC_ENCODING_ERR will be returned to
- * the sender. Replies exceeding this threshold will be treated as though the
- * remote system returned ::MINIRPC_ENCODING_ERR.  Unidirectional messages
- * exceeding the threshold will be dropped.
- *
- * This is intended only as a denial-of-service prevention measure, and
- * should be set to a value larger than any legitimate message possible
- * in your protocol.
- */
-int mrpc_set_max_buf_len(struct mrpc_conn_set *set, unsigned len);
-
-/**
  * @}
  * @addtogroup conn
  * @{

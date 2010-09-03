@@ -65,16 +65,6 @@ void msg_buffer_sync(struct mrpc_connection *conn);
 void sync_client_set_ops(struct mrpc_connection *conn);
 void sync_client_run(struct mrpc_connection *conn);
 
-/* client_async.c */
-void loop_int_async(struct mrpc_connection *conn);
-void check_int_async(struct mrpc_connection *conn);
-void error_async(struct mrpc_connection *conn);
-void trigger_callback_async(struct mrpc_connection *conn);
-void async_client_init(void);
-void async_client_finish(void);
-void async_client_set_ops(struct mrpc_connection *conn);
-void async_client_run(struct mrpc_connection *conn);
-
 /* server_sync.c */
 void sync_server_set_ops(struct mrpc_connection *conn);
 void *sync_server_accept(void *set_data, struct mrpc_connection *conn,

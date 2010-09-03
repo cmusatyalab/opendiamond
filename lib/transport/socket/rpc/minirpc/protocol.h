@@ -39,12 +39,6 @@ struct mrpc_protocol {
 				unsigned *size);
 };
 
-typedef void (reply_callback_fn)(void);
-typedef void (long_reply_callback_fn)(void *conn_private, void *msg_private,
-			mrpc_status_t status, void *data);
-typedef void (short_reply_callback_fn)(void *conn_private, void *msg_private,
-			mrpc_status_t status);
-
 /* connection.c */
 int mrpc_conn_set_operations(struct mrpc_connection *conn,
 			const struct mrpc_protocol *protocol, const void *ops);
@@ -53,9 +47,6 @@ int mrpc_conn_set_operations(struct mrpc_connection *conn,
 mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
 			struct mrpc_connection *conn, int cmd, void *in,
 			void **out);
-mrpc_status_t mrpc_send_request_async(const struct mrpc_protocol *protocol,
-			struct mrpc_connection *conn, int cmd,
-			reply_callback_fn *callback, void *private, void *in);
 mrpc_status_t mrpc_send_request_noreply(const struct mrpc_protocol *protocol,
 			struct mrpc_connection *conn, int cmd, void *in);
 mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol, int cmd,

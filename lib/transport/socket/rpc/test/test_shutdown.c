@@ -8,6 +8,7 @@
  * the file COPYING.
  */
 
+#include <unistd.h>
 #include <semaphore.h>
 #include <pthread.h>
 #include <glib.h>
@@ -36,13 +37,6 @@ void *do_accept(void *set_data, struct mrpc_connection *conn,
 	if (proto_server_set_operations(conn, &ops))
 		die("Error setting operations struct");
 	return conn;
-}
-
-void ping_cb(void *conn_private, void *msg_private, mrpc_status_t status)
-{
-	if (status != MINIRPC_NETWORK_FAILURE)
-		die("Async ping received %d", status);
-	sem_post(&complete);
 }
 
 void *do_sync_ping(void *connp)
@@ -75,7 +69,6 @@ int main(int argc, char **argv)
 	struct mrpc_connection *conn;
 	char *port;
 	int ret;
-	int i;
 	pthread_t thr;
 
 	expect(sem_init(&accepted, 0, 0), 0);
@@ -96,15 +89,14 @@ int main(int argc, char **argv)
 	if (ret)
 		die("%s", strerror(ret));
 
-	expect(proto_ping_async(conn, ping_cb, NULL), MINIRPC_OK);
 	pthread_create(&thr, NULL, do_sync_ping, conn);
 	expect(pthread_detach(thr), 0);
 	sem_wait(&ready);
+	usleep(500000);
 	expect(mrpc_conn_close(conn), 0);
 	expect(proto_ping(conn), MINIRPC_NETWORK_FAILURE);
 	expect(mrpc_conn_close(conn), EALREADY);
-	for (i=0; i<2; i++)
-		sem_wait(&complete);
+	sem_wait(&complete);
 	mrpc_conn_unref(conn);
 	mrpc_conn_set_unref(cset);
 	sem_wait(&accepted);

@@ -159,7 +159,6 @@ int main(int argc, char **argv)
 	expect(mrpc_connect(conn, AF_UNSPEC, NULL, port), 0);
 	expect(proto_client_set_operations(NULL, NULL), EINVAL);
 	expect(proto_ping(NULL), MINIRPC_INVALID_ARGUMENT);
-	expect(proto_ping_async(conn, NULL, NULL), MINIRPC_INVALID_ARGUMENT);
 	expect(proto_notify(NULL, NULL), MINIRPC_INVALID_ARGUMENT);
 	ipp=(void*)1;
 	expect(proto_loop_int(conn, NULL, &ipp), MINIRPC_ENCODING_ERR);
@@ -172,9 +171,6 @@ int main(int argc, char **argv)
 	expect(proto_ping_send_async_reply_error(NULL, 0),
 				MINIRPC_INVALID_ARGUMENT);
 	expect(proto_client_check_int(conn, NULL), MINIRPC_INVALID_PROTOCOL);
-	expect(proto_client_check_int_async(conn,
-				(proto_client_check_int_callback_fn*)1,
-				NULL, NULL), MINIRPC_INVALID_PROTOCOL);
 	expect(mrpc_conn_close(conn), 0);
 	mrpc_conn_unref(conn);
 

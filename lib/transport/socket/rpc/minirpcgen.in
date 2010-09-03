@@ -204,49 +204,6 @@ mrpc_status_t ${base}_$func(struct mrpc_connection *conn$inarg$outarg);
 EOF
 }
 
-sub gen_sender_stub_typedef_h {
-	my $fh = shift;
-	my $func = shift;
-	my $out = shift;
-
-	my $outarg = argument($out, "*reply");
-
-	print $fh wrapc(<<EOF);
-typedef void (${base}_${func}_callback_fn)(void *conn_private, void *msg_private, mrpc_status_t status$outarg);
-EOF
-}
-
-sub gen_sender_stub_async_c {
-	my $fh = shift;
-	my $role = shift;
-	my $func = shift;
-	my $in = shift;
-
-	my $inarg = argument($in, "*in");
-	my $inparam = parameter($in, "in");
-	my $antirole = antirole($role);
-
-	print $fh wrapc(<<EOF);
-
-mrpc_status_t ${base}_${func}_async(struct mrpc_connection *conn, ${base}_${func}_callback_fn *callback, void *private$inarg)
-{
-	return mrpc_send_request_async(${base}_$antirole, conn, nr_${base}_$func, (reply_callback_fn *)callback, private, $inparam);
-}
-EOF
-}
-
-sub gen_sender_stub_async_h {
-	my $fh = shift;
-	my $func = shift;
-	my $in = shift;
-
-	my $inarg = argument($in, "*in");
-
-	print $fh wrapc(<<EOF);
-mrpc_status_t ${base}_${func}_async(struct mrpc_connection *conn, ${base}_${func}_callback_fn *callback, void *private$inarg);
-EOF
-}
-
 sub gen_receiver_stub_c {
 	my $fh = shift;
 	my $role = shift;
@@ -575,33 +532,6 @@ sub genstubs_sync {
 	}
 }
 
-sub genstubs_sender_async {
-	my $role = shift;
-	my $procs = shift;
-	my $cf = shift;
-	my $hf = shift;
-
-	my @keys;
-	my $num;
-	my $func;
-	my $arg;
-	my $ret;
-
-	@keys = sort {$a <=> $b} grep ($_ >= 0, keys %$procs);
-	return if !@keys;
-	print $hf "\n";
-	foreach $num (@keys) {
-		($func, $arg, $ret) = @{$procs->{$num}}[2..5];
-		gen_sender_stub_async_c($cf, $role, $func, $arg);
-		gen_sender_stub_typedef_h($hf, $func, $ret);
-	}
-	print $hf "\n";
-	foreach $num (@keys) {
-		($func, $arg, $ret) = @{$procs->{$num}}[2..5];
-		gen_sender_stub_async_h($hf, $func, $arg);
-	}
-}
-
 sub genstubs_receiver_async {
 	my $role = shift;
 	my $procs = shift;
@@ -756,10 +686,6 @@ sub genstubs {
 	foreach $role ("server", "client") {
 		$hf = ($role eq "server") ? *CHF : *SHF;
 		genstubs_sync($role, $procSets{$role}, *MCF, $hf);
-	}
-	foreach $role ("server", "client") {
-		$hf = ($role eq "server") ? *CHF : *SHF;
-		genstubs_sender_async($role, $procSets{$role}, *MCF, $hf);
 	}
 	foreach $role ("server", "client") {
 		$hf = ($role eq "server") ? *SHF : *CHF;

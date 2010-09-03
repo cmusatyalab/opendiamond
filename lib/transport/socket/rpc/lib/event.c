@@ -302,44 +302,6 @@ static void dispatch_request(struct mrpc_event *event)
 	}
 }
 
-static void run_reply_callback(struct mrpc_event *event)
-{
-	struct mrpc_message *reply=event->msg;
-	long_reply_callback_fn *longfn =
-				(long_reply_callback_fn *) event->callback;
-	short_reply_callback_fn *shortfn =
-				(short_reply_callback_fn *) event->callback;
-	void *out=NULL;
-	xdrproc_t type;
-	unsigned size;
-	mrpc_status_t ret;
-
-	if (reply->conn->set->protocol->sender_reply_info(reply->hdr.cmd,
-				&type, &size)) {
-		/* Can't happen if the info tables are well-formed */
-		queue_ioerr_event(reply->conn, "Internal error running reply "
-					"callback, seq %u cmd %d status %d",
-					reply->hdr.sequence, reply->hdr.cmd,
-					reply->hdr.status);
-		mrpc_free_message(reply);
-		return;
-	}
-	ret=unformat_reply(reply, &out);
-	/* On x86, we could unconditionally call the four-argument form, even
-	   if the function we're calling only expects three arguments, since
-	   the extra argument would merely languish on the stack.  But I don't
-	   want to make assumptions about the calling convention of the machine
-	   architecture.  This should ensure that a function expecting three
-	   arguments gets three, and a function expecting four arguments gets
-	   four. */
-	if (size)
-		longfn(reply->conn->private, event->private, ret, out);
-	else
-		shortfn(reply->conn->private, event->private, ret);
-	mrpc_free_argument(type, out);
-	mrpc_free_message(reply);
-}
-
 static void dispatch_event(struct mrpc_event *event)
 {
 	struct mrpc_connection *conn=event->conn;
@@ -368,9 +330,6 @@ static void dispatch_event(struct mrpc_event *event)
 			_mrpc_release_event(event);
 			destroy_event(event);
 			goto out;
-		case EVENT_REPLY:
-			event->msg->hdr.status=MINIRPC_NETWORK_FAILURE;
-			break;
 		default:
 			break;
 		}
@@ -386,9 +345,6 @@ static void dispatch_event(struct mrpc_event *event)
 		break;
 	case EVENT_REQUEST:
 		dispatch_request(event);
-		break;
-	case EVENT_REPLY:
-		run_reply_callback(event);
 		break;
 	case EVENT_DISCONNECT:
 		disconnect=get_config(conn->set, disconnect);

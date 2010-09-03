@@ -18,17 +18,8 @@
 struct pending_reply {
 	unsigned sequence;
 	int cmd;
-	int async;
-	union {
-		struct {
-			sem_t *sem;
-			struct mrpc_message **reply;
-		} sync;
-		struct {
-			reply_callback_fn *callback;
-			void *private;
-		} async;
-	} data;
+	sem_t *sem;
+	struct mrpc_message **reply;
 };
 
 struct mrpc_message *mrpc_alloc_message(struct mrpc_connection *conn)
@@ -84,19 +75,9 @@ static struct pending_reply *pending_alloc(struct mrpc_message *request)
 static void pending_dispatch(struct pending_reply *pending,
 			struct mrpc_message *msg)
 {
-	struct mrpc_event *event;
-
-	if (pending->async) {
-		event=mrpc_alloc_message_event(msg, EVENT_REPLY);
-		event->callback=pending->data.async.callback;
-		event->private=pending->data.async.private;
-		queue_event(event);
-	} else {
-		/* We need the memory barrier */
-		g_atomic_pointer_set(pending->data.sync.reply, msg);
-		sem_post(pending->data.sync.sem);
-	}
-	pending_free(pending);
+	/* We need the memory barrier */
+	g_atomic_pointer_set(pending->reply, msg);
+	sem_post(pending->sem);
 }
 
 static mrpc_status_t send_request_pending(struct mrpc_message *request,
@@ -162,9 +143,8 @@ exported mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
 		return ret;
 	sem_init(&sem, 0, 0);
 	pending=pending_alloc(request);
-	pending->async=0;
-	pending->data.sync.sem=&sem;
-	pending->data.sync.reply=&reply;
+	pending->sem=&sem;
+	pending->reply=&reply;
 	ret=send_request_pending(request, pending);
 	if (ret) {
 		sem_destroy(&sem);
@@ -183,29 +163,6 @@ exported mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
 		ret=unformat_reply(reply, out);
 	mrpc_free_message(reply);
 	return ret;
-}
-
-exported mrpc_status_t mrpc_send_request_async(
-			const struct mrpc_protocol *protocol,
-			struct mrpc_connection *conn, int cmd,
-			reply_callback_fn *callback, void *private, void *in)
-{
-	struct mrpc_message *msg;
-	struct pending_reply *pending;
-	mrpc_status_t ret;
-
-	if (conn == NULL || cmd <= 0 || callback == NULL)
-		return MINIRPC_INVALID_ARGUMENT;
-	if (protocol != conn->set->protocol)
-		return MINIRPC_INVALID_PROTOCOL;
-	ret=format_request(conn, cmd, in, &msg);
-	if (ret)
-		return ret;
-	pending=pending_alloc(msg);
-	pending->async=1;
-	pending->data.async.callback=callback;
-	pending->data.async.private=private;
-	return send_request_pending(msg, pending);
 }
 
 exported mrpc_status_t mrpc_send_request_noreply(

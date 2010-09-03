@@ -73,7 +73,6 @@ struct mrpc_conn_set {
 enum event_type {
 	EVENT_ACCEPT,
 	EVENT_REQUEST,
-	EVENT_REPLY,
 	EVENT_DISCONNECT,
 	EVENT_IOERR,
 };
@@ -88,10 +87,6 @@ struct mrpc_event {
 
 	/* request/reply */
 	struct mrpc_message *msg;
-
-	/* reply */
-	reply_callback_fn *callback;
-	void *private;
 
 	/* message errors */
 	char *errstring;

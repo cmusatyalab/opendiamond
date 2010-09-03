@@ -22,11 +22,9 @@ BUILT_SOURCES = minirpc_xdr.h
 lib_LTLIBRARIES = libminirpc.la
 libminirpc_la_SOURCES = config.c connection.c message.c event.c serialize.c
 libminirpc_la_SOURCES += xdr_len.c selfpipe.c pollset.c pollset_poll.c util.c
-libminirpc_la_SOURCES += internal.h pollset_impl.h version.h
+libminirpc_la_SOURCES += internal.h pollset_impl.h
 libminirpc_la_LIBADD = libminirpcxdr.la
 libminirpc_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(LIBTOOL_VERSION)
-CLEANFILES += version.h
-BUILT_SOURCES += version.h
 
 %_xdr.c: %.x
 	rm -f $@
@@ -37,10 +35,6 @@ BUILT_SOURCES += version.h
 %_xdr.h: %.x
 	rm -f $@
 	$(RPCGEN) -h -o $@ $^
-
-version.h: Makefile
-	@echo "Generating $@"
-	@echo "#define VERSION_CODE $(VERSION_CODE)" > $@
 
 # Libtool sets the .la and .so files executable, for reasons passing
 # understanding.

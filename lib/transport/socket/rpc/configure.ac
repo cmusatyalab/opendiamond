@@ -65,14 +65,6 @@ LIBS="$LIBS $GLIB_LIBS $GTHREAD_LIBS"
 # Checks for supported compiler options.
 CHECK_COMPILER_OPTION([-fvisibility=hidden], [HAVE_VISIBILITY])
 
-# Generate the library version code.
-VERSION_CODE=`echo $PACKAGE_VERSION | tr . ' ' | {
-	read maj min rev
-	test -z "$rev" && rev=0
-	echo $((($maj << 24) + ($min << 16) + ($rev << 8)))
-}`
-AC_SUBST([VERSION_CODE])
-
 AC_CONFIG_FILES([minirpc.pc
 		Makefile
 		minirpc/Makefile

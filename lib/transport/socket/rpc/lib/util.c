@@ -15,7 +15,6 @@
 #include <pthread.h>
 #define MINIRPC_INTERNAL
 #include "internal.h"
-#include "version.h"
 
 static void _mrpc_init(void)
 {
@@ -67,11 +66,6 @@ int block_signals(void)
 void assert_callback_func(void *ignored)
 {
 	assert(0);
-}
-
-exported int mrpc_version_code(void)
-{
-	return VERSION_CODE;
 }
 
 exported const char *mrpc_strerror(mrpc_status_t status)

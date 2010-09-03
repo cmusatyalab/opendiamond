@@ -371,7 +371,6 @@ exported int mrpc_conn_create(struct mrpc_connection **new_conn,
 static int _mrpc_bind_fd(struct mrpc_connection *conn, int addr_family, int fd)
 {
 	int ret;
-	int keepalive=get_config(conn->set, keepalive_enabled);
 
 	pthread_mutex_lock(&conn->sequence_lock);
 	if (conn->sequence_flags & SEQ_HAVE_FD) {
@@ -379,28 +378,20 @@ static int _mrpc_bind_fd(struct mrpc_connection *conn, int addr_family, int fd)
 		goto out;
 	}
 	if (addr_family == AF_INET || addr_family == AF_INET6) {
-		if (keepalive) {
-			ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPIDLE,
-						get_config(conn->set,
-						keepalive_time));
-			if (ret)
-				goto out;
-			ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPCNT,
-						get_config(conn->set,
-						keepalive_count));
-			if (ret)
-				goto out;
-			ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPINTVL,
-						get_config(conn->set,
-						keepalive_interval));
-			if (ret)
-				goto out;
-		}
+		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPIDLE, 7200);
+		if (ret)
+			goto out;
+		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPCNT, 9);
+		if (ret)
+			goto out;
+		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPINTVL, 75);
+		if (ret)
+			goto out;
 		ret=setsockoptval(fd, IPPROTO_TCP, TCP_NODELAY, 1);
 		if (ret)
 			goto out;
 	}
-	ret=setsockoptval(fd, SOL_SOCKET, SO_KEEPALIVE, keepalive);
+	ret=setsockoptval(fd, SOL_SOCKET, SO_KEEPALIVE, 1);
 	if (ret)
 		goto out;
 	ret=set_nonblock(fd);
@@ -546,8 +537,7 @@ static void try_accept(void *data)
 			if (errno != EAGAIN) {
 				pollset_modify(set->pollset, lnr->fd, 0);
 				pollset_set_timer(set->pollset, lnr->fd,
-							get_config(set,
-							accept_backoff));
+							1000);
 			}
 			break;
 		}
@@ -707,7 +697,7 @@ exported int mrpc_listen(struct mrpc_conn_set *set, int family,
 			close(fd);
 			continue;
 		}
-		if (listen(fd, get_config(set, listen_backlog))) {
+		if (listen(fd, 16)) {
 			ret=errno;
 			close(fd);
 			continue;
@@ -818,12 +808,6 @@ static void *listener(void *data)
 
 static const struct mrpc_config default_config = {
 	.msg_max_buf_len = 16384,
-	.listen_backlog = 16,
-	.accept_backoff = 1000,
-	.keepalive_enabled = 1,
-	.keepalive_time = 7200,
-	.keepalive_count = 9,
-	.keepalive_interval = 75,
 };
 
 exported int mrpc_conn_set_create(struct mrpc_conn_set **new_set,

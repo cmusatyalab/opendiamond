@@ -53,39 +53,3 @@ exported int mrpc_set_max_buf_len(struct mrpc_conn_set *set, unsigned len)
 	set_config(set, msg_max_buf_len, len);
 	return 0;
 }
-
-exported int mrpc_set_listen_backlog(struct mrpc_conn_set *set,
-			unsigned backlog)
-{
-	if (set == NULL || backlog == 0)
-		return EINVAL;
-	set_config(set, listen_backlog, backlog);
-	return 0;
-}
-
-exported int mrpc_set_accept_backoff(struct mrpc_conn_set *set, unsigned ms)
-{
-	if (set == NULL || ms == 0)
-		return EINVAL;
-	set_config(set, accept_backoff, ms);
-	return 0;
-}
-
-exported int mrpc_set_keepalive_enabled(struct mrpc_conn_set *set, int enabled)
-{
-	if (set == NULL)
-		return EINVAL;
-	set_config(set, keepalive_enabled, enabled);
-	return 0;
-}
-
-exported int mrpc_set_keepalive_parameters(struct mrpc_conn_set *set,
-			unsigned idletime, unsigned count, unsigned interval)
-{
-	if (set == NULL || idletime == 0 || count == 0 || interval == 0)
-		return EINVAL;
-	set_config(set, keepalive_time, idletime);
-	set_config(set, keepalive_count, count);
-	set_config(set, keepalive_interval, interval);
-	return 0;
-}

@@ -82,8 +82,6 @@ int main(int argc, char **argv)
 	expect(mrpc_set_accept_func(sset, NULL), EINVAL);
 	expect(mrpc_set_accept_func(cset, sync_server_accept), EINVAL);
 	expect(mrpc_set_max_buf_len(cset, 0), EINVAL);
-	expect(mrpc_set_listen_backlog(cset, 0), EINVAL);
-	expect(mrpc_set_accept_backoff(cset, 0), EINVAL);
 
 	if (mrpc_set_accept_func(sset, sync_server_accept))
 		die("Couldn't set accept func");

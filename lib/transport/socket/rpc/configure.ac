@@ -38,10 +38,6 @@ if test z$PERL = z ; then
 	AC_MSG_ERROR([Perl not found])
 fi
 
-AC_PATH_PROG([DOXYGEN], [doxygen])
-AC_ARG_VAR([DOXYGEN], [path to Doxygen])
-AM_CONDITIONAL([HAVE_DOXYGEN], [test z$DOXYGEN != z])
-
 AC_ARG_ENABLE([valgrind], [AS_HELP_STRING([--enable-valgrind],
 			[run test suite under Valgrind [default=no]])],,
 			[enable_valgrind=no])
@@ -93,8 +89,6 @@ AC_SUBST([VERSION_CODE])
 
 AC_CONFIG_FILES([minirpc.pc
 		Makefile
-		doc/Makefile
-		example/Makefile
 		minirpc/Makefile
 		lib/Makefile
 		test/Makefile])

@@ -1,6 +1,0 @@
-*_client.h
-*_server.h
-*_minirpc.[ch]
-*_xdr.[ch]
-example_client
-example_server

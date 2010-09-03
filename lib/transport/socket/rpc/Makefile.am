@@ -4,8 +4,8 @@ CLEANFILES = minirpcgen
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = minirpc.pc
 
-SUBDIRS = . minirpc lib example doc test
-EXTRA_DIST = COPYING CHANGES minirpcgen.in
+SUBDIRS = . minirpc lib test
+EXTRA_DIST = COPYING minirpcgen.in
 
 minirpcgen: minirpcgen.in Makefile
 	@echo "Generating $@ from $<"

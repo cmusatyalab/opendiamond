@@ -19,11 +19,6 @@
 #include "pollset_impl.h"
 
 extern const struct pollset_ops *ops_poll;
-#ifdef HAVE_EPOLL
-extern const struct pollset_ops *ops_epoll;
-#else
-const struct pollset_ops *ops_epoll = NULL;
-#endif
 
 struct timer_traverse_data {
 	struct pollset *pset;
@@ -84,15 +79,10 @@ int pollset_alloc(struct pollset **new)
 	pset->dead=g_queue_new();
 	pset->timers=g_tree_new(timeval_compare);
 	pset->expired=g_queue_new();
-	pset->ops = ops_epoll ?: ops_poll;
-again:
+	pset->ops = ops_poll;
 	ret=pset->ops->create(pset);
-	if (ret == ENOSYS && pset->ops == ops_epoll) {
-		pset->ops=ops_poll;
-		goto again;
-	} else if (ret) {
+	if (ret)
 		goto cleanup;
-	}
 	ret=pollset_add(pset, selfpipe_fd(pset->wakeup), POLLSET_READABLE,
 				NULL, NULL, NULL, NULL, assert_callback_func,
 				NULL);

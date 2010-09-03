@@ -65,11 +65,6 @@ LIBS="$LIBS $GLIB_LIBS $GTHREAD_LIBS"
 # Checks for supported compiler options.
 CHECK_COMPILER_OPTION([-fvisibility=hidden], [HAVE_VISIBILITY])
 
-# Check for epoll support.
-CHECK_LINK([for epoll], [AC_LANG_PROGRAM([#include <sys/epoll.h>],
-			[int fd=epoll_create(8)])], HAVE_EPOLL,
-			[Define if the C library supports the epoll system calls.])
-
 #check for x_getint32 field.
 CHECK_LINK([for x_getint32 field],
 	   [AC_LANG_PROGRAM([

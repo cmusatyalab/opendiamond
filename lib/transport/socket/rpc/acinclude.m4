@@ -27,19 +27,3 @@ AC_DEFUN([CHECK_COMPILER_OPTION], [
 	AM_CONDITIONAL([$2], [test z$result = zok])
 	CFLAGS="$saved_cflags"
 ])
-
-
-# CHECK_LINK([MESSAGE], [TEST_PROGRAM], [AM_CONDITIONAL_AND_DEFINE_NAME],
-#               [DEFINE_DESCRIPTION])
-# -----------------------------------------------------------------------
-AC_DEFUN([CHECK_LINK], [
-	AC_MSG_CHECKING($1)
-	AC_LINK_IFELSE([$2], [result=ok], [result=bad])
-	if test z$result = zok ; then
-		AC_MSG_RESULT([yes])
-		AC_DEFINE([$3], 1, [$4])
-	else
-		AC_MSG_RESULT([no])
-	fi
-	AM_CONDITIONAL([$3], [test z$result = zok])
-])

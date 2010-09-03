@@ -65,15 +65,6 @@ LIBS="$LIBS $GLIB_LIBS $GTHREAD_LIBS"
 # Checks for supported compiler options.
 CHECK_COMPILER_OPTION([-fvisibility=hidden], [HAVE_VISIBILITY])
 
-#check for x_getint32 field.
-CHECK_LINK([for x_getint32 field],
-	   [AC_LANG_PROGRAM([
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-bool_t getint32(XDR *xdrs, int32_t *ip) { return 0;}],
-	   [struct xdr_ops ops; ops.x_getint32 = getint32;])], HAVE_X_GETINT32,
-           [Define if xdr_ops struct includes a x_getint32 field.])
-
 # Generate the library version code.
 VERSION_CODE=`echo $PACKAGE_VERSION | tr . ' ' | {
 	read maj min rev

@@ -26,17 +26,6 @@ libcommon_a_SOURCES += server_sync.c server_async.c proto.mx
 nodist_libcommon_a_SOURCES = $(GEN_NOXDR)
 LDADD = libcommon.a libxdr.a
 
-check_SCRIPTS = runtest.sh
-CLEANFILES += $(check_SCRIPTS)
-EXTRA_DIST = $(check_SCRIPTS:=.in) valgrind.supp
-$(check_SCRIPTS): %: %.in Makefile
-	@echo "Generating $@ from $<"
-	@sed -e "s=!!ENABLE_VALGRIND!!=$(enable_valgrind)=g" \
-				-e "s=!!VALGRIND!!=$(VALGRIND)=g" \
-				-e "s=!!LIBTOOL!!=$(LIBTOOL)=g" \
-				-e "s=!!SRCDIR!!=$(srcdir)=g" $< > $@
-	@chmod +x $@
-
 check_PROGRAMS  = test_basic
 check_PROGRAMS += test_async_server
 check_PROGRAMS += test_async_client
@@ -59,8 +48,9 @@ check_PROGRAMS += test_protocol_err
 check_PROGRAMS += test_fd_limit
 check_PROGRAMS += test_throughput
 
-TESTS_ENVIRONMENT = $(builddir)/runtest.sh
+TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
 TESTS = $(check_PROGRAMS)
+EXTRA_DIST = $(TESTS_ENVIRONMENT)
 
 %_minirpc.c %_minirpc.h %_client.h %_server.h %_xdr.c %_xdr.h: %.mx $(top_builddir)/minirpcgen
 	$(top_builddir)/minirpcgen $(filter-out %minirpcgen,$^)

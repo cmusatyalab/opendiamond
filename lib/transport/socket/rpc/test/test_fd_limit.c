@@ -131,14 +131,6 @@ int main(int argc, char **argv)
 	int i;
 	int j;
 
-	/* Valgrind keeps a reserved FD range at the upper end of the FD
-	   space, but doesn't use all of the FDs in it.  If accept() returns
-	   an fd inside this space, Valgrind converts the return value into
-	   EMFILE and closes the fd (!!!).  This causes the client to receive
-	   unexpected connection closures and makes the test fail.  So we
-	   don't run this test under Valgrind. */
-	exclude_valgrind();
-
 	set_max_files();
 
 	for (i=0; i<MULTIPLE; i++) {

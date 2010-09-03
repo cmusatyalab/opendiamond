@@ -13,7 +13,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "common.h"
-#include "config.h"
 
 static struct {
 	pthread_mutex_t lock;
@@ -43,13 +42,6 @@ void _message(const char *file, int line, const char *func, const char *fmt,
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
 	va_end(ap);
-}
-
-void exclude_valgrind(void)
-{
-#ifdef ENABLE_VALGRIND
-	exit(77);
-#endif
 }
 
 static void *monitored_dispatcher(void *data)

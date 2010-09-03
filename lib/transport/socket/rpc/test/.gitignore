@@ -1,0 +1,11 @@
+proto_minirpc.c
+proto_minirpc.h
+proto_client.h
+proto_server.h
+proto_xdr.c
+proto_xdr.h
+libcommon.a
+libxdr.a
+test_*
+!test_*.[ch]
+runtest.sh

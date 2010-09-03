@@ -1,0 +1,25 @@
+enum example_color {
+	RED = 0,
+	ORANGE = 1,
+	YELLOW = 2,
+	GREEN = 3,
+	BLUE = 4,
+	INDIGO = 5,
+	VIOLET = 6
+};
+
+struct example_color_choice {
+	enum example_color acceptable<>;
+	enum example_color preferred;
+};
+
+typedef int example_count;
+
+serverprocs {
+	choose_color(example_color_choice) = 1;
+	get_num_colors(void, example_count) = 2;
+}
+
+servermsgs {
+	crayon_selected(example_color) = 1;
+}

@@ -1,0 +1,14 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@
+includedir=@includedir@
+
+MINIRPCGEN=${bindir}/minirpcgen
+
+Name: miniRPC
+Description: TCP RPC library with asynchronous operations
+Version: @VERSION@
+Requires.private: glib-2.0 >= 2.10, gthread-2.0
+Libs: -L${libdir} -lminirpc
+Cflags: -I${includedir} -pthread

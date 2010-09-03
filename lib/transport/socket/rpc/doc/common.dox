@@ -1,0 +1,131 @@
+/*
+ * miniRPC - TCP RPC library with asynchronous operations
+ *
+ * Copyright (C) 2007-2008 Carnegie Mellon University
+ *
+ * This code is distributed "AS IS" without warranty of any kind under the
+ * terms of the GNU Lesser General Public License version 2.1, as shown in
+ * the file COPYING.
+ */
+
+/**
+
+@defgroup common Protocol-Independent API
+@brief The protocol-independent parts of the miniRPC library
+@{
+
+You must include @c <minirpc/minirpc.h> in order to use the
+protocol-independent API.
+
+@defgroup setup Initialization and Teardown
+miniRPC maintains the notion of a <em>connection set</em>, which is a group
+of connections sharing common configuration and infrastructure.  A connection
+set includes the following:
+
+- A background thread which handles network I/O for the associated
+connections.  This thread is started when the connection set is created,
+and stopped when it is destroyed.
+- A protocol role
+- Configuration parameters, such as the maximum message size
+- Callback functions for notification of events such as a newly-accepted
+connection or a connection shutdown
+
+An application can create as many connection sets as it wishes, but most
+applications will need only one.  In most cases, all connections with the
+same protocol role can be placed into the same connection set.
+
+
+@defgroup conn Connection Setup and Teardown
+miniRPC provides wrapper functions to handle connection setup and teardown.
+
+Normally, clients create connections using mrpc_connect().  Servers arrange
+to accept connections by calling mrpc_listen() one or more times; when
+a connection arrives on a listening socket, the connection set's accept
+function will be called to notify the application of the new connection.
+Either end of a connection (client or server) can call mrpc_conn_close()
+to close an existing connection; in addition, servers can call
+mrpc_listen_close() to close the listening sockets previously created with
+mrpc_listen().
+
+For cases in which miniRPC's connection setup code is not sufficient,
+miniRPC provides the mrpc_bind_fd() function.  This function arranges for an
+existing socket to be serviced by miniRPC, and can be used if the application
+wishes to handle connection setup itself.  This can be used, for example, to
+service Unix domain sockets with miniRPC.
+
+
+@defgroup event Event Processing
+miniRPC handles application callbacks by means of @em events.  When miniRPC
+wishes to fire a callback, it queues an event to be processed by a dispatcher
+thread.  These dispatcher threads are provided by the application, and are
+associated with a particular connection set.
+
+miniRPC places few restrictions on the application's arrangement of dispatcher
+threads.  miniRPC provides several alternative interfaces for dispatching; the
+application can choose the one it needs, or can even alternate between them.
+An application can have as many dispatchers as it wants.
+
+Because application callbacks execute only in dispatcher threads, the
+application can decide how long a callback can take to complete.  For example,
+a server providing a compute-intensive procedure call can choose to
+do its computation directly within the procedure handler, and simply create
+a large number of dispatcher threads to ensure parallelism.  Or, it can
+return quickly from the procedure handler, finish processing in a dedicated
+thread, and return the result asynchronously.
+
+By default, miniRPC does not fire multiple events at a time for a given
+connection, so the application need not handle concurrency within each
+connection.  However, the application can override this behavior if it wishes.
+Interfaces are also provided to request that miniRPC stop (or resume)
+dispatching events for a given connection.
+
+Dispatcher threads are subject to the following constraints:
+
+- Every connection set must dispatch events.  This means that at a minimum,
+the application must call mrpc_start_dispatch_thread() against a new
+connection set.
+
+- The dispatcher cannot be called recursively: event handlers cannot call
+the dispatch functions.
+
+- Any thread which expects to dispatch events must register its intent with
+mrpc_dispatcher_add().  When the thread is no longer dispatching events,
+it must so indicate with mrpc_dispatcher_remove().
+
+The application may dispatch using one or more of the following mechanisms:
+
+- Start one or more dispatcher threads with mrpc_start_dispatch_thread().
+This is the simplest method.
+
+- Start its own threads, which do nothing except dispatch for a given
+connection set.  The application may choose this method if it needs to do
+extra initialization or teardown from the context of its dispatcher threads.
+The dispatcher threads will call mrpc_dispatcher_add(), mrpc_dispatch_loop(),
+and mrpc_dispatcher_remove().
+
+- Custom dispatching.  This model is the most flexible but requires slightly
+more code.  One or more application threads can each dispatch for one or
+more connection sets, while also handling non-miniRPC events (such as UI
+updates) originating elsewhere in the application.  The relevant API calls
+are mrpc_get_event_fd(), mrpc_dispatcher_add(), mrpc_dispatch(),
+and mrpc_dispatcher_remove().
+
+
+@defgroup error Error Codes
+miniRPC functions return two distinct classes of error codes.  Most
+protocol-independent functions return an int: 0 for success, or a positive
+POSIX error code (e.g. EINVAL) on error.  Most protocol-dependent functions
+return an ::mrpc_status_t, which is defined as follows:
+
+-# Zero (or ::MINIRPC_OK) indicates success, while a nonzero value indicates
+an error.
+-# Negative error codes are errors produced by miniRPC; these might have been
+produced locally, or might have been received over the network from the
+remote host.  These error codes are defined in enum ::mrpc_status_codes, and
+may be mapped to an error message with mrpc_strerror().
+-# Positive error codes are defined by the particular protocol, and always
+originate from the remote host.
+
+@addtogroup common
+@}
+*/

@@ -23,7 +23,6 @@
 struct mrpc_protocol;
 struct mrpc_conn_set;
 struct mrpc_connection;
-struct mrpc_message;
 
 /**
  * @brief Error codes defined by miniRPC

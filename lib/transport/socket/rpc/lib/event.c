@@ -266,7 +266,7 @@ static void dispatch_request(struct mrpc_event *event)
 
 	assert(conn->set->protocol->request != NULL);
 	ops=g_atomic_pointer_get(&conn->operations);
-	result=conn->set->protocol->request(ops, conn->private, request,
+	result=conn->set->protocol->request(ops, conn->private,
 				request->hdr.cmd, request_data, reply_data);
 	_mrpc_release_event(event);
 	mrpc_free_argument(request_type, request_data);

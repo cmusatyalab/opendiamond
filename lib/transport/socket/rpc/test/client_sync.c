@@ -136,8 +136,7 @@ void msg_buffer_sync(struct mrpc_connection *conn)
 		die("msg_buffer returned %d", ret);
 }
 
-static mrpc_status_t client_check_int(void *conn_data,
-			struct mrpc_message *msg, IntParam *req)
+static mrpc_status_t client_check_int(void *conn_data, IntParam *req)
 {
 	if (req->val == INT_VALUE)
 		return MINIRPC_OK;
@@ -145,8 +144,7 @@ static mrpc_status_t client_check_int(void *conn_data,
 		return 1;
 }
 
-static void client_notify(void *conn_data, struct mrpc_message *msg,
-			CondVarPtr *req)
+static void client_notify(void *conn_data, CondVarPtr *req)
 {
 	pthread_cond_t *cond = (void*)(unsigned long)req->cond;
 	pthread_mutex_t *lock = (void*)(unsigned long)req->mutex;

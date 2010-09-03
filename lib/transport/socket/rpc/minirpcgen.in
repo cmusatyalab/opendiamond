@@ -269,7 +269,7 @@ sub gen_request_proc {
 
 	print $fh wrapc(<<EOF);
 
-static mrpc_status_t ${base}_${role}_request(const void *p_ops, void *conn_data, struct mrpc_message *msg, int cmd, void *in, void *out)
+static mrpc_status_t ${base}_${role}_request(const void *p_ops, void *conn_data, int cmd, void *in, void *out)
 {
 	const struct ${base}_${role}_operations *ops=p_ops;
 
@@ -295,12 +295,12 @@ EOF
 		if ($num >= 0) {
 			print $fh wrapc(<<EOF);
 		else
-			return ops->$func(conn_data, msg$inparam$outparam);
+			return ops->$func(conn_data$inparam$outparam);
 EOF
 		} else {
 			print $fh wrapc(<<EOF);
 		else {
-			ops->$func(conn_data, msg$inparam);
+			ops->$func(conn_data$inparam);
 			return MINIRPC_OK;
 		}
 EOF
@@ -394,7 +394,7 @@ sub gen_operations_struct {
 		$inarg = argument($in, "*in");
 		$outarg = argument($out, "*out");
 		$retType = ($num >= 0) ? "mrpc_status_t" : "void";
-		print $fh wrapc("\t$retType (*$func)(void *conn_data, struct mrpc_message *msg$inarg$outarg);");
+		print $fh wrapc("\t$retType (*$func)(void *conn_data$inarg$outarg);");
 	}
 	print $fh "};\n";
 }

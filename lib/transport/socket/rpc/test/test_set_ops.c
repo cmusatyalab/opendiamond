@@ -15,13 +15,13 @@
 const struct proto_server_operations ops_ok;
 const struct proto_server_operations ops_fail;
 
-mrpc_status_t do_ping_ok(void *conn_data, struct mrpc_message *msg)
+mrpc_status_t do_ping_ok(void *conn_data)
 {
 	expect(proto_server_set_operations(conn_data, &ops_fail), 0);
 	return MINIRPC_OK;
 }
 
-mrpc_status_t do_ping_fail(void *conn_data, struct mrpc_message *msg)
+mrpc_status_t do_ping_fail(void *conn_data)
 {
 	expect(proto_server_set_operations(conn_data, &ops_ok), 0);
 	return 1;

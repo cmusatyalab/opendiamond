@@ -10,20 +10,18 @@
 
 #include "common.h"
 
-static mrpc_status_t do_ping(void *conn_data, struct mrpc_message *msg)
+static mrpc_status_t do_ping(void *conn_data)
 {
 	return MINIRPC_OK;
 }
 
-static mrpc_status_t do_loop_int(void *conn_data, struct mrpc_message *msg,
-			IntParam *in, IntParam *out)
+static mrpc_status_t do_loop_int(void *conn_data, IntParam *in, IntParam *out)
 {
 	out->val=in->val;
 	return MINIRPC_OK;
 }
 
-static mrpc_status_t do_check_int(void *conn_data, struct mrpc_message *msg,
-			IntParam *req)
+static mrpc_status_t do_check_int(void *conn_data, IntParam *req)
 {
 	if (req->val == INT_VALUE)
 		return MINIRPC_OK;
@@ -31,22 +29,19 @@ static mrpc_status_t do_check_int(void *conn_data, struct mrpc_message *msg,
 		return 1;
 }
 
-static mrpc_status_t do_error(void *conn_data, struct mrpc_message *msg,
-			IntParam *out)
+static mrpc_status_t do_error(void *conn_data, IntParam *out)
 {
 	return 1;
 }
 
-static mrpc_status_t do_invalidate_ops(void *conn_data,
-			struct mrpc_message *msg)
+static mrpc_status_t do_invalidate_ops(void *conn_data)
 {
 	if (proto_server_set_operations(conn_data, NULL))
 		die("Couldn't set operations");
 	return MINIRPC_OK;
 }
 
-static void do_notify(void *conn_data, struct mrpc_message *msg,
-			CondVarPtr *req)
+static void do_notify(void *conn_data, CondVarPtr *req)
 {
 	pthread_cond_t *cond = (void*)(unsigned long)req->cond;
 	pthread_mutex_t *lock = (void*)(unsigned long)req->mutex;
@@ -56,8 +51,7 @@ static void do_notify(void *conn_data, struct mrpc_message *msg,
 	pthread_mutex_unlock(lock);
 }
 
-static mrpc_status_t do_trigger_callback(void *conn_data,
-			struct mrpc_message *msg)
+static mrpc_status_t do_trigger_callback(void *conn_data)
 {
 	struct mrpc_connection *conn=conn_data;
 	struct IntParam ip;
@@ -100,20 +94,17 @@ static mrpc_status_t do_trigger_callback(void *conn_data,
 	return MINIRPC_OK;
 }
 
-static mrpc_status_t do_send_buffer(void *conn_data, struct mrpc_message *msg,
-			KBuffer *in)
+static mrpc_status_t do_send_buffer(void *conn_data, KBuffer *in)
 {
 	return MINIRPC_OK;
 }
 
-static mrpc_status_t do_recv_buffer(void *conn_data, struct mrpc_message *msg,
-			KBuffer *out)
+static mrpc_status_t do_recv_buffer(void *conn_data, KBuffer *out)
 {
 	return MINIRPC_OK;
 }
 
-static void do_msg_buffer(void *conn_data, struct mrpc_message *msg,
-			KBuffer *in)
+static void do_msg_buffer(void *conn_data, KBuffer *in)
 {
 	return;
 }

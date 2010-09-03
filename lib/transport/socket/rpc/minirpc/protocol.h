@@ -27,8 +27,7 @@
 struct mrpc_protocol {
 	int is_server;
 	mrpc_status_t (*request)(const void *ops, void *conn_data,
-				struct mrpc_message *msg, int cmd, void *in,
-				void *out);
+				int cmd, void *in, void *out);
 	mrpc_status_t (*sender_request_info)(unsigned cmd, xdrproc_t *type,
 				unsigned *size);
 	mrpc_status_t (*sender_reply_info)(unsigned cmd, xdrproc_t *type,

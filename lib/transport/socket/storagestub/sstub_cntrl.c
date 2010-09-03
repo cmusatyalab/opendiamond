@@ -49,7 +49,7 @@
 #include "rpc_client_content_server.h"
 
 static mrpc_status_t
-device_start(void *conn_data, struct mrpc_message *msg, start_x *in)
+device_start(void *conn_data, start_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 
@@ -66,7 +66,7 @@ device_start(void *conn_data, struct mrpc_message *msg, start_x *in)
 }
 
 static mrpc_status_t
-device_set_scope(void *conn_data, struct mrpc_message *msg, scope_x *in)
+device_set_scope(void *conn_data, scope_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	int err;
@@ -79,7 +79,7 @@ device_set_scope(void *conn_data, struct mrpc_message *msg, scope_x *in)
 }
 
 static mrpc_status_t
-device_set_spec(void *conn_data, struct mrpc_message *msg, spec_file_x *in)
+device_set_spec(void *conn_data, spec_file_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	char specpath[PATH_MAX];
@@ -200,7 +200,7 @@ device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
 
 
 static mrpc_status_t
-device_set_blob(void *conn_data, struct mrpc_message *msg, blob_x *in)
+device_set_blob(void *conn_data, blob_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	char	*name;
@@ -217,7 +217,7 @@ device_set_blob(void *conn_data, struct mrpc_message *msg, blob_x *in)
 
 
 static mrpc_status_t
-device_set_blob_by_signature(void *conn_data, struct mrpc_message *msg, blob_sig_x *in)
+device_set_blob_by_signature(void *conn_data, blob_sig_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	char	*name;
@@ -267,7 +267,7 @@ device_set_blob_by_signature(void *conn_data, struct mrpc_message *msg, blob_sig
 
 
 static mrpc_status_t
-request_stats(void *conn_data, struct mrpc_message *msg, dev_stats_x *out)
+request_stats(void *conn_data, dev_stats_x *out)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	dev_stats_t *stats;
@@ -319,7 +319,7 @@ request_stats(void *conn_data, struct mrpc_message *msg, dev_stats_x *out)
 
 
 static mrpc_status_t
-device_set_obj(void *conn_data, struct mrpc_message *msg, sig_val_x *in)
+device_set_obj(void *conn_data, sig_val_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	char objpath[PATH_MAX];
@@ -358,7 +358,7 @@ device_set_obj(void *conn_data, struct mrpc_message *msg, sig_val_x *in)
 
 
 static mrpc_status_t
-device_send_obj(void *conn_data, struct mrpc_message *msg, obj_x *in)
+device_send_obj(void *conn_data, obj_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	int fd;

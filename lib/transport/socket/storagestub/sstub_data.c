@@ -100,7 +100,7 @@ int sstub_get_attributes(obj_data_t *obj, GArray *output_set,
 }
 
 static mrpc_status_t
-get_object(void *conn_data, struct mrpc_message *msg, object_x *object)
+get_object(void *conn_data, object_x *object)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	obj_data_t *obj;

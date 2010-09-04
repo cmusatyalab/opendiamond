@@ -46,7 +46,5 @@ int mrpc_conn_set_operations(struct mrpc_connection *conn,
 mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
 			struct mrpc_connection *conn, int cmd, void *in,
 			void **out);
-mrpc_status_t mrpc_send_request_noreply(const struct mrpc_protocol *protocol,
-			struct mrpc_connection *conn, int cmd, void *in);
 
 #endif

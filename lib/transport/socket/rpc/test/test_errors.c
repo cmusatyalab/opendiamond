@@ -130,7 +130,6 @@ int main(int argc, char **argv)
 	expect(mrpc_connect(conn, AF_UNSPEC, NULL, port), 0);
 	expect(proto_client_set_operations(NULL, NULL), EINVAL);
 	expect(proto_ping(NULL), MINIRPC_INVALID_ARGUMENT);
-	expect(proto_notify(NULL, NULL), MINIRPC_INVALID_ARGUMENT);
 	ipp=(void*)1;
 	expect(proto_loop_int(conn, NULL, &ipp), MINIRPC_ENCODING_ERR);
 	expect(ipp == NULL, 1);

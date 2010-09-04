@@ -211,13 +211,9 @@ static void fail_request(struct mrpc_event *event, mrpc_status_t err)
 	struct mrpc_message *request=event->msg;
 
 	_mrpc_release_event(event);
-	if (request->hdr.cmd >= 0) {
-		if (mrpc_send_reply_error(request->conn->set->protocol,
-					request->hdr.cmd, request, err))
-			mrpc_free_message(request);
-	} else {
+	if (mrpc_send_reply_error(request->conn->set->protocol,
+				request->hdr.cmd, request, err))
 		mrpc_free_message(request);
-	}
 }
 
 static void dispatch_request(struct mrpc_event *event)
@@ -232,7 +228,6 @@ static void dispatch_request(struct mrpc_event *event)
 	xdrproc_t request_type;
 	xdrproc_t reply_type;
 	unsigned reply_size;
-	int doreply;
 
 	assert(request->hdr.status == MINIRPC_PENDING);
 
@@ -243,16 +238,13 @@ static void dispatch_request(struct mrpc_event *event)
 		return;
 	}
 
-	doreply=(request->hdr.cmd >= 0);
-	if (doreply) {
-		if (conn->set->protocol->receiver_reply_info(request->hdr.cmd,
-					&reply_type, &reply_size)) {
-			/* Can't happen if the info tables are well-formed */
-			fail_request(event, MINIRPC_ENCODING_ERR);
-			return;
-		}
-		reply_data=mrpc_alloc_argument(reply_size);
+	if (conn->set->protocol->receiver_reply_info(request->hdr.cmd,
+				&reply_type, &reply_size)) {
+		/* Can't happen if the info tables are well-formed */
+		fail_request(event, MINIRPC_ENCODING_ERR);
+		return;
 	}
+	reply_data=mrpc_alloc_argument(reply_size);
 	ret=unformat_request(request, &request_data);
 	if (ret) {
 		/* Invalid datalen, etc. */
@@ -271,27 +263,23 @@ static void dispatch_request(struct mrpc_event *event)
 	_mrpc_release_event(event);
 	mrpc_free_argument(request_type, request_data);
 
-	if (doreply) {
-		if (result)
-			ret=mrpc_send_reply_error(conn->set->protocol,
-						request->hdr.cmd, request,
-						result == MINIRPC_PENDING ?
-						MINIRPC_ENCODING_ERR :
-						result);
-		else
-			ret=mrpc_send_reply(conn->set->protocol,
-						request->hdr.cmd, request,
-						reply_data);
-		mrpc_free_argument(reply_type, reply_data);
-		if (ret) {
-			queue_ioerr_event(conn, "Synchronous reply failed, "
-						"seq %u cmd %d status %d "
-						"err %d",
-						request->hdr.sequence,
-						request->hdr.cmd, result, ret);
-			mrpc_free_message(request);
-		}
-	} else {
+	if (result)
+		ret=mrpc_send_reply_error(conn->set->protocol,
+					request->hdr.cmd, request,
+					result == MINIRPC_PENDING ?
+					MINIRPC_ENCODING_ERR :
+					result);
+	else
+		ret=mrpc_send_reply(conn->set->protocol,
+					request->hdr.cmd, request,
+					reply_data);
+	mrpc_free_argument(reply_type, reply_data);
+	if (ret) {
+		queue_ioerr_event(conn, "Synchronous reply failed, "
+					"seq %u cmd %d status %d "
+					"err %d",
+					request->hdr.sequence,
+					request->hdr.cmd, result, ret);
 		mrpc_free_message(request);
 	}
 }

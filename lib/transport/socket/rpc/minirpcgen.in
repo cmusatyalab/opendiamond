@@ -161,11 +161,7 @@ sub antirole {
 sub opcodeSort {
 	my $hash = shift;
 
-	my @nums;
-
-	@nums = sort {$a <=> $b} grep ($_ >= 0, keys %$hash);
-	@nums = (@nums, sort {$b <=> $a} grep ($_ < 0, keys %$hash));
-	return @nums;
+	return sort {$a <=> $b} keys %$hash;
 }
 
 sub gen_sender_stub_sync_c {
@@ -201,37 +197,6 @@ sub gen_sender_stub_sync_h {
 
 	print $fh wrapc(<<EOF);
 mrpc_status_t ${base}_$func(struct mrpc_connection *conn$inarg$outarg);
-EOF
-}
-
-sub gen_oneway_stub_c {
-	my $fh = shift;
-	my $role = shift;
-	my $func = shift;
-	my $in = shift;
-
-	my $inarg = argument($in, "*in");
-	my $inparam = parameter($in, "in");
-	my $antirole = antirole($role);
-
-	print $fh wrapc(<<EOF);
-
-mrpc_status_t ${base}_${func}(struct mrpc_connection *conn$inarg)
-{
-	return mrpc_send_request_noreply(${base}_$antirole, conn, nr_${base}_$func, $inparam);
-}
-EOF
-}
-
-sub gen_oneway_stub_h {
-	my $fh = shift;
-	my $func = shift;
-	my $in = shift;
-
-	my $inarg = argument($in, "*in");
-
-	print $fh wrapc(<<EOF);
-mrpc_status_t ${base}_${func}(struct mrpc_connection *conn$inarg);
 EOF
 }
 
@@ -291,20 +256,9 @@ EOF
 	case nr_${base}_$func:
 		if (ops->$func == NULL)
 			return MINIRPC_PROCEDURE_UNAVAIL;
-EOF
-		if ($num >= 0) {
-			print $fh wrapc(<<EOF);
 		else
 			return ops->$func(conn_data$inparam$outparam);
 EOF
-		} else {
-			print $fh wrapc(<<EOF);
-		else {
-			ops->$func(conn_data$inparam);
-			return MINIRPC_OK;
-		}
-EOF
-		}
 	}
 
 	print $fh wrapc(<<EOF);
@@ -339,7 +293,6 @@ static mrpc_status_t ${base}_${role}_${reply}_info(unsigned cmd, xdrproc_t *type
 EOF
 
 	foreach $num (opcodeSort($procs)) {
-		next if $isReply and $num < 0;
 		$func = @{$procs->{$num}}[2];
 		$type = @{$procs->{$num}}[$isReply ? 4 : 3];
 		$typesize = typesize($type);
@@ -386,15 +339,13 @@ sub gen_operations_struct {
 	my $out;
 	my $inarg;
 	my $outarg;
-	my $retType;
 
 	print $fh "\nstruct ${base}_${role}_operations {\n";
 	foreach $num (opcodeSort($procs)) {
 		($func, $in, $out) = @{$procs->{$num}}[2..4];
 		$inarg = argument($in, "*in");
 		$outarg = argument($out, "*out");
-		$retType = ($num >= 0) ? "mrpc_status_t" : "void";
-		print $fh wrapc("\t$retType (*$func)(void *conn_data$inarg$outarg);");
+		print $fh wrapc("\tmrpc_status_t (*$func)(void *conn_data$inarg$outarg);");
 	}
 	print $fh "};\n";
 }
@@ -467,34 +418,13 @@ sub genstubs_sync {
 	my $arg;
 	my $ret;
 
-	@keys = sort {$a <=> $b} grep ($_ >= 0, keys %$procs);
+	@keys = opcodeSort $procs;
 	return if !@keys;
 	print $hf "\n";
 	foreach $num (@keys) {
 		($func, $arg, $ret) = @{$procs->{$num}}[2..5];
 		gen_sender_stub_sync_c($cf, $role, $func, $arg, $ret);
 		gen_sender_stub_sync_h($hf, $func, $arg, $ret);
-	}
-}
-
-sub genstubs_noreply {
-	my $role = shift;
-	my $procs = shift;
-	my $cf = shift;
-	my $hf = shift;
-
-	my @keys;
-	my $num;
-	my $func;
-	my $arg;
-
-	@keys = sort {$b <=> $a} grep ($_ < 0, keys %$procs);
-	return if !@keys;
-	print $hf "\n";
-	foreach $num (@keys) {
-		($func, $arg) = @{$procs->{$num}}[2..4];
-		gen_oneway_stub_c($cf, $role, $func, $arg);
-		gen_oneway_stub_h($hf, $func, $arg);
 	}
 }
 
@@ -531,9 +461,6 @@ sub genstubs {
 				if !defined($types{$arg});
 			parseErr($file, $line, "No such type: $ret")
 				if !defined($types{$ret});
-			parseErr($file, $line, "Procedures in ${role}msgs " .
-						"section cannot return a value")
-				if $num < 0 && $ret ne "void";
 		}
 	}
 
@@ -588,10 +515,6 @@ sub genstubs {
 		$hf = ($role eq "server") ? *CHF : *SHF;
 		genstubs_sync($role, $procSets{$role}, *MCF, $hf);
 	}
-	foreach $role ("server", "client") {
-		$hf = ($role eq "server") ? *CHF : *SHF;
-		genstubs_noreply($role, $procSets{$role}, *MCF, $hf);
-	}
 	genstubs_free(*MHF);
 
 	foreach $hf (*MHF, *CHF, *SHF) {
@@ -605,7 +528,6 @@ sub parseFile {
 	my $data;
 	my $curProcData;
 	my $curDefs;
-	my $noreply;
 	my $sym_re = '([a-zA-Z0-9_]+)';
 	my $type_re = '((unsigned\s+)?[a-zA-Z0-9_]+)';
 	my $func;
@@ -626,8 +548,10 @@ sub parseFile {
 		}
 		if (!$curDefs) {
 			if (/^\s*(client|server)(procs|msgs)\s*{/) {
+				parseErr($filename, $line, $1 . "msgs no " .
+							"longer supported")
+					if $2 eq "msgs";
 				$curDefs = $1;
-				$noreply = ($2 eq "msgs");
 				$procSets{$curDefs} = {}
 					if !exists($procSets{$curDefs});
 				next;
@@ -648,8 +572,6 @@ sub parseFile {
 						\s*([1-9][0-9]*)\s*;/ox) {
 				$func = $1;
 				$num = $8;
-				$num = -$num
-					if $noreply;
 				# file, line, func, arg, ret
 				$curProcData = [$filename, $line, $func,
 							$3 ? $3 : "void",

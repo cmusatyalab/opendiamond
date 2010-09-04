@@ -56,12 +56,10 @@ void expect_ioerrs(int count);
 void loop_int_sync(struct mrpc_connection *conn);
 void check_int_sync(struct mrpc_connection *conn);
 void error_sync(struct mrpc_connection *conn);
-void notify_sync(struct mrpc_connection *conn);
 void trigger_callback_sync(struct mrpc_connection *conn);
 void invalidate_sync(struct mrpc_connection *conn);
 mrpc_status_t send_buffer_sync(struct mrpc_connection *conn);
 mrpc_status_t recv_buffer_sync(struct mrpc_connection *conn);
-void msg_buffer_sync(struct mrpc_connection *conn);
 void sync_client_set_ops(struct mrpc_connection *conn);
 void sync_client_run(struct mrpc_connection *conn);
 

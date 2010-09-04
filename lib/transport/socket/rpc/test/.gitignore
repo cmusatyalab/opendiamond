@@ -8,4 +8,3 @@ libcommon.a
 libxdr.a
 test_*
 !test_*.[ch]
-runtest.sh

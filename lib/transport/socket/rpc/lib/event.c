@@ -54,8 +54,6 @@ struct mrpc_event *mrpc_alloc_message_event(struct mrpc_message *msg,
 
 static void destroy_event(struct mrpc_event *event)
 {
-	if (event->addr)
-		g_free(event->addr);
 	if (event->msg)
 		mrpc_free_message(event->msg);
 	if (event->errstring)
@@ -288,7 +286,6 @@ static void dispatch_event(struct mrpc_event *event)
 {
 	struct mrpc_connection *conn=event->conn;
 	struct dispatch_thread_data *tdata;
-	mrpc_accept_fn *accept;
 	mrpc_disconnect_fn *disconnect;
 	mrpc_ioerr_fn *ioerr;
 	int squash;
@@ -318,13 +315,6 @@ static void dispatch_event(struct mrpc_event *event)
 	}
 
 	switch (event->type) {
-	case EVENT_ACCEPT:
-		accept=get_config(conn->set, accept);
-		assert(accept != NULL);
-		conn->private=accept(conn->set->private, conn, event->addr,
-					event->addrlen);
-		g_free(event->addr);
-		break;
 	case EVENT_REQUEST:
 		dispatch_request(event);
 		break;

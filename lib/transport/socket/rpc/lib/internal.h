@@ -43,7 +43,6 @@
 #endif
 
 struct mrpc_config {
-	mrpc_accept_fn *accept;
 	mrpc_disconnect_fn *disconnect;
 	mrpc_ioerr_fn *ioerr;
 };
@@ -62,8 +61,6 @@ struct mrpc_conn_set {
 	int refs;  /* atomic ops only */
 	int user_refs;  /* atomic ops only */
 
-	GAsyncQueue *listeners;
-
 	struct pollset *pollset;
 	struct selfpipe *shutdown_pipe;
 	unsigned events_threads;		/* protected by events_lock */
@@ -71,7 +68,6 @@ struct mrpc_conn_set {
 };
 
 enum event_type {
-	EVENT_ACCEPT,
 	EVENT_REQUEST,
 	EVENT_DISCONNECT,
 	EVENT_IOERR,
@@ -80,10 +76,6 @@ enum event_type {
 struct mrpc_event {
 	enum event_type type;
 	struct mrpc_connection *conn;
-
-	/* accept */
-	struct sockaddr *addr;
-	socklen_t addrlen;
 
 	/* request/reply */
 	struct mrpc_message *msg;
@@ -157,11 +149,6 @@ struct mrpc_connection {
 	struct mrpc_event *plugged_event;
 
 	gint next_sequence;  /* atomic operations only */
-};
-
-struct mrpc_listener {
-	struct mrpc_conn_set *set;
-	int fd;
 };
 
 /* config.c */

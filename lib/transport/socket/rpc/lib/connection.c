@@ -349,51 +349,6 @@ exported int mrpc_conn_create(struct mrpc_connection **new_conn,
 	return 0;
 }
 
-static int _mrpc_bind_fd(struct mrpc_connection *conn, int addr_family, int fd)
-{
-	int ret;
-
-	pthread_mutex_lock(&conn->sequence_lock);
-	if (conn->sequence_flags & SEQ_HAVE_FD) {
-		ret=EINVAL;
-		goto out;
-	}
-	if (addr_family == AF_INET || addr_family == AF_INET6) {
-		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPIDLE, 7200);
-		if (ret)
-			goto out;
-		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPCNT, 9);
-		if (ret)
-			goto out;
-		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPINTVL, 75);
-		if (ret)
-			goto out;
-		ret=setsockoptval(fd, IPPROTO_TCP, TCP_NODELAY, 1);
-		if (ret)
-			goto out;
-	}
-	ret=setsockoptval(fd, SOL_SOCKET, SO_KEEPALIVE, 1);
-	if (ret)
-		goto out;
-	ret=set_nonblock(fd);
-	if (ret)
-		goto out;
-	ret=set_cloexec(fd);
-	if (ret)
-		goto out;
-	conn->fd=fd;
-	ret=pollset_add(conn->set->pollset, fd, POLLSET_READABLE, conn,
-				try_read_conn, try_write_conn, conn_hangup,
-				conn_error, NULL);
-	if (!ret) {
-		conn->sequence_flags |= SEQ_HAVE_FD;
-		conn_get(conn);
-	}
-out:
-	pthread_mutex_unlock(&conn->sequence_lock);
-	return ret;
-}
-
 /* Sequence lock must be held */
 static void conn_start_shutdown(struct mrpc_connection *conn,
 			enum mrpc_disc_reason reason)
@@ -493,252 +448,6 @@ static void conn_free(struct mrpc_connection *conn)
 	g_slice_free(struct mrpc_connection, conn);
 }
 
-static void restart_accept(void *data)
-{
-	struct mrpc_listener *lnr=data;
-
-	pollset_modify(lnr->set->pollset, lnr->fd, POLLSET_READABLE);
-}
-
-static void try_accept(void *data)
-{
-	struct mrpc_listener *lnr=data;
-	struct mrpc_conn_set *set=lnr->set;
-	struct mrpc_connection *conn;
-	struct mrpc_event *event;
-	struct sockaddr_storage sa;
-	socklen_t len;
-	int fd;
-
-	/* XXX error handling */
-	while (1) {
-		len=sizeof(sa);
-		fd=accept(lnr->fd, (struct sockaddr *)&sa, &len);
-		if (fd == -1) {
-			if (errno != EAGAIN) {
-				pollset_modify(set->pollset, lnr->fd, 0);
-				pollset_set_timer(set->pollset, lnr->fd,
-							1000);
-			}
-			break;
-		}
-		if (mrpc_conn_create(&conn, set, NULL)) {
-			close(fd);
-			continue;
-		}
-		if (_mrpc_bind_fd(conn, sa.ss_family, fd)) {
-			mrpc_conn_unref(conn);
-			close(fd);
-			continue;
-		}
-		event=mrpc_alloc_event(conn, EVENT_ACCEPT);
-		event->addr=g_memdup(&sa, len);
-		event->addrlen=len;
-		queue_event(event);
-	}
-}
-
-static int eai_to_errno(int errcode)
-{
-	switch (errcode) {
-	case 0:
-		return 0;
-	case EAI_ADDRFAMILY:
-		return EADDRNOTAVAIL;
-	case EAI_AGAIN:
-		return EAGAIN;
-	case EAI_BADFLAGS:
-		return EINVAL;
-	case EAI_FAIL:
-		return EIO;
-	case EAI_FAMILY:
-		return EAFNOSUPPORT;
-	case EAI_MEMORY:
-		return ENOMEM;
-	case EAI_NODATA:
-		return ENOENT;
-	case EAI_NONAME:
-		return ENOENT;
-	case EAI_OVERFLOW:
-		return EIO;
-	case EAI_SERVICE:
-		return ENOENT;
-	case EAI_SOCKTYPE:
-		return EOPNOTSUPP;
-	case EAI_SYSTEM:
-		return errno;
-	default:
-		return EIO;
-	}
-}
-
-static int lookup_addr(struct addrinfo **res, int family, const char *host,
-			const char *service, int passive)
-{
-	struct addrinfo hints = {
-		.ai_family = family,
-		.ai_socktype = SOCK_STREAM
-	};
-
-	if (passive)
-		hints.ai_flags |= AI_PASSIVE;
-	if (service == NULL)
-		service="0";
-	return eai_to_errno(getaddrinfo(host, service, &hints, res));
-}
-
-exported int mrpc_connect(struct mrpc_connection *conn, int family,
-			const char *host, const char *service)
-{
-	struct addrinfo *ai;
-	struct addrinfo *cur;
-	int fd;
-	int ret;
-
-	if (conn == NULL || service == NULL || conn->set->protocol->is_server)
-		return EINVAL;
-	ret=lookup_addr(&ai, family, host, service, 0);
-	if (ret)
-		return ret;
-	if (ai == NULL)
-		return EIO;
-	for (cur=ai; cur != NULL; cur=cur->ai_next) {
-		fd=socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
-		if (fd == -1) {
-			/* Don't clobber a connect error with a less-important
-			   one */
-			if (!ret)
-				ret=errno;
-			continue;
-		}
-		if (!connect(fd, cur->ai_addr, cur->ai_addrlen))
-			break;
-		ret=errno;
-		close(fd);
-		fd=-1;
-	}
-	if (fd != -1) {
-		ret=_mrpc_bind_fd(conn, cur->ai_family, fd);
-		if (ret)
-			close(fd);
-	}
-	freeaddrinfo(ai);
-	return ret;
-}
-
-exported int mrpc_listen(struct mrpc_conn_set *set, int family,
-			const char *listenaddr, char **service)
-{
-	struct addrinfo *ai;
-	struct addrinfo *cur;
-	struct mrpc_listener *lnr;
-	char portbuf[32];
-	int fd;
-	int count=0;
-	int ret;
-
-	/* We require the accept function to exist.  Without it, accepted
-	   connections will never have a non-NULL operations pointer and the
-	   application will never be aware that they exist, so connecting
-	   clients will be forever stuck in PROCEDURE_UNAVAIL limbo. */
-	if (set == NULL || service == NULL || !set->protocol->is_server ||
-				get_config(set, accept) == NULL ||
-				(family == AF_UNSPEC && *service == NULL))
-		return EINVAL;
-	conn_set_get(set);
-	ret=lookup_addr(&ai, family, listenaddr, *service, 1);
-	if (ret)
-		goto out;
-	for (cur=ai; cur != NULL; cur=cur->ai_next) {
-		fd=socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
-		if (fd == -1) {
-			/* Don't clobber a more important error with a
-			   socket-not-supported error */
-			if (!ret)
-				ret=errno;
-			continue;
-		}
-		ret=setsockoptval(fd, SOL_SOCKET, SO_REUSEADDR, 1);
-		if (ret) {
-			close(fd);
-			continue;
-		}
-		ret=set_nonblock(fd);
-		if (ret) {
-			close(fd);
-			continue;
-		}
-		ret=set_cloexec(fd);
-		if (ret) {
-			close(fd);
-			continue;
-		}
-		if (bind(fd, cur->ai_addr, cur->ai_addrlen)) {
-			ret=errno;
-			close(fd);
-			continue;
-		}
-		if (listen(fd, 16)) {
-			ret=errno;
-			close(fd);
-			continue;
-		}
-		if (getsockname(fd, cur->ai_addr, &cur->ai_addrlen)) {
-			ret=errno;
-			close(fd);
-			continue;
-		}
-		ret=eai_to_errno(getnameinfo(cur->ai_addr, cur->ai_addrlen,
-					NULL, 0, portbuf, sizeof(portbuf),
-					NI_NUMERICSERV));
-		if (ret) {
-			close(fd);
-			continue;
-		}
-		lnr=g_slice_new0(struct mrpc_listener);
-		lnr->set=set;
-		lnr->fd=fd;
-		ret=pollset_add(set->pollset, fd, POLLSET_READABLE, lnr,
-					try_accept, NULL, NULL, NULL,
-					restart_accept);
-		if (ret) {
-			close(fd);
-			g_slice_free(struct mrpc_listener, lnr);
-			continue;
-		}
-		conn_set_get(set);
-		g_async_queue_push(set->listeners, lnr);
-		count++;
-		if (!*service) {
-			*service=strdup(portbuf);
-			/* Stop after binding to the first random port */
-			break;
-		}
-	}
-	freeaddrinfo(ai);
-out:
-	conn_set_put(set);
-	if (count)
-		return 0;
-	return ret;
-}
-
-exported void mrpc_listen_close(struct mrpc_conn_set *set)
-{
-	struct mrpc_listener *lnr;
-
-	if (set == NULL)
-		return;
-	conn_set_get(set);
-	while ((lnr=g_async_queue_try_pop(set->listeners)) != NULL) {
-		pollset_del(set->pollset, lnr->fd);
-		close(lnr->fd);
-		g_slice_free(struct mrpc_listener, lnr);
-		conn_set_put(set);
-	}
-	conn_set_put(set);
-}
-
 exported int mrpc_bind_fd(struct mrpc_connection *conn, int fd)
 {
 	struct sockaddr_storage sa;
@@ -761,10 +470,45 @@ exported int mrpc_bind_fd(struct mrpc_connection *conn, int fd)
 	if (type != SOCK_STREAM)
 		return EPROTONOSUPPORT;
 
-	ret=_mrpc_bind_fd(conn, sa.ss_family, fd);
+	pthread_mutex_lock(&conn->sequence_lock);
+	if (conn->sequence_flags & SEQ_HAVE_FD) {
+		ret=EINVAL;
+		goto out;
+	}
+	if (sa.ss_family == AF_INET || sa.ss_family == AF_INET6) {
+		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPIDLE, 7200);
+		if (ret)
+			goto out;
+		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPCNT, 9);
+		if (ret)
+			goto out;
+		ret=setsockoptval(fd, IPPROTO_TCP, TCP_KEEPINTVL, 75);
+		if (ret)
+			goto out;
+		ret=setsockoptval(fd, IPPROTO_TCP, TCP_NODELAY, 1);
+		if (ret)
+			goto out;
+	}
+	ret=setsockoptval(fd, SOL_SOCKET, SO_KEEPALIVE, 1);
 	if (ret)
-		return ret;
-	return 0;
+		goto out;
+	ret=set_nonblock(fd);
+	if (ret)
+		goto out;
+	ret=set_cloexec(fd);
+	if (ret)
+		goto out;
+	conn->fd=fd;
+	ret=pollset_add(conn->set->pollset, fd, POLLSET_READABLE, conn,
+				try_read_conn, try_write_conn, conn_hangup,
+				conn_error, NULL);
+	if (!ret) {
+		conn->sequence_flags |= SEQ_HAVE_FD;
+		conn_get(conn);
+	}
+out:
+	pthread_mutex_unlock(&conn->sequence_lock);
+	return ret;
 }
 
 exported int mrpc_conn_set_operations(struct mrpc_connection *conn,
@@ -808,7 +552,6 @@ exported int mrpc_conn_set_create(struct mrpc_conn_set **new_set,
 	set->protocol=protocol;
 	g_atomic_int_set(&set->refs, 1);
 	g_atomic_int_set(&set->user_refs, 1);
-	set->listeners=g_async_queue_new();
 	set->event_conns=g_queue_new();
 	set->private = (set_data != NULL) ? set_data : set;
 	ret=selfpipe_create(&set->shutdown_pipe);
@@ -859,7 +602,6 @@ static void conn_set_free(struct mrpc_conn_set *set)
 	pollset_free(set->pollset);
 	selfpipe_destroy(set->events_notify_pipe);
 	selfpipe_destroy(set->shutdown_pipe);
-	g_async_queue_unref(set->listeners);
 	g_queue_free(set->event_conns);
 	g_slice_free(struct mrpc_conn_set, set);
 }

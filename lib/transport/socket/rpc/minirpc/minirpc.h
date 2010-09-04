@@ -77,31 +77,6 @@ enum mrpc_disc_reason {
  */
 
 /**
- * @brief Event callback fired on arrival of a new connection
- * @param	set_data
- *	The cookie associated with the connection set
- * @param	conn
- *	The handle to the newly-created connection
- * @param	from
- *	The address of the remote end of the connection
- * @param	from_len
- *	The length of the @c from structure
- * @return The application-specific cookie to be associated with this
- *		connection
- * @sa mrpc_set_accept_func()
- *
- * This function is called when a new connection arrives on a listening socket
- * created with mrpc_listen().  At minimum, the function must set the
- * connection's operations struct using the protocol-specific set_operations
- * function; otherwise, no incoming messages for the connection will be
- * processed.
- *
- * @c from is no longer valid after the callback returns.
- */
-typedef void *(mrpc_accept_fn)(void *set_data, struct mrpc_connection *conn,
-			struct sockaddr *from, socklen_t from_len);
-
-/**
  * @brief Event callback fired on connection close
  * @param	conn_data
  *	The cookie associated with the connection
@@ -188,9 +163,9 @@ void mrpc_conn_set_ref(struct mrpc_conn_set *set);
  *	The connection set
  *
  * Put a reference to the specified connection set.  When the refcount
- * reaches zero @em and there are no connections or listening sockets
- * associated with the set, the set will be destroyed.  Destruction of a
- * connection set involves the following steps:
+ * reaches zero @em and there are no connections associated with the set,
+ * the set will be destroyed.  Destruction of a connection set involves
+ * the following steps:
  *
  * -# Shut down all threads started with mrpc_start_dispatch_thread(), and
  * cause all other dispatch functions to return ENXIO
@@ -200,27 +175,11 @@ void mrpc_conn_set_ref(struct mrpc_conn_set *set);
  *
  * After the set's refcount reaches zero, the application must not start
  * any additional dispatchers or create any connections against the set.
- * However, if the set still has listening sockets, new connections may
- * continue to arrive.  In addition, the application should continue to
- * dispatch events against the set (if it is doing its own dispatching)
- * until the dispatcher functions return ENXIO.
+ * The application should continue to dispatch events against the set
+ * (if it is doing its own dispatching) until the dispatcher functions
+ * return ENXIO.
  */
 void mrpc_conn_set_unref(struct mrpc_conn_set *set);
-
-/**
- * @brief Set the function to be called when a new connection arrives on a
- *	listening socket
- * @param	set
- *	The connection set to configure
- * @param	func
- *	The accept function
- * @stdreturn
- * @sa mrpc_accept_fn
- *
- * The application must set an accept function before calling mrpc_listen()
- * on @c set.
- */
-int mrpc_set_accept_func(struct mrpc_conn_set *set, mrpc_accept_fn *func);
 
 /**
  * @brief Set the function to be called when a connection is closed for any
@@ -269,10 +228,9 @@ int mrpc_set_ioerr_func(struct mrpc_conn_set *set, mrpc_ioerr_fn *func);
  *
  * Allocate a new connection handle with a refcount of 1, and associate it
  * with the given connection set and application-specific pointer.  This
- * handle can then be used to make an outgoing connection with mrpc_connect(),
- * or can be bound to an existing socket with mrpc_bind_fd().  Before the
- * connection is completed using one of these functions, the only valid
- * operations on the connection handle are:
+ * handle can then be bound to an existing socket with mrpc_bind_fd().
+ * Before the connection is completed, the only valid operations on the
+ * connection handle are:
  * - Set the operations structure using the set_operations function for this
  * protocol role
  * - Update its refcount with mrpc_conn_ref() / mrpc_conn_unref().  If the last
@@ -304,74 +262,11 @@ void mrpc_conn_ref(struct mrpc_connection *conn);
  * Put a reference to the specified connection.  When the refcount reaches
  * zero @em and the connection is no longer active, the connection will be
  * destroyed.  Connections become active when they are connected using
- * mrpc_connect() or mrpc_bind_fd(), or when miniRPC passes them to the
- * connection set's accept function.  Active connections become inactive
- * after they are closed @em and the disconnect function returns.
+ * mrpc_bind_fd(), or when miniRPC passes them to the connection set's
+ * accept function.  Active connections become inactive after they are
+ * closed @em and the disconnect function returns.
  */
 void mrpc_conn_unref(struct mrpc_connection *conn);
-
-/**
- * @brief Make a new outgoing connection
- * @param	conn
- *	The connection handle to use
- * @param	family
- *	The address family to use, or AF_UNSPEC for any available family
- * @param	host
- *	The hostname or address of the remote listener
- * @param	service
- *	The service name of the remote listener
- *
- * @return 0 on success, or a POSIX error code, including:
- *	- @c ENOENT: could not look up the specified host
- *	- @c ECONNREFUSED: connection refused
- *	- @c ETIMEDOUT: connection timed out
- *	- @c EMFILE: too many open files
- *
- * Make a new outgoing connection to the specified service on the remote host
- * and associate it with the given connection handle.  The specified
- * handle must not have been connected already.  If @c host is NULL, miniRPC
- * will connect to the loopback address.  @c service can be a name or a port
- * number represented as a string, and cannot be NULL.
- *
- * This function can only be called against connections with a client
- * protocol role.
- *
- * If the protocol allows the server to issue the first RPC on the connection,
- * the application should ensure that the correct operations structure is set
- * on the connection handle before calling this function.
- */
-int mrpc_connect(struct mrpc_connection *conn, int family, const char *host,
-			const char *service);
-
-/**
- * @brief Start listening for incoming connections
- * @param	set
- *	The set to associate with this listener
- * @param	family
- *	The address family to use, or AF_UNSPEC for any available family
- * @param	listenaddr
- *	The hostname or address to listen on
- * @param[in,out] service
- *	The service identifier to listen on
- * @return 0 if at least one listening socket is created, or the POSIX error
- *	code associated with the last error encountered
- *
- * Start listening for incoming connections on the given address and service
- * identifier, and fire the connection set's accept function whenever one
- * arrives.  If more than one address meets the specified criteria, more than
- * one listening socket may be bound.  If @c listenaddr is NULL, miniRPC will
- * listen on any local interface.  @c *service can be a name or a port number
- * represented as a string, or NULL.  If @c *service is NULL, @c family must
- * be specified (i.e., cannot be AF_UNSPEC).  In this case, miniRPC will
- * bind to a random unused port, and will return the chosen port number in
- * @c *service as a numeric string.  The application should free this string
- * with free() when no longer needed.
- *
- * This function will return EINVAL if @c set has a client protocol role
- * or if no accept function has been set with mrpc_set_accept_func().
- */
-int mrpc_listen(struct mrpc_conn_set *set, int family, const char *listenaddr,
-			char **service);
 
 /**
  * @brief Bind an existing file descriptor to a connection handle
@@ -427,21 +322,6 @@ int mrpc_bind_fd(struct mrpc_connection *conn, int fd);
  * handler for the connection being closed.
  */
 int mrpc_conn_close(struct mrpc_connection *conn);
-
-/**
- * @brief Close all listeners against a connection set
- * @param	set
- *	The connection set
- *
- * Close all listening sockets associated with the connection set.  The
- * application can use this e.g. while shutting down, to prevent additional
- * connections from being accepted while it is shutting down the existing ones.
- *
- * Note that there may be unprocessed accept events in the event queue, so
- * the application must not assume that no more accept notifications will
- * arrive.
- */
-void mrpc_listen_close(struct mrpc_conn_set *set);
 
 
 /**

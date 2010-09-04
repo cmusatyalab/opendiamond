@@ -19,15 +19,6 @@
 		pthread_mutex_unlock(&(set)->config_lock);	\
 	} while (0)
 
-exported int mrpc_set_accept_func(struct mrpc_conn_set *set,
-			mrpc_accept_fn *func)
-{
-	if (set == NULL || !set->protocol->is_server || func == NULL)
-		return EINVAL;
-	set_config(set, accept, func);
-	return 0;
-}
-
 exported int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
 			mrpc_disconnect_fn *func)
 {

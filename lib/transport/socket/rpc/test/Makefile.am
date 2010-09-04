@@ -23,20 +23,14 @@ LDADD = libcommon.a libxdr.a
 
 check_PROGRAMS  = test_basic
 check_PROGRAMS += test_sequential_clients
-check_PROGRAMS += test_simultaneous_clients
 check_PROGRAMS += test_set_ops
 check_PROGRAMS += test_bind_fd
 check_PROGRAMS += test_unix
-check_PROGRAMS += test_dispatch
-check_PROGRAMS += test_refcount
 check_PROGRAMS += test_shutdown
-check_PROGRAMS += test_accept_close
 check_PROGRAMS += test_simultaneous_close
 check_PROGRAMS += test_exec_close
 check_PROGRAMS += test_errors
 # check_PROGRAMS += test_protocol_err
-check_PROGRAMS += test_fd_limit
-check_PROGRAMS += test_throughput
 
 TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
 TESTS = $(check_PROGRAMS)

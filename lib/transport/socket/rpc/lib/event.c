@@ -56,8 +56,6 @@ static void destroy_event(struct mrpc_event *event)
 {
 	if (event->msg)
 		mrpc_free_message(event->msg);
-	if (event->errstring)
-		g_free(event->errstring);
 	g_slice_free(struct mrpc_event, event);
 }
 
@@ -108,18 +106,6 @@ void queue_event(struct mrpc_event *event)
 	conn->events_pending++;
 	try_queue_conn(conn);
 	pthread_mutex_unlock(&conn->set->events_lock);
-}
-
-void queue_ioerr_event(struct mrpc_connection *conn, char *fmt, ...)
-{
-	struct mrpc_event *event;
-	va_list ap;
-
-	event=mrpc_alloc_event(conn, EVENT_IOERR);
-	va_start(ap, fmt);
-	event->errstring=g_strdup_vprintf(fmt, ap);
-	va_end(ap);
-	queue_event(event);
 }
 
 static struct mrpc_event *unqueue_event(struct mrpc_conn_set *set)
@@ -273,10 +259,8 @@ static void dispatch_request(struct mrpc_event *event)
 					reply_data);
 	mrpc_free_argument(reply_type, reply_data);
 	if (ret) {
-		queue_ioerr_event(conn, "Synchronous reply failed, "
-					"seq %u cmd %d status %d "
-					"err %d",
-					request->hdr.sequence,
+		g_message("Synchronous reply failed, seq %u cmd %d status %d "
+					"err %d", request->hdr.sequence,
 					request->hdr.cmd, result, ret);
 		mrpc_free_message(request);
 	}
@@ -287,7 +271,6 @@ static void dispatch_event(struct mrpc_event *event)
 	struct mrpc_connection *conn=event->conn;
 	struct dispatch_thread_data *tdata;
 	mrpc_disconnect_fn *disconnect;
-	mrpc_ioerr_fn *ioerr;
 	int squash;
 	int fire_disconnect;
 	enum mrpc_disc_reason reason;
@@ -305,7 +288,6 @@ static void dispatch_event(struct mrpc_event *event)
 	if (squash) {
 		switch (event->type) {
 		case EVENT_REQUEST:
-		case EVENT_IOERR:
 			_mrpc_release_event(event);
 			destroy_event(event);
 			goto out;
@@ -323,12 +305,6 @@ static void dispatch_event(struct mrpc_event *event)
 		if (fire_disconnect && disconnect)
 			disconnect(conn->private, reason);
 		conn_put(conn);
-		break;
-	case EVENT_IOERR:
-		ioerr=get_config(conn->set, ioerr);
-		if (ioerr)
-			ioerr(conn->private, event->errstring);
-		g_free(event->errstring);
 		break;
 	default:
 		assert(0);

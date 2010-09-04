@@ -16,6 +16,8 @@
 #define MINIRPC_INTERNAL_H
 #define MINIRPC_PROTOCOL
 
+#define G_LOG_DOMAIN "minirpc"
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <glib.h>
@@ -44,7 +46,6 @@
 
 struct mrpc_config {
 	mrpc_disconnect_fn *disconnect;
-	mrpc_ioerr_fn *ioerr;
 };
 
 struct mrpc_conn_set {
@@ -70,7 +71,6 @@ struct mrpc_conn_set {
 enum event_type {
 	EVENT_REQUEST,
 	EVENT_DISCONNECT,
-	EVENT_IOERR,
 };
 
 struct mrpc_event {
@@ -79,9 +79,6 @@ struct mrpc_event {
 
 	/* request/reply */
 	struct mrpc_message *msg;
-
-	/* message errors */
-	char *errstring;
 };
 
 struct mrpc_message {
@@ -187,7 +184,6 @@ struct mrpc_event *mrpc_alloc_event(struct mrpc_connection *conn,
 struct mrpc_event *mrpc_alloc_message_event(struct mrpc_message *msg,
 			enum event_type type);
 void queue_event(struct mrpc_event *event);
-void queue_ioerr_event(struct mrpc_connection *conn, char *fmt, ...);
 void destroy_events(struct mrpc_connection *conn);
 void kick_event_shutdown_sequence(struct mrpc_connection *conn);
 

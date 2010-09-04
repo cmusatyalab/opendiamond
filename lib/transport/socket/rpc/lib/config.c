@@ -27,12 +27,3 @@ exported int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
 	set_config(set, disconnect, func);
 	return 0;
 }
-
-exported int mrpc_set_ioerr_func(struct mrpc_conn_set *set,
-			mrpc_ioerr_fn *func)
-{
-	if (set == NULL)
-		return EINVAL;
-	set_config(set, ioerr, func);
-	return 0;
-}

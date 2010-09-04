@@ -13,7 +13,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <glib.h>
 #include "common.h"
+
+static void swallow_g_log(const gchar *domain, GLogLevelFlags level,
+			const gchar *message, void *data)
+{
+	return;
+}
 
 int main(int argc, char **argv)
 {
@@ -25,6 +32,8 @@ int main(int argc, char **argv)
 	int fdpair[2];
 	IntParam ip = {INT_VALUE};
 	IntParam *ipp;
+
+	g_log_set_handler("minirpc", G_LOG_LEVEL_MESSAGE, swallow_g_log, NULL);
 
 	expect(mrpc_conn_set_create(NULL, proto_server, NULL), EINVAL);
 	sset=(void*)1;

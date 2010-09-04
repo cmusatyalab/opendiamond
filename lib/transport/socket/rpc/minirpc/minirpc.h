@@ -95,32 +95,6 @@ typedef void (mrpc_disconnect_fn)(void *conn_data,
 			enum mrpc_disc_reason reason);
 
 /**
- * @brief Event callback fired on I/O error
- * @param	conn_data
- *	The cookie associated with the connection
- * @param	message
- *	A string describing the error
- * @sa mrpc_set_ioerr_func()
- *
- * If supplied, this callback is fired whenever miniRPC encounters an I/O or
- * XDR error it wishes to report to the application.  @c message is in a
- * format suitable for logging.  @c message is no longer valid once the
- * callback returns.
- *
- * This callback is fired only on unusual error conditions, generally
- * caused by invalid data on the wire.  If miniRPC can recover from such an
- * error, it will do so; if not, it will automatically close the connection
- * (and report this via the disconnect callback).
- *
- * The application need not register an @c ioerr callback unless it wishes to
- * log such events.  In most cases, the callback function will simply call
- * the appropriate logging function and return.  If the application is
- * paranoid about servicing connections which may be in a dubious state, it
- * may wish to close the affected connection (with mrpc_conn_close()) as well.
- */
-typedef void (mrpc_ioerr_fn)(void *conn_data, char *message);
-
-/**
  * @}
  * @addtogroup setup
  * @{
@@ -195,20 +169,6 @@ void mrpc_conn_set_unref(struct mrpc_conn_set *set);
  */
 int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
 			mrpc_disconnect_fn *func);
-
-/**
- * @brief Set the function to be called when a connection encounters an I/O
- *	error
- * @param	set
- *	The connection set to configure
- * @param	func
- *	The ioerr function, or NULL for none
- * @stdreturn
- * @sa mrpc_ioerr_fn
- *
- * By default, no ioerr function is provided.
- */
-int mrpc_set_ioerr_func(struct mrpc_conn_set *set, mrpc_ioerr_fn *func);
 
 /**
  * @}

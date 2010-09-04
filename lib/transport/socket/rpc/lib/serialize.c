@@ -189,8 +189,8 @@ mrpc_status_t unformat_request(struct mrpc_message *msg, void **result)
 		return MINIRPC_ENCODING_ERR;
 	ret=unformat_message(type, size, msg, result);
 	if (ret)
-		queue_ioerr_event(msg->conn, "Request payload deserialize "
-					"failure, seq %u", msg->hdr.sequence);
+		g_message("Request payload deserialize failure, seq %u",
+					msg->hdr.sequence);
 	return ret;
 }
 
@@ -209,7 +209,7 @@ mrpc_status_t unformat_reply(struct mrpc_message *msg, void **result)
 		return MINIRPC_ENCODING_ERR;
 	ret=unformat_message(type, size, msg, result);
 	if (ret)
-		queue_ioerr_event(msg->conn, "Reply payload deserialize "
-					"failure, seq %u", msg->hdr.sequence);
+		g_message("Reply payload deserialize failure, seq %u",
+					msg->hdr.sequence);
 	return ret;
 }

@@ -25,7 +25,6 @@
 	} while (0)
 
 struct mrpc_protocol {
-	int is_server;
 	mrpc_status_t (*request)(const void *ops, void *conn_data,
 				int cmd, void *in, void *out);
 	mrpc_status_t (*sender_request_info)(unsigned cmd, xdrproc_t *type,

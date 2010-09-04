@@ -379,14 +379,12 @@ sub gen_protocol_struct_c {
 	my $haveRequest = shift;
 
 	my $antirole = ($role eq "client") ? "server" : "client";
-	my $isServer = ($role eq "server") ? "1" : "0";
 	my $requestFunc = $haveRequest ? "${base}_${role}_request" : "NULL";
 
 	print $fh wrapc(<<EOF);
 
 const struct mrpc_protocol * const ${base}_$role =
 &(const struct mrpc_protocol) {
-	.is_server = $isServer,
 	.request = $requestFunc,
 	.sender_request_info = ${base}_${antirole}_request_info,
 	.sender_reply_info = ${base}_${antirole}_reply_info,

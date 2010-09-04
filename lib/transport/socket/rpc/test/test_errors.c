@@ -1,7 +1,7 @@
 /*
  * miniRPC - TCP RPC library with asynchronous operations
  *
- * Copyright (C) 2007-2008 Carnegie Mellon University
+ * Copyright (C) 2007-2010 Carnegie Mellon University
  *
  * This code is distributed "AS IS" without warranty of any kind under the
  * terms of the GNU Lesser General Public License version 2.1, as shown in
@@ -19,9 +19,8 @@ int main(int argc, char **argv)
 {
 	struct mrpc_conn_set *sset;
 	struct mrpc_conn_set *cset;
+	struct mrpc_connection *sconn;
 	struct mrpc_connection *conn;
-	struct sockaddr_in addr;
-	char *port;
 	int fd;
 	int fdpair[2];
 	IntParam ip = {INT_VALUE};
@@ -48,11 +47,7 @@ int main(int argc, char **argv)
 		die("Couldn't allocate conn set");
 	if (mrpc_conn_set_create(&cset, proto_client, NULL))
 		die("Couldn't allocate conn set");
-	expect(mrpc_set_accept_func(sset, NULL), EINVAL);
-	expect(mrpc_set_accept_func(cset, sync_server_accept), EINVAL);
 
-	if (mrpc_set_accept_func(sset, sync_server_accept))
-		die("Couldn't set accept func");
 	if (mrpc_set_disconnect_func(sset, disconnect_normal))
 		die("Couldn't set disconnect func");
 	if (mrpc_set_disconnect_func(cset, disconnect_user))
@@ -63,52 +58,30 @@ int main(int argc, char **argv)
 	expect(mrpc_dispatch(cset, 1), EPERM);
 	expect(mrpc_dispatch_loop(cset), EPERM);
 
-	port=NULL;
-	expect(mrpc_listen(NULL, AF_UNSPEC, "localhost", &port), EINVAL);
-	expect(mrpc_listen(sset, AF_UNSPEC, "localhost", NULL), EINVAL);
-	port=NULL;
-	expect(mrpc_listen(sset, AF_UNSPEC, "localhost", &port), EINVAL);
-	port="50234";
-	expect(mrpc_listen(sset, 90500, "localhost", &port), EAFNOSUPPORT);
-	port=NULL;
-	expect(mrpc_listen(sset, AF_INET, NULL, &port), 0);
+	expect(mrpc_conn_create(&sconn, sset, NULL), 0);
+	sync_server_set_ops(sconn);
 	expect(mrpc_conn_create(&conn, cset, NULL), 0);
-	expect(mrpc_connect(conn, AF_UNSPEC, NULL, port), 0);
-	mrpc_listen_close(NULL);
-	mrpc_listen_close(sset);
+	bind_conn_pair(sconn, conn);
 	mrpc_conn_unref(conn);
 	expect(mrpc_conn_close(conn), 0);
 	expect(mrpc_conn_close(NULL), EINVAL);
 	expect(mrpc_conn_create(&conn, cset, NULL), 0);
-	expect(mrpc_connect(conn, AF_UNSPEC, NULL, port), ECONNREFUSED);
 	expect(mrpc_conn_close(conn), ENOTCONN);
 	mrpc_conn_unref(conn);
-	free(port);
 
-	port=NULL;
-	expect(mrpc_listen(sset, AF_INET, "localhost", &port), 0);
 	expect(mrpc_conn_create(NULL, cset, NULL), EINVAL);
 	conn=(void*)1;
 	expect(mrpc_conn_create(&conn, NULL, NULL), EINVAL);
 	expect(conn == NULL, 1);
 	expect(mrpc_conn_create(&conn, cset, NULL), 0);
-	expect(mrpc_connect(NULL, AF_INET, "localhost", port), EINVAL);
-	expect(mrpc_connect(conn, 90500, "localhost", port), EAFNOSUPPORT);
-	expect(mrpc_connect(conn, AF_INET, "localhost", NULL), EINVAL);
 
-	fd=socket(PF_INET, SOCK_STREAM, 0);
-	if (fd == -1)
-		die("Couldn't create socket");
-	addr.sin_family=AF_INET;
-	addr.sin_port=htons(atoi(port));
-	addr.sin_addr.s_addr=htonl(INADDR_LOOPBACK);
-	expect(connect(fd, (struct sockaddr *)&addr, sizeof(addr)), 0);
-	expect(mrpc_bind_fd(NULL, fd), EINVAL);
-	expect(mrpc_bind_fd(conn, fd), 0);
-	expect(mrpc_connect(conn, AF_INET, NULL, port), EINVAL);
-	expect(mrpc_bind_fd(conn, fd), EINVAL);
+	get_conn_pair(&fdpair[0], &fdpair[1]);
+	expect(mrpc_bind_fd(NULL, fdpair[0]), EINVAL);
+	expect(mrpc_bind_fd(conn, fdpair[0]), 0);
+	expect(mrpc_bind_fd(conn, fdpair[0]), EINVAL);
 	expect(mrpc_conn_close(conn), 0);
 	mrpc_conn_unref(conn);
+	expect(close(fdpair[1]), 0);
 	expect(mrpc_conn_create(&conn, cset, NULL), 0);
 	fd=socket(PF_INET, SOCK_STREAM, 0);
 	if (fd == -1)
@@ -127,7 +100,9 @@ int main(int argc, char **argv)
 	close(fdpair[0]);
 	close(fdpair[1]);
 
-	expect(mrpc_connect(conn, AF_UNSPEC, NULL, port), 0);
+	expect(mrpc_conn_create(&sconn, sset, NULL), 0);
+	sync_server_set_ops(sconn);
+	bind_conn_pair(conn, sconn);
 	expect(proto_client_set_operations(NULL, NULL), EINVAL);
 	expect(proto_ping(NULL), MINIRPC_INVALID_ARGUMENT);
 	ipp=(void*)1;
@@ -139,6 +114,8 @@ int main(int argc, char **argv)
 	expect(proto_loop_int(conn, &ip, NULL), MINIRPC_ENCODING_ERR);
 	expect(proto_client_check_int(conn, NULL), MINIRPC_INVALID_PROTOCOL);
 	expect(mrpc_conn_close(conn), 0);
+	expect(proto_ping(conn), MINIRPC_NETWORK_FAILURE);
+	expect(mrpc_conn_close(conn), EALREADY);
 	mrpc_conn_unref(conn);
 
 	expect(mrpc_conn_create(&conn, cset, NULL), 0);
@@ -146,9 +123,7 @@ int main(int argc, char **argv)
 	expect(mrpc_conn_close(conn), ENOTCONN);
 	mrpc_conn_unref(conn);
 	mrpc_conn_set_unref(cset);
-	mrpc_listen_close(sset);
 	mrpc_conn_set_unref(sset);
-	free(port);
 
 	free_IntArray(NULL, 0);
 	free_IntArray(NULL, 1);

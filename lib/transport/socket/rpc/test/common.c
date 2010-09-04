@@ -1,15 +1,19 @@
 /*
  * miniRPC - TCP RPC library with asynchronous operations
  *
- * Copyright (C) 2007-2008 Carnegie Mellon University
+ * Copyright (C) 2007-2010 Carnegie Mellon University
  *
  * This code is distributed "AS IS" without warranty of any kind under the
  * terms of the GNU Lesser General Public License version 2.1, as shown in
  * the file COPYING.
  */
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include "common.h"
@@ -79,27 +83,64 @@ void start_monitored_dispatcher(struct mrpc_conn_set *set)
 	sem_destroy(&ddata.ready);
 }
 
-struct mrpc_conn_set *spawn_server(char **listen_port,
-			const struct mrpc_protocol *protocol,
-			mrpc_accept_fn accept, void *set_data, int threads)
+static void set_blocking(int fd, int blocking)
 {
-	struct mrpc_conn_set *set;
-	char *port=NULL;
-	int ret;
-	int i;
+	int flags;
 
-	if (mrpc_conn_set_create(&set, protocol, set_data))
-		die("Couldn't allocate connection set");
-	if (mrpc_set_accept_func(set, accept))
-		die("Couldn't set accept function");
-	ret=mrpc_listen(set, AF_INET, "localhost", &port);
-	if (ret)
-		die("%s", strerror(ret));
-	for (i=0; i<threads; i++)
-		start_monitored_dispatcher(set);
-	if (listen_port)
-		*listen_port=port;
-	return set;
+	flags = fcntl(fd, F_GETFL);
+	expect(flags != -1, 1);
+	if (blocking)
+		flags &= ~O_NONBLOCK;
+	else
+		flags |= O_NONBLOCK;
+	expect(fcntl(fd, F_SETFL, flags), 0);
+}
+
+void get_conn_pair(int *a, int *b)
+{
+	struct sockaddr_in addr;
+	socklen_t addrlen;
+	int lfd;
+	int sfd;
+	int cfd;
+
+	lfd=socket(PF_INET, SOCK_STREAM, 0);
+	if (lfd == -1)
+		die("Couldn't create socket");
+	addr.sin_family=AF_INET;
+	addr.sin_addr.s_addr=htonl(INADDR_LOOPBACK);
+	addr.sin_port=0;
+	if (bind(lfd, (struct sockaddr *)&addr, sizeof(addr)))
+		die("Couldn't bind socket");
+	if (listen(lfd, 16))
+		die("Couldn't listen on socket");
+	addrlen=sizeof(addr);
+	if (getsockname(lfd, (struct sockaddr *)&addr, &addrlen))
+		die("Couldn't get socket name");
+	cfd=socket(PF_INET, SOCK_STREAM, 0);
+	if (cfd == -1)
+		die("Couldn't create socket");
+	set_blocking(cfd, 0);
+	if (connect(cfd, (struct sockaddr *)&addr, sizeof(addr)) != -1 ||
+				errno != EINPROGRESS)
+		die("Couldn't connect socket");
+	sfd=accept(lfd, NULL, NULL);
+	if (sfd == -1)
+		die("Couldn't accept incoming connection");
+	close(lfd);
+	set_blocking(cfd, 1);
+	*a = cfd;
+	*b = sfd;
+}
+
+void bind_conn_pair(struct mrpc_connection *a, struct mrpc_connection *b)
+{
+	int fda;
+	int fdb;
+
+	get_conn_pair(&fda, &fdb);
+	expect(mrpc_bind_fd(a, fda), 0);
+	expect(mrpc_bind_fd(b, fdb), 0);
 }
 
 void disconnect_fatal(void *conn_data, enum mrpc_disc_reason reason)

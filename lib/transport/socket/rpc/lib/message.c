@@ -136,7 +136,7 @@ exported mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
 		*out=NULL;
 	if (conn == NULL || cmd <= 0)
 		return MINIRPC_INVALID_ARGUMENT;
-	if (protocol != conn->set->protocol)
+	if (protocol != conn->protocol)
 		return MINIRPC_INVALID_PROTOCOL;
 	ret=format_request(conn, cmd, in, &request);
 	if (ret)
@@ -173,7 +173,7 @@ mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol,
 
 	if (request == NULL || cmd != request->hdr.cmd)
 		return MINIRPC_INVALID_ARGUMENT;
-	if (protocol != request->conn->set->protocol)
+	if (protocol != request->conn->protocol)
 		return MINIRPC_INVALID_PROTOCOL;
 	ret=format_reply(request, data, &reply);
 	if (ret)
@@ -196,7 +196,7 @@ mrpc_status_t mrpc_send_reply_error(const struct mrpc_protocol *protocol,
 				status == MINIRPC_OK ||
 				status == MINIRPC_PENDING)
 		return MINIRPC_INVALID_ARGUMENT;
-	if (protocol != request->conn->set->protocol)
+	if (protocol != request->conn->protocol)
 		return MINIRPC_INVALID_PROTOCOL;
 	ret=format_reply_error(request, status, &reply);
 	if (ret)

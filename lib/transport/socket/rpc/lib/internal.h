@@ -31,26 +31,6 @@ struct mrpc_config {
 	mrpc_disconnect_fn *disconnect;
 };
 
-struct mrpc_conn_set {
-	struct mrpc_config config;
-	pthread_mutex_t config_lock;
-
-	const struct mrpc_protocol *protocol;
-	void *private;
-
-	GQueue *event_conns;
-	struct selfpipe *events_notify_pipe;
-	pthread_mutex_t events_lock;
-
-	int refs;  /* atomic ops only */
-	int user_refs;  /* atomic ops only */
-
-	struct pollset *pollset;
-	struct selfpipe *shutdown_pipe;
-	unsigned events_threads;		/* protected by events_lock */
-	pthread_cond_t events_threads_cond;
-};
-
 enum event_type {
 	EVENT_REQUEST,
 	EVENT_DISCONNECT,
@@ -92,7 +72,19 @@ enum sequence_flags {
 #define MINIRPC_PENDING -1
 
 struct mrpc_connection {
-	struct mrpc_conn_set *set;
+	struct mrpc_config config;
+	pthread_mutex_t config_lock;
+
+	const struct mrpc_protocol *protocol;
+
+	struct selfpipe *events_notify_pipe;
+	pthread_mutex_t events_lock;
+
+	struct pollset *pollset;
+	struct selfpipe *shutdown_pipe;
+	unsigned events_threads;		/* protected by events_lock */
+	pthread_cond_t events_threads_cond;
+
 	int fd;
 	void *private;
 	gint refs;  /* atomic operations only */
@@ -123,8 +115,7 @@ struct mrpc_connection {
 	GHashTable *pending_replies;
 	pthread_mutex_t pending_replies_lock;
 
-	GList *lh_event_conns;
-	GQueue *events;	/* protected by set->events_lock */
+	GQueue *events;	/* protected by events_lock */
 	unsigned events_pending;
 	struct mrpc_event *plugged_event;
 

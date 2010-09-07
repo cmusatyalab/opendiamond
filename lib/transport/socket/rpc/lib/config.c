@@ -14,16 +14,16 @@
 #include "internal.h"
 
 #define set_config(set, var, val) do {				\
-		pthread_mutex_lock(&(set)->config_lock);	\
+		pthread_mutex_lock(&(conn)->config_lock);	\
 		(set)->config.var=(val);			\
-		pthread_mutex_unlock(&(set)->config_lock);	\
+		pthread_mutex_unlock(&(conn)->config_lock);	\
 	} while (0)
 
-exported int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
+exported int mrpc_set_disconnect_func(struct mrpc_connection *conn,
 			mrpc_disconnect_fn *func)
 {
-	if (set == NULL)
+	if (conn == NULL)
 		return EINVAL;
-	set_config(set, disconnect, func);
+	set_config(conn, disconnect, func);
 	return 0;
 }

@@ -22,11 +22,10 @@
 #define MINIRPC_INTERNAL
 #include "internal.h"
 
-static void conn_set_free(struct mrpc_conn_set *set);
-static void conn_free(struct mrpc_connection *conn);
 static void conn_kill(struct mrpc_connection *conn,
 			enum mrpc_disc_reason reason);
 static int try_close_fd(struct mrpc_connection *conn);
+static void *listener(void *data);
 
 static int setsockoptval(int fd, int level, int optname, int value)
 {
@@ -60,19 +59,12 @@ static int setsockoptval(int fd, int level, int optname, int value)
 			cleanup_action;					\
 		}							\
 	}
-REFCOUNT_GET_FUNC(static, conn_set_get, struct mrpc_conn_set, refs)
-/* We can't call conn_set_free() directly from conn_set_put(): if we were
+/* We can't call conn_free() directly from conn_put(): if we were
    called from an event thread, that would deadlock.  Have the listener
-   thread clean up the set. */
-REFCOUNT_PUT_FUNC(static, conn_set_put, struct mrpc_conn_set, refs,
-			selfpipe_set(item->shutdown_pipe))
-REFCOUNT_GET_FUNC(exported, mrpc_conn_set_ref, struct mrpc_conn_set,
-			user_refs)
-REFCOUNT_PUT_FUNC(exported, mrpc_conn_set_unref, struct mrpc_conn_set,
-			user_refs, conn_set_put(item))
+   thread clean up the conn. */
 REFCOUNT_GET_FUNC(, conn_get, struct mrpc_connection, refs)
 REFCOUNT_PUT_FUNC(, conn_put, struct mrpc_connection, refs,
-			conn_free(item))
+			selfpipe_set(item->shutdown_pipe))
 REFCOUNT_GET_FUNC(exported, mrpc_conn_ref, struct mrpc_connection, user_refs)
 REFCOUNT_PUT_FUNC(exported, mrpc_conn_unref, struct mrpc_connection, user_refs,
 			conn_put(item))
@@ -173,7 +165,7 @@ again:
 	pthread_mutex_lock(&conn->send_msgs_lock);
 	assert(!(conn->sequence_flags & SEQ_FD_CLOSED));
 	if (g_queue_is_empty(conn->send_msgs)) {
-		pollset_modify(conn->set->pollset, conn->fd, POLLSET_READABLE);
+		pollset_modify(conn->pollset, conn->fd, POLLSET_READABLE);
 		pthread_mutex_unlock(&conn->send_msgs_lock);
 		if (try_close_fd(conn))
 			return MINIRPC_NETWORK_FAILURE;
@@ -302,7 +294,7 @@ mrpc_status_t send_message(struct mrpc_message *msg)
 		goto out;
 	}
 	if ((conn->sequence_flags & SEQ_SHUT_STARTED) ||
-				pollset_modify(conn->set->pollset, conn->fd,
+				pollset_modify(conn->pollset, conn->fd,
 				POLLSET_READABLE|POLLSET_WRITABLE)) {
 		ret=MINIRPC_NETWORK_FAILURE;
 		goto out;
@@ -317,17 +309,24 @@ out:
 }
 
 exported int mrpc_conn_create(struct mrpc_connection **new_conn,
-			struct mrpc_conn_set *set, void *data)
+			const struct mrpc_protocol *protocol, void *data)
 {
 	struct mrpc_connection *conn;
+	pthread_attr_t attr;
+	pthread_t thr;
+	int ret;
 
 	if (new_conn == NULL)
 		return EINVAL;
 	*new_conn=NULL;
-	if (set == NULL)
+	if (protocol == NULL)
 		return EINVAL;
-	conn_set_get(set);
+	mrpc_init();
 	conn=g_slice_new0(struct mrpc_connection);
+	pthread_mutex_init(&conn->config_lock, NULL);
+	pthread_mutex_init(&conn->events_lock, NULL);
+	pthread_cond_init(&conn->events_threads_cond, NULL);
+	conn->protocol=protocol;
 	g_atomic_int_set(&conn->refs, 1);
 	g_atomic_int_set(&conn->user_refs, 1);
 	conn->msgs=g_queue_new();
@@ -339,12 +338,50 @@ exported int mrpc_conn_create(struct mrpc_connection **new_conn,
 	pthread_mutex_init(&conn->sequence_lock, NULL);
 	conn->send_state=STATE_HEADER;
 	conn->recv_state=STATE_HEADER;
-	conn->set=set;
 	conn->private = (data != NULL) ? data : conn;
 	conn->pending_replies=g_hash_table_new_full(g_int_hash, g_int_equal,
 				NULL, (GDestroyNotify)pending_free);
+	ret=selfpipe_create(&conn->shutdown_pipe);
+	if (ret)
+		goto bad;
+	ret=selfpipe_create(&conn->events_notify_pipe);
+	if (ret)
+		goto bad;
+	ret=pollset_alloc(&conn->pollset);
+	if (ret)
+		goto bad;
+	ret=pollset_add(conn->pollset, selfpipe_fd(conn->shutdown_pipe),
+				POLLSET_READABLE, NULL, NULL, NULL, NULL,
+				assert_callback_func, NULL);
+	if (ret)
+		goto bad;
+	ret=pthread_attr_init(&attr);
+	if (ret)
+		goto bad;
+	ret=pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	if (ret)
+		goto bad;
+	ret=pthread_create(&thr, &attr, listener, conn);
+	if (ret)
+		goto bad;
+	pthread_attr_destroy(&attr);
+
 	*new_conn=conn;
 	return 0;
+
+bad:
+	if (conn->pollset)
+		pollset_free(conn->pollset);
+	if (conn->events_notify_pipe)
+		selfpipe_destroy(conn->events_notify_pipe);
+	if (conn->shutdown_pipe)
+		selfpipe_destroy(conn->shutdown_pipe);
+	g_queue_free(conn->events);
+	g_hash_table_destroy(conn->pending_replies);
+	g_queue_free(conn->send_msgs);
+	g_queue_free(conn->msgs);
+	g_slice_free(struct mrpc_connection, conn);
+	return ret;
 }
 
 /* Sequence lock must be held */
@@ -369,7 +406,7 @@ static int try_close_fd(struct mrpc_connection *conn)
 	pthread_mutex_lock(&conn->sequence_lock);
 	if ((conn->sequence_flags & SEQ_SHUT_STARTED) &&
 				!(conn->sequence_flags & SEQ_FD_CLOSED)) {
-		pollset_del(conn->set->pollset, conn->fd);
+		pollset_del(conn->pollset, conn->fd);
 		/* We are now guaranteed that the listener thread will not
 		   process this connection further (once the current handler
 		   returns) */
@@ -415,7 +452,7 @@ exported int mrpc_conn_close(struct mrpc_connection *conn)
 	}
 	conn->sequence_flags |= SEQ_SQUASH_EVENTS;
 	if (!(conn->sequence_flags & SEQ_FD_CLOSED))
-		pollset_modify(conn->set->pollset, conn->fd,
+		pollset_modify(conn->pollset, conn->fd,
 					POLLSET_READABLE | POLLSET_WRITABLE);
 out:
 	pthread_mutex_unlock(&conn->sequence_lock);
@@ -427,8 +464,17 @@ static void conn_free(struct mrpc_connection *conn)
 {
 	struct mrpc_message *msg;
 
+	selfpipe_set(conn->events_notify_pipe);
+	pthread_mutex_lock(&conn->events_lock);
+	while (conn->events_threads)
+		pthread_cond_wait(&conn->events_threads_cond,
+					&conn->events_lock);
+	pthread_mutex_unlock(&conn->events_lock);
 	destroy_events(conn);
 	g_queue_free(conn->events);
+	pollset_free(conn->pollset);
+	selfpipe_destroy(conn->events_notify_pipe);
+	selfpipe_destroy(conn->shutdown_pipe);
 	g_hash_table_destroy(conn->pending_replies);
 	if (conn->send_msg)
 		mrpc_free_message(conn->send_msg);
@@ -442,7 +488,6 @@ static void conn_free(struct mrpc_connection *conn)
 		mrpc_free_message(msg);
 	}
 	g_queue_free(conn->msgs);
-	conn_set_put(conn->set);
 	g_slice_free(struct mrpc_connection, conn);
 }
 
@@ -497,7 +542,7 @@ exported int mrpc_bind_fd(struct mrpc_connection *conn, int fd)
 	if (ret)
 		goto out;
 	conn->fd=fd;
-	ret=pollset_add(conn->set->pollset, fd, POLLSET_READABLE, conn,
+	ret=pollset_add(conn->pollset, fd, POLLSET_READABLE, conn,
 				try_read_conn, try_write_conn, conn_hangup,
 				conn_error, NULL);
 	if (!ret) {
@@ -512,7 +557,7 @@ out:
 exported int mrpc_conn_set_operations(struct mrpc_connection *conn,
 			const struct mrpc_protocol *protocol, const void *ops)
 {
-	if (conn == NULL || conn->set->protocol != protocol)
+	if (conn == NULL || conn->protocol != protocol)
 		return EINVAL;
 	g_atomic_pointer_set(&conn->operations, ops);
 	return 0;
@@ -520,86 +565,11 @@ exported int mrpc_conn_set_operations(struct mrpc_connection *conn,
 
 static void *listener(void *data)
 {
-	struct mrpc_conn_set *set=data;
+	struct mrpc_connection *conn=data;
 
 	block_signals();
-	while (!selfpipe_is_set(set->shutdown_pipe))
-		pollset_poll(set->pollset);
-	conn_set_free(set);
+	while (!selfpipe_is_set(conn->shutdown_pipe))
+		pollset_poll(conn->pollset);
+	conn_free(conn);
 	return NULL;
-}
-
-exported int mrpc_conn_set_create(struct mrpc_conn_set **new_set,
-			const struct mrpc_protocol *protocol, void *set_data)
-{
-	struct mrpc_conn_set *set;
-	pthread_attr_t attr;
-	pthread_t thr;
-	int ret;
-
-	if (new_set == NULL)
-		return EINVAL;
-	*new_set=NULL;
-	if (protocol == NULL)
-		return EINVAL;
-	mrpc_init();
-	set=g_slice_new0(struct mrpc_conn_set);
-	pthread_mutex_init(&set->config_lock, NULL);
-	pthread_mutex_init(&set->events_lock, NULL);
-	pthread_cond_init(&set->events_threads_cond, NULL);
-	set->protocol=protocol;
-	g_atomic_int_set(&set->refs, 1);
-	g_atomic_int_set(&set->user_refs, 1);
-	set->event_conns=g_queue_new();
-	set->private = (set_data != NULL) ? set_data : set;
-	ret=selfpipe_create(&set->shutdown_pipe);
-	if (ret)
-		goto bad;
-	ret=selfpipe_create(&set->events_notify_pipe);
-	if (ret)
-		goto bad;
-	ret=pollset_alloc(&set->pollset);
-	if (ret)
-		goto bad;
-	ret=pollset_add(set->pollset, selfpipe_fd(set->shutdown_pipe),
-				POLLSET_READABLE, NULL, NULL, NULL, NULL,
-				assert_callback_func, NULL);
-	if (ret)
-		goto bad;
-	ret=pthread_attr_init(&attr);
-	if (ret)
-		goto bad;
-	ret=pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	if (ret)
-		goto bad;
-	ret=pthread_create(&thr, &attr, listener, set);
-	if (ret)
-		goto bad;
-	pthread_attr_destroy(&attr);
-	*new_set=set;
-	return 0;
-
-bad:
-	if (set->pollset)
-		pollset_free(set->pollset);
-	if (set->events_notify_pipe)
-		selfpipe_destroy(set->events_notify_pipe);
-	if (set->shutdown_pipe)
-		selfpipe_destroy(set->shutdown_pipe);
-	g_slice_free(struct mrpc_conn_set, set);
-	return ret;
-}
-
-static void conn_set_free(struct mrpc_conn_set *set)
-{
-	selfpipe_set(set->events_notify_pipe);
-	pthread_mutex_lock(&set->events_lock);
-	while (set->events_threads)
-		pthread_cond_wait(&set->events_threads_cond, &set->events_lock);
-	pthread_mutex_unlock(&set->events_lock);
-	pollset_free(set->pollset);
-	selfpipe_destroy(set->events_notify_pipe);
-	selfpipe_destroy(set->shutdown_pipe);
-	g_queue_free(set->event_conns);
-	g_slice_free(struct mrpc_conn_set, set);
 }

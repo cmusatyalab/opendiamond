@@ -27,7 +27,7 @@ void _message(const char *file, int line, const char *func, const char *fmt,
 			...);
 #define message(args...) _message(__FILE__, __LINE__, __func__, args)
 #define die(args...) do {message(args); abort();} while (0)
-void start_monitored_dispatcher(struct mrpc_conn_set *set);
+void start_monitored_dispatcher(struct mrpc_connection *conn);
 void get_conn_pair(int *a, int *b);
 void bind_conn_pair(struct mrpc_connection *a, struct mrpc_connection *b);
 void disconnect_fatal(void *conn_data, enum mrpc_disc_reason reason);

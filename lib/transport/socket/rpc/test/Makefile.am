@@ -21,13 +21,13 @@ libcommon_a_SOURCES  = common.c common.h client_sync.c server_sync.c proto.mx
 nodist_libcommon_a_SOURCES = $(GEN_NOXDR)
 LDADD = libcommon.a libxdr.a
 
-check_PROGRAMS  = test_basic
-check_PROGRAMS += test_sequential_clients
-check_PROGRAMS += test_set_ops
-check_PROGRAMS += test_unix
+# check_PROGRAMS  = test_basic
+# check_PROGRAMS += test_sequential_clients
+# check_PROGRAMS += test_set_ops
+# check_PROGRAMS += test_unix
 # check_PROGRAMS += test_simultaneous_close
-check_PROGRAMS += test_exec_close
-check_PROGRAMS += test_errors
+# check_PROGRAMS += test_exec_close
+# check_PROGRAMS += test_errors
 # check_PROGRAMS += test_protocol_err
 
 TESTS_ENVIRONMENT = $(srcdir)/runtest.sh

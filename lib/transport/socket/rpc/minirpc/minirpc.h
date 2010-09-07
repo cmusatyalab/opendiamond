@@ -21,7 +21,6 @@
 #include <stdint.h>
 
 struct mrpc_protocol;
-struct mrpc_conn_set;
 struct mrpc_connection;
 
 /**
@@ -101,65 +100,10 @@ typedef void (mrpc_disconnect_fn)(void *conn_data,
  */
 
 /**
- * @brief Create a connection set
- * @param[out]	new_set
- *	The resulting connection set, or NULL on error
- * @param	protocol
- *	Protocol role definition for connections in this connection set
- * @param	set_data
- *	An application-specific cookie for this connection set
- * @stdreturn
- *
- * Create a connection set with a refcount of 1, associate it with the
- * specified protocol role and application-specific pointer, start its
- * background thread, and return a handle to the connection set.  If
- * @c set_data is NULL, set the application-specific pointer to the
- * connection set handle returned in @c new_set.
- */
-int mrpc_conn_set_create(struct mrpc_conn_set **new_set,
-			const struct mrpc_protocol *protocol, void *set_data);
-
-/**
- * @brief Increment the refcount of a connection set
- * @param	set
- *	The connection set
- *
- * Get an additional reference to the specified connection set.
- *
- * @note Dispatcher threads should not hold their own persistent references
- * to the set for which they are dispatching.
- */
-void mrpc_conn_set_ref(struct mrpc_conn_set *set);
-
-/**
- * @brief Decrement the refcount of a connection set
- * @param	set
- *	The connection set
- *
- * Put a reference to the specified connection set.  When the refcount
- * reaches zero @em and there are no connections associated with the set,
- * the set will be destroyed.  Destruction of a connection set involves
- * the following steps:
- *
- * -# Shut down all threads started with mrpc_start_dispatch_thread(), and
- * cause all other dispatch functions to return ENXIO
- * -# Wait for dispatching threads to call mrpc_dispatcher_remove()
- * -# Shut down the background thread associated with the connection set
- * -# Free the set's data structures
- *
- * After the set's refcount reaches zero, the application must not start
- * any additional dispatchers or create any connections against the set.
- * The application should continue to dispatch events against the set
- * (if it is doing its own dispatching) until the dispatcher functions
- * return ENXIO.
- */
-void mrpc_conn_set_unref(struct mrpc_conn_set *set);
-
-/**
  * @brief Set the function to be called when a connection is closed for any
  *	reason
- * @param	set
- *	The connection set to configure
+ * @param	conn
+ *	The connection to configure
  * @param	func
  *	The disconnect function, or NULL for none
  * @stdreturn
@@ -167,7 +111,7 @@ void mrpc_conn_set_unref(struct mrpc_conn_set *set);
  *
  * By default, no disconnect function is provided.
  */
-int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
+int mrpc_set_disconnect_func(struct mrpc_connection *conn,
 			mrpc_disconnect_fn *func);
 
 /**
@@ -180,14 +124,14 @@ int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
  * @brief Create a new connection handle
  * @param[out]	new_conn
  *	The resulting connection handle, or NULL on error
- * @param	set
- *	The set to associate with this connection
+ * @param	protocol
+ *	Protocol role definition for this connection
  * @param	data
  *	An application-specific cookie for this connection
  * @stdreturn
  *
  * Allocate a new connection handle with a refcount of 1, and associate it
- * with the given connection set and application-specific pointer.  This
+ * with the given protocol role and application-specific pointer.  This
  * handle can then be bound to an existing socket with mrpc_bind_fd().
  * Before the connection is completed, the only valid operations on the
  * connection handle are:
@@ -198,12 +142,9 @@ int mrpc_set_disconnect_func(struct mrpc_conn_set *set,
  *
  * If @c data is NULL, the application-specific pointer is set to the
  * connection handle returned in @c new_conn.
- *
- * While the connection handle exists, it holds a reference on the associated
- * connection set.
  */
 int mrpc_conn_create(struct mrpc_connection **new_conn,
-			struct mrpc_conn_set *set, void *data);
+			const struct mrpc_protocol *protocol, void *data);
 
 /**
  * @brief Increment the refcount of a connection
@@ -292,65 +233,64 @@ int mrpc_conn_close(struct mrpc_connection *conn);
 
 /**
  * @brief Start a dispatcher thread for a connection set
- * @param	set
- *	The connection set
+ * @param	conn
+ *	The connection
  * @stdreturn
  *
  * Start a background thread to dispatch events.  This thread will persist
- * until the connection set is destroyed, at which point it will exit.  This
+ * until the connection is destroyed, at which point it will exit.  This
  * function can be called more than once; each call will create a new thread.
- * This is the simplest way to start a dispatcher for a connection set.
+ * This is the simplest way to start a dispatcher for a connection.
  *
  * Unlike with mrpc_dispatch() and mrpc_dispatch_loop(), the caller does not
  * need to register the dispatcher thread with mrpc_dispatcher_add().  The
  * background thread handles this for you.
  */
-int mrpc_start_dispatch_thread(struct mrpc_conn_set *set);
+int mrpc_start_dispatch_thread(struct mrpc_connection *conn);
 
 /**
  * @brief Notify miniRPC that the current thread will dispatch events for this
- *	connection set
- * @param	set
- *	The connection set
+ *	connection
+ * @param	conn
+ *	The connection
  *
  * Any thread which calls mrpc_dispatch() or mrpc_dispatch_loop() must call
  * mrpc_dispatcher_add() before it starts dispatching for the specified
- * connection set.
+ * connection.
  */
-void mrpc_dispatcher_add(struct mrpc_conn_set *set);
+void mrpc_dispatcher_add(struct mrpc_connection *conn);
 
 /**
  * @brief Notify miniRPC that the current thread will no longer dispatch
- *	events for this connection set
- * @param	set
- *	The connection set
+ *	events for this connection
+ * @param	conn
+ *	The connection
  *
  * Any thread which calls mrpc_dispatch() or mrpc_dispatch_loop() must call
  * mrpc_dispatcher_remove() when it decides it will no longer dispatch for
- * the specified connection set.
+ * the specified connection.
  */
-void mrpc_dispatcher_remove(struct mrpc_conn_set *set);
+void mrpc_dispatcher_remove(struct mrpc_connection *conn);
 
 /**
- * @brief Dispatch events from this thread until the connection set is
- *	destroyed
- * @param	set
- *	The connection set
- * @return ENXIO if the connection set is being destroyed, or a POSIX
+ * @brief Dispatch events from this thread until the connection is destroyed
+ * @param	conn
+ *	The connection
+ * @return ENXIO if the connection is being destroyed, or a POSIX
  *	error code on other error
  *
- * Start dispatching events for the given connection set, and do not return
- * until the connection set is being destroyed.  The thread must call
+ * Start dispatching events for the given connection, and do not return
+ * until the connection is being destroyed.  The thread must call
  * mrpc_dispatcher_add() before calling this function, and
  * mrpc_dispatcher_remove() afterward.  This function must not be called
  * from an event handler.
  */
-int mrpc_dispatch_loop(struct mrpc_conn_set *set);
+int mrpc_dispatch_loop(struct mrpc_connection *conn);
 
 /**
  * @brief Dispatch events from this thread and then return
- * @param	set
- *	The connection set
+ * @param	conn
+ *	The connection
  * @param	max
  *	The maximum number of events to dispatch, or 0 for no limit
  * @sa mrpc_get_event_fd()
@@ -363,23 +303,23 @@ int mrpc_dispatch_loop(struct mrpc_conn_set *set);
  * must call mrpc_dispatcher_add() before calling this function for the first
  * time.
  *
- * If this function returns ENXIO, the connection set is being destroyed.
+ * If this function returns ENXIO, the connection is being destroyed.
  * The application must stop calling this function, and must call
  * mrpc_dispatcher_remove() to indicate its intent to do so.
  *
  * This function must not be called from an event handler.
  */
-int mrpc_dispatch(struct mrpc_conn_set *set, int max);
+int mrpc_dispatch(struct mrpc_connection *conn, int max);
 
 /**
  * @brief Obtain a file descriptor which will be readable when there are
  *	events to process
- * @param	set
- *	The connection set
+ * @param	conn
+ *	The connection
  * @return The file descriptor
  *
  * Returns a file descriptor which can be passed to select()/poll() to
- * determine when the connection set has events to process.  This can be
+ * determine when the connection has events to process.  This can be
  * used to embed processing of miniRPC events into an application-specific
  * event loop.  When the descriptor is readable, the connection set has
  * events to be dispatched; the application can call mrpc_dispatch() to
@@ -387,10 +327,10 @@ int mrpc_dispatch(struct mrpc_conn_set *set, int max);
  *
  * The application must not read, write, or close the provided file
  * descriptor.  Once mrpc_dispatch() returns ENXIO, indicating that the
- * connection set is being shut down, the application must stop polling
+ * connection is being shut down, the application must stop polling
  * on the descriptor.
  */
-int mrpc_get_event_fd(struct mrpc_conn_set *set);
+int mrpc_get_event_fd(struct mrpc_connection *conn);
 
 /**
  * @}

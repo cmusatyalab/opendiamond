@@ -32,7 +32,7 @@ static struct {
 };
 
 struct dispatcher_data {
-	struct mrpc_conn_set *set;
+	struct mrpc_connection *conn;
 	sem_t ready;
 };
 
@@ -51,12 +51,12 @@ void _message(const char *file, int line, const char *func, const char *fmt,
 static void *monitored_dispatcher(void *data)
 {
 	struct dispatcher_data *ddata=data;
-	struct mrpc_conn_set *set=ddata->set;
+	struct mrpc_connection *conn=ddata->conn;
 
-	mrpc_dispatcher_add(set);
+	mrpc_dispatcher_add(conn);
 	sem_post(&ddata->ready);
-	expect(mrpc_dispatch_loop(set), ENXIO);
-	mrpc_dispatcher_remove(set);
+	expect(mrpc_dispatch_loop(conn), ENXIO);
+	mrpc_dispatcher_remove(conn);
 	pthread_mutex_lock(&stats.lock);
 	stats.running_dispatchers--;
 	pthread_mutex_unlock(&stats.lock);
@@ -64,13 +64,13 @@ static void *monitored_dispatcher(void *data)
 	return NULL;
 }
 
-void start_monitored_dispatcher(struct mrpc_conn_set *set)
+void start_monitored_dispatcher(struct mrpc_connection *conn)
 {
 	struct dispatcher_data ddata;
 	pthread_t thr;
 	pthread_attr_t attr;
 
-	ddata.set=set;
+	ddata.conn=conn;
 	sem_init(&ddata.ready, 0, 0);
 	pthread_mutex_lock(&stats.lock);
 	stats.running_dispatchers++;

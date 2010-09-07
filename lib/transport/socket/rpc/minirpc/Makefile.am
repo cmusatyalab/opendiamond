@@ -1,1 +1,1 @@
-pkginclude_HEADERS = minirpc.h protocol.h
+noinst_HEADERS = minirpc.h protocol.h

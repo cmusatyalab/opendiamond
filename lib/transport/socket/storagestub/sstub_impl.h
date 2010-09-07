@@ -16,7 +16,6 @@
 #ifndef	_SSTUB_IMPL_H_
 #define	_SSTUB_IMPL_H_
 
-#include <semaphore.h>
 #include <glib.h>
 
 #include <minirpc/minirpc.h>
@@ -48,7 +47,6 @@ typedef struct cstate {
 	sig_val_t		nonce;
 	unsigned int		flags;
 	pthread_mutex_t		cmutex;
-	sem_t			shutdown;
 	struct listener_state	*lstate;
 	session_info_t		cinfo;
 	struct mrpc_connection	*mrpc_conn;

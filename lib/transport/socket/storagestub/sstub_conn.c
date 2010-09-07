@@ -46,51 +46,42 @@
 #include "rpc_client_content_server.h"
 #include "blast_channel_server.h"
 
-static struct mrpc_conn_set *conn_set;
-static struct mrpc_conn_set *data_set;
-
 static void disconnect_cb(void *conn_data, enum mrpc_disc_reason reason)
 {
-	cstate_t *cstate = (cstate_t *)conn_data;
-	sem_post(&cstate->shutdown);
+	exit(0);
 }
 
-static int minirpc_init(void)
+static void *blast_main(void *arg)
 {
-	if (mrpc_conn_set_create(&conn_set, rpc_client_content_server, NULL) ||
-	    mrpc_conn_set_create(&data_set, blast_channel_server, NULL))
-	{
-		printf("failed to create minirpc connection sets\n");
-		goto err_out;
-	}
+	struct mrpc_conn_set *data_set = arg;
+	mrpc_dispatcher_add(data_set);
+	mrpc_dispatch_loop(data_set);
+	exit(0);
 
-	if (mrpc_start_dispatch_thread(conn_set) ||
-	    mrpc_start_dispatch_thread(data_set))
-	{
-		printf("failed to start minirpc dispatch threads\n");
-		goto err_out;
-	}
-
-	if (mrpc_set_disconnect_func(conn_set, disconnect_cb) ||
-	    mrpc_set_disconnect_func(data_set, disconnect_cb))
-	{
-		printf("failed to initialize minirpc disconnect functions\n");
-		goto err_out;
-	}
-	return 0;
-
-err_out:
-	mrpc_conn_set_unref(conn_set);
-	mrpc_conn_set_unref(data_set);
-	conn_set = data_set = NULL;
-	return -1;
+	return NULL;
 }
 
 void
 connection_main(cstate_t *cstate)
 {
-	if (!conn_set && minirpc_init())
+	struct mrpc_conn_set *conn_set;
+	struct mrpc_conn_set *data_set;
+
+	if (mrpc_conn_set_create(&conn_set, rpc_client_content_server, NULL) ||
+	    mrpc_conn_set_create(&data_set, blast_channel_server, NULL))
+	{
+		printf("failed to create minirpc connection sets\n");
 		return;
+	}
+
+	mrpc_dispatcher_add(conn_set);
+
+	if (mrpc_set_disconnect_func(conn_set, disconnect_cb) ||
+	    mrpc_set_disconnect_func(data_set, disconnect_cb))
+	{
+		printf("failed to initialize minirpc disconnect functions\n");
+		return;
+	}
 
 	if (mrpc_conn_create(&cstate->mrpc_conn, conn_set, cstate)) {
 		printf("failed to create minirpc connection\n");
@@ -124,5 +115,9 @@ connection_main(cstate_t *cstate)
 	cstate->flags &= ~CSTATE_DATA_FD;
 	pthread_mutex_unlock(&cstate->cmutex);
 
-	sem_wait(&cstate->shutdown);
+	pthread_t blast_thread;
+	pthread_create(&blast_thread, NULL, blast_main, data_set);
+
+	mrpc_dispatch_loop(conn_set);
+	exit(0);
 }

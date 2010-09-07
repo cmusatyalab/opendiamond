@@ -203,8 +203,7 @@ have_full_conn(listener_state_t * list_state, int conn)
 	 * for servicing the connections.
 	 */
 	connection_main(cstate);
-
-	exit(0);
+	/* connection_main will terminate this process when done */
 }
 
 static const sig_val_t nullsig;

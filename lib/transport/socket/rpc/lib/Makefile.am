@@ -11,7 +11,7 @@ libminirpcxdr_la_CFLAGS = -pthread -fvisibility=hidden
 CLEANFILES = minirpc_xdr.c minirpc_xdr.h
 BUILT_SOURCES = minirpc_xdr.h
 
-lib_LTLIBRARIES = libminirpc.la
+noinst_LTLIBRARIES += libminirpc.la
 libminirpc_la_SOURCES = config.c connection.c message.c event.c serialize.c
 libminirpc_la_SOURCES += xdr_len.c selfpipe.c pollset.c pollset_poll.c util.c
 libminirpc_la_SOURCES += internal.h pollset_impl.h
@@ -26,9 +26,3 @@ libminirpc_la_LIBADD = libminirpcxdr.la
 %_xdr.h: %.x
 	rm -f $@
 	$(RPCGEN) -h -o $@ $^
-
-# Libtool sets the .la and .so files executable, for reasons passing
-# understanding.
-install-exec-hook:
-	chmod -x $(DESTDIR)$(libdir)/libminirpc.so
-	chmod -x $(DESTDIR)$(libdir)/libminirpc.la

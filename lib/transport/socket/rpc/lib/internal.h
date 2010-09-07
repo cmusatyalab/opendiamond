@@ -27,23 +27,6 @@
 
 #define exported __attribute__ ((visibility ("default")))
 
-/* Suppport for missing network options. */
-#ifndef MSG_MORE
-#define MSG_MORE 0
-#endif
-
-#ifndef TCP_KEEPIDLE
-#define TCP_KEEPIDLE -1
-#endif
-
-#ifndef TCP_KEEPCNT
-#define TCP_KEEPCNT -1
-#endif
-
-#ifndef TCP_KEEPINTVL
-#define TCP_KEEPINTVL -1
-#endif
-
 struct mrpc_config {
 	mrpc_disconnect_fn *disconnect;
 };

@@ -27,16 +27,14 @@ static int get_max_files(void)
 
 int main(int argc, char **argv)
 {
-	struct mrpc_conn_set *sset;
-	struct mrpc_conn_set *cset;
 	struct mrpc_connection *sconn;
 	struct mrpc_connection *conn;
-	int ret;
 	int fd;
 	int max;
 	pid_t pid;
 	int status;
 	int cleanup;
+	int a, b;
 
 	cleanup=(argc == 2 && !strcmp(argv[1], "cleanup"));
 	max=get_max_files();
@@ -51,25 +49,15 @@ int main(int argc, char **argv)
 	if (cleanup)
 		return 0;
 
-	if (mrpc_conn_set_create(&sset, proto_server, NULL))
+	get_conn_pair(&a, &b);
+	if (mrpc_conn_create(&sconn, proto_server, a, NULL))
 		die("Couldn't allocate conn set");
-	start_monitored_dispatcher(sset);
-	mrpc_set_disconnect_func(sset, disconnect_normal);
-
-	if (mrpc_conn_set_create(&cset, proto_client, NULL))
-		die("Couldn't allocate conn set");
-	mrpc_set_disconnect_func(cset, disconnect_user);
-
-	ret=mrpc_conn_create(&sconn, sset, NULL);
-	if (ret)
-		die("%s", strerror(ret));
 	sync_server_set_ops(sconn);
-	ret=mrpc_conn_create(&conn, cset, NULL);
-	if (ret)
-		die("%s", strerror(ret));
-	bind_conn_pair(sconn, conn);
+	start_monitored_dispatcher(sconn);
 
-	start_monitored_dispatcher(cset);
+	if (mrpc_conn_create(&conn, proto_client, b, NULL))
+		die("Couldn't allocate conn set");
+	sync_client_set_ops(conn);
 	sync_client_run(conn);
 
 	pid=fork();
@@ -84,9 +72,7 @@ int main(int argc, char **argv)
 
 	sync_client_run(conn);
 	mrpc_conn_close(conn);
-	mrpc_conn_unref(conn);
-	mrpc_conn_set_unref(cset);
-	mrpc_conn_set_unref(sset);
-	expect_disconnects(1, 1, 0);
+	mrpc_conn_free(conn);
+	dispatcher_barrier();
 	return 0;
 }

@@ -8,44 +8,10 @@
  * the file COPYING.
  */
 
-#include <semaphore.h>
-#include <pthread.h>
 #include <assert.h>
 #include <errno.h>
 #define MINIRPC_INTERNAL
 #include "internal.h"
-
-struct pending_reply {
-	unsigned sequence;
-	int cmd;
-	sem_t *sem;
-	struct mrpc_message **reply;
-};
-
-struct mrpc_message *mrpc_alloc_message(struct mrpc_connection *conn)
-{
-	struct mrpc_message *msg;
-
-	msg=g_slice_new0(struct mrpc_message);
-	msg->conn=conn;
-	msg->lh_msgs=g_list_prepend(NULL, msg);
-	pthread_mutex_lock(&conn->msgs_lock);
-	g_queue_push_tail_link(conn->msgs, msg->lh_msgs);
-	pthread_mutex_unlock(&conn->msgs_lock);
-	return msg;
-}
-
-void mrpc_free_message(struct mrpc_message *msg)
-{
-	struct mrpc_connection *conn=msg->conn;
-
-	mrpc_free_message_data(msg);
-	pthread_mutex_lock(&conn->msgs_lock);
-	if (msg->lh_msgs)
-		g_queue_delete_link(conn->msgs, msg->lh_msgs);
-	pthread_mutex_unlock(&conn->msgs_lock);
-	g_slice_free(struct mrpc_message, msg);
-}
 
 void mrpc_alloc_message_data(struct mrpc_message *msg, unsigned len)
 {
@@ -53,7 +19,7 @@ void mrpc_alloc_message_data(struct mrpc_message *msg, unsigned len)
 	msg->data=g_malloc(len);
 }
 
-void mrpc_free_message_data(struct mrpc_message *msg)
+static void mrpc_free_message_data(struct mrpc_message *msg)
 {
 	if (msg->data) {
 		g_free(msg->data);
@@ -61,111 +27,22 @@ void mrpc_free_message_data(struct mrpc_message *msg)
 	}
 }
 
-static struct pending_reply *pending_alloc(struct mrpc_message *request)
+struct mrpc_message *mrpc_alloc_message(struct mrpc_connection *conn)
 {
-	struct pending_reply *pending;
-
-	pending=g_slice_new(struct pending_reply);
-	pending->sequence=request->hdr.sequence;
-	pending->cmd=request->hdr.cmd;
-	return pending;
-}
-
-/* @msg must have already been validated */
-static void pending_dispatch(struct pending_reply *pending,
-			struct mrpc_message *msg)
-{
-	/* We need the memory barrier */
-	g_atomic_pointer_set(pending->reply, msg);
-	sem_post(pending->sem);
-}
-
-static mrpc_status_t send_request_pending(struct mrpc_message *request,
-			struct pending_reply *pending)
-{
-	struct mrpc_connection *conn=request->conn;
-	mrpc_status_t ret;
-
-	pthread_mutex_lock(&conn->pending_replies_lock);
-	g_hash_table_replace(conn->pending_replies, &pending->sequence,
-				pending);
-	ret=send_message(request);
-	if (ret)
-		g_hash_table_remove(conn->pending_replies, &pending->sequence);
-	pthread_mutex_unlock(&conn->pending_replies_lock);
-	return ret;
-}
-
-static gboolean _pending_kill(void *key, void *value, void *data)
-{
-	struct mrpc_connection *conn=data;
-	struct pending_reply *pending=value;
 	struct mrpc_message *msg;
 
-	msg=mrpc_alloc_message(conn);
-	msg->hdr.cmd=pending->cmd;
-	msg->hdr.status=MINIRPC_NETWORK_FAILURE;
-	pending_dispatch(pending, msg);
-	return TRUE;
+	msg=g_slice_new0(struct mrpc_message);
+	msg->conn=conn;
+	return msg;
 }
 
-void pending_kill(struct mrpc_connection *conn)
+void mrpc_free_message(struct mrpc_message *msg)
 {
-	pthread_mutex_lock(&conn->pending_replies_lock);
-	g_hash_table_foreach_steal(conn->pending_replies, _pending_kill, conn);
-	pthread_mutex_unlock(&conn->pending_replies_lock);
+	mrpc_free_message_data(msg);
+	g_slice_free(struct mrpc_message, msg);
 }
 
-void pending_free(struct pending_reply *pending)
-{
-	g_slice_free(struct pending_reply, pending);
-}
-
-exported mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
-			struct mrpc_connection *conn, int cmd, void *in,
-			void **out)
-{
-	struct mrpc_message *request;
-	struct mrpc_message *reply;
-	struct pending_reply *pending;
-	sem_t sem;
-	mrpc_status_t ret;
-	int squash;
-
-	if (out != NULL)
-		*out=NULL;
-	if (conn == NULL || cmd <= 0)
-		return MINIRPC_INVALID_ARGUMENT;
-	if (protocol != conn->protocol)
-		return MINIRPC_INVALID_PROTOCOL;
-	ret=format_request(conn, cmd, in, &request);
-	if (ret)
-		return ret;
-	sem_init(&sem, 0, 0);
-	pending=pending_alloc(request);
-	pending->sem=&sem;
-	pending->reply=&reply;
-	ret=send_request_pending(request, pending);
-	if (ret) {
-		sem_destroy(&sem);
-		return ret;
-	}
-
-	while (sem_wait(&sem) && errno == EINTR);
-	sem_destroy(&sem);
-	reply=g_atomic_pointer_get(&reply);
-	pthread_mutex_lock(&conn->sequence_lock);
-	squash=conn->sequence_flags & SEQ_SQUASH_EVENTS;
-	pthread_mutex_unlock(&conn->sequence_lock);
-	if (squash)
-		ret=MINIRPC_NETWORK_FAILURE;
-	else
-		ret=unformat_reply(reply, out);
-	mrpc_free_message(reply);
-	return ret;
-}
-
-mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol,
+static mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol,
 			int cmd, struct mrpc_message *request, void *data)
 {
 	struct mrpc_message *reply;
@@ -185,7 +62,8 @@ mrpc_status_t mrpc_send_reply(const struct mrpc_protocol *protocol,
 	return MINIRPC_OK;
 }
 
-mrpc_status_t mrpc_send_reply_error(const struct mrpc_protocol *protocol,
+static mrpc_status_t mrpc_send_reply_error(
+			const struct mrpc_protocol *protocol,
 			int cmd, struct mrpc_message *request,
 			mrpc_status_t status)
 {
@@ -208,48 +86,156 @@ mrpc_status_t mrpc_send_reply_error(const struct mrpc_protocol *protocol,
 	return MINIRPC_OK;
 }
 
-static void check_reply_header(struct pending_reply *pending,
-			struct mrpc_message *msg)
+static void fail_request(struct mrpc_message *request, mrpc_status_t err)
 {
-	if (msg->recv_error) {
+	if (mrpc_send_reply_error(request->conn->protocol,
+				request->hdr.cmd, request, err))
+		mrpc_free_message(request);
+}
+
+static void dispatch_request(struct mrpc_message *request)
+{
+	struct mrpc_connection *conn=request->conn;
+	void *request_data;
+	void *reply_data=NULL;
+	mrpc_status_t ret;
+	mrpc_status_t result;
+	xdrproc_t request_type;
+	xdrproc_t reply_type;
+	unsigned reply_size;
+
+	assert(request->hdr.status == MINIRPC_PENDING);
+
+	if (conn->protocol->receiver_request_info(request->hdr.cmd,
+				&request_type, NULL)) {
+		/* Unknown opcode */
+		fail_request(request, MINIRPC_PROCEDURE_UNAVAIL);
 		return;
-	} else if (pending->cmd != msg->hdr.cmd) {
-		msg->recv_error=MINIRPC_ENCODING_ERR;
-		g_message("Mismatched command field in reply, "
-					"seq %u, expected cmd %d, found %d",
-					msg->hdr.sequence, pending->cmd,
-					msg->hdr.cmd);
-	} else if (msg->hdr.status != 0 && msg->hdr.datalen != 0) {
-		msg->recv_error=MINIRPC_ENCODING_ERR;
-		g_message("Reply with both error and payload, seq %u",
-					msg->hdr.sequence);
+	}
+
+	if (conn->protocol->receiver_reply_info(request->hdr.cmd,
+				&reply_type, &reply_size)) {
+		/* Can't happen if the info tables are well-formed */
+		fail_request(request, MINIRPC_ENCODING_ERR);
+		return;
+	}
+	reply_data=mrpc_alloc_argument(reply_size);
+	ret=unformat_request(request, &request_data);
+	if (ret) {
+		/* Invalid datalen, etc. */
+		fail_request(request, ret);
+		mrpc_free_argument(NULL, reply_data);
+		return;
+	}
+	/* We don't need the serialized request data anymore.  The request
+	   struct may stay around for a while, so free up some memory. */
+	mrpc_free_message_data(request);
+
+	assert(conn->protocol->request != NULL);
+	result=conn->protocol->request(conn->operations, conn->private,
+				request->hdr.cmd, request_data, reply_data);
+	mrpc_free_argument(request_type, request_data);
+
+	if (result)
+		ret=mrpc_send_reply_error(conn->protocol,
+					request->hdr.cmd, request,
+					result == MINIRPC_PENDING ?
+					MINIRPC_ENCODING_ERR :
+					result);
+	else
+		ret=mrpc_send_reply(conn->protocol, request->hdr.cmd, request,
+					reply_data);
+	mrpc_free_argument(reply_type, reply_data);
+	if (ret) {
+		if (ret != MINIRPC_NETWORK_FAILURE)
+			g_message("Reply failed, seq %u cmd %d status %d "
+					"err %d", request->hdr.sequence,
+					request->hdr.cmd, result, ret);
+		mrpc_free_message(request);
 	}
 }
 
-void process_incoming_message(struct mrpc_message *msg)
+exported void mrpc_dispatch_loop(struct mrpc_connection *conn)
 {
-	struct mrpc_connection *conn=msg->conn;
-	struct pending_reply *pending;
-	struct mrpc_event *event;
+	struct mrpc_message *msg;
+	mrpc_status_t ret = MINIRPC_OK;
 
-	if (msg->hdr.status == MINIRPC_PENDING) {
-		event=mrpc_alloc_message_event(msg, EVENT_REQUEST);
-		queue_event(event);
-	} else {
-		pthread_mutex_lock(&conn->pending_replies_lock);
-		pending=g_hash_table_lookup(conn->pending_replies,
-					&msg->hdr.sequence);
-		g_hash_table_steal(conn->pending_replies, &msg->hdr.sequence);
-		pthread_mutex_unlock(&conn->pending_replies_lock);
-		if (pending == NULL) {
-			g_message("Unmatched reply, seq %u cmd "
-					"%d status %d len %u",
+	if (conn == NULL)
+		return;
+	while (ret != MINIRPC_NETWORK_FAILURE) {
+		ret = receive_message(conn, &msg);
+		if (ret)
+			continue;
+		if (msg->hdr.status == MINIRPC_PENDING) {
+			dispatch_request(msg);
+		} else {
+			g_message("Unexpected reply, seq %u cmd %d "
+					"status %d len %u",
 					msg->hdr.sequence, msg->hdr.cmd,
 					msg->hdr.status, msg->hdr.datalen);
 			mrpc_free_message(msg);
-		} else {
-			check_reply_header(pending, msg);
-			pending_dispatch(pending, msg);
 		}
 	}
+}
+
+static gboolean reply_header_ok(struct mrpc_header *req_hdr,
+			struct mrpc_message *msg)
+{
+	if (req_hdr->sequence != msg->hdr.sequence) {
+		g_message("Mismatched sequence in reply, expected %d, "
+					"found %d", req_hdr->sequence,
+					msg->hdr.sequence);
+		return FALSE;
+	} else if (req_hdr->cmd != msg->hdr.cmd) {
+		g_message("Mismatched command field in reply, "
+					"seq %u, expected cmd %d, found %d",
+					msg->hdr.sequence, req_hdr->cmd,
+					msg->hdr.cmd);
+		return FALSE;
+	} else if (msg->hdr.status != 0 && msg->hdr.datalen != 0) {
+		g_message("Reply with both error and payload, seq %u",
+					msg->hdr.sequence);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+exported mrpc_status_t mrpc_send_request(const struct mrpc_protocol *protocol,
+			struct mrpc_connection *conn, int cmd, void *in,
+			void **out)
+{
+	struct mrpc_message *msg;
+	struct mrpc_header req_hdr;
+	mrpc_status_t ret;
+
+	if (out != NULL)
+		*out=NULL;
+	if (conn == NULL || cmd <= 0)
+		return MINIRPC_INVALID_ARGUMENT;
+	if (protocol != conn->protocol)
+		return MINIRPC_INVALID_PROTOCOL;
+	ret=format_request(conn, cmd, in, &msg);
+	if (ret)
+		return ret;
+	req_hdr = msg->hdr;
+	ret=send_message(msg);
+	if (ret)
+		return ret;
+
+	while (ret != MINIRPC_NETWORK_FAILURE) {
+		ret = receive_message(conn, &msg);
+		if (ret)
+			continue;
+		if (msg->hdr.status == MINIRPC_PENDING) {
+			dispatch_request(msg);
+		} else if (!reply_header_ok(&req_hdr, msg)) {
+			mrpc_free_message(msg);
+			return MINIRPC_ENCODING_ERR;
+		} else {
+			ret = unformat_reply(msg, out);
+			mrpc_free_message(msg);
+			return ret;
+		}
+	}
+	return ret;
 }

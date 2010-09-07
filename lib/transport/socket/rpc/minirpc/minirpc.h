@@ -56,287 +56,64 @@ enum mrpc_status_codes {
 typedef int mrpc_status_t;
 
 /**
- * @brief Reasons that a connection could have been closed
- * @param	MRPC_DISC_USER
- *	The connection was closed with mrpc_conn_close()
- * @param	MRPC_DISC_CLOSED
- *	The connection was closed by the remote end
- * @param	MRPC_DISC_IOERR
- *	The connection was closed due to an I/O error
- */
-enum mrpc_disc_reason {
-	MRPC_DISC_USER,
-	MRPC_DISC_CLOSED,
-	MRPC_DISC_IOERR
-};
-
-/**
- * @addtogroup event
- * @{
- */
-
-/**
- * @brief Event callback fired on connection close
- * @param	conn_data
- *	The cookie associated with the connection
- * @param	reason
- *	The reason the connection was closed
- * @sa mrpc_set_disconnect_func(), mrpc_conn_unref()
- *
- * If supplied, this callback is fired when a connection is closed for any
- * reason, including when explicitly requested by the application (with
- * mrpc_conn_close()).  Once the callback returns, the application will not
- * receive further events on this connection.  If the connection's refcount
- * is greater than zero after the disconnection function returns, the
- * connection handle will persist until all references are released.
- */
-typedef void (mrpc_disconnect_fn)(void *conn_data,
-			enum mrpc_disc_reason reason);
-
-/**
- * @}
- * @addtogroup setup
- * @{
- */
-
-/**
- * @brief Set the function to be called when a connection is closed for any
- *	reason
- * @param	conn
- *	The connection to configure
- * @param	func
- *	The disconnect function, or NULL for none
- * @stdreturn
- * @sa mrpc_disconnect_fn
- *
- * By default, no disconnect function is provided.
- */
-int mrpc_set_disconnect_func(struct mrpc_connection *conn,
-			mrpc_disconnect_fn *func);
-
-/**
- * @}
- * @addtogroup conn
- * @{
- */
-
-/**
  * @brief Create a new connection handle
  * @param[out]	new_conn
  *	The resulting connection handle, or NULL on error
  * @param	protocol
  *	Protocol role definition for this connection
+ * @param	fd
+ *	The file descriptor to bind
  * @param	data
  *	An application-specific cookie for this connection
  * @stdreturn
  *
- * Allocate a new connection handle with a refcount of 1, and associate it
- * with the given protocol role and application-specific pointer.  This
- * handle can then be bound to an existing socket with mrpc_bind_fd().
- * Before the connection is completed, the only valid operations on the
- * connection handle are:
- * - Set the operations structure using the set_operations function for this
- * protocol role
- * - Update its refcount with mrpc_conn_ref() / mrpc_conn_unref().  If the last
- * reference is removed with mrpc_conn_unref(), the handle is freed.
+ * Allocate a new connection handle and associate it with the given
+ * protocol role, socket file descriptor, and application-specific pointer.
+ * The specified file descriptor must be associated with a connected socket
+ * of type SOCK_STREAM.  After this call, the socket will be managed by
+ * miniRPC; the application must not read, write, or close it directly.
  *
  * If @c data is NULL, the application-specific pointer is set to the
  * connection handle returned in @c new_conn.
  */
 int mrpc_conn_create(struct mrpc_connection **new_conn,
-			const struct mrpc_protocol *protocol, void *data);
-
-/**
- * @brief Increment the refcount of a connection
- * @param	conn
- *	The connection
- *
- * Get an additional reference to the specified connection.
- */
-void mrpc_conn_ref(struct mrpc_connection *conn);
-
-/**
- * @brief Decrement the refcount of a connection
- * @param	conn
- *	The connection
- *
- * Put a reference to the specified connection.  When the refcount reaches
- * zero @em and the connection is no longer active, the connection will be
- * destroyed.  Connections become active when they are connected using
- * mrpc_bind_fd(), or when miniRPC passes them to the connection set's
- * accept function.  Active connections become inactive after they are
- * closed @em and the disconnect function returns.
- */
-void mrpc_conn_unref(struct mrpc_connection *conn);
-
-/**
- * @brief Bind an existing file descriptor to a connection handle
- * @param	conn
- *	The connection handle
- * @param	fd
- *	The file descriptor to bind
- * @stdreturn
- *
- * Associate the specified socket with an existing miniRPC connection handle.
- * The handle must not have been connected already.  The handle may have
- * either a client or server role.  The connection set's accept function
- * will @em not be called.  To avoid races, the application should ensure
- * that the operations structure is set on the connection handle, if
- * necessary, @em before calling this function.
- *
- * The specified file descriptor must be associated with a connected socket
- * of type SOCK_STREAM.  After this call, the socket will be managed by
- * miniRPC; the application must not read, write, or close it directly.
- */
-int mrpc_bind_fd(struct mrpc_connection *conn, int fd);
+			const struct mrpc_protocol *protocol, int fd,
+			void *data);
 
 /**
  * @brief Close an existing connection
  * @param	conn
  *	The connection to close
- * @return 0 on success, EALREADY if mrpc_conn_close() has already been called
- *	on this connection, or ENOTCONN if the connection handle has never
- *	been connected
+ * @return 0 on success or a POSIX error code on error
  *
- * Close the connection specified by @c conn.  Protocol messages already
- * queued for transmission will be sent before the socket is closed.
- * Any pending synchronous RPCs will return ::MINIRPC_NETWORK_FAILURE,
- * and asynchronous RPCs will have their callbacks fired with a status
- * code of ::MINIRPC_NETWORK_FAILURE.  Other events queued for the
- * application will be dropped.
- *
- * There is a window of time after this function returns in which further
- * non-error events may occur on the connection.  The application must be
- * prepared to handle these events.  If this function is called from an
- * event handler for the connection being closed, and the handler has not
- * called mrpc_release_event(), then the application is guaranteed that no
- * more non-error events will occur on the connection once the call returns.
- *
- * The application must not free any supporting data structures until the
- * connection set's disconnect function is called for the connection, since
- * further events may be pending.  In addition, the application should not
- * assume that the disconnect function's @c reason argument will be
- * ::MRPC_DISC_USER, since the connection may have been terminated for
- * another reason before mrpc_conn_close() was called.
+ * Close the connection specified by @c conn.  Future RPCs will fail with
+ * ::MINIRPC_NETWORK_FAILURE and existing dispatch loops will return with
+ * the same error code.
  *
  * This function may be called from an event handler, including an event
  * handler for the connection being closed.
  */
 int mrpc_conn_close(struct mrpc_connection *conn);
 
-
 /**
- * @}
- * @addtogroup event
- * @{
- */
-
-/**
- * @brief Start a dispatcher thread for a connection set
- * @param	conn
- *	The connection
- * @stdreturn
- *
- * Start a background thread to dispatch events.  This thread will persist
- * until the connection is destroyed, at which point it will exit.  This
- * function can be called more than once; each call will create a new thread.
- * This is the simplest way to start a dispatcher for a connection.
- *
- * Unlike with mrpc_dispatch() and mrpc_dispatch_loop(), the caller does not
- * need to register the dispatcher thread with mrpc_dispatcher_add().  The
- * background thread handles this for you.
- */
-int mrpc_start_dispatch_thread(struct mrpc_connection *conn);
-
-/**
- * @brief Notify miniRPC that the current thread will dispatch events for this
- *	connection
+ * @brief Destroy a connection
  * @param	conn
  *	The connection
  *
- * Any thread which calls mrpc_dispatch() or mrpc_dispatch_loop() must call
- * mrpc_dispatcher_add() before it starts dispatching for the specified
- * connection.
+ * Destroy the specified connection.  If it is still open, it will be
+ * closed.
  */
-void mrpc_dispatcher_add(struct mrpc_connection *conn);
-
-/**
- * @brief Notify miniRPC that the current thread will no longer dispatch
- *	events for this connection
- * @param	conn
- *	The connection
- *
- * Any thread which calls mrpc_dispatch() or mrpc_dispatch_loop() must call
- * mrpc_dispatcher_remove() when it decides it will no longer dispatch for
- * the specified connection.
- */
-void mrpc_dispatcher_remove(struct mrpc_connection *conn);
+void mrpc_conn_free(struct mrpc_connection *conn);
 
 /**
  * @brief Dispatch events from this thread until the connection is destroyed
  * @param	conn
  *	The connection
- * @return ENXIO if the connection is being destroyed, or a POSIX
- *	error code on other error
  *
  * Start dispatching events for the given connection, and do not return
- * until the connection is being destroyed.  The thread must call
- * mrpc_dispatcher_add() before calling this function, and
- * mrpc_dispatcher_remove() afterward.  This function must not be called
- * from an event handler.
+ * until the connection is closed.
  */
-int mrpc_dispatch_loop(struct mrpc_connection *conn);
-
-/**
- * @brief Dispatch events from this thread and then return
- * @param	conn
- *	The connection
- * @param	max
- *	The maximum number of events to dispatch, or 0 for no limit
- * @sa mrpc_get_event_fd()
- * @return ENXIO if the connection set is being destroyed, 0 if more events
- *	are pending, or EAGAIN if the event queue is empty
- *
- * Dispatch events until there are no more events to process or until
- * @c max events have been processed, whichever comes first; if @c max is 0,
- * dispatch until there are no more events to process.  The calling thread
- * must call mrpc_dispatcher_add() before calling this function for the first
- * time.
- *
- * If this function returns ENXIO, the connection is being destroyed.
- * The application must stop calling this function, and must call
- * mrpc_dispatcher_remove() to indicate its intent to do so.
- *
- * This function must not be called from an event handler.
- */
-int mrpc_dispatch(struct mrpc_connection *conn, int max);
-
-/**
- * @brief Obtain a file descriptor which will be readable when there are
- *	events to process
- * @param	conn
- *	The connection
- * @return The file descriptor
- *
- * Returns a file descriptor which can be passed to select()/poll() to
- * determine when the connection has events to process.  This can be
- * used to embed processing of miniRPC events into an application-specific
- * event loop.  When the descriptor is readable, the connection set has
- * events to be dispatched; the application can call mrpc_dispatch() to
- * handle them.
- *
- * The application must not read, write, or close the provided file
- * descriptor.  Once mrpc_dispatch() returns ENXIO, indicating that the
- * connection is being shut down, the application must stop polling
- * on the descriptor.
- */
-int mrpc_get_event_fd(struct mrpc_connection *conn);
-
-/**
- * @}
- * @addtogroup error
- * @{
- */
+void mrpc_dispatch_loop(struct mrpc_connection *conn);
 
 /**
  * @brief Return a brief description of the specified miniRPC error code
@@ -350,9 +127,5 @@ int mrpc_get_event_fd(struct mrpc_connection *conn);
  * mapped to a generic description.
  */
 const char *mrpc_strerror(mrpc_status_t status);
-
-/**
- * @}
- */
 
 #endif

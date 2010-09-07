@@ -9,35 +9,18 @@
  */
 
 #include <fcntl.h>
-#include <signal.h>
 #include <errno.h>
-#include <assert.h>
-#include <pthread.h>
 #define MINIRPC_INTERNAL
 #include "internal.h"
 
-static void _mrpc_init(void)
-{
-	if (!g_thread_supported())
-		g_thread_init(NULL);
-	mrpc_event_threadlocal_init();
-}
-
-void mrpc_init(void)
-{
-	static pthread_once_t started = PTHREAD_ONCE_INIT;
-
-	pthread_once(&started, _mrpc_init);
-}
-
-int set_nonblock(int fd)
+int set_blocking(int fd)
 {
 	int flags;
 
 	flags=fcntl(fd, F_GETFL);
 	if (flags == -1)
 		return errno;
-	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK))
+	if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK))
 		return errno;
 	return 0;
 }
@@ -52,20 +35,6 @@ int set_cloexec(int fd)
 	if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC))
 		return errno;
 	return 0;
-}
-
-int block_signals(void)
-{
-	sigset_t sigs;
-
-	if (sigfillset(&sigs))
-		return errno;
-	return pthread_sigmask(SIG_SETMASK, &sigs, NULL);
-}
-
-void assert_callback_func(void *ignored)
-{
-	assert(0);
 }
 
 exported const char *mrpc_strerror(mrpc_status_t status)

@@ -37,30 +37,18 @@ const struct proto_server_operations ops_fail = {
 
 int main(int argc, char **argv)
 {
-	struct mrpc_conn_set *sset;
-	struct mrpc_conn_set *cset;
 	struct mrpc_connection *sconn;
 	struct mrpc_connection *conn;
-	int ret;
 	int i;
+	int a, b;
 
-	if (mrpc_conn_set_create(&sset, proto_server, NULL))
-		die("Couldn't allocate conn set");
-	mrpc_set_disconnect_func(sset, disconnect_normal);
-	start_monitored_dispatcher(sset);
-	if (mrpc_conn_set_create(&cset, proto_client, NULL))
-		die("Couldn't allocate conn set");
-	mrpc_set_disconnect_func(cset, disconnect_user);
-	start_monitored_dispatcher(cset);
-
-	ret=mrpc_conn_create(&sconn, sset, NULL);
-	if (ret)
-		die("%s", strerror(ret));
+	get_conn_pair(&a, &b);
+	if (mrpc_conn_create(&sconn, proto_server, a, NULL))
+		die("Couldn't allocate conn");
 	expect(proto_server_set_operations(sconn, &ops_ok), 0);
-	ret=mrpc_conn_create(&conn, cset, NULL);
-	if (ret)
-		die("%s", strerror(ret));
-	bind_conn_pair(sconn, conn);
+	start_monitored_dispatcher(sconn);
+	if (mrpc_conn_create(&conn, proto_client, b, NULL))
+		die("Couldn't allocate conn");
 
 	for (i=0; i<ITERS; i++) {
 		expect(proto_ping(conn), 0);
@@ -68,9 +56,7 @@ int main(int argc, char **argv)
 	}
 
 	mrpc_conn_close(conn);
-	mrpc_conn_unref(conn);
-	mrpc_conn_set_unref(cset);
-	mrpc_conn_set_unref(sset);
-	expect_disconnects(1, 1, 0);
+	mrpc_conn_free(conn);
+	dispatcher_barrier();
 	return 0;
 }

@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <pthread.h>
 #define MINIRPC_INTERNAL
 #include "internal.h"
 
@@ -133,8 +132,7 @@ mrpc_status_t format_request(struct mrpc_connection *conn, unsigned cmd,
 	ret=format_message(conn, type, data, &msg);
 	if (ret)
 		return ret;
-	msg->hdr.sequence=g_atomic_int_exchange_and_add(&conn->next_sequence,
-				1);
+	msg->hdr.sequence = conn->next_sequence++;
 	msg->hdr.status=MINIRPC_PENDING;
 	msg->hdr.cmd=cmd;
 	*result=msg;
@@ -200,8 +198,6 @@ mrpc_status_t unformat_reply(struct mrpc_message *msg, void **result)
 	unsigned size;
 	mrpc_status_t ret;
 
-	if (msg->recv_error)
-		return msg->recv_error;
 	if (msg->hdr.status)
 		return msg->hdr.status;
 	if (msg->conn->protocol->sender_reply_info(msg->hdr.cmd,

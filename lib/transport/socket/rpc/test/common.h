@@ -29,15 +29,7 @@ void _message(const char *file, int line, const char *func, const char *fmt,
 #define die(args...) do {message(args); abort();} while (0)
 void start_monitored_dispatcher(struct mrpc_connection *conn);
 void get_conn_pair(int *a, int *b);
-void bind_conn_pair(struct mrpc_connection *a, struct mrpc_connection *b);
-void disconnect_fatal(void *conn_data, enum mrpc_disc_reason reason);
-void disconnect_normal(void *conn_data, enum mrpc_disc_reason reason);
-void disconnect_ioerr(void *conn_data, enum mrpc_disc_reason reason);
-void disconnect_user(void *conn_data, enum mrpc_disc_reason reason);
 void dispatcher_barrier(void);
-void handle_ioerr(void *conn_private, char *msg);
-void expect_disconnects(int user, int normal, int ioerr);
-void expect_ioerrs(int count);
 #define expect(cmd, result) do {					\
 		int _ret=cmd;						\
 		int _expected=result;					\

@@ -15,45 +15,27 @@
 
 int main(int argc, char **argv)
 {
-	struct mrpc_conn_set *sset;
-	struct mrpc_conn_set *cset;
+	struct mrpc_connection *sconn;
 	struct mrpc_connection *conn;
 	int sock[2];
-	int ret;
-
-	if (mrpc_conn_set_create(&sset, proto_server, NULL))
-		die("Couldn't allocate conn set");
-	mrpc_set_disconnect_func(sset, disconnect_normal);
-	start_monitored_dispatcher(sset);
-	if (mrpc_conn_set_create(&cset, proto_client, NULL))
-		die("Couldn't allocate conn set");
-	mrpc_set_disconnect_func(cset, disconnect_user);
-	start_monitored_dispatcher(cset);
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sock))
 		die("%s", strerror(errno));
 
-	ret=mrpc_conn_create(&conn, sset, NULL);
-	if (ret)
-		die("%s", strerror(ret));
-	ret=mrpc_bind_fd(conn, sock[0]);
-	if (ret)
-		die("%s", strerror(ret));
-	sync_server_set_ops(conn);
-	ret=mrpc_conn_create(&conn, cset, NULL);
-	if (ret)
-		die("%s", strerror(ret));
-	ret=mrpc_bind_fd(conn, sock[1]);
-	if (ret)
-		die("%s", strerror(ret));
-	sync_client_set_ops(conn);
+	if (mrpc_conn_create(&sconn, proto_server, sock[0], NULL))
+		die("Couldn't allocate conn");
+	sync_server_set_ops(sconn);
+	start_monitored_dispatcher(sconn);
+	if (mrpc_conn_create(&conn, proto_client, sock[1], NULL))
+		die("Couldn't allocate conn");
 
+	sync_client_set_ops(conn);
 	sync_client_run(conn);
 	trigger_callback_sync(conn);
+	send_buffer_sync(conn);
+	recv_buffer_sync(conn);
 	mrpc_conn_close(conn);
-	mrpc_conn_unref(conn);
-	mrpc_conn_set_unref(cset);
-	mrpc_conn_set_unref(sset);
-	expect_disconnects(1, 1, 0);
+	mrpc_conn_free(conn);
+	dispatcher_barrier();
 	return 0;
 }

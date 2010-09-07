@@ -204,7 +204,6 @@ have_full_conn(listener_state_t * list_state, int conn)
 	 */
 	connection_main(cstate);
 
-	shutdown_connection(cstate);
 	exit(0);
 }
 

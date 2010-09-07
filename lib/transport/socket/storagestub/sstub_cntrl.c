@@ -146,8 +146,7 @@ static GArray *get_attrset(attr_name_x *names, unsigned int len)
 }
 
 static mrpc_status_t
-device_set_push_attrs(void *conn_data, struct mrpc_message *msg,
-		      attr_name_list_x *in)
+device_set_push_attrs(void *conn_data, attr_name_list_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	GArray *push_set;
@@ -164,8 +163,8 @@ device_set_push_attrs(void *conn_data, struct mrpc_message *msg,
 }
 
 static mrpc_status_t
-device_reexecute_filters(void *conn_data, struct mrpc_message *msg,
-			 reexecute_x *in, attribute_list_x *out)
+device_reexecute_filters(void *conn_data, reexecute_x *in,
+			 attribute_list_x *out)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	obj_data_t *obj;
@@ -423,8 +422,7 @@ device_send_obj(void *conn_data, obj_x *in)
 
 /* for anomaly detection */
 static mrpc_status_t
-session_variables_get(void *conn_data, struct mrpc_message *msg,
-		      diamond_session_vars_x *out)
+session_variables_get(void *conn_data, diamond_session_vars_x *out)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	device_session_vars_t *vars;
@@ -456,8 +454,7 @@ err_out:
 }
 
 static mrpc_status_t
-session_variables_set(void *conn_data, struct mrpc_message *msg,
-		      diamond_session_vars_x *in)
+session_variables_set(void *conn_data, diamond_session_vars_x *in)
 {
 	cstate_t *cstate = (cstate_t *)conn_data;
 	device_session_vars_t *vars;

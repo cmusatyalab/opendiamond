@@ -706,31 +706,3 @@ ocache_init(char *dirp)
 	free(dir_path);
 	return (0);
 }
-
-int
-ocache_start(void)
-{
-	debug("ocache_start called\n");
-	return 0;
-}
-
-/*
- * called by search_close_conn in adiskd
- */
-int
-ocache_stop(char *dirp)
-{
-	debug("ocache_stop called\n");
-	return 0;
-}
-
-/*
- * called by ceval_stop, ceval_stop is called when Stop
- */
-int
-ocache_stop_search(sig_val_t * fsig)
-{
-	debug("ocache_stop_search called\n");
-	return 0;
-}
-

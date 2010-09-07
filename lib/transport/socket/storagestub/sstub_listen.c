@@ -56,18 +56,9 @@ socket_non_block(int fd)
 
 }
 
-/*
- * This is called if the connection has been shutdown the remote
- * side or some error connection.  We notify the caller of the library
- * and clean up the state.
- */
-
-void
+static void
 shutdown_connection(cstate_t *cstate)
 {
-	/* Notify the "application" through the callback. */
-	(*cstate->lstate->cb.close_conn_cb) (cstate->app_cookie);
-
 	mrpc_conn_close(cstate->mrpc_conn);
 	mrpc_conn_close(cstate->blast_conn);
 	cstate->mrpc_conn = cstate->blast_conn = NULL;
@@ -194,6 +185,8 @@ have_full_conn(listener_state_t * list_state, int conn)
 		shutdown_connection(cstate);
 		return;
 	}
+
+	/* now forked (or not, depending) */
 
 	/*
 	 * we registered correctly, save the cookie;

@@ -22,7 +22,6 @@
  */
 typedef struct {
 	int	(*new_conn_cb)	(void *cookie, void **app_cookie);
-	int	(*close_conn_cb) (void *app_cookie);
 	int	(*start_cb)	(void *app_cookie, unsigned int search_id);
 	int	(*set_fspec_cb)	(void *app_cookie, sig_val_t *specsig);
 	int	(*set_fobj_cb)	(void *app_cookie, sig_val_t *obj_sig);

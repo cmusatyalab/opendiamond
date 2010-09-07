@@ -305,14 +305,6 @@ ceval_stop(filter_data_t * fdata)
 	}
 	cached_perm_num = 0;
 
-	for (fid = 0; fid < fdata->fd_num_filters; fid++) {
-		cur_filt = &fdata->fd_filters[fid];
-		if (fid == fdata->fd_app_id) {
-			continue;
-		}
-		ocache_stop_search(&cur_filt->fi_sig);
-	}
-
 	pthread_mutex_unlock(&ceval_mutex);
 
 	return (0);

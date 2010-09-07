@@ -42,10 +42,6 @@ typedef struct ceval_state {
 
 int ocache_init(char *path_name);
 
-int ocache_start(void);
-
-int ocache_stop(char *path_name);
-
 int ceval_init_search(filter_data_t * fdata, query_info_t *qinfo,
 		      struct ceval_state *cstate);
 

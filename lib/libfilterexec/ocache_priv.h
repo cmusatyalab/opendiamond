@@ -36,8 +36,6 @@ int cache_lookup(sig_val_t *id_sig, sig_val_t *fsig, query_info_t *qid,
 void cache_combine_attr_set(query_info_t *qid, int64_t cache_entry);
 int cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry);
 
-int ocache_stop_search(sig_val_t *fsig);
-
 int ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig);
 int ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 		   query_info_t *qid, struct timespec *elapsed);

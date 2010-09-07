@@ -92,7 +92,6 @@ typedef struct listener_state {
 /*
  * Functions exported by sstub_listen.c
  */
-void shutdown_connection(cstate_t *cstate);
 int sstub_new_sock(int *fd, const char *port, int bind_only_locally);
 
 /*

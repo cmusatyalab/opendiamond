@@ -307,10 +307,6 @@ dev_process_cmd(search_state_t * sstate, dev_cmd_data_t * cmd)
 			 */
 			return;
 		}
-		err = ocache_start();
-		if (err) {
-			return;
-		}
 
 		/*
 		 * init the filter exec code 
@@ -798,14 +794,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 }
 
 static int
-search_close_conn(void *app_cookie)
-{
-	ocache_stop(NULL);
-	// exit(0);
-	return (0);
-}
-
-static int
 search_free_obj(search_state_t * sstate, obj_data_t * obj)
 {
 	odisk_release_obj(obj);
@@ -1183,7 +1171,6 @@ main(int argc, char **argv)
 
 
 	cb_args.new_conn_cb = search_new_conn;
-	cb_args.close_conn_cb = search_close_conn;
 	cb_args.start_cb = search_start;
 
 	cb_args.set_fspec_cb = search_set_spec;

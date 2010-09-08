@@ -1,4 +1,4 @@
-bin_SCRIPTS = minirpcgen
+noinst_SCRIPTS = minirpcgen
 CLEANFILES = minirpcgen
 
 SUBDIRS = . minirpc lib test

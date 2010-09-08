@@ -1,11 +1,12 @@
 /*
- * miniRPC - TCP RPC library with asynchronous operations
+ * miniRPC - Simple TCP RPC library
  *
- * Copyright (C) 2007-2008 Carnegie Mellon University
+ * Copyright (C) 2007-2010 Carnegie Mellon University
  *
- * This code is distributed "AS IS" without warranty of any kind under the
- * terms of the GNU Lesser General Public License version 2.1, as shown in
- * the file COPYING.
+ *  This software is distributed under the terms of the Eclipse Public
+ *  License, Version 1.0 which can be found in the file named LICENSE.
+ *  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+ *  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
  */
 
 /**

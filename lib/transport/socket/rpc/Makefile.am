@@ -2,7 +2,7 @@ bin_SCRIPTS = minirpcgen
 CLEANFILES = minirpcgen
 
 SUBDIRS = . minirpc lib test
-EXTRA_DIST = COPYING minirpcgen.in
+EXTRA_DIST = minirpcgen.in
 
 minirpcgen: minirpcgen.in Makefile
 	@echo "Generating $@ from $<"

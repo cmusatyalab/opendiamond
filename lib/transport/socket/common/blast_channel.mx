@@ -23,10 +23,6 @@ struct object_x {
     attribute_x  attrs<>;
 };
 
-struct credit_x {
-    int credit_offset;
-};
-
 serverprocs {
     get_object(void, object_x) = 1;
 }

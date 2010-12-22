@@ -25,7 +25,6 @@
 #define	MAX_CONNS		64
 
 #define OBJ_RING_SIZE		512
-#define CONTROL_RING_SIZE	1024
 
 /* These are the flags for each connection state defined below */
 #define	CSTATE_ALLOCATED	0x0001
@@ -73,18 +72,6 @@ typedef struct listener_state {
 	sstub_cb_args_t		cb;
 	cstate_t		conns[MAX_CONNS];
 } listener_state_t;
-
-
-/*
- * These are some constants we use when creating temporary files
- * to hold the searchlet file as well as the filter spec.
- */
-
-#define	MAX_TEMP_NAME	64
-
-#define	TEMP_DIR_NAME	"/tmp/"
-#define	TEMP_OBJ_NAME	"objfileXXXXXX"
-#define	TEMP_SPEC_NAME	"fspecXXXXXX"
 
 
 /*

@@ -43,7 +43,6 @@ static int  set_cache_dir(const char *name);
 static int  set_log_dir(const char *name);
 static int  set_certfile(const char *name);
 static int  set_serverid(const char *name);
-static int  set_data_type(data_type_t type);
 
 static char * eat_token(char *str);
 static void do_init(void);
@@ -53,7 +52,6 @@ typedef struct	dconfig_info {
 	char *		dconf_logdir;
 	char *		dconf_certfile;
 	GPtrArray *	dconf_serverids;
-	data_type_t	dconf_dtype;
 } dconf_info_t;
 
 
@@ -75,12 +73,11 @@ FNAME (([0-9]*"."[0-9]+)|([0-9]+))
 #.*\n
 DATAROOT[ \t]+.*\n
 INDEXDIR[ \t]+.*\n
+DATATYPE[ \t]+.*\n
 CACHEDIR[ \t]+[[:alnum:]\-_\/\.]+ {set_cache_dir(eat_token(yyget_text(yyscanner)));}
 LOGDIR[ \t]+[[:alnum:]\-_\/\.]+	  {set_log_dir(eat_token(yyget_text(yyscanner)));}
 CERTFILE[ \t]+[[:alnum:]\-_\/\.]+ {set_certfile(eat_token(yyget_text(yyscanner)));}
 SERVERID[ \t]+[[:alnum:]\-_\/\.]+ {set_serverid(eat_token(yyget_text(yyscanner)));}
-DATATYPE[ \t]+OBJECT	 	{set_data_type(DATA_TYPE_OBJECT);}
-DATATYPE[ \t]+NATIVE	 	{set_data_type(DATA_TYPE_NATIVE);}
 .				{have_error(yyscanner); }
 %%
 
@@ -214,20 +211,6 @@ dconf_get_serverids(void)
 {
 	do_init();
 	return (char **)dinfo->dconf_serverids->pdata;
-}
-
-static int
-set_data_type(data_type_t type)
-{
-	dinfo->dconf_dtype = type;
-	return(0);
-}
-
-data_type_t
-dconf_get_datatype(void)
-{
-	do_init();
-	return(dinfo->dconf_dtype);
 }
 
 static void

@@ -174,7 +174,6 @@ cache_setup(const char *dir)
 
 	sql_query(NULL, ocache_DB, "PRAGMA temp_store = MEMORY;", NULL);
 	sql_query(NULL, ocache_DB, "PRAGMA synchronous = OFF;", NULL);
-	sql_query(NULL, ocache_DB, "PRAGMA journal_mode = MEMORY;", NULL);
 	sql_query(&res, ocache_DB, "PRAGMA user_version;", NULL);
 	assert(res); /* PRAGMA user_version should always succeed */
 

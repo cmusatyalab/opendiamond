@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2006-2009 Carnegie Mellon University
+ *  Copyright (c) 2006-2011 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -49,6 +49,12 @@ static int             do_daemon = 1;
 static int             do_fork = 1;
 static int             not_silent = 0;
 static int             bind_locally = 0;
+
+/*
+ * Hash table mapping (child pid) -> (temporary directory) so that we can
+ * delete the tempdir after reaping the child.
+ */
+static GHashTable *tempdirs;
 
 static void
 usage(void)
@@ -660,17 +666,32 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 {
 	search_state_t *sstate;
 	int             err;
-	pid_t			new_proc;
+	pid_t		new_proc = 0;
+	gchar          *tempdir = NULL;
 
 	/*
-	 * We have a new connection decide whether to fork or not
+	 * We have a new connection decide whether to fork or not.  If we're
+	 * not forking we're not going to reap any tempdir we create, so don't
+	 * create one at all, and let the filters default to /tmp.
 	 */
 	if (do_fork) {
+		tempdir = g_strdup_printf("%s/diamond-search-XXXXXX",
+					g_get_tmp_dir());
+		if (mkdtemp(tempdir) == NULL) {
+			g_free(tempdir);
+			tempdir = NULL;
+		}
 		new_proc = fork();
-    } else {
-		new_proc = 0;
-    }
-	
+		if (tempdir != NULL) {
+			if (new_proc) {
+				g_hash_table_insert(tempdirs,
+					GINT_TO_POINTER(new_proc), tempdir);
+			} else {
+				setenv("TMPDIR", tempdir, 1);
+			}
+		}
+	}
+
 	if (new_proc != 0) {
 		return 1;
 	}
@@ -1102,6 +1123,27 @@ done:
 }
 
 
+static void
+try_reap_children(void)
+{
+	pid_t pid;
+	gchar *tempdir;
+
+	while ((pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+		tempdir = g_hash_table_lookup(tempdirs, GINT_TO_POINTER(pid));
+		if (tempdir) {
+			/* XXX */
+			char *rm_args[] = { "rm", "-rf", tempdir, NULL };
+			g_spawn_async(NULL, rm_args, NULL,
+					G_SPAWN_SEARCH_PATH |
+					G_SPAWN_STDOUT_TO_DEV_NULL |
+					G_SPAWN_STDERR_TO_DEV_NULL,
+					NULL, NULL, NULL, NULL);
+			g_hash_table_remove(tempdirs, GINT_TO_POINTER(pid));
+		}
+	}
+}
+
 
 int
 main(int argc, char **argv)
@@ -1169,6 +1211,8 @@ main(int argc, char **argv)
 		}
 	}
 
+	tempdirs = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL,
+				g_free);
 
 	cb_args.new_conn_cb = search_new_conn;
 	cb_args.start_cb = search_start;
@@ -1199,13 +1243,9 @@ main(int argc, char **argv)
 		sstub_listen(cookie);
 
 		/*
-		 * We need to do a periodic wait. To get rid
-		 * of all the zombies.  The posix spec appears to
-		 * be fuzzy on the behavior of setting sigchild
-		 * to ignore, so we will do a periodic nonblocking
-		 * wait to clean up the zombies.
+		 * Find any exited children and clean up their state.
 		 */
-		waitpid(-1, NULL, WNOHANG | WUNTRACED);
+		try_reap_children();
 	}
 
 	exit(0);

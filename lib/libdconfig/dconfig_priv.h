@@ -3,7 +3,7 @@
  *  Version 4
  *
  *  Copyright (c) 2002-2005 Intel Corporation
- *  Copyright (c) 2009 Carnegie Mellon University
+ *  Copyright (c) 2009-2011 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -18,6 +18,7 @@
 FILE * dconfig_open_config_file(const char *conf_file);
 char * dconf_get_logdir(void);
 char * dconf_get_certfile(void);
+char * dconf_get_cgroupdir(void);
 char **dconf_get_serverids(void);
 char * dconf_get_cachedir(void);
 char * dconf_get_spec_cachedir(void);

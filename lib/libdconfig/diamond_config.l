@@ -7,7 +7,7 @@
  *
  *  Copyright (c) 2002-2005 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>
- *  Copyright (c) 2009 Carnegie Mellon University
+ *  Copyright (c) 2009-2011 Carnegie Mellon University
  *  All rights reserved.
  *
  *  This software is distributed under the terms of the Eclipse Public
@@ -42,6 +42,7 @@ static int  have_error(yyscan_t scanner);
 static int  set_cache_dir(const char *name);
 static int  set_log_dir(const char *name);
 static int  set_certfile(const char *name);
+static int  set_cgroup_dir(const char *name);
 static int  set_serverid(const char *name);
 
 static char * eat_token(char *str);
@@ -51,6 +52,7 @@ typedef struct	dconfig_info {
 	char *		dconf_cachedir;
 	char *		dconf_logdir;
 	char *		dconf_certfile;
+	char *		dconf_cgroupdir;
 	GPtrArray *	dconf_serverids;
 } dconf_info_t;
 
@@ -77,6 +79,7 @@ DATATYPE[ \t]+.*\n
 CACHEDIR[ \t]+[[:alnum:]\-_\/\.]+ {set_cache_dir(eat_token(yyget_text(yyscanner)));}
 LOGDIR[ \t]+[[:alnum:]\-_\/\.]+	  {set_log_dir(eat_token(yyget_text(yyscanner)));}
 CERTFILE[ \t]+[[:alnum:]\-_\/\.]+ {set_certfile(eat_token(yyget_text(yyscanner)));}
+CGROUPDIR[ \t]+[[:alnum:]\-_\/\.]+ {set_cgroup_dir(eat_token(yyget_text(yyscanner)));}
 SERVERID[ \t]+[[:alnum:]\-_\/\.]+ {set_serverid(eat_token(yyget_text(yyscanner)));}
 .				{have_error(yyscanner); }
 %%
@@ -197,6 +200,21 @@ dconf_get_certfile(void)
 	do_init();
 	if (!dinfo->dconf_certfile) return NULL;
 	return strdup(dinfo->dconf_certfile);
+}
+
+static int
+set_cgroup_dir(const char *dir)
+{
+	dinfo->dconf_cgroupdir = strdup(dir);
+	return(0);
+}
+
+char *
+dconf_get_cgroupdir(void)
+{
+	do_init();
+	if (!dinfo->dconf_cgroupdir) return NULL;
+	return strdup(dinfo->dconf_cgroupdir);
 }
 
 static int

@@ -14,6 +14,7 @@
  */
 
 #include <pthread.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdio.h>
@@ -25,6 +26,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <assert.h>
+#include <sched.h>
 #include <glib.h>
 #include <netdb.h>
 #include "diamond_consts.h"
@@ -38,6 +40,7 @@
 #include "sys_attr.h"
 #include "lib_sstub.h"
 #include "lib_filterexec.h"
+#include "dconfig_priv.h"
 #include "search_state.h"
 
 
@@ -49,6 +52,12 @@ static int             do_daemon = 1;
 static int             do_fork = 1;
 static int             not_silent = 0;
 static int             bind_locally = 0;
+
+/*
+ * The Linux control group directory, if any, that we should use to manage
+ * our children.
+ */
+static gchar *cgroupdir;
 
 /*
  * Hash table mapping (child pid) -> (temporary directory) so that we can
@@ -653,6 +662,34 @@ device_main(void *arg)
 	return NULL;
 }
 
+/*
+ * Configure a newly-forked child process.
+ */
+static void
+setup_child(const char *tempdir)
+{
+	/* Set temporary directory */
+	if (tempdir != NULL) {
+		setenv("TMPDIR", tempdir, 1);
+	}
+
+	/* Create a new control group with us in it */
+	if (cgroupdir != NULL) {
+		pid_t pid = getpid();
+		gchar *cgroup = g_strdup_printf("%s/%d", cgroupdir, pid);
+		gchar *tasks = g_strdup_printf("%s/tasks", cgroup);
+		FILE *fp;
+
+		mkdir(cgroup, 0700);
+		fp = fopen(tasks, "w");
+		if (fp != NULL) {
+			fprintf(fp, "%d\n", pid);
+			fclose(fp);
+		}
+		g_free(tasks);
+		g_free(cgroup);
+	}
+}
 
 /*
  * This is the callback that is called when a new connection
@@ -666,7 +703,7 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 {
 	search_state_t *sstate;
 	int             err;
-	pid_t		new_proc = 0;
+	pid_t		new_proc;
 	gchar          *tempdir = NULL;
 
 	/*
@@ -682,18 +719,15 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 			tempdir = NULL;
 		}
 		new_proc = fork();
-		if (tempdir != NULL) {
-			if (new_proc) {
+		if (new_proc) {
+			if (tempdir != NULL) {
 				g_hash_table_insert(tempdirs,
 					GINT_TO_POINTER(new_proc), tempdir);
-			} else {
-				setenv("TMPDIR", tempdir, 1);
 			}
+			return 1;
+		} else {
+			setup_child(tempdir);
 		}
-	}
-
-	if (new_proc != 0) {
-		return 1;
 	}
 
 	sstate = (search_state_t *) calloc(1, sizeof(*sstate));
@@ -1130,6 +1164,38 @@ try_reap_children(void)
 	gchar *tempdir;
 
 	while ((pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+		/* Reap the child's children and delete the control group. */
+		if (cgroupdir != NULL) {
+			gchar *cgroup = g_strdup_printf("%s/%d", cgroupdir,
+						pid);
+			gchar *tasks = g_strdup_printf("%s/tasks", cgroup);
+			gboolean killed;
+
+			do {
+				char task_s[30];
+				int task;
+				FILE *tasks_fp = fopen(tasks, "r");
+
+				if (tasks_fp == NULL)
+					break;
+				killed = FALSE;
+				while (fgets(task_s, sizeof(task_s),
+							tasks_fp)) {
+					task = atoi(task_s);
+					if (task > 0) {
+						kill(task, SIGKILL);
+						killed = TRUE;
+					}
+				}
+				fclose(tasks_fp);
+				sched_yield();
+			} while (killed);
+			rmdir(cgroup);
+			g_free(tasks);
+			g_free(cgroup);
+		}
+
+		/* Reap the child's tempdir. */
 		tempdir = g_hash_table_lookup(tempdirs, GINT_TO_POINTER(pid));
 		if (tempdir) {
 			/* XXX */
@@ -1209,6 +1275,20 @@ main(int argc, char **argv)
 			perror("daemon call failed !! \n");
 			exit(1);
 		}
+	}
+
+	/*
+	 * Configure control group handling, if possible
+	 */
+	cgroupdir = dconf_get_cgroupdir();
+	if (cgroupdir != NULL) {
+		gchar *tasks = g_strdup_printf("%s/tasks", cgroupdir);
+		if (!g_file_test(tasks, G_FILE_TEST_IS_REGULAR)) {
+			/* Not a real cgroup directory */
+			free(cgroupdir);
+			cgroupdir = NULL;
+		}
+		g_free(tasks);
 	}
 
 	tempdirs = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL,

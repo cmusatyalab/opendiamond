@@ -1207,15 +1207,6 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 }
 
 
-// unmask the signals, we may be running on the minirpc dispatch thread
-static void
-unmask_signals(gpointer user_data) {
-  sigset_t set;
-  g_assert(sigemptyset(&set) == 0);
-  g_assert(pthread_sigmask(SIG_SETMASK, &set, NULL) == 0);
-}
-
-
 void
 fexec_possibly_init_filter(filter_info_t *cur_filt,
 			   int num_libs, flib_info_t *flibs,
@@ -1239,7 +1230,7 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		int runner_output;
 		if (!g_spawn_async_with_pipes (NULL, argv,
 					       NULL, 0,
-					       unmask_signals, NULL,
+					       NULL, NULL,
 					       NULL,
 					       &runner_input,
 					       &runner_output,

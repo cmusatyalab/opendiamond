@@ -26,6 +26,38 @@
 #include "filter-runner.h"
 #include "filter-runner-util.h"
 
+struct ohandle {
+  GHashTable *attributes;
+};
+
+struct attribute {
+  size_t len;
+  void *data;
+};
+
+static void attribute_destroy(gpointer user_data) {
+  struct attribute *attr = user_data;
+
+  g_free(attr->data);
+  g_slice_free(struct attribute, attr);
+}
+
+lf_obj_handle_t lf_obj_handle_new(void) {
+  struct ohandle *ret = g_slice_new0(struct ohandle);
+
+  ret->attributes = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                          g_free, attribute_destroy);
+
+  return ret;
+}
+
+void lf_obj_handle_free(lf_obj_handle_t obj) {
+  struct ohandle *ohandle = obj;
+
+  g_hash_table_unref(ohandle->attributes);
+  g_slice_free(struct ohandle, ohandle);
+}
+
 static struct attribute *get_attribute(FILE *in, FILE *out,
 				       struct ohandle *ohandle, const char *name) {
   // look up in hash table

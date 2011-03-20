@@ -233,17 +233,14 @@ static void send_result(FILE *out, int result) {
 static void run_filter(struct filter_ops *ops) {
   // eval loop
   while (true) {
-    GHashTable *attrs = g_hash_table_new_full(g_str_hash, g_str_equal,
-					      g_free, attribute_destroy);
-
     // init ohandle
-    struct ohandle ohandle = { attrs };
+    lf_obj_handle_t obj = lf_obj_handle_new();
 
     // eval and return result
-    int result = (*ops->eval)(&ohandle, ops->data);
+    int result = (*ops->eval)(obj, ops->data);
     send_result(_out, result);
 
-    g_hash_table_unref(attrs);
+    lf_obj_handle_free(obj);
   }
 }
 

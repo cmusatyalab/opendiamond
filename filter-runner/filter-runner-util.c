@@ -33,13 +33,6 @@ static void error_stdio(FILE *f, const char *msg) {
   }
 }
 
-void attribute_destroy(gpointer user_data) {
-  struct attribute *attr = user_data;
-
-  g_free(attr->data);
-  g_slice_free(struct attribute, attr);
-}
-
 int get_size(FILE *in) {
   char *line = NULL;
   size_t n;

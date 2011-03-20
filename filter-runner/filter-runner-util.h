@@ -20,17 +20,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include "lib_filter.h"
 
-struct ohandle {
-  GHashTable *attributes;
-};
+lf_obj_handle_t lf_obj_handle_new(void);
 
-struct attribute {
-  size_t len;
-  void *data;
-};
-
-void attribute_destroy(gpointer user_data);
+void lf_obj_handle_free(lf_obj_handle_t obj);
 
 int get_size(FILE *in);
 

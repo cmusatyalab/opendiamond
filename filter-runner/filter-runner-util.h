@@ -30,8 +30,6 @@ struct attribute {
   void *data;
 };
 
-void error_stdio(FILE *f, const char *msg);
-
 void attribute_destroy(gpointer user_data);
 
 int get_size(FILE *in);

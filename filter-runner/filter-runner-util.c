@@ -23,7 +23,7 @@
 
 #include "filter-runner-util.h"
 
-void error_stdio(FILE *f, const char *msg) {
+static void error_stdio(FILE *f, const char *msg) {
   if (feof(f)) {
     //    g_warning("EOF");
     exit(EXIT_SUCCESS);

@@ -505,7 +505,7 @@ ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig)
 	return 0;
 }
 
-static void
+void
 ocache_add_iattr(lf_obj_handle_t ohandle,
 		 const char *name, off_t len, const unsigned char *data)
 {
@@ -527,7 +527,7 @@ ocache_add_iattr(lf_obj_handle_t ohandle,
 	pthread_mutex_unlock(&shared_mutex);
 }
 
-static void
+void
 ocache_add_oattr(lf_obj_handle_t ohandle, const char *name,
 		 off_t len, const unsigned char *data)
 {
@@ -691,13 +691,6 @@ ocache_init(char *dirp)
 		free(dir_path);
 		return (EPERM);
 	}
-
-	/*
-	 * set callback functions so we get notifice on read/and writes
-	 * to object attributes.
-	 */
-	fexec_set_read_cb(ocache_add_iattr);
-	fexec_set_write_cb(ocache_add_oattr);
 
 	/* open and initialize ocache database */
 	cache_setup(dir_path);

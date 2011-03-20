@@ -243,14 +243,6 @@ int fexec_update_session_variables(lf_obj_handle_t ohandle,
 					 char **names,
 					 double *values);
 
-typedef void (*read_attr_cb)(lf_obj_handle_t ohandle, const char *name, 
-		off_t len, const unsigned char *data);
-int fexec_set_read_cb(read_attr_cb);
-
-typedef void (*write_attr_cb)(lf_obj_handle_t ohandle, const char *name, 
-		off_t len, const unsigned char *data);
-int fexec_set_write_cb(write_attr_cb);
-
 
 extern filter_info_t *fexec_active_filter;
 

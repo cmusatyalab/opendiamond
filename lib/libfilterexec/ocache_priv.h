@@ -37,6 +37,10 @@ void cache_combine_attr_set(query_info_t *qid, int64_t cache_entry);
 int cache_read_oattrs(obj_attr_t *attr, int64_t cache_entry);
 
 int ocache_add_start(lf_obj_handle_t ohandle, sig_val_t *fsig);
+void ocache_add_iattr(lf_obj_handle_t ohandle, const char *name, off_t len,
+		      const unsigned char *data);
+void ocache_add_oattr(lf_obj_handle_t ohandle, const char *name, off_t len,
+		      const unsigned char *data);
 int ocache_add_end(lf_obj_handle_t ohandle, sig_val_t *fsig, int conf,
 		   query_info_t *qid, struct timespec *elapsed);
 

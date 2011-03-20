@@ -40,19 +40,9 @@
 #include "lib_log.h"
 #include "odisk_priv.h"
 #include "filter_priv.h"
+#include "ocache_priv.h"
 #include "sys_attr.h"
 
-
-static read_attr_cb read_attr_fn = NULL;
-static write_attr_cb write_attr_fn = NULL;
-
-
-int
-fexec_set_read_cb(read_attr_cb cb_fn)
-{
-	read_attr_fn = cb_fn;
-	return (0);
-}
 
 int
 fexec_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
@@ -67,17 +57,10 @@ fexec_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len,
 	err = obj_ref_attr(adata, name, len, data);
 
 	/* add read attrs into cache queue: input attr set */
-	if (!err && (read_attr_fn != NULL)) {
-		(*read_attr_fn) (obj, name, *len, *data);
+	if (!err) {
+		ocache_add_iattr(obj, name, *len, *data);
 	}
 	return (err);
-}
-
-int
-fexec_set_write_cb(write_attr_cb cb_fn)
-{
-	write_attr_fn = cb_fn;
-	return (0);
 }
 
 /*
@@ -97,8 +80,8 @@ fexec_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *dat
 	/*
 	 * add writen attrs into cache queue: output attr set 
 	 */
-	if (!err && (write_attr_fn != NULL)) {
-		(*write_attr_fn) (obj, name, len, data);
+	if (!err) {
+		ocache_add_oattr(obj, name, len, data);
 	}
 	return (err);
 }

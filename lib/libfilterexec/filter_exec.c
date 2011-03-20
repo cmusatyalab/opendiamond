@@ -1299,6 +1299,12 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 	cur_filt->fi_is_initialized = true;
 
 	// check the files
-	g_return_if_fail (cur_filt->fi_in_from_runner &&
-			  cur_filt->fi_out_to_runner);
+	if (cur_filt->fi_in_from_runner == NULL ||
+				cur_filt->fi_out_to_runner == NULL) {
+		log_message(LOGT_FILT, LOGL_ERR,
+			    "fexec_possibly_init_filter: Could not resolve "
+			    "filter %s", cur_filt->fi_name);
+		/* sigh */
+		exit(0);
+	}
 }

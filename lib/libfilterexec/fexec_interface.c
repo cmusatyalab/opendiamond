@@ -36,7 +36,6 @@
 #include "lib_tools.h"
 #include "lib_odisk.h"
 #include "lib_filter.h"
-#include "lib_filter_sys.h"
 #include "lib_filterexec.h"
 #include "lib_log.h"
 #include "odisk_priv.h"
@@ -49,14 +48,14 @@ static write_attr_cb write_attr_fn = NULL;
 
 
 int
-lf_set_read_cb(read_attr_cb cb_fn)
+fexec_set_read_cb(read_attr_cb cb_fn)
 {
 	read_attr_fn = cb_fn;
 	return (0);
 }
 
 int
-lf_internal_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
+fexec_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len, 
 	unsigned char **data)
 {
 	obj_data_t     *odata;
@@ -75,7 +74,7 @@ lf_internal_ref_attr(lf_obj_handle_t obj, const char *name, size_t * len,
 }
 
 int
-lf_set_write_cb(write_attr_cb cb_fn)
+fexec_set_write_cb(write_attr_cb cb_fn)
 {
 	write_attr_fn = cb_fn;
 	return (0);
@@ -86,7 +85,7 @@ lf_set_write_cb(write_attr_cb cb_fn)
  * XXX
  */
 int
-lf_internal_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
+fexec_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned char *data)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -105,7 +104,7 @@ lf_internal_write_attr(lf_obj_handle_t obj, char *name, size_t len, unsigned cha
 }
 
 int
-lf_internal_omit_attr(lf_obj_handle_t obj, char *name)
+fexec_omit_attr(lf_obj_handle_t obj, char *name)
 {
 	obj_data_t     *odata;
 	obj_attr_t     *adata;
@@ -119,7 +118,7 @@ lf_internal_omit_attr(lf_obj_handle_t obj, char *name)
 }
 
 int
-lf_internal_get_session_variables(lf_obj_handle_t ohandle,
+fexec_get_session_variables(lf_obj_handle_t ohandle,
 				  char **names,
 				  double *results)
 {
@@ -157,7 +156,7 @@ lf_internal_get_session_variables(lf_obj_handle_t ohandle,
   return 0;
 }
 
-int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
+int fexec_update_session_variables(lf_obj_handle_t ohandle,
 					 char **names,
 					 double *values)
 {

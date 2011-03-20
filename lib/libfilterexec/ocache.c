@@ -39,7 +39,6 @@
 #include "obj_attr.h"
 #include "obj_attr.h"
 #include "lib_filter.h"
-#include "lib_filter_sys.h"
 #include "lib_odisk.h"
 #include "lib_filterexec.h"
 #include "lib_ocache.h"
@@ -697,8 +696,8 @@ ocache_init(char *dirp)
 	 * set callback functions so we get notifice on read/and writes
 	 * to object attributes.
 	 */
-	lf_set_read_cb(ocache_add_iattr);
-	lf_set_write_cb(ocache_add_oattr);
+	fexec_set_read_cb(ocache_add_iattr);
+	fexec_set_write_cb(ocache_add_oattr);
 
 	/* open and initialize ocache database */
 	cache_setup(dir_path);

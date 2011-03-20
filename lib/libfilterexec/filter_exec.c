@@ -1053,7 +1053,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       // look up attribute
       unsigned int len;
       unsigned char *data;
-      int result = lf_internal_ref_attr(obj_handle, name, &len, &data);
+      int result = fexec_ref_attr(obj_handle, name, &len, &data);
       g_free(name);
 
       // write attribute
@@ -1081,7 +1081,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	return 0;
       }
 
-      lf_internal_write_attr(obj_handle, name, len, data);
+      fexec_write_attr(obj_handle, name, len, data);
       g_free(name);
       g_free(data);
     } else if (streq(tag, "omit-attribute")) {
@@ -1094,7 +1094,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 	return 0;
       }
 
-      int result = lf_internal_omit_attr(obj_handle, name);
+      int result = fexec_omit_attr(obj_handle, name);
       g_free(name);
 
       // write result
@@ -1112,7 +1112,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       // populate result
       int count = g_strv_length(names);
       double *results = g_new0(double, count);
-      lf_internal_get_session_variables(obj_handle, names, results);
+      fexec_get_session_variables(obj_handle, names, results);
 
       g_strfreev(names);
 
@@ -1148,7 +1148,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
       }
 
       // done
-      lf_internal_update_session_variables(obj_handle, names, results);
+      fexec_update_session_variables(obj_handle, names, results);
       g_free(names);
       g_free(results);
     } else if (streq(tag, "log")) {

@@ -231,17 +231,25 @@ void            fexec_possibly_init_filter(filter_info_t *cur_filt,
 					   filter_id_t fd_app_id);
 
 
-int lf_internal_ref_attr(lf_obj_handle_t ohandle, const char *name,
+int fexec_ref_attr(lf_obj_handle_t ohandle, const char *name,
 			 size_t *len, unsigned char **data);
-int lf_internal_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
+int fexec_write_attr(lf_obj_handle_t ohandle, char *name, size_t len,
 			   unsigned char *data);
-int lf_internal_omit_attr(lf_obj_handle_t ohandle, char *name);
-int lf_internal_get_session_variables(lf_obj_handle_t ohandle,
+int fexec_omit_attr(lf_obj_handle_t ohandle, char *name);
+int fexec_get_session_variables(lf_obj_handle_t ohandle,
 				      char **names,
 				      double *results);
-int lf_internal_update_session_variables(lf_obj_handle_t ohandle,
+int fexec_update_session_variables(lf_obj_handle_t ohandle,
 					 char **names,
 					 double *values);
+
+typedef void (*read_attr_cb)(lf_obj_handle_t ohandle, const char *name, 
+		off_t len, const unsigned char *data);
+int fexec_set_read_cb(read_attr_cb);
+
+typedef void (*write_attr_cb)(lf_obj_handle_t ohandle, const char *name, 
+		off_t len, const unsigned char *data);
+int fexec_set_write_cb(write_attr_cb);
 
 
 extern filter_info_t *fexec_active_filter;

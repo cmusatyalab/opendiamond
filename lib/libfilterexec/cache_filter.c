@@ -283,8 +283,6 @@ ceval_start(filter_data_t * fdata)
 int
 ceval_stop(filter_data_t * fdata)
 {
-	filter_id_t     fid;
-	filter_info_t  *cur_filt;
 	int             i;
 	struct timespec ts;
 
@@ -691,7 +689,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	int             err;
 	size_t          asize;
 	bool            pass = true;	/* return value */
-	long int        rv;
 	int             cur_fid,
 	                cur_fidx;
 	struct timeval  wstart;

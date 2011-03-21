@@ -281,6 +281,7 @@ static void *scopelist_fetcher(void *arg)
 
 	free_fetch_state(state);
     }
+    return NULL;
 }
 
 /*********************/

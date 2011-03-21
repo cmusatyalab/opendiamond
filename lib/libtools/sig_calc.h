@@ -15,8 +15,7 @@
 #ifndef	_SIG_CALC_H_
 #define	_SIG_CALC_H_
 
-#define	SIG_SIZE	16
-
+#include "diamond_consts.h"
 
 typedef	struct sig_val {
 	unsigned char 	sig[SIG_SIZE];

@@ -27,6 +27,9 @@
  */
 #define	MAX_NUM_DEPS		20
 
+/* signature size */
+#define	SIG_SIZE		16
+
 
 /* default path names for the different configurations files */
 #define DIAMOND_CONFIG_ENV_NAME                 "DIAMOND_CONFIG"

@@ -26,86 +26,39 @@
 #include <signal.h>
 
 #include "lib_filter.h"
-#include "filter-runner.h"
-#include "filter-runner-util.h"
-
-const char *_filter_name;
-FILE *_in;
-FILE *_out;
+#include "lf_protocol.h"
+#include "lf_priv.h"
 
 struct filter_ops {
+  filter_init_proto init;
   filter_eval_proto eval;
-  filter_fini_proto fini;
-  void *data;
+  char *filter_name;
   char **args;
   void *blob;
+  int bloblen;
 };
 
-static GStaticMutex out_mutex = G_STATIC_MUTEX_INIT;
-
-void start_output(void) {
-  g_static_mutex_lock(&out_mutex);
-}
-
-void end_output(void) {
-  g_static_mutex_unlock(&out_mutex);
-}
-
-static void assert_result(int result) {
-  if (result == -1) {
-    perror("error");
-    exit(EXIT_FAILURE);
-  }
-}
-
-static void init_file_descriptors(int *stdin_orig, int *stdout_orig,
-				  int *stdout_log) {
-  int stdout_pipe[2];
-
-  // save orig stdin/stdout
-  *stdin_orig = dup(0);
-  assert_result(*stdin_orig);
-  *stdout_orig = dup(1);
-  assert_result(*stdout_orig);
-
-  // make pipes
-  assert_result(pipe(stdout_pipe));
-
-  // open /dev/null to stdin
-  int devnull = open("/dev/null", O_RDONLY);
-  assert_result(devnull);
-  assert_result(dup2(devnull, 0));
-  assert_result(close(devnull));
-
-  // dup to stdout
-  assert_result(dup2(stdout_pipe[1], 1));
-  assert_result(close(stdout_pipe[1]));
-
-  // save
-  *stdout_log = stdout_pipe[0];
-}
-
-static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
+static void handshake(FILE *in, FILE *out, struct filter_ops *ops) {
   char *error;
 
   // read shared object name
-  char *filename = get_string(in);
+  char *filename = lf_get_string(in);
   //  g_message("filename: %s", filename);
 
   // read init function name
-  char *init_name = get_string(in);
+  char *init_name = lf_get_string(in);
   //  g_message("init_name: %s", init_name);
 
   // read eval function name
-  char *eval_name = get_string(in);
+  char *eval_name = lf_get_string(in);
   //  g_message("eval_name: %s", eval_name);
 
   // read fini function name
-  char *fini_name = get_string(in);
+  char *fini_name = lf_get_string(in);
   //  g_message("fini_name: %s", fini_name);
 
   // read argument list
-  ops->args = get_strings(in);
+  ops->args = lf_get_strings(in);
   /*
   g_message("args len: %d", g_strv_length(ops->args));
   for (char **arg = ops->args; *arg != NULL; arg++) {
@@ -114,12 +67,11 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   */
 
   // read blob
-  int bloblen;
-  ops->blob = get_binary(in, &bloblen);
-  //  g_message("bloblen: %d", bloblen);
+  ops->blob = lf_get_binary(in, &ops->bloblen);
+  //  g_message("bloblen: %d", ops->bloblen);
 
   // read name
-  _filter_name = get_string(in);
+  ops->filter_name = lf_get_string(in);
   //  g_message("filter_name: %s", _filter_name);
 
   // dlopen
@@ -130,10 +82,7 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
   }
 
   // find functions
-  int (*filter_init)(int num_arg, char **args, int bloblen,
-		     void *blob_data, const char * filt_name,
-		     void **filter_args);
-  filter_init = dlsym(handle, init_name);
+  ops->init = dlsym(handle, init_name);
   if ((error = dlerror()) != NULL) {
     //    g_warning("%s", error);
     exit(EXIT_FAILURE);
@@ -145,34 +94,17 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
     exit(EXIT_FAILURE);
   }
 
-  ops->fini = dlsym(handle, fini_name);
+  // The fini function is unused, but we still check for it
+  dlsym(handle, fini_name);
   if ((error = dlerror()) != NULL) {
     //    g_warning("%s", error);
     exit(EXIT_FAILURE);
   }
 
   // report load success
-  start_output();
-  send_tag(out, "functions-resolved");
-  end_output();
-
-
-  // now it is safe to write to stdout
-  //  g_debug("filter_name: %s", _filter_name);
-
-  // init
-  int result = (*filter_init)(g_strv_length(ops->args), ops->args,
-			      bloblen, ops->blob,
-			      _filter_name, &ops->data);
-  if (result != 0) {
-    g_warning("filter init failed");
-    exit(EXIT_FAILURE);
-  }
-
-  // report init success
-  start_output();
-  send_tag(out, "init-success");
-  end_output();
+  lf_start_output();
+  lf_send_tag(out, "functions-resolved");
+  lf_end_output();
 
   // free
   g_free(filename);
@@ -182,107 +114,13 @@ static void init_filter(FILE *in, FILE *out, struct filter_ops *ops) {
 }
 
 
-struct logger_data {
-  FILE *out;
-  int stdout_log;
-};
-
-
-static gpointer logger(gpointer data) {
-  struct logger_data *l = data;
-
-  FILE *out = l->out;
-  int stdout_log = l->stdout_log;
-
-  // block signals
-  sigset_t set;
-  sigfillset(&set);
-  pthread_sigmask(SIG_SETMASK, &set, NULL);
-
-  //  g_message("Logger thread is ready");
-
-  // go
-  while (true) {
-    ssize_t size;
-    uint8_t buf[BUFSIZ];
-
-    // read from fd
-    size = read(stdout_log, buf, BUFSIZ);
-    if (size <= 0) {
-      perror("Can't read");
-      exit(EXIT_FAILURE);
-    }
-
-    // print it
-    start_output();
-    send_tag(out, "stdout");
-    send_binary(out, size, buf);
-    end_output();
-  }
-
-  return NULL;
-}
-
-static void send_result(FILE *out, int result) {
-  start_output();
-  send_tag(out, "result");
-  send_int(out, result);
-  end_output();
-}
-
-static void run_filter(struct filter_ops *ops) {
-  // eval loop
-  while (true) {
-    // init ohandle
-    lf_obj_handle_t obj = lf_obj_handle_new();
-
-    // eval and return result
-    int result = (*ops->eval)(obj, ops->data);
-    send_result(_out, result);
-
-    lf_obj_handle_free(obj);
-  }
-}
-
-
-
 int main(void) {
   struct filter_ops ops;
 
-  int stdin_orig;
-  int stdout_orig;
-
-  int stdout_log;
-
-  if (!g_thread_supported ()) g_thread_init (NULL);
-
-  init_file_descriptors(&stdin_orig, &stdout_orig,
-			&stdout_log);
-
-  // make files
-  _in = fdopen(stdin_orig, "r");
-  if (!_in) {
-    perror("Can't open stdin_orig");
-    exit(EXIT_FAILURE);
-  }
-  _out = fdopen(stdout_orig, "w");
-  if (!_out) {
-    perror("Can't open stdout_orig");
-    exit(EXIT_FAILURE);
-  }
-
-  // unbuffer fake stdout
-  setbuf(stdout, NULL);
-
-  // start logging thread
-  struct logger_data data = { _out, stdout_log };
-  if (g_thread_create(logger, &data, false, NULL) == NULL) {
-    g_warning("Can't create logger thread");
-    exit(EXIT_FAILURE);
-  }
-
-  init_filter(_in, _out, &ops);
-  run_filter(&ops);
+  lf_init();
+  handshake(lf_state.in, lf_state.out, &ops);
+  lf_run_filter(ops.filter_name, ops.init, ops.eval, ops.args, ops.blob,
+                ops.bloblen);
 
   return EXIT_SUCCESS;
 }

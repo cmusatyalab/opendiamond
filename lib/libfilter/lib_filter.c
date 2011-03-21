@@ -23,8 +23,8 @@
 #include "diamond_consts.h"
 
 #include "lib_filter.h"
-#include "filter-runner.h"
-#include "filter-runner-util.h"
+#include "lf_protocol.h"
+#include "lf_priv.h"
 
 struct ohandle {
   GHashTable *attributes;
@@ -58,21 +58,21 @@ void lf_obj_handle_free(lf_obj_handle_t obj) {
   g_slice_free(struct ohandle, ohandle);
 }
 
-static struct attribute *get_attribute(FILE *in, FILE *out,
-				       struct ohandle *ohandle, const char *name) {
+static struct attribute *get_attribute(struct ohandle *ohandle,
+                                       const char *name) {
   // look up in hash table
   struct attribute *attr = g_hash_table_lookup(ohandle->attributes,
 					       name);
 
   // retrieve?
   if (attr == NULL) {
-    start_output();
-    send_tag(out, "get-attribute");
-    send_string(out, name);
-    end_output();
+    lf_start_output();
+    lf_send_tag(lf_state.out, "get-attribute");
+    lf_send_string(lf_state.out, name);
+    lf_end_output();
 
     int len;
-    void *data = get_binary(in, &len);
+    void *data = lf_get_binary(lf_state.in, &len);
 
     if (len == -1) {
       // no attribute
@@ -92,7 +92,7 @@ static struct attribute *get_attribute(FILE *in, FILE *out,
 
 void lf_log(int level, const char *fmt, ...) {
   va_list ap;
-  char *formatted_filter_name = g_strdup_printf("%s : ", _filter_name);
+  char *formatted_filter_name = g_strdup_printf("%s : ", lf_state.filter_name);
 
   va_start(ap, fmt);
   char *formatted_msg = g_strdup_vprintf(fmt, ap);
@@ -100,11 +100,11 @@ void lf_log(int level, const char *fmt, ...) {
 
   char *msg = g_strconcat(formatted_filter_name, formatted_msg, NULL);
 
-  start_output();
-  send_tag(_out, "log");
-  send_int(_out, level);
-  send_string(_out, msg);
-  end_output();
+  lf_start_output();
+  lf_send_tag(lf_state.out, "log");
+  lf_send_int(lf_state.out, level);
+  lf_send_string(lf_state.out, msg);
+  lf_end_output();
 
   g_free(msg);
   g_free(formatted_filter_name);
@@ -118,7 +118,7 @@ int lf_read_attr(lf_obj_handle_t obj, const char *name, size_t *len,
     return EINVAL;
   }
 
-  struct attribute *attr = get_attribute(_in, _out, obj, name);
+  struct attribute *attr = get_attribute(obj, name);
 
   // found?
   if (attr == NULL) {
@@ -145,7 +145,7 @@ int lf_ref_attr(lf_obj_handle_t obj, const char *name, size_t *len,
     return EINVAL;
   }
 
-  struct attribute *attr = get_attribute(_in, _out, obj, name);
+  struct attribute *attr = get_attribute(obj, name);
 
   // found?
   if (attr == NULL) {
@@ -164,11 +164,11 @@ int lf_write_attr(lf_obj_handle_t ohandle, const char *name, size_t len,
     return EINVAL;
   }
 
-  start_output();
-  send_tag(_out, "set-attribute");
-  send_string(_out, name);
-  send_binary(_out, len, data);
-  end_output();
+  lf_start_output();
+  lf_send_tag(lf_state.out, "set-attribute");
+  lf_send_string(lf_state.out, name);
+  lf_send_binary(lf_state.out, len, data);
+  lf_end_output();
 
   return 0;
 }
@@ -178,60 +178,60 @@ int lf_omit_attr(lf_obj_handle_t ohandle, const char *name) {
     return EINVAL;
   }
 
-  start_output();
-  send_tag(_out, "omit-attribute");
-  send_string(_out, name);
-  end_output();
+  lf_start_output();
+  lf_send_tag(lf_state.out, "omit-attribute");
+  lf_send_string(lf_state.out, name);
+  lf_end_output();
 
   // server sends false if non-existent
-  return get_boolean(_in) ? 0 : ENOENT;
+  return lf_get_boolean(lf_state.in) ? 0 : ENOENT;
 }
 
 int lf_get_session_variables(lf_obj_handle_t ohandle,
 			     lf_session_variable_t **list) {
-  start_output();
-  send_tag(_out, "get-session-variables");
+  lf_start_output();
+  lf_send_tag(lf_state.out, "get-session-variables");
 
   // send the list of names
   //  g_message("* get session variables");
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
-    send_string(_out, (*v)->name);
+    lf_send_string(lf_state.out, (*v)->name);
     //    g_message(" %s", (*v)->name);
   }
-  send_blank(_out);
+  lf_send_blank(lf_state.out);
   //  g_message(" ->");
 
-  end_output();
+  lf_end_output();
 
   // read in the values
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
-    (*v)->value = get_double(_in);
+    (*v)->value = lf_get_double(lf_state.in);
     //    g_message(" %g", (*v)->value);
   }
 
-  get_blank(_in);
+  lf_get_blank(lf_state.in);
 
   return 0;
 }
 
 int lf_update_session_variables(lf_obj_handle_t ohandle,
 				lf_session_variable_t **list) {
-  start_output();
-  send_tag(_out, "update-session-variables");
+  lf_start_output();
+  lf_send_tag(lf_state.out, "update-session-variables");
 
   // send the lists of names and values
   //  g_message("* update session variables");
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
-    send_string(_out, (*v)->name);
+    lf_send_string(lf_state.out, (*v)->name);
     //    g_message(" %s", (*v)->name);
   }
-  send_blank(_out);
+  lf_send_blank(lf_state.out);
   for (lf_session_variable_t **v = list; *v != NULL; v++) {
-    send_double(_out, (*v)->value);
+    lf_send_double(lf_state.out, (*v)->value);
     //    g_message(" %g", (*v)->value);
   }
-  send_blank(_out);
-  end_output();
+  lf_send_blank(lf_state.out);
+  lf_end_output();
 
   return 0;
 }

@@ -21,7 +21,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "filter-runner-util.h"
+#include "lf_protocol.h"
 
 static void error_stdio(FILE *f, const char *msg) {
   if (feof(f)) {
@@ -33,7 +33,7 @@ static void error_stdio(FILE *f, const char *msg) {
   }
 }
 
-int get_size(FILE *in) {
+int lf_get_size(FILE *in) {
   char *line = NULL;
   size_t n;
   int result;
@@ -56,8 +56,8 @@ int get_size(FILE *in) {
   return result;
 }
 
-char *get_string(FILE *in) {
-  int size = get_size(in);
+char *lf_get_string(FILE *in) {
+  int size = lf_get_size(in);
 
   if (size == -1) {
     return NULL;
@@ -78,11 +78,11 @@ char *get_string(FILE *in) {
   return result;
 }
 
-char **get_strings(FILE *in) {
+char **lf_get_strings(FILE *in) {
   GSList *list = NULL;
 
   char *str;
-  while ((str = get_string(in)) != NULL) {
+  while ((str = lf_get_string(in)) != NULL) {
     list = g_slist_prepend(list, str);
   }
 
@@ -102,8 +102,8 @@ char **get_strings(FILE *in) {
   return result;
 }
 
-void *get_binary(FILE *in, int *len_OUT) {
-  int size = get_size(in);
+void *lf_get_binary(FILE *in, int *len_OUT) {
+  int size = lf_get_size(in);
   *len_OUT = size;
 
   uint8_t *binary = NULL;
@@ -124,7 +124,7 @@ void *get_binary(FILE *in, int *len_OUT) {
   return binary;
 }
 
-void send_binary(FILE *out, int len, const void *data) {
+void lf_send_binary(FILE *out, int len, const void *data) {
   if (fprintf(out, "%d\n", len) == -1) {
     error_stdio(out, "Can't write binary length");
   }
@@ -140,7 +140,7 @@ void send_binary(FILE *out, int len, const void *data) {
 }
 
 
-void send_tag(FILE *out, const char *tag) {
+void lf_send_tag(FILE *out, const char *tag) {
   if (fprintf(out, "%s\n", tag) == -1) {
     error_stdio(out, "Can't write tag");
   }
@@ -149,13 +149,13 @@ void send_tag(FILE *out, const char *tag) {
   }
 }
 
-void send_int(FILE *out, int i) {
+void lf_send_int(FILE *out, int i) {
   char *str = g_strdup_printf("%d", i);
-  send_string(out, str);
+  lf_send_string(out, str);
   g_free(str);
 }
 
-void send_string(FILE *out, const char *str) {
+void lf_send_string(FILE *out, const char *str) {
   int len = strlen(str);
   if (fprintf(out, "%d\n%s\n", len, str) == -1) {
     error_stdio(out, "Can't write string");
@@ -165,8 +165,8 @@ void send_string(FILE *out, const char *str) {
   }
 }
 
-bool get_boolean(FILE *in) {
-  char *str = get_string(in);
+bool lf_get_boolean(FILE *in) {
+  char *str = lf_get_string(in);
   if (str == NULL) {
     g_warning("Can't get boolean");
     exit(EXIT_FAILURE);
@@ -178,7 +178,7 @@ bool get_boolean(FILE *in) {
   return result;
 }
 
-void send_blank(FILE *out) {
+void lf_send_blank(FILE *out) {
   if (fprintf(out, "\n") == -1) {
     error_stdio(out, "Can't write blank");
   }
@@ -187,16 +187,16 @@ void send_blank(FILE *out) {
   }
 }
 
-void get_blank(FILE *in) {
-  if (get_string(in) != NULL) {
+void lf_get_blank(FILE *in) {
+  if (lf_get_string(in) != NULL) {
     g_warning("Expecting blank");
     exit(EXIT_FAILURE);
   }
 }
 
 
-double get_double(FILE *in) {
-  char *s = get_string(in);
+double lf_get_double(FILE *in) {
+  char *s = lf_get_string(in);
   if (s == NULL) {
     g_warning("Expecting double");
     exit(EXIT_FAILURE);
@@ -208,7 +208,7 @@ double get_double(FILE *in) {
   return d;
 }
 
-void send_double(FILE *out, double d) {
+void lf_send_double(FILE *out, double d) {
   char buf[G_ASCII_DTOSTR_BUF_SIZE];
-  send_string(out, g_ascii_dtostr (buf, sizeof (buf), d));
+  lf_send_string(out, g_ascii_dtostr (buf, sizeof (buf), d));
 }

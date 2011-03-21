@@ -226,9 +226,7 @@ int             fexec_estimate_cost(filter_data_t * fdata,
 				    permutation_t * perm, int gen, int indep,
 				    float *cost);
 void            fexec_possibly_init_filter(filter_info_t *cur_filt,
-					   int num_libs, flib_info_t *flibs,
-					   int fd_num_filters, filter_info_t *fd_filters,
-					   filter_id_t fd_app_id);
+					   int num_libs, flib_info_t *flibs);
 
 
 int fexec_ref_attr(lf_obj_handle_t ohandle, const char *name,

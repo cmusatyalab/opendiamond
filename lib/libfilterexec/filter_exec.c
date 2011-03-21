@@ -1209,9 +1209,7 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 
 void
 fexec_possibly_init_filter(filter_info_t *cur_filt,
-			   int num_libs, flib_info_t *flibs,
-			   int fd_num_filters, filter_info_t *fd_filters,
-			   filter_id_t fd_app_id)
+			   int num_libs, flib_info_t *flibs)
 {
 	int i;
 

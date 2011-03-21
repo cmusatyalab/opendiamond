@@ -108,46 +108,6 @@ static gpointer logger(gpointer data) {
   return NULL;
 }
 
-static void send_result(FILE *out, int result) {
-  lf_start_output();
-  lf_send_tag(out, "result");
-  lf_send_int(out, result);
-  lf_end_output();
-}
-
-void lf_run_filter(char *filter_name, filter_init_proto init,
-                   filter_eval_proto eval, char **args, void *blob,
-                   unsigned bloblen) {
-  // record the filter name
-  lf_state.filter_name = filter_name;
-
-  // initialize the filter
-  void *data;
-  int result = init(g_strv_length(args), (const char * const *) args,
-                    bloblen, blob, filter_name, &data);
-  if (result != 0) {
-    g_warning("filter init failed");
-    exit(EXIT_FAILURE);
-  }
-
-  // report init success
-  lf_start_output();
-  lf_send_tag(lf_state.out, "init-success");
-  lf_end_output();
-
-  // eval loop
-  while (true) {
-    // init ohandle
-    lf_obj_handle_t obj = lf_obj_handle_new();
-
-    // eval and return result
-    int result = eval(obj, data);
-    send_result(lf_state.out, result);
-
-    lf_obj_handle_free(obj);
-  }
-}
-
 void lf_init(void) {
   int stdin_orig;
   int stdout_orig;
@@ -178,5 +138,41 @@ void lf_init(void) {
                       NULL) == NULL) {
     g_warning("Can't create logger thread");
     exit(EXIT_FAILURE);
+  }
+}
+
+void lf_run_filter(char *filter_name, filter_init_proto init,
+                   filter_eval_proto eval, char **args, void *blob,
+                   unsigned bloblen) {
+  // record the filter name
+  lf_state.filter_name = filter_name;
+
+  // initialize the filter
+  void *data;
+  int result = init(g_strv_length(args), (const char * const *) args,
+                    bloblen, blob, filter_name, &data);
+  if (result != 0) {
+    g_warning("filter init failed");
+    exit(EXIT_FAILURE);
+  }
+
+  // report init success
+  lf_start_output();
+  lf_send_tag(lf_state.out, "init-success");
+  lf_end_output();
+
+  // eval loop
+  while (true) {
+    // init ohandle
+    lf_obj_handle_t obj = lf_obj_handle_new();
+
+    // eval and return result
+    int result = eval(obj, data);
+    lf_start_output();
+    lf_send_tag(lf_state.out, "result");
+    lf_send_int(lf_state.out, result);
+    lf_end_output();
+
+    lf_obj_handle_free(obj);
   }
 }

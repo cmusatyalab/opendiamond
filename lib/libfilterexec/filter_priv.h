@@ -117,8 +117,6 @@ typedef struct filter_info {
 	int             fi_error;   /* # errors running filter */
 	rtime_t         fi_time_ns; /* total time used */
 	int64_t         fi_added_bytes; /* XXX debug */
-	/* JIAYING */
-	char	    	lib_name[PATH_MAX];
 	sig_val_t	fi_sig;
 	int	    	fi_cache_drop; /* # of objs dropped through cache lookup */
 	int		fi_cache_pass; /* # of objs skipped by using cache */

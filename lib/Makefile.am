@@ -1,5 +1,5 @@
 SUBDIRS = libtools libdconfig liblog libscope libodisk libfilter \
-	libfilterexec transport
+	libfilterexec python transport
 
 noinst_LTLIBRARIES = libopendiamond.la
 

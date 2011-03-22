@@ -111,6 +111,8 @@ lib/liblog/Makefile
 lib/libodisk/Makefile
 lib/libscope/Makefile
 lib/libtools/Makefile
+lib/python/Makefile
+lib/python/setup.py
 lib/transport/Makefile
 lib/transport/socket/Makefile
 lib/transport/socket/rpc/Makefile

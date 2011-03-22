@@ -3,24 +3,16 @@
 from distutils.core import setup
 
 setup(
-    name = "scopeserver",
+    name = "opendiamond",
     version = "@VERSION@",
     packages = [
-	'scopeserver_flickr',
-	'scopeserver_gatekeeper',
-	'scopeserver_vmfind',
+	'opendiamond',
     ],
     package_dir = { '': '@srcdir@' },
-    package_data = {
-	'scopeserver_flickr':	  [ 'templates/*.html' ],
-	'scopeserver_gatekeeper': [ 'templates/*.html' ],
-	'scopeserver_vmfind':	  [ 'templates/*.html' ],
-    },
     author = "OpenDiamond project, Carnegie Mellon University",
     author_email = "diamond@cs.cmu.edu",
-    description = "Scope server components for OpenDiamond",
+    description = "OpenDiamond Python library",
     license = "Eclipse Public License, Version 1.0",
     keywords = "opendiamond non-indexed search",
     url = "http://diamond.cs.cmu.edu/"
 )
-

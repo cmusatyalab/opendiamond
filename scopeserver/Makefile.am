@@ -1,4 +1,4 @@
-EXTRA_DIST = setup.py opendiamond/__init__.py opendiamond/helpers.py \
+EXTRA_DIST = setup.py \
     scopeserver_flickr/__init__.py \
     scopeserver_flickr/forms.py \
     scopeserver_flickr/views.py \
@@ -22,8 +22,6 @@ install-exec-local:
 	$(PYTHON) setup.py install --prefix=$(DESTDIR)$(prefix)
 	
 uninstall-local:
-	$(RM) $(DESTDIR)$(pythondir)/opendiamond*.egg-info
-	$(RM) -r $(DESTDIR)$(pythondir)/opendiamond
 	$(RM) $(DESTDIR)$(pythondir)/scopeserver*.egg-info
 	$(RM) -r $(DESTDIR)$(pythondir)/scopeserver_flickr
 	$(RM) -r $(DESTDIR)$(pythondir)/scopeserver_gatekeeper

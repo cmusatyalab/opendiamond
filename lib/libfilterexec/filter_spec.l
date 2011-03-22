@@ -33,6 +33,8 @@
 #include "lib_filter.h"
 #include "lib_filterexec.h"
 #include "filter_priv.h"
+/* XXX: for string_hex_decode() */
+#include "scope_priv.h"
 #include <assert.h>
 
 static void new_filter(yyscan_t scanner);
@@ -43,6 +45,7 @@ static void filter_args(yyscan_t scanner);
 static void filter_eval_fn(yyscan_t scanner);
 static void filter_init_fn(yyscan_t scanner);
 static void filter_fini_fn(yyscan_t scanner);
+static void filter_signature(yyscan_t scanner);
 static void filter_dependency(yyscan_t scanner);
 static void filter_in_obj(yyscan_t scanner);
 static void filter_out_obj(filter_output_type_t type, yyscan_t scanner);
@@ -68,6 +71,7 @@ THRESHHOLD[ \t]+[0-9]+ 			        {filter_threshhold(); }
 EVAL_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_eval_fn(yyscanner); }
 INIT_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_init_fn(yyscanner); }
 FINI_FUNCTION[ \t]+[[:alnum:]_]+ 		{filter_fini_fn(yyscanner); }
+SIGNATURE[ \t]+[0-9a-f]+			{filter_signature(yyscanner); }
 REQUIRES[ \t]+{ID}			            {filter_dependency(yyscanner); }
 IN_OBJECT[ \t]+[0-9]+			        {filter_in_obj(yyscanner); }
 OUT_OBJECT[ \t]+UNMODIFIED[ \t]+[0-9]+	{filter_out_obj(FO_UNMODIFIED, yyscanner); }
@@ -358,6 +362,33 @@ filter_fini_fn(yyscan_t scanner)
     }
 
 	strcpy(extra->fdata->fd_filters[extra->cur_filt_id].fi_fini_name, fname);
+}
+
+
+static void
+filter_signature(yyscan_t scanner)
+{
+	GString *str;
+	struct filter_spec_lex *extra =
+	  (struct filter_spec_lex *) yyget_extra(scanner);
+
+	str = g_string_new(eat_token(yyget_text(scanner)));
+	string_hex_decode(str);
+	if (str->len != SIG_SIZE) {
+		/* XXX error */
+		goto out;
+	}
+
+	if (extra->cur_filt_id == -1) {
+		fprintf(stderr, "parse error: no filter active\n");
+		assert(0);
+		goto out;
+	}
+
+	memcpy(extra->fdata->fd_filters[extra->cur_filt_id].fi_signature,
+	       str->str, str->len);
+out:
+	g_string_free(str, TRUE);
 }
 
 

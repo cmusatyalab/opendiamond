@@ -1207,15 +1207,42 @@ run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_
 }
 
 
-void
-fexec_possibly_init_filter(filter_info_t *cur_filt,
-			   int num_libs, flib_info_t *flibs)
+static void
+fexec_launch_filter(filter_info_t *cur_filt, char **argv)
 {
-	int i;
+	int input;
+	int output;
 
-	if (cur_filt->fi_is_initialized) {
-		return;
+	g_assert(!cur_filt->fi_is_initialized);
+	if (!g_spawn_async_with_pipes (NULL, argv,
+				       NULL, 0,
+				       NULL, NULL,
+				       NULL,
+				       &input, &output,
+				       NULL, NULL)) {
+		// it is really bad if we can't even start
+		g_error("Cannot start filter");
 	}
+	cur_filt->fi_out_to_runner = fdopen(input, "w");
+	if (!cur_filt->fi_out_to_runner) {
+		perror("Can't make file from filter's stdin");
+		abort();
+	}
+	cur_filt->fi_in_from_runner = fdopen(output, "r");
+	if (!cur_filt->fi_in_from_runner) {
+		perror("Can't make file from filter's stdout");
+		abort();
+	}
+}
+
+
+/* Initialize an old-style shared object filter. */
+static bool
+fexec_try_init_so_filter(filter_info_t *cur_filt,
+			 int num_libs, flib_info_t *flibs)
+{
+	char *argv[] = { FILTER_RUNNER_PATH, NULL };
+	int i;
 
 	// probe all libraries for our functions
 	for (i = 0; i < num_libs; i++) {
@@ -1223,31 +1250,7 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		char *so_name = fl->lib_name;
 
 		// launch runner
-		char *argv[] = { FILTER_RUNNER_PATH, NULL };
-		int runner_input;
-		int runner_output;
-		if (!g_spawn_async_with_pipes (NULL, argv,
-					       NULL, 0,
-					       NULL, NULL,
-					       NULL,
-					       &runner_input,
-					       &runner_output,
-					       NULL, NULL)) {
-			// it is really bad if we can't even start
-			g_error("Cannot start filter runner");
-		}
-
-		cur_filt->fi_out_to_runner = fdopen(runner_input, "w");
-		if (!cur_filt->fi_out_to_runner) {
-			perror("Can't make file from runner's stdin");
-			abort();
-		}
-		cur_filt->fi_in_from_runner = fdopen(runner_output, "r");
-		if (!cur_filt->fi_in_from_runner) {
-			perror("Can't make file from runner's stdout");
-			abort();
-		}
-
+		fexec_launch_filter(cur_filt, argv);
 
 		// feed it arguments
 
@@ -1291,18 +1294,82 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 		g_free(result);
 
 		// we found it
-		break;
+		return true;
+	}
+	// no such filter
+	return false;
+}
+
+
+/* Initialize a new-style executable filter. */
+static bool
+fexec_try_init_exec_filter(filter_info_t *cur_filt,
+			 int num_libs, flib_info_t *flibs)
+{
+	int i;
+
+	// look for the filter with the correct signature
+	for (i = 0; i < num_libs; i++) {
+		flib_info_t *fl = flibs + i;
+		char *argv[] = { fl->lib_name, "--filter", NULL };
+
+		// is this the filter we want?
+		if (memcmp(fl->lib_sig.sig, cur_filt->fi_signature, SIG_SIZE)) {
+			continue;
+		}
+
+		// launch filter
+		fexec_launch_filter(cur_filt, argv);
+
+		// feed it arguments
+
+		// protocol version
+		send_string(cur_filt->fi_out_to_runner, "1");
+		// name
+		send_string(cur_filt->fi_out_to_runner,
+			    cur_filt->fi_name);
+		// args
+		for (int i2 = 0; i2 < cur_filt->fi_numargs; i2++) {
+		  send_string(cur_filt->fi_out_to_runner,
+			      cur_filt->fi_arglist[i2]);
+		}
+		send_blank(cur_filt->fi_out_to_runner);
+		// blob
+		send_binary(cur_filt->fi_out_to_runner,
+			    cur_filt->fi_blob_len,
+			    cur_filt->fi_blob_data);
+
+		// success!
+		return true;
+	}
+	// no such filter
+	return false;
+}
+
+
+void
+fexec_possibly_init_filter(filter_info_t *cur_filt,
+			   int num_libs, flib_info_t *flibs)
+{
+	bool success;
+
+	if (cur_filt->fi_is_initialized) {
+		return;
 	}
 
-	cur_filt->fi_is_initialized = true;
+	if (cur_filt->fi_eval_name[0]) {
+		success = fexec_try_init_so_filter(cur_filt, num_libs, flibs);
+	} else {
+		success = fexec_try_init_exec_filter(cur_filt, num_libs,
+						     flibs);
+	}
 
-	// check the files
-	if (cur_filt->fi_in_from_runner == NULL ||
-				cur_filt->fi_out_to_runner == NULL) {
+	if (!success) {
 		log_message(LOGT_FILT, LOGL_ERR,
 			    "fexec_possibly_init_filter: Could not resolve "
 			    "filter %s", cur_filt->fi_name);
 		/* sigh */
 		exit(0);
 	}
+	cur_filt->fi_is_initialized = true;
 }

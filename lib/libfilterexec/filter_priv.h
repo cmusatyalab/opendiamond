@@ -73,6 +73,7 @@ typedef struct filter_info {
 	char            fi_eval_name[MAX_FILTER_FUNC_NAME];
 	char            fi_init_name[MAX_FILTER_FUNC_NAME];
 	char            fi_fini_name[MAX_FILTER_FUNC_NAME];
+	char            fi_signature[SIG_SIZE];
 	FILE           *fi_in_from_runner;
 	FILE           *fi_out_to_runner;
 	int             fi_threshold;

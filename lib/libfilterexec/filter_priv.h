@@ -150,12 +150,12 @@ typedef struct filter_prob {
  */
 #define STAT_WINDOW 1024
 
-#define FLIB_INCREMENT	10	
+#define FCODE_INCREMENT	10
 
-typedef struct flib_info {
-	sig_val_t	lib_sig;
-	char *		lib_name;
-} flib_info_t;
+typedef struct fcode_info {
+	sig_val_t	code_sig;
+	char *		code_name;
+} fcode_info_t;
 
 /*
  * This is the structure that holds all the data.
@@ -182,11 +182,11 @@ struct filter_data {
 	int             obj_counter;    /* used to synchronize monitoring output
 				     	 * (filter_exec) 
 					 */
-	int		max_libs;
-	int		num_libs;
+	int		max_codes;
+	int		num_codes;
 	sig_val_t	spec_sig;
 	int		full_eval;
-	flib_info_t *	lib_info;
+	fcode_info_t *	code_info;
 	
 	filter_info_t   fd_filters[0];  /* variable size struct */
 };
@@ -225,7 +225,8 @@ int             fexec_estimate_cost(filter_data_t * fdata,
 				    permutation_t * perm, int gen, int indep,
 				    float *cost);
 void            fexec_possibly_init_filter(filter_info_t *cur_filt,
-					   int num_libs, flib_info_t *flibs);
+					   int num_codes,
+					   fcode_info_t *fcodes);
 
 
 int fexec_ref_attr(lf_obj_handle_t ohandle, const char *name,

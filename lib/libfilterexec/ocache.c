@@ -81,7 +81,7 @@ digest_cal(filter_data_t * fdata, char *filter_name, char *function_name,
 	struct ciovec *iov;
 	int i, len, n = 0;
 
-	len =	fdata->num_libs +	/* library_signatures */
+	len =	fdata->num_codes +	/* filter signatures */
 		2 +			/* filter/function name */
 		numarg +		/* filter arguments */
 		1;			/* optional binary blob */
@@ -89,9 +89,9 @@ digest_cal(filter_data_t * fdata, char *filter_name, char *function_name,
 	iov = (struct ciovec *)malloc(len * sizeof(struct ciovec));
 	assert(iov != NULL);
 
-	/* include the library signatures */
-	for (i = 0; i < fdata->num_libs; i++) {
-		iov[n].iov_base = &fdata->lib_info[i].lib_sig;
+	/* include the filter signatures */
+	for (i = 0; i < fdata->num_codes; i++) {
+		iov[n].iov_base = &fdata->code_info[i].code_sig;
 		iov[n].iov_len = sizeof(sig_val_t);
 		n++;
 	}

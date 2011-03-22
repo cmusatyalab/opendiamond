@@ -768,8 +768,8 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 			/* do lazy initialization if necessary */
 			fexec_possibly_init_filter(cur_filter,
-						   fdata->num_libs,
-						   fdata->lib_info);
+						   fdata->num_codes,
+						   fdata->code_info);
 
 			/* mark beginning of filter eval */
 			if (add_cache_entries) {

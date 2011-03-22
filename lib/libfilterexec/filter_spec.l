@@ -511,10 +511,10 @@ read_filter_spec(char *spec_name, filter_data_t **fdp)
     extra.fdata->fd_avg_exec = 1.0;
     extra.fdata->full_eval = 0;
 
-    extra.fdata->lib_info = malloc(sizeof(flib_info_t) * FLIB_INCREMENT);
-    assert(extra.fdata->lib_info != NULL);
-    extra.fdata->max_libs = FLIB_INCREMENT;
-    extra.fdata->num_libs = 0;
+    extra.fdata->code_info = malloc(sizeof(fcode_info_t) * FCODE_INCREMENT);
+    assert(extra.fdata->code_info != NULL);
+    extra.fdata->max_codes = FCODE_INCREMENT;
+    extra.fdata->num_codes = 0;
 
 
     FILE *f = fopen(spec_name, "r");

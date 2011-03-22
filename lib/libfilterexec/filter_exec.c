@@ -381,9 +381,9 @@ save_filter_state(filter_data_t *fdata, filter_info_t *cur_filt)
 	fprintf(fp, "SPEC_SIG %s\n", sig_str);
 	free(sig_str);
 
-	fprintf(fp, "NUM_OBJECT_FILES %d\n", fdata->num_libs);
-	for (i=0; i < fdata->num_libs; i++) {
-		sig_str = sig_string(&fdata->lib_info[i].lib_sig);
+	fprintf(fp, "NUM_OBJECT_FILES %d\n", fdata->num_codes);
+	for (i=0; i < fdata->num_codes; i++) {
+		sig_str = sig_string(&fdata->code_info[i].code_sig);
 		fprintf(fp, "OBJECT_FILE %s\n", sig_str);
 		free(sig_str);
 	}
@@ -557,29 +557,29 @@ fail_filter(filter_info_t *cur_filt)
 }
 
 static int
-load_filter_lib(char *so_name, filter_data_t * fdata,
+load_filter_code(char *so_name, filter_data_t * fdata,
 		sig_val_t * sig)
 {
 	/*
-	 * Store information about this lib.
+	 * Store information about this filter.
 	 */
-	if (fdata->num_libs >= fdata->max_libs) {
-		flib_info_t    *new;
+	if (fdata->num_codes >= fdata->max_codes) {
+		fcode_info_t    *new;
 
-		new = realloc(fdata->lib_info, (sizeof(flib_info_t) *
-						(fdata->max_libs +
-						 FLIB_INCREMENT)));
+		new = realloc(fdata->code_info, (sizeof(fcode_info_t) *
+						(fdata->max_codes +
+						 FCODE_INCREMENT)));
 		assert(new != NULL);
 
-		fdata->lib_info = new;
-		fdata->max_libs += FLIB_INCREMENT;
+		fdata->code_info = new;
+		fdata->max_codes += FCODE_INCREMENT;
 	}
 
-	fdata->lib_info[fdata->num_libs].lib_name = strdup(so_name);
-	assert(fdata->lib_info[fdata->num_libs].lib_name != NULL);
+	fdata->code_info[fdata->num_codes].code_name = strdup(so_name);
+	assert(fdata->code_info[fdata->num_codes].code_name != NULL);
 
-	memcpy(&fdata->lib_info[fdata->num_libs].lib_sig, sig, sizeof(*sig));
-	fdata->num_libs++;
+	memcpy(&fdata->code_info[fdata->num_codes].code_sig, sig, sizeof(*sig));
+	fdata->num_codes++;
 
 	return (0);
 }
@@ -889,18 +889,18 @@ fexec_load_obj(filter_data_t * fdata, sig_val_t *sig)
 	char *sig_str;
 
 	sig_str = sig_string(sig);
-	log_message(LOGT_FILT, LOGL_TRACE, "fexec_load_obj: lib %s", sig_str);
+	log_message(LOGT_FILT, LOGL_TRACE, "fexec_load_obj: filter %s",
+				sig_str);
 
 	cache_dir = dconf_get_binary_cachedir();
 	snprintf(so_name, PATH_MAX, SO_FORMAT, cache_dir, sig_str);
 	free(sig_str);
 	free(cache_dir);
 
-	err = load_filter_lib(so_name, fdata, sig);
+	err = load_filter_code(so_name, fdata, sig);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR,
-			    "Failed loading filter library <%s>",
-			    so_name);
+			    "Failed loading filter <%s>", so_name);
 		return (err);
 	}
 	return (0);
@@ -1239,15 +1239,15 @@ fexec_launch_filter(filter_info_t *cur_filt, char **argv)
 /* Initialize an old-style shared object filter. */
 static bool
 fexec_try_init_so_filter(filter_info_t *cur_filt,
-			 int num_libs, flib_info_t *flibs)
+			 int num_codes, fcode_info_t *fcodes)
 {
 	char *argv[] = { FILTER_RUNNER_PATH, NULL };
 	int i;
 
 	// probe all libraries for our functions
-	for (i = 0; i < num_libs; i++) {
-		flib_info_t *fl = flibs + i;
-		char *so_name = fl->lib_name;
+	for (i = 0; i < num_codes; i++) {
+		fcode_info_t *fl = fcodes + i;
+		char *so_name = fl->code_name;
 
 		// launch runner
 		fexec_launch_filter(cur_filt, argv);
@@ -1304,17 +1304,17 @@ fexec_try_init_so_filter(filter_info_t *cur_filt,
 /* Initialize a new-style executable filter. */
 static bool
 fexec_try_init_exec_filter(filter_info_t *cur_filt,
-			 int num_libs, flib_info_t *flibs)
+			 int num_codes, fcode_info_t *fcodes)
 {
 	int i;
 
 	// look for the filter with the correct signature
-	for (i = 0; i < num_libs; i++) {
-		flib_info_t *fl = flibs + i;
-		char *argv[] = { fl->lib_name, "--filter", NULL };
+	for (i = 0; i < num_codes; i++) {
+		fcode_info_t *fl = fcodes + i;
+		char *argv[] = { fl->code_name, "--filter", NULL };
 
 		// is this the filter we want?
-		if (memcmp(fl->lib_sig.sig, cur_filt->fi_signature, SIG_SIZE)) {
+		if (memcmp(fl->code_sig.sig, cur_filt->fi_signature, SIG_SIZE)) {
 			continue;
 		}
 
@@ -1349,7 +1349,7 @@ fexec_try_init_exec_filter(filter_info_t *cur_filt,
 
 void
 fexec_possibly_init_filter(filter_info_t *cur_filt,
-			   int num_libs, flib_info_t *flibs)
+			   int num_codes, fcode_info_t *fcodes)
 {
 	bool success;
 
@@ -1358,10 +1358,11 @@ fexec_possibly_init_filter(filter_info_t *cur_filt,
 	}
 
 	if (cur_filt->fi_eval_name[0]) {
-		success = fexec_try_init_so_filter(cur_filt, num_libs, flibs);
+		success = fexec_try_init_so_filter(cur_filt, num_codes,
+						   fcodes);
 	} else {
-		success = fexec_try_init_exec_filter(cur_filt, num_libs,
-						     flibs);
+		success = fexec_try_init_exec_filter(cur_filt, num_codes,
+						     fcodes);
 	}
 
 	if (!success) {

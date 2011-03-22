@@ -779,8 +779,8 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 
 			clock_gettime(CLOCK_MONOTONIC, &filter_start);
 
-			conf = run_eval_server(cur_filter->fi_in_from_runner,
-					       cur_filter->fi_out_to_runner,
+			conf = run_eval_server(cur_filter->fi_in_from_filter,
+					       cur_filter->fi_out_to_filter,
 					       obj_handle,
 					       cur_filter);
 

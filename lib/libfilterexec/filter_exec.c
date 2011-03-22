@@ -518,10 +518,10 @@ fexec_term_search(filter_data_t * fdata)
 
 		free(sig_str);
 
-		if (cur_filt->fi_out_to_runner != NULL) {
-			assert(cur_filt->fi_in_from_runner);
-			fclose(cur_filt->fi_out_to_runner);
-			fclose(cur_filt->fi_in_from_runner);
+		if (cur_filt->fi_out_to_filter != NULL) {
+			assert(cur_filt->fi_in_from_filter);
+			fclose(cur_filt->fi_out_to_filter);
+			fclose(cur_filt->fi_in_from_filter);
 		}
 
 		if (fd > 0) {
@@ -541,10 +541,10 @@ fexec_term_search(filter_data_t * fdata)
 static void
 fail_filter(filter_info_t *cur_filt)
 {
-	if (cur_filt->fi_out_to_runner != NULL) {
-		assert(cur_filt->fi_in_from_runner);
-		fclose(cur_filt->fi_out_to_runner);
-		fclose(cur_filt->fi_in_from_runner);
+	if (cur_filt->fi_out_to_filter != NULL) {
+		assert(cur_filt->fi_in_from_filter);
+		fclose(cur_filt->fi_out_to_filter);
+		fclose(cur_filt->fi_in_from_filter);
 	}
 
 	// did we fail before init even finished? then die
@@ -1223,13 +1223,13 @@ fexec_launch_filter(filter_info_t *cur_filt, char **argv)
 		// it is really bad if we can't even start
 		g_error("Cannot start filter");
 	}
-	cur_filt->fi_out_to_runner = fdopen(input, "w");
-	if (!cur_filt->fi_out_to_runner) {
+	cur_filt->fi_out_to_filter = fdopen(input, "w");
+	if (!cur_filt->fi_out_to_filter) {
 		perror("Can't make file from filter's stdin");
 		abort();
 	}
-	cur_filt->fi_in_from_runner = fdopen(output, "r");
-	if (!cur_filt->fi_in_from_runner) {
+	cur_filt->fi_in_from_filter = fdopen(output, "r");
+	if (!cur_filt->fi_in_from_filter) {
 		perror("Can't make file from filter's stdout");
 		abort();
 	}
@@ -1255,39 +1255,39 @@ fexec_try_init_so_filter(filter_info_t *cur_filt,
 		// feed it arguments
 
 		// soname
-		send_string(cur_filt->fi_out_to_runner,
+		send_string(cur_filt->fi_out_to_filter,
 			    so_name);
 		// init, eval, fini
-		send_string(cur_filt->fi_out_to_runner,
+		send_string(cur_filt->fi_out_to_filter,
 			    cur_filt->fi_init_name);
-		send_string(cur_filt->fi_out_to_runner,
+		send_string(cur_filt->fi_out_to_filter,
 			    cur_filt->fi_eval_name);
-		send_string(cur_filt->fi_out_to_runner,
+		send_string(cur_filt->fi_out_to_filter,
 			    cur_filt->fi_fini_name);
 		// args
 		for (int i2 = 0; i2 < cur_filt->fi_numargs; i2++) {
-		  send_string(cur_filt->fi_out_to_runner,
+		  send_string(cur_filt->fi_out_to_filter,
 			      cur_filt->fi_arglist[i2]);
 		}
-		send_blank(cur_filt->fi_out_to_runner);
+		send_blank(cur_filt->fi_out_to_filter);
 		// blob
-		send_binary(cur_filt->fi_out_to_runner,
+		send_binary(cur_filt->fi_out_to_filter,
 			    cur_filt->fi_blob_len,
 			    cur_filt->fi_blob_data);
 		// name
-		send_string(cur_filt->fi_out_to_runner,
+		send_string(cur_filt->fi_out_to_filter,
 			    cur_filt->fi_name);
 
 		// read out the string
-		char *result = get_tag(cur_filt->fi_in_from_runner);
+		char *result = get_tag(cur_filt->fi_in_from_filter);
 		if (!result || (strcmp(result, "functions-resolved") != 0)) {
 		  // incorrect so for these symbols, try again
 		  g_free(result);
-		  fclose(cur_filt->fi_in_from_runner);
-		  fclose(cur_filt->fi_out_to_runner);
+		  fclose(cur_filt->fi_in_from_filter);
+		  fclose(cur_filt->fi_out_to_filter);
 
-		  cur_filt->fi_in_from_runner = NULL;
-		  cur_filt->fi_out_to_runner = NULL;
+		  cur_filt->fi_in_from_filter = NULL;
+		  cur_filt->fi_out_to_filter = NULL;
 
 		  continue;
 		}
@@ -1324,18 +1324,18 @@ fexec_try_init_exec_filter(filter_info_t *cur_filt,
 		// feed it arguments
 
 		// protocol version
-		send_string(cur_filt->fi_out_to_runner, "1");
+		send_string(cur_filt->fi_out_to_filter, "1");
 		// name
-		send_string(cur_filt->fi_out_to_runner,
+		send_string(cur_filt->fi_out_to_filter,
 			    cur_filt->fi_name);
 		// args
 		for (int i2 = 0; i2 < cur_filt->fi_numargs; i2++) {
-		  send_string(cur_filt->fi_out_to_runner,
+		  send_string(cur_filt->fi_out_to_filter,
 			      cur_filt->fi_arglist[i2]);
 		}
-		send_blank(cur_filt->fi_out_to_runner);
+		send_blank(cur_filt->fi_out_to_filter);
 		// blob
-		send_binary(cur_filt->fi_out_to_runner,
+		send_binary(cur_filt->fi_out_to_filter,
 			    cur_filt->fi_blob_len,
 			    cur_filt->fi_blob_data);
 

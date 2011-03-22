@@ -339,7 +339,7 @@ device_set_obj(void *conn_data, sig_val_x *in)
 
 	cache = dconf_get_binary_cachedir();
 	sig_str = sig_string(sent_sig);
-	snprintf(objpath, PATH_MAX, SO_FORMAT, cache, sig_str);
+	snprintf(objpath, PATH_MAX, FILTER_FORMAT, cache, sig_str);
 	free(sig_str);
 	free(cache);
 
@@ -374,7 +374,7 @@ device_send_obj(void *conn_data, obj_x *in)
 	/* get name to store the object */
 	cache = dconf_get_binary_cachedir();
 	sig_str = sig_string(sent_sig);
-	snprintf(objname, PATH_MAX, SO_FORMAT, cache, sig_str);
+	snprintf(objname, PATH_MAX, FILTER_FORMAT, cache, sig_str);
 	free(sig_str);
 	free(cache);
 

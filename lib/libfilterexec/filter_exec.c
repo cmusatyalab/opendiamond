@@ -557,7 +557,7 @@ fail_filter(filter_info_t *cur_filt)
 }
 
 static int
-load_filter_code(char *so_name, filter_data_t * fdata,
+load_filter_code(char *code_name, filter_data_t * fdata,
 		sig_val_t * sig)
 {
 	/*
@@ -575,7 +575,7 @@ load_filter_code(char *so_name, filter_data_t * fdata,
 		fdata->max_codes += FCODE_INCREMENT;
 	}
 
-	fdata->code_info[fdata->num_codes].code_name = strdup(so_name);
+	fdata->code_info[fdata->num_codes].code_name = strdup(code_name);
 	assert(fdata->code_info[fdata->num_codes].code_name != NULL);
 
 	memcpy(&fdata->code_info[fdata->num_codes].code_sig, sig, sizeof(*sig));
@@ -885,7 +885,7 @@ fexec_load_obj(filter_data_t * fdata, sig_val_t *sig)
 {
 	int  err;
 	char * cache_dir;
-	char so_name[PATH_MAX];
+	char filter_name[PATH_MAX];
 	char *sig_str;
 
 	sig_str = sig_string(sig);
@@ -893,14 +893,14 @@ fexec_load_obj(filter_data_t * fdata, sig_val_t *sig)
 				sig_str);
 
 	cache_dir = dconf_get_binary_cachedir();
-	snprintf(so_name, PATH_MAX, SO_FORMAT, cache_dir, sig_str);
+	snprintf(filter_name, PATH_MAX, FILTER_FORMAT, cache_dir, sig_str);
 	free(sig_str);
 	free(cache_dir);
 
-	err = load_filter_code(so_name, fdata, sig);
+	err = load_filter_code(filter_name, fdata, sig);
 	if (err) {
 		log_message(LOGT_FILT, LOGL_ERR,
-			    "Failed loading filter <%s>", so_name);
+			    "Failed loading filter <%s>", filter_name);
 		return (err);
 	}
 	return (0);

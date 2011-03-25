@@ -108,7 +108,7 @@ static gpointer logger(gpointer data) {
   return NULL;
 }
 
-void lf_init(void) {
+static void lf_init(void) {
   int stdin_orig;
   int stdout_orig;
   int stdout_log;
@@ -141,9 +141,9 @@ void lf_init(void) {
   }
 }
 
-void lf_run_filter(char *filter_name, filter_init_proto init,
-                   filter_eval_proto eval, char **args, void *blob,
-                   unsigned bloblen) {
+static void lf_run_filter(char *filter_name, filter_init_proto init,
+                          filter_eval_proto eval, char **args, void *blob,
+                          unsigned bloblen) {
   // record the filter name
   lf_state.filter_name = filter_name;
 
@@ -175,4 +175,70 @@ void lf_run_filter(char *filter_name, filter_init_proto init,
 
     lf_obj_handle_free(obj);
   }
+}
+
+void lf_filter_runner_main(void) {
+  char *error;
+
+  // set up file descriptors
+  lf_init();
+
+  // read shared object name
+  char *filename = lf_get_string(lf_state.in);
+
+  // read init function name
+  char *init_name = lf_get_string(lf_state.in);
+
+  // read eval function name
+  char *eval_name = lf_get_string(lf_state.in);
+
+  // read fini function name
+  char *fini_name = lf_get_string(lf_state.in);
+
+  // read argument list
+  char **args = lf_get_strings(lf_state.in);
+
+  // read blob
+  int bloblen;
+  void *blob = lf_get_binary(lf_state.in, &bloblen);
+
+  // read name
+  char *filter_name = lf_get_string(lf_state.in);
+
+  // dlopen
+  void *handle = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+  if (!handle) {
+    exit(EXIT_FAILURE);
+  }
+
+  // find functions
+  filter_init_proto init = dlsym(handle, init_name);
+  if ((error = dlerror()) != NULL) {
+    exit(EXIT_FAILURE);
+  }
+
+  filter_eval_proto eval = dlsym(handle, eval_name);
+  if ((error = dlerror()) != NULL) {
+    exit(EXIT_FAILURE);
+  }
+
+  // The fini function is unused, but we still check for it
+  dlsym(handle, fini_name);
+  if ((error = dlerror()) != NULL) {
+    exit(EXIT_FAILURE);
+  }
+
+  // report load success
+  lf_start_output();
+  lf_send_tag(lf_state.out, "functions-resolved");
+  lf_end_output();
+
+  // free
+  g_free(filename);
+  g_free(init_name);
+  g_free(eval_name);
+  g_free(fini_name);
+
+  // run the filter loop
+  lf_run_filter(filter_name, init, eval, args, blob, bloblen);
 }

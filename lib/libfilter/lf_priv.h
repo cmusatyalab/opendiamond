@@ -26,15 +26,13 @@ extern struct lf_state {
   FILE *out;
 } lf_state;
 
-void lf_init(void);
-void lf_run_filter(char *filter_name, filter_init_proto init,
-                   filter_eval_proto eval, char **args, void *blob,
-                   unsigned bloblen);
-
 lf_obj_handle_t lf_obj_handle_new(void);
 void lf_obj_handle_free(lf_obj_handle_t obj);
 
 void lf_start_output(void);
 void lf_end_output(void);
+
+diamond_public
+void lf_filter_runner_main(void);
 
 #endif

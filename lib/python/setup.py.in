@@ -7,6 +7,10 @@ setup(
     version = "@VERSION@",
     packages = [
 	'opendiamond',
+	'opendiamond.filter',
+    ],
+    scripts = [
+	'@srcdir@/tools/diamond-bundle-python',
     ],
     package_dir = { '': '@srcdir@' },
     author = "OpenDiamond project, Carnegie Mellon University",

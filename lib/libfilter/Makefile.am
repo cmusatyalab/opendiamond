@@ -1,7 +1,9 @@
-noinst_LTLIBRARIES = libfilter.la
+lib_LTLIBRARIES = libdiamondfilter.la
 
-libfilter_la_SOURCES  = lib_filter.c lf_protocol.c lf_wrapper.c
-libfilter_la_SOURCES += lf_priv.h lf_protocol.h
+libdiamondfilter_la_SOURCES  = lib_filter.c lf_protocol.c lf_wrapper.c
+libdiamondfilter_la_SOURCES += lf_priv.h lf_protocol.h
+
+libdiamondfilter_la_LDFLAGS = -version-info 0:0:0
 
 pkginclude_HEADERS = lib_filter.h
 

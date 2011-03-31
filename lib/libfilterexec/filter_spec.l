@@ -33,7 +33,6 @@
 #include "lib_filter.h"
 #include "lib_filterexec.h"
 #include "filter_priv.h"
-/* XXX: for string_hex_decode() */
 #include "string_helpers.h"
 #include <assert.h>
 

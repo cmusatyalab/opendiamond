@@ -19,7 +19,7 @@ class Parameters(object):
         self.params = params
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__,
+        return '%s(%s)' % (self.__class__.__name__,
                         ', '.join(map(lambda p: repr(p), self.params)))
 
     def describe(self):
@@ -28,7 +28,7 @@ class Parameters(object):
         ret = {}
         for i in range(len(self.params)):
             info = self.params[i].describe()
-            ret.update(map(lambda kv: ('{}-{}'.format(kv[0], i), kv[1]),
+            ret.update(map(lambda kv: ('%s-%d' % (kv[0], i), kv[1]),
                         info.items()))
         return ret
 
@@ -48,7 +48,7 @@ class BaseParameter(object):
         self.default = default
 
     def __repr__(self):
-        return '{}({}, {})'.format(self.__class__.__name__, repr(self.label),
+        return '%s(%s, %s)' % (self.__class__.__name__, repr(self.label),
                             repr(self.default))
 
     def describe(self):
@@ -102,7 +102,7 @@ class NumberParameter(BaseParameter):
         self.increment = increment
 
     def __repr__(self):
-        return '{}({}, {}, {}, {}, {})'.format(self.__class__.__name__,
+        return '%s(%s, %s, %s, %s, %s)' % (self.__class__.__name__,
                                 repr(self.label), repr(self.default),
                                 repr(self.min), repr(self.max),
                                 repr(self.increment))
@@ -141,14 +141,14 @@ class ChoiceParameter(BaseParameter):
         self.choices = tuple(choices)
 
     def __repr__(self):
-        return '{}({}, {}, {})'.format(self.__class__.__name__,
+        return '%s(%s, %s, %s)' % (self.__class__.__name__,
                                 repr(self.label), repr(self.choices),
                                 repr(self.default))
 
     def describe(self):
         ret = BaseParameter.describe(self)
         for i in range(len(self.choices)):
-            ret['Choice-{}'.format(i)] = self.choices[i][1]
+            ret['Choice-%d' % i] = self.choices[i][1]
         return ret
 
     def parse(self, str):
@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
     pdesc = params.describe()
     for k, v in sorted(pdesc.items()):
-        print '{}: {}'.format(k, v)
+        print '%s: %s' % (k, v)
 
     b64str = base64.b64encode('twelve')
     if params.parse(['true', b64str, '6', '1']) != [True, 'twelve', 6.0,

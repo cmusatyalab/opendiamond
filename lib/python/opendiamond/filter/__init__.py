@@ -38,13 +38,13 @@ class Session(object):
             lval = 0x08
         elif level == 'debug':
             lval = 0x10
-        msg = '{} : {}'.format(self.name, message)
+        msg = '%s : %s' % (self.name, message)
         if self.conn is not None:
             self.conn.send_message('log', lval, msg)
         else:
             # Fallback logging to stderr so that filters can be tested
             # outside of Diamond
-            print >>sys.stderr, '[{}] {}'.format(level, msg)
+            print >>sys.stderr, '[%s] %s' % (level, msg)
 
     def get_vars(self, vars):
         '''vars is a tuple of session variables to be atomically read.
@@ -120,7 +120,7 @@ class Filter(object):
             manifest['Instance-Editable'] = 'false'
         if cls.threshold_editable:
             manifest['Threshold-Editable'] = 'true'
-        return ''.join(map(lambda kv: '{}: {}\n'.format(kv[0], kv[1]),
+        return ''.join(map(lambda kv: '%s: %s\n' % (kv[0], kv[1]),
                             sorted(manifest.items())))
 
 class LingeringObjectError(Exception):
@@ -266,9 +266,9 @@ class DiamondConnection(object):
         it is serialized as an array of values terminated by a blank line.'''
         def send_value(value):
             value = str(value)
-            self.fout.write('{}\n{}\n'.format(len(value), value))
+            self.fout.write('%d\n%s\n' % (len(value), value))
         with self.output_lock:
-            self.fout.write('{}\n'.format(tag))
+            self.fout.write('%s\n' % tag)
             for value in values:
                 if isinstance(value, list) or isinstance(value, tuple):
                     for element in value:
@@ -319,7 +319,7 @@ def run_filter_loop(filter_class):
         # Read arguments and initialize filter
         ver = int(conn.get_item(), 10)
         if ver != 1:
-            raise ValueError('Unknown protocol version {}'.format(ver))
+            raise ValueError('Unknown protocol version %d' % ver)
         name = conn.get_item()
         args = conn.get_array()
         blob = conn.get_item()

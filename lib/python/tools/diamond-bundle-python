@@ -16,7 +16,7 @@ from opendiamond.bundle import bundle_python
 import sys
 
 def usage():
-    print "Usage: {} outfile filter-path [blob-path]".format(sys.argv[0])
+    print "Usage: %s outfile filter-path [blob-path]" % sys.argv[0]
     sys.exit(1)
 
 if __name__ == '__main__':

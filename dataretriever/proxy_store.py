@@ -18,7 +18,10 @@ from wsgiref.util import shift_path_info
 from urllib import unquote_plus
 from urllib2 import urlopen
 from urlparse import urljoin
-from xml.etree.ElementTree import iterparse
+try:
+    from xml.etree.cElementTree import iterparse
+except ImportError:
+    from xml.etree.ElementTree import iterparse
 
 def scope_app(environ, start_response):
     root = shift_path_info(environ)

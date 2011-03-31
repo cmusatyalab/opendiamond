@@ -35,7 +35,7 @@ static int scope_x509_import_certificates(gnutls_x509_crt_t **certs)
     }
 
     /* read certificate file */
-    ret = g_file_get_contents(certfile, (gchar **)&buf.data, &buf.size, NULL);
+    ret = g_file_get_contents(certfile, (gchar **)&buf.data, (gsize *)&buf.size, NULL);
     g_free(certfile);
     if (!ret) return 0;
 
@@ -56,42 +56,47 @@ static int scope_x509_validate_signature(const GString *keyid,
 {
     gnutls_datum_t s, b;
     gnutls_x509_crt_t *certs = NULL;
-    gchar *tmp = NULL;
+    GString *tmpid = NULL;
     gsize len = 0;
     int i, n, rc;
 
     n = scope_x509_import_certificates(&certs);
 
-    /* try to find a matching certificate */
+    /* try to find a certificate that can validate the signature */
+    for (i = 0; i < n; i++) {
+	s.data = (void *)sig->str;
+	s.size = sig->len;
+
+	b.data = (void *)data;
+	b.size = data_len;
+
+	if (gnutls_x509_crt_verify_data(certs[i], 0, &b, &s))
+	    goto out; /* successfully validated the cookie signature */
+    }
+
+    fprintf(stderr, "Unable to find a certificate to validate the cookie\n");
+    rc = EKEYREJECTED;
+
+    /* dump key-id values of cookie and available certificates */
+    tmpid = g_string_new_len(keyid->str, keyid->len);
+    string_hex_encode(tmpid);
+    fprintf(stderr, "Cookie key-id: %s\n", tmpid->str);
+
     for (i = 0; i < n;) {
-	rc = gnutls_x509_crt_get_key_id(certs[i], 0, (void *)tmp, &len);
-	if (rc == GNUTLS_E_SHORT_MEMORY_BUFFER) {
-	    tmp = g_renew(char, tmp, len);
+	len = tmpid->allocated_len;
+	rc = gnutls_x509_crt_get_key_id(certs[i], 0, (void *)tmpid->str, &len);
+	g_string_set_size(tmpid, len);
+
+	if (rc == GNUTLS_E_SHORT_MEMORY_BUFFER)
 	    continue; /* retry */
+
+	if (rc == 0) {
+	    string_hex_encode(tmpid);
+	    fprintf(stderr, "Certificate key-id: %s\n", tmpid->str);
 	}
-	if (rc == 0 && len == keyid->len && memcmp(tmp, keyid->str, len) == 0)
-	    break;
 	i++;
     }
-    g_free(tmp);
-
-    if (i >= n) { /* n can be -1 when import fails! */
-	fprintf(stderr, "Unable to find certificate for cookie signer\n");
-	rc = ENOKEY;
-	goto out;
-    }
-
-    s.data = (void *)sig->str;
-    s.size = sig->len;
-
-    b.data = (void *)data;
-    b.size = data_len;
-
-    if (!gnutls_x509_crt_verify_data(certs[i], 0, &b, &s))
-    {
-	fprintf(stderr, "Cookie signature is incorrect\n");
-	rc = EKEYREJECTED;
-    }
+    g_string_free(tmpid, TRUE);
 
 out: /* cleanup */
     for (i = 0; i < n; i++)

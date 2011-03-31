@@ -19,6 +19,24 @@
 #include <stdlib.h>
 #include "scope_priv.h"
 
+void string_hex_encode(GString *buf)
+{
+    const gchar *hx = "0123456789abcdef";
+    gsize old_len = buf->len;
+    guchar *c, *p;
+    unsigned int i;
+
+    g_string_set_size(buf, old_len * 2);
+
+    c = (guchar *)&buf->str[old_len-1];
+    p = (guchar *)&buf->str[buf->len-1];
+
+    for (i = old_len; i > 0; i--, c--) {
+	*(p--) = hx[*c & 0xf];
+	*(p--) = hx[*c >> 4];
+    }
+}
+
 static int decode_nibble(unsigned char c)
 {
     if (c >= '0' && c <= '9') return c - '0';

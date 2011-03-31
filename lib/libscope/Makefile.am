@@ -9,6 +9,7 @@ EXTRA_DIST = scope.desktop
 libscope_la_SOURCES = scope_adiskd.c scope_common.c scope_priv.h
 
 cookiecutter_SOURCES = cookiecutter.c
+cookiecutter_LDADD = libscope.la
 
 install-data-hook:
 	desktop-file-install --rebuild-mime-info-cache --vendor diamond $(srcdir)/scope.desktop \

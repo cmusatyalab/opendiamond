@@ -40,30 +40,6 @@ static GOptionEntry options[] = {
     { .long_name=NULL }
 };
 
-static void string_hex_encode(GString *buf)
-{
-    const gchar *hx = "0123456789abcdef";
-    gsize new_len = buf->len * 2;
-    guchar *c, *p;
-    unsigned int i;
-
-    if (buf->allocated_len <= new_len)
-    {
-	buf->allocated_len = new_len + 1;
-	buf->str = g_renew(gchar, buf->str, new_len + 1);
-    }
-
-    c = (guchar *)&buf->str[buf->len-1];
-    p = (guchar *)&buf->str[new_len];
-    *(p--) = '\0';
-
-    for (i = buf->len; i > 0; i--, c--) {
-	*(p--) = hx[*c & 0xf];
-	*(p--) = hx[*c >> 4];
-    }
-    buf->len = new_len;
-}
-
 static void string_base64_encode(GString *buf)
 {
     gchar *tmp;
@@ -186,7 +162,7 @@ int main(int argc, char **argv)
 		    "Specify at least one or more servers");
 
     if (!error)
-	g_file_get_contents(keyfile, (char **)&buf.data, &buf.size, &error);
+	g_file_get_contents(keyfile, (gchar **)&buf.data, (gsize *)&buf.size, &error);
 
     if (error) {
 	fprintf(stderr, "Error: %s\n\n  For more information, '%s --help'\n\n",

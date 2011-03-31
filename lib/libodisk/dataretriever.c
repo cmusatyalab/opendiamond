@@ -166,13 +166,17 @@ void dataretriever_init(const char *base_url)
     scopelist_sess = soup_session_sync_new_with_options(
 	SOUP_SESSION_MAX_CONNS,		 1,
 	SOUP_SESSION_MAX_CONNS_PER_HOST, 1,
+#ifdef SOUP_SESSION_USER_AGENT
 	SOUP_SESSION_USER_AGENT, "OpenDiamond-adiskd/1.0 ",
+#endif
 	NULL);
 
     object_session = soup_session_sync_new_with_options(
 	SOUP_SESSION_MAX_CONNS,		64,
 	SOUP_SESSION_MAX_CONNS_PER_HOST, 8,
+#ifdef SOUP_SESSION_USER_AGENT
 	SOUP_SESSION_USER_AGENT, "OpenDiamond-adiskd/1.0 ",
+#endif
 	NULL);
 
     pthread_create(&thread, NULL, scopelist_fetcher, scopelist_queue);

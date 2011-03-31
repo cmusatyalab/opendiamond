@@ -34,7 +34,7 @@
 #include "lib_filterexec.h"
 #include "filter_priv.h"
 /* XXX: for string_hex_decode() */
-#include "scope_priv.h"
+#include "string_helpers.h"
 #include <assert.h>
 
 static void new_filter(yyscan_t scanner);

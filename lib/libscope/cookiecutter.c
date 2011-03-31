@@ -22,6 +22,7 @@
 #include <time.h>
 #include <limits.h>
 #include "scope_priv.h"
+#include "string_helpers.h"
 
 #define SUMM "Generates an OpenDiamond(r) cookie. If no --scopeurl argument has been given it will\nread the scope specification from stdin."
 
@@ -39,24 +40,6 @@ static GOptionEntry options[] = {
     { "scopeurl", 'u', 0, G_OPTION_ARG_STRING_ARRAY, &scopeurls, "URL from which scopelist can be retrieved (can be repeated)", "host"},
     { .long_name=NULL }
 };
-
-static void string_base64_encode(GString *buf)
-{
-    gchar *tmp;
-    gsize i, n, len;
-
-    tmp = g_base64_encode((void *)buf->str, buf->len);
-    len = strlen(tmp); n = 64;
-
-    g_string_assign(buf, "");
-    for (i = 0; len; i += n, len -= n)
-    {
-	if (len < n) n = len;
-	g_string_append_len(buf, &tmp[i], n);
-	g_string_append_c(buf, '\n');
-    }
-    g_free(tmp);
-}
 
 static gchar *scopecookie_create(GTimeVal *expires, gchar **servers,
 				 const gchar *scope, gsize scopelen,

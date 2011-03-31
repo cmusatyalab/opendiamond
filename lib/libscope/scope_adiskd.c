@@ -19,6 +19,7 @@
 #include <errno.h>
 #include "dconfig_priv.h"
 #include "scope_priv.h"
+#include "string_helpers.h"
 
 static int scope_x509_import_certificates(gnutls_x509_crt_t **certs)
 {
@@ -78,10 +79,9 @@ static int scope_x509_validate_signature(const GString *keyid,
     rc = EKEYREJECTED;
 
     /* dump key-id values of cookie and available certificates */
-    tmpid = g_string_new_len(keyid->str, keyid->len);
-    string_hex_encode(tmpid);
-    fprintf(stderr, "Cookie key-id: %s\n", tmpid->str);
+    fprintf(stderr, "Cookie key-id: %s\n", keyid->str);
 
+    tmpid = g_string_new("");
     for (i = 0; i < n;) {
 	len = tmpid->allocated_len;
 	rc = gnutls_x509_crt_get_key_id(certs[i], 0, (void *)tmpid->str, &len);

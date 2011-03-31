@@ -18,40 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "scope_priv.h"
-
-void string_hex_encode(GString *buf)
-{
-    const gchar *hx = "0123456789abcdef";
-    gsize old_len = buf->len;
-    guchar *c, *p;
-    unsigned int i;
-
-    g_string_set_size(buf, old_len * 2);
-
-    c = (guchar *)&buf->str[old_len-1];
-    p = (guchar *)&buf->str[buf->len-1];
-
-    for (i = old_len; i > 0; i--, c--) {
-	*(p--) = hx[*c & 0xf];
-	*(p--) = hx[*c >> 4];
-    }
-}
-
-static int decode_nibble(unsigned char c)
-{
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-    return -1;
-}
-
-void string_hex_decode(GString *buf)
-{
-    unsigned int i;
-    for (i = 0; i < buf->len; i += 2)
-	buf->str[i/2] = (decode_nibble(buf->str[i]) << 4)|decode_nibble(buf->str[i+1]);
-    buf->len /= 2;
-}
+#include "string_helpers.h"
 
 static time_t scope_parse_expires(gchar *val)
 {
@@ -138,10 +105,9 @@ struct scopecookie *scopecookie_parse(const gchar *cookie)
 	else if (g_str_has_prefix(lines[i], "Serial:"))
 	    uuid_parse(tmp, scope->serial);
 							/* avoid memleak */
-	else if (g_str_has_prefix(lines[i], "KeyId:") && !scope->keyid) {
+	else if (g_str_has_prefix(lines[i], "KeyId:") && !scope->keyid)
 	    scope->keyid = g_string_new(tmp);
-	    string_hex_decode(scope->keyid);
-	}
+
 	else if (g_str_has_prefix(lines[i], "Expires:"))
 	    scope->expires = scope_parse_expires(tmp);
 							/* avoid memleak */

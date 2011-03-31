@@ -53,7 +53,4 @@ void scopecookie_free(struct scopecookie *cookie);
 /* only used by adiskd */
 int scopecookie_validate(struct scopecookie *cookie);
 
-void string_hex_encode(GString *buf);
-void string_hex_decode(GString *buf);
-
 #endif /* _SCOPE_PRIV_H_ */

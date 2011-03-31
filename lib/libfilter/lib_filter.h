@@ -144,6 +144,37 @@ typedef int (*filter_fini_proto)(void *filter_args);
 
 
 /*!
+ * The top-level filter function for filters built as standalone programs.
+ * Call this from main().
+ *
+ * \param init
+ * 		The filter init function.
+ *
+ * \param eval
+ *		The filter evaluation function.
+ */
+diamond_public
+void lf_main(filter_init_proto init, filter_eval_proto eval);
+
+
+/*!
+ * A utility macro to define a main() function that runs a Diamond filter.
+ *
+ * \param init
+ * 		The filter init function.
+ *
+ * \param eval
+ *		The filter evaluation function.
+ */
+#define LF_MAIN(init, eval)			\
+	int main(void)				\
+	{					\
+		lf_main(init, eval);		\
+		return 0;			\
+	}
+
+
+/*!
  * Read an attribute from the object into the buffer space provided
  * by the caller.  This does invoke a copy and for large structures
  * it is preferable to use lf_ref_attr() if the caller will not

@@ -177,6 +177,31 @@ static void lf_run_filter(char *filter_name, filter_init_proto init,
   }
 }
 
+void lf_main(filter_init_proto init, filter_eval_proto eval) {
+  // set up file descriptors
+  lf_init();
+
+  // read protocol version
+  double version = lf_get_double(lf_state.in);
+  if (version != 1) {
+    g_error("Unknown protocol version %d", (int) version);
+    exit(EXIT_FAILURE);
+  }
+
+  // read name
+  char *filter_name = lf_get_string(lf_state.in);
+
+  // read argument list
+  char **args = lf_get_strings(lf_state.in);
+
+  // read blob
+  int bloblen;
+  void *blob = lf_get_binary(lf_state.in, &bloblen);
+
+  // run the filter loop
+  lf_run_filter(filter_name, init, eval, args, blob, bloblen);
+}
+
 void lf_filter_runner_main(void) {
   char *error;
 

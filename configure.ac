@@ -39,7 +39,7 @@ if test z$RPCGEN = z ; then
 	AC_MSG_ERROR([could not locate rpcgen])
 fi
 
-LT_INIT([disable-static])
+LT_INIT()
 
 # Check for recent pkg-config which supports Requires.private
 # (snippet taken from cairo configure.in)

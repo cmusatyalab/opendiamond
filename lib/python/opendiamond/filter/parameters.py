@@ -24,7 +24,7 @@ class Parameters(object):
 
     def describe(self):
         '''Return a dict describing the parameter list, suitable for
-        hyperfind-manifest.txt.'''
+        opendiamond-manifest.txt.'''
         ret = {}
         for i in range(len(self.params)):
             info = self.params[i].describe()

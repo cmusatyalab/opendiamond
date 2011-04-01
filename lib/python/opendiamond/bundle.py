@@ -20,7 +20,7 @@ def make_zipfile(path, manifest, files):
     if os.path.exists(path):
         raise Exception("Refusing to clobber destination file")
     zip = zipfile.ZipFile(path, mode = 'w', compression = zipfile.ZIP_DEFLATED)
-    zip.writestr('hyperfind-manifest.txt', manifest)
+    zip.writestr('opendiamond-manifest.txt', manifest)
     for name, path in files.items():
         zip.write(path, name)
     zip.close()

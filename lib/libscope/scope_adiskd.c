@@ -71,12 +71,13 @@ static int scope_x509_validate_signature(const GString *keyid,
 	b.data = (void *)data;
 	b.size = data_len;
 
-	if (gnutls_x509_crt_verify_data(certs[i], 0, &b, &s))
+	if (gnutls_x509_crt_verify_data(certs[i], 0, &b, &s)) {
+	    rc = 0;
 	    goto out; /* successfully validated the cookie signature */
+        }
     }
 
     fprintf(stderr, "Unable to find a certificate to validate the cookie\n");
-    rc = EKEYREJECTED;
 
     /* dump key-id values of cookie and available certificates */
     fprintf(stderr, "Cookie key-id: %s\n", keyid->str);
@@ -97,6 +98,8 @@ static int scope_x509_validate_signature(const GString *keyid,
 	i++;
     }
     g_string_free(tmpid, TRUE);
+
+    rc = EKEYREJECTED;
 
 out: /* cleanup */
     for (i = 0; i < n; i++)

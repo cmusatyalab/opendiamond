@@ -212,11 +212,6 @@ int             fexec_estimate_cost(filter_data_t * fdata,
                                     permutation_t * perm, int gen, int indep,
                                     float *cost);
 
-void		update_filter_order(filter_data_t * fdata, const permutation_t * perm);
-
-
-void	    	optimize_filter_order(filter_data_t * fdata, 
-			opt_policy_t * policy);
 double	    	tv_diff(struct timeval *end, struct timeval *start);
 int             run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_filt);
 void            fexec_clear_stats(filter_data_t * fdata);
@@ -243,11 +238,5 @@ int fexec_update_session_variables(lf_obj_handle_t ohandle,
 
 
 extern filter_info_t *fexec_active_filter;
-
-/*
- * update at your own risk! 
- */
-extern enum policy_type_t filter_exec_current_policy;
-
 
 #endif                    /* ! _FILTER_PRIV_H_ */

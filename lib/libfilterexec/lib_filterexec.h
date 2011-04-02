@@ -26,27 +26,6 @@ extern          "C"
 struct filter_data;
 typedef struct filter_data filter_data_t;
 
-/*
- * optimizer policy setup
- */
-enum policy_type_t {
-    NULL_POLICY = 0,
-    HILL_CLIMB_POLICY,
-    BEST_FIRST_POLICY,
-    INDEP_POLICY,
-    RANDOM_POLICY,
-    STATIC_POLICY
-};
-
-typedef struct opt_policy_t {
-	enum policy_type_t policy;
-	void           *(*p_new) (struct filter_data *);
-	void            (*p_delete) (void *context);
-	int             (*p_optimize) (void *context, struct filter_data *);
-	void           *p_context;
-	int             exploit;    /* if we are in exploit mode */
-} opt_policy_t;
-
 /* XXX */
 #define	MAX_OBJ_FILES	64
 

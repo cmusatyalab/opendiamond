@@ -34,7 +34,6 @@
 #include "lib_filterexec.h"
 #include "filter_priv.h"
 #include "fexec_stats.h"
-#include "fexec_opt.h"
 #include "lib_ocache.h"
 #include "ocache_priv.h"
 #include "odisk_priv.h"
@@ -52,19 +51,6 @@ static int      ceval_blocked = 0;
 static pthread_mutex_t ceval_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t active_cv = PTHREAD_COND_INITIALIZER;	/* active */
 static pthread_mutex_t ceval_filters1_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-static opt_policy_t policy_arr[] = {
-	{NULL_POLICY, NULL, NULL, NULL, NULL, 0},
-	{HILL_CLIMB_POLICY, hill_climb_new, hill_climb_delete,
-	 hill_climb_optimize, NULL, 0},
-	{BEST_FIRST_POLICY, best_first_new, best_first_delete,
-	 best_first_optimize, NULL, 0},
-	{INDEP_POLICY, indep_new, best_first_delete,
-	 best_first_optimize, NULL, 0},
-	{RANDOM_POLICY, random_new, NULL, NULL, NULL, 0},
-	{STATIC_POLICY, static_new, NULL, NULL, NULL, 0},
-	{NULL_POLICY, NULL, NULL, NULL, NULL, 0}
-};
 
 static unsigned int    use_cache_table = 1;
 static unsigned int    use_cache_oattr = 1;
@@ -710,11 +696,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		log_message(LOGT_FILT, LOGL_ERR, "ceval_filters2: no filters");
 		return true;
 	}
-
-	/*
-	 * change the permutation if it's time for a change
-	 */
-	optimize_filter_order(fdata, &policy_arr[filter_exec_current_policy]);
 
 	asize = sizeof(stack_ns);
 	err = obj_read_attr(&obj_handle->attr_info, FLTRTIME,

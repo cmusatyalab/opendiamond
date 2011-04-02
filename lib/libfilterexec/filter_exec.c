@@ -40,7 +40,6 @@
 #include "lib_filterexec.h"
 #include "filter_priv.h"
 #include "fexec_stats.h"
-#include "fexec_opt.h"
 #include "lib_ocache.h"
 #include "dconfig_priv.h"
 #include "odisk_priv.h"
@@ -62,58 +61,6 @@
 filter_info_t  *fexec_active_filter;
 
 
-
-
-/*
- * filter optimization policy defs 
- */
-
-enum policy_type_t filter_exec_current_policy = NULL_POLICY;
-
-// int CURRENT_POLICY = NULL_POLICY;
-// int CURRENT_POLICY = HILL_CLIMB_POLICY;
-// int CURRENT_POLICY = BEST_FIRST_POLICY;
-
-static opt_policy_t policy_arr[] = {
-  {
-    .policy = NULL_POLICY
-  },
-
-  {
-    .policy = HILL_CLIMB_POLICY,
-    .p_new = hill_climb_new,
-    .p_delete = hill_climb_delete,
-    .p_optimize = hill_climb_optimize
-  },
-
-  {
-    .policy = BEST_FIRST_POLICY,
-    .p_new = best_first_new,
-    .p_delete = best_first_delete,
-    .p_optimize = best_first_optimize
-  },
-
-  {
-    .policy = INDEP_POLICY,
-    .p_new = indep_new,
-    .p_delete = best_first_delete,
-    .p_optimize = best_first_optimize
-  },
-
-  {
-    .policy = RANDOM_POLICY,
-    .p_new = random_new
-  },
-
-  {
-    .policy = STATIC_POLICY,
-    .p_new = static_new
-  },
-
-  {
-    .policy = NULL_POLICY
-  },
-};
 
 
 /*
@@ -312,12 +259,6 @@ fexec_system_init(void)
 	unsigned int    seed;
 	int             fd;
 	int             rbytes;
-
-	// #ifdef VERBOSE
-	fprintf(stderr, "fexec_system_init: policy = %d\n",
-		filter_exec_current_policy);
-	// #endif
-
 
 	/*
 	 * Initialize the random number generator using a
@@ -849,36 +790,6 @@ resolve_filter_deps(filter_data_t * fdata)
 
 
 /*
- * setup things for state-space exploration
- */
-static void
-initialize_policy(filter_data_t * fdata)
-{
-	opt_policy_t   *policy;
-
-	/*
-	 * explicitly create and save a permutation representing the filter order 
-	 */
-	// fdata->fd_perm = fdata_new_perm(fdata);
-	/*
-	 * XXX this is not free'd anywhere 
-	 */
-
-	/*
-	 * initialize policy 
-	 */
-	policy = &policy_arr[filter_exec_current_policy];
-	assert(policy->policy == filter_exec_current_policy);
-	if (policy->p_new) {
-		policy->p_context = policy->p_new(fdata);
-	}
-	/*
-	 * XXX this needs to be cleaned up somwehre XXX 
-	 */
-}
-
-
-/*
  */
 int
 fexec_load_obj(filter_data_t * fdata, sig_val_t *sig)
@@ -947,41 +858,9 @@ fexec_load_spec(filter_data_t **fdata, sig_val_t *sig)
 		return (err);
 	}
 
-	/*
-	 * this need to be cleaned up somewhere XXX 
-	 */
-	initialize_policy(*fdata);
 	return(0);
 }
 
-
-void
-update_filter_order(filter_data_t * fdata, const permutation_t * perm)
-{
-#ifdef	VERBOSE
-	char            buf[BUFSIZ];
-#endif
-
-	pmCopy(fdata->fd_perm, perm);
-#ifdef	VERBOSE
-
-	printf("changed filter order to: %s\n", pmPrint(perm, buf, BUFSIZ));
-#endif
-
-}
-
-
-/*
- * jump to function (see fexec_opt.c) 
- */
-void
-optimize_filter_order(filter_data_t * fdata, opt_policy_t * policy)
-{
-	if (policy->p_optimize) {
-		policy->exploit =
-		    policy->p_optimize(policy->p_context, fdata);
-	}
-}
 
 double
 tv_diff(struct timeval *end, struct timeval *start)

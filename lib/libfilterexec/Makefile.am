@@ -6,8 +6,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/sqlite -DFILTER_RUNNER_PATH=\"$(pkglibexecdir)/fi
 
 libfilterexec_la_LIBADD = $(GLIB2_LIBS) $(top_builddir)/sqlite/libsqlite.la
 libfilterexec_la_SOURCES = filter_exec.c filter_spec.l fexec_stats.c \
-	fexec_interface.c fexec_misc.c fexec_opt.c ocache.c cache_filter.c \
-	filter_priv.h fexec_stats.h fexec_opt.h \
+	fexec_interface.c fexec_misc.c ocache.c cache_filter.c \
+	filter_priv.h fexec_stats.h \
 	ocache_priv.h sql.c sql.h lib_filterexec.h lib_ocache.h
 
 AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS)

@@ -79,9 +79,6 @@ usage(void)
 }
 
 
-#define	SAMPLE_TIME_FLOAT	0.2
-#define	SAMPLE_TIME_NANO	200000000
-
 /* reexecution conditions */
 static pthread_mutex_t	reexecute_can_start_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t reexecute_can_start_cond = PTHREAD_COND_INITIALIZER;
@@ -136,7 +133,6 @@ search_start(void *app_cookie, unsigned int search_id)
 	log_message(LOGT_DISK, LOGL_TRACE, "search_start");
 
 	sstate = (search_state_t *) app_cookie;
-	sstate->user_state = USER_WAITING;
 	
 	cmd = (dev_cmd_data_t *) malloc(sizeof(*cmd));
 	if (cmd == NULL) {
@@ -211,13 +207,8 @@ clear_ss_stats(search_state_t * sstate)
 	sstate->obj_dropped = 0;
 	sstate->obj_passed = 0;
 	sstate->obj_skipped = 0;
-	sstate->network_stalls = 0;
 	sstate->tx_full_stalls = 0;
 	sstate->tx_idles = 0;
-
-	sstate->avg_ratio = 0.0;
-	sstate->avg_int_ratio = 0;
-	sstate->old_proc = 0;
 }
 
 
@@ -779,22 +770,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->pend_objs = 0;
 
 	sstate->pend_compute = 0.0;
-
-	sstate->smoothed_ratio = 0.0;
-	sstate->smoothed_int_ratio = 0.0;
-
-	/*
-	 * default setting way computation is split between the host
-	 * and the storage device.
-	 */
-	sstate->split_type = SPLIT_DEFAULT_TYPE;
-	sstate->split_ratio = SPLIT_DEFAULT_RATIO;
-	;
-	sstate->split_auto_step = SPLIT_DEFAULT_AUTO_STEP;
-	sstate->split_bp_thresh = SPLIT_DEFAULT_BP_THRESH;
-	sstate->split_mult = SPLIT_DEFAULT_MULT;
-	
-	sstate->user_state = USER_UNKNOWN;
 
 	/*
 	 * Create a new thread that handles the searches for this current

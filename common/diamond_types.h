@@ -144,15 +144,6 @@ typedef enum {
 } device_isa_t;
 
 /*
- * Enumeration for user state hint
- */
-typedef enum {
-	USER_UNKNOWN,
-	USER_WAITING,
-	USER_BUSY,
-} user_state_t;
-
-/*
  * descriptor for search sessions
  */
 typedef struct {

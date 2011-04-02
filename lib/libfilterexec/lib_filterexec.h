@@ -62,8 +62,6 @@ int             fexec_get_stats(filter_data_t * fdata, int max,
 
 float           fexec_get_prate(filter_data_t *fdata);
 
-void            fexec_set_full_eval(filter_data_t * fdata);
-
 #ifdef __cplusplus
 }
 #endif

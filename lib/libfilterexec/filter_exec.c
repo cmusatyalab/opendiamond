@@ -39,7 +39,6 @@
 #include "sys_attr.h"
 #include "lib_filterexec.h"
 #include "filter_priv.h"
-#include "fexec_stats.h"
 #include "lib_ocache.h"
 #include "dconfig_priv.h"
 #include "odisk_priv.h"

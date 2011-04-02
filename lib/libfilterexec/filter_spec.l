@@ -478,8 +478,6 @@ filter_out_obj(filter_output_type_t type, yyscan_t scanner)
 int
 read_filter_spec(char *spec_name, filter_data_t **fdp)
 {
-    int i;
-
     yyscan_t scanner;
     struct filter_spec_lex extra;
 
@@ -499,12 +497,6 @@ read_filter_spec(char *spec_name, filter_data_t **fdp)
     extra.fdata->fd_perm = NULL;
     extra.fdata->fd_po = NULL;
 
-    for (i=0; i < PROB_HASH_BUCKETS; i++) {
-        LIST_INIT(&extra.fdata->fd_prob_hash[i]);    
-    }
-
-    extra.fdata->obj_ns_valid = 0;
-    extra.fdata->obj_ns_pos = 0;
     extra.fdata->obj_counter = 0;
     extra.fdata->fd_avg_wall = 1.0;
     extra.fdata->fd_avg_exec = 1.0;

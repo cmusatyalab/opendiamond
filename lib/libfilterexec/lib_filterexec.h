@@ -62,9 +62,6 @@ int             fexec_get_stats(filter_data_t * fdata, int max,
 
 float           fexec_get_prate(filter_data_t *fdata);
 
-int             fexec_estimate_cur_cost(filter_data_t * fdata,
-					float *cost);
-
 void            fexec_set_full_eval(filter_data_t * fdata);
 
 #ifdef __cplusplus

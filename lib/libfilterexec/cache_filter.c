@@ -33,7 +33,6 @@
 #include "sys_attr.h"
 #include "lib_filterexec.h"
 #include "filter_priv.h"
-#include "fexec_stats.h"
 #include "lib_ocache.h"
 #include "ocache_priv.h"
 #include "odisk_priv.h"
@@ -547,10 +546,6 @@ pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 				rt_stop(&rt);
 				time_ns = rt_nanos(&rt);
 
-				fexec_update_prob(fdata, cur_fid,
-							pmArr(fdata->fd_perm), cur_fidx,
-							pass);
-
 				char *sig_str = sig_string(&id_sig);
 				log_message(LOGT_FILT, LOGL_TRACE,
 					    "ceval_filters1(%s): CACHE HIT filter %s -> %d (%d), %lld ns",
@@ -605,11 +600,6 @@ pr_obj_t *ceval_filters1(char *objname, filter_data_t *fdata,
 
 	log_message(LOGT_FILT, LOGL_TRACE,
 		    "ceval_filters1:  done - total time is %lld", stack_ns);
-
-	/*
-	 * track per-object info 
-	 */
-	fstat_add_obj_info(fdata, stack_ns);
 
 	/*
 	 * update the average time 
@@ -811,9 +801,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 				     sizeof(time_ns), (void *) &time_ns);
 		assert(err == 0);
 
-		fexec_update_prob(fdata, cur_fid, pmArr(fdata->fd_perm),
-				  cur_fidx, pass);
-
 		if (!pass) {
 			cur_filter->fi_drop++;
 		} else {
@@ -821,19 +808,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 		}
 	}
 
-
-	if ((cur_fidx >= pmLength(fdata->fd_perm)) && pass) {
-		obj_handle->remain_compute = 0.0;
-		pass = true;
-	} else if ((cur_fidx < pmLength(fdata->fd_perm)) && pass) {
-		float           avg;
-		err = fexec_estimate_remaining(fdata, fdata->fd_perm,
-					       cur_fidx, 0,
-					       &obj_handle->remain_compute);
-		err = fexec_estimate_remaining(fdata, fdata->fd_perm, 0, 0,
-					       &avg);
-		obj_handle->remain_compute /= avg;
-	}
 
 	fexec_active_filter = NULL;
 
@@ -850,11 +824,6 @@ ceval_filters2(obj_data_t *obj_handle, filter_data_t *fdata, int force_eval,
 	 */
 	obj_write_attr(&obj_handle->attr_info, FLTRTIME,
 		       sizeof(stack_ns), (void *) &stack_ns);
-
-	/*
-	 * track per-object info
-	 */
-	fstat_add_obj_info(fdata, stack_ns);
 
 	/*
 	 * update the average time

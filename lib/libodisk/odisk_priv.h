@@ -63,7 +63,6 @@ struct obj_data {
 	sig_val_t      		id_sig;
 	int		    	ref_count;
 	pthread_mutex_t	mutex;
-	float			remain_compute;
 	obj_attr_t		attr_info;
 	session_variables_state_t *session_variables_state;
 	intptr_t		dev_cookie;

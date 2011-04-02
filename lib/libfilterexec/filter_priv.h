@@ -127,29 +127,6 @@ typedef struct filter_info {
 } filter_info_t;
 
 
-typedef struct filter_prob {
-	LIST_ENTRY(filter_prob) prob_link;
-	int             num_pass;   /* # of times this combination passed */
-	int             num_exec;   /* # of times this combination was run */
-	int             num_prev;   /* # of previus filters run */
-	filter_id_t     cur_fid;    /* current filter id */
-	filter_id_t     prev_id[0]; /* list of previous IDs */
-} filter_prob_t;
-
-
-#define FILTER_PROB_SIZE(x)     \
-        (sizeof(filter_prob_t)+((x)* sizeof(filter_id_t)))
-
-/*
- * must be power of 2 
- */
-#define PROB_HASH_BUCKETS   64
-
-/*
- * size of history 
- */
-#define STAT_WINDOW 1024
-
 #define FCODE_INCREMENT	10
 
 typedef struct fcode_info {
@@ -165,7 +142,6 @@ struct filter_data {
 	int             fd_num_filters;
 	filter_id_t     fd_max_filters;
 	filter_id_t     fd_app_id;
-	LIST_HEAD(prob_hash, filter_prob) fd_prob_hash[PROB_HASH_BUCKETS];
 	permutation_t  *fd_perm;    /* current permutation */
 	partial_order_t *fd_po;     /* the partial ordering of filters */
 
@@ -174,10 +150,6 @@ struct filter_data {
 	 */
 	double          fd_avg_wall;
 	double          fd_avg_exec;
-
-	time_t          obj_ns[STAT_WINDOW];    /* data */
-	int             obj_ns_valid;   /* number of valid entries */
-	int             obj_ns_pos; 	/* current insertion point */
 
 	int             obj_counter;    /* used to synchronize monitoring output
 				     	 * (filter_exec) 
@@ -195,30 +167,12 @@ struct filter_data {
 #define	ARG_CHUNK	16
 
 int             read_filter_spec(char *spec_name, struct filter_data **fdp);
-void            fexec_update_prob(struct filter_data *fdata,
-                                  filter_id_t cur_filt,
-                                  const filter_id_t * prev_list, int num_prev,
-                                  bool pass);
 
-
-filter_prob_t  *fexec_lookup_prob(filter_data_t * fdata, filter_id_t cur_filt,
-                                  int num_prev, const filter_id_t * slist);
-
-int             fexec_compute_cost(filter_data_t * fdata,
-                                   permutation_t * perm, int gen, int indep,
-                                   float *cost);
-
-int             fexec_estimate_cost(filter_data_t * fdata,
-                                    permutation_t * perm, int gen, int indep,
-                                    float *cost);
 
 double	    	tv_diff(struct timeval *end, struct timeval *start);
 int             run_eval_server(FILE *in, FILE *out, obj_data_t *obj_handle, filter_info_t *cur_filt);
 void            fexec_clear_stats(filter_data_t * fdata);
 
-int             fexec_estimate_cost(filter_data_t * fdata,
-				    permutation_t * perm, int gen, int indep,
-				    float *cost);
 void            fexec_possibly_init_filter(filter_info_t *cur_filt,
 					   int num_codes,
 					   fcode_info_t *fcodes);

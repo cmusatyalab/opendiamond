@@ -530,7 +530,6 @@ device_main(void *arg)
 				 * no data or attributes.
 				 */
 				new_obj = odisk_null_obj();
-				new_obj->remain_compute = 0.0;
 				err = sstub_send_obj(sstate->comm_cookie,
 						     new_obj);
 				if (err) {

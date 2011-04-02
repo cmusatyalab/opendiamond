@@ -49,10 +49,7 @@ typedef struct search_state {
 	uint            obj_dropped;
 	uint            obj_passed;
 	uint            obj_skipped;
-	uint            tx_full_stalls;
-	uint            tx_idles;
 	uint            pend_objs;
-	float           pend_compute;
 	uint            pend_max;
 	uint            work_ahead;	/* do we work ahead for caching */
 	unsigned char  *sig;

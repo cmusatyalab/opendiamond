@@ -207,8 +207,6 @@ clear_ss_stats(search_state_t * sstate)
 	sstate->obj_dropped = 0;
 	sstate->obj_passed = 0;
 	sstate->obj_skipped = 0;
-	sstate->tx_full_stalls = 0;
-	sstate->tx_idles = 0;
 }
 
 
@@ -495,9 +493,6 @@ device_main(void *arg)
 			free(cmd);
 		}
 
-		if (sstate->pend_compute >= sstate->pend_max) {
-		}
-
 		/*
 		 * XXX look for data from device to process.
 		 */
@@ -589,8 +584,6 @@ device_main(void *arg)
 					sstate->obj_passed++;
 
 					sstate->pend_objs++;
-					sstate->pend_compute +=
-					    new_obj->remain_compute;
 
 					err = sstub_send_obj(sstate->comm_cookie,
 							     new_obj);
@@ -599,8 +592,6 @@ device_main(void *arg)
 						 * XXX overflow gracefully 
 						 */
 						sstate->pend_objs--;
-						sstate->pend_compute -=
-						    new_obj->remain_compute;
 					}
 				}
 			}
@@ -631,11 +622,7 @@ device_main(void *arg)
 					save_good_name(&gobj, new_obj);
 				}
 				search_free_obj(sstate, new_obj);
-			} else {
-				sstate->tx_full_stalls++;
 			}
-		} else {
-			sstate->tx_full_stalls++;
 		}
 
 		/*
@@ -769,8 +756,6 @@ search_new_conn(void *comm_cookie, void **app_cookie)
 	sstate->pend_max = SSTATE_DEFAULT_PEND_MAX;
 	sstate->pend_objs = 0;
 
-	sstate->pend_compute = 0.0;
-
 	/*
 	 * Create a new thread that handles the searches for this current
 	 * search.  (We probably want to make this a seperate process ??).
@@ -845,10 +830,6 @@ search_release_obj(void *app_cookie, obj_data_t * obj)
 	}
 
 	sstate->pend_objs--;
-	if (sstate->pend_objs == 0) {
-		sstate->tx_idles++;
-	}
-	sstate->pend_compute -= obj->remain_compute;
 
 	odisk_release_obj(obj);
 	return (0);
@@ -1118,7 +1099,6 @@ done:
 	 * when the object is released. */
 	if (obj) {
 		sstate->pend_objs++;
-		sstate->pend_compute += obj->remain_compute;
 	}
 
 	/* and now tell the background thread it can continue */

@@ -127,23 +127,6 @@ typedef int (*filter_eval_proto)(lf_obj_handle_t ohandle, void *filter_args);
 
 
 /*!
- * This is the prototype for a filter init function.
- *
- * This function should take the filter arguments allocated in the
- * filter_init_proto() and free them.  
- *
- * The fini function should return 0 if it cleaned up correctly.  Any
- * other value is treated as a fatal condition.
- *
- * \param filter_args
- * 		The data structure that was returned from the filter
- *		initialization function.
- */
-
-typedef int (*filter_fini_proto)(void *filter_args);
-
-
-/*!
  * The top-level filter function for filters built as standalone programs.
  * Call this from main().
  *

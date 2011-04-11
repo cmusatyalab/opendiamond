@@ -122,8 +122,6 @@ lib/transport/socket/rpc/test/Makefile
 lib/transport/socket/common/Makefile
 lib/transport/socket/storagestub/Makefile
 tests/Makefile
-target/Makefile
-target/bin/Makefile
 opendiamond.pc
 ])
 AC_OUTPUT

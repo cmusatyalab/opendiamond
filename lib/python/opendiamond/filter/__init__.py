@@ -330,7 +330,12 @@ def run_filter_loop(filter_class):
         # Main loop
         while True:
             obj = DiamondObject(conn)
-            conn.send_message('result', filter(obj))
+            result = filter(obj)
+            if result is True:
+                result = 1
+            elif result is False or result is None:
+                result = 0
+            conn.send_message('result', result)
             obj.invalidate()
     except IOError:
         pass

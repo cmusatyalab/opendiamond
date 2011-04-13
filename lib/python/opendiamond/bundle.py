@@ -27,8 +27,8 @@ def make_zipfile(path, manifest, files):
 
 def bundle_python(out, filter, blob = None):
     try:
-        proc = subprocess.Popen([os.path.realpath(filter), '--get-manifest'],
-                            stdout = subprocess.PIPE)
+        proc = subprocess.Popen(['python', os.path.realpath(filter),
+                            '--get-manifest'], stdout = subprocess.PIPE)
     except OSError:
         raise Exception("Couldn't execute filter program")
     manifest = proc.communicate()[0]

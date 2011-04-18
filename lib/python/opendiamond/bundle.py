@@ -17,8 +17,6 @@ import zipfile
 
 def make_zipfile(path, manifest, files):
     '''manifest is a string, files is a dict of filename => path pairs'''
-    if os.path.exists(path):
-        raise Exception("Refusing to clobber destination file")
     zip = zipfile.ZipFile(path, mode = 'w', compression = zipfile.ZIP_DEFLATED)
     zip.writestr('opendiamond-manifest.txt', manifest)
     for name, path in files.items():

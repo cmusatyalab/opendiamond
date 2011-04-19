@@ -16,7 +16,7 @@ import os
 import PIL.Image
 import struct
 import sys
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 import threading
 
 from parameters import Parameters
@@ -92,11 +92,13 @@ class Filter(object):
         self.session = session
         self.args = self.params.parse(args)
         if self.blob_is_egg:
-            egg = NamedTemporaryFile(prefix = 'filter-', suffix = '.egg',
-                                        delete = False)
+            # NamedTemporaryFile always deletes the file on close on
+            # Python 2.5, so we can't use it
+            fd, name = mkstemp(prefix = 'filter-', suffix = '.egg')
+            egg = os.fdopen(fd, 'r+')
             egg.write(blob)
             egg.close()
-            sys.path.append(egg.name)
+            sys.path.append(name)
             self.blob = None
         else:
             self.blob = blob

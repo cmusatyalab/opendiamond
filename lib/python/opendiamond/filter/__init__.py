@@ -128,18 +128,16 @@ class LingeringObjectError(Exception):
     pass
 
 class Object(object):
-    '''A Diamond object to be evaluated.  Acts roughly like a dict of object
-    attributes, except that it can't be enumerated, keys can't be deleted,
-    and it doesn't provide any of the higher-level dict functions (because
-    they're generally not relevant).  Instantiating this class directly will
-    provide a dummy object that does not try to talk to Diamond.  This can
-    be useful for filter testing.'''
+    '''A Diamond object to be evaluated.  Instantiating this class directly
+    will provide a dummy object that does not try to talk to Diamond.  This
+    can be useful for filter testing.'''
 
     def __init__(self, attrs = ()):
         self.attrs = dict(attrs)
         self.valid = True
 
-    def __getitem__(self, key):
+    def get_binary(self, key):
+        '''Get the specified object attribute as raw binary data.'''
         self.check_valid()
         if key not in self.attrs:
             self.attrs[key] = self._get_attribute(key)
@@ -147,17 +145,38 @@ class Object(object):
             raise KeyError()
         return self.attrs[key]
 
-    def __setitem__(self, key, value):
+    def set_binary(self, key, value):
+        '''Set the specified object attribute as raw binary data.'''
         self.check_valid()
         if value is None:
             raise ValueError('Attribute value cannot be None')
         self._set_attribute(key, value)
         self.attrs[key] = value
 
+    def get_string(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as a null-terminated string.'''
+        value = self.get_binary(key)
+        if value[-1] != '\0':
+            raise ValueError('Attribute value is not null-terminated')
+        return value[:-1]
+
+    def set_string(self, key, value):
+        '''Set the specified object attribute as a null-terminated string.'''
+        self.set_binary(key, value + '\0')
+
+    def __getitem__(self, key):
+        '''Syntactic sugar for self.get_string().'''
+        return self.get_string(key)
+
+    def __setitem__(self, key, value):
+        '''Syntactic sugar for self.set_string().'''
+        return self.set_string(key, value)
+
     def __contains__(self, key):
         self.check_valid()
         try:
-            self[key]
+            self.get_binary(key)
         except KeyError:
             return False
         return True
@@ -165,13 +184,13 @@ class Object(object):
     @property
     def data(self):
         '''Convenience property to get the object data.'''
-        return self['']
+        return self.get_binary('')
 
     @property
     def image(self):
         '''Convenience property to get the decoded RGB image as a PIL Image.'''
         if not hasattr(self, '_image'):
-            data = self['_rgb_image.rgbimage']
+            data = self.get_binary('_rgb_image.rgbimage')
             # Parse the dimensions out of the RGBImage header
             height, width = struct.unpack('2i', data[8:16])
             # Read the image data

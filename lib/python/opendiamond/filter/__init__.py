@@ -165,7 +165,7 @@ class Object(object):
 
     def set_string(self, key, value):
         '''Set the specified object attribute as a null-terminated string.'''
-        self.set_binary(key, value + '\0')
+        self.set_binary(key, str(value) + '\0')
 
     def __getitem__(self, key):
         '''Syntactic sugar for self.get_string().'''

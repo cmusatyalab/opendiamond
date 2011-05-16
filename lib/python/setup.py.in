@@ -1,6 +1,17 @@
 #!@PYTHON@
 
+from distutils.command.build_py import build_py
 from distutils.core import setup
+
+class opendiamond_build_py(build_py):
+    def build_packages(self):
+	build_py.build_packages(self)
+	# Rewrite opendiamond/__init__.py to contain the software version
+	fh = open(self.get_module_outfile(self.build_lib, ['opendiamond'],
+			'__init__'), 'w')
+	fh.write("__version__ = '@VERSION@'\n")
+	fh.close()
+
 
 setup(
     name = "opendiamond",
@@ -18,5 +29,6 @@ setup(
     description = "OpenDiamond Python library",
     license = "Eclipse Public License, Version 1.0",
     keywords = "opendiamond non-indexed search",
-    url = "http://diamond.cs.cmu.edu/"
+    url = "http://diamond.cs.cmu.edu/",
+    cmdclass = {'build_py': opendiamond_build_py},
 )

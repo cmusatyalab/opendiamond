@@ -23,6 +23,7 @@ parser.add_option("-d", "--daemonize", dest="daemonize", action="store_true",
 		  default=False)
 (options, args) = parser.parse_args()
 
+from opendiamond.helpers import daemonize
 from dataretriever.util import DataRetriever
 from dataretriever import diamond_store, proxy_store
 #from dataretriever import mirage_store, flickr_store
@@ -35,18 +36,7 @@ app = DataRetriever({
 })
 
 def run():
-    if options.daemonize:
-	import os
-	if (os.fork()): os._exit(0)
-	os.setsid()
-	if (os.fork()): os._exit(0)
-	for fd in range(1024):
-	    try: os.close(fd)
-	    except OSError: pass
-	os.open("/dev/null", os.O_RDWR)
-	os.dup2(0, 1)
-	os.dup2(0, 2)
-
+    if options.daemonize: daemonize()
     try:
 	from paste import httpserver
 	httpserver.serve(app, host=options.host, port=options.port,

@@ -21,6 +21,7 @@ setup(
 	'opendiamond.filter',
     ],
     scripts = [
+	'@srcdir@/tools/cookiecutter',
 	'@srcdir@/tools/diamond-bundle-python',
     ],
     package_dir = { '': '@srcdir@' },

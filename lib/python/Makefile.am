@@ -1,9 +1,11 @@
 EXTRA_DIST = setup.py \
 	opendiamond/__init__.py \
-	opendiamond/helpers.py \
 	opendiamond/bundle.py \
+	opendiamond/helpers.py \
+	opendiamond/scope.py \
 	opendiamond/filter/__init__.py \
 	opendiamond/filter/parameters.py \
+	tools/cookiecutter \
 	tools/diamond-bundle-python
 
 all-local: setup.py $(EXTRA_DIST)

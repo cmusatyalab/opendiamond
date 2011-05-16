@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import simplejson
 from django.shortcuts import render_to_response
-from opendiamond.helpers import GenerateCookie
+from opendiamond.scope import generate_cookie
 from forms import CollectionForm, ManageForm
 
 @login_required
@@ -44,7 +44,7 @@ def index(request):
 		servers = {}
 		for server in collection.servers.all():
 		    servers[server.host] = True
-		cookie.extend(GenerateCookie(scope, servers))
+		cookie.extend(generate_cookie(scope, servers))
 
 	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
 	    resp['Content-Disposition']='attachment; filename=opendiamond.scope'

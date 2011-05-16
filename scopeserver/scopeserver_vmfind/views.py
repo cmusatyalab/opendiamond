@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.http import QueryDict, HttpResponse
 from django.shortcuts import render_to_response
-from opendiamond.helpers import GenerateCookie
+from opendiamond.scope import generate_cookie
 from forms import VMFindForm
 
 SERVERS = [ "westphal.isr.cs.cmu.edu" ]
@@ -43,7 +43,7 @@ def index(request):
 	    scope = [ "/mirage/%s%s" % (image, query) for image in
 			 form.cleaned_data['vmimages']]
 
-	    cookie = GenerateCookie(scope, SERVERS)
+	    cookie = generate_cookie(scope, SERVERS)
 	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
 	    resp['Content-Disposition']='attachment; filename=opendiamond.scope'
 	    return resp

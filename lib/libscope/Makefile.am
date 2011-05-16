@@ -1,6 +1,5 @@
 noinst_LTLIBRARIES = libscope.la libstring_helpers.la
 dist_bin_SCRIPTS = diamond-newscope
-bin_PROGRAMS = cookiecutter
 
 mimepkgdir = $(datarootdir)/mime/packages
 dist_mimepkg_DATA = diamond-scope.xml
@@ -10,9 +9,6 @@ libstring_helpers_la_SOURCES = string_helpers.c string_helpers.h
 
 libscope_la_SOURCES = scope_adiskd.c scope_common.c scope_priv.h
 libscope_la_LIBADD = libstring_helpers.la
-
-cookiecutter_SOURCES = cookiecutter.c
-cookiecutter_LDADD = libstring_helpers.la
 
 install-data-hook:
 	desktop-file-install --rebuild-mime-info-cache --vendor diamond $(srcdir)/scope.desktop \

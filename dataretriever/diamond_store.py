@@ -22,6 +22,7 @@ OBJECT_URI = 'obj'
 STYLE = False
 
 from dataretriever.util import guess_mime_type
+from opendiamond.config import DiamondConfig
 from wsgiref.util import shift_path_info
 from urllib import quote
 import rfc822
@@ -30,19 +31,6 @@ import re
 
 __all__ = ['scope_app', 'object_app']
 
-
-# Read settings from $HOME/.diamond/diamond.config
-def diamond_config():
-    config = {}
-    path = os.path.join(os.environ['HOME'], '.diamond', 'diamond_config')
-    for line in open(path):
-	if line[0] == '#': continue
-        try:
-	    key, value = line.split(None, 1)
-	    config[key] = value.strip()
-	except ValueError:
-	    pass
-    return config
 
 def diamond_textattr(path):
     try: # read attributes from '.text_attr' file
@@ -53,9 +41,9 @@ def diamond_textattr(path):
     except IOError:
 	pass
 
-dconfig = diamond_config()
-INDEXDIR = dconfig['INDEXDIR']
-DATAROOT = dconfig['DATAROOT']
+dconfig = DiamondConfig()
+INDEXDIR = dconfig.indexdir
+DATAROOT = dconfig.dataroot
 
 def GIDIDXParser(index):
     f = open(index, 'r')

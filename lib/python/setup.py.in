@@ -19,9 +19,11 @@ setup(
     packages = [
 	'opendiamond',
 	'opendiamond.filter',
+	'opendiamond.server',
     ],
     scripts = [
 	'@srcdir@/tools/cookiecutter',
+	'@srcdir@/tools/diamondd',
 	'@srcdir@/tools/diamond-bundle-python',
     ],
     package_dir = { '': '@srcdir@' },

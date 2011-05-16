@@ -17,16 +17,17 @@ import zipfile
 
 def make_zipfile(path, manifest, files):
     '''manifest is a string, files is a dict of filename => path pairs'''
-    zip = zipfile.ZipFile(path, mode = 'w', compression = zipfile.ZIP_DEFLATED)
+    zip = zipfile.ZipFile(path, mode='w', compression=zipfile.ZIP_DEFLATED)
     zip.writestr('opendiamond-manifest.txt', manifest)
     for name, path in files.items():
         zip.write(path, name)
     zip.close()
 
-def bundle_python(out, filter, blob = None):
+
+def bundle_python(out, filter, blob=None):
     try:
         proc = subprocess.Popen(['python', os.path.realpath(filter),
-                            '--get-manifest'], stdout = subprocess.PIPE)
+                            '--get-manifest'], stdout=subprocess.PIPE)
     except OSError:
         raise Exception("Couldn't execute filter program")
     manifest = proc.communicate()[0]

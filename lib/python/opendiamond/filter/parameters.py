@@ -39,11 +39,12 @@ class Parameters(object):
             raise ValueError('Incorrect argument list length')
         return map(lambda i: self.params[i].parse(args[i]), range(len(args)))
 
+
 class BaseParameter(object):
     '''The base type for a formal parameter.'''
     type = 'unknown'
 
-    def __init__(self, label, default = None):
+    def __init__(self, label, default=None):
         self.label = label
         self.default = default
 
@@ -63,10 +64,11 @@ class BaseParameter(object):
     def parse(self, str):
         raise NotImplemented()
 
+
 class BooleanParameter(BaseParameter):
     type = 'boolean'
 
-    def __init__(self, label, default = None):
+    def __init__(self, label, default=None):
         if default is not None:
             if default:
                 default = 'true'
@@ -82,6 +84,7 @@ class BooleanParameter(BaseParameter):
         else:
             raise ValueError('Argument must be true or false')
 
+
 class StringParameter(BaseParameter):
     type = 'string'
 
@@ -91,11 +94,12 @@ class StringParameter(BaseParameter):
         else:
             return base64.b64decode(str)
 
+
 class NumberParameter(BaseParameter):
     type = 'number'
 
-    def __init__(self, label, default = None, min = None, max = None,
-                        increment = None):
+    def __init__(self, label, default=None, min=None, max=None,
+                        increment=None):
         BaseParameter.__init__(self, label, default)
         self.min = min
         self.max = max
@@ -125,10 +129,11 @@ class NumberParameter(BaseParameter):
             raise ValueError('Argument too large')
         return val
 
+
 class ChoiceParameter(BaseParameter):
     type = 'choice'
 
-    def __init__(self, label, choices, default = None):
+    def __init__(self, label, choices, default=None):
         '''choices is a tuple of (parsed-value, label) pairs'''
         if default is not None:
             for i, tag in enumerate(zip(*choices)[0]):
@@ -161,9 +166,9 @@ class ChoiceParameter(BaseParameter):
 if __name__ == '__main__':
     params = Parameters(
         BooleanParameter('Boolean param'),
-        StringParameter('Strn', default = 'xyzzy plugh'),
-        NumberParameter('Even integer parameter with long label', max = 10,
-                    increment = 2),
+        StringParameter('Strn', default='xyzzy plugh'),
+        NumberParameter('Even integer parameter with long label', max=10,
+                    increment=2),
         ChoiceParameter('Choices', (
             ('foo', 'Do something with foo'),
             ('bar', 'Do something else with bar'),

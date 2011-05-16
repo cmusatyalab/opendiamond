@@ -19,13 +19,13 @@ import sys
 
 if __name__ == '__main__':
     parser = OptionParser(
-        usage = '%prog [-h] [-o outfile] [-b blob-path] filter-path',
-        description = 'Package a Diamond filter written in Python into an OpenDiamond filter bundle.',
+        usage='%prog [-h] [-o outfile] [-b blob-path] filter-path',
+        description='Package a Diamond filter written in Python into an OpenDiamond filter bundle.',
     )
-    parser.add_option('-o', dest = 'outfile', metavar = 'outfile',
-            help = 'path to output file')
-    parser.add_option('-b', dest = 'blob', metavar = 'blob-path',
-            help = 'path to optional data for blob argument')
+    parser.add_option('-o', dest='outfile', metavar='outfile',
+            help='path to output file')
+    parser.add_option('-b', dest='blob', metavar='blob-path',
+            help='path to optional data for blob argument')
     opts, args = parser.parse_args()
     if len(args) != 1:
         parser.error('no filter path specified')

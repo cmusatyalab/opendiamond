@@ -23,7 +23,7 @@ from parameters import Parameters
 
 class Session(object):
     '''Represents the Diamond search session.'''
-    def __init__(self, filter_name, conn = None):
+    def __init__(self, filter_name, conn=None):
         self.name = filter_name
         self.conn = conn
 
@@ -61,6 +61,7 @@ class Session(object):
         names, values = zip(*vars.items())
         self.conn.send_message('update-session-variables', names, values)
 
+
 class Filter(object):
     '''A Diamond filter.  Implement this.'''
     # Filter name.
@@ -84,7 +85,7 @@ class Filter(object):
     # to sys.path.
     blob_is_egg = False
 
-    def __init__(self, args, blob, session = Session('filter')):
+    def __init__(self, args, blob, session=Session('filter')):
         '''Called to initialize the filter.  After a subclass calls the
         superclass constructor, it will find the parsed arguments in
         self.args and the blob, if any, in self.blob (unless self.blob_is_egg
@@ -125,16 +126,18 @@ class Filter(object):
         return ''.join(map(lambda kv: '%s: %s\n' % (kv[0], kv[1]),
                             sorted(manifest.items())))
 
+
 class LingeringObjectError(Exception):
     '''Raised when an Object is accessed after it is no longer in play.'''
     pass
+
 
 class Object(object):
     '''A Diamond object to be evaluated.  Instantiating this class directly
     will provide a dummy object that does not try to talk to Diamond.  This
     can be useful for filter testing.'''
 
-    def __init__(self, attrs = ()):
+    def __init__(self, attrs=()):
         self.attrs = dict(attrs)
         self.valid = True
 
@@ -225,6 +228,7 @@ class Object(object):
         if key not in self.attrs:
             raise KeyError()
 
+
 class DiamondObject(Object):
     '''A Diamond object to be evaluated.'''
 
@@ -243,6 +247,7 @@ class DiamondObject(Object):
         self.conn.send_message('omit-attribute', key)
         if not self.conn.get_boolean():
             raise KeyError()
+
 
 class DiamondConnection(object):
     '''Proxy object for the stdin/stdout protocol connection with the
@@ -298,6 +303,7 @@ class DiamondConnection(object):
                 else:
                     send_value(value)
             self.fout.flush()
+
 
 class StdoutThread(threading.Thread):
     name = 'stdout thread'
@@ -360,6 +366,7 @@ def run_filter_loop(filter_class):
             obj.invalidate()
     except IOError:
         pass
+
 
 def run_filter(argv, filter_class):
     '''Returns True if we did something, False if not.'''

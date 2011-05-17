@@ -30,9 +30,10 @@ _log = logging.getLogger(__name__)
 
 class SearchState(object):
     '''Search state that is also needed by filter code.'''
-    def __init__(self, blast_conn, cachedir):
+    def __init__(self, config, blast_conn):
+        self.config = config
         self.blast = BlastChannel(blast_conn)
-        self.blob_cache = BlobCache(cachedir)
+        self.blob_cache = BlobCache(config.cachedir)
         self.session_vars = SessionVariables()
         self.stats = SearchStatistics()
         self.scope = None
@@ -45,9 +46,8 @@ class Search(RPCHandlers):
 
     def __init__(self, config, blast_conn):
         RPCHandlers.__init__(self)
-        self._config = config
         self._server_id = config.serverids[0]  # Canonical server ID
-        self._state = SearchState(blast_conn, config.cachedir)
+        self._state = SearchState(config, blast_conn)
         self._filters = FilterStack()
         self._running = False
 
@@ -84,7 +84,8 @@ class Search(RPCHandlers):
         try:
             cookie = ScopeCookie.parse(params.cookie)
             _log.info('Received scope cookie %s', repr(cookie))
-            cookie.verify(self._config.serverids, self._config.certdata)
+            cookie.verify(self._state.config.serverids,
+                            self._state.config.certdata)
             self._state.scope = ScopeListLoader(self._server_id, cookie)
         except ScopeCookieExpired:
             _log.warning('Cookie expired')
@@ -146,7 +147,7 @@ class Search(RPCHandlers):
         self._state.search_id = params.search_id
         self._running = True
         _log.info('Starting search %d', params.search_id)
-        self._filters.start_threads(self._state, self._config.threads)
+        self._filters.start_threads(self._state, self._state.config.threads)
 
     @RPCHandlers.handler(21, XDR_reexecute, XDR_attribute_list)
     def reexecute_filters(self, params):

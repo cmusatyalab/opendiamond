@@ -58,6 +58,9 @@ class Object(object):
         if ATTR_DISPLAY_NAME not in self:
             self[ATTR_DISPLAY_NAME] = self.id + '\0'
 
+    def __iter__(self):
+        return self._attrs.iterkeys()
+
     def __contains__(self, key):
         return key in self._attrs
 

@@ -119,7 +119,37 @@ class _FilterResult(object):
         self.score = 0
 
 
-class _FilterRunner(object):
+class _ObjectProcessor(object):
+    '''A context for processing objects.'''
+
+    def __str__(self):
+        raise NotImplemented()
+
+    def evaluate(self, obj):
+        raise NotImplemented()
+
+    def threshold(self, result):
+        raise NotImplemented()
+
+
+class _ObjectFetcher(_ObjectProcessor):
+    '''A context for fetching objects.'''
+
+    def __str__(self):
+        return 'fetcher'
+
+    def evaluate(self, obj):
+        obj.load()
+        result = _FilterResult()
+        for key in obj:
+            result.output_attrs[key] = obj.get_signature(key)
+        return result
+
+    def threshold(self, result):
+        return True
+
+
+class _FilterRunner(_ObjectProcessor):
     '''A context for processing objects with a Filter.'''
     def __init__(self, state, filter, code_path):
         self._filter = filter
@@ -305,7 +335,6 @@ class FilterStackRunner(threading.Thread):
         self._runners = filter_runners
 
     def evaluate(self, obj):
-        obj.load()
         timer = Timer()
         accept = False
         try:
@@ -404,8 +433,8 @@ class FilterStack(object):
     def bind(self, state, name='Filter'):
         '''Returns a FilterStackRunner that can be used to process objects
         with this filter stack.'''
-        return FilterStackRunner(state, [f.bind(state) for f in self._order],
-                                name)
+        runners = [_ObjectFetcher()] + [f.bind(state) for f in self._order]
+        return FilterStackRunner(state, runners, name)
 
     def start_threads(self, state, count):
         for i in xrange(count):

@@ -122,16 +122,19 @@ class _FilterResult(object):
 class _FilterRunner(object):
     '''A context for processing objects with a Filter.'''
     def __init__(self, state, filter, code_path):
-        self.filter = filter
+        self._filter = filter
         self._state = state
         self._code_path = code_path
         self._proc = None
         self._proc_initialized = False
 
+    def __str__(self):
+        return self._filter.name
+
     def evaluate(self, obj):
         if self._proc is None:
-            self._proc = _FilterProcess(self._code_path, self.filter.name,
-                                    self.filter.arguments, self.filter.blob)
+            self._proc = _FilterProcess(self._code_path, self._filter.name,
+                                    self._filter.arguments, self._filter.blob)
             self._proc_initialized = False
         timer = Timer()
         result = _FilterResult()
@@ -175,12 +178,10 @@ class _FilterRunner(object):
                         values = [float(f) for f in values]
                     except ValueError:
                         raise FilterExecutionError(
-                                    '%s: bad session variable value' %
-                                    self.filter.name)
+                                    '%s: bad session variable value' % self)
                     if len(keys) != len(values):
                         raise FilterExecutionError(
-                                    '%s: bad array lengths' %
-                                    self.filter.name)
+                                    '%s: bad array lengths' % self)
                     valuemap = dict(zip(keys, values))
                     self._state.session_vars.filter_update(valuemap)
                 elif cmd == 'log':
@@ -210,15 +211,13 @@ class _FilterRunner(object):
                     result.score = int(proc.get_item(), 10)
                     break
                 else:
-                    raise FilterExecutionError('%s: unknown command' %
-                                        self.filter.name)
+                    raise FilterExecutionError('%s: unknown command' % self)
         except IOError:
             if self._proc_initialized:
                 # Filter died on an object.  The result score defaults to
                 # zero, so this will be treated as a drop.
                 _log.error('Filter %s (signature %s) died on object %s',
-                                self.filter.name, self.filter.signature,
-                                obj.id)
+                                self, self._filter.signature, obj.id)
                 self._proc = None
             else:
                 # Filter died during initialization.  Treat this as fatal.
@@ -226,13 +225,13 @@ class _FilterRunner(object):
                                 % name)
         finally:
             accept = self.threshold(result)
-            self.filter.stats.update('objs_processed', 'objs_compute',
+            self._filter.stats.update('objs_processed', 'objs_compute',
                                     objs_dropped=int(not accept),
                                     execution_ns=timer.elapsed)
         return result
 
     def threshold(self, result):
-        return result.score >= self.filter.threshold
+        return result.score >= self._filter.threshold
 
 
 class Filter(object):

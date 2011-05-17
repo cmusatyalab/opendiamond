@@ -19,7 +19,6 @@ import signal
 import subprocess
 import threading
 
-from opendiamond.server.protocol import DiamondRPCFailure
 from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
 

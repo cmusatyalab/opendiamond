@@ -33,7 +33,7 @@ class Object(object):
         self._omit_attrs = set()
 
         # Set default attributes
-        self[ATTR_DEVICE_NAME] = server_id
+        self[ATTR_DEVICE_NAME] = server_id + '\0'
         self[ATTR_OBJ_ID] = url + '\0'
 
     def __repr__(self):

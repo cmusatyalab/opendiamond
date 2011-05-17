@@ -13,6 +13,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from hashlib import md5
 from urllib2 import urlopen
 
 from opendiamond.server.protocol import XDR_attribute, XDR_object
@@ -27,11 +28,13 @@ ATTR_DEVICE_NAME = 'Device-Name'
 class Object(object):
     def __init__(self, server_id, url):
         self.id = url
-        self._attrs = {
-            ATTR_DEVICE_NAME: server_id,
-            ATTR_OBJ_ID: url + '\0',
-        }
+        self._attrs = dict()
+        self._signatures = dict()
         self._omit_attrs = set()
+
+        # Set default attributes
+        self[ATTR_DEVICE_NAME] = server_id
+        self[ATTR_OBJ_ID] = url + '\0'
 
     def __repr__(self):
         return '<Object(%s)>' % repr(self.id)
@@ -52,7 +55,8 @@ class Object(object):
                 attr = header.replace(ATTR_HEADER_PREFIX, '', 1)
                 self[attr] = info[header] + '\0'
         # Set display name if not already in input attributes
-        self._attrs.setdefault(ATTR_DISPLAY_NAME, self.id + '\0')
+        if ATTR_DISPLAY_NAME not in self:
+            self[ATTR_DISPLAY_NAME] = self.id + '\0'
 
     def __contains__(self, key):
         return key in self._attrs
@@ -62,6 +66,10 @@ class Object(object):
 
     def __setitem__(self, key, value):
         self._attrs[key] = value
+        self._signatures[key] = md5(value).hexdigest()
+
+    def get_signature(self, key):
+        return self._signatures[key]
 
     def omit(self, key):
         if key in self:

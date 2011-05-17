@@ -112,6 +112,13 @@ class _FilterProcess(object):
         self._fout.flush()
 
 
+class _FilterResult(object):
+    def __init__(self):
+        self.input_attrs = {}	# name -> MD5(value)
+        self.output_attrs = {}	# name -> MD5(value)
+        self.score = 0
+
+
 class _FilterRunner(object):
     '''A context for processing objects with a Filter.'''
     def __init__(self, state, filter, code_path):
@@ -127,7 +134,7 @@ class _FilterRunner(object):
                                     self.filter.arguments, self.filter.blob)
             self._proc_initialized = False
         timer = Timer()
-        accept = False
+        result = _FilterResult()
         proc = self._proc
         try:
             while True:
@@ -141,12 +148,14 @@ class _FilterRunner(object):
                     key = proc.get_item()
                     if key in obj:
                         proc.send(obj[key])
+                        result.input_attrs[key] = obj.get_signature(key)
                     else:
                         proc.send(None)
                 elif cmd == 'set-attribute':
                     key = proc.get_item()
                     value = proc.get_item()
                     obj[key] = value
+                    result.output_attrs[key] = obj.get_signature(key)
                 elif cmd == 'omit-attribute':
                     key = proc.get_item()
                     try:
@@ -198,15 +207,15 @@ class _FilterRunner(object):
                 elif cmd == 'stdout':
                     print proc.get_item(),
                 elif cmd == 'result':
-                    score = int(proc.get_item(), 10)
-                    accept = score >= self.filter.threshold
+                    result.score = int(proc.get_item(), 10)
                     break
                 else:
                     raise FilterExecutionError('%s: unknown command' %
                                         self.filter.name)
         except IOError:
             if self._proc_initialized:
-                # Filter died on an object.  Treat this as a drop.
+                # Filter died on an object.  The result score defaults to
+                # zero, so this will be treated as a drop.
                 _log.error('Filter %s (signature %s) died on object %s',
                                 self.filter.name, self.filter.signature,
                                 obj.id)
@@ -216,10 +225,14 @@ class _FilterRunner(object):
                 raise FilterExecutionError("Filter %s failed to initialize"
                                 % name)
         finally:
+            accept = self.threshold(result)
             self.filter.stats.update('objs_processed', 'objs_compute',
-                                execution_ns=timer.elapsed,
-                                objs_dropped=(not accept) and 1 or 0)
-        return accept
+                                    objs_dropped=int(not accept),
+                                    execution_ns=timer.elapsed)
+        return result
+
+    def threshold(self, result):
+        return result.score >= self.filter.threshold
 
 
 class Filter(object):
@@ -298,7 +311,8 @@ class FilterStackRunner(threading.Thread):
         accept = False
         try:
             for runner in self._runners:
-                if not runner.evaluate(obj):
+                result = runner.evaluate(obj)
+                if not runner.threshold(result):
                     break
             else:
                 accept = True

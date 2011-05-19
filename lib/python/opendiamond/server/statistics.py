@@ -105,6 +105,11 @@ class Timer(object):
         self._start = time.time()
 
     @property
+    def elapsed_seconds(self):
+        '''Elapsed time in seconds.'''
+        return time.time() - self._start
+
+    @property
     def elapsed(self):
         '''Elapsed time in ns.'''
-        return int((time.time() - self._start) * 1e9)
+        return int(self.elapsed_seconds * 1e9)

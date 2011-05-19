@@ -77,6 +77,8 @@ class DiamondServer(object):
             _log.info('Starting supervisor %s, pid %d',
                                         opendiamond.__version__, os.getpid())
             _log.info('Server IDs: %s', ', '.join(self.config.serverids))
+            if self.config.cache_server:
+                _log.info('Cache: %s:%d' % self.config.cache_server)
             while True:
                 # Accept a new connection pair
                 control, data = self._listener.accept()

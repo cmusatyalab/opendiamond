@@ -88,6 +88,12 @@ class DiamondConfig(object):
         # Define configuration parameters
         params = _ConfigParams(
             ## diamondd
+            # Redis database
+            _Param('cache_database', 'CACHEDB', 0),
+            # Redis password
+            _Param('cache_password', 'CACHEPASSWD', None),
+            # Redis host and port
+            _Param('cache_server', 'CACHE', None),
             # Cache directory
             _Param('cachedir', 'CACHEDIR', os.path.join(confdir, 'cache')),
             # PEM data for scope cookie signing certificates
@@ -187,3 +193,14 @@ class DiamondConfig(object):
             except IOError:
                 raise DiamondConfigError("Couldn't read certificate file: "
                                 + self.certfile)
+
+        # Parse the Redis server address if specified
+        if self.cache_server is not None:
+            if ':' not in self.cache_server:
+                self.cache_server += ':6379'
+            host, port = self.cache_server.split(':', 1)
+            try:
+                port = int(port)
+            except ValueError:
+                raise DiamondConfigError('Invalid port number: ' + port)
+            self.cache_server = (host, port)

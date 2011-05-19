@@ -157,7 +157,7 @@ class ChoiceParameter(BaseParameter):
         return ret
 
     def parse(self, str):
-        index = int(str, 10)
+        index = int(str)
         if index < 0 or index >= len(self.choices):
             raise ValueError('Selection out of range')
         return self.choices[index][0]

@@ -266,7 +266,7 @@ class DiamondConnection(object):
         elif len(sizebuf.strip()) == 0:
             # No length value == no data
             return None
-        size = int(sizebuf, 10)
+        size = int(sizebuf)
         item = self.fin.read(size)
         if len(item) != size:
             raise IOError('Short read from stream')
@@ -344,7 +344,7 @@ def run_filter_loop(filter_class):
         StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
 
         # Read arguments and initialize filter
-        ver = int(conn.get_item(), 10)
+        ver = int(conn.get_item())
         if ver != 1:
             raise ValueError('Unknown protocol version %d' % ver)
         name = conn.get_item()

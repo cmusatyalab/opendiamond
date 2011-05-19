@@ -164,7 +164,7 @@ class ScopeCookie(object):
             v = v.strip()
             if k == 'Version':
                 try:
-                    if int(v, 10) != COOKIE_VERSION:
+                    if int(v) != COOKIE_VERSION:
                         raise ScopeError('Unknown cookie version %s' % v)
                 except ValueError:
                     raise ScopeError('Invalid cookie version string')

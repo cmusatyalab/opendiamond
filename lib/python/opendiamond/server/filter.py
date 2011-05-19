@@ -82,7 +82,7 @@ class _FilterProcess(object):
         elif len(sizebuf.strip()) == 0:
             # No length value == no data
             return None
-        size = int(sizebuf, 10)
+        size = int(sizebuf)
         item = self._fin.read(size)
         if len(item) != size:
             raise IOError('Short read from stream')
@@ -280,7 +280,7 @@ class _FilterRunner(_ObjectProcessor):
                     valuemap = dict(zip(keys, values))
                     self._state.session_vars.filter_update(valuemap)
                 elif cmd == 'log':
-                    level = int(proc.get_item(), 10)
+                    level = int(proc.get_item())
                     message = proc.get_item()
                     if level & 0x01:
                         # LOGL_CRIT
@@ -303,7 +303,7 @@ class _FilterRunner(_ObjectProcessor):
                 elif cmd == 'stdout':
                     print proc.get_item(),
                 elif cmd == 'result':
-                    result.score = int(proc.get_item(), 10)
+                    result.score = int(proc.get_item())
                     break
                 else:
                     raise FilterExecutionError('%s: unknown command' % self)
@@ -388,7 +388,7 @@ class Filter(object):
                 arguments.append(v)
             elif k == 'THRESHOLD':
                 try:
-                    threshold = int(v, 10)
+                    threshold = int(v)
                 except ValueError:
                     raise FilterSpecError('Threshold not an integer')
             elif k == 'SIGNATURE':

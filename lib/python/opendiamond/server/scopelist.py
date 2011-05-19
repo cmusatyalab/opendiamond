@@ -32,9 +32,9 @@ class _ScopeListHandler(ContentHandler):
             # count is optional
             count = attrs.get('count')
             if count is not None:
-                self.count += int(count, 10)
+                self.count += int(count)
         elif name == 'count':
-            self.count += int(attrs['adjust'], 10)
+            self.count += int(attrs['adjust'])
         elif name == 'object':
             self.pending_objects.append(attrs['src'])
 

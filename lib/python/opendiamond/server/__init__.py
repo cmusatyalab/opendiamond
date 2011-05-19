@@ -42,6 +42,19 @@ class _Signalled(BaseException):
             self.signame = 'unknown signal'
 
 
+class _TimestampedLogFormatter(logging.Formatter):
+    '''Format a log message with a timestamp including milliseconds delimited
+    by a decimal point.'''
+
+    def __init__(self):
+        logging.Formatter.__init__(self, '%(asctime)s %(message)s',
+                                '%Y-%m-%d %H:%M:%S')
+
+    def formatTime(self, record, datefmt):
+        s = datetime.fromtimestamp(record.created).strftime(datefmt)
+        return s + '.%03d' % record.msecs
+
+
 class DiamondServer(object):
     caught_signals = (signal.SIGINT, signal.SIGTERM)
 
@@ -69,6 +82,7 @@ class DiamondServer(object):
         self._logfile_handler = TimedRotatingFileHandler(
                                 os.path.join(config.logdir, 'diamondd.log'),
                                 when='midnight', backupCount=14)
+        self._logfile_handler.setFormatter(_TimestampedLogFormatter())
         baselog.addHandler(self._logfile_handler)
 
     def run(self):
@@ -114,7 +128,9 @@ class DiamondServer(object):
         now = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
         logname = 'search-%s-%d.log' % (now, os.getpid())
         logpath = os.path.join(self.config.logdir, logname)
-        baselog.addHandler(logging.FileHandler(logpath))
+        handler = logging.FileHandler(logpath)
+        handler.setFormatter(_TimestampedLogFormatter())
+        baselog.addHandler(handler)
 
         # Okay, now we have logging
         try:

@@ -25,30 +25,17 @@ def index(request):
 	form = CollectionForm(request.POST, user=request.user)
 
 	if form.is_valid():
-	  if request.POST.get('submit') == 'Define Scope':
-	    collections = form.cleaned_data['collections']
+          cookie = []
+          for collection in form.cleaned_data['collections']:
+              scope = [ "/collection/%s" % collection.gid.replace(':','') ]
+              servers = {}
+              for server in collection.servers.all():
+                  servers[server.host] = True
+              cookie.extend(generate_cookie(scope, servers))
 
-	    gids = " ".join(c.gid for c in collections)
-	    cookie = [ "1\ncollection %s\n%d\n" % (gids, len(collections)) ]
-	    for c in collections:
-		servers = " ".join(s.host for s in c.servers.all())
-		cookie.append("%s %s\n" % (c.gid, servers))
-
-	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
-	    resp['Content-Disposition']='attachment; filename=diamond.scope'
-	    return resp
-	  else:
-	    cookie = []
-	    for collection in form.cleaned_data['collections']:
-		scope = [ "/collection/%s" % collection.gid.replace(':','') ]
-		servers = {}
-		for server in collection.servers.all():
-		    servers[server.host] = True
-		cookie.extend(generate_cookie(scope, servers))
-
-	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
-	    resp['Content-Disposition']='attachment; filename=opendiamond.scope'
-	    return resp
+          resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
+          resp['Content-Disposition']='attachment; filename=opendiamond.scope'
+          return resp
     else:
 	form = CollectionForm(user=request.user)
 

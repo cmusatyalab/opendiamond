@@ -126,7 +126,7 @@ class _FilterProcess(object):
 
 
 class _FilterResult(object):
-    def __init__(self, input_attrs=None, output_attrs=None, score=0):
+    def __init__(self, input_attrs=None, output_attrs=None, score=0.0):
         self.input_attrs = input_attrs or {}	# name -> MD5(value)
         self.output_attrs = output_attrs or {}	# name -> MD5(value)
         self.score = score
@@ -303,7 +303,7 @@ class _FilterRunner(_ObjectProcessor):
                 elif cmd == 'stdout':
                     print proc.get_item(),
                 elif cmd == 'result':
-                    result.score = int(proc.get_item())
+                    result.score = float(proc.get_item())
                     break
                 else:
                     raise FilterExecutionError('%s: unknown command' % self)
@@ -388,7 +388,7 @@ class Filter(object):
                 arguments.append(v)
             elif k == 'THRESHOLD':
                 try:
-                    threshold = int(v)
+                    threshold = float(v)
                 except ValueError:
                     raise FilterSpecError('Threshold not an integer')
             elif k == 'SIGNATURE':

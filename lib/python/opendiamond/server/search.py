@@ -49,6 +49,7 @@ class Search(RPCHandlers):
         self._server_id = config.serverids[0]  # Canonical server ID
         self._state = SearchState(config, blast_conn)
         self._filters = FilterStack()
+        self._cookies = []
         self._running = False
 
     def __del__(self):
@@ -86,7 +87,8 @@ class Search(RPCHandlers):
             _log.info('Received scope cookie %s', repr(cookie))
             cookie.verify(self._state.config.serverids,
                             self._state.config.certdata)
-            self._state.scope = ScopeListLoader(self._server_id, cookie)
+            self._cookies.append(cookie)
+            self._state.scope = ScopeListLoader(self._server_id, self._cookies)
         except ScopeCookieExpired:
             _log.warning('Cookie expired')
             raise DiamondRPCCookieExpired()

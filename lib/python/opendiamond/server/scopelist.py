@@ -40,9 +40,9 @@ class _ScopeListHandler(ContentHandler):
 
 
 class ScopeListLoader(object):
-    def __init__(self, server_id, cookie):
+    def __init__(self, server_id, cookies):
         self.server_id = server_id
-        self.cookie = cookie
+        self.cookies = cookies
         self._lock = threading.Lock()
         self._handler = _ScopeListHandler()
         self._generator = self._generator_func()
@@ -57,19 +57,20 @@ class ScopeListLoader(object):
     def _generator_func(self):
         parser = make_parser()
         parser.setContentHandler(self._handler)
-        for scope_url in self.cookie:
-            fh = urlopen(scope_url)
-            # Read the scope list in 4 KB chunks
-            while True:
-                buf = fh.read(4096)
-                if len(buf) == 0:
-                    break
-                parser.feed(buf)
-                while len(self._handler.pending_objects) > 0:
-                    url = self._handler.pending_objects.pop(0)
-                    yield Object(self.server_id, urljoin(scope_url, url))
-            parser.close()
-            parser.reset()
+        for cookie in self.cookies:
+            for scope_url in cookie:
+                fh = urlopen(scope_url)
+                # Read the scope list in 4 KB chunks
+                while True:
+                    buf = fh.read(4096)
+                    if len(buf) == 0:
+                        break
+                    parser.feed(buf)
+                    while len(self._handler.pending_objects) > 0:
+                        url = self._handler.pending_objects.pop(0)
+                        yield Object(self.server_id, urljoin(scope_url, url))
+                parser.close()
+                parser.reset()
 
     def get_count(self):
         with self._lock:

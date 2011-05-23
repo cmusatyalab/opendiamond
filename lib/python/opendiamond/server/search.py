@@ -19,7 +19,7 @@ import logging
 from opendiamond.scope import ScopeCookie, ScopeError, ScopeCookieExpired
 from opendiamond.server.blobcache import BlobCache
 from opendiamond.server.filter import FilterStack
-from opendiamond.server.object_ import Object
+from opendiamond.server.object_ import EmptyObject, Object
 from opendiamond.server.protocol import *
 from opendiamond.server.rpc import RPCProcedureUnavailable
 from opendiamond.server.scopelist import ScopeListLoader
@@ -218,4 +218,8 @@ class BlastChannel(object):
 
     def send(self, obj):
         xdr = obj.xdr(self._search_id, self._push_attrs)
+        _BlastChannelSender(xdr).send(self._conn)
+
+    def close(self):
+        xdr = EmptyObject().xdr(self._search_id)
         _BlastChannelSender(xdr).send(self._conn)

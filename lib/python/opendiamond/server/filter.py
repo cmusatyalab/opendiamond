@@ -415,12 +415,13 @@ class Filter(object):
 
 
 class FilterStackRunner(threading.Thread):
-    def __init__(self, state, filter_runners, name):
+    def __init__(self, state, filter_runners, name, cleanup):
         threading.Thread.__init__(self, name=name)
         self.setDaemon(True)
         self._state = state
         self._runners = filter_runners
         self._redis = None	# May be None if caching is not enabled
+        self._cleanup = cleanup	# cleanup.__del__ fires when all workers exit
 
     def _get_attribute_key(self, value_sig):
         return 'attribute:' + value_sig
@@ -639,6 +640,14 @@ class FilterStackRunner(threading.Thread):
             os.kill(os.getpid(), signal.SIGUSR1)
 
 
+class Reference(object):
+    def __init__(self, callback):
+        self._callback = callback
+
+    def __del__(self):
+        self._callback()
+
+
 class FilterStack(object):
     def __init__(self, filters=[]):
         # name -> Filter
@@ -698,12 +707,13 @@ class FilterStack(object):
         add_filter(fspec)
         return cls(filters)
 
-    def bind(self, state, name='Filter'):
+    def bind(self, state, name='Filter', cleanup=None):
         '''Returns a FilterStackRunner that can be used to process objects
         with this filter stack.'''
         runners = [_ObjectFetcher()] + [f.bind(state) for f in self._order]
-        return FilterStackRunner(state, runners, name)
+        return FilterStackRunner(state, runners, name, cleanup)
 
     def start_threads(self, state, count):
+        cleanup = Reference(state.blast.close)
         for i in xrange(count):
-            self.bind(state, 'Filter-%d' % i).start()
+            self.bind(state, 'Filter-%d' % i, cleanup).start()

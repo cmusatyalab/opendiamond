@@ -25,38 +25,19 @@ ATTR_OBJ_ID = '_ObjectID'
 ATTR_DISPLAY_NAME = 'Display-Name'
 ATTR_DEVICE_NAME = 'Device-Name'
 
-class Object(object):
-    def __init__(self, server_id, url):
-        self.id = url
+class EmptyObject(object):
+    id = 'Empty'
+
+    def __init__(self):
         self._attrs = dict()
         self._signatures = dict()
         self._omit_attrs = set()
-
-        # Set default attributes
-        self[ATTR_DEVICE_NAME] = server_id + '\0'
-        self[ATTR_OBJ_ID] = url + '\0'
 
     def __repr__(self):
         return '<Object(%s)>' % repr(self.id)
 
     def load(self):
-        # Load the object data.  urllib2 does not reuse HTTP connections, so
-        # this will always create a new connection.  If this becomes a
-        # problem, this code will need to be converted to use pycurl.
-        # The dataretriever may not support persistent connections either,
-        # depending on the HTTP server package it's using, so the lack of
-        # support on this end may not matter.
-        fh = urlopen(self.id)
-        self[ATTR_DATA] = fh.read()
-        # Process input attributes
-        info = fh.info()
-        for header in info.keys():
-            if header.lower().startswith(ATTR_HEADER_PREFIX):
-                attr = header.replace(ATTR_HEADER_PREFIX, '', 1)
-                self[attr] = info[header] + '\0'
-        # Set display name if not already in input attributes
-        if ATTR_DISPLAY_NAME not in self:
-            self[ATTR_DISPLAY_NAME] = self.id + '\0'
+        raise TypeError()
 
     def __iter__(self):
         return self._attrs.iterkeys()
@@ -68,8 +49,7 @@ class Object(object):
         return self._attrs[key]
 
     def __setitem__(self, key, value):
-        self._attrs[key] = value
-        self._signatures[key] = md5(value).hexdigest()
+        raise TypeError()
 
     def get_signature(self, key):
         return self._signatures[key]
@@ -111,3 +91,36 @@ class Object(object):
     def xdr(self, search_id, output_set=None):
         return XDR_object(search_id, self._attrs.get(ATTR_DATA, ''),
                             self.xdr_attributes(output_set, False))
+
+
+class Object(EmptyObject):
+    def __init__(self, server_id, url):
+        EmptyObject.__init__(self)
+        self.id = url
+
+        # Set default attributes
+        self[ATTR_DEVICE_NAME] = server_id + '\0'
+        self[ATTR_OBJ_ID] = url + '\0'
+
+    def load(self):
+        # Load the object data.  urllib2 does not reuse HTTP connections, so
+        # this will always create a new connection.  If this becomes a
+        # problem, this code will need to be converted to use pycurl.
+        # The dataretriever may not support persistent connections either,
+        # depending on the HTTP server package it's using, so the lack of
+        # support on this end may not matter.
+        fh = urlopen(self.id)
+        self[ATTR_DATA] = fh.read()
+        # Process input attributes
+        info = fh.info()
+        for header in info.keys():
+            if header.lower().startswith(ATTR_HEADER_PREFIX):
+                attr = header.replace(ATTR_HEADER_PREFIX, '', 1)
+                self[attr] = info[header] + '\0'
+        # Set display name if not already in input attributes
+        if ATTR_DISPLAY_NAME not in self:
+            self[ATTR_DISPLAY_NAME] = self.id + '\0'
+
+    def __setitem__(self, key, value):
+        self._attrs[key] = value
+        self._signatures[key] = md5(value).hexdigest()

@@ -186,7 +186,8 @@ class ScopeCookie(object):
                 servers = [s.strip() for s in re.split('[;,]', v)
                             if s.strip() != '']
         # Parse body
-        scopeurls = [u.strip() for u in body.split('\n')]
+        scopeurls = [s for s in [u.strip() for u in body.split('\n')]
+                    if s != '']
         # Build scope cookie object
         try:
             return cls(serial, expires, servers, scopeurls, data, signature)

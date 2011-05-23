@@ -111,13 +111,13 @@ class Object(EmptyObject):
         # support on this end may not matter.
         fh = urlopen(self.id)
         self[ATTR_DATA] = fh.read()
-        # Process input attributes
+        # Process initial attributes
         info = fh.info()
         for header in info.keys():
             if header.lower().startswith(ATTR_HEADER_PREFIX):
                 attr = header.replace(ATTR_HEADER_PREFIX, '', 1)
                 self[attr] = info[header] + '\0'
-        # Set display name if not already in input attributes
+        # Set display name if not already in initial attributes
         if ATTR_DISPLAY_NAME not in self:
             self[ATTR_DISPLAY_NAME] = self.id + '\0'
 

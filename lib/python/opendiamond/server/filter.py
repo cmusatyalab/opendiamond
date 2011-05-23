@@ -628,9 +628,7 @@ class FilterStackRunner(threading.Thread):
             # multiple threads
             for obj in self._state.scope:
                 if self.evaluate(obj):
-                    xdr = obj.xdr(self._state.search_id,
-                                    self._state.push_attrs)
-                    self._state.blast.send(xdr)
+                    self._state.blast.send(obj)
         except ConnectionFailure, e:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.

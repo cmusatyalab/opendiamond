@@ -30,15 +30,13 @@ _log = logging.getLogger(__name__)
 
 class SearchState(object):
     '''Search state that is also needed by filter code.'''
-    def __init__(self, config, blast_conn):
+    def __init__(self, config):
         self.config = config
-        self.blast = BlastChannel(blast_conn)
         self.blob_cache = BlobCache(config.cachedir)
         self.session_vars = SessionVariables()
         self.stats = SearchStatistics()
         self.scope = None
-        self.push_attrs = None
-        self.search_id = None
+        self.blast = None
 
 
 class Search(RPCHandlers):
@@ -47,9 +45,11 @@ class Search(RPCHandlers):
     def __init__(self, config, blast_conn):
         RPCHandlers.__init__(self)
         self._server_id = config.serverids[0]  # Canonical server ID
-        self._state = SearchState(config, blast_conn)
+        self._blast_conn = blast_conn
+        self._state = SearchState(config)
         self._filters = FilterStack()
         self._cookies = []
+        self._push_attrs = None
         self._running = False
 
     def __del__(self):
@@ -99,7 +99,7 @@ class Search(RPCHandlers):
     @RPCHandlers.handler(20, XDR_attr_name_list)
     @running(False)
     def set_push_attrs(self, params):
-        self._state.push_attrs = set(params.attrs)
+        self._push_attrs = set(params.attrs)
 
     @RPCHandlers.handler(6, XDR_spec_file)
     @running(False)
@@ -146,7 +146,8 @@ class Search(RPCHandlers):
         except DiamondRPCFailure, e:
             _log.warning('Cannot start search: %s', str(e))
             raise
-        self._state.search_id = params.search_id
+        self._state.blast = BlastChannel(self._blast_conn, params.search_id,
+                                self._push_attrs)
         self._running = True
         _log.info('Starting search %d', params.search_id)
         self._filters.start_threads(self._state, self._state.config.threads)
@@ -210,8 +211,11 @@ class _BlastChannelSender(RPCHandlers):
 
 
 class BlastChannel(object):
-    def __init__(self, conn):
+    def __init__(self, conn, search_id, push_attrs):
         self._conn = conn
+        self._search_id = search_id
+        self._push_attrs = push_attrs
 
     def send(self, obj):
-        _BlastChannelSender(obj).send(self._conn)
+        xdr = obj.xdr(self._search_id, self._push_attrs)
+        _BlastChannelSender(xdr).send(self._conn)

@@ -134,11 +134,11 @@ class DiamondConfig(object):
         try:
             config = dict()
             for line in open(path):
-                if line[0] == '#':
+                line = line.strip()
+                if line == '' or line[0] == '#':
                     continue
                 try:
                     key, value = line.split(None, 1)
-                    value = value.strip()
                     try:
                         param = params.get_key(key)
                     except KeyError:

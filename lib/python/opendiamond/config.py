@@ -178,7 +178,8 @@ class DiamondConfig(object):
             try:
                 for info in socket.getaddrinfo(hostname, None):
                     try:
-                        name = socket.getnameinfo(info[4], socket.NI_NAMEREQD)
+                        name = socket.getnameinfo(info[4],
+                                        socket.NI_NAMEREQD)[0]
                         names.add(name)
                     except socket.gaierror:
                         pass

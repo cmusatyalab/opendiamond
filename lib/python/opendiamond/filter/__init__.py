@@ -95,7 +95,7 @@ class Filter(object):
         if self.blob_is_egg:
             # NamedTemporaryFile always deletes the file on close on
             # Python 2.5, so we can't use it
-            fd, name = mkstemp(prefix = 'filter-', suffix = '.egg')
+            fd, name = mkstemp(prefix='filter-', suffix='.egg')
             egg = os.fdopen(fd, 'r+')
             egg.write(blob)
             egg.close()

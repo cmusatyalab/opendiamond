@@ -13,7 +13,7 @@
 
 from hashlib import md5
 import os
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 
 class BlobCache(object):
     def __init__(self, basedir):
@@ -33,12 +33,15 @@ class BlobCache(object):
 
     def add(self, data, executable=False):
         sig = md5(data).hexdigest()
-        temp = NamedTemporaryFile(dir=self.basedir, delete=False)
+        # NamedTemporaryFile always deletes the file on close on Python 2.5,
+        # so we can't use it
+        fd, name = mkstemp(dir=self.basedir)
         if executable:
-            os.fchmod(temp.fileno(), 0700)
+            os.chmod(name, 0700)
+        temp = os.fdopen(fd, 'r+')
         temp.write(data)
         temp.close()
-        os.rename(temp.name, self._path(sig))
+        os.rename(name, self._path(sig))
 
     def path(self, sig):
         if sig not in self:

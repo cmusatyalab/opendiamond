@@ -4,6 +4,7 @@ EXTRA_DIST = setup.py \
 	opendiamond/config.py \
 	opendiamond/helpers.py \
 	opendiamond/scope.py \
+	opendiamond/test.py \
 	opendiamond/filter/__init__.py \
 	opendiamond/filter/parameters.py \
 	opendiamond/server/__init__.py \
@@ -24,6 +25,10 @@ EXTRA_DIST = setup.py \
 
 all-local: setup.py $(EXTRA_DIST)
 	$(PYTHON) setup.py build
+
+check-local:
+	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) $(srcdir)/opendiamond/test.py
 
 install-exec-local:
 	$(PYTHON) setup.py install --prefix=$(DESTDIR)$(prefix)

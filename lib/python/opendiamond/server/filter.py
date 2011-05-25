@@ -132,15 +132,11 @@ class _FilterResult(object):
         self.cache_output = False
 
     def encode(self):
-        def handler(obj):
-            if isinstance(obj, self.__class__):
-                return {
-                    'input_attrs': obj.input_attrs,
-                    'output_attrs': obj.output_attrs,
-                    'score': obj.score,
-                }
-            raise TypeError('Cannot serialize ' + repr(obj))
-        return json.dumps(self, default=handler)
+        return json.dumps({
+            'input_attrs': self.input_attrs,
+            'output_attrs': self.output_attrs,
+            'score': self.score,
+        })
 
     @classmethod
     def decode(cls, data):

@@ -31,6 +31,8 @@ install-exec-local:
 uninstall-local:
 	$(RM) $(DESTDIR)$(pythondir)/opendiamond*.egg-info
 	$(RM) -r $(DESTDIR)$(pythondir)/opendiamond
+	$(RM) $(DESTDIR)$(bindir)/cookiecutter
+	$(RM) $(DESTDIR)$(bindir)/diamondd
 	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-python
 
 clean-local:

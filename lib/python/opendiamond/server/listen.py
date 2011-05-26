@@ -47,9 +47,10 @@ class _PendingConn(object):
        connection.  Otherwise, we have a pairing; send the nonce back down
        the connection and start handling RPCs.'''
 
-    def __init__(self, sock):
+    def __init__(self, sock, peer):
         self.sock = sock
         self.sock.setblocking(0)
+        self.peer = peer
         self.nonce = ''
 
     def read_nonce(self):
@@ -76,10 +77,6 @@ class _PendingConn(object):
     @property
     def nonce_str(self):
         return binascii.hexlify(self.nonce)
-
-    @property
-    def peer(self):
-        return self.sock.getpeername()[0]
 
 
 class _PendingConnPollSet(object):
@@ -166,8 +163,9 @@ class ConnListener(object):
         try:
             while True:
                 sock, addr = self._listen.accept()
-                _log.debug('New connection from %s', addr[0])
-                self._poll.register(_PendingConn(sock),
+                pconn = _PendingConn(sock, addr[0])
+                _log.debug('New connection from %s', pconn.peer)
+                self._poll.register(pconn,
                             select.POLLIN | select.POLLHUP | select.POLLERR)
         except socket.error:
             pass

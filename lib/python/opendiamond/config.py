@@ -30,25 +30,25 @@ class _Param(object):
 
 class _ConfigParams(object):
     def __init__(self, *args):
-        self.by_attr = dict()
-        self.by_key = dict()
+        self._by_attr = dict()
+        self._by_key = dict()
         for param in args:
             if param.attr is not None:
-                self.by_attr[param.attr] = param
+                self._by_attr[param.attr] = param
             if param.config_key is not None:
-                self.by_key[param.config_key] = param
+                self._by_key[param.config_key] = param
 
     def iter_attrs(self):
         '''Return iterator over _Params with defined attribute names.'''
-        return self.by_attr.itervalues()
+        return self._by_attr.itervalues()
 
     def has_attr(self, key):
         '''Check for parameter existence by attribute name.'''
-        return key in self.by_attr
+        return key in self._by_attr
 
     def get_key(self, key):
         '''Parameter lookup by config key.'''
-        return self.by_key[key]
+        return self._by_key[key]
 
 
 class DiamondConfig(object):

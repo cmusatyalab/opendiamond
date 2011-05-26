@@ -36,10 +36,14 @@ class BlobCache(object):
         # NamedTemporaryFile always deletes the file on close on Python 2.5,
         # so we can't use it
         fd, name = mkstemp(dir=self.basedir)
-        temp = os.fdopen(fd, 'r+')
-        temp.write(data)
-        temp.close()
-        os.rename(name, self._path(sig))
+        try:
+            temp = os.fdopen(fd, 'r+')
+            temp.write(data)
+            temp.close()
+            os.rename(name, self._path(sig))
+        except:
+            os.unlink(name)
+            raise
 
     def executable_path(self, sig):
         try:

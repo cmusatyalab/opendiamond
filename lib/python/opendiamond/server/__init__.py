@@ -11,6 +11,72 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''
+diamondd has a long-lived supervisor process responsible for accepting
+connections.  The supervisor process forks to produce a child process which
+handles a particular search.  This ensures that any resource leaks within
+the search logic will not accumulate in a long-running process.
+
+The supervisor diamondd process is single-threaded, and all of its network I/O
+is performed non-blockingly.  It is responsible for the following:
+
+1.  Listening for incoming control and blast channel connections and pairing
+them via a nonce communicated when the connection is first established.
+
+2.  Establishing a temporary directory and forking a child process for every
+connection pair.
+
+3.  Cleaning up after search processes which have exited by deleting their
+temporary directories and killing all of their children (filters and helper
+processes).
+
+The child is responsible for handling the search.  Initially it has only one
+thread, which is responsible for handling the control connection back to the
+client.  All client RPCs, including search reexecution, are handled in this
+thread.  When the start() RPC is received, the client creates N worker
+threads (configurable, defaulting to the number of processors on the
+machine) to process objects for the search.
+
+Several pieces of mutable state are shared between threads.  The control
+thread configures a ScopeListLoader which iterates over the in-scope Diamond
+objects, returning a new object to each worker thread that asks for one.
+The blast channel is also shared.  There are also shared objects for logging
+and for tracking of statistics and session variables.  All of these objects
+have locking to ensure consistency.
+
+Each worker thread maintains a private TCP connection to the Redis server,
+which is used for result and attribute caching.  Each worker thread also
+maintains one child process for each filter in the filter stack.  These
+children are the actual filter code, and communicate with the worker thread
+via a pair of pipes.  Because each worker thread has its own set of filter
+processes, worker threads can process objects independently.
+
+Each worker thread executes a loop:
+
+1.  Obtain a new object from the ScopeListLoader.
+
+2.  Retrieve result cache entries from Redis.
+
+3.  Walk the result cache entries to determine if a drop decision can be
+made.  If so, drop the object.
+
+4.  For each filter in the filter chain, determine whether we received a
+valid result cache entry for the filter.  If so, attempt to obtain attribute
+cache entries from Redis.  If successful, merge the cached attributes into
+the object.  Otherwise, execute the filter.  If the filter produces a drop
+decision, break.
+
+5.  Transmit new result cache entries, as well as attribute cache entries
+for filters producing less than 2 MB/s of attribute values, to Redis.
+
+6.  If accepting the object, transmit it to the client via the blast
+channel.
+
+If a filter crashes while processing an object, the object is dropped and
+the filter is restarted.  If a worker thread or the control thread crashes,
+the exception is logged and the entire search is terminated.
+'''
+
 from datetime import datetime
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -28,6 +94,8 @@ from opendiamond.server.search import Search
 _log = logging.getLogger(__name__)
 
 class _Signalled(BaseException):
+    '''Exception indicating that a signal has been received.'''
+
     def __init__(self, sig):
         self.signal = sig
         # Find the signal name
@@ -84,8 +152,8 @@ class DiamondServer(object):
         baselog.addHandler(self._logfile_handler)
 
     def run(self):
-        # Log startup of parent
         try:
+            # Log startup of parent
             _log.info('Starting supervisor %s, pid %d',
                                         opendiamond.__version__, os.getpid())
             _log.info('Server IDs: %s', ', '.join(self.config.serverids))

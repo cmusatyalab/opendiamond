@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Diamond configuration file parsing.'''
+
 import os
 import socket
 
@@ -19,6 +21,8 @@ class DiamondConfigError(Exception):
 
 
 class _Param(object):
+    '''Descriptor for a single configuration parameter.'''
+
     def __init__(self, attr=None, config_key=None, default=None):
         '''attr is None for deprecated config keys.  config_key is None for
         parameters not available via the config file.  default is None when
@@ -29,6 +33,8 @@ class _Param(object):
 
 
 class _ConfigParams(object):
+    '''The set of valid configuration parameters.'''
+
     def __init__(self, *args):
         self._by_attr = dict()
         self._by_key = dict()
@@ -52,6 +58,8 @@ class _ConfigParams(object):
 
 
 class DiamondConfig(object):
+    '''Container for a set of configuration values.'''
+
     def __init__(self, path=None, **kwargs):
         '''kwargs are attr=value pairs which should override any values
         parsed from the config file.  Only valid config attributes are

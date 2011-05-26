@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Statistics tracking.'''
+
 from __future__ import with_statement
 import logging
 import threading
@@ -21,6 +23,8 @@ from opendiamond.server.protocol import XDR_search_stats, XDR_filter_stats
 _log = logging.getLogger(__name__)
 
 class _Statistics(object):
+    '''Base class for server statistics.'''
+
     label = 'Unconfigured statistics'
     attrs = ()
 
@@ -32,6 +36,8 @@ class _Statistics(object):
         return self._stats[key]
 
     def update(self, *args, **kwargs):
+        '''Atomically add 1 to the statistics listed in *args and add the
+        values specified in **kwargs to the corresponding statistics.'''
         with self._lock:
             for name in args:
                 self._stats[name] += 1
@@ -39,15 +45,19 @@ class _Statistics(object):
                 self._stats[name] += value
 
     def log(self):
+        '''Dump all statistics to the log.'''
         _log.info('%s:', self.label)
         for name, desc in self.attrs:
             _log.info('  %s: %d', desc, self._stats[name])
 
     def xdr(self, *args, **kwargs):
+        '''Return an XDR statistics structure for these statistics.'''
         raise NotImplemented()
 
 
 class SearchStatistics(_Statistics):
+    '''Statistics for the search as a whole.'''
+
     label = 'Search statistics'
     attrs = (('objs_processed', 'Objects considered'),
             ('objs_dropped', 'Objects dropped'),
@@ -70,6 +80,8 @@ class SearchStatistics(_Statistics):
 
 
 class FilterStatistics(_Statistics):
+    '''Statistics for the execution of a single filter.'''
+
     attrs = (('objs_processed', 'Total objects considered'),
             ('objs_dropped', 'Total objects dropped'),
             ('objs_cache_dropped', 'Objects dropped by cache'),
@@ -99,6 +111,8 @@ class FilterStatistics(_Statistics):
 
 
 class Timer(object):
+    '''Tracks the elapsed time since the Timer object was created.'''
+
     def __init__(self):
         self._start = time.time()
 

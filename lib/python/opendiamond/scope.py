@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Scope cookie generation, parsing, and verification.'''
+
 # Scope cookie format:
 #
 #	-----BEGIN OPENDIAMOND SCOPECOOKIE-----
@@ -65,6 +67,7 @@ class ScopeCookie(object):
         self.signature = signature	# Binary signature of the data
 
     def __str__(self):
+        '''Return the decoded scope cookie.'''
         return binascii.hexlify(self.signature) + '\n' + self.data
 
     def __repr__(self):
@@ -76,11 +79,14 @@ class ScopeCookie(object):
         return iter(self.scopeurls)
 
     def encode(self):
+        '''Return the encoded scope cookie.'''
         return (BOUNDARY_START +
                 textwrap.fill(base64.b64encode(str(self)), 64) + '\n' +
                 BOUNDARY_END)
 
     def verify(self, servernames, certdata):
+        '''Verify the cookie against the specified server ID list and
+        certificate data.'''
         now = datetime.now(tzutc())
         # Check cookie expiration
         if self.expires < now:
@@ -114,8 +120,9 @@ class ScopeCookie(object):
 
     @classmethod
     def generate(cls, servers, scopeurls, expires, keydata):
-        '''servers and scopeurls are lists.  expires is a timezone-aware
-        datetime.  keydata is a PEM-encoded private key.'''
+        '''Generate and return a new ScopeCookie.  servers and scopeurls
+        are lists.  expires is a timezone-aware datetime.  keydata is a
+        PEM-encoded private key.'''
         # Generate scope data
         serial = str(uuid.uuid4())
         headers = (('Version', COOKIE_VERSION),
@@ -136,6 +143,7 @@ class ScopeCookie(object):
 
     @classmethod
     def parse(cls, data):
+        '''Parse the scope cookie data and return a ScopeCookie.'''
         # Check for boundary markers and remove them
         match = re.match(BOUNDARY_START + '(' + BASE64_RE + ')' +
                         BOUNDARY_END, data)
@@ -197,8 +205,8 @@ class ScopeCookie(object):
 
 def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
                     expires=None):
-    '''High-level helper function: generates a scope cookie for the given
-    scope URLs and servers and returns its encoded form as a string.  keyfile
+    '''High-level helper function: generate a scope cookie for the given
+    scope URLs and servers and return its encoded form as a string.  keyfile
     defaults to ~/.diamond/key.pem and expiration defaults to one hour.  If
     proxies is provided, divide up the scope list among the specified list
     of proxy servers, produce one scope cookie for each proxy, and return

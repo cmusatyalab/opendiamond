@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Representations of a Diamond object.'''
+
 from hashlib import md5
 from urllib2 import urlopen
 
@@ -24,6 +26,8 @@ ATTR_DISPLAY_NAME = 'Display-Name'
 ATTR_DEVICE_NAME = 'Device-Name'
 
 class EmptyObject(object):
+    '''An immutable Diamond object with no data and no attributes.'''
+
     id = 'Empty'
 
     def __init__(self):
@@ -35,9 +39,11 @@ class EmptyObject(object):
         return '<Object(%s)>' % repr(self.id)
 
     def load(self):
+        '''Load the object data from the dataretriever.'''
         raise TypeError()
 
     def __iter__(self):
+        '''Return an iterator over the attribute names.'''
         return self._attrs.iterkeys()
 
     def __contains__(self, key):
@@ -50,16 +56,18 @@ class EmptyObject(object):
         raise TypeError()
 
     def get_signature(self, key):
+        '''Return the MD5 hash of the attribute value.'''
         return self._signatures[key]
 
     def omit(self, key):
+        '''Record that the attribute is not to be returned to the client.'''
         if key in self:
             self._omit_attrs.add(key)
         else:
             raise KeyError()
 
     def xdr_attributes(self, output_set=None, with_data=True):
-        '''Returns a list of XDR_attribute.'''
+        '''Return a list of XDR_attribute.'''
         # Don't encode any evidence of omit attributes.
         send_keys = set(self._attrs.keys()) - self._omit_attrs
         # XDR_object never encodes the data attribute, because it has a
@@ -87,11 +95,14 @@ class EmptyObject(object):
         return attrs
 
     def xdr(self, search_id, output_set=None):
+        '''Return an XDR_object.'''
         return XDR_object(search_id, self._attrs.get(ATTR_DATA, ''),
                             self.xdr_attributes(output_set, False))
 
 
 class Object(EmptyObject):
+    '''A mutable Diamond object.'''
+
     def __init__(self, server_id, url):
         EmptyObject.__init__(self)
         self.id = url

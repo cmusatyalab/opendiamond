@@ -11,20 +11,26 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Session variables.'''
+
 from __future__ import with_statement
 import threading
 
 class _SessionVariable(object):
+    '''A single session variable.'''
+
     def __init__(self):
         self._global_val = 0.0
         self._local_val = 0.0
         self._between_get_and_set_val = 0.0
 
     def filter_get(self):
+        '''Return the total value of the variable.'''
         return (self._global_val + self._local_val +
                             self._between_get_and_set_val)
 
     def filter_update(self, value, between_get_and_set):
+        '''Add a new value produced by a filter into the variable.'''
         if between_get_and_set:
             # The client has gotten local, but not set global
             self._between_get_and_set_val += value
@@ -33,9 +39,12 @@ class _SessionVariable(object):
             self._local_val += value
 
     def client_get(self):
+        '''Return that part of the variable's value not already known to
+        the client.'''
         return self._local_val
 
     def client_set(self, value):
+        '''Process an update of the variable sent by the client.'''
         # Set global value to new value from client
         # (which contains our current local value)
         self._global_val = value
@@ -49,13 +58,16 @@ class _SessionVariable(object):
 
 
 class SessionVariables(object):
+    '''A set of session variables.'''
+
     def __init__(self):
         self._vars = dict()
         self._lock = threading.Lock()
         self._between_get_and_set = False
 
     def filter_get(self, keys):
-        '''@keys is a list of keys to fetch atomically.  Returns a dict.'''
+        '''Return a dict giving the total values of the variables listed in
+        keys.'''
         ret = dict()
         with self._lock:
             for key in keys:
@@ -66,7 +78,8 @@ class SessionVariables(object):
         return ret
 
     def filter_update(self, values):
-        '''@values is a map of keys and the quantities to add to the
+        '''Add new values produced by a filter into the specified variables.
+        @values is a map of keys and the quantities to add to the
         corresponding values.'''
         with self._lock:
             for key, value in values.iteritems():

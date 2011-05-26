@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Scope list retrieval, parsing, and iteration.'''
+
 from __future__ import with_statement
 from urllib2 import urlopen
 from urlparse import urljoin
@@ -21,6 +23,8 @@ from xml.sax.handler import ContentHandler
 from opendiamond.server.object_ import Object
 
 class _ScopeListHandler(ContentHandler):
+    '''Gatherer for results produced by incremental scope list parsing.'''
+
     def __init__(self):
         self.count = 0
         self.pending_objects = []
@@ -38,6 +42,9 @@ class _ScopeListHandler(ContentHandler):
 
 
 class ScopeListLoader(object):
+    '''Iterator over the objects in the scope lists referenced by the scope
+    cookies.'''
+
     def __init__(self, server_id, cookies):
         self.server_id = server_id
         self.cookies = cookies
@@ -49,6 +56,7 @@ class ScopeListLoader(object):
         return self
 
     def next(self):
+        '''Return the next Object.'''
         with self._lock:
             return self._generator.next()
 
@@ -71,5 +79,7 @@ class ScopeListLoader(object):
                 parser.reset()
 
     def get_count(self):
+        '''Return our current understanding of the number of objects in
+        scope.'''
         with self._lock:
             return self._handler.count

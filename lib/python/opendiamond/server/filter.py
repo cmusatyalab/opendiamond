@@ -11,6 +11,52 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Filter configuration and execution; result and attribute caching.
+
+There are two caches, both accessible via key lookups in the same
+Redis database.
+
+Result cache:
+    'result:' + MD5(
+        ' '.join(
+            filter signature,
+            ' '.join(filter arguments),
+            filter blob argument,
+            object ID
+        )
+    ) => JSON({
+        'input_attrs': {attribute name => MD5(attribute value)},
+        'output_attrs': {attribute name => MD5(attribute value)},
+        'score': filter score
+    })
+
+Attribute cache:
+    'attribute:' + MD5(attribute value) => attribute value
+
+The purpose of the result cache is to reuse drop decisions without needing
+to rerun any filters.  A result cache lookup on an object returns an array
+of FilterResult entries, one for each filter in the filter stack, where one
+or more entries may be null.  The score recorded in each result is compared
+to the corresponding threshold for the current search.  If one or more
+results produces a drop decision, the dependency chain of attribute values
+for that result is traversed to prove that its input attribute values were
+produced by filters present in, and identically configured in, the current
+search.  If so, the result cache drops the object.  Otherwise, we proceed to
+filter execution.  FilterResult objects produced by filter execution are
+always stored in the result cache.
+
+The attribute cache is used to reduce the number of filters we need to run
+when executing a filter stack on an object.  When preparing to run a filter,
+we compare its cached FilterResult (if any) to the actual contents of the
+object to ensure that the cached result's input attribute dependencies are
+met.  If so, we look up the hashes of the cached output values in the
+attribute cache.  If they are present, we store those values in the object
+and skip execution of the filter.  Otherwise, we execute the filter.  To
+avoid storing cheaply recomputable values in the attribute cache, we only
+cache values resulting from filter executions that produce attribute data at
+less than 2 MB/s.
+'''
+
 from hashlib import md5
 import logging
 import os
@@ -124,6 +170,10 @@ class _FilterProcess(object):
 
 
 class _FilterResult(object):
+    '''A summary of the result of running a filter on an object: the score
+    and hashes of the output attributes, together with hashes of the input
+    attributes used to produce them.'''
+
     def __init__(self, input_attrs=None, output_attrs=None, score=0.0):
         self.input_attrs = input_attrs or {}	# name -> MD5(value)
         self.output_attrs = output_attrs or {}	# name -> MD5(value)
@@ -153,14 +203,19 @@ class _ObjectProcessor(object):
     '''A context for processing objects.'''
 
     def __str__(self):
+        '''Return a human-readable name for the underlying filter.'''
         raise NotImplemented()
 
     def get_cache_key(self, obj):
+        '''Return the result cache lookup key for previous filter executions
+        on this object.'''
         digest = self._get_cache_digest()
         digest.update(obj.id)
         return 'result:' + digest.hexdigest()
 
     def _get_cache_digest(self):
+        '''Return a digest object with object-independent information about
+        the filter (e.g. its arguments) already hashed into it.'''
         raise NotImplemented()
 
     def cache_hit(self, result):
@@ -169,14 +224,17 @@ class _ObjectProcessor(object):
         pass
 
     def evaluate(self, obj):
+        '''Execute the filter on this object, returning a _FilterResult.'''
         raise NotImplemented()
 
     def threshold(self, result):
+        '''Apply the drop threshold to the _FilterResult and return True
+        to accept the object or False to drop it.'''
         raise NotImplemented()
 
 
 class _ObjectFetcher(_ObjectProcessor):
-    '''A context for fetching objects.'''
+    '''A context for loading object data from the dataretriever.'''
 
     def __init__(self):
         self._digest_prefix = md5('dataretriever ')
@@ -200,6 +258,7 @@ class _ObjectFetcher(_ObjectProcessor):
 
 class _FilterRunner(_ObjectProcessor):
     '''A context for processing objects with a Filter.'''
+
     def __init__(self, state, filter, code_path):
         self._filter = filter
         self._state = state
@@ -329,6 +388,7 @@ class _FilterRunner(_ObjectProcessor):
 
 class Filter(object):
     '''A filter with arguments.'''
+
     def __init__(self, name, signature, threshold, arguments, dependencies):
         self.name = name
         self.signature = signature
@@ -355,10 +415,13 @@ class Filter(object):
     blob = property(_get_blob, _set_blob)
 
     def get_cache_digest(self):
+        '''Return a digest object with information about the filter (e.g.
+        its arguments) already hashed into it.'''
         return self._digest_prefix.copy()
 
     @classmethod
     def from_fspec(cls, fspec_lines):
+        '''Return a Filter generated from the list of fspec lines.'''
         name = None
         signature = None
         threshold = None
@@ -400,7 +463,7 @@ class Filter(object):
         return cls(name, signature, threshold, arguments, dependencies)
 
     def bind(self, state):
-        '''Returns a _FilterRunner for this filter.'''
+        '''Return a _FilterRunner for this filter.'''
         try:
             code_path = state.blob_cache.executable_path(self.signature)
         except KeyError:
@@ -409,6 +472,9 @@ class Filter(object):
 
 
 class FilterStackRunner(threading.Thread):
+    '''A context for processing objects with a FilterStack.  Handles querying
+    and updating the result and attribute caches.'''
+
     def __init__(self, state, filter_runners, name, cleanup):
         threading.Thread.__init__(self, name=name)
         self.setDaemon(True)
@@ -418,11 +484,12 @@ class FilterStackRunner(threading.Thread):
         self._cleanup = cleanup	# cleanup.__del__ fires when all workers exit
 
     def _get_attribute_key(self, value_sig):
+        '''Return an attribute cache lookup key for the specified signature.'''
         return 'attribute:' + value_sig
 
     def _result_cache_can_drop(self, cache_results):
-        '''Returns True if the object can be dropped.  cache_results is a
-        runner -> _FilterResult map retrieved from the cache.'''
+        '''Return True if the object can be dropped.  cache_results is a
+        runner -> _FilterResult map retrieved from the result cache.'''
 
         # Build output_key -> [runners] mapping.
         output_attrs = dict()
@@ -511,7 +578,7 @@ class FilterStackRunner(threading.Thread):
     def _attribute_cache_try_load(self, runner, obj, result):
         '''Try to update object attributes from the cached result from
         this runner, thereby avoiding the need to reexecute the filter.
-        Returns True if successful.'''
+        Return True if successful.'''
         for key, valsig in result.input_attrs.iteritems():
             if key not in obj or obj.get_signature(key) != valsig:
                 # Input attribute is not present in the object or does
@@ -596,6 +663,7 @@ class FilterStackRunner(threading.Thread):
                 self._redis.mset(resultmap)
 
     def evaluate(self, obj):
+        '''Evaluate the object and return True to accept or False to drop.'''
         timer = Timer()
         accept = False
         try:
@@ -635,6 +703,8 @@ class FilterStackRunner(threading.Thread):
 
 
 class Reference(object):
+    '''When destroyed, calls the specified callback.'''
+
     def __init__(self, callback):
         self._callback = callback
 
@@ -643,6 +713,9 @@ class Reference(object):
 
 
 class FilterStack(object):
+    '''A set of filters which collectively decide to accept or drop an
+    object.'''
+
     def __init__(self, filters=[]):
         # name -> Filter
         self._filters = dict([(f.name, f) for f in filters])
@@ -684,6 +757,7 @@ class FilterStack(object):
 
     @classmethod
     def from_fspec(cls, data):
+        '''Parse the fspec data and return a FilterStack.'''
         fspec = []
         filters = []
         def add_filter(fspec):
@@ -702,12 +776,13 @@ class FilterStack(object):
         return cls(filters)
 
     def bind(self, state, name='Filter', cleanup=None):
-        '''Returns a FilterStackRunner that can be used to process objects
+        '''Return a FilterStackRunner that can be used to process objects
         with this filter stack.'''
         runners = [_ObjectFetcher()] + [f.bind(state) for f in self._order]
         return FilterStackRunner(state, runners, name, cleanup)
 
     def start_threads(self, state, count):
+        '''Start count threads to process objects with this filter stack.'''
         cleanup = Reference(state.blast.close)
         for i in xrange(count):
             self.bind(state, 'Filter-%d' % i, cleanup).start()

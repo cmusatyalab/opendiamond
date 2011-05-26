@@ -11,11 +11,15 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''On-disk caching of filter code and blob arguments.'''
+
 from hashlib import md5
 import os
 from tempfile import mkstemp
 
 class BlobCache(object):
+    '''A persistent cache of binary data identified by its MD5 hash in hex.'''
+
     def __init__(self, basedir):
         self.basedir = basedir
 
@@ -32,6 +36,7 @@ class BlobCache(object):
             raise KeyError()
 
     def add(self, data):
+        '''Add the specified data to the cache.'''
         sig = md5(data).hexdigest()
         # NamedTemporaryFile always deletes the file on close on Python 2.5,
         # so we can't use it
@@ -51,6 +56,9 @@ class BlobCache(object):
             os.unlink(name)
 
     def executable_path(self, sig):
+        '''Return the path to the file containing the specified data
+        so that the file can be executed.  Ensure that the executable
+        bit is set in the filesystem.'''
         try:
             path = self._path(sig)
             st = os.stat(path)

@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Forking and monitoring of search processes by supervisor.'''
+
 import logging
 import os
 import shutil
@@ -21,6 +23,8 @@ from tempfile import mkdtemp
 _log = logging.getLogger(__name__)
 
 class _SearchChild(object):
+    '''A forked search process.'''
+
     def __init__(self, cgroupdir=None, fork=True):
         self.pid = None
         self.tempdir = mkdtemp(prefix='diamond-search-')
@@ -37,7 +41,7 @@ class _SearchChild(object):
             self._taskfile = None
 
     def start(self):
-        '''Returns pid in the parent, 0 in the child.'''
+        '''Fork off the child and return pid in the parent, 0 in the child.'''
         assert not self._started
         self._started = True
 
@@ -60,6 +64,9 @@ class _SearchChild(object):
         return self.pid
 
     def cleanup(self):
+        '''Clean up the process' temporary directory.  If cgroups are
+        enabled, also kill the process (if still running) and all of its
+        descendents.'''
         if not self._terminated:
             self._terminated = True
 
@@ -86,6 +93,8 @@ class _SearchChild(object):
 
 
 class ChildManager(object):
+    '''The set of forked search processes.'''
+
     def __init__(self, cgroupdir=None, fork=True):
         self._children = dict()
         self._cgroupdir = cgroupdir
@@ -93,6 +102,7 @@ class ChildManager(object):
         signal.signal(signal.SIGCHLD, self._child_exited)
 
     def start(self, child_function, *args, **kwargs):
+        '''Launch a new search process.'''
         child = _SearchChild(self._cgroupdir, self._fork)
         pid = child.start()
         if pid != 0:
@@ -110,6 +120,7 @@ class ChildManager(object):
                 sys.exit(0)
 
     def _cleanup_child(self, pid):
+        '''Clean up the specified search process.'''
         try:
             child = self._children.pop(pid)
             child.cleanup()
@@ -117,6 +128,7 @@ class ChildManager(object):
             pass
 
     def _child_exited(self, sig, frame):
+        '''Signal handler for SIGCHLD.'''
         try:
             while True:
                 pid, status = os.waitpid(-1, os.WNOHANG)
@@ -130,6 +142,7 @@ class ChildManager(object):
             return
 
     def kill_all(self):
+        '''Clean up all forked search processes.'''
         for pid in self._children.keys():
             _log.debug('Killing PID %d', pid)
             self._cleanup_child(pid)

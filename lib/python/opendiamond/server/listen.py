@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Listening for new connections; pairing control and data connections.'''
+
 import binascii
 import errno
 import logging
@@ -80,6 +82,7 @@ class _PendingConn(object):
             raise _ConnectionClosed()
 
     def send_nonce(self):
+        '''Send the nonce back to the client.'''
         try:
             self.sock.sendall(self.nonce)
         except socket.error:
@@ -87,6 +90,7 @@ class _PendingConn(object):
 
     @property
     def nonce_str(self):
+        '''The nonce as a hex string.'''
         return binascii.hexlify(self.nonce)
 
 
@@ -102,17 +106,21 @@ class _PendingConnPollSet(object):
         self._pollset.register(listener.fileno(), select.POLLIN)
 
     def register(self, pconn, mask):
-        '''Can also be used to update the mask for an existing pconn.'''
+        '''Add the pconn to the set with the specified mask.  Can also be
+        used to update the mask for an existing pconn.'''
         fd = pconn.sock.fileno()
         self._fd_to_pconn[fd] = pconn
         self._pollset.register(fd, mask)
 
     def unregister(self, pconn):
+        '''Remove the pconn from the set.'''
         fd = pconn.sock.fileno()
         self._pollset.unregister(fd)
         del self._fd_to_pconn[fd]
 
     def poll(self):
+        '''Poll for events and return a list of (pconn, eventmask) pairs.
+        pconn will be None for events on the listening socket.'''
         while True:
             try:
                 items = self._pollset.poll()
@@ -136,12 +144,16 @@ class _PendingConnPollSet(object):
         return ret
 
     def close(self):
+        '''Unregister all connections from the pollset.'''
         for pconn in self._fd_to_pconn.values():
             self.unregister(pconn)
         self._pollset.unregister(self._listener.fileno())
 
 
 class ConnListener(object):
+    '''Manager for listening socket and connections still in the matchmaking
+    process.'''
+
     def __init__(self, localhost_only=False):
         # Get a list of potential bind addresses
         if localhost_only:
@@ -171,6 +183,7 @@ class ConnListener(object):
         self._nonce_to_pending = WeakValueDictionary()
 
     def _accept(self):
+        '''Accept waiting connections and add them to the pollset.'''
         try:
             while True:
                 sock, addr = self._listen.accept()
@@ -181,6 +194,7 @@ class ConnListener(object):
             pass
 
     def _traffic(self, pconn, flags):
+        '''Handle poll readiness events on the specified pconn.'''
         try:
             # Continue trying to read the nonce
             ret = pconn.read_nonce()

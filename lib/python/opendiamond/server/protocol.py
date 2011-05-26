@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''XDR serialization/deserialization for the Diamond wire protocol.'''
+
 import binascii
 
 from opendiamond.server.rpc import (RPCHandlers, XDRType, RPCError,

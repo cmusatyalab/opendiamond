@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+'''Low-level RPC protocol implementation.'''
+
 from __future__ import with_statement
 import logging
 import socket
@@ -33,7 +35,10 @@ class RPCProcedureUnavailable(RPCError):
 
 
 class XDRType(object):
+    '''Base class for an XDR data structure.'''
+
     def encode(self, xdr):
+        '''Serialize the object into an XDR stream.'''
         raise NotImplemented()
 
     def encode_int(self, xdr, val):
@@ -50,6 +55,8 @@ class XDRType(object):
 
 
 class RPCHeader(XDRType):
+    '''An RPC message header.'''
+
     def __init__(self, xdr=None, sequence=None, status=None, cmd=None,
                         datalen=None):
         if xdr is not None:
@@ -71,16 +78,21 @@ class RPCHeader(XDRType):
 
 
 class RPCRequest(object):
+    '''The header and data from an RPC request.'''
+
     def __init__(self, hdr, data):
         self.hdr = hdr
         self.data = data
 
     def make_reply_header(self, status, data):
+        '''Return the header for an RPC reply.'''
         return RPCHeader(sequence=self.hdr.sequence, status=status,
                             cmd=self.hdr.cmd, datalen=len(data))
 
 
 class RPCConnection(object):
+    '''An RPC connection.'''
+
     def __init__(self, sock):
         self._sock = sock
         self._lock = threading.Lock()
@@ -122,6 +134,8 @@ class RPCConnection(object):
                 raise ConnectionFailure(str(e))
 
     def dispatch(self, handlers):
+        '''Receive an RPC request, call a handler in handlers to process it,
+        and transmit the reply.'''
         req = self._receive()
         try:
             # Look up handler and decode request
@@ -166,6 +180,9 @@ class RPCConnection(object):
 
 
 class _RPCMeta(type):
+    '''Metaclass for RPCHandlers that collects the methods tagged with
+    @RPCHandlers.handler into a dictionary.'''
+
     def __new__(mcs, name, bases, dct):
         obj = type.__new__(mcs, name, bases, dct)
         obj._cmds = dict()
@@ -178,6 +195,8 @@ class _RPCMeta(type):
 
 
 class RPCHandlers(object):
+    '''Base class of RPC handler objects.'''
+
     __metaclass__ = _RPCMeta
     log_rpcs = False
 

@@ -41,10 +41,14 @@ class BlobCache(object):
             temp.write(data)
             temp.close()
             os.chmod(name, 0400)
-            os.rename(name, self._path(sig))
-        except:
+            try:
+                os.link(name, self._path(sig))
+            except OSError:
+                # Destination already exists.  We don't want to clobber it
+                # because that might unset its executable bit.
+                pass
+        finally:
             os.unlink(name)
-            raise
 
     def executable_path(self, sig):
         try:

@@ -113,7 +113,7 @@ class Search(RPCHandlers):
     @RPCHandlers.handler(17, XDR_filter)
     @running(False)
     def send_filter(self, params):
-        self._state.blob_cache.add(params.data, executable=True)
+        self._state.blob_cache.add(params.data)
 
     @RPCHandlers.handler(11, XDR_blob)
     @running(False)

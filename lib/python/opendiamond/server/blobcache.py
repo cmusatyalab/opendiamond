@@ -31,19 +31,23 @@ class BlobCache(object):
         except IOError:
             raise KeyError()
 
-    def add(self, data, executable=False):
+    def add(self, data):
         sig = md5(data).hexdigest()
         # NamedTemporaryFile always deletes the file on close on Python 2.5,
         # so we can't use it
         fd, name = mkstemp(dir=self.basedir)
-        if executable:
-            os.chmod(name, 0700)
         temp = os.fdopen(fd, 'r+')
         temp.write(data)
         temp.close()
         os.rename(name, self._path(sig))
 
-    def path(self, sig):
-        if sig not in self:
+    def executable_path(self, sig):
+        try:
+            path = self._path(sig)
+            st = os.stat(path)
+            if (st.st_mode & 0100) == 0:
+                os.chmod(path, 0700)
+            return path
+        except OSError:
+            # stat failed, object not present in cache
             raise KeyError()
-        return self._path(sig)

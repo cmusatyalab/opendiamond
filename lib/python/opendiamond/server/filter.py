@@ -402,7 +402,7 @@ class Filter(object):
     def bind(self, state):
         '''Returns a _FilterRunner for this filter.'''
         try:
-            code_path = state.blob_cache.path(self.signature)
+            code_path = state.blob_cache.executable_path(self.signature)
         except KeyError:
             raise FilterExecutionError('Missing code for filter ' + self.name)
         return _FilterRunner(state, self, code_path)

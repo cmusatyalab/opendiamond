@@ -101,10 +101,10 @@ class _PendingConnPollSet(object):
         self._pollset.unregister(fd)
         del self._fd_to_pconn[fd]
 
-    def poll(self, *args):
+    def poll(self):
         while True:
             try:
-                items = self._pollset.poll(*args)
+                items = self._pollset.poll()
             except select.error, e:
                 # If poll() was interrupted by a signal, retry.  If the
                 # signal was supposed to be fatal, the signal handler would

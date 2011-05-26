@@ -33,6 +33,8 @@ _log = logging.getLogger(__name__)
 
 class ListenError(Exception):
     pass
+class _ConnectionClosed(Exception):
+    pass
 
 
 class _PendingConn(object):
@@ -58,21 +60,30 @@ class _PendingConn(object):
         connection, DATA if a data connection, None if the caller should
         call back later.  The nonce is in self.nonce.'''
         if len(self.nonce) < NONCE_LEN:
-            self.nonce += self.sock.recv(NONCE_LEN - len(self.nonce))
+            data = self.sock.recv(NONCE_LEN - len(self.nonce))
+            if len(data) == 0:
+                raise _ConnectionClosed()
+            self.nonce += data
             if len(self.nonce) == NONCE_LEN:
                 # We're done with non-blocking mode
                 self.sock.setblocking(1)
-        if len(self.nonce) == NONCE_LEN:
-            if self.nonce == NULL_NONCE:
-                self.nonce = os.urandom(NONCE_LEN)
-                return CONTROL
+                if self.nonce == NULL_NONCE:
+                    self.nonce = os.urandom(NONCE_LEN)
+                    return CONTROL
+                else:
+                    return DATA
             else:
-                return DATA
+                return None
         else:
-            return None
+            # If the socket is still readable, either we have received
+            # unexpected data or the connection has died
+            raise _ConnectionClosed()
 
     def send_nonce(self):
-        self.sock.sendall(self.nonce)
+        try:
+            self.sock.sendall(self.nonce)
+        except socket.error:
+            raise _ConnectionClosed()
 
     @property
     def nonce_str(self):
@@ -165,24 +176,16 @@ class ConnListener(object):
                 sock, addr = self._listen.accept()
                 pconn = _PendingConn(sock, addr[0])
                 _log.debug('New connection from %s', pconn.peer)
-                self._poll.register(pconn,
-                            select.POLLIN | select.POLLHUP | select.POLLERR)
+                self._poll.register(pconn, select.POLLIN)
         except socket.error:
             pass
 
     def _traffic(self, pconn, flags):
-        if flags & (select.POLLHUP | select.POLLERR):
-            # Connection died, clean it up.  _nonce_to_pending holds a weak
-            # reference to the pconn, so this should be sufficient to GC
-            # the pconn and close the fd.
-            _log.warning('Connection to %s died during setup', pconn.peer)
-            self._poll.unregister(pconn)
-        elif flags & select.POLLIN:
+        try:
             # Continue trying to read the nonce
             ret = pconn.read_nonce()
             if ret is not None:
-                # Have the nonce.  We no longer need to wait on readability.
-                self._poll.register(pconn, select.POLLHUP | select.POLLERR)
+                # Have the nonce.
                 if ret == CONTROL:
                     _log.debug('Control connection from %s, nonce %s',
                                         pconn.peer, pconn.nonce_str)
@@ -207,6 +210,12 @@ class ConnListener(object):
                                             'nonce %s', pconn.peer,
                                             pconn.nonce_str)
                         self._poll.unregister(pconn)
+        except _ConnectionClosed:
+            # Connection died, clean it up.  _nonce_to_pending holds a weak
+            # reference to the pconn, so this should be sufficient to GC
+            # the pconn and close the fd.
+            _log.warning('Connection to %s died during setup', pconn.peer)
+            self._poll.unregister(pconn)
         return None
 
     def accept(self):
@@ -221,6 +230,8 @@ class ConnListener(object):
                     ret = self._traffic(pconn, flags)
                     if ret is not None:
                         return ret
+                # pconn may now be a dead connection; allow it to be GC'd
+                pconn = None
 
     def shutdown(self):
         '''Close listening socket and all pending connections.'''

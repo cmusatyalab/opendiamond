@@ -40,6 +40,7 @@ class BlobCache(object):
             temp = os.fdopen(fd, 'r+')
             temp.write(data)
             temp.close()
+            os.chmod(name, 0400)
             os.rename(name, self._path(sig))
         except:
             os.unlink(name)
@@ -50,7 +51,7 @@ class BlobCache(object):
             path = self._path(sig)
             st = os.stat(path)
             if (st.st_mode & 0100) == 0:
-                os.chmod(path, 0700)
+                os.chmod(path, 0500)
             return path
         except OSError:
             # stat failed, object not present in cache

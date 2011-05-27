@@ -22,6 +22,8 @@ from xml.sax.handler import ContentHandler
 
 from opendiamond.server.object_ import Object
 
+BASE_URL = 'http://localhost:5873/'
+
 class _ScopeListHandler(ContentHandler):
     '''Gatherer for results produced by incremental scope list parsing.'''
 
@@ -65,6 +67,7 @@ class ScopeListLoader(object):
         parser.setContentHandler(self._handler)
         for cookie in self.cookies:
             for scope_url in cookie:
+                scope_url = urljoin(BASE_URL, scope_url)
                 fh = urlopen(scope_url)
                 # Read the scope list in 4 KB chunks
                 while True:

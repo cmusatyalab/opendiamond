@@ -112,6 +112,9 @@ class Search(RPCHandlers):
     @running(False)
     def set_spec(self, params):
         '''Define the filter stack.'''
+        _log.info('Received fspec:')
+        for line in params.data.split('\n'):
+            _log.info('  %s', line)
         self._filters = FilterStack.from_fspec(params.data)
 
     @RPCHandlers.handler(16, XDR_sig_val)

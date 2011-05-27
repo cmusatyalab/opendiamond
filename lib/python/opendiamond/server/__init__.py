@@ -77,10 +77,11 @@ the filter is restarted.  If a worker thread or the control thread crashes,
 the exception is logged and the entire search is terminated.
 '''
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
+import re
 import signal
 import sys
 
@@ -90,6 +91,10 @@ from opendiamond.server.child import ChildManager
 from opendiamond.server.listen import ConnListener
 from opendiamond.server.rpc import RPCConnection, ConnectionFailure
 from opendiamond.server.search import Search
+
+SEARCH_LOG_DATE_FORMAT = '%Y-%m-%d-%H:%M:%S'
+SEARCH_LOG_FORMAT = 'search-%s-%d.log'		# Args: date, pid
+SEARCH_LOG_REGEX = 'search-(.+)-[0-9]+\.log$'	# Match group: timestamp
 
 _log = logging.getLogger(__name__)
 
@@ -132,6 +137,7 @@ class DiamondServer(object):
         self.config = config
         self._children = ChildManager(config.cgroupdir, not config.oneshot)
         self._listener = ConnListener(config.localhost_only)
+        self._last_log_prune = datetime.fromtimestamp(0)
 
         # Configure signals
         for sig in self.caught_signals:
@@ -160,6 +166,8 @@ class DiamondServer(object):
             if self.config.cache_server:
                 _log.info('Cache: %s:%d' % self.config.cache_server)
             while True:
+                # Check for search logs that need to be pruned
+                self._prune_child_logs()
                 # Accept a new connection pair
                 control, data = self._listener.accept()
                 # Fork a child for this connection pair.  In the child, this
@@ -191,8 +199,8 @@ class DiamondServer(object):
         baselog = logging.getLogger()
         baselog.removeHandler(self._logfile_handler)
         del self._logfile_handler
-        now = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
-        logname = 'search-%s-%d.log' % (now, os.getpid())
+        now = datetime.now().strftime(SEARCH_LOG_DATE_FORMAT)
+        logname = SEARCH_LOG_FORMAT % (now, os.getpid())
         logpath = os.path.join(self.config.logdir, logname)
         handler = logging.FileHandler(logpath)
         handler.setFormatter(_TimestampedLogFormatter())
@@ -225,6 +233,41 @@ class DiamondServer(object):
             _log.exception('Control thread exception')
         finally:
             logging.shutdown()
+
+    def _prune_child_logs(self):
+        '''Remove search logs older than the configured number of days.'''
+        # Do this check no more than once an hour
+        if datetime.now() - self._last_log_prune < timedelta(hours=1):
+            return
+        self._last_log_prune = datetime.now()
+        threshold = datetime.now() - timedelta(days=self.config.logdays)
+        pattern = re.compile(SEARCH_LOG_REGEX)
+        count = 0
+        for file in os.listdir(self.config.logdir):
+            # First check the timestamp in the file name.  This prevents
+            # us from having to stat a bunch of log files that we aren't
+            # interesting in GCing anyway.
+            match = pattern.match(file)
+            if match is None:
+                continue
+            try:
+                start = datetime.strptime(match.group(1),
+                                SEARCH_LOG_DATE_FORMAT)
+            except ValueError:
+                continue
+            if start >= threshold:
+                continue
+            # Now examine the file's mtime to ensure we're not deleting logs
+            # from long-running searches
+            path = os.path.join(self.config.logdir, file)
+            try:
+                if datetime.fromtimestamp(os.stat(path).st_mtime) < threshold:
+                    os.unlink(path)
+                    count += 1
+            except OSError:
+                pass
+        if count > 0:
+            _log.info('Pruned %d search logs', count)
 
     def _handle_signal(self, sig, frame):
         '''Signal handler in the supervisor.'''

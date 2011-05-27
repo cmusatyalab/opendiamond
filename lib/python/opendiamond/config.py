@@ -113,6 +113,8 @@ class DiamondConfig(object):
             _Param('daemonize', None, True),
             # Bind listening socket only to localhost
             _Param('localhost_only', None, False),
+            # Number of days of logfiles to keep
+            _Param('logdays', 'LOGDAYS', 14),
             # Directory for logfiles
             _Param('logdir', 'LOGDIR', os.path.join(confdir, 'log')),
             # Don't fork when a connection arrives

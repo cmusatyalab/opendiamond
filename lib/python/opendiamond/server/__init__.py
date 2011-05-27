@@ -147,7 +147,7 @@ class DiamondServer(object):
             baselog.addHandler(handler)
         self._logfile_handler = TimedRotatingFileHandler(
                                 os.path.join(config.logdir, 'diamondd.log'),
-                                when='midnight', backupCount=14)
+                                when='midnight', backupCount=config.logdays)
         self._logfile_handler.setFormatter(_TimestampedLogFormatter())
         baselog.addHandler(self._logfile_handler)
 

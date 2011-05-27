@@ -307,10 +307,10 @@ class DiamondConnection(object):
 
 class StdoutThread(threading.Thread):
     name = 'stdout thread'
-    daemon = True
 
     def __init__(self, stdout_pipe, conn):
         threading.Thread.__init__(self)
+        self.setDaemon(True)
         self.pipe = stdout_pipe
         self.conn = conn
 

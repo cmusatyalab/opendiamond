@@ -94,11 +94,11 @@ class Search(RPCHandlers):
                             self._state.config.certdata)
             self._cookies.append(cookie)
             self._state.scope = ScopeListLoader(self._server_id, self._cookies)
-        except ScopeCookieExpired:
-            _log.warning('Cookie expired')
+        except ScopeCookieExpired, e:
+            _log.warning('%s', e)
             raise DiamondRPCCookieExpired()
-        except ScopeError:
-            _log.warning('Cookie invalid')
+        except ScopeError, e:
+            _log.warning('Cookie invalid: %s', e)
             raise DiamondRPCFailure()
 
     @RPCHandlers.handler(20, XDR_attr_name_list)

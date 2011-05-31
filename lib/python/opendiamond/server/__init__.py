@@ -127,7 +127,7 @@ class _TimestampedLogFormatter(logging.Formatter):
 
 
 class DiamondServer(object):
-    caught_signals = (signal.SIGINT, signal.SIGTERM)
+    caught_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGUSR1)
 
     def __init__(self, config):
         # Daemonize before doing any other setup

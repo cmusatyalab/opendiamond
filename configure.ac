@@ -11,7 +11,7 @@
 #
 
 AC_INIT([OpenDiamond], [6.0.2], [diamond@cs.cmu.edu], [opendiamond], [http://diamond.cs.cmu.edu/])
-AM_INIT_AUTOMAKE([foreign 1.11.1 dist-xz])
+AM_INIT_AUTOMAKE([foreign 1.11.1])
 AM_SILENT_RULES([yes])
 
 AC_PREREQ([2.59])

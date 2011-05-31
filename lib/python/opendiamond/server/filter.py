@@ -695,7 +695,6 @@ class FilterStackRunner(threading.Thread):
         except ConnectionFailure, e:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.
-            _log.info('Search exiting: %s', str(e))
             os.kill(os.getpid(), signal.SIGUSR1)
         except Exception:
             _log.exception('Worker thread exception')

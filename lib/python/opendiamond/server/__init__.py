@@ -223,7 +223,7 @@ class DiamondServer(object):
                 control.dispatch(search)
         except ConnectionFailure, e:
             # Client closed connection
-            _log.info('Search exiting: %s', str(e))
+            pass
         except _Signalled, s:
             # Worker threads raise SIGUSR1 when they've encountered a
             # fatal error

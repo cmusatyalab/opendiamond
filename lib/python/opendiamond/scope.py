@@ -31,7 +31,7 @@
 
 import base64
 import binascii
-from datetime import datetime
+from datetime import datetime, timedelta
 import dateutil.parser
 from dateutil.tz import tzutc
 from M2Crypto import EVP, X509

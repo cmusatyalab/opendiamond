@@ -138,6 +138,7 @@ class DiamondServer(object):
         self._children = ChildManager(config.cgroupdir, not config.oneshot)
         self._listener = ConnListener(config.localhost_only)
         self._last_log_prune = datetime.fromtimestamp(0)
+        self._ignore_signals = False
 
         # Configure signals
         for sig in self.caught_signals:
@@ -209,19 +210,25 @@ class DiamondServer(object):
         # Okay, now we have logging
         search = None
         try:
-            # Close listening socket and half-open connections
-            self._listener.shutdown()
-            # Log startup of child
-            _log.info('Starting search %s, pid %d', opendiamond.__version__,
-                                    os.getpid())
-            _log.info('Peer: %s', control.getpeername()[0])
-            _log.info('Worker threads: %d', self.config.threads)
-            # Set up connection wrappers and search object
-            control = RPCConnection(control)
-            search = Search(self.config, RPCConnection(data))
-            # Dispatch RPCs on the control connection until we die
-            while True:
-                control.dispatch(search)
+            try:
+                # Close listening socket and half-open connections
+                self._listener.shutdown()
+                # Log startup of child
+                _log.info('Starting search %s, pid %d',
+                                        opendiamond.__version__,
+                                        os.getpid())
+                _log.info('Peer: %s', control.getpeername()[0])
+                _log.info('Worker threads: %d', self.config.threads)
+                # Set up connection wrappers and search object
+                control = RPCConnection(control)
+                search = Search(self.config, RPCConnection(data))
+                # Dispatch RPCs on the control connection until we die
+                while True:
+                    control.dispatch(search)
+            finally:
+                # Ensure that further signals (particularly SIGUSR1 from
+                # worker threads) don't interfere with the shutdown process.
+                self._ignore_signals = True
         except ConnectionFailure, e:
             # Client closed connection
             pass
@@ -274,4 +281,5 @@ class DiamondServer(object):
 
     def _handle_signal(self, sig, frame):
         '''Signal handler in the supervisor.'''
-        raise _Signalled(sig)
+        if not self._ignore_signals:
+            raise _Signalled(sig)

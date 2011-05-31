@@ -55,7 +55,8 @@ class Search(RPCHandlers):
         self._push_attrs = None
         self._running = False
 
-    def __del__(self):
+    def shutdown(self):
+        '''Clean up the search before the process exits.'''
         # Log search statistics
         if self._running:
             self._state.stats.log()

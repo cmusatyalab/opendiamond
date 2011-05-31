@@ -207,6 +207,7 @@ class DiamondServer(object):
         baselog.addHandler(handler)
 
         # Okay, now we have logging
+        search = None
         try:
             # Close listening socket and half-open connections
             self._listener.shutdown()
@@ -232,6 +233,8 @@ class DiamondServer(object):
         except Exception:
             _log.exception('Control thread exception')
         finally:
+            if search is not None:
+                search.shutdown()
             logging.shutdown()
 
     def _prune_child_logs(self):

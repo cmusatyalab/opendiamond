@@ -61,6 +61,7 @@ from hashlib import md5
 import logging
 import os
 from redis import Redis
+from redis.exceptions import ResponseError
 import signal
 import simplejson as json
 import subprocess
@@ -482,6 +483,7 @@ class FilterStackRunner(threading.Thread):
         self._runners = filter_runners
         self._redis = None	# May be None if caching is not enabled
         self._cleanup = cleanup	# cleanup.__del__ fires when all workers exit
+        self._warned_cache_update = False
 
     def _get_attribute_key(self, value_sig):
         '''Return an attribute cache lookup key for the specified signature.'''
@@ -660,7 +662,13 @@ class FilterStackRunner(threading.Thread):
                                             result.output_attrs.iteritems()])
             # Do it
             if self._redis is not None and resultmap:
-                self._redis.mset(resultmap)
+                try:
+                    self._redis.mset(resultmap)
+                except ResponseError, e:
+                    # mset failed, possibly due to maxmemory quota
+                    if not self._warned_cache_update:
+                        self._warned_cache_update = True
+                        _log.warning('Failed to update cache: %s', e)
 
     def evaluate(self, obj):
         '''Evaluate the object and return True to accept or False to drop.'''

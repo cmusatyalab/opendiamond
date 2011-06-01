@@ -20,11 +20,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "diamond_consts.h"
-
 #include "lib_filter.h"
 #include "lf_protocol.h"
 #include "lf_priv.h"
+
+/* maximum attribute name we allow */
+#define MAX_ATTR_NAME 128
 
 struct ohandle {
   GHashTable *attributes;

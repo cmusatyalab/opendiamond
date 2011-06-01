@@ -1,0 +1,6 @@
+/compile
+/config.*
+/depcomp
+/install-sh
+/ltmain.sh
+/missing

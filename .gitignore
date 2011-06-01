@@ -13,12 +13,6 @@ Makefile.in
 /aclocal.m4
 /autom4te.cache
 /libtool
-/missing
-/ltmain.sh
 /stamp-h1
-/ylwrap
 /config.*
 /configure
-/compile
-/depcomp
-/install-sh

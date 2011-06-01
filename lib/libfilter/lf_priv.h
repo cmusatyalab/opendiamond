@@ -32,7 +32,4 @@ void lf_obj_handle_free(lf_obj_handle_t obj);
 void lf_start_output(void);
 void lf_end_output(void);
 
-diamond_public
-void lf_filter_runner_main(void);
-
 #endif

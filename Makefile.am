@@ -1,4 +1,4 @@
-SUBDIRS = lib dataretriever scopeserver tests filter-runner volcano
+SUBDIRS = lib dataretriever scopeserver tests volcano
 
 EXTRA_DIST = CREDITS LICENSE INSTALL
 

@@ -51,7 +51,6 @@ AC_SUBST(PKGCONFIG_REQUIRES)
 PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.12, gthread-2.0])
 
 # libs
-AC_SEARCH_LIBS([dlopen], [dl],, AC_MSG_FAILURE([cannot find dlopen function]))
 AC_SEARCH_LIBS([pthread_create],
 	[pthread],, AC_MSG_FAILURE([cannot find pthread_create function]))
 
@@ -73,7 +72,6 @@ dataretriever/Makefile
 dataretriever/setup.py
 scopeserver/Makefile
 scopeserver/setup.py
-filter-runner/Makefile
 volcano/Makefile
 lib/Makefile
 lib/libfilter/Makefile

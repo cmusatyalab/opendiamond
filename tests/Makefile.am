@@ -1,5 +1,5 @@
-noinst_PROGRAMS = test_log datamonster odisk_test test_rtimer
+noinst_PROGRAMS = datamonster
 
-LDADD = $(top_builddir)/lib/libopendiamond.la ${GLIB2_LIBS}
+LDADD = ${GLIB2_LIBS}
 
 datamonster_LDADD = ${GLIB2_LIBS} -ljpeg

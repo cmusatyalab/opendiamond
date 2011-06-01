@@ -1,20 +1,10 @@
-noinst_LTLIBRARIES = libscope.la libstring_helpers.la
 dist_bin_SCRIPTS = diamond-newscope
 
 mimepkgdir = $(datarootdir)/mime/packages
 dist_mimepkg_DATA = diamond-scope.xml
 EXTRA_DIST = scope.desktop
 
-libstring_helpers_la_SOURCES = string_helpers.c string_helpers.h
-
-libscope_la_SOURCES = scope_adiskd.c scope_common.c scope_priv.h
-libscope_la_LIBADD = libstring_helpers.la
-
 install-data-hook:
 	desktop-file-install --rebuild-mime-info-cache --vendor diamond $(srcdir)/scope.desktop \
 	|| desktop-file-install --dir $$HOME/.local/share/applications --rebuild-mime-info-cache --vendor diamond $(srcdir)/scope.desktop
 #	update-mime-database $(datarootdir)/mime
-
-AM_CPPFLAGS += $(OPENDIAMOND_LIB_CPPFLAGS) $(GNUTLS_CFLAGS) $(UUID_CFLAGS)
-AM_LDFLAGS = $(GLIB2_LIBS) $(GNUTLS_LIBS) $(UUID_LIBS)
-

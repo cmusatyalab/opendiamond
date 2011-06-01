@@ -28,6 +28,7 @@ class _ScopeListHandler(ContentHandler):
     '''Gatherer for results produced by incremental scope list parsing.'''
 
     def __init__(self):
+        ContentHandler.__init__(self)
         self.count = 0
         self.pending_objects = []
 

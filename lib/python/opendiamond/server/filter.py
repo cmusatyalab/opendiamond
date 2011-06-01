@@ -106,7 +106,7 @@ class _FilterProcess(object):
             # - Array of filter arguments
             # - Blob argument
             self.send(1, name, args, blob)
-        except OSError, IOError:
+        except (OSError, IOError):
             raise FilterExecutionError('Unable to launch filter %s' % name)
 
     def __del__(self):
@@ -371,7 +371,7 @@ class _FilterRunner(_ObjectProcessor):
             else:
                 # Filter died during initialization.  Treat this as fatal.
                 raise FilterExecutionError("Filter %s failed to initialize"
-                                % name)
+                                % self)
         finally:
             accept = self.threshold(result)
             self._filter.stats.update('objs_processed', 'objs_compute',
@@ -489,7 +489,7 @@ class FilterStackRunner(threading.Thread):
         '''Return an attribute cache lookup key for the specified signature.'''
         return 'attribute:' + value_sig
 
-    def _result_cache_can_drop(self, cache_results):
+    def _result_cache_can_drop(self, obj, cache_results):
         '''Return True if the object can be dropped.  cache_results is a
         runner -> _FilterResult map retrieved from the result cache.'''
 
@@ -630,7 +630,7 @@ class FilterStackRunner(threading.Thread):
             cache_results = dict()
 
         # Evaluate the object in the result cache.
-        if self._result_cache_can_drop(cache_results):
+        if self._result_cache_can_drop(obj, cache_results):
             return False
 
         new_results = dict()		# runner -> result
@@ -700,7 +700,7 @@ class FilterStackRunner(threading.Thread):
             for obj in self._state.scope:
                 if self.evaluate(obj):
                     self._state.blast.send(obj)
-        except ConnectionFailure, e:
+        except ConnectionFailure:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.
             os.kill(os.getpid(), signal.SIGUSR1)

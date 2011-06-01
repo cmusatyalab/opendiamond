@@ -140,7 +140,6 @@ class DiamondConfig(object):
 
         # Read config file
         try:
-            config = dict()
             for line in open(path):
                 line = line.strip()
                 if line == '' or line[0] == '#':

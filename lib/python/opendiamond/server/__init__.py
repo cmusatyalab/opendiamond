@@ -229,7 +229,7 @@ class DiamondServer(object):
                 # Ensure that further signals (particularly SIGUSR1 from
                 # worker threads) don't interfere with the shutdown process.
                 self._ignore_signals = True
-        except ConnectionFailure, e:
+        except ConnectionFailure:
             # Client closed connection
             pass
         except _Signalled, s:

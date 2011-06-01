@@ -239,7 +239,7 @@ if __name__ == '__main__':
     try:
         data = open(args.pop(0)).read()
         cookie = ScopeCookie.parse(data)
-        print str(cookie)
+        print str(cookie),
     except IndexError:
         print >>sys.stderr, \
                 'Usage: scope.py <cookie-file> [server-name cert-file]'

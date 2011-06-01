@@ -242,7 +242,7 @@ if __name__ == '__main__':
         print str(cookie),
     except IndexError:
         print >>sys.stderr, \
-                'Usage: scope.py <cookie-file> [server-name cert-file]'
+                'Usage: scope.py <cookie-file> [server-name [cert-file]]'
         sys.exit(1)
     except ScopeError, e:
         print str(e)
@@ -250,7 +250,12 @@ if __name__ == '__main__':
 
     try:
         server = args.pop(0)
-        certdata = open(args.pop(0)).read()
+        try:
+            certfile = args.pop(0)
+        except IndexError:
+            certfile = os.path.expanduser(os.path.join('~', '.diamond',
+                                    'CERTS'))
+        certdata = open(certfile).read()
         print
         cookie.verify([server], certdata)
         print 'Cookie verified successfully'

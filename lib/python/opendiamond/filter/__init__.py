@@ -52,7 +52,7 @@ class Session(object):
         if self.conn is None:
             raise RuntimeError('No connection to Diamond')
         self.conn.send_message('get-session-variables', vars)
-        return dict(zip(vars, map(float, self.conn.get_array())))
+        return dict(zip(vars, [float(v) for v in self.conn.get_array()]))
 
     def update_vars(self, vars):
         '''vars is a dict of session variables to be atomically updated.'''
@@ -123,8 +123,8 @@ class Filter(object):
             manifest['Instance-Editable'] = 'false'
         if cls.threshold_editable:
             manifest['Threshold-Editable'] = 'true'
-        return ''.join(map(lambda kv: '%s: %s\n' % (kv[0], kv[1]),
-                            sorted(manifest.items())))
+        return ''.join('%s: %s\n' % (k, v) for k, v in
+                            sorted(manifest.items()))
 
 
 class LingeringObjectError(Exception):

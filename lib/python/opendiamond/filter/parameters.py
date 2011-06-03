@@ -20,7 +20,7 @@ class Parameters(object):
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__,
-                        ', '.join(map(lambda p: repr(p), self.params)))
+                        ', '.join(repr(p) for p in self.params))
 
     def describe(self):
         '''Return a dict describing the parameter list, suitable for
@@ -28,8 +28,7 @@ class Parameters(object):
         ret = {}
         for i in range(len(self.params)):
             info = self.params[i].describe()
-            ret.update(map(lambda kv: ('%s-%d' % (kv[0], i), kv[1]),
-                        info.items()))
+            ret.update(('%s-%d' % (k, i), v) for k, v in info.iteritems())
         return ret
 
     def parse(self, args):
@@ -37,7 +36,7 @@ class Parameters(object):
         arguments.'''
         if len(self.params) != len(args):
             raise ValueError('Incorrect argument list length')
-        return map(lambda i: self.params[i].parse(args[i]), range(len(args)))
+        return [self.params[i].parse(args[i]) for i in range(len(args))]
 
 
 class BaseParameter(object):

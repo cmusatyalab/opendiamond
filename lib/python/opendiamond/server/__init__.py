@@ -122,7 +122,7 @@ class _TimestampedLogFormatter(logging.Formatter):
         logging.Formatter.__init__(self, '%(asctime)s %(message)s',
                                 '%Y-%m-%d %H:%M:%S')
 
-    def formatTime(self, record, datefmt):
+    def formatTime(self, record, datefmt=None):
         s = datetime.fromtimestamp(record.created).strftime(datefmt)
         return s + '.%03d' % record.msecs
 

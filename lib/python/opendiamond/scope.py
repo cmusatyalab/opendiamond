@@ -230,7 +230,7 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
         return ''.join(cookies)
 
 
-if __name__ == '__main__':
+def _main():
     import sys
     args = sys.argv[1:]
 
@@ -239,7 +239,7 @@ if __name__ == '__main__':
         cookie = ScopeCookie.parse(data)
         print str(cookie),
     except IndexError:
-        print >>sys.stderr, \
+        print >> sys.stderr, \
                 'Usage: scope.py <cookie-file> [server-name [cert-file]]'
         sys.exit(1)
     except ScopeError, e:
@@ -262,3 +262,7 @@ if __name__ == '__main__':
     except ScopeError, e:
         print str(e)
         sys.exit(1)
+
+
+if __name__ == '__main__':
+    _main()

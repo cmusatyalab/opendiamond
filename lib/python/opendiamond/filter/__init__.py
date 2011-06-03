@@ -44,7 +44,7 @@ class Session(object):
         else:
             # Fallback logging to stderr so that filters can be tested
             # outside of Diamond
-            print >>sys.stderr, '[%s] %s' % (level, msg)
+            print >> sys.stderr, '[%s] %s' % (level, msg)
 
     def get_vars(self, vars):
         '''vars is a tuple of session variables to be atomically read.
@@ -140,6 +140,7 @@ class Object(object):
     def __init__(self, attrs=()):
         self.attrs = dict(attrs)
         self.valid = True
+        self._image = None
 
     def get_binary(self, key):
         '''Get the specified object attribute as raw binary data.'''
@@ -194,7 +195,7 @@ class Object(object):
     @property
     def image(self):
         '''Convenience property to get the decoded RGB image as a PIL Image.'''
-        if not hasattr(self, '_image'):
+        if self._image is None:
             data = self.get_binary('_rgb_image.rgbimage')
             # Parse the dimensions out of the RGBImage header
             height, width = struct.unpack('2i', data[8:16])

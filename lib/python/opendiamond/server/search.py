@@ -70,12 +70,12 @@ class Search(RPCHandlers):
         before, or after, the search has started running.  This is only
         called when initializing the class, which is why it's not a
         static method.'''
-        def decorator(f):
-            @wraps(f)
+        def decorator(func):
+            @wraps(func)
             def wrapper(self, *args, **kwargs):
                 if self._running != should_be_running:
                     raise RPCProcedureUnavailable()
-                return f(self, *args, **kwargs)
+                return func(self, *args, **kwargs)
             return wrapper
         return decorator
 

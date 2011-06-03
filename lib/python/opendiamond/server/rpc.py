@@ -209,11 +209,11 @@ class RPCHandlers(object):
     def handler(cmd, request_class=None, reply_class=None):
         '''Decorator declaring the function to be an RPC handler with the
         given command number and request class.'''
-        def decorator(f):
-            f.rpc_procedure = cmd
-            f.rpc_request_class = request_class
-            f.rpc_reply_class = reply_class
-            return f
+        def decorator(func):
+            func.rpc_procedure = cmd
+            func.rpc_request_class = request_class
+            func.rpc_reply_class = reply_class
+            return func
         return decorator
 
     def get_handler(self, procedure):

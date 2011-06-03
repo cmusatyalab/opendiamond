@@ -57,7 +57,6 @@ cache values resulting from filter executions that produce attribute data at
 less than 2 MB/s.
 '''
 
-from hashlib import md5
 import logging
 import os
 from redis import Redis
@@ -67,6 +66,7 @@ import simplejson as json
 import subprocess
 import threading
 
+from opendiamond.helpers import md5
 from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
 

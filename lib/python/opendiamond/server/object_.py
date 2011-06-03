@@ -13,9 +13,9 @@
 
 '''Representations of a Diamond object.'''
 
-from hashlib import md5
 from urllib2 import urlopen
 
+from opendiamond.helpers import md5
 from opendiamond.server.protocol import XDR_attribute, XDR_object
 
 ATTR_HEADER_PREFIX = 'x-attr-'

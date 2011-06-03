@@ -13,9 +13,10 @@
 
 '''On-disk caching of filter code and blob arguments.'''
 
-from hashlib import md5
 import os
 from tempfile import mkstemp
+
+from opendiamond.helpers import md5
 
 class BlobCache(object):
     '''A persistent cache of binary data identified by its MD5 hash in hex.'''

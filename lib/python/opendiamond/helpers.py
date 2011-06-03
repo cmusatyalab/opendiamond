@@ -11,6 +11,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+import hashlib
 import os
 import resource
 
@@ -32,3 +33,9 @@ def daemonize():
     os.open("/dev/null", os.O_RDWR)
     os.dup2(0, 1)
     os.dup2(0, 2)
+
+# hashlib confuses pylint, pylint #51250.  Provide md5 here to centralize
+# the workaround.
+# pylint: disable=C0103,E1101
+md5 = hashlib.md5
+# pylint: enable=C0103,E1101

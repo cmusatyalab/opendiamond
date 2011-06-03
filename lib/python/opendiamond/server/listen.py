@@ -193,7 +193,7 @@ class ConnListener(object):
         except socket.error:
             pass
 
-    def _traffic(self, pconn, flags):
+    def _traffic(self, pconn):
         '''Handle poll readiness events on the specified pconn.'''
         try:
             # Continue trying to read the nonce
@@ -241,7 +241,7 @@ class ConnListener(object):
                     self._accept()
                 else:
                     # Traffic on a pending connection; attempt to pair it
-                    ret = self._traffic(pconn, flags)
+                    ret = self._traffic(pconn)
                     if ret is not None:
                         return ret
                 # pconn may now be a dead connection; allow it to be GC'd

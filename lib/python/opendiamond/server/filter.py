@@ -724,7 +724,9 @@ class FilterStack(object):
     '''A set of filters which collectively decide to accept or drop an
     object.'''
 
-    def __init__(self, filters=[]):
+    def __init__(self, filters=None):
+        if filters is None:
+            filters = []
         # name -> Filter
         self._filters = dict([(f.name, f) for f in filters])
         # Ordered list of filters to execute

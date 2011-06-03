@@ -50,10 +50,6 @@ class _Statistics(object):
         for name, desc in self.attrs:
             _log.info('  %s: %d', desc, self._stats[name])
 
-    def xdr(self, *args, **kwargs):
-        '''Return an XDR statistics structure for these statistics.'''
-        raise NotImplementedError()
-
 
 class SearchStatistics(_Statistics):
     '''Statistics for the search as a whole.'''
@@ -65,6 +61,7 @@ class SearchStatistics(_Statistics):
             ('execution_ns', 'Total object examination time (ns)'))
 
     def xdr(self, objs_total, filter_stats):
+        '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
                 avg_obj_time = self.execution_ns / self.objs_processed
@@ -95,6 +92,7 @@ class FilterStatistics(_Statistics):
         self.label = 'Filter statistics for %s' % name
 
     def xdr(self):
+        '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
                 avg_exec_time = self.execution_ns / self.objs_processed

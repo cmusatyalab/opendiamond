@@ -205,7 +205,7 @@ class _ObjectProcessor(object):
 
     def __str__(self):
         '''Return a human-readable name for the underlying filter.'''
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_cache_key(self, obj):
         '''Return the result cache lookup key for previous filter executions
@@ -217,7 +217,7 @@ class _ObjectProcessor(object):
     def _get_cache_digest(self):
         '''Return a digest object with object-independent information about
         the filter (e.g. its arguments) already hashed into it.'''
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def cache_hit(self, result):
         '''Notification callback that an object has hit in the cache,
@@ -226,12 +226,12 @@ class _ObjectProcessor(object):
 
     def evaluate(self, obj):
         '''Execute the filter on this object, returning a _FilterResult.'''
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def threshold(self, result):
         '''Apply the drop threshold to the _FilterResult and return True
         to accept the object or False to drop it.'''
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class _ObjectFetcher(_ObjectProcessor):

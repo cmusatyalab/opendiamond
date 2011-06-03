@@ -107,7 +107,7 @@ class Filter(object):
     def __call__(self, object):
         '''Called once for each object to be evaluated.  Returns the Diamond
         search score.'''
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @classmethod
     def get_manifest(cls):

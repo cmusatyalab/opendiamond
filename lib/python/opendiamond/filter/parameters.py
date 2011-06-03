@@ -62,7 +62,7 @@ class BaseParameter(object):
         return ret
 
     def parse(self, str):
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class BooleanParameter(BaseParameter):

@@ -41,7 +41,7 @@ class XDRType(object):
 
     def encode(self, xdr):
         '''Serialize the object into an XDR stream.'''
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def encode_int(self, xdr, val):
         '''Due to Python #9696, packer.pack_int() fails for negative values

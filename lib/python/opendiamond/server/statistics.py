@@ -52,7 +52,7 @@ class _Statistics(object):
 
     def xdr(self, *args, **kwargs):
         '''Return an XDR statistics structure for these statistics.'''
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class SearchStatistics(_Statistics):

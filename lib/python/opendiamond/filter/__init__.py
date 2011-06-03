@@ -19,7 +19,7 @@ import sys
 from tempfile import mkstemp
 import threading
 
-from parameters import Parameters
+from opendiamond.filter.parameters import Parameters
 
 class Session(object):
     '''Represents the Diamond search session.'''

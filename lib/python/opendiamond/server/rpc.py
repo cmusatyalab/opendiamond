@@ -56,7 +56,7 @@ class XDREncodable(object):
             item.encode(xdr)
 
 
-class RPCHeader(XDREncodable):
+class _RPCHeader(XDREncodable):
     '''An RPC message header.'''
 
     def __init__(self, xdr=None, sequence=None, status=None, cmd=None,
@@ -79,7 +79,7 @@ class RPCHeader(XDREncodable):
         xdr.pack_uint(self.datalen)
 
 
-class RPCRequest(object):
+class _RPCRequest(object):
     '''The header and data from an RPC request.'''
 
     def __init__(self, hdr, data):
@@ -88,7 +88,7 @@ class RPCRequest(object):
 
     def make_reply_header(self, status, data):
         '''Return the header for an RPC reply.'''
-        return RPCHeader(sequence=self.hdr.sequence, status=status,
+        return _RPCHeader(sequence=self.hdr.sequence, status=status,
                             cmd=self.hdr.cmd, datalen=len(data))
 
 
@@ -118,11 +118,11 @@ class RPCConnection(object):
 
         while True:
             with self._lock:
-                hdr = RPCHeader(xdr=Unpacker(read_bytes(16)))
+                hdr = _RPCHeader(xdr=Unpacker(read_bytes(16)))
                 data = read_bytes(hdr.datalen)
             # We only handle request traffic; ignore reply messages
             if hdr.status == RPC_PENDING:
-                return RPCRequest(hdr, data)
+                return _RPCRequest(hdr, data)
 
     def _reply(self, request, status=0, body=''):
         assert status == 0 or len(body) == 0

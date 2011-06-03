@@ -15,8 +15,7 @@
 
 import binascii
 
-from opendiamond.server.rpc import (RPCHandlers, XDREncodable, RPCError,
-        RPCEncodingError)
+from opendiamond.server.rpc import XDREncodable, RPCError, RPCEncodingError
 
 MAX_ATTRIBUTE_NAME = 256
 MAX_FILTER_NAME = 128

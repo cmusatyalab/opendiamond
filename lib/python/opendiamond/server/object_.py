@@ -28,15 +28,16 @@ ATTR_DEVICE_NAME = 'Device-Name'
 class EmptyObject(object):
     '''An immutable Diamond object with no data and no attributes.'''
 
-    id = 'Empty'
-
     def __init__(self):
         self._attrs = dict()
         self._signatures = dict()
         self._omit_attrs = set()
 
+    def __str__(self):
+        return 'Empty'
+
     def __repr__(self):
-        return '<Object(%s)>' % repr(self.id)
+        return '<Object(%s)>' % self
 
     def load(self):
         '''Load the object data from the dataretriever.'''
@@ -105,11 +106,15 @@ class Object(EmptyObject):
 
     def __init__(self, server_id, url):
         EmptyObject.__init__(self)
-        self.id = url
+        self._id = url
 
         # Set default attributes
         self[ATTR_DEVICE_NAME] = server_id + '\0'
         self[ATTR_OBJ_ID] = url + '\0'
+
+    def __str__(self):
+        '''Return the object ID.'''
+        return self._id
 
     def load(self):
         # Load the object data.  urllib2 does not reuse HTTP connections, so
@@ -118,7 +123,7 @@ class Object(EmptyObject):
         # The dataretriever may not support persistent connections either,
         # depending on the HTTP server package it's using, so the lack of
         # support on this end may not matter.
-        fh = urlopen(self.id)
+        fh = urlopen(self._id)
         self[ATTR_DATA] = fh.read()
         # Process initial attributes
         info = fh.info()
@@ -128,7 +133,7 @@ class Object(EmptyObject):
                 self[attr] = info[header] + '\0'
         # Set display name if not already in initial attributes
         if ATTR_DISPLAY_NAME not in self:
-            self[ATTR_DISPLAY_NAME] = self.id + '\0'
+            self[ATTR_DISPLAY_NAME] = self._id + '\0'
 
     def __setitem__(self, key, value):
         self._attrs[key] = value

@@ -211,7 +211,7 @@ class _ObjectProcessor(object):
         '''Return the result cache lookup key for previous filter executions
         on this object.'''
         digest = self._get_cache_digest()
-        digest.update(obj.id)
+        digest.update(str(obj))
         return 'result:' + digest.hexdigest()
 
     def _get_cache_digest(self):
@@ -366,7 +366,7 @@ class _FilterRunner(_ObjectProcessor):
                 # Filter died on an object.  The result score defaults to
                 # zero, so this will be treated as a drop.
                 _log.error('Filter %s (signature %s) died on object %s',
-                                self, self._filter.signature, obj.id)
+                                self, self._filter.signature, obj)
                 self._proc = None
             else:
                 # Filter died during initialization.  Treat this as fatal.
@@ -525,8 +525,7 @@ class FilterStackRunner(threading.Thread):
             if runner in inprocess:
                 # Circular dependency in cache; shouldn't happen.
                 # Bail out on this resolution.
-                _log.error('Circular dependency in cache for object %s',
-                                obj.id)
+                _log.error('Circular dependency in cache for object %s', obj)
                 return
             inprocess.add(runner)
             try:
@@ -612,7 +611,7 @@ class FilterStackRunner(threading.Thread):
             return True
 
     def _evaluate(self, obj):
-        _debug('Evaluating %s', obj.id)
+        _debug('Evaluating %s', obj)
 
         # Calculate runner -> result cache key mapping.
         cache_keys = dict([(r, r.get_cache_key(obj)) for r in self._runners])

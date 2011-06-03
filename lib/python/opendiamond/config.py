@@ -60,6 +60,8 @@ class _ConfigParams(object):
 class DiamondConfig(object):
     '''Container for a set of configuration values.'''
 
+    # We dynamically assign object properties, which confuses pylint
+    # pylint: disable=E0203,E1101,E1103
     def __init__(self, path=None, **kwargs):
         '''kwargs are attr=value pairs which should override any values
         parsed from the config file.  Only valid config attributes are
@@ -212,3 +214,4 @@ class DiamondConfig(object):
             except ValueError:
                 raise DiamondConfigError('Invalid port number: ' + port)
             self.cache_server = (host, port)
+    # pylint: enable=E0203,E1101,E1103

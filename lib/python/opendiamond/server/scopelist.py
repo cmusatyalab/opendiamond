@@ -32,6 +32,8 @@ class _ScopeListHandler(ContentHandler):
         self.count = 0
         self.pending_objects = []
 
+    # We're overriding a method; we can't control its name
+    # pylint: disable=C0103
     def startElement(self, name, attrs):
         if name == 'objectlist':
             # count is optional
@@ -42,6 +44,7 @@ class _ScopeListHandler(ContentHandler):
             self.count += int(attrs['adjust'])
         elif name == 'object':
             self.pending_objects.append(attrs['src'])
+    # pylint: enable=C0103
 
 
 class ScopeListLoader(object):
@@ -58,10 +61,13 @@ class ScopeListLoader(object):
     def __iter__(self):
         return self
 
+    # Generators confuse pylint, pylint #20062
+    # pylint: disable=E1101
     def next(self):
         '''Return the next Object.'''
         with self._lock:
             return self._generator.next()
+    # pylint: enable=E1101
 
     def _generator_func(self):
         parser = make_parser()

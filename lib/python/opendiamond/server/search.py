@@ -65,11 +65,13 @@ class Search(RPCHandlers):
             for filter in self._filters:
                 filter.stats.log()
 
+    # This is not a static method: it's only called when initializing the
+    # class, and the staticmethod() decorator does not create a callable.
+    # Also avoid complaints about accesses to self._running
+    # pylint: disable=E0213,W0212
     def running(should_be_running):
         '''Decorator that specifies that the handler can only be called
-        before, or after, the search has started running.  This is only
-        called when initializing the class, which is why it's not a
-        static method.'''
+        before, or after, the search has started running.'''
         def decorator(func):
             @wraps(func)
             def wrapper(self, *args, **kwargs):
@@ -78,6 +80,7 @@ class Search(RPCHandlers):
                 return func(self, *args, **kwargs)
             return wrapper
         return decorator
+    # pylint: enable=E0213,W0212
 
     def _check_runnable(self):
         '''Validate state preparatory to starting a search or reexecution.'''

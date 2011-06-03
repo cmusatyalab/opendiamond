@@ -13,6 +13,9 @@
 
 '''XDR serialization/deserialization for the Diamond wire protocol.'''
 
+# XDR classes are oddly named for consistency with OpenDiamond-Java
+# pylint: disable=C0103
+
 import binascii
 
 from opendiamond.server.rpc import XDREncodable, RPCError, RPCEncodingError

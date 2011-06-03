@@ -24,6 +24,9 @@ from opendiamond.filter.parameters import (Parameters, BooleanParameter,
                         StringParameter, NumberParameter, ChoiceParameter)
 from opendiamond.scope import ScopeCookie, ScopeError
 
+# unittest uses Java-style naming conventions
+# pylint: disable=C0103
+
 class KeyPair(object):
     def __init__(self, key, cert):
         self.key = key

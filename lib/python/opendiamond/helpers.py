@@ -15,6 +15,8 @@ import hashlib
 import os
 import resource
 
+# We use os._exit() to avoid calling destructors after fork()
+# pylint: disable=W0212
 def daemonize():
     # Double-fork
     if os.fork():
@@ -33,6 +35,7 @@ def daemonize():
     os.open("/dev/null", os.O_RDWR)
     os.dup2(0, 1)
     os.dup2(0, 2)
+# pylint: enable=W0212
 
 # hashlib confuses pylint, pylint #51250.  Provide md5 here to centralize
 # the workaround.

@@ -122,9 +122,12 @@ class _TimestampedLogFormatter(logging.Formatter):
         logging.Formatter.__init__(self, '%(asctime)s %(message)s',
                                 '%Y-%m-%d %H:%M:%S')
 
+    # We're overriding a method; we can't control its name
+    # pylint: disable=C0103
     def formatTime(self, record, datefmt=None):
         s = datetime.fromtimestamp(record.created).strftime(datefmt)
         return s + '.%03d' % record.msecs
+    # pylint: enable=C0103
 
 
 class DiamondServer(object):

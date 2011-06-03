@@ -46,11 +46,9 @@ COOKIE_VERSION = 1
 BASE64_RE = '[A-Za-z0-9+/=\n]+'
 
 class ScopeError(Exception):
-    pass
-
-
+    '''Error generating, parsing, or verifying scope cookie.'''
 class ScopeCookieExpired(ScopeError):
-    pass
+    '''Scope cookie has expired.'''
 
 
 class ScopeCookie(object):

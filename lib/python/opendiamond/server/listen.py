@@ -34,9 +34,9 @@ DATA = 1
 _log = logging.getLogger(__name__)
 
 class ListenError(Exception):
-    pass
+    '''Error opening listening socket.'''
 class _ConnectionClosed(Exception):
-    pass
+    '''The socket has been closed.'''
 
 
 class _PendingConn(object):

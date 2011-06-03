@@ -83,11 +83,11 @@ else:
     _debug = lambda *args, **kwargs: None
 
 class FilterSpecError(Exception):
-    pass
+    '''Error parsing filter specification.'''
 class FilterDependencyError(Exception):
-    pass
+    '''Error processing filter dependencies.'''
 class FilterExecutionError(Exception):
-    pass
+    '''Error executing filter.'''
 
 
 class _FilterProcess(object):

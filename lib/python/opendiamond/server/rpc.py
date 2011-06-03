@@ -25,12 +25,14 @@ _log = logging.getLogger(__name__)
 RPC_PENDING = -1
 
 class ConnectionFailure(Exception):
-    pass
+    '''RPC connection died.'''
 class RPCError(Exception):
-    pass
+    '''Base class for RPC error codes.'''
 class RPCEncodingError(RPCError):
+    '''Bad XDR structure.'''
     code = -2
 class RPCProcedureUnavailable(RPCError):
+    '''Remote procedure not available.'''
     code = -3
 
 

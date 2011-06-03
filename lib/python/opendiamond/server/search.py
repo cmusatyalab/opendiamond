@@ -20,8 +20,10 @@ from opendiamond.scope import ScopeCookie, ScopeError, ScopeCookieExpired
 from opendiamond.server.blobcache import BlobCache
 from opendiamond.server.filter import FilterStack
 from opendiamond.server.object_ import EmptyObject, Object
-from opendiamond.server.protocol import *
-from opendiamond.server.rpc import RPCProcedureUnavailable
+from opendiamond.server import protocol
+from opendiamond.server.protocol import (DiamondRPCFailure,
+        DiamondRPCFCacheMiss, DiamondRPCCookieExpired)
+from opendiamond.server.rpc import RPCHandlers, RPCProcedureUnavailable
 from opendiamond.server.scopelist import ScopeListLoader
 from opendiamond.server.sessionvars import SessionVariables
 from opendiamond.server.statistics import SearchStatistics
@@ -84,7 +86,7 @@ class Search(RPCHandlers):
         if len(self._filters) == 0:
             raise DiamondRPCFailure('No filters configured')
 
-    @RPCHandlers.handler(24, XDR_scope)
+    @RPCHandlers.handler(24, protocol.XDR_scope)
     @running(False)
     def set_scope(self, params):
         '''Add a scope cookie to the cookie list.'''
@@ -102,14 +104,14 @@ class Search(RPCHandlers):
             _log.warning('Cookie invalid: %s', e)
             raise DiamondRPCFailure()
 
-    @RPCHandlers.handler(20, XDR_attr_name_list)
+    @RPCHandlers.handler(20, protocol.XDR_attr_name_list)
     @running(False)
     def set_push_attrs(self, params):
         '''Configure the list of object attributes for which the client
         would like values as well as names.'''
         self._push_attrs = set(params.attrs)
 
-    @RPCHandlers.handler(6, XDR_spec_file)
+    @RPCHandlers.handler(6, protocol.XDR_spec_file)
     @running(False)
     def set_spec(self, params):
         '''Define the filter stack.'''
@@ -118,20 +120,20 @@ class Search(RPCHandlers):
             _log.info('  %s', line)
         self._filters = FilterStack.from_fspec(params.data)
 
-    @RPCHandlers.handler(16, XDR_sig_val)
+    @RPCHandlers.handler(16, protocol.XDR_sig_val)
     @running(False)
     def set_filter(self, params):
         '''Inquire whether the specified filter code is already cached.'''
         if params.sig not in self._state.blob_cache:
             raise DiamondRPCFCacheMiss()
 
-    @RPCHandlers.handler(17, XDR_filter)
+    @RPCHandlers.handler(17, protocol.XDR_filter)
     @running(False)
     def send_filter(self, params):
         '''Provide new filter code for the cache.'''
         self._state.blob_cache.add(params.data)
 
-    @RPCHandlers.handler(11, XDR_blob)
+    @RPCHandlers.handler(11, protocol.XDR_blob)
     @running(False)
     def set_blob(self, params):
         '''Bind the specified filter blob argument to the named filter.'''
@@ -141,7 +143,7 @@ class Search(RPCHandlers):
         except KeyError:
             raise DiamondRPCFailure()
 
-    @RPCHandlers.handler(22, XDR_blob_sig)
+    @RPCHandlers.handler(22, protocol.XDR_blob_sig)
     @running(False)
     def set_blob_by_signature(self, params):
         '''Try to bind a cached filter blob argument to the named filter.'''
@@ -154,7 +156,7 @@ class Search(RPCHandlers):
         except KeyError:
             raise DiamondRPCFailure()
 
-    @RPCHandlers.handler(1, XDR_start)
+    @RPCHandlers.handler(1, protocol.XDR_start)
     @running(False)
     def start(self, params):
         '''Start the search.'''
@@ -169,7 +171,8 @@ class Search(RPCHandlers):
         _log.info('Starting search %d', params.search_id)
         self._filters.start_threads(self._state, self._state.config.threads)
 
-    @RPCHandlers.handler(21, XDR_reexecute, XDR_attribute_list)
+    @RPCHandlers.handler(21, protocol.XDR_reexecute,
+                             protocol.XDR_attribute_list)
     def reexecute_filters(self, params):
         '''Reexecute the search on the specified object.'''
         try:
@@ -186,9 +189,9 @@ class Search(RPCHandlers):
         else:
             # If no output attributes were specified, encode everything
             output_attrs = None
-        return XDR_attribute_list(obj.xdr_attributes(output_attrs))
+        return protocol.XDR_attribute_list(obj.xdr_attributes(output_attrs))
 
-    @RPCHandlers.handler(15, reply_class=XDR_search_stats)
+    @RPCHandlers.handler(15, reply_class=protocol.XDR_search_stats)
     @running(True)
     def request_stats(self):
         '''Return current search statistics.'''
@@ -196,16 +199,16 @@ class Search(RPCHandlers):
         return self._state.stats.xdr(self._state.scope.get_count(),
                             filter_stats)
 
-    @RPCHandlers.handler(18, reply_class=XDR_session_vars)
+    @RPCHandlers.handler(18, reply_class=protocol.XDR_session_vars)
     @running(True)
     def session_variables_get(self):
         '''Return partial values for all session variables.'''
-        vars = [XDR_session_var(name=name, value=value)
+        vars = [protocol.XDR_session_var(name=name, value=value)
                 for name, value in
                 self._state.session_vars.client_get().iteritems()]
-        return XDR_session_vars(vars=vars)
+        return protocol.XDR_session_vars(vars=vars)
 
-    @RPCHandlers.handler(19, XDR_session_vars)
+    @RPCHandlers.handler(19, protocol.XDR_session_vars)
     @running(True)
     def session_variables_set(self, params):
         '''Integrate new merged values for all session variables.'''
@@ -224,7 +227,7 @@ class _BlastChannelSender(RPCHandlers):
         self._obj = obj
         self._sent = False
 
-    @RPCHandlers.handler(1, reply_class=XDR_object)
+    @RPCHandlers.handler(1, reply_class=protocol.XDR_object)
     def get_object(self):
         '''Return an accepted object.'''
         assert not self._sent

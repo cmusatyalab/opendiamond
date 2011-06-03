@@ -102,6 +102,7 @@ class _Signalled(BaseException):
     '''Exception indicating that a signal has been received.'''
 
     def __init__(self, sig):
+        BaseException.__init__(self)
         self.signal = sig
         # Find the signal name
         for attr in dir(signal):

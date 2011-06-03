@@ -238,6 +238,7 @@ class _ObjectFetcher(_ObjectProcessor):
     '''A context for loading object data from the dataretriever.'''
 
     def __init__(self):
+        _ObjectProcessor.__init__(self)
         self._digest_prefix = md5('dataretriever ')
 
     def __str__(self):
@@ -261,6 +262,7 @@ class _FilterRunner(_ObjectProcessor):
     '''A context for processing objects with a Filter.'''
 
     def __init__(self, state, filter, code_path):
+        _ObjectProcessor.__init__(self)
         self._filter = filter
         self._state = state
         self._code_path = code_path

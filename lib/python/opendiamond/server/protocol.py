@@ -37,6 +37,7 @@ class DiamondRPCCookieExpired(RPCError):
 class XDR_attribute(XDREncodable):
     '''An object attribute; reply only'''
     def __init__(self, name, value):
+        XDREncodable.__init__(self)
         self.name = name
         self.value = value
 
@@ -51,6 +52,7 @@ class XDR_object(XDREncodable):
     '''Blast channel object data; reply only'''
     def __init__(self, search_id, obj, attrs):
         '''attrs is a list of XDR_attribute.'''
+        XDREncodable.__init__(self)
         self.search_id = search_id
         self.obj = obj
         self.attrs = attrs
@@ -111,6 +113,7 @@ class _XDRStats(XDREncodable):
     hyper_stats = set()
 
     def __init__(self, **kwargs):
+        XDREncodable.__init__(self)
         for stat in self.stats:
             setattr(self, stat, kwargs.get(stat, 0))
 
@@ -174,6 +177,7 @@ class XDR_filter(object):
 class XDR_session_var(XDREncodable):
     '''Session variable'''
     def __init__(self, xdr=None, name=None, value=None):
+        XDREncodable.__init__(self)
         if xdr is not None:
             self.name = xdr.unpack_string()
             self.value = xdr.unpack_double()
@@ -190,6 +194,7 @@ class XDR_session_vars(XDREncodable):
     '''Session variable list'''
     def __init__(self, xdr=None, vars=None):
         '''vars is a list of XDR_session_var.'''
+        XDREncodable.__init__(self)
         if xdr is not None:
             self.vars = xdr.unpack_array(lambda: XDR_session_var(xdr=xdr))
         else:
@@ -222,6 +227,7 @@ class XDR_attribute_list(XDREncodable):
     '''Reexecute response; reply only'''
     def __init__(self, attrs):
         '''attrs is a list of XDR_attribute.'''
+        XDREncodable.__init__(self)
         self.attrs = attrs
 
     def encode(self, xdr):

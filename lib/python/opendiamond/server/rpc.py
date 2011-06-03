@@ -61,6 +61,7 @@ class _RPCHeader(XDREncodable):
 
     def __init__(self, xdr=None, sequence=None, status=None, cmd=None,
                         datalen=None):
+        XDREncodable.__init__(self)
         if xdr is not None:
             self.sequence = xdr.unpack_uint()
             self.status = xdr.unpack_int()

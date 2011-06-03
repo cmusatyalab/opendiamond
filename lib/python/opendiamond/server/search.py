@@ -220,6 +220,7 @@ class _BlastChannelSender(RPCHandlers):
     channel.'''
 
     def __init__(self, obj):
+        RPCHandlers.__init__(self)
         self._obj = obj
         self._sent = False
 

@@ -123,8 +123,7 @@ class _TestScope(unittest.TestCase):
             return
 
         if self.generate_exc:
-            self.assertRaises(self.generate_exc,
-                                lambda: self.generate_cookie())
+            self.assertRaises(self.generate_exc, self.generate_cookie)
             return
         data = self.generate_cookie()
 

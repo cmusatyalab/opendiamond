@@ -15,7 +15,7 @@
 
 import binascii
 
-from opendiamond.server.rpc import (RPCHandlers, XDRType, RPCError,
+from opendiamond.server.rpc import (RPCHandlers, XDREncodable, RPCError,
         RPCEncodingError)
 
 MAX_ATTRIBUTE_NAME = 256
@@ -34,7 +34,7 @@ class DiamondRPCCookieExpired(RPCError):
     code = 504
 
 
-class XDR_attribute(XDRType):
+class XDR_attribute(XDREncodable):
     '''An object attribute; reply only'''
     def __init__(self, name, value):
         self.name = name
@@ -47,7 +47,7 @@ class XDR_attribute(XDRType):
         xdr.pack_opaque(self.value)
 
 
-class XDR_object(XDRType):
+class XDR_object(XDREncodable):
     '''Blast channel object data; reply only'''
     def __init__(self, search_id, obj, attrs):
         '''attrs is a list of XDR_attribute.'''
@@ -61,7 +61,7 @@ class XDR_object(XDRType):
         self.encode_array(xdr, self.attrs)
 
 
-class XDR_sig_val(XDRType):
+class XDR_sig_val(object):
     '''An MD5 hash of some data; request only'''
     def __init__(self, xdr):
         # The signature is binary on the wire, but we always use the hex
@@ -72,13 +72,13 @@ class XDR_sig_val(XDRType):
         self.sig = binascii.hexlify(data)
 
 
-class XDR_start(XDRType):
+class XDR_start(object):
     '''Start-search parameters; request only'''
     def __init__(self, xdr):
         self.search_id = xdr.unpack_uint()
 
 
-class XDR_spec_file(XDRType):
+class XDR_spec_file(object):
     '''Search fspec file; request only'''
     def __init__(self, xdr):
         # sig is unused
@@ -86,7 +86,7 @@ class XDR_spec_file(XDRType):
         self.data = xdr.unpack_opaque()
 
 
-class XDR_blob(XDRType):
+class XDR_blob(object):
     '''Filter blob argument; request only'''
     def __init__(self, xdr):
         self.filter_name = xdr.unpack_string()
@@ -95,7 +95,7 @@ class XDR_blob(XDRType):
         self.data = xdr.unpack_opaque()
 
 
-class XDR_blob_sig(XDRType):
+class XDR_blob_sig(object):
     '''Filter blob by signature; request only'''
     def __init__(self, xdr):
         self.filter_name = xdr.unpack_string()
@@ -104,7 +104,7 @@ class XDR_blob_sig(XDRType):
         self.sig = XDR_sig_val(xdr=xdr)
 
 
-class _XDRStats(XDRType):
+class _XDRStats(XDREncodable):
     '''Base class for XDR_filter_stats and XDR_search_stats.'''
 
     stats = ()
@@ -163,7 +163,7 @@ class XDR_search_stats(_XDRStats):
         self.encode_array(xdr, self.filter_stats)
 
 
-class XDR_filter(XDRType):
+class XDR_filter(object):
     '''Filter code; request only'''
     def __init__(self, xdr):
         # sig is unused
@@ -171,7 +171,7 @@ class XDR_filter(XDRType):
         self.data = xdr.unpack_opaque()
 
 
-class XDR_session_var(XDRType):
+class XDR_session_var(XDREncodable):
     '''Session variable'''
     def __init__(self, xdr=None, name=None, value=None):
         if xdr is not None:
@@ -186,7 +186,7 @@ class XDR_session_var(XDRType):
         xdr.pack_double(self.value)
 
 
-class XDR_session_vars(XDRType):
+class XDR_session_vars(XDREncodable):
     '''Session variable list'''
     def __init__(self, xdr=None, vars=None):
         '''vars is a list of XDR_session_var.'''
@@ -199,7 +199,7 @@ class XDR_session_vars(XDRType):
         self.encode_array(xdr, self.vars)
 
 
-class XDR_attr_name_list(XDRType):
+class XDR_attr_name_list(object):
     '''List of attribute names; request only'''
     def __init__(self, xdr):
         self.attrs = xdr.unpack_array(xdr.unpack_string)
@@ -208,7 +208,7 @@ class XDR_attr_name_list(XDRType):
                 raise RPCEncodingError()
 
 
-class XDR_reexecute(XDRType):
+class XDR_reexecute(object):
     '''Reexecute argument; request only'''
     def __init__(self, xdr):
         self.object_id = xdr.unpack_string()
@@ -218,7 +218,7 @@ class XDR_reexecute(XDRType):
                 raise RPCEncodingError()
 
 
-class XDR_attribute_list(XDRType):
+class XDR_attribute_list(XDREncodable):
     '''Reexecute response; reply only'''
     def __init__(self, attrs):
         '''attrs is a list of XDR_attribute.'''
@@ -228,7 +228,7 @@ class XDR_attribute_list(XDRType):
         self.encode_array(xdr, self.attrs)
 
 
-class XDR_scope(XDRType):
+class XDR_scope(object):
     '''set_scope argument; request only'''
     def __init__(self, xdr):
         self.cookie = xdr.unpack_string()

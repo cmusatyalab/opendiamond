@@ -36,8 +36,8 @@ class RPCProcedureUnavailable(RPCError):
     code = -3
 
 
-class XDRType(object):
-    '''Base class for an XDR data structure.'''
+class XDREncodable(object):
+    '''Base class for an XDR-encodable data structure.'''
 
     def encode(self, xdr):
         '''Serialize the object into an XDR stream.'''
@@ -56,7 +56,7 @@ class XDRType(object):
             item.encode(xdr)
 
 
-class RPCHeader(XDRType):
+class RPCHeader(XDREncodable):
     '''An RPC message header.'''
 
     def __init__(self, xdr=None, sequence=None, status=None, cmd=None,

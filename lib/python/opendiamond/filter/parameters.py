@@ -66,6 +66,7 @@ class BaseParameter(object):
 
 
 class BooleanParameter(BaseParameter):
+    '''A boolean formal parameter.'''
     type = 'boolean'
 
     def __init__(self, label, default=None):
@@ -86,6 +87,7 @@ class BooleanParameter(BaseParameter):
 
 
 class StringParameter(BaseParameter):
+    '''A string formal parameter.'''
     type = 'string'
 
     def parse(self, str):
@@ -96,6 +98,7 @@ class StringParameter(BaseParameter):
 
 
 class NumberParameter(BaseParameter):
+    '''A number formal parameter.'''
     type = 'number'
 
     def __init__(self, label, default=None, min=None, max=None,
@@ -131,6 +134,7 @@ class NumberParameter(BaseParameter):
 
 
 class ChoiceParameter(BaseParameter):
+    '''A multiple-choice formal parameter.'''
     type = 'choice'
 
     def __init__(self, label, choices, default=None):

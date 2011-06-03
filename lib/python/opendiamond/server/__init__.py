@@ -280,7 +280,7 @@ class DiamondServer(object):
         if count > 0:
             _log.info('Pruned %d search logs', count)
 
-    def _handle_signal(self, sig, frame):
+    def _handle_signal(self, sig, _frame):
         '''Signal handler in the supervisor.'''
         if not self._ignore_signals:
             raise _Signalled(sig)

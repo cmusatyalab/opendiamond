@@ -127,11 +127,11 @@ class ChildManager(object):
         except KeyError:
             pass
 
-    def _child_exited(self, sig, frame):
+    def _child_exited(self, _sig, _frame):
         '''Signal handler for SIGCHLD.'''
         try:
             while True:
-                pid, status = os.waitpid(-1, os.WNOHANG)
+                pid, _status = os.waitpid(-1, os.WNOHANG)
                 if pid == 0:
                     # No exited processes
                     break

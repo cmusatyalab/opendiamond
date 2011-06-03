@@ -162,7 +162,7 @@ class ConnListener(object):
             flags = socket.AI_PASSIVE
         addrs = socket.getaddrinfo(None, PORT, 0, 0, 0, flags)
         # Try each one until we find one that works
-        for family, type, proto, canonname, addr in addrs:
+        for family, type, proto, _canonname, addr in addrs:
             try:
                 self._listen = socket.socket(family, type, proto)
                 self._listen.setsockopt(socket.SOL_SOCKET,
@@ -235,7 +235,7 @@ class ConnListener(object):
     def accept(self):
         '''Returns a new (control, data) connection pair.'''
         while True:
-            for pconn, flags in self._poll.poll():
+            for pconn, _flags in self._poll.poll():
                 if pconn is None:
                     # Listening socket
                     self._accept()

@@ -218,10 +218,10 @@ class Object(object):
         Diamond has moved on to another object'''
         self.valid = False
 
-    def _get_attribute(self, key):
+    def _get_attribute(self, _key):
         return None
 
-    def _set_attribute(self, key, value):
+    def _set_attribute(self, _key, _value):
         pass
 
     def _omit_attribute(self, key):

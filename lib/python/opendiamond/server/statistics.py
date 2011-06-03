@@ -30,7 +30,7 @@ class _Statistics(object):
 
     def __init__(self):
         self._lock = threading.Lock()
-        self._stats = dict([(name, 0) for name, desc in self.attrs])
+        self._stats = dict([(name, 0) for name, _desc in self.attrs])
 
     def __getattr__(self, key):
         return self._stats[key]

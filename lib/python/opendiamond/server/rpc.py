@@ -43,12 +43,14 @@ class XDREncodable(object):
         '''Serialize the object into an XDR stream.'''
         raise NotImplementedError()
 
-    def encode_int(self, xdr, val):
+    @staticmethod
+    def encode_int(xdr, val):
         '''Due to Python #9696, packer.pack_int() fails for negative values
         on Python < 2.7.2.  Work around this.'''
         xdr.pack_fstring(4, struct.pack('>i', val))
 
-    def encode_array(self, xdr, items):
+    @staticmethod
+    def encode_array(xdr, items):
         '''Packer.pack_array() is inconvenient for recursive descent.  This
         method is more convenient.'''
         xdr.pack_uint(len(items))

@@ -25,6 +25,13 @@ AC_PROG_CC_C99
 AM_PROG_LEX
 AM_PATH_PYTHON([2.5])
 
+# pylint
+AC_PATH_PROG([PYLINT], [pylint])
+AC_ARG_VAR([PYLINT], [path to pylint])
+if test z$PYLINT = z ; then
+	AC_MSG_ERROR([pylint not found])
+fi
+
 # Perl
 AC_PATH_PROG([PERL], [perl])
 AC_ARG_VAR([PERL], [path to Perl])

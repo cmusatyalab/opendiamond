@@ -1,4 +1,5 @@
 EXTRA_DIST = setup.py \
+	pylintrc \
 	opendiamond/__init__.py \
 	opendiamond/bundle.py \
 	opendiamond/config.py \
@@ -27,6 +28,10 @@ all-local: setup.py $(EXTRA_DIST)
 	$(PYTHON) setup.py build
 
 check-local:
+	@# Fail on serious pylint errors
+	PYTHONPATH=$(srcdir) \
+		$(PYLINT) --rcfile=$(srcdir)/pylintrc opendiamond || \
+		[ $$(($$? & 3)) -eq 0 ]
 	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) $(srcdir)/opendiamond/test.py
 

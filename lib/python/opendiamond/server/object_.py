@@ -34,10 +34,10 @@ class EmptyObject(object):
         self._omit_attrs = set()
 
     def __str__(self):
-        return 'Empty'
+        return ''
 
     def __repr__(self):
-        return '<Object(%s)>' % self
+        return '<EmptyObject>'
 
     def load(self):
         '''Load the object data from the dataretriever.'''
@@ -115,6 +115,9 @@ class Object(EmptyObject):
     def __str__(self):
         '''Return the object ID.'''
         return self._id
+
+    def __repr__(self):
+        return '<Object %s>' % self
 
     def load(self):
         # Load the object data.  urllib2 does not reuse HTTP connections, so

@@ -140,7 +140,7 @@ class DiamondServer(object):
 
         self.config = config
         self._children = ChildManager(config.cgroupdir, not config.oneshot)
-        self._listener = ConnListener(config.localhost_only)
+        self._listener = ConnListener()
         self._last_log_prune = datetime.fromtimestamp(0)
         self._ignore_signals = False
 

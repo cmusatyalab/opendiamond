@@ -113,8 +113,6 @@ class DiamondConfig(object):
             _Param('cgroupdir', 'CGROUPDIR'),
             # Fork to background
             _Param('daemonize', None, True),
-            # Bind listening socket only to localhost
-            _Param('localhost_only', None, False),
             # Number of days of logfiles to keep
             _Param('logdays', 'LOGDAYS', 14),
             # Directory for logfiles

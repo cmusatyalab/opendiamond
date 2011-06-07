@@ -159,13 +159,10 @@ class ConnListener(object):
     '''Manager for listening socket and connections still in the matchmaking
     process.'''
 
-    def __init__(self, localhost_only=False):
+    def __init__(self):
         # Get a list of potential bind addresses
-        if localhost_only:
-            flags = 0
-        else:
-            flags = socket.AI_PASSIVE
-        addrs = socket.getaddrinfo(None, PORT, 0, socket.SOCK_STREAM, 0, flags)
+        addrs = socket.getaddrinfo(None, PORT, 0, socket.SOCK_STREAM, 0,
+                                    socket.AI_PASSIVE)
         # Try to bind to each address
         socks = []
         for family, type, proto, _canonname, addr in addrs:

@@ -32,9 +32,6 @@ add_option('-d',
 add_option('-f',
             dest='path',
             help='config file')
-add_option('-l',
-            dest='localhost_only', default=False, action='store_true',
-            help='only listen on localhost')
 add_option('-n',
             dest='oneshot', action='store_true', default=False,
             help='do not fork for a new connection')

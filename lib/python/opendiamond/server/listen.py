@@ -94,16 +94,25 @@ class _PendingConn(object):
         return binascii.hexlify(self.nonce)
 
 
-class _PendingConnPollSet(object):
-    '''Convenience wrapper around a select.poll object which works with
-    _PendingConns (plus one listening connection, denoted as None in the poll()
-    results list) rather than file descriptors.'''
+class _ListeningSocket(object):
+    '''A wrapper class for a listening socket which is to be added to a
+    _PendingConnPollSet.'''
 
-    def __init__(self, listener):
-        self._listener = listener
+    def __init__(self, sock):
+        self.sock = sock
+
+    def accept(self):
+        return self.sock.accept()
+
+
+class _PendingConnPollSet(object):
+    '''Convenience wrapper around a select.poll object which works not with
+    file descriptors, but with any object with a "sock" attribute containing
+    a network socket.'''
+
+    def __init__(self):
         self._fd_to_pconn = dict()
         self._pollset = select.poll()
-        self._pollset.register(listener.fileno(), select.POLLIN)
 
     def register(self, pconn, mask):
         '''Add the pconn to the set with the specified mask.  Can also be
@@ -137,17 +146,13 @@ class _PendingConnPollSet(object):
 
         ret = []
         for fd, event in items:
-            if fd == self._listener.fileno():
-                ret.append((None, event))
-            else:
-                ret.append((self._fd_to_pconn[fd], event))
+            ret.append((self._fd_to_pconn[fd], event))
         return ret
 
     def close(self):
         '''Unregister all connections from the pollset.'''
         for pconn in self._fd_to_pconn.values():
             self.unregister(pconn)
-        self._pollset.unregister(self._listener.fileno())
 
 
 class ConnListener(object):
@@ -161,32 +166,37 @@ class ConnListener(object):
         else:
             flags = socket.AI_PASSIVE
         addrs = socket.getaddrinfo(None, PORT, 0, socket.SOCK_STREAM, 0, flags)
-        # Try each one until we find one that works
+        # Try to bind to each address
+        socks = []
         for family, type, proto, _canonname, addr in addrs:
             try:
-                self._listen = socket.socket(family, type, proto)
-                self._listen.setsockopt(socket.SOL_SOCKET,
-                                        socket.SO_REUSEADDR, 1)
-                self._listen.bind(addr)
-                self._listen.listen(BACKLOG)
-                self._listen.setblocking(0)
+                sock = socket.socket(family, type, proto)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                if family == socket.AF_INET6:
+                    # Ensure an IPv6 listener doesn't also bind to IPv4,
+                    # since depending on the order of getaddrinfo return
+                    # values this could cause the IPv6 bind to fail
+                    sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+                sock.bind(addr)
+                sock.listen(BACKLOG)
+                sock.setblocking(0)
+                socks.append(sock)
             except socket.error:
                 pass
-            else:
-                # Found one
-                break
-        else:
+        if not socks:
             # None of the addresses worked
             raise ListenError("Couldn't bind listening socket")
 
-        self._poll = _PendingConnPollSet(self._listen)
+        self._poll = _PendingConnPollSet()
+        for sock in socks:
+            self._poll.register(_ListeningSocket(sock), select.POLLIN)
         self._nonce_to_pending = WeakValueDictionary()
 
-    def _accept(self):
+    def _accept(self, lsock):
         '''Accept waiting connections and add them to the pollset.'''
         try:
             while True:
-                sock, addr = self._listen.accept()
+                sock, addr = lsock.accept()
                 pconn = _PendingConn(sock, addr[0])
                 _log.debug('New connection from %s', pconn.peer)
                 self._poll.register(pconn, select.POLLIN)
@@ -236,9 +246,9 @@ class ConnListener(object):
         '''Returns a new (control, data) connection pair.'''
         while True:
             for pconn, _flags in self._poll.poll():
-                if pconn is None:
+                if hasattr(pconn, 'accept'):
                     # Listening socket
-                    self._accept()
+                    self._accept(pconn)
                 else:
                     # Traffic on a pending connection; attempt to pair it
                     ret = self._traffic(pconn)
@@ -250,4 +260,3 @@ class ConnListener(object):
     def shutdown(self):
         '''Close listening socket and all pending connections.'''
         self._poll.close()
-        self._listen.close()

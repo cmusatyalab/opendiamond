@@ -14,15 +14,18 @@
 '''Scope list retrieval, parsing, and iteration.'''
 
 from __future__ import with_statement
+import logging
 import urllib2
 from urlparse import urljoin
 import threading
-from xml.sax import make_parser
+from xml.sax import make_parser, SAXParseException
 from xml.sax.handler import ContentHandler
 
 from opendiamond.server.object_ import Object
 
 BASE_URL = 'http://localhost:5873/'
+
+_log = logging.getLogger(__name__)
 
 class _ScopeListHandler(ContentHandler):
     '''Gatherer for results produced by incremental scope list parsing.'''
@@ -83,24 +86,36 @@ class ScopeListLoader(object):
         # Build XML parser
         parser = make_parser()
         parser.setContentHandler(self._handler)
+        # Walk scope URLs
         for cookie in self.cookies:
             for scope_url in cookie:
                 scope_url = urljoin(BASE_URL, scope_url)
-                # We use urllib2 here because different parts of a single
-                # HTTP response will be handled from different threads.
-                # pycurl does not support this.
-                fh = opener.open(scope_url)
-                # Read the scope list in 4 KB chunks
-                while True:
-                    buf = fh.read(4096)
-                    if len(buf) == 0:
-                        break
-                    parser.feed(buf)
-                    while len(self._handler.pending_objects) > 0:
-                        url = self._handler.pending_objects.pop(0)
-                        yield Object(self.server_id, urljoin(scope_url, url))
-                parser.close()
-                parser.reset()
+                try:
+                    # We use urllib2 here because different parts of a single
+                    # HTTP response will be handled from different threads.
+                    # pycurl does not support this.
+                    fh = opener.open(scope_url)
+                    # Read the scope list in 4 KB chunks
+                    while True:
+                        buf = fh.read(4096)
+                        if len(buf) == 0:
+                            break
+                        parser.feed(buf)
+                        while len(self._handler.pending_objects) > 0:
+                            url = self._handler.pending_objects.pop(0)
+                            yield Object(self.server_id,
+                                            urljoin(scope_url, url))
+                except urllib2.URLError, e:
+                    _log.warning('Fetching %s: %s', scope_url, e)
+                except SAXParseException, e:
+                    _log.warning('Parsing %s: %s', scope_url, e)
+                finally:
+                    try:
+                        # Ignore well-formedness errors discovered at close
+                        parser.close()
+                    except SAXParseException:
+                        pass
+                    parser.reset()
 
     def get_count(self):
         '''Return our current understanding of the number of objects in

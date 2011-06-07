@@ -160,7 +160,7 @@ class ConnListener(object):
             flags = 0
         else:
             flags = socket.AI_PASSIVE
-        addrs = socket.getaddrinfo(None, PORT, 0, 0, 0, flags)
+        addrs = socket.getaddrinfo(None, PORT, 0, socket.SOCK_STREAM, 0, flags)
         # Try each one until we find one that works
         for family, type, proto, _canonname, addr in addrs:
             try:

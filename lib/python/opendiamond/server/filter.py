@@ -89,6 +89,9 @@ class FilterDependencyError(Exception):
     '''Error processing filter dependencies.'''
 class FilterExecutionError(Exception):
     '''Error executing filter.'''
+class _DropObject(Exception):
+    '''Filter failed to process object.  The object should be dropped
+    without caching the drop result.'''
 
 
 class _FilterProcess(object):
@@ -367,11 +370,12 @@ class _FilterRunner(_ObjectProcessor):
                     raise FilterExecutionError('%s: unknown command' % self)
         except IOError:
             if self._proc_initialized:
-                # Filter died on an object.  The result score defaults to
-                # zero, so this will be treated as a drop.
+                # Filter died on an object.  Drop the object without caching
+                # the result.
                 _log.error('Filter %s (signature %s) died on object %s',
                                 self, self._filter.signature, obj)
                 self._proc = None
+                raise _DropObject()
             else:
                 # Filter died during initialization.  Treat this as fatal.
                 raise FilterExecutionError("Filter %s failed to initialize"
@@ -652,6 +656,8 @@ class FilterStackRunner(threading.Thread):
                     return False
             # Object passes all filters, accept
             return True
+        except _DropObject:
+            return False
         finally:
             # Update the cache with new values
             resultmap = dict()

@@ -67,6 +67,7 @@ import subprocess
 import threading
 
 from opendiamond.helpers import md5
+from opendiamond.server.object_ import ObjectLoader
 from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
 
@@ -239,6 +240,7 @@ class _ObjectFetcher(_ObjectProcessor):
 
     def __init__(self):
         _ObjectProcessor.__init__(self)
+        self._loader = ObjectLoader()
         self._digest_prefix = md5('dataretriever ')
 
     def __str__(self):
@@ -248,7 +250,7 @@ class _ObjectFetcher(_ObjectProcessor):
         return self._digest_prefix.copy()
 
     def evaluate(self, obj):
-        obj.load()
+        self._loader.load(obj)
         result = _FilterResult()
         for key in obj:
             result.output_attrs[key] = obj.get_signature(key)

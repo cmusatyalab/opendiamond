@@ -75,6 +75,9 @@ class ScopeListLoader(object):
         for cookie in self.cookies:
             for scope_url in cookie:
                 scope_url = urljoin(BASE_URL, scope_url)
+                # We use urllib2 here because different parts of a single
+                # HTTP response will be handled from different threads.
+                # pycurl does not support this.
                 fh = urlopen(scope_url)
                 # Read the scope list in 4 KB chunks
                 while True:

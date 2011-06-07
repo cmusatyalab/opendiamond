@@ -13,7 +13,8 @@
 
 '''Representations of a Diamond object.'''
 
-from urllib2 import urlopen
+from cStringIO import StringIO
+import pycurl as curl
 
 from opendiamond.helpers import md5
 from opendiamond.server.protocol import XDR_attribute, XDR_object
@@ -24,6 +25,10 @@ ATTR_DATA = ''
 ATTR_OBJ_ID = '_ObjectID'
 ATTR_DISPLAY_NAME = 'Display-Name'
 ATTR_DEVICE_NAME = 'Device-Name'
+
+# Initialize curl before multiple threads have been started
+curl.global_init(curl.GLOBAL_DEFAULT)
+
 
 class EmptyObject(object):
     '''An immutable Diamond object with no data and no attributes.'''
@@ -38,10 +43,6 @@ class EmptyObject(object):
 
     def __repr__(self):
         return '<EmptyObject>'
-
-    def load(self):
-        '''Load the object data from the dataretriever.'''
-        raise TypeError()
 
     def __iter__(self):
         '''Return an iterator over the attribute names.'''
@@ -119,25 +120,53 @@ class Object(EmptyObject):
     def __repr__(self):
         return '<Object %s>' % self
 
-    def load(self):
-        # Load the object data.  urllib2 does not reuse HTTP connections, so
-        # this will always create a new connection.  If this becomes a
-        # problem, this code will need to be converted to use pycurl.
-        # The dataretriever may not support persistent connections either,
-        # depending on the HTTP server package it's using, so the lack of
-        # support on this end may not matter.
-        fh = urlopen(self._id)
-        self[ATTR_DATA] = fh.read()
-        # Process initial attributes
-        info = fh.info()
-        for header in info.keys():
-            if header.lower().startswith(ATTR_HEADER_PREFIX):
-                attr = header.replace(ATTR_HEADER_PREFIX, '', 1)
-                self[attr] = info[header] + '\0'
-        # Set display name if not already in initial attributes
-        if ATTR_DISPLAY_NAME not in self:
-            self[ATTR_DISPLAY_NAME] = self._id + '\0'
-
     def __setitem__(self, key, value):
         self._attrs[key] = value
         self._signatures[key] = md5(value).hexdigest()
+
+
+class ObjectLoader(object):
+    '''A context for populating an Object from the dataretriever.  Allows a
+    single HTTP connection to be reused to fetch multiple objects.  Must not
+    be used by more than one thread.'''
+
+    def __init__(self):
+        self._curl = curl.Curl()
+        self._curl.setopt(curl.NOSIGNAL, 1)
+        self._curl.setopt(curl.FAILONERROR, 1)
+        self._curl.setopt(curl.HEADERFUNCTION, self._handle_header)
+        self._curl.setopt(curl.WRITEFUNCTION, self._handle_body)
+        self._headers = {}
+        self._body = StringIO()
+
+    def load(self, obj):
+        '''Retrieve the Object from the dataretriever and update it with
+        the information we receive.'''
+        self._curl.setopt(curl.URL, str(obj))
+        self._curl.perform()
+        # Load the object data
+        obj[ATTR_DATA] = self._body.getvalue()
+        # Process initial attributes
+        for key, value in self._headers.iteritems():
+            if key.lower().startswith(ATTR_HEADER_PREFIX):
+                key = key.replace(ATTR_HEADER_PREFIX, '', 1)
+                obj[key] = value + '\0'
+        # Set display name if not already in initial attributes
+        if ATTR_DISPLAY_NAME not in obj:
+            obj[ATTR_DISPLAY_NAME] = str(obj) + '\0'
+        # Release fetched data
+        self._headers = {}
+        self._body = StringIO()
+
+    def _handle_header(self, hdr):
+        hdr = hdr.rstrip('\r\n')
+        if hdr.startswith('HTTP/'):
+            # New HTTP status line, discard existing headers
+            self._headers = {}
+        elif hdr != '':
+            # This is simplistic.
+            key, value = hdr.split(': ', 1)
+            self._headers[key] = value
+
+    def _handle_body(self, data):
+        self._body.write(data)

@@ -30,6 +30,10 @@ ATTR_DEVICE_NAME = 'Device-Name'
 curl.global_init(curl.GLOBAL_DEFAULT)
 
 
+class ObjectLoadError(Exception):
+    '''Object failed to load.'''
+
+
 class EmptyObject(object):
     '''An immutable Diamond object with no data and no attributes.'''
 
@@ -146,7 +150,10 @@ class ObjectLoader(object):
         '''Retrieve the Object from the dataretriever and update it with
         the information we receive.'''
         self._curl.setopt(curl.URL, str(obj))
-        self._curl.perform()
+        try:
+            self._curl.perform()
+        except curl.error, e:
+            raise ObjectLoadError(e[1])
         # Load the object data
         obj[ATTR_DATA] = self._body.getvalue()
         # Process initial attributes

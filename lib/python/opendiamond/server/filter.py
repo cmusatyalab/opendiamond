@@ -67,7 +67,7 @@ import subprocess
 import threading
 
 from opendiamond.helpers import md5
-from opendiamond.server.object_ import ObjectLoader
+from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
 
@@ -253,7 +253,11 @@ class _ObjectFetcher(_ObjectProcessor):
         return self._digest_prefix.copy()
 
     def evaluate(self, obj):
-        self._loader.load(obj)
+        try:
+            self._loader.load(obj)
+        except ObjectLoadError, e:
+            _log.warning('Failed to load %s: %s', obj, e)
+            raise _DropObject()
         result = _FilterResult()
         for key in obj:
             result.output_attrs[key] = obj.get_signature(key)

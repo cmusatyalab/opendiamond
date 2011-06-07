@@ -134,6 +134,7 @@ class ObjectLoader(object):
         self._curl = curl.Curl()
         self._curl.setopt(curl.NOSIGNAL, 1)
         self._curl.setopt(curl.FAILONERROR, 1)
+        self._curl.setopt(curl.USERAGENT, config.user_agent)
         if config.http_proxy is not None:
             self._curl.setopt(curl.PROXY, config.http_proxy)
         self._curl.setopt(curl.HEADERFUNCTION, self._handle_header)

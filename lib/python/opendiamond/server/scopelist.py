@@ -79,6 +79,7 @@ class ScopeListLoader(object):
                 'https': self._config.http_proxy,
             }))
         opener = urllib2.build_opener(*handlers)
+        opener.addheaders = [('User-Agent', self._config.user_agent)]
         # Build XML parser
         parser = make_parser()
         parser.setContentHandler(self._handler)

@@ -16,6 +16,8 @@
 import os
 import socket
 
+import opendiamond
+
 class DiamondConfigError(Exception):
     pass
 
@@ -125,6 +127,9 @@ class DiamondConfig(object):
             _Param('serverids', 'SERVERID', []),
             # Worker threads per child process
             _Param('threads', 'THREADS', default_threads),
+            # HTTP user agent
+            _Param('user_agent', None, 'OpenDiamond/%s'
+                                        % opendiamond.__version__),
 
             ## dataretriever Diamond store
             # Root data directory

@@ -80,6 +80,8 @@ CACHE[ \t]+.*\n
 CACHEDB[ \t]+.*\n
 CACHEPASSWD[ \t]+.*\n
 THREADS[ \t]+.*\n
+LOGDAYS[ \t]+.*\n
+HTTP_PROXY[ \t]+.*\n
 CACHEDIR[ \t]+[[:alnum:]\-_\/\.]+ {set_cache_dir(eat_token(yyget_text(yyscanner)));}
 LOGDIR[ \t]+[[:alnum:]\-_\/\.]+	  {set_log_dir(eat_token(yyget_text(yyscanner)));}
 CERTFILE[ \t]+[[:alnum:]\-_\/\.]+ {set_certfile(eat_token(yyget_text(yyscanner)));}

@@ -130,10 +130,12 @@ class ObjectLoader(object):
     single HTTP connection to be reused to fetch multiple objects.  Must not
     be used by more than one thread.'''
 
-    def __init__(self):
+    def __init__(self, config):
         self._curl = curl.Curl()
         self._curl.setopt(curl.NOSIGNAL, 1)
         self._curl.setopt(curl.FAILONERROR, 1)
+        if config.http_proxy is not None:
+            self._curl.setopt(curl.PROXY, config.http_proxy)
         self._curl.setopt(curl.HEADERFUNCTION, self._handle_header)
         self._curl.setopt(curl.WRITEFUNCTION, self._handle_body)
         self._headers = {}

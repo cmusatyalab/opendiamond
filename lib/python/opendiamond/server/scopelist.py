@@ -14,7 +14,7 @@
 '''Scope list retrieval, parsing, and iteration.'''
 
 from __future__ import with_statement
-from urllib2 import urlopen
+import urllib2
 from urlparse import urljoin
 import threading
 from xml.sax import make_parser
@@ -51,9 +51,10 @@ class ScopeListLoader(object):
     '''Iterator over the objects in the scope lists referenced by the scope
     cookies.'''
 
-    def __init__(self, server_id, cookies):
+    def __init__(self, config, server_id, cookies):
         self.server_id = server_id
         self.cookies = cookies
+        self._config = config
         self._lock = threading.Lock()
         self._handler = _ScopeListHandler()
         self._generator = self._generator_func()
@@ -70,6 +71,15 @@ class ScopeListLoader(object):
     # pylint: enable=E1101
 
     def _generator_func(self):
+        # Build URL opener
+        handlers = []
+        if self._config.http_proxy is not None:
+            handlers.append(urllib2.ProxyHandler({
+                'http': self._config.http_proxy,
+                'https': self._config.http_proxy,
+            }))
+        opener = urllib2.build_opener(*handlers)
+        # Build XML parser
         parser = make_parser()
         parser.setContentHandler(self._handler)
         for cookie in self.cookies:
@@ -78,7 +88,7 @@ class ScopeListLoader(object):
                 # We use urllib2 here because different parts of a single
                 # HTTP response will be handled from different threads.
                 # pycurl does not support this.
-                fh = urlopen(scope_url)
+                fh = opener.open(scope_url)
                 # Read the scope list in 4 KB chunks
                 while True:
                     buf = fh.read(4096)

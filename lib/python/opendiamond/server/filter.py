@@ -238,9 +238,9 @@ class _ObjectProcessor(object):
 class _ObjectFetcher(_ObjectProcessor):
     '''A context for loading object data from the dataretriever.'''
 
-    def __init__(self):
+    def __init__(self, state):
         _ObjectProcessor.__init__(self)
-        self._loader = ObjectLoader()
+        self._loader = ObjectLoader(state.config)
         self._digest_prefix = md5('dataretriever ')
 
     def __str__(self):
@@ -790,7 +790,8 @@ class FilterStack(object):
     def bind(self, state, name='Filter', cleanup=None):
         '''Return a FilterStackRunner that can be used to process objects
         with this filter stack.'''
-        runners = [_ObjectFetcher()] + [f.bind(state) for f in self._order]
+        fetcher = _ObjectFetcher(state)
+        runners = [fetcher] + [f.bind(state) for f in self._order]
         return FilterStackRunner(state, runners, name, cleanup)
 
     def start_threads(self, state, count):

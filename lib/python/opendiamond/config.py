@@ -121,6 +121,8 @@ class DiamondConfig(object):
             _Param('logdir', 'LOGDIR', os.path.join(confdir, 'log')),
             # Don't fork when a connection arrives
             _Param('oneshot', None, False),
+            # HTTP proxy
+            _Param('http_proxy', 'HTTP_PROXY', None),
             # Canonical server names
             _Param('serverids', 'SERVERID', []),
             # Worker threads per child process

@@ -230,6 +230,24 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
         return ''.join(cookies)
 
 
+def generate_cookie_django(scopeurls, servers, proxies=None):
+    '''A variant of generate_cookie() which pulls the more obscure fixed
+    arguments from Django settings.
+
+    The signing key file comes from settings.SCOPE_KEY_FILE, if present.
+
+    The expiration time (in seconds) comes from
+    settings.SCOPE_COOKIE_EXPIRATION, if present.'''
+
+    from django.conf import settings
+    keyfile = getattr(settings, 'SCOPE_KEY_FILE', None)
+    expires = getattr(settings, 'SCOPE_COOKIE_EXPIRATION', None)
+    if expires is not None:
+        expires = timedelta(seconds=expires)
+    return generate_cookie(scopeurls, servers, proxies=proxies,
+                            keyfile=keyfile, expires=expires)
+
+
 def _main():
     import sys
     args = sys.argv[1:]

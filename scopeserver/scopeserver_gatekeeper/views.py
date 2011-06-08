@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import simplejson
 from django.shortcuts import render_to_response
-from opendiamond.scope import generate_cookie
+from opendiamond.scope import generate_cookie_django
 from forms import CollectionForm, ManageForm
 
 @login_required
@@ -31,7 +31,7 @@ def index(request):
               servers = {}
               for server in collection.servers.all():
                   servers[server.host] = True
-              cookie.extend(generate_cookie(scope, servers))
+              cookie.extend(generate_cookie_django(scope, servers))
 
           return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:

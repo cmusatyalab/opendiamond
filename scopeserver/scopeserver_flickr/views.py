@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.http import QueryDict, HttpResponse
 from django.shortcuts import render_to_response
-from opendiamond.scope import generate_cookie
+from opendiamond.scope import generate_cookie_django
 from forms import FlickrForm
 
 @permission_required('access.search', login_url=settings.LOGIN_REDIRECT_URL)
@@ -43,7 +43,7 @@ def index(request):
 	    scope = [ "/flickr/?%s" % query ]
 	    servers = [ "westphal.isr.cs.cmu.edu" ]
 
-	    cookie = generate_cookie(scope, servers)
+	    cookie = generate_cookie_django(scope, servers)
 	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
 	form = FlickrForm()

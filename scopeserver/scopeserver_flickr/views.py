@@ -44,9 +44,7 @@ def index(request):
 	    servers = [ "westphal.isr.cs.cmu.edu" ]
 
 	    cookie = generate_cookie(scope, servers)
-	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
-	    resp['Content-Disposition']='attachment; filename=opendiamond.scope'
-	    return resp
+	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
 	form = FlickrForm()
 

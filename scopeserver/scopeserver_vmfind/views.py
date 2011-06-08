@@ -44,9 +44,7 @@ def index(request):
 			 form.cleaned_data['vmimages']]
 
 	    cookie = generate_cookie(scope, SERVERS)
-	    resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
-	    resp['Content-Disposition']='attachment; filename=opendiamond.scope'
-	    return resp
+	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
 	form = VMFindForm()
 

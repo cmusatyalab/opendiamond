@@ -33,9 +33,7 @@ def index(request):
                   servers[server.host] = True
               cookie.extend(generate_cookie(scope, servers))
 
-          resp = HttpResponse(cookie, mimetype='application/x-diamond-scope')
-          resp['Content-Disposition']='attachment; filename=opendiamond.scope'
-          return resp
+          return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
 	form = CollectionForm(user=request.user)
 

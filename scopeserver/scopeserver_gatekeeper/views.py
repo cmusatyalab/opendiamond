@@ -28,9 +28,9 @@ def index(request):
           cookie = []
           for collection in form.cleaned_data['collections']:
               scope = [ "/collection/%s" % collection.gid.replace(':','') ]
-              servers = {}
+              servers = set()
               for server in collection.servers.all():
-                  servers[server.host] = True
+                  servers.add(server.host)
               cookie.extend(generate_cookie_django(scope, servers))
 
           return HttpResponse(cookie, mimetype='application/x-diamond-scope')

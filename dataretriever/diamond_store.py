@@ -81,7 +81,7 @@ def object_app(environ, start_response):
 
     f = open(path, 'rb')
     stat = os.fstat(f.fileno())
-    etag = str(stat.st_mtime) + "_" + str(stat.st_size)
+    etag = '"' + str(stat.st_mtime) + "_" + str(stat.st_size) + '"'
     headers = [('Content-Type', guess_mime_type(path)),
 	       ('Content-Length', str(stat.st_size)),
 	       ('Last-Modified', rfc822.formatdate(stat.st_mtime)),

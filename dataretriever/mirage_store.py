@@ -154,8 +154,9 @@ def scope_app(environ, start_response):
 def object_app(environ, start_response):
     sha1sum = environ['PATH_INFO'][1:].lower()
     f = MirageObject(sha1sum)
+    etag = '"' + sha1sum + '"'
 
-    headers = [('Content-Length', str(f.length)), ('ETag', sha1sum)]
+    headers = [('Content-Length', str(f.length)), ('ETag', etag)]
 
     if_none = environ.get('HTTP_IF_NONE_MATCH')
     if if_none and (if_none == '*' or etag in if_none):

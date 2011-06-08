@@ -41,9 +41,8 @@ def index(request):
 	    query = q.urlencode()
 
 	    scope = [ "/flickr/?%s" % query ]
-	    servers = [ "westphal.isr.cs.cmu.edu" ]
 
-	    cookie = generate_cookie_django(scope, servers)
+	    cookie = generate_cookie_django(scope, settings.FLICKR_SERVERS)
 	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
 	form = FlickrForm()

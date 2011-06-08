@@ -18,8 +18,6 @@ from django.shortcuts import render_to_response
 from opendiamond.scope import generate_cookie_django
 from forms import VMFindForm
 
-SERVERS = [ "westphal.isr.cs.cmu.edu" ]
-
 @permission_required('access.search', login_url=settings.LOGIN_REDIRECT_URL)
 def index(request):
     if request.method == 'POST':
@@ -43,7 +41,7 @@ def index(request):
 	    scope = [ "/mirage/%s%s" % (image, query) for image in
 			 form.cleaned_data['vmimages']]
 
-	    cookie = generate_cookie_django(scope, SERVERS)
+	    cookie = generate_cookie_django(scope, settings.VMFIND_SERVERS)
 	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
 	form = VMFindForm()

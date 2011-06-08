@@ -6,7 +6,8 @@
 </ul>
 <input type="submit" value="Set permissions" />
 </form>
-{{ form.media }}
+{% endblock %}
+{% block extra_scripts %}
 <script type="text/javascript">
 /* populate form based on which collections a user may access */
 $(document).ready(function () {

@@ -71,6 +71,7 @@ from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
 
+ATTR_FILTER_SCORE = '_filter.%s_score'	# arg: filter name
 # If a filter produces attribute values at less than this rate
 # (total attribute value size / execution time), we will cache the attribute
 # values as well as the filter results.
@@ -207,6 +208,10 @@ class _FilterResult(object):
 class _ObjectProcessor(object):
     '''A context for processing objects.'''
 
+    # Whether to report the filter score back to the client (True for
+    # filters requested by the client, False for other filters)
+    send_score = False
+
     def __str__(self):
         '''Return a human-readable name for the underlying filter.'''
         raise NotImplementedError()
@@ -269,6 +274,8 @@ class _ObjectFetcher(_ObjectProcessor):
 
 class _FilterRunner(_ObjectProcessor):
     '''A context for processing objects with a Filter.'''
+
+    send_score = True
 
     def __init__(self, state, filter, code_path):
         _ObjectProcessor.__init__(self)
@@ -658,6 +665,13 @@ class FilterStackRunner(threading.Thread):
                 if not runner.threshold(result):
                     # Drop decision.
                     return False
+                elif runner.send_score:
+                    # Store the filter score in the object.  This attribute
+                    # is never cached because the filter name is controlled
+                    # by the client and can arbitrarily change across
+                    # searches.
+                    attrname = ATTR_FILTER_SCORE % runner
+                    obj[attrname] = str(result.score) + '\0'
             # Object passes all filters, accept
             return True
         except _DropObject:

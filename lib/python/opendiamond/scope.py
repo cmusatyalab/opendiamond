@@ -127,8 +127,7 @@ class ScopeCookie(object):
                    ('Serial', serial),
                    ('Expires', expires.isoformat()),
                    ('Servers', ';'.join(servers)))
-        hdrbuf = reduce(lambda buf, hdr: buf + '%s: %s\n' % (hdr[0], hdr[1]),
-                        headers, '')
+        hdrbuf = ''.join('%s: %s\n' % (k, v) for k, v in headers)
         data = hdrbuf + '\n' + '\n'.join(scopeurls) + '\n'
         # Load the signing key
         key = EVP.load_key_string(keydata)

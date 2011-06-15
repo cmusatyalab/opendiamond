@@ -119,8 +119,12 @@ class ScopeCookie(object):
     @classmethod
     def generate(cls, servers, scopeurls, expires, keydata):
         '''Generate and return a new ScopeCookie.  servers and scopeurls
-        are lists.  expires is a timezone-aware datetime.  keydata is a
-        PEM-encoded private key.'''
+        are lists of strings, already Punycoded/URL-encoded as appropriate.
+        expires is a timezone-aware datetime.  keydata is a PEM-encoded
+        private key.'''
+        # Unicode strings can cause signature validation errors
+        servers = [str(s) for s in servers]
+        scopeurls = [str(u) for u in scopeurls]
         # Generate scope data
         serial = str(uuid.uuid4())
         headers = (('Version', COOKIE_VERSION),

@@ -80,8 +80,14 @@ class _SearchChild(object):
                         break
                     for pid in pids:
                         if pid not in killed:
-                            os.kill(pid, signal.SIGKILL)
-                            killed.add(pid)
+                            try:
+                                os.kill(pid, signal.SIGKILL)
+                            except OSError:
+                                # Unable to signal process; perhaps it has
+                                # already died
+                                pass
+                            else:
+                                killed.add(pid)
                 os.rmdir(self._cgroupdir)
                 _log.info('PID %d exiting, killed %d processes', self.pid,
                                         len(killed))

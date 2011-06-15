@@ -135,17 +135,17 @@ class ChildManager(object):
 
     def _child_exited(self, _sig, _frame):
         '''Signal handler for SIGCHLD.'''
-        try:
-            while True:
+        while True:
+            try:
                 pid, _status = os.waitpid(-1, os.WNOHANG)
-                if pid == 0:
-                    # No exited processes
-                    break
-                _log.debug('PID %d exited', pid)
-                self._cleanup_child(pid)
-        except OSError:
-            # No child processes
-            return
+            except OSError:
+                # No child processes
+                break
+            if pid == 0:
+                # No exited processes
+                break
+            _log.debug('PID %d exited', pid)
+            self._cleanup_child(pid)
 
     def kill_all(self):
         '''Clean up all forked search processes.'''

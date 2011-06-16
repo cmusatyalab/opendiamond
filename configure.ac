@@ -69,12 +69,10 @@ dataretriever/setup.py
 scopeserver/Makefile
 scopeserver/setup.py
 volcano/Makefile
-lib/Makefile
-lib/python/Makefile
-lib/python/setup.py
 libfilter/Makefile
 newscope/Makefile
 tests/Makefile
 opendiamond.pc
+setup.py
 ])
 AC_OUTPUT

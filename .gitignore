@@ -16,3 +16,5 @@ Makefile.in
 /stamp-h1
 /config.*
 /configure
+/build
+/setup.py

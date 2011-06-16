@@ -142,8 +142,9 @@ static void lf_init(void) {
 }
 
 static void lf_run_filter(char *filter_name, filter_init_proto init,
-                          filter_eval_proto eval, char **args, void *blob,
-                          unsigned bloblen) {
+                          filter_eval_proto eval_int,
+                          filter_eval_double_proto eval_double,
+                          char **args, void *blob, unsigned bloblen) {
   // record the filter name
   lf_state.filter_name = filter_name;
 
@@ -167,17 +168,23 @@ static void lf_run_filter(char *filter_name, filter_init_proto init,
     lf_obj_handle_t obj = lf_obj_handle_new();
 
     // eval and return result
-    int result = eval(obj, data);
+    double result;
+    if (eval_double) {
+      result = eval_double(obj, data);
+    } else {
+      result = eval_int(obj, data);
+    }
     lf_start_output();
     lf_send_tag(lf_state.out, "result");
-    lf_send_int(lf_state.out, result);
+    lf_send_double(lf_state.out, result);
     lf_end_output();
 
     lf_obj_handle_free(obj);
   }
 }
 
-void lf_main(filter_init_proto init, filter_eval_proto eval) {
+static void _lf_main(filter_init_proto init, filter_eval_proto eval,
+                     filter_eval_double_proto eval_double) {
   // set up file descriptors
   lf_init();
 
@@ -199,5 +206,13 @@ void lf_main(filter_init_proto init, filter_eval_proto eval) {
   void *blob = lf_get_binary(lf_state.in, &bloblen);
 
   // run the filter loop
-  lf_run_filter(filter_name, init, eval, args, blob, bloblen);
+  lf_run_filter(filter_name, init, eval, eval_double, args, blob, bloblen);
+}
+
+void lf_main(filter_init_proto init, filter_eval_proto eval) {
+  _lf_main(init, eval, NULL);
+}
+
+void lf_main_double(filter_init_proto init, filter_eval_double_proto eval) {
+  _lf_main(init, NULL, eval);
 }

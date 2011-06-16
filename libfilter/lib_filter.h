@@ -107,7 +107,7 @@ typedef int (*filter_init_proto)(int num_arg, const char * const *args, int blob
 
 
 /*!
- * This is the prototype for a filter evaluation function.
+ * This is the prototype for a filter evaluation function returning int.
  *
  * The return value is an integer that represents a confidence.  As
  * part of the filter specification the user will indicate which
@@ -127,8 +127,29 @@ typedef int (*filter_eval_proto)(lf_obj_handle_t ohandle, void *filter_args);
 
 
 /*!
- * The top-level filter function for filters built as standalone programs.
- * Call this from main().
+ * This is the prototype for a filter evaluation function returning double.
+ *
+ * The return value is a double that represents a confidence.  As
+ * part of the filter specification the user will indicate which
+ * the threshold for the filter.  Value above the threshold will
+ * be passed, values below the threshold will be dropped.
+ *
+ * \param ohandle
+ * 		An object handle for the object to process.
+ *
+ * \param filter_args
+ * 		The data structure that was returned from the filter
+ *		initialization function.
+ *
+ */
+typedef double (*filter_eval_double_proto)(lf_obj_handle_t ohandle,
+					   void *filter_args);
+
+
+
+/*!
+ * The top-level filter function for filters built as standalone programs
+ * where the filter function returns int.  Call this from main().
  *
  * \param init
  * 		The filter init function.
@@ -141,7 +162,8 @@ void lf_main(filter_init_proto init, filter_eval_proto eval);
 
 
 /*!
- * A utility macro to define a main() function that runs a Diamond filter.
+ * The top-level filter function for filters built as standalone programs
+ * where the filter function returns double.  Call this from main().
  *
  * \param init
  * 		The filter init function.
@@ -149,12 +171,44 @@ void lf_main(filter_init_proto init, filter_eval_proto eval);
  * \param eval
  *		The filter evaluation function.
  */
-#define LF_MAIN(init, eval)			\
-	int main(void)				\
-	{					\
-		lf_main(init, eval);		\
-		return 0;			\
-	}
+diamond_public
+void lf_main_double(filter_init_proto init, filter_eval_double_proto eval);
+
+
+/*!
+ * A utility macro to define a main() function that runs a Diamond filter.
+ *
+ * \param init
+ * 		The filter init function.
+ *
+ * \param eval
+ *		The filter evaluation function.  Can be either a
+ *		filter_eval_proto or a filter_eval_double_proto.
+ */
+#define LF_MAIN(init, eval)						\
+    int main(void)							\
+    {									\
+        /* Compile error if eval is not one of the two valid types. */	\
+        int __attribute__((unused))					\
+            incorrect_eval_function_type[-1 +				\
+                __builtin_types_compatible_p(typeof(&eval),		\
+                    filter_eval_proto) +				\
+                __builtin_types_compatible_p(typeof(&eval),		\
+                    filter_eval_double_proto)];				\
+        /* Load the eval function into the correct function pointer. */	\
+        filter_eval_proto eval_int = __builtin_choose_expr(		\
+            __builtin_types_compatible_p(typeof(&eval),			\
+                filter_eval_proto), eval, NULL);			\
+        filter_eval_double_proto eval_double = __builtin_choose_expr(	\
+            __builtin_types_compatible_p(typeof(&eval),			\
+                filter_eval_double_proto), eval, NULL);			\
+        /* Call the correct lf_main function. */			\
+        if (eval_double != NULL)					\
+            lf_main_double(init, eval_double);				\
+        else if (eval_int != NULL)					\
+            lf_main(init, eval_int);					\
+        return 0;							\
+    }
 
 
 /*!

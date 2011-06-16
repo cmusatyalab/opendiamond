@@ -1,1 +1,1 @@
-SUBDIRS = libscope libfilter python
+SUBDIRS = python

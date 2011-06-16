@@ -70,10 +70,10 @@ scopeserver/Makefile
 scopeserver/setup.py
 volcano/Makefile
 lib/Makefile
-lib/libfilter/Makefile
-lib/libscope/Makefile
 lib/python/Makefile
 lib/python/setup.py
+libfilter/Makefile
+newscope/Makefile
 tests/Makefile
 opendiamond.pc
 ])

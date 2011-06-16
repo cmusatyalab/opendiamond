@@ -1,4 +1,4 @@
-noinst_PROGRAMS = datamonster
+EXTRA_PROGRAMS = datamonster
 
 LDADD = ${GLIB2_LIBS}
 

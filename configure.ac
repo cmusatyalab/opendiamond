@@ -55,11 +55,6 @@ PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.12, gthread-2.0])
 AC_SEARCH_LIBS([pthread_create],
 	[pthread],, AC_MSG_FAILURE([cannot find pthread_create function]))
 
-# not really critical, only used by datamonster test program
-AC_CHECK_LIB([jpeg], [jpeg_read_scanlines], [true],
-	     AC_MSG_FAILURE([cannot find jpeg library]))
-AC_CHECK_HEADERS(jpeglib.h)
-
 # some options and includes
 AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/lib/libfilter -DG_DISABLE_DEPRECATED -DG_DISABLE_SINGLE_INCLUDES'])
 

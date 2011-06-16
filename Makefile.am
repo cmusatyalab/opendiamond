@@ -1,4 +1,4 @@
-SUBDIRS = libfilter newscope dataretriever scopeserver tests volcano
+SUBDIRS = libfilter newscope scopeserver tests volcano
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -8,6 +8,12 @@ pkgconfig_DATA = opendiamond.pc
 EXTRA_DIST = CREDITS LICENSE INSTALL \
 	setup.py \
 	pylintrc \
+	dataretriever/__init__.py \
+	dataretriever/diamond_store.py \
+	dataretriever/flickr_store.py \
+	dataretriever/mirage_store.py \
+	dataretriever/proxy_store.py \
+	dataretriever/util.py \
 	opendiamond/__init__.py \
 	opendiamond/bundle.py \
 	opendiamond/config.py \
@@ -29,6 +35,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/server/sessionvars.py \
 	opendiamond/server/statistics.py \
 	tools/cookiecutter \
+	tools/dataretriever \
 	tools/diamondd \
 	tools/diamond-bundle-python
 
@@ -47,9 +54,12 @@ install-exec-local:
 	$(PYTHON) setup.py install --prefix=$(DESTDIR)$(prefix)
 
 uninstall-local:
+	$(RM) $(DESTDIR)$(pythondir)/dataretriever*.egg-info
+	$(RM) -r $(DESTDIR)$(pythondir)/dataretriever
 	$(RM) $(DESTDIR)$(pythondir)/opendiamond*.egg-info
 	$(RM) -r $(DESTDIR)$(pythondir)/opendiamond
 	$(RM) $(DESTDIR)$(bindir)/cookiecutter
+	$(RM) $(DESTDIR)$(bindir)/dataretriever
 	$(RM) $(DESTDIR)$(bindir)/diamondd
 	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-python
 

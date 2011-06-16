@@ -29,6 +29,9 @@ setup(
 	'opendiamond',
 	'opendiamond.filter',
 	'opendiamond.server',
+	'scopeserver_flickr',
+	'scopeserver_gatekeeper',
+	'scopeserver_vmfind',
     ],
     scripts = [
 	'@srcdir@/tools/cookiecutter',
@@ -37,6 +40,11 @@ setup(
 	'@srcdir@/tools/diamond-bundle-python',
     ],
     package_dir = { '': '@srcdir@' },
+    package_data = {
+	'scopeserver_flickr':	  [ 'templates/*.html' ],
+	'scopeserver_gatekeeper': [ 'templates/*.html' ],
+	'scopeserver_vmfind':	  [ 'templates/*.html' ],
+    },
     author = "OpenDiamond project, Carnegie Mellon University",
     author_email = "diamond@cs.cmu.edu",
     description = "OpenDiamond",

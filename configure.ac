@@ -64,7 +64,6 @@ AC_SUBST(AM_CFLAGS, ['-Wall -Wextra -Werror-implicit-function-declaration -Wstri
 # done
 AC_CONFIG_FILES([
 Makefile
-volcano/Makefile
 libfilter/Makefile
 newscope/Makefile
 tests/Makefile

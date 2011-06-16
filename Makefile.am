@@ -1,4 +1,4 @@
-SUBDIRS = libfilter newscope tests volcano
+SUBDIRS = libfilter newscope tests
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -52,7 +52,8 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	tools/cookiecutter \
 	tools/dataretriever \
 	tools/diamondd \
-	tools/diamond-bundle-python
+	tools/diamond-bundle-python \
+	tools/volcano
 
 all-local: setup.py $(EXTRA_DIST)
 	$(PYTHON) setup.py build

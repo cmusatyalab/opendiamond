@@ -38,6 +38,7 @@ setup(
 	'@srcdir@/tools/dataretriever',
 	'@srcdir@/tools/diamondd',
 	'@srcdir@/tools/diamond-bundle-python',
+	# volcano is not installed
     ],
     package_dir = { '': '@srcdir@' },
     package_data = {

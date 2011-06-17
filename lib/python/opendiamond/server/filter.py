@@ -377,6 +377,9 @@ class _FilterRunner(_ObjectProcessor):
                 elif cmd == 'result':
                     result.score = float(proc.get_item())
                     break
+                elif cmd == '':
+                    # Encountered EOF on pipe
+                    raise IOError()
                 else:
                     raise FilterExecutionError('%s: unknown command' % self)
         except IOError:

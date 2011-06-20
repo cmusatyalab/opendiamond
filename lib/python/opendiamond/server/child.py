@@ -20,6 +20,8 @@ import signal
 import sys
 from tempfile import mkdtemp
 
+from opendiamond.helpers import signalname
+
 _log = logging.getLogger(__name__)
 
 class _SearchChild(object):
@@ -137,14 +139,19 @@ class ChildManager(object):
         '''Signal handler for SIGCHLD.'''
         while True:
             try:
-                pid, _status = os.waitpid(-1, os.WNOHANG)
+                pid, status = os.waitpid(-1, os.WNOHANG)
             except OSError:
                 # No child processes
                 break
             if pid == 0:
                 # No exited processes
                 break
-            _log.debug('PID %d exited', pid)
+            if os.WIFSIGNALED(status):
+                _log.info('PID %d exited on %s', pid,
+                                signalname(os.WTERMSIG(status)))
+            else:
+                _log.info('PID %d exited with status %d', pid,
+                                os.WEXITSTATUS(status))
             self._cleanup_child(pid)
 
     def kill_all(self):

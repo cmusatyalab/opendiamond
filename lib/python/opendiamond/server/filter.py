@@ -66,7 +66,7 @@ import simplejson as json
 import subprocess
 import threading
 
-from opendiamond.helpers import md5
+from opendiamond.helpers import md5, signalname
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
@@ -99,6 +99,7 @@ class _FilterProcess(object):
     '''A connection to a running filter process.'''
     def __init__(self, path, name, args, blob):
         try:
+            self._name = name
             self._proc = subprocess.Popen([path, '--filter'],
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 close_fds=True, cwd=os.getenv('TMPDIR'))
@@ -112,12 +113,20 @@ class _FilterProcess(object):
             # - Blob argument
             self.send(1, name, args, blob)
         except (OSError, IOError):
-            raise FilterExecutionError('Unable to launch filter %s' % name)
+            raise FilterExecutionError('Unable to launch filter %s' % self)
 
     def __del__(self):
-        if self._proc.poll() is None:
+        ret = self._proc.poll()
+        if ret is None:
             os.kill(self._proc.pid, signal.SIGKILL)
             self._proc.wait()
+        elif ret < 0:
+            _log.info('Filter %s exited on %s', self, signalname(-ret))
+        elif ret > 0:
+            _log.info('Filter %s exited with status %d', self, ret)
+
+    def __str__(self):
+        return self._name
 
     def get_tag(self):
         '''Read and return a tag.'''

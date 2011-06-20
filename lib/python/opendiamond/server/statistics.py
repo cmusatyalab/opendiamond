@@ -84,6 +84,7 @@ class FilterStatistics(_Statistics):
             ('objs_cache_dropped', 'Objects dropped by cache'),
             ('objs_cache_passed', 'Objects skipped by cache'),
             ('objs_compute', 'Objects examined by filter'),
+            ('objs_terminate', 'Objects causing filter to terminate'),
             ('execution_ns', 'Filter execution time (ns)'))
 
     def __init__(self, name):

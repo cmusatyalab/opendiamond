@@ -397,6 +397,7 @@ class _FilterRunner(_ObjectProcessor):
                 # the result.
                 _log.error('Filter %s (signature %s) died on object %s',
                                 self, self._filter.signature, obj)
+                self._filter.stats.update('objs_terminate')
                 self._proc = None
                 raise _DropObject()
             else:

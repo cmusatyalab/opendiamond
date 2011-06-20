@@ -86,7 +86,7 @@ import signal
 import sys
 
 import opendiamond
-from opendiamond.helpers import daemonize
+from opendiamond.helpers import daemonize, signalname
 from opendiamond.server.child import ChildManager
 from opendiamond.server.listen import ConnListener
 from opendiamond.server.rpc import RPCConnection, ConnectionFailure
@@ -104,14 +104,7 @@ class _Signalled(BaseException):
     def __init__(self, sig):
         BaseException.__init__(self)
         self.signal = sig
-        # Find the signal name
-        for attr in dir(signal):
-            if (attr.startswith('SIG') and not attr.startswith('SIG_') and
-                    getattr(signal, attr) == sig):
-                self.signame = attr
-                break
-        else:
-            self.signame = 'unknown signal'
+        self.signame = signalname(sig)
 
 
 class _TimestampedLogFormatter(logging.Formatter):

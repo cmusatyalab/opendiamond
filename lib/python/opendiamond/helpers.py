@@ -14,6 +14,7 @@
 import hashlib
 import os
 import resource
+import signal
 
 # We use os._exit() to avoid calling destructors after fork()
 # pylint: disable=W0212
@@ -36,6 +37,16 @@ def daemonize():
     os.dup2(0, 1)
     os.dup2(0, 2)
 # pylint: enable=W0212
+
+
+def signalname(signum):
+    '''Return the name for the specified signal number.'''
+    for attr in dir(signal):
+        if (attr.startswith('SIG') and not attr.startswith('SIG_') and
+                getattr(signal, attr) == signum):
+            return attr
+    return 'signal %d' % signum
+
 
 # hashlib confuses pylint, pylint #51250.  Provide md5 here to centralize
 # the workaround.

@@ -115,6 +115,10 @@ class DiamondConfig(object):
             _Param('cgroupdir', 'CGROUPDIR'),
             # Fork to background
             _Param('daemonize', None, True),
+            # Debugger to use with debug_filters
+            _Param('debug_command', None, 'valgrind'),
+            # Names or signatures of filters to run under a debugger
+            _Param('debug_filters', None, []),
             # Number of days of logfiles to keep
             _Param('logdays', 'LOGDAYS', 14),
             # Directory for logfiles
@@ -219,4 +223,8 @@ class DiamondConfig(object):
             except ValueError:
                 raise DiamondConfigError('Invalid port number: ' + port)
             self.cache_server = (host, port)
+
+        # Canonicalize debug options
+        self.debug_filters = set(self.debug_filters)
+        self.debug_command = self.debug_command.split(None)
     # pylint: enable=E0203,E1101,E1103

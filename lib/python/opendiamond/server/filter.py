@@ -97,10 +97,10 @@ class _DropObject(Exception):
 
 class _FilterProcess(object):
     '''A connection to a running filter process.'''
-    def __init__(self, path, name, args, blob):
+    def __init__(self, code_argv, name, args, blob):
         try:
             self._name = name
-            self._proc = subprocess.Popen([path, '--filter'],
+            self._proc = subprocess.Popen(code_argv + ['--filter'],
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 close_fds=True, cwd=os.getenv('TMPDIR'))
             self._fin = self._proc.stdout
@@ -309,7 +309,12 @@ class _FilterRunner(_ObjectProcessor):
 
     def evaluate(self, obj):
         if self._proc is None:
-            self._proc = _FilterProcess(self._code_path, self._filter.name,
+            debug = self._state.config.debug_filters
+            if self._filter.name in debug or self._filter.signature in debug:
+                argv = self._state.config.debug_command + [self._code_path]
+            else:
+                argv = [self._code_path]
+            self._proc = _FilterProcess(argv, self._filter.name,
                                     self._filter.arguments, self._filter.blob)
             self._proc_initialized = False
         timer = Timer()

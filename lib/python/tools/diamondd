@@ -29,6 +29,12 @@ def add_option(*args, **kwargs):
 add_option('-d',
             dest='daemonize', action='store_false', default=True,
             help='do not run as a daemon')
+add_option('-e', metavar='SPEC',
+            dest='debug_filters', action='append', default=[],
+            help='filter name/signature to run under debugger')
+add_option('-E', metavar='COMMAND',
+            dest='debug_command', action='store', default='valgrind',
+            help='debug command to use with -e (default: valgrind)')
 add_option('-f',
             dest='path',
             help='config file')
@@ -39,8 +45,13 @@ opts, args = parser.parse_args()
 if len(args) > 0:
     parser.error('unrecognized command-line arguments')
 
-# Create config object and server
+# Calculate DiamondConfig arguments
 kwargs = dict([(attr, getattr(opts, attr)) for attr in attrs])
+# If we are debugging, force single-threaded filter execution
+if kwargs['debug_filters']:
+    kwargs['threads'] = 1
+
+# Create config object and server
 try:
     config = DiamondConfig(**kwargs)
     server = DiamondServer(config)

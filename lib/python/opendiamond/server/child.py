@@ -56,7 +56,7 @@ class _SearchChild(object):
 
         if self.pid == 0:
             # Child
-            os.putenv('TMPDIR', self.tempdir)
+            os.environ['TMPDIR'] = self.tempdir
             # Move ourselves into a dedicated cgroup if available
             if self._taskfile is not None:
                 open(self._taskfile, 'w').write('%d\n' % os.getpid())

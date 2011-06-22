@@ -11,8 +11,10 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	dataretriever/__init__.py \
 	dataretriever/diamond_store.py \
 	dataretriever/flickr_store.py \
+	dataretriever/gigapan_store.py \
 	dataretriever/mirage_store.py \
 	dataretriever/proxy_store.py \
+	dataretriever/pyramid.py \
 	dataretriever/util.py \
 	opendiamond/__init__.py \
 	opendiamond/bundle.py \

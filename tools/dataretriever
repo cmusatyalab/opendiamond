@@ -25,12 +25,13 @@ parser.add_option("-d", "--daemonize", dest="daemonize", action="store_true",
 
 from opendiamond.helpers import daemonize
 from dataretriever.util import DataRetriever
-from dataretriever import diamond_store, proxy_store
+from dataretriever import diamond_store, proxy_store, gigapan_store
 #from dataretriever import mirage_store, flickr_store
 
 app = DataRetriever({
     'collection':	diamond_store.scope_app,
     'proxy':		proxy_store.scope_app,
+    'gigapan':          gigapan_store.scope_app
 #    'mirage':		mirage_store.scope_app,
 #    'flickr':		flickr_store.scope_app,
 })

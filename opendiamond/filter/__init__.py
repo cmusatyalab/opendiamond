@@ -183,6 +183,44 @@ class Object(object):
         '''Set the specified object attribute as a null-terminated string.'''
         self.set_binary(key, str(value) + '\0')
 
+    def get_int(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as a native-endian integer.  The key name should end with ".int".'''
+        return struct.unpack('i', self.get_binary(key))[0]
+
+    def set_int(self, key, value):
+        '''Set the specified object attribute as an integer.  The key name
+        should end with ".int".'''
+        self.set_binary(key, struct.pack('i', value))
+
+    def get_double(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as a native-endian double.  The key name should end with ".double".'''
+        return struct.unpack('d', self.get_binary(key))[0]
+
+    def set_double(self, key, value):
+        '''Set the specified object attribute as a double.  The key name
+        should end with ".double".'''
+        self.set_binary(key, struct.pack('d', value))
+
+    def get_rgbimage(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as an RGBImage structure.  The key name should end with ".rgbimage".'''
+        data = self.get_binary(key)
+        # Parse the dimensions out of the header
+        height, width = struct.unpack('2i', data[8:16])
+        # Read the image data
+        return PIL.Image.fromstring('RGB', (width, height), data[16:],
+                                'raw', 'RGBX', 0, 1)
+
+    def set_rgbimage(self, key, value):
+        '''Set the specified object attribute as an RGBImage structure.
+        The key name should end with ".rgbimage".'''
+        pixels = value.tostring('raw', 'RGBX', 0, 1)
+        width, height = value.size
+        header = struct.pack('IIii', 0, len(pixels) + 16, height, width)
+        self.set_binary(key, header + pixels)
+
     def __getitem__(self, key):
         '''Syntactic sugar for self.get_string().'''
         return self.get_string(key)
@@ -208,12 +246,7 @@ class Object(object):
     def image(self):
         '''Convenience property to get the decoded RGB image as a PIL Image.'''
         if self._image is None:
-            data = self.get_binary('_rgb_image.rgbimage')
-            # Parse the dimensions out of the RGBImage header
-            height, width = struct.unpack('2i', data[8:16])
-            # Read the image data
-            self._image = PIL.Image.fromstring('RGB', (width, height),
-                                    data[16:], 'raw', 'RGBX', 0, 1)
+            self._image = self.get_rgbimage('_rgb_image.rgbimage')
         return self._image
 
     def omit(self, key):

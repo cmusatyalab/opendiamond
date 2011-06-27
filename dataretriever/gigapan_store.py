@@ -22,6 +22,7 @@ OBJECT_URI = 'obj'
 STYLE = False
 
 from datetime import datetime, timedelta
+from PIL import Image
 from threading import Lock
 from dataretriever.util import guess_mime_type
 from wsgiref.util import shift_path_info
@@ -31,6 +32,7 @@ from pyramid import *
 import rfc822
 import os
 import re
+from cStringIO import StringIO
 
 __all__ = ['scope_app', 'object_app']
 
@@ -106,9 +108,32 @@ def object_app(environ, start_response):
     timestr = time.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
     info = gigapan_info_cache[id]
+    real_level = (info.get('levels') - 1) - lvl
+    level_width = info.get('width') / 2**real_level
+    level_height = info.get('height') / 2**real_level
+    bottom_right = ((col + 1) * 256, (row + 1) * 256)
+    img_width = img_height = 256
+    if bottom_right[0] > level_width:
+        img_width = 256 - (bottom_right[0] - level_width)
+    if bottom_right[1] > level_height:
+        img_height = 256 - (bottom_right[1] - level_height)
+    if img_width != 256 or img_height != 256:
+        input_stream = StringIO(obj.read())
+        im = Image.open(input_stream)
+        new_image = im.crop((0, 0, img_width, img_height))
+        result = StringIO()
+        new_image.save(result, "PPM")
+        content_length = result.tell()
+        result.seek(0)
+        content_type = "image/x-portable-anymap"
+    else:
+        result = obj
+        content_type = obj.headers['Content-Type']
+        content_length = obj.headers['Content-Length']
+
     headers = [ # copy some headers for caching purposes
-        ('Content-Length',		obj.headers['Content-Length']),
-        ('Content-Type',		obj.headers['Content-Type']),
+        ('Content-Length',		str(content_length)),
+        ('Content-Type',		content_type),
         ('Last-Modified',		obj.headers['Last-Modified']),
         ('Expires',                     timestr),
 
@@ -120,6 +145,5 @@ def object_app(environ, start_response):
         ('x-attr-tile_col',          str(col)),
         ('x-attr-tile_row',          str(row)),
         ]
-    print(headers)
     start_response("200 OK", headers)
-    return environ['wsgi.file_wrapper'](obj, 65536)
+    return environ['wsgi.file_wrapper'](result, 65536)

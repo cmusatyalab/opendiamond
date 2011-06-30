@@ -421,16 +421,19 @@ class _FilterRunner(_ObjectProcessor):
         return result
 
     def threshold(self, result):
-        return result.score >= self._filter.threshold
+        return (result.score >= self._filter.min_score and
+                result.score <= self._filter.max_score)
 
 
 class Filter(object):
     '''A filter with arguments.'''
 
-    def __init__(self, name, signature, threshold, arguments, dependencies):
+    def __init__(self, name, signature, min_score, max_score, arguments,
+                dependencies):
         self.name = name
         self.signature = signature
-        self.threshold = threshold
+        self.min_score = min_score
+        self.max_score = max_score
         self.arguments = arguments
         self.dependencies = dependencies
         self.stats = FilterStatistics(name)
@@ -462,7 +465,8 @@ class Filter(object):
         '''Return a Filter generated from the list of fspec lines.'''
         name = None
         signature = None
-        threshold = None
+        min_score = None
+        max_score = float('inf')
         arguments = []
         dependencies = []
 
@@ -483,7 +487,12 @@ class Filter(object):
                 arguments.append(v)
             elif k == 'THRESHOLD':
                 try:
-                    threshold = float(v)
+                    min_score = float(v)
+                except ValueError:
+                    raise FilterSpecError('Threshold not an integer')
+            elif k == 'UPPERTHRESHOLD':
+                try:
+                    max_score = float(v)
                 except ValueError:
                     raise FilterSpecError('Threshold not an integer')
             elif k == 'SIGNATURE':
@@ -496,9 +505,10 @@ class Filter(object):
             else:
                 raise FilterSpecError('Unknown fspec key %s' % k)
 
-        if name is None or signature is None or threshold is None:
+        if name is None or signature is None or min_score is None:
             raise FilterSpecError('Missing mandatory fspec key')
-        return cls(name, signature, threshold, arguments, dependencies)
+        return cls(name, signature, min_score, max_score, arguments,
+                    dependencies)
 
     def bind(self, state):
         '''Return a _FilterRunner for this filter.'''

@@ -257,6 +257,7 @@ class _ObjectFetcher(_ObjectProcessor):
 
     def __init__(self, state):
         _ObjectProcessor.__init__(self)
+        self._state = state
         self._loader = ObjectLoader(state.config)
         self._digest_prefix = md5('dataretriever ')
 
@@ -271,6 +272,7 @@ class _ObjectFetcher(_ObjectProcessor):
             self._loader.load(obj)
         except ObjectLoadError, e:
             _log.warning('Failed to load %s: %s', obj, e)
+            self._state.stats.update('objs_unloadable')
             raise _DropObject()
         result = _FilterResult()
         for key in obj:

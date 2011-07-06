@@ -72,10 +72,16 @@ class Filter(object):
     # True unless the filter bundle is being generated, pre-configured, by
     # some external tool.
     instance_name_editable = True
-    # Default drop threshold.
-    threshold = 1
-    # Whether the threshold should be editable in the UI.
-    threshold_editable = False
+    # Minimum filter score to accept.
+    min_score = 1
+    # Maximum filter score to accept.
+    max_score = float('inf')
+    # Alias for min_score.
+    threshold = None
+    # Whether the thresholds should be editable in the UI.
+    thresholds_editable = False
+    # Alias for thresholds_editable.
+    threshold_editable = None
     # Description of formal parameters accepted by the filter.  These become
     # settings in the HyperFind UI.
     params = Parameters()
@@ -112,17 +118,26 @@ class Filter(object):
     @classmethod
     def get_manifest(cls):
         manifest = cls.params.describe()
+        if cls.threshold is not None:
+            min_score = cls.threshold
+        else:
+            min_score = cls.min_score
         manifest.update({
             'Filter': cls.name,
             'Instance': cls.instance_name,
-            'Threshold': cls.threshold,
+            'Min-Score': min_score,
+            'Max-Score': cls.max_score,
         })
         if len(cls.dependencies) > 0:
             manifest['Dependencies'] = ','.join(cls.dependencies)
         if not cls.instance_name_editable:
             manifest['Instance-Editable'] = 'false'
-        if cls.threshold_editable:
-            manifest['Threshold-Editable'] = 'true'
+        if cls.threshold_editable is not None:
+            thresholds_editable = cls.threshold_editable
+        else:
+            thresholds_editable = cls.thresholds_editable
+        if thresholds_editable:
+            manifest['Thresholds-Editable'] = 'true'
         return ''.join('%s: %s\n' % (k, v) for k, v in
                             sorted(manifest.items()))
 

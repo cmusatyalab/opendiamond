@@ -43,21 +43,29 @@ class BaseParameter(object):
     '''The base type for a formal parameter.'''
     type = 'unknown'
 
-    def __init__(self, label, default=None):
+    def __init__(self, label, default=None, disabled_value=None,
+                            initially_enabled=True):
         self.label = label
         self.default = default
+        self.disabled_value = disabled_value
+        self.initially_enabled = initially_enabled
 
     def __repr__(self):
-        return '%s(%s, %s)' % (self.__class__.__name__, repr(self.label),
-                            repr(self.default))
+        return '%s(%s, %s, %s, %s)' % (self.__class__.__name__,
+                            repr(self.label), repr(self.default),
+                            repr(self.disabled_value),
+                            repr(self.initially_enabled))
 
     def describe(self):
         ret = {
             'Label': self.label,
             'Type': self.type,
+            'Initially-Enabled': self.initially_enabled and 'true' or 'false',
         }
         if self.default is not None:
             ret['Default'] = self.default
+        if self.disabled_value is not None:
+            ret['Disabled-Value'] = self.disabled_value
         return ret
 
     def parse(self, str):
@@ -101,17 +109,21 @@ class NumberParameter(BaseParameter):
     type = 'number'
 
     def __init__(self, label, default=None, min=None, max=None,
-                        increment=None):
-        BaseParameter.__init__(self, label, default)
+                        increment=None, disabled_value=None,
+                        initially_enabled=True):
+        BaseParameter.__init__(self, label, default, disabled_value,
+                            initially_enabled)
         self.min = min
         self.max = max
         self.increment = increment
 
     def __repr__(self):
-        return '%s(%s, %s, %s, %s, %s)' % (self.__class__.__name__,
+        return '%s(%s, %s, %s, %s, %s, %s, %s)' % (self.__class__.__name__,
                                 repr(self.label), repr(self.default),
                                 repr(self.min), repr(self.max),
-                                repr(self.increment))
+                                repr(self.increment),
+                                repr(self.disabled_value),
+                                repr(self.initially_enabled))
 
     def describe(self):
         ret = BaseParameter.describe(self)
@@ -125,6 +137,9 @@ class NumberParameter(BaseParameter):
 
     def parse(self, str):
         val = float(str)
+        if val == self.disabled_value:
+            # Bypass min/max checks
+            return val
         if self.min is not None and val < self.min:
             raise ValueError('Argument too small')
         if self.max is not None and val > self.max:
@@ -136,7 +151,8 @@ class ChoiceParameter(BaseParameter):
     '''A multiple-choice formal parameter.'''
     type = 'choice'
 
-    def __init__(self, label, choices, default=None):
+    def __init__(self, label, choices, default=None, disabled_value=None,
+                                initially_enabled=True):
         '''choices is a tuple of (parsed-value, label) pairs'''
         if default is not None:
             for i, tag in enumerate(zip(*choices)[0]):
@@ -145,13 +161,19 @@ class ChoiceParameter(BaseParameter):
                     break
             else:
                 raise ValueError('Default is not one of the choices')
-        BaseParameter.__init__(self, label, default)
+        self.disabled_name = disabled_value
+        if disabled_value is not None:
+            disabled_value = -1
+        BaseParameter.__init__(self, label, default, disabled_value,
+                                initially_enabled)
         self.choices = tuple(choices)
 
     def __repr__(self):
-        return '%s(%s, %s, %s)' % (self.__class__.__name__,
+        return '%s(%s, %s, %s, %s, %s)' % (self.__class__.__name__,
                                 repr(self.label), repr(self.choices),
-                                repr(self.default))
+                                repr(self.default),
+                                repr(self.disabled_name),
+                                repr(self.initially_enabled))
 
     def describe(self):
         ret = BaseParameter.describe(self)
@@ -161,6 +183,8 @@ class ChoiceParameter(BaseParameter):
 
     def parse(self, str):
         index = int(str)
+        if index == -1 and self.disabled_name is not None:
+            return self.disabled_name
         if index < 0 or index >= len(self.choices):
             raise ValueError('Selection out of range')
         return self.choices[index][0]

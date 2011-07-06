@@ -116,6 +116,8 @@ class ScopeListLoader(object):
                     except SAXParseException:
                         pass
                     parser.reset()
+        # Log successful completion
+        _log.info('End of scope list')
 
     def get_count(self):
         '''Return our current understanding of the number of objects in

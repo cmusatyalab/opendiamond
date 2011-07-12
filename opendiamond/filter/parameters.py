@@ -11,8 +11,6 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-import base64
-
 class Parameters(object):
     '''A list of formal parameters accepted by a Filter.'''
     def __init__(self, *params):
@@ -98,10 +96,7 @@ class StringParameter(BaseParameter):
     type = 'string'
 
     def parse(self, str):
-        if str == '*':
-            return ''
-        else:
-            return base64.b64decode(str)
+        return str
 
 
 class NumberParameter(BaseParameter):

@@ -321,11 +321,10 @@ class TestFilterParameters(unittest.TestCase):
             'Choice-1-3': 'Do something else with bar',
             'Disabled-Value-3': -1,
         }
-        self.twelve = base64.b64encode('twelve')
 
     def test_round_trip(self):
         '''Ensure we can round-trip a set of parameters.'''
-        self.assertEqual(self.params.parse(['true', self.twelve, '6', '1']),
+        self.assertEqual(self.params.parse(['true', 'twelve', '6', '1']),
                             [True, 'twelve', 6.0, 'bar'])
 
     def test_manifest(self):
@@ -333,32 +332,32 @@ class TestFilterParameters(unittest.TestCase):
 
     def test_zero_length_string(self):
         '''Ensure we can parse a zero-length string argument.'''
-        self.assertEqual(self.params.parse(['true', '*', '6', '1']),
+        self.assertEqual(self.params.parse(['true', '', '6', '1']),
                             [True, '', 6.0, 'bar'])
 
     def test_number_range(self):
         '''Try parsing an out-of-range number argument.'''
         self.assertRaises(ValueError, lambda: self.params.parse(['true',
-                            self.twelve, '12', '1']))
+                            'twelve', '12', '1']))
 
     def test_number_default(self):
         '''Ensure we can parse an out-of-range default number argument.'''
-        self.assertEqual(self.params.parse(['true', self.twelve, '15', '1']),
+        self.assertEqual(self.params.parse(['true', 'twelve', '15', '1']),
                             [True, 'twelve', 15.0, 'bar'])
 
     def test_invalid_boolean(self):
         '''Try parsing an invalid boolean argument.'''
         self.assertRaises(ValueError, lambda: self.params.parse(['foo',
-                            self.twelve, '6', '1']))
+                            'twelve', '6', '1']))
 
     def test_choice_range(self):
         '''Try parsing an out-of-range choice argument.'''
         self.assertRaises(ValueError, lambda: self.params.parse(['true',
-                            self.twelve, '6', '2']))
+                            'twelve', '6', '2']))
 
     def test_choice_default(self):
         '''Ensure we can parse a default choice argument.'''
-        self.assertEqual(self.params.parse(['true', self.twelve, '6', '-1']),
+        self.assertEqual(self.params.parse(['true', 'twelve', '6', '-1']),
                             [True, 'twelve', 6.0, 'baz'])
 
 

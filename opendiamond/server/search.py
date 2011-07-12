@@ -18,12 +18,14 @@ import logging
 
 from opendiamond.scope import ScopeCookie, ScopeError, ScopeCookieExpired
 from opendiamond.server.blobcache import BlobCache
-from opendiamond.server.filter import FilterStack
+from opendiamond.server.filter import (FilterStack, Filter,
+        FilterDependencyError)
 from opendiamond.server.object_ import EmptyObject, Object
 from opendiamond.server import protocol
 from opendiamond.server.protocol import (DiamondRPCFailure,
         DiamondRPCFCacheMiss, DiamondRPCCookieExpired)
-from opendiamond.server.rpc import RPCHandlers, RPCProcedureUnavailable
+from opendiamond.server.rpc import (RPCHandlers, RPCError,
+        RPCProcedureUnavailable)
 from opendiamond.server.scopelist import ScopeListLoader
 from opendiamond.server.sessionvars import SessionVariables
 from opendiamond.server.statistics import SearchStatistics
@@ -53,8 +55,6 @@ class Search(RPCHandlers):
         self._blast_conn = blast_conn
         self._state = SearchState(config)
         self._filters = FilterStack()
-        self._cookies = []
-        self._push_attrs = None
         self._running = False
 
     def shutdown(self):
@@ -88,19 +88,62 @@ class Search(RPCHandlers):
             raise DiamondRPCFailure('No search scope configured')
         if len(self._filters) == 0:
             raise DiamondRPCFailure('No filters configured')
-
-    @RPCHandlers.handler(24, protocol.XDR_scope)
-    @running(False)
-    def set_scope(self, params):
-        '''Add a scope cookie to the cookie list.'''
+        # Ensure we have all filter code and blob arguments
         try:
-            cookie = ScopeCookie.parse(params.cookie)
-            _log.info('Received scope cookie %s', repr(cookie))
-            cookie.verify(self._state.config.serverids,
-                            self._state.config.certdata)
-            self._cookies.append(cookie)
-            self._state.scope = ScopeListLoader(self._state.config,
-                            self._server_id, self._cookies)
+            for filter in self._filters:
+                filter.resolve(self._state.blob_cache)
+        except FilterDependencyError, e:
+            raise DiamondRPCFCacheMiss(str(e))
+
+    @RPCHandlers.handler(25, protocol.XDR_setup, protocol.XDR_sig_list)
+    @running(False)
+    def setup(self, params):
+        '''Configure the search and return a list of MD5 signatures not
+        present in the blob cache.'''
+        def log_header(desc):
+            _log.info('  %s:', desc)
+        def log_item(key, fmt, *args):
+            _log.info('    %-14s ' + fmt, key + ':', *args)
+
+        # Create filter stack
+        filters = []
+        missing = set()
+        _log.info('Filters:')
+        for f in params.filters:
+            if f.code.sig not in self._state.blob_cache:
+                missing.add(f.code)
+                code_state = 'not cached'
+            else:
+                code_state = 'cached'
+            if f.blob.sig not in self._state.blob_cache:
+                missing.add(f.blob)
+                blob_state = 'not cached'
+            else:
+                blob_state = 'cached'
+            log_header(f.name)
+            log_item('Code', '%s, %s', f.code.sig, code_state)
+            log_item('Blob', '%s, %s', f.blob.sig, blob_state)
+            log_item('Arguments', '%s', ', '.join(f.arguments) or '<none>')
+            log_item('Dependencies', '%s',
+                            ', '.join(f.dependencies) or '<none>')
+            log_item('Minimum score', '%f', f.min_score)
+            log_item('Maximum score', '%f', f.max_score)
+            filters.append(Filter(f.name, f.code.sig, f.blob.sig, f.min_score,
+                            f.max_score, f.arguments, f.dependencies))
+        filters = FilterStack(filters)
+
+        # Parse scope cookies
+        try:
+            cookies = [ScopeCookie.parse(c) for c in params.cookies]
+            _log.info('Scope cookies:')
+            for cookie in cookies:
+                log_header(cookie.serial)
+                log_item('Servers', '%s', ', '.join(cookie.servers))
+                log_item('Expires', '%s', cookie.expires)
+                cookie.verify(self._state.config.serverids,
+                                self._state.config.certdata)
+            scope = ScopeListLoader(self._state.config, self._server_id,
+                                cookies)
         except ScopeCookieExpired, e:
             _log.warning('%s', e)
             raise DiamondRPCCookieExpired()
@@ -108,69 +151,36 @@ class Search(RPCHandlers):
             _log.warning('Cookie invalid: %s', e)
             raise DiamondRPCFailure()
 
-    @RPCHandlers.handler(20, protocol.XDR_attr_name_list)
-    @running(False)
-    def set_push_attrs(self, params):
-        '''Configure the list of object attributes for which the client
-        would like values as well as names.'''
-        self._push_attrs = set(params.attrs)
+        # Commit
+        self._filters = filters
+        self._state.scope = scope
+        return protocol.XDR_sig_list(missing)
 
-    @RPCHandlers.handler(6, protocol.XDR_spec_file)
+    @RPCHandlers.handler(26, protocol.XDR_blob_list)
     @running(False)
-    def set_spec(self, params):
-        '''Define the filter stack.'''
-        _log.info('Received fspec:')
-        for line in params.data.split('\n'):
-            _log.info('  %s', line)
-        self._filters = FilterStack.from_fspec(params.data)
+    def send_blobs(self, params):
+        '''Add blobs to the blob cache.'''
+        _log.info('Received %d blobs, %d bytes', len(params.blobs),
+                    sum([len(b) for b in params.blobs]))
+        for blob in params.blobs:
+            self._state.blob_cache.add(blob)
 
-    @RPCHandlers.handler(16, protocol.XDR_sig_val)
-    @running(False)
-    def set_filter(self, params):
-        '''Inquire whether the specified filter code is already cached.'''
-        if params.sig not in self._state.blob_cache:
-            raise DiamondRPCFCacheMiss()
-
-    @RPCHandlers.handler(17, protocol.XDR_filter)
-    @running(False)
-    def send_filter(self, params):
-        '''Provide new filter code for the cache.'''
-        self._state.blob_cache.add(params.data)
-
-    @RPCHandlers.handler(11, protocol.XDR_blob)
-    @running(False)
-    def set_blob(self, params):
-        '''Bind the specified filter blob argument to the named filter.'''
-        self._state.blob_cache.add(params.data)
-        try:
-            self._filters[params.filter_name].blob = params.data
-        except KeyError:
-            raise DiamondRPCFailure()
-
-    @RPCHandlers.handler(22, protocol.XDR_blob_sig)
-    @running(False)
-    def set_blob_by_signature(self, params):
-        '''Try to bind a cached filter blob argument to the named filter.'''
-        try:
-            data = self._state.blob_cache[params.sig.sig]
-        except KeyError:
-            raise DiamondRPCFCacheMiss()
-        try:
-            self._filters[params.filter_name].blob = data
-        except KeyError:
-            raise DiamondRPCFailure()
-
-    @RPCHandlers.handler(1, protocol.XDR_start)
+    @RPCHandlers.handler(27, protocol.XDR_start)
     @running(False)
     def start(self, params):
         '''Start the search.'''
         try:
             self._check_runnable()
-        except DiamondRPCFailure, e:
+        except RPCError, e:
             _log.warning('Cannot start search: %s', str(e))
             raise
+        if params.attrs is not None:
+            push_attrs = set(params.attrs)
+        else:
+            # Encode everything
+            push_attrs = None
         self._state.blast = BlastChannel(self._blast_conn, params.search_id,
-                                self._push_attrs)
+                                push_attrs)
         self._running = True
         _log.info('Starting search %d', params.search_id)
         self._filters.start_threads(self._state, self._state.config.threads)
@@ -181,7 +191,7 @@ class Search(RPCHandlers):
         '''Reexecute the search on the specified object.'''
         try:
             self._check_runnable()
-        except DiamondRPCFailure, e:
+        except RPCError, e:
             _log.warning('Cannot reexecute filters: %s', str(e))
             raise
         _log.info('Reexecuting on object %s', params.object_id)

@@ -84,8 +84,6 @@ if DEBUG:
 else:
     _debug = lambda *args, **kwargs: None
 
-class FilterSpecError(Exception):
-    '''Error parsing filter specification.'''
 class FilterDependencyError(Exception):
     '''Error processing filter dependencies.'''
 class FilterExecutionError(Exception):
@@ -288,11 +286,10 @@ class _FilterRunner(_ObjectProcessor):
 
     send_score = True
 
-    def __init__(self, state, filter, code_path):
+    def __init__(self, state, filter):
         _ObjectProcessor.__init__(self)
         self._filter = filter
         self._state = state
-        self._code_path = code_path
         self._proc = None
         self._proc_initialized = False
 
@@ -313,9 +310,10 @@ class _FilterRunner(_ObjectProcessor):
         if self._proc is None:
             debug = self._state.config.debug_filters
             if self._filter.name in debug or self._filter.signature in debug:
-                argv = self._state.config.debug_command + [self._code_path]
+                argv = (self._state.config.debug_command +
+                            [self._filter.code_path])
             else:
-                argv = [self._code_path]
+                argv = [self._filter.code_path]
             self._proc = _FilterProcess(argv, self._filter.name,
                                     self._filter.arguments, self._filter.blob)
             self._proc_initialized = False
@@ -430,95 +428,55 @@ class _FilterRunner(_ObjectProcessor):
 class Filter(object):
     '''A filter with arguments.'''
 
-    def __init__(self, name, signature, min_score, max_score, arguments,
-                dependencies):
+    def __init__(self, name, signature, blob_signature, min_score, max_score,
+                arguments, dependencies):
         self.name = name
         self.signature = signature
+        self.blob_signature = blob_signature
         self.min_score = min_score
         self.max_score = max_score
         self.arguments = arguments
         self.dependencies = dependencies
         self.stats = FilterStatistics(name)
-        # Additional state that needs to be set later by the caller
-        self._blob = ''
 
-        # Hash fixed parameters into the result cache key and save the
-        # open digest object for later use.
-        self._digest_prefix = md5(' '.join([signature] + arguments))
-        self._digest_prefix.update(' ')
-
-    def _get_blob(self):
-        return self._blob
-    def _set_blob(self, blob):
-        if self._blob != '':
-            raise AttributeError('Blob has already been set')
-        self._blob = blob
-        if blob != '':
-            self._digest_prefix.update(' ' + blob)
-    blob = property(_get_blob, _set_blob)
+        # Will be initialized during resolve()
+        self.code_path = None
+        self.blob = None
+        self._digest_prefix = None
 
     def get_cache_digest(self):
         '''Return a digest object with information about the filter (e.g.
         its arguments) already hashed into it.'''
         return self._digest_prefix.copy()
 
-    @classmethod
-    def from_fspec(cls, fspec_lines):
-        '''Return a Filter generated from the list of fspec lines.'''
-        name = None
-        signature = None
-        min_score = None
-        max_score = float('inf')
-        arguments = []
-        dependencies = []
-
-        # The fspec format previously allowed comments, including at
-        # end-of-line, but modern fspecs are all produced programmatically by
-        # OpenDiamond-Java which never includes any.
-        for line in fspec_lines:
-            k, v = line.split(None, 1)
-            v = v.strip()
-            if k == 'FILTER':
-                name = v
-                if name == 'APPLICATION':
-                    # The FILTER APPLICATION stanza specifies "application
-                    # dependencies", which are a legacy construct.
-                    # Ignore these.
-                    return None
-            elif k == 'ARG':
-                arguments.append(v)
-            elif k == 'THRESHOLD':
-                try:
-                    min_score = float(v)
-                except ValueError:
-                    raise FilterSpecError('Threshold not an integer')
-            elif k == 'UPPERTHRESHOLD':
-                try:
-                    max_score = float(v)
-                except ValueError:
-                    raise FilterSpecError('Threshold not an integer')
-            elif k == 'SIGNATURE':
-                signature = v
-            elif k == 'REQUIRES':
-                dependencies.append(v)
-            elif k == 'MERIT':
-                # Deprecated
-                pass
-            else:
-                raise FilterSpecError('Unknown fspec key %s' % k)
-
-        if name is None or signature is None or min_score is None:
-            raise FilterSpecError('Missing mandatory fspec key')
-        return cls(name, signature, min_score, max_score, arguments,
-                    dependencies)
+    def resolve(self, blob_cache):
+        '''Ensure filter code and blob argument are available in the blob
+        cache, load the blob argument, and initialize the cache digest.'''
+        if self.code_path is not None:
+            return
+        # Get path to filter code
+        try:
+            code_path = blob_cache.executable_path(self.signature)
+        except KeyError:
+            raise FilterDependencyError('Missing code for filter ' + self.name)
+        # Get contents of blob argument
+        try:
+            blob = blob_cache[self.blob_signature]
+        except KeyError:
+            raise FilterDependencyError('Missing blob for filter ' + self.name)
+        # Initialize digest
+        summary = [self.signature] + self.arguments + [blob]
+        digest_prefix = md5(' '.join(summary))
+        # Commit
+        self.code_path = code_path
+        self.blob = blob
+        self._digest_prefix = digest_prefix
 
     def bind(self, state):
         '''Return a _FilterRunner for this filter.'''
-        try:
-            code_path = state.blob_cache.executable_path(self.signature)
-        except KeyError:
-            raise FilterExecutionError('Missing code for filter ' + self.name)
-        return _FilterRunner(state, self, code_path)
+        # resolve() must be called first
+        assert self.code_path is not None
+        return _FilterRunner(state, self)
 
 
 class FilterStackRunner(threading.Thread):
@@ -816,30 +774,6 @@ class FilterStack(object):
 
     def __iter__(self):
         return iter(self._order)
-
-    def __getitem__(self, name):
-        '''Filter lookup by name.'''
-        return self._filters[name]
-
-    @classmethod
-    def from_fspec(cls, data):
-        '''Parse the fspec data and return a FilterStack.'''
-        fspec = []
-        filters = []
-        def add_filter(fspec):
-            if len(fspec) > 0:
-                filter = Filter.from_fspec(fspec)
-                if filter is not None:
-                    filters.append(filter)
-        for line in data.split('\n'):
-            if line.strip() == '':
-                continue
-            if line.startswith('FILTER'):
-                add_filter(fspec)
-                fspec = []
-            fspec.append(line)
-        add_filter(fspec)
-        return cls(filters)
 
     def bind(self, state, name='Filter', cleanup=None):
         '''Return a FilterStackRunner that can be used to process objects

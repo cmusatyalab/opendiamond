@@ -98,6 +98,8 @@ class DiamondConfig(object):
         # Define configuration parameters
         params = _ConfigParams(
             ## diamondd
+            # Cache directory expiration
+            _Param('blob_cache_days', 'BLOBDAYS', 30),
             # Redis database
             _Param('cache_database', 'CACHEDB', 0),
             # Redis password

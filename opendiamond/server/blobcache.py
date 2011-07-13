@@ -14,7 +14,8 @@
 '''On-disk caching of filter code and blob arguments.'''
 
 import os
-from tempfile import mkstemp
+import shutil
+from tempfile import mktemp, mkstemp, mkdtemp
 
 from opendiamond.helpers import md5
 
@@ -23,6 +24,9 @@ class BlobCache(object):
 
     def __init__(self, basedir):
         self.basedir = basedir
+        # Ensure _executable_dir is inside the search-specific tempdir
+        self._executable_dir = mkdtemp(dir=os.environ.get('TMPDIR'),
+                                        prefix='executable-')
 
     def _path(self, sig):
         return os.path.join(self.basedir, sig.lower())
@@ -50,22 +54,40 @@ class BlobCache(object):
             try:
                 os.link(name, self._path(sig))
             except OSError:
-                # Destination already exists.  We don't want to clobber it
-                # because that might unset its executable bit.
+                # Destination already exists.
                 pass
         finally:
             os.unlink(name)
 
     def executable_path(self, sig):
-        '''Return the path to the file containing the specified data
+        '''Return a path to the file containing the specified data
         so that the file can be executed.  Ensure that the executable
-        bit is set in the filesystem.'''
-        try:
-            path = self._path(sig)
-            st = os.stat(path)
-            if (st.st_mode & 0100) == 0:
-                os.chmod(path, 0500)
-            return path
-        except OSError:
-            # stat failed, object not present in cache
-            raise KeyError()
+        bit is set in the filesystem.  The path is guaranteed to be valid
+        for the lifetime of the search, even in the presence of
+        garbage-collection.'''
+        src = self._path(sig)
+        dest = os.path.join(self._executable_dir, sig)
+        if not os.path.exists(dest):
+            # Link the blob into a temporary directory.  This directory will
+            # normally (but need not always) be deleted by the supervisor when
+            # the search terminates.
+            try:
+                try:
+                    # We have to use mktemp() here because link() requires the
+                    # destination not to exist.  If someone else wins the race
+                    # to create the same file we'll simply fall back to
+                    # copying it.
+                    dest_tmp = mktemp(dir=self._executable_dir)
+                    os.link(src, dest_tmp)
+                except OSError:
+                    # self._executable_dir may be on a different filesystem
+                    # than self.basedir.  Try copying the file instead.
+                    fd, dest_tmp = mkstemp(dir=self._executable_dir)
+                    os.close(fd)
+                    shutil.copyfile(src, dest_tmp)
+                os.chmod(dest_tmp, 0500)
+                os.rename(dest_tmp, dest)
+            except (OSError, IOError):
+                # Object not present in cache
+                raise KeyError()
+        return dest

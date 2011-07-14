@@ -20,7 +20,7 @@ from opendiamond.scope import ScopeCookie, ScopeError, ScopeCookieExpired
 from opendiamond.server.blobcache import BlobCache
 from opendiamond.server.filter import (FilterStack, Filter,
         FilterDependencyError, FilterUnsupportedSource)
-from opendiamond.server.object_ import EmptyObject, Object
+from opendiamond.server.object_ import EmptyObject, Object, ObjectLoader
 from opendiamond.server import protocol
 from opendiamond.server.protocol import (DiamondRPCFailure,
         DiamondRPCFCacheMiss, DiamondRPCCookieExpired,
@@ -209,6 +209,9 @@ class Search(RPCHandlers):
         _log.info('Reexecuting on object %s', params.object_id)
         runner = self._filters.bind(self._state)
         obj = Object(self._server_id, params.object_id)
+        loader = ObjectLoader(self._state.config, self._state.blob_cache)
+        if not loader.source_available(obj):
+            raise DiamondRPCFCacheMiss()
         runner.evaluate(obj)
         if len(params.attrs):
             output_attrs = set(params.attrs)

@@ -259,7 +259,7 @@ class _ObjectFetcher(_ObjectProcessor):
     def __init__(self, state):
         _ObjectProcessor.__init__(self)
         self._state = state
-        self._loader = ObjectLoader(state.config)
+        self._loader = ObjectLoader(state.config, state.blob_cache)
         self._digest_prefix = md5('dataretriever ')
 
     def __str__(self):

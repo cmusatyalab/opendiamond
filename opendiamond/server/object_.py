@@ -15,6 +15,7 @@
 
 from cStringIO import StringIO
 import pycurl as curl
+from urlparse import urlparse
 
 from opendiamond.helpers import md5
 from opendiamond.server.protocol import XDR_attribute, XDR_object
@@ -134,7 +135,7 @@ class ObjectLoader(object):
     single HTTP connection to be reused to fetch multiple objects.  Must not
     be used by more than one thread.'''
 
-    def __init__(self, config):
+    def __init__(self, config, blob_cache):
         self._curl = curl.Curl()
         self._curl.setopt(curl.NOSIGNAL, 1)
         self._curl.setopt(curl.FAILONERROR, 1)
@@ -145,11 +146,48 @@ class ObjectLoader(object):
         self._curl.setopt(curl.WRITEFUNCTION, self._handle_body)
         self._headers = {}
         self._body = StringIO()
+        self._blob_cache = blob_cache
 
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
+    def source_available(self, obj):
+        '''Examine the Object and return whether we think we will be able
+        to load it, without actually doing so.  This can be used during
+        reexecution to determine whether we should return
+        DiamondRPCFCacheMiss to the client.'''
+        parts = urlparse(str(obj))
+        if parts.scheme == 'md5':
+            return parts.path.lower() in self._blob_cache
+        else:
+            # Assume we can always load other types of URLs
+            return True
+    # pylint: enable=E1101
+
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
     def load(self, obj):
-        '''Retrieve the Object from the dataretriever and update it with
-        the information we receive.'''
-        self._curl.setopt(curl.URL, str(obj))
+        '''Retrieve the Object and update it with the information we
+        receive.'''
+        uri = str(obj)
+        parts = urlparse(uri)
+        if parts.scheme == 'md5':
+            self._load_blobcache(obj, parts.path.lower())
+        else:
+            self._load_dataretriever(obj, uri)
+        # Set display name if not already in initial attributes
+        if ATTR_DISPLAY_NAME not in obj:
+            obj[ATTR_DISPLAY_NAME] = uri + '\0'
+    # pylint: enable=E1101
+
+    def _load_blobcache(self, obj, signature):
+        # Load the object data
+        try:
+            obj[ATTR_DATA] = self._blob_cache[signature]
+        except KeyError:
+            raise ObjectLoadError('Object not in cache')
+
+    def _load_dataretriever(self, obj, url):
+        self._curl.setopt(curl.URL, url)
         try:
             self._curl.perform()
         except curl.error, e:
@@ -161,9 +199,6 @@ class ObjectLoader(object):
             if key.lower().startswith(ATTR_HEADER_PREFIX):
                 key = key.replace(ATTR_HEADER_PREFIX, '', 1)
                 obj[key] = value + '\0'
-        # Set display name if not already in initial attributes
-        if ATTR_DISPLAY_NAME not in obj:
-            obj[ATTR_DISPLAY_NAME] = str(obj) + '\0'
         # Release fetched data
         self._headers = {}
         self._body = StringIO()

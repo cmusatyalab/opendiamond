@@ -477,7 +477,7 @@ class Filter(object):
         '''Returns (code_path, signature).'''
         parts = urlparse(self.code_source)
         if parts.scheme == 'md5':
-            sig = parts.path.lower()
+            sig = parts.path
             try:
                 return (state.blob_cache.executable_path(sig), sig)
             except KeyError:
@@ -494,7 +494,7 @@ class Filter(object):
         parts = urlparse(self.blob_source)
         if parts.scheme == 'md5':
             try:
-                return state.blob_cache[parts.path.lower()]
+                return state.blob_cache[parts.path]
             except KeyError:
                 raise FilterDependencyError('Missing blob for filter ' +
                                         self.name)
@@ -512,7 +512,7 @@ class Filter(object):
         support the URI scheme.'''
         parts = urlparse(uri)
         if parts.scheme == 'md5':
-            return parts.path.lower() in state.blob_cache
+            return parts.path in state.blob_cache
         else:
             raise FilterUnsupportedSource()
     # pylint: enable=E1101

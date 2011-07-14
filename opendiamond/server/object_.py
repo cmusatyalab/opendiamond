@@ -157,7 +157,7 @@ class ObjectLoader(object):
         DiamondRPCFCacheMiss to the client.'''
         parts = urlparse(str(obj))
         if parts.scheme == 'md5':
-            return parts.path.lower() in self._blob_cache
+            return parts.path in self._blob_cache
         else:
             # Assume we can always load other types of URLs
             return True
@@ -171,7 +171,7 @@ class ObjectLoader(object):
         uri = str(obj)
         parts = urlparse(uri)
         if parts.scheme == 'md5':
-            self._load_blobcache(obj, parts.path.lower())
+            self._load_blobcache(obj, parts.path)
         else:
             self._load_dataretriever(obj, uri)
         # Set display name if not already in initial attributes

@@ -156,7 +156,7 @@ class Search(RPCHandlers):
         self._state.scope = scope
         return protocol.XDR_sig_list(missing)
 
-    @RPCHandlers.handler(26, protocol.XDR_blob_list)
+    @RPCHandlers.handler(26, protocol.XDR_blob_data)
     @running(False)
     def send_blobs(self, params):
         '''Add blobs to the blob cache.'''

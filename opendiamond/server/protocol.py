@@ -130,7 +130,7 @@ class XDR_setup(object):
             raise RPCEncodingError()
 
 
-class XDR_blob_list(object):
+class XDR_blob_data(object):
     '''Blob data to be added to the blob cache; request only'''
     def __init__(self, xdr):
         self.blobs = xdr.unpack_array(xdr.unpack_opaque)

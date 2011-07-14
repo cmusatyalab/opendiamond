@@ -65,6 +65,7 @@ import signal
 import simplejson as json
 import subprocess
 import threading
+from urlparse import urlparse
 
 from opendiamond.helpers import md5, signalname
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
@@ -88,6 +89,8 @@ class FilterDependencyError(Exception):
     '''Error processing filter dependencies.'''
 class FilterExecutionError(Exception):
     '''Error executing filter.'''
+class FilterUnsupportedSource(Exception):
+    '''URI scheme for code or blob source is not supported.'''
 class _DropObject(Exception):
     '''Filter failed to process object.  The object should be dropped
     without caching the drop result.'''
@@ -428,11 +431,11 @@ class _FilterRunner(_ObjectProcessor):
 class Filter(object):
     '''A filter with arguments.'''
 
-    def __init__(self, name, signature, blob_signature, min_score, max_score,
+    def __init__(self, name, code_source, blob_source, min_score, max_score,
                 arguments, dependencies):
         self.name = name
-        self.signature = signature
-        self.blob_signature = blob_signature
+        self.code_source = code_source
+        self.blob_source = blob_source
         self.min_score = min_score
         self.max_score = max_score
         self.arguments = arguments
@@ -441,6 +444,7 @@ class Filter(object):
 
         # Will be initialized during resolve()
         self.code_path = None
+        self.signature = None
         self.blob = None
         self._digest_prefix = None
 
@@ -449,28 +453,69 @@ class Filter(object):
         its arguments) already hashed into it.'''
         return self._digest_prefix.copy()
 
-    def resolve(self, blob_cache):
+    def resolve(self, state):
         '''Ensure filter code and blob argument are available in the blob
         cache, load the blob argument, and initialize the cache digest.'''
         if self.code_path is not None:
             return
         # Get path to filter code
-        try:
-            code_path = blob_cache.executable_path(self.signature)
-        except KeyError:
-            raise FilterDependencyError('Missing code for filter ' + self.name)
+        code_path, signature = self._resolve_code(state)
         # Get contents of blob argument
-        try:
-            blob = blob_cache[self.blob_signature]
-        except KeyError:
-            raise FilterDependencyError('Missing blob for filter ' + self.name)
+        blob = self._resolve_blob(state)
         # Initialize digest
-        summary = [self.signature] + self.arguments + [blob]
+        summary = [signature] + self.arguments + [blob]
         digest_prefix = md5(' '.join(summary))
         # Commit
         self.code_path = code_path
+        self.signature = signature
         self.blob = blob
         self._digest_prefix = digest_prefix
+
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
+    def _resolve_code(self, state):
+        '''Returns (code_path, signature).'''
+        parts = urlparse(self.code_source)
+        if parts.scheme == 'md5':
+            sig = parts.path.lower()
+            try:
+                return (state.blob_cache.executable_path(sig), sig)
+            except KeyError:
+                raise FilterDependencyError('Missing code for filter ' +
+                                        self.name)
+        else:
+            raise FilterUnsupportedSource()
+    # pylint: enable=E1101
+
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
+    def _resolve_blob(self, state):
+        '''Returns blob data.'''
+        parts = urlparse(self.blob_source)
+        if parts.scheme == 'md5':
+            try:
+                return state.blob_cache[parts.path.lower()]
+            except KeyError:
+                raise FilterDependencyError('Missing blob for filter ' +
+                                        self.name)
+        else:
+            raise FilterUnsupportedSource()
+    # pylint: enable=E1101
+
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
+    @classmethod
+    def source_available(cls, state, uri):
+        '''Verify the URI to ensure that its data is accessible.  Return
+        True if we can access the data, False if we can't and should inform
+        the client to that effect.  Raise FilterUnsupportedSource if we don't
+        support the URI scheme.'''
+        parts = urlparse(uri)
+        if parts.scheme == 'md5':
+            return parts.path.lower() in state.blob_cache
+        else:
+            raise FilterUnsupportedSource()
+    # pylint: enable=E1101
 
     def bind(self, state):
         '''Return a _FilterRunner for this filter.'''

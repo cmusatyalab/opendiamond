@@ -19,11 +19,12 @@ import logging
 from opendiamond.scope import ScopeCookie, ScopeError, ScopeCookieExpired
 from opendiamond.server.blobcache import BlobCache
 from opendiamond.server.filter import (FilterStack, Filter,
-        FilterDependencyError)
+        FilterDependencyError, FilterUnsupportedSource)
 from opendiamond.server.object_ import EmptyObject, Object
 from opendiamond.server import protocol
 from opendiamond.server.protocol import (DiamondRPCFailure,
-        DiamondRPCFCacheMiss, DiamondRPCCookieExpired)
+        DiamondRPCFCacheMiss, DiamondRPCCookieExpired,
+        DiamondRPCSchemeNotSupported)
 from opendiamond.server.rpc import (RPCHandlers, RPCError,
         RPCProcedureUnavailable)
 from opendiamond.server.scopelist import ScopeListLoader
@@ -91,11 +92,11 @@ class Search(RPCHandlers):
         # Ensure we have all filter code and blob arguments
         try:
             for filter in self._filters:
-                filter.resolve(self._state.blob_cache)
+                filter.resolve(self._state)
         except FilterDependencyError, e:
             raise DiamondRPCFCacheMiss(str(e))
 
-    @RPCHandlers.handler(25, protocol.XDR_setup, protocol.XDR_sig_list)
+    @RPCHandlers.handler(25, protocol.XDR_setup, protocol.XDR_blob_list)
     @running(False)
     def setup(self, params):
         '''Configure the search and return a list of MD5 signatures not
@@ -110,25 +111,36 @@ class Search(RPCHandlers):
         missing = set()
         _log.info('Filters:')
         for f in params.filters:
-            if f.code.sig not in self._state.blob_cache:
-                missing.add(f.code)
-                code_state = 'not cached'
-            else:
-                code_state = 'cached'
-            if f.blob.sig not in self._state.blob_cache:
-                missing.add(f.blob)
-                blob_state = 'not cached'
-            else:
-                blob_state = 'cached'
+            unsupported = False
+            try:
+                if not Filter.source_available(self._state, f.code):
+                    missing.add(f.code)
+                    code_state = 'not cached'
+                else:
+                    code_state = 'cached'
+            except FilterUnsupportedSource:
+                unsupported = True
+                code_state = 'unsupported'
+            try:
+                if not Filter.source_available(self._state, f.blob):
+                    missing.add(f.blob)
+                    blob_state = 'not cached'
+                else:
+                    blob_state = 'cached'
+            except FilterUnsupportedSource:
+                unsupported = True
+                blob_state = 'unsupported'
             log_header(f.name)
-            log_item('Code', '%s, %s', f.code.sig, code_state)
-            log_item('Blob', '%s, %s', f.blob.sig, blob_state)
+            log_item('Code', '%s, %s', f.code, code_state)
+            log_item('Blob', '%s, %s', f.blob, blob_state)
             log_item('Arguments', '%s', ', '.join(f.arguments) or '<none>')
             log_item('Dependencies', '%s',
                             ', '.join(f.dependencies) or '<none>')
             log_item('Minimum score', '%f', f.min_score)
             log_item('Maximum score', '%f', f.max_score)
-            filters.append(Filter(f.name, f.code.sig, f.blob.sig, f.min_score,
+            if unsupported:
+                raise DiamondRPCSchemeNotSupported()
+            filters.append(Filter(f.name, f.code, f.blob, f.min_score,
                             f.max_score, f.arguments, f.dependencies))
         filters = FilterStack(filters)
 
@@ -154,7 +166,7 @@ class Search(RPCHandlers):
         # Commit
         self._filters = filters
         self._state.scope = scope
-        return protocol.XDR_sig_list(missing)
+        return protocol.XDR_blob_list(missing)
 
     @RPCHandlers.handler(26, protocol.XDR_blob_data)
     @running(False)

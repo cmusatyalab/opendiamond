@@ -16,15 +16,12 @@
 # XDR classes are oddly named for consistency with OpenDiamond-Java
 # pylint: disable=C0103
 
-import binascii
-
 from opendiamond.server.rpc import XDREncodable, RPCError, RPCEncodingError
 
 MAX_ATTRIBUTE_NAME = 256
 MAX_FILTER_NAME = 128
 MAX_FILTERS = 64
 MAX_BLOBS = 2 * MAX_FILTERS	# Filter + blob argument
-SIG_SIZE = 16
 
 class DiamondRPCFailure(RPCError):
     '''Generic Diamond RPC failure.'''
@@ -35,6 +32,9 @@ class DiamondRPCFCacheMiss(RPCError):
 class DiamondRPCCookieExpired(RPCError):
     '''Proffered scope cookie has expired.'''
     code = 504
+class DiamondRPCSchemeNotSupported(RPCError):
+    '''URI scheme not supported.'''
+    code = 505
 
 
 class XDR_attribute(XDREncodable):
@@ -66,41 +66,17 @@ class XDR_object(XDREncodable):
         self.encode_array(xdr, self.attrs)
 
 
-class XDR_sig_val(XDREncodable):
-    '''An MD5 hash of some data'''
-    def __init__(self, xdr=None, sig=None):
+class XDR_blob_list(XDREncodable):
+    '''A list of blob URIs; reply only'''
+    def __init__(self, uris):
+        '''uris is a list of strings.'''
         XDREncodable.__init__(self)
-        # The signature is binary on the wire, but we always use the hex
-        # string
-        if xdr is not None:
-            data = xdr.unpack_opaque()
-            if len(data) != SIG_SIZE:
-                raise RPCEncodingError()
-            self.sig = binascii.hexlify(data)
-        else:
-            self.sig = sig
+        self.uris = uris
 
     def encode(self, xdr):
-        try:
-            data = binascii.unhexlify(self.sig)
-        except TypeError:
+        if len(self.uris) > MAX_BLOBS:
             raise RPCEncodingError()
-        if len(data) != SIG_SIZE:
-            raise RPCEncodingError()
-        xdr.pack_opaque(data)
-
-
-class XDR_sig_list(XDREncodable):
-    '''A list of MD5 hashes; reply only'''
-    def __init__(self, sigs):
-        '''sigs is a list of XDR_sig_val.'''
-        XDREncodable.__init__(self)
-        self.sigs = sigs
-
-    def encode(self, xdr):
-        if len(self.sigs) > MAX_BLOBS:
-            raise RPCEncodingError()
-        self.encode_array(xdr, self.sigs)
+        xdr.pack_array(self.uris, xdr.pack_string)
 
 
 class XDR_filter_config(object):
@@ -111,8 +87,8 @@ class XDR_filter_config(object):
         self.dependencies = xdr.unpack_array(xdr.unpack_string)
         self.min_score = xdr.unpack_double()
         self.max_score = xdr.unpack_double()
-        self.code = XDR_sig_val(xdr=xdr)
-        self.blob = XDR_sig_val(xdr=xdr)
+        self.code = xdr.unpack_string()
+        self.blob = xdr.unpack_string()
         if (len(self.name) > MAX_FILTER_NAME or
                         len(self.dependencies) > MAX_FILTERS):
             raise RPCEncodingError()

@@ -14,6 +14,7 @@
 
 server_version = "DataRetriever/1.0"
 
+import logging
 import optparse
 from paste import httpserver
 
@@ -24,6 +25,9 @@ parser.add_option("-p", "--port",   dest="port", default="5873")
 parser.add_option("-d", "--daemonize", dest="daemonize", action="store_true",
 		  default=False)
 (options, args) = parser.parse_args()
+
+# Initialize logging
+logging.getLogger().addHandler(logging.StreamHandler())
 
 from opendiamond.helpers import daemonize
 from dataretriever.util import DataRetriever

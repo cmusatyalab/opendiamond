@@ -15,6 +15,8 @@
 server_version = "DataRetriever/1.0"
 
 import optparse
+from paste import httpserver
+
 parser = optparse.OptionParser()
 parser.add_option("-l", "--listen", dest="host", default="127.0.0.1",
 		  help="Bind with the specified listen address")
@@ -37,22 +39,10 @@ app = DataRetriever({
 
 def run():
     if options.daemonize: daemonize()
-    try:
-	from paste import httpserver
-	httpserver.serve(app, host=options.host, port=options.port,
-			 server_version=server_version,
-			 protocol_version='HTTP/1.1',
-			 daemon_threads=True)
-    except ImportError:
-	from SocketServer import ForkingMixIn
-	from wsgiref.simple_server import WSGIServer, make_server
-	class Server(ForkingMixIn, WSGIServer): pass
-	httpd = make_server(options.host, int(options.port), app,
-			    server_class=Server)
-	sa = httpd.socket.getsockname()
-	print "DataRetriever listening on", sa[0], "port", sa[1], "..."
-	httpd.serve_forever()
+    httpserver.serve(app, host=options.host, port=options.port,
+                     server_version=server_version,
+                     protocol_version='HTTP/1.1',
+                     daemon_threads=True)
 
 if __name__ == '__main__':
     run()
-

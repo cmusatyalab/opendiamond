@@ -12,11 +12,13 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-server_version = "DataRetriever/1.0"
-
 import logging
 import optparse
 from paste import httpserver
+
+import opendiamond
+
+server_version = "DataRetriever/" + opendiamond.__version__
 
 parser = optparse.OptionParser()
 parser.add_option("-l", "--listen", dest="host", default="127.0.0.1",

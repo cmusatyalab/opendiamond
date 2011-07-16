@@ -49,6 +49,8 @@ for store in config.retriever_stores:
     modname = 'dataretriever.%s_store' % store
     __import__(modname, level=0)
     module = sys.modules[modname]
+    if hasattr(module, 'init'):
+	module.init(config)
     modules[module.baseurl] = module.scope_app
 app = DataRetriever(modules)
 

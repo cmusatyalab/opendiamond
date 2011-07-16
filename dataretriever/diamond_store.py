@@ -34,6 +34,11 @@ __all__ = ['scope_app', 'object_app']
 baseurl = 'collection'
 
 
+def init(config):
+    global INDEXDIR, DATAROOT
+    INDEXDIR = config.indexdir
+    DATAROOT = config.dataroot
+
 def diamond_textattr(path):
     try: # read attributes from '.text_attr' file
 	for line in open(path + '.text_attr'):
@@ -42,10 +47,6 @@ def diamond_textattr(path):
 	    yield m.groups()
     except IOError:
 	pass
-
-dconfig = DiamondConfig()
-INDEXDIR = dconfig.indexdir
-DATAROOT = dconfig.dataroot
 
 def GIDIDXParser(index):
     f = open(index, 'r')

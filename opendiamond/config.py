@@ -138,10 +138,14 @@ class DiamondConfig(object):
             _Param('user_agent', None, 'OpenDiamond/%s'
                                         % opendiamond.__version__),
 
-            ## dataretriever Diamond store
-            # Root data directory
+            ## dataretriever
+            # Listen host
+            _Param('retriever_host', 'DRHOST', '127.0.0.1'),
+            # Listen port
+            _Param('retriever_port', 'DRPORT', 5873),
+            # Diamond store: root data directory
             _Param('dataroot', 'DATAROOT'),
-            # Root index directory
+            # Diamond store: root index directory
             _Param('indexdir', 'INDEXDIR'),
 
             ## Deprecated config keys

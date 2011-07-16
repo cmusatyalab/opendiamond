@@ -17,6 +17,7 @@ import optparse
 from paste import httpserver
 
 import opendiamond
+from opendiamond.config import DiamondConfig
 from opendiamond.helpers import daemonize
 from dataretriever.util import DataRetriever
 from dataretriever import diamond_store, proxy_store
@@ -25,12 +26,20 @@ from dataretriever import diamond_store, proxy_store
 server_version = "DataRetriever/" + opendiamond.__version__
 
 parser = optparse.OptionParser()
-parser.add_option("-l", "--listen", dest="host", default="127.0.0.1",
+parser.add_option("-f", "--config-file", dest="path")
+parser.add_option("-l", "--listen", dest="retriever_host",
 		  help="Bind with the specified listen address")
-parser.add_option("-p", "--port",   dest="port", default="5873")
+parser.add_option("-p", "--port", dest="retriever_port")
 parser.add_option("-d", "--daemonize", dest="daemonize", action="store_true",
 		  default=False)
 (options, args) = parser.parse_args()
+
+# Load config
+kwargs = {}
+for opt in 'path', 'retriever_host', 'retriever_port':
+    if getattr(options, opt) is not None:
+	kwargs[opt] = getattr(options, opt)
+config = DiamondConfig(**kwargs)
 
 # Initialize logging
 logging.getLogger().addHandler(logging.StreamHandler())
@@ -44,7 +53,8 @@ app = DataRetriever({
 
 def run():
     if options.daemonize: daemonize()
-    httpserver.serve(app, host=options.host, port=options.port,
+    httpserver.serve(app, host=config.retriever_host,
+                     port=config.retriever_port,
                      server_version=server_version,
                      protocol_version='HTTP/1.1',
                      daemon_threads=True)

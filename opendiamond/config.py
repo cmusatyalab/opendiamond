@@ -149,6 +149,10 @@ class DiamondConfig(object):
             _Param('dataroot', 'DATAROOT'),
             # Diamond store: root index directory
             _Param('indexdir', 'INDEXDIR'),
+            # Flickr store: API key
+            _Param('flickr_api_key', 'FLICKR_KEY'),
+            # Mirage store: repository path
+            _Param('mirage_repository', 'MIRAGE_REPOSITORY'),
 
             ## Deprecated config keys
             _Param(None, 'DATATYPE'),

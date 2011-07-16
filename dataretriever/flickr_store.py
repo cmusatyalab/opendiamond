@@ -21,8 +21,10 @@ from string import maketrans
 import flickrapi
 
 baseurl = 'flickr'
-api_key = ''
-flickr = flickrapi.FlickrAPI(api_key)
+
+def init(config):
+  global flickr
+  flickr = flickrapi.FlickrAPI(config.flickr_api_key)
 
 def scope_app(environ, start_response):
   root = shift_path_info(environ)

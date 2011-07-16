@@ -14,8 +14,6 @@
 # Functions to access the Mirage virtual machine repository
 #
 
-MIRAGE_REPOSITORY="/var/lib/mirage"
-
 from wsgiref.util import shift_path_info
 from urllib import quote, unquote_plus
 import subprocess
@@ -132,6 +130,11 @@ def MirageListVerbose(image_id, paths, users=None):
     except KeyError:
         pass
     yield '</objectlist>'
+
+
+def init(config):
+    global MIRAGE_REPOSITORY
+    MIRAGE_REPOSITORY = config.mirage_repository
 
 
 def scope_app(environ, start_response):

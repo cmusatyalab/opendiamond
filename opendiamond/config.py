@@ -72,7 +72,8 @@ class DiamondConfig(object):
         # 1. path argument
         # 2. DIAMOND_CONFIG environment var (points to containing directory)
         # 3. $HOME/.diamond/diamond_config
-        if path is None:
+        path_specified = path is not None
+        if not path_specified:
             try:
                 path = os.path.join(os.environ['DIAMOND_CONFIG'],
                                     'diamond_config')
@@ -173,7 +174,8 @@ class DiamondConfig(object):
                 except ValueError:
                     raise DiamondConfigError("Syntax error: %s" % line.strip())
         except IOError:
-            raise DiamondConfigError("Couldn't read %s" % path)
+            if path_specified:
+                raise DiamondConfigError("Couldn't read %s" % path)
 
         # Process overrides in keyword arguments
         for attr in kwargs:

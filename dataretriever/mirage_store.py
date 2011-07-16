@@ -25,6 +25,7 @@ import struct
 import fnmatch
 
 __all__ = ['scope_app', 'object_app']
+baseurl = 'mirage'
 
 # this expression only matches files because the mode starts with '-'
 MGLV_RE = r"""

@@ -143,6 +143,8 @@ class DiamondConfig(object):
             _Param('retriever_host', 'DRHOST', '127.0.0.1'),
             # Listen port
             _Param('retriever_port', 'DRPORT', 5873),
+            # Enabled data stores
+            _Param('retriever_stores', 'DATASTORE', []),
             # Diamond store: root data directory
             _Param('dataroot', 'DATAROOT'),
             # Diamond store: root index directory
@@ -235,4 +237,8 @@ class DiamondConfig(object):
         # Canonicalize debug options
         self.debug_filters = set(self.debug_filters)
         self.debug_command = self.debug_command.split(None)
+
+        # Set default dataretriever stores
+        if not self.retriever_stores:
+            self.retriever_stores = ['diamond', 'proxy']
     # pylint: enable=E0203,E1101,E1103

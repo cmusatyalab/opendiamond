@@ -20,6 +20,7 @@ from wsgiref.util import shift_path_info
 from string import maketrans
 import flickrapi
 
+baseurl = 'flickr'
 api_key = ''
 flickr = flickrapi.FlickrAPI(api_key)
 

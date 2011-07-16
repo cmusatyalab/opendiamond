@@ -31,6 +31,7 @@ import os
 import re
 
 __all__ = ['scope_app', 'object_app']
+baseurl = 'collection'
 
 
 def diamond_textattr(path):

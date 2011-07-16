@@ -15,13 +15,12 @@
 import logging
 import optparse
 from paste import httpserver
+import sys
 
 import opendiamond
 from opendiamond.config import DiamondConfig
 from opendiamond.helpers import daemonize
 from dataretriever.util import DataRetriever
-from dataretriever import diamond_store, proxy_store
-#from dataretriever import mirage_store, flickr_store
 
 server_version = "DataRetriever/" + opendiamond.__version__
 
@@ -44,15 +43,18 @@ config = DiamondConfig(**kwargs)
 # Initialize logging
 logging.getLogger().addHandler(logging.StreamHandler())
 
-app = DataRetriever({
-    'collection':	diamond_store.scope_app,
-    'proxy':		proxy_store.scope_app,
-#    'mirage':		mirage_store.scope_app,
-#    'flickr':		flickr_store.scope_app,
-})
+# Initialize app with configured store modules
+modules = {}
+for store in config.retriever_stores:
+    modname = 'dataretriever.%s_store' % store
+    __import__(modname, level=0)
+    module = sys.modules[modname]
+    modules[module.baseurl] = module.scope_app
+app = DataRetriever(modules)
 
 def run():
     if options.daemonize: daemonize()
+    print 'Enabled modules: ' + ', '.join(config.retriever_stores)
     httpserver.serve(app, host=config.retriever_host,
                      port=config.retriever_port,
                      server_version=server_version,

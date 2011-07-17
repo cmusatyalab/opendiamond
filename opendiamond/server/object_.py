@@ -73,10 +73,14 @@ class EmptyObject(object):
         else:
             raise KeyError()
 
-    def xdr_attributes(self, output_set=None, with_data=True):
+    def xdr_attributes(self, output_set=None, with_data=True, for_drop=False):
         '''Return a list of XDR_attribute.'''
-        # Don't encode any evidence of omit attributes.
-        send_keys = set(self._attrs.keys()) - self._omit_attrs
+        if for_drop:
+            # Reexecution dropped the object.  Only encode the object ID.
+            send_keys = set([ATTR_OBJ_ID])
+        else:
+            # Don't encode any evidence of omit attributes.
+            send_keys = set(self._attrs.keys()) - self._omit_attrs
         # XDR_object never encodes the data attribute, because it has a
         # separate field for the object data, but XDR_attribute_list can
         # encode it with a suitable output_set.

@@ -212,13 +212,14 @@ class Search(RPCHandlers):
         loader = ObjectLoader(self._state.config, self._state.blob_cache)
         if not loader.source_available(obj):
             raise DiamondRPCFCacheMiss()
-        runner.evaluate(obj)
+        drop = not runner.evaluate(obj)
         if len(params.attrs):
             output_attrs = set(params.attrs)
         else:
             # If no output attributes were specified, encode everything
             output_attrs = None
-        return protocol.XDR_attribute_list(obj.xdr_attributes(output_attrs))
+        return protocol.XDR_attribute_list(obj.xdr_attributes(output_attrs,
+                                for_drop=drop))
 
     @RPCHandlers.handler(15, reply_class=protocol.XDR_search_stats)
     @running(True)

@@ -22,6 +22,8 @@ from cStringIO import StringIO
 __all__ = ['scope_app', 'object_app']
 baseurl = 'gigapan'
 
+TILE_SIZE = 256
+
 class GigaPanInfoCache(object):
     def __init__(self):
         self._cache = {}
@@ -48,8 +50,8 @@ def scope_app(environ, start_response):
 def tiles_in_gigapan(width, height):
     """Modified from pyramid.iter_coords()."""
     round_up = lambda x: int(ceil(x))
-    tiles_wide = round_up(width / float(256))
-    tiles_high = round_up(height / float(256))
+    tiles_wide = round_up(width / float(TILE_SIZE))
+    tiles_high = round_up(height / float(TILE_SIZE))
     levels_deep = log_2(max(tiles_wide, tiles_high)) + 1
     inv = lambda lvl: levels_deep - lvl - 1
     columns_at_level = lambda lvl: round_up(tiles_wide / float(1 << inv(lvl)))
@@ -98,13 +100,13 @@ def object_app(environ, start_response):
     real_level = (info.get('levels') - 1) - lvl
     level_width = info.get('width') / 2**real_level
     level_height = info.get('height') / 2**real_level
-    bottom_right = ((col + 1) * 256, (row + 1) * 256)
-    img_width = img_height = 256
+    bottom_right = ((col + 1) * TILE_SIZE, (row + 1) * TILE_SIZE)
+    img_width = img_height = TILE_SIZE
     if bottom_right[0] > level_width:
-        img_width = 256 - (bottom_right[0] - level_width)
+        img_width = TILE_SIZE - (bottom_right[0] - level_width)
     if bottom_right[1] > level_height:
-        img_height = 256 - (bottom_right[1] - level_height)
-    if img_width != 256 or img_height != 256:
+        img_height = TILE_SIZE - (bottom_right[1] - level_height)
+    if img_width != TILE_SIZE or img_height != TILE_SIZE:
         input_stream = StringIO(obj.read())
         im = Image.open(input_stream)
         new_image = im.crop((0, 0, img_width, img_height))

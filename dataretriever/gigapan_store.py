@@ -1,8 +1,8 @@
 #
 #  The OpenDiamond Platform for Interactive Search
-#  Version 4
+#  Version 6
 #
-#  Copyright (c) 2009 Carnegie Mellon University
+#  Copyright (c) 2009-2011 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -10,34 +10,19 @@
 #  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
-#
-# Functions to access the OpenDiamond content store
-#
-
-# we could return file URLs iff running locally and there are no text attributes
-#OBJECT_URI = 'file://' + DATAROOT
-OBJECT_URI = 'obj'
-
-# include a reference to xslt stylesheet (only useful for debugging)
-STYLE = False
 
 from datetime import datetime, timedelta
 from PIL import Image
 from threading import Lock
-from dataretriever.util import guess_mime_type
 from wsgiref.util import shift_path_info
-from urllib import quote
 from urllib2 import urlopen
 from pyramid import *
-import rfc822
-import os
-import re
 from cStringIO import StringIO
 
 __all__ = ['scope_app', 'object_app']
 baseurl = 'gigapan'
 
-class GigaPanInfoCache:
+class GigaPanInfoCache(object):
     def __init__(self):
         self._cache = {}
         self._lock = Lock()
@@ -53,14 +38,14 @@ def scope_app(environ, start_response):
     root = shift_path_info(environ)
     if root == 'obj':
 	return object_app(environ, start_response)
-    
+
     gigapan_id = root.strip()
 
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return ExpandUrls(int(gigapan_id))
+    return expand_urls(int(gigapan_id))
     
 
-def ExpandUrls (id):
+def expand_urls(id):
     yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
     yield '<objectlist>\n'
 
@@ -68,31 +53,30 @@ def ExpandUrls (id):
     height = info.get('height')
     width = info.get('width')
     levels = info.get('levels')
-    yield 'Height: %d, Width: %d, Levels: %d' % (height, width, levels)
 
     # still calculating stupidly
     iter = iter_coords(width, height)
     nPhotos = 0
     try:
-        while 1:
+        while True:
             coord = iter.next()
             nPhotos += 1
-    except (StopIteration):
+    except StopIteration:
         yield '<count adjust="%d"/>\n' % nPhotos
 
     iter = iter_coords(width, height)
-    
+
     try:
-        while 1:
+        while True:
             coord = iter.next()
             yield '<object src="obj/%s/%s/%s/%s"/>\n' % (id, coord[0], 
                                                          coord[1], coord[2])
-    except (StopIteration):
+    except StopIteration:
         pass
-    
+
     yield '</objectlist>'
-        
-        
+
+
 
 def object_app(environ, start_response):
     components = environ['PATH_INFO'][1:].split('/')
@@ -105,9 +89,6 @@ def object_app(environ, start_response):
     url = ''.join(url_components)
 
     obj = urlopen(url)
-    time = datetime.utcnow() + timedelta(days=365)
-    timestr = time.strftime('%a, %d %b %Y %H:%M:%S GMT')
-
     info = gigapan_info_cache[id]
     real_level = (info.get('levels') - 1) - lvl
     level_width = info.get('width') / 2**real_level
@@ -132,6 +113,9 @@ def object_app(environ, start_response):
         content_type = obj.headers['Content-Type']
         content_length = obj.headers['Content-Length']
 
+    time = datetime.utcnow() + timedelta(days=365)
+    timestr = time.strftime('%a, %d %b %Y %H:%M:%S GMT')
+
     headers = [ # copy some headers for caching purposes
         ('Content-Length',		str(content_length)),
         ('Content-Type',		content_type),
@@ -142,9 +126,9 @@ def object_app(environ, start_response):
         ('x-attr-gigapan_height',       str(info.get('height'))),
         ('x-attr-gigapan_width',        str(info.get('width'))),
         ('x-attr-gigapan_levels',       str(info.get('levels'))),
-        ('x-attr-tile_level',        str(lvl)),
-        ('x-attr-tile_col',          str(col)),
-        ('x-attr-tile_row',          str(row)),
-        ]
+        ('x-attr-tile_level',           str(lvl)),
+        ('x-attr-tile_col',             str(col)),
+        ('x-attr-tile_row',             str(row)),
+    ]
     start_response("200 OK", headers)
     return environ['wsgi.file_wrapper'](result, 65536)

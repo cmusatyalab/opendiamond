@@ -236,6 +236,33 @@ class Object(object):
         header = struct.pack('IIii', 0, len(pixels) + 16, height, width)
         self.set_binary(key, header + pixels)
 
+    def get_patches(self, key):
+        '''Get the specified object attribute as a list of patches.  Returns
+        (distance, patches), where patches is a tuple of (upper_left_coord,
+        lower_right_coord) tuples and a coordinate is an (x, y) tuple.'''
+        def parse(fmt, data):
+            len = struct.calcsize(fmt)
+            data, remainder = data[0:len], data[len:]
+            return (remainder,) + struct.unpack(fmt, data)
+        data = self.get_binary(key)
+        data, count, distance = parse('<id', data)
+        patches = []
+        for _i in range(count):
+            data, x0, y0, x1, y1 = parse('<iiii', data)
+            patches.append(((x0, y0), (x1, y1)))
+        return distance, tuple(patches)
+
+    def set_patches(self, key, distance, patches):
+        '''Set the specified object attribute as a list of patches.  distance
+        is a double.  patches is a list of (upper_left_coord,
+        lower_right_coord) tuples, where a coordinate is an (x, y) tuple.
+        The key name should probably be _filter.%s.patches, where %s is the
+        filter name from Session.'''
+        pieces = [struct.pack('<id', len(patches), distance)]
+        for a, b in patches:
+            pieces.append(struct.pack('<iiii', a[0], a[1], b[0], b[1]))
+        self.set_binary(key, ''.join(pieces))
+
     def __getitem__(self, key):
         '''Syntactic sugar for self.get_string().'''
         return self.get_string(key)

@@ -23,6 +23,8 @@ try:
 except ImportError:
     from xml.etree.ElementTree import iterparse
 
+baseurl = 'proxy'
+
 def scope_app(environ, start_response):
     root = shift_path_info(environ)
     index, count = map(int, root.split('of'))

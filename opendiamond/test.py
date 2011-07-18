@@ -285,37 +285,46 @@ class TestCookieBadSignature(_TestHandGeneratedCookie):
 class TestFilterParameters(unittest.TestCase):
     '''Test opendiamond.filter parameter handling.'''
 
+    maxDiff = None
+
     def setUp(self):
         self.params = Parameters(
             BooleanParameter('Boolean param'),
-            StringParameter('Strn', default='xyzzy plugh'),
+            StringParameter('Strn', default='xyzzy plugh',
+                        disabled_value='off', initially_enabled=False),
             NumberParameter('Even integer parameter with long label', max=10,
-                        increment=2),
+                        increment=2, disabled_value=15),
             ChoiceParameter('Choices', (
                 ('foo', 'Do something with foo'),
                 ('bar', 'Do something else with bar'),
-            ))
+            ), disabled_value='baz')
         )
         self.description = {
             'Label-0': 'Boolean param',
             'Type-0': 'boolean',
+            'Initially-Enabled-0': 'true',
             'Label-1': 'Strn',
             'Type-1': 'string',
+            'Initially-Enabled-1': 'false',
             'Default-1': 'xyzzy plugh',
+            'Disabled-Value-1': 'off',
             'Label-2': 'Even integer parameter with long label',
             'Type-2': 'number',
+            'Initially-Enabled-2': 'true',
             'Maximum-2': 10,
             'Increment-2': 2,
+            'Disabled-Value-2': 15,
             'Label-3': 'Choices',
             'Type-3': 'choice',
+            'Initially-Enabled-3': 'true',
             'Choice-0-3': 'Do something with foo',
             'Choice-1-3': 'Do something else with bar',
+            'Disabled-Value-3': -1,
         }
-        self.twelve = base64.b64encode('twelve')
 
     def test_round_trip(self):
         '''Ensure we can round-trip a set of parameters.'''
-        self.assertEqual(self.params.parse(['true', self.twelve, '6', '1']),
+        self.assertEqual(self.params.parse(['true', 'twelve', '6', '1']),
                             [True, 'twelve', 6.0, 'bar'])
 
     def test_manifest(self):
@@ -323,23 +332,33 @@ class TestFilterParameters(unittest.TestCase):
 
     def test_zero_length_string(self):
         '''Ensure we can parse a zero-length string argument.'''
-        self.assertEqual(self.params.parse(['true', '*', '6', '1']),
+        self.assertEqual(self.params.parse(['true', '', '6', '1']),
                             [True, '', 6.0, 'bar'])
 
     def test_number_range(self):
         '''Try parsing an out-of-range number argument.'''
         self.assertRaises(ValueError, lambda: self.params.parse(['true',
-                            self.twelve, '12', '1']))
+                            'twelve', '12', '1']))
+
+    def test_number_default(self):
+        '''Ensure we can parse an out-of-range default number argument.'''
+        self.assertEqual(self.params.parse(['true', 'twelve', '15', '1']),
+                            [True, 'twelve', 15.0, 'bar'])
 
     def test_invalid_boolean(self):
         '''Try parsing an invalid boolean argument.'''
         self.assertRaises(ValueError, lambda: self.params.parse(['foo',
-                            self.twelve, '6', '1']))
+                            'twelve', '6', '1']))
 
     def test_choice_range(self):
         '''Try parsing an out-of-range choice argument.'''
         self.assertRaises(ValueError, lambda: self.params.parse(['true',
-                            self.twelve, '6', '2']))
+                            'twelve', '6', '2']))
+
+    def test_choice_default(self):
+        '''Ensure we can parse a default choice argument.'''
+        self.assertEqual(self.params.parse(['true', 'twelve', '6', '-1']),
+                            [True, 'twelve', 6.0, 'baz'])
 
 
 if __name__ == '__main__':

@@ -72,10 +72,16 @@ class Filter(object):
     # True unless the filter bundle is being generated, pre-configured, by
     # some external tool.
     instance_name_editable = True
-    # Default drop threshold.
-    threshold = 1
-    # Whether the threshold should be editable in the UI.
-    threshold_editable = False
+    # Minimum filter score to accept.
+    min_score = 1
+    # Maximum filter score to accept.
+    max_score = float('inf')
+    # Alias for min_score.
+    threshold = None
+    # Whether the thresholds should be editable in the UI.
+    thresholds_editable = False
+    # Alias for thresholds_editable.
+    threshold_editable = None
     # Description of formal parameters accepted by the filter.  These become
     # settings in the HyperFind UI.
     params = Parameters()
@@ -112,17 +118,26 @@ class Filter(object):
     @classmethod
     def get_manifest(cls):
         manifest = cls.params.describe()
+        if cls.threshold is not None:
+            min_score = cls.threshold
+        else:
+            min_score = cls.min_score
         manifest.update({
             'Filter': cls.name,
             'Instance': cls.instance_name,
-            'Threshold': cls.threshold,
+            'Min-Score': min_score,
+            'Max-Score': cls.max_score,
         })
         if len(cls.dependencies) > 0:
             manifest['Dependencies'] = ','.join(cls.dependencies)
         if not cls.instance_name_editable:
             manifest['Instance-Editable'] = 'false'
-        if cls.threshold_editable:
-            manifest['Threshold-Editable'] = 'true'
+        if cls.threshold_editable is not None:
+            thresholds_editable = cls.threshold_editable
+        else:
+            thresholds_editable = cls.thresholds_editable
+        if thresholds_editable:
+            manifest['Thresholds-Editable'] = 'true'
         return ''.join('%s: %s\n' % (k, v) for k, v in
                             sorted(manifest.items()))
 
@@ -183,6 +198,71 @@ class Object(object):
         '''Set the specified object attribute as a null-terminated string.'''
         self.set_binary(key, str(value) + '\0')
 
+    def get_int(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as a native-endian integer.  The key name should end with ".int".'''
+        return struct.unpack('i', self.get_binary(key))[0]
+
+    def set_int(self, key, value):
+        '''Set the specified object attribute as an integer.  The key name
+        should end with ".int".'''
+        self.set_binary(key, struct.pack('i', value))
+
+    def get_double(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as a native-endian double.  The key name should end with ".double".'''
+        return struct.unpack('d', self.get_binary(key))[0]
+
+    def set_double(self, key, value):
+        '''Set the specified object attribute as a double.  The key name
+        should end with ".double".'''
+        self.set_binary(key, struct.pack('d', value))
+
+    def get_rgbimage(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as an RGBImage structure.  The key name should end with ".rgbimage".'''
+        data = self.get_binary(key)
+        # Parse the dimensions out of the header
+        height, width = struct.unpack('2i', data[8:16])
+        # Read the image data
+        return PIL.Image.fromstring('RGB', (width, height), data[16:],
+                                'raw', 'RGBX', 0, 1)
+
+    def set_rgbimage(self, key, value):
+        '''Set the specified object attribute as an RGBImage structure.
+        The key name should end with ".rgbimage".'''
+        pixels = value.tostring('raw', 'RGBX', 0, 1)
+        width, height = value.size
+        header = struct.pack('IIii', 0, len(pixels) + 16, height, width)
+        self.set_binary(key, header + pixels)
+
+    def get_patches(self, key):
+        '''Get the specified object attribute as a list of patches.  Returns
+        (distance, patches), where patches is a tuple of (upper_left_coord,
+        lower_right_coord) tuples and a coordinate is an (x, y) tuple.'''
+        def parse(fmt, data):
+            len = struct.calcsize(fmt)
+            data, remainder = data[0:len], data[len:]
+            return (remainder,) + struct.unpack(fmt, data)
+        data = self.get_binary(key)
+        data, count, distance = parse('<id', data)
+        patches = []
+        for _i in range(count):
+            data, x0, y0, x1, y1 = parse('<iiii', data)
+            patches.append(((x0, y0), (x1, y1)))
+        return distance, tuple(patches)
+
+    def set_patches(self, key, distance, patches):
+        '''Set the specified object attribute as a list of patches.  distance
+        is a double.  patches is a list of (upper_left_coord,
+        lower_right_coord) tuples, where a coordinate is an (x, y) tuple.
+        The key name should probably be _filter.%s.patches, where %s is the
+        filter name from Session.'''
+        pieces = [struct.pack('<id', len(patches), distance)]
+        for a, b in patches:
+            pieces.append(struct.pack('<iiii', a[0], a[1], b[0], b[1]))
+        self.set_binary(key, ''.join(pieces))
+
     def __getitem__(self, key):
         '''Syntactic sugar for self.get_string().'''
         return self.get_string(key)
@@ -208,12 +288,7 @@ class Object(object):
     def image(self):
         '''Convenience property to get the decoded RGB image as a PIL Image.'''
         if self._image is None:
-            data = self.get_binary('_rgb_image.rgbimage')
-            # Parse the dimensions out of the RGBImage header
-            height, width = struct.unpack('2i', data[8:16])
-            # Read the image data
-            self._image = PIL.Image.fromstring('RGB', (width, height),
-                                    data[16:], 'raw', 'RGBX', 0, 1)
+            self._image = self.get_rgbimage('_rgb_image.rgbimage')
         return self._image
 
     def omit(self, key):

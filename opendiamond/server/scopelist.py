@@ -111,11 +111,16 @@ class ScopeListLoader(object):
                     _log.warning('Parsing %s: %s', scope_url, e)
                 finally:
                     try:
-                        # Ignore well-formedness errors discovered at close
                         parser.close()
                     except SAXParseException:
-                        pass
+                        # Received malformed XML, such as XML with missing
+                        # closing tags.  This is likely caused by a
+                        # prematurely-terminated connection.
+                        _log.warning('Parsing %s: incomplete scope list',
+                                        scope_url)
                     parser.reset()
+        # Log successful completion
+        _log.info('End of scope list')
 
     def get_count(self):
         '''Return our current understanding of the number of objects in

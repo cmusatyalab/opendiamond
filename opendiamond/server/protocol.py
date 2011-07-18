@@ -16,14 +16,12 @@
 # XDR classes are oddly named for consistency with OpenDiamond-Java
 # pylint: disable=C0103
 
-import binascii
-
 from opendiamond.server.rpc import XDREncodable, RPCError, RPCEncodingError
 
 MAX_ATTRIBUTE_NAME = 256
 MAX_FILTER_NAME = 128
 MAX_FILTERS = 64
-SIG_SIZE = 16
+MAX_BLOBS = 2 * MAX_FILTERS	# Filter + blob argument
 
 class DiamondRPCFailure(RPCError):
     '''Generic Diamond RPC failure.'''
@@ -34,6 +32,9 @@ class DiamondRPCFCacheMiss(RPCError):
 class DiamondRPCCookieExpired(RPCError):
     '''Proffered scope cookie has expired.'''
     code = 504
+class DiamondRPCSchemeNotSupported(RPCError):
+    '''URI scheme not supported.'''
+    code = 505
 
 
 class XDR_attribute(XDREncodable):
@@ -65,47 +66,65 @@ class XDR_object(XDREncodable):
         self.encode_array(xdr, self.attrs)
 
 
-class XDR_sig_val(object):
-    '''An MD5 hash of some data; request only'''
-    def __init__(self, xdr):
-        # The signature is binary on the wire, but we always use the hex
-        # string
-        data = xdr.unpack_opaque()
-        if len(data) != SIG_SIZE:
+class XDR_blob_list(XDREncodable):
+    '''A list of blob URIs; reply only'''
+    def __init__(self, uris):
+        '''uris is a list of strings.'''
+        XDREncodable.__init__(self)
+        self.uris = uris
+
+    def encode(self, xdr):
+        if len(self.uris) > MAX_BLOBS:
             raise RPCEncodingError()
-        self.sig = binascii.hexlify(data)
+        xdr.pack_array(self.uris, xdr.pack_string)
+
+
+class XDR_filter_config(object):
+    '''Configuration for a single filter; request only'''
+    def __init__(self, xdr):
+        self.name = xdr.unpack_string()
+        self.arguments = xdr.unpack_array(xdr.unpack_string)
+        self.dependencies = xdr.unpack_array(xdr.unpack_string)
+        self.min_score = xdr.unpack_double()
+        self.max_score = xdr.unpack_double()
+        self.code = xdr.unpack_string()
+        self.blob = xdr.unpack_string()
+        if (len(self.name) > MAX_FILTER_NAME or
+                        len(self.dependencies) > MAX_FILTERS):
+            raise RPCEncodingError()
+        for name in self.dependencies:
+            if len(name) > MAX_FILTER_NAME:
+                raise RPCEncodingError()
+
+
+class XDR_setup(object):
+    '''Search setup parameters; request only'''
+    def __init__(self, xdr):
+        self.cookies = xdr.unpack_array(xdr.unpack_string)
+        self.filters = xdr.unpack_array(lambda: XDR_filter_config(xdr=xdr))
+        if len(self.filters) > MAX_FILTERS:
+            raise RPCEncodingError()
+
+
+class XDR_blob_data(object):
+    '''Blob data to be added to the blob cache; request only'''
+    def __init__(self, xdr):
+        self.blobs = xdr.unpack_array(xdr.unpack_opaque)
+        if len(self.blobs) > MAX_BLOBS:
+            raise RPCEncodingError()
 
 
 class XDR_start(object):
     '''Start-search parameters; request only'''
     def __init__(self, xdr):
         self.search_id = xdr.unpack_uint()
-
-
-class XDR_spec_file(object):
-    '''Search fspec file; request only'''
-    def __init__(self, xdr):
-        # sig is unused
-        self.sig = XDR_sig_val(xdr=xdr)
-        self.data = xdr.unpack_opaque()
-
-
-class XDR_blob(object):
-    '''Filter blob argument; request only'''
-    def __init__(self, xdr):
-        self.filter_name = xdr.unpack_string()
-        if len(self.filter_name) > MAX_FILTER_NAME:
-            raise RPCEncodingError()
-        self.data = xdr.unpack_opaque()
-
-
-class XDR_blob_sig(object):
-    '''Filter blob by signature; request only'''
-    def __init__(self, xdr):
-        self.filter_name = xdr.unpack_string()
-        if len(self.filter_name) > MAX_FILTER_NAME:
-            raise RPCEncodingError()
-        self.sig = XDR_sig_val(xdr=xdr)
+        if xdr.unpack_bool():
+            self.attrs = xdr.unpack_array(xdr.unpack_string)
+            for attr in self.attrs:
+                if len(attr) > MAX_ATTRIBUTE_NAME:
+                    raise RPCEncodingError()
+        else:
+            self.attrs = None
 
 
 class _XDRStats(XDREncodable):
@@ -168,14 +187,6 @@ class XDR_search_stats(_XDRStats):
         self.encode_array(xdr, self.filter_stats)
 
 
-class XDR_filter(object):
-    '''Filter code; request only'''
-    def __init__(self, xdr):
-        # sig is unused
-        self.sig = XDR_sig_val(xdr=xdr)
-        self.data = xdr.unpack_opaque()
-
-
 class XDR_session_var(XDREncodable):
     '''Session variable'''
     def __init__(self, xdr=None, name=None, value=None):
@@ -206,15 +217,6 @@ class XDR_session_vars(XDREncodable):
         self.encode_array(xdr, self.vars)
 
 
-class XDR_attr_name_list(object):
-    '''List of attribute names; request only'''
-    def __init__(self, xdr):
-        self.attrs = xdr.unpack_array(xdr.unpack_string)
-        for attr in self.attrs:
-            if len(attr) > MAX_ATTRIBUTE_NAME:
-                raise RPCEncodingError()
-
-
 class XDR_reexecute(object):
     '''Reexecute argument; request only'''
     def __init__(self, xdr):
@@ -234,9 +236,3 @@ class XDR_attribute_list(XDREncodable):
 
     def encode(self, xdr):
         self.encode_array(xdr, self.attrs)
-
-
-class XDR_scope(object):
-    '''set_scope argument; request only'''
-    def __init__(self, xdr):
-        self.cookie = xdr.unpack_string()

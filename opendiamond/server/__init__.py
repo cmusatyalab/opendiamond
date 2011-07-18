@@ -87,6 +87,7 @@ import sys
 
 import opendiamond
 from opendiamond.helpers import daemonize, signalname
+from opendiamond.server.blobcache import BlobCache
 from opendiamond.server.child import ChildManager
 from opendiamond.server.listen import ConnListener
 from opendiamond.server.rpc import RPCConnection, ConnectionFailure
@@ -135,6 +136,7 @@ class DiamondServer(object):
         self._children = ChildManager(config.cgroupdir, not config.oneshot)
         self._listener = ConnListener()
         self._last_log_prune = datetime.fromtimestamp(0)
+        self._last_cache_prune = datetime.fromtimestamp(0)
         self._ignore_signals = False
 
         # Configure signals
@@ -166,6 +168,8 @@ class DiamondServer(object):
             while True:
                 # Check for search logs that need to be pruned
                 self._prune_child_logs()
+                # Check for blob cache objects that need to be pruned
+                self._prune_blob_cache()
                 # Accept a new connection pair
                 control, data = self._listener.accept()
                 # Fork a child for this connection pair.  In the child, this
@@ -275,6 +279,15 @@ class DiamondServer(object):
                 pass
         if count > 0:
             _log.info('Pruned %d search logs', count)
+
+    def _prune_blob_cache(self):
+        '''Remove blob cache entries older than the configured number of
+        days.'''
+        # Do this check no more than once an hour
+        if datetime.now() - self._last_cache_prune < timedelta(hours=1):
+            return
+        self._last_cache_prune = datetime.now()
+        BlobCache.prune(self.config.cachedir, self.config.blob_cache_days)
 
     def _handle_signal(self, sig, _frame):
         '''Signal handler in the supervisor.'''

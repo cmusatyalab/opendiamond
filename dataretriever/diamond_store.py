@@ -21,6 +21,7 @@ OBJECT_URI = 'obj'
 # include a reference to xslt stylesheet (only useful for debugging)
 STYLE = False
 
+from datetime import datetime, timedelta
 from dataretriever.util import guess_mime_type
 from opendiamond.config import DiamondConfig
 from wsgiref.util import shift_path_info
@@ -30,7 +31,13 @@ import os
 import re
 
 __all__ = ['scope_app', 'object_app']
+baseurl = 'collection'
 
+
+def init(config):
+    global INDEXDIR, DATAROOT
+    INDEXDIR = config.indexdir
+    DATAROOT = config.dataroot
 
 def diamond_textattr(path):
     try: # read attributes from '.text_attr' file
@@ -40,10 +47,6 @@ def diamond_textattr(path):
 	    yield m.groups()
     except IOError:
 	pass
-
-dconfig = DiamondConfig()
-INDEXDIR = dconfig.indexdir
-DATAROOT = dconfig.dataroot
 
 def GIDIDXParser(index):
     f = open(index, 'r')
@@ -81,10 +84,13 @@ def object_app(environ, start_response):
 
     f = open(path, 'rb')
     stat = os.fstat(f.fileno())
+    expire = datetime.utcnow() + timedelta(days=365)
+    expirestr = expire.strftime('%a, %d %b %Y %H:%M:%S GMT')
     etag = '"' + str(stat.st_mtime) + "_" + str(stat.st_size) + '"'
     headers = [('Content-Type', guess_mime_type(path)),
 	       ('Content-Length', str(stat.st_size)),
 	       ('Last-Modified', rfc822.formatdate(stat.st_mtime)),
+	       ('Expires', expirestr),
 	       ('ETag', etag)]
 
     for key, value in diamond_textattr(path):

@@ -21,6 +21,8 @@ import select
 import socket
 from weakref import WeakValueDictionary
 
+from opendiamond.helpers import connection_ok
+
 # Listen parameters
 BACKLOG = 16
 PORT = 5872
@@ -194,9 +196,14 @@ class ConnListener(object):
         try:
             while True:
                 sock, addr = lsock.accept()
-                pconn = _PendingConn(sock, addr[0])
-                _log.debug('New connection from %s', pconn.peer)
-                self._poll.register(pconn, select.POLLIN)
+                host = addr[0]
+                if connection_ok('diamondd', host):
+                    pconn = _PendingConn(sock, host)
+                    _log.debug('New connection from %s', pconn.peer)
+                    self._poll.register(pconn, select.POLLIN)
+                else:
+                    sock.close()
+                    _log.info('Rejected connection from %s', host)
         except socket.error:
             pass
 

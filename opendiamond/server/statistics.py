@@ -58,6 +58,7 @@ class SearchStatistics(_Statistics):
     attrs = (('objs_processed', 'Objects considered'),
             ('objs_dropped', 'Objects dropped'),
             ('objs_passed', 'Objects passed'),
+            ('objs_unloadable', 'Objects failing to load'),
             ('execution_ns', 'Total object examination time (ns)'))
 
     def xdr(self, objs_total, filter_stats):

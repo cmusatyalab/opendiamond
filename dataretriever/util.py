@@ -20,6 +20,8 @@ import posixpath
 import mimetypes
 from wsgiref.util import FileWrapper, shift_path_info
 
+from opendiamond.helpers import connection_ok
+
 # the following mime type guessing is from SimpleHTTPServer.py
 if not mimetypes.inited:
     mimetypes.init()
@@ -68,13 +70,12 @@ def scopelist_xsl(environ, start_response):
 # WSGI middleware that cleans up PATH_INFO, dispatches requests based on a
 # dictionary of handlers and catches exceptions.
 class DataRetriever:
-    def __init__(self, handlers, hosts_allow=['127.0.0.1']):
+    def __init__(self, handlers):
 	self.handlers = handlers
 	self.handlers['scopelist.xsl'] = scopelist_xsl
-	self.hosts_allow = hosts_allow
 
     def __call__(self, environ, start_response):
-	if environ['REMOTE_ADDR'] not in self.hosts_allow:
+	if not connection_ok('dataretriever', environ['REMOTE_ADDR']):
 	    headers = [("Content-Type", "text/plain")]
 	    start_response("403 Forbidden", headers)
 	    return "Client not authorized"

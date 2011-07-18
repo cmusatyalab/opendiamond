@@ -8,16 +8,16 @@ class opendiamond_build_py(build_py):
     def build_packages(self):
 	build_py.build_packages(self)
 	# Rewrite opendiamond/__init__.py to contain the software version
-	origfile = os.path.join(self.get_package_dir('opendiamond'),
-			'__init__.py')
 	newfile = self.get_module_outfile(self.build_lib, ['opendiamond'],
 			'__init__')
 	fh = open(newfile, 'w')
 	fh.write("__version__ = '@VERSION@'\n")
 	fh.close()
-	# Set the __init__.py utimes to those of the source file to prevent
-	# file conflicts when installing both 32-bit and 64-bit RPM packages
-	st = os.stat(origfile)
+	# Set the __init__.py utimes to those of configure.ac to prevent
+	# file conflicts when installing both 32-bit and 64-bit RPM packages.
+	# Using configure.ac as the source file ensures that __init__.pyc
+	# is updated when the software version changes.
+	st = os.stat(os.path.join(self.get_package_dir(''), 'configure.ac'))
 	os.utime(newfile, (st.st_atime, st.st_mtime))
 
 

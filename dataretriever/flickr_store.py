@@ -20,8 +20,11 @@ from wsgiref.util import shift_path_info
 from string import maketrans
 import flickrapi
 
-api_key = ''
-flickr = flickrapi.FlickrAPI(api_key)
+baseurl = 'flickr'
+
+def init(config):
+  global flickr
+  flickr = flickrapi.FlickrAPI(config.flickr_api_key)
 
 def scope_app(environ, start_response):
   root = shift_path_info(environ)

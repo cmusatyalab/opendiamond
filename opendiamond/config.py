@@ -72,7 +72,8 @@ class DiamondConfig(object):
         # 1. path argument
         # 2. DIAMOND_CONFIG environment var (points to containing directory)
         # 3. $HOME/.diamond/diamond_config
-        if path is None:
+        path_specified = path is not None
+        if not path_specified:
             try:
                 path = os.path.join(os.environ['DIAMOND_CONFIG'],
                                     'diamond_config')
@@ -98,6 +99,8 @@ class DiamondConfig(object):
         # Define configuration parameters
         params = _ConfigParams(
             ## diamondd
+            # Cache directory expiration
+            _Param('blob_cache_days', 'BLOBDAYS', 30),
             # Redis database
             _Param('cache_database', 'CACHEDB', 0),
             # Redis password
@@ -135,11 +138,21 @@ class DiamondConfig(object):
             _Param('user_agent', None, 'OpenDiamond/%s'
                                         % opendiamond.__version__),
 
-            ## dataretriever Diamond store
-            # Root data directory
+            ## dataretriever
+            # Listen host
+            _Param('retriever_host', 'DRHOST', '127.0.0.1'),
+            # Listen port
+            _Param('retriever_port', 'DRPORT', 5873),
+            # Enabled data stores
+            _Param('retriever_stores', 'DATASTORE', []),
+            # Diamond store: root data directory
             _Param('dataroot', 'DATAROOT'),
-            # Root index directory
+            # Diamond store: root index directory
             _Param('indexdir', 'INDEXDIR'),
+            # Flickr store: API key
+            _Param('flickr_api_key', 'FLICKR_KEY'),
+            # Mirage store: repository path
+            _Param('mirage_repository', 'MIRAGE_REPOSITORY'),
 
             ## Deprecated config keys
             _Param(None, 'DATATYPE'),
@@ -171,7 +184,8 @@ class DiamondConfig(object):
                 except ValueError:
                     raise DiamondConfigError("Syntax error: %s" % line.strip())
         except IOError:
-            raise DiamondConfigError("Couldn't read %s" % path)
+            if path_specified:
+                raise DiamondConfigError("Couldn't read %s" % path)
 
         # Process overrides in keyword arguments
         for attr in kwargs:
@@ -227,4 +241,8 @@ class DiamondConfig(object):
         # Canonicalize debug options
         self.debug_filters = set(self.debug_filters)
         self.debug_command = self.debug_command.split(None)
+
+        # Set default dataretriever stores
+        if not self.retriever_stores:
+            self.retriever_stores = ['diamond', 'proxy']
     # pylint: enable=E0203,E1101,E1103

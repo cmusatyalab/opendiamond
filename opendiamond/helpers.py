@@ -11,10 +11,16 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from __future__ import with_statement
+from ctypes import cdll, c_char_p, c_int
 import hashlib
+import logging
 import os
 import resource
 import signal
+from threading import Lock
+
+_log = logging.getLogger(__name__)
 
 # We use os._exit() to avoid calling destructors after fork()
 # pylint: disable=W0212
@@ -53,3 +59,52 @@ def signalname(signum):
 # pylint: disable=C0103,E1101
 md5 = hashlib.md5
 # pylint: enable=C0103,E1101
+
+
+class _TcpWrappers(object):
+    '''Singleton callable that checks addresses of incoming connections
+    against the TCP Wrappers access database.'''
+
+    def __init__(self):
+        self._lock = Lock()
+        try:
+            lib = cdll.LoadLibrary('libwrap.so.0')
+            self._hosts_ctl = lib.hosts_ctl
+            self._hosts_ctl.argtypes = [c_char_p] * 4
+            self._hosts_ctl.restype = c_int
+        except (OSError, AttributeError), e:
+            raise ImportError(str(e))
+
+    def __call__(self, service, address):
+        '''Given a service name and the remote address of a connection, return
+        True if the connection should be allowed.'''
+        # libwrap is not thread-safe
+        with self._lock:
+            ret = self._hosts_ctl(service, 'unknown', address, 'unknown')
+            return ret == 1
+
+
+class _DummyTcpWrappers(object):
+    '''Singleton callable that pretends to be _TcpWrappers but doesn't do
+    anything.'''
+
+    def __init__(self, error):
+        self._error = error
+
+    def __call__(self, service, address):
+        '''Always returns True.'''
+        # TCP Wrappers failed to load.  Log an error the first time we are
+        # called.
+        if self._error is not None:
+            _log.warning('TCP Wrappers disabled: %s', self._error)
+            self._error = None
+        return True
+
+
+# We're creating a callable, so don't use attribute naming rules
+# pylint: disable=C0103
+try:
+    connection_ok = _TcpWrappers()
+except ImportError, _e:
+    connection_ok = _DummyTcpWrappers(str(_e))
+# pylint: enable=C0103

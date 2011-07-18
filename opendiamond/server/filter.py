@@ -65,6 +65,7 @@ import signal
 import simplejson as json
 import subprocess
 import threading
+from urlparse import urlparse
 
 from opendiamond.helpers import md5, signalname
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
@@ -84,12 +85,12 @@ if DEBUG:
 else:
     _debug = lambda *args, **kwargs: None
 
-class FilterSpecError(Exception):
-    '''Error parsing filter specification.'''
 class FilterDependencyError(Exception):
     '''Error processing filter dependencies.'''
 class FilterExecutionError(Exception):
     '''Error executing filter.'''
+class FilterUnsupportedSource(Exception):
+    '''URI scheme for code or blob source is not supported.'''
 class _DropObject(Exception):
     '''Filter failed to process object.  The object should be dropped
     without caching the drop result.'''
@@ -257,7 +258,8 @@ class _ObjectFetcher(_ObjectProcessor):
 
     def __init__(self, state):
         _ObjectProcessor.__init__(self)
-        self._loader = ObjectLoader(state.config)
+        self._state = state
+        self._loader = ObjectLoader(state.config, state.blob_cache)
         self._digest_prefix = md5('dataretriever ')
 
     def __str__(self):
@@ -271,6 +273,7 @@ class _ObjectFetcher(_ObjectProcessor):
             self._loader.load(obj)
         except ObjectLoadError, e:
             _log.warning('Failed to load %s: %s', obj, e)
+            self._state.stats.update('objs_unloadable')
             raise _DropObject()
         result = _FilterResult()
         for key in obj:
@@ -286,11 +289,10 @@ class _FilterRunner(_ObjectProcessor):
 
     send_score = True
 
-    def __init__(self, state, filter, code_path):
+    def __init__(self, state, filter):
         _ObjectProcessor.__init__(self)
         self._filter = filter
         self._state = state
-        self._code_path = code_path
         self._proc = None
         self._proc_initialized = False
 
@@ -311,9 +313,10 @@ class _FilterRunner(_ObjectProcessor):
         if self._proc is None:
             debug = self._state.config.debug_filters
             if self._filter.name in debug or self._filter.signature in debug:
-                argv = self._state.config.debug_command + [self._code_path]
+                argv = (self._state.config.debug_command +
+                            [self._filter.code_path])
             else:
-                argv = [self._code_path]
+                argv = [self._filter.code_path]
             self._proc = _FilterProcess(argv, self._filter.name,
                                     self._filter.arguments, self._filter.blob)
             self._proc_initialized = False
@@ -421,92 +424,104 @@ class _FilterRunner(_ObjectProcessor):
         return result
 
     def threshold(self, result):
-        return result.score >= self._filter.threshold
+        return (result.score >= self._filter.min_score and
+                result.score <= self._filter.max_score)
 
 
 class Filter(object):
     '''A filter with arguments.'''
 
-    def __init__(self, name, signature, threshold, arguments, dependencies):
+    def __init__(self, name, code_source, blob_source, min_score, max_score,
+                arguments, dependencies):
         self.name = name
-        self.signature = signature
-        self.threshold = threshold
+        self.code_source = code_source
+        self.blob_source = blob_source
+        self.min_score = min_score
+        self.max_score = max_score
         self.arguments = arguments
         self.dependencies = dependencies
         self.stats = FilterStatistics(name)
-        # Additional state that needs to be set later by the caller
-        self._blob = ''
 
-        # Hash fixed parameters into the result cache key and save the
-        # open digest object for later use.
-        self._digest_prefix = md5(' '.join([signature] + arguments))
-        self._digest_prefix.update(' ')
-
-    def _get_blob(self):
-        return self._blob
-    def _set_blob(self, blob):
-        if self._blob != '':
-            raise AttributeError('Blob has already been set')
-        self._blob = blob
-        if blob != '':
-            self._digest_prefix.update(' ' + blob)
-    blob = property(_get_blob, _set_blob)
+        # Will be initialized during resolve()
+        self.code_path = None
+        self.signature = None
+        self.blob = None
+        self._digest_prefix = None
 
     def get_cache_digest(self):
         '''Return a digest object with information about the filter (e.g.
         its arguments) already hashed into it.'''
         return self._digest_prefix.copy()
 
+    def resolve(self, state):
+        '''Ensure filter code and blob argument are available in the blob
+        cache, load the blob argument, and initialize the cache digest.'''
+        if self.code_path is not None:
+            return
+        # Get path to filter code
+        code_path, signature = self._resolve_code(state)
+        # Get contents of blob argument
+        blob = self._resolve_blob(state)
+        # Initialize digest
+        summary = [signature] + self.arguments + [blob]
+        digest_prefix = md5(' '.join(summary))
+        # Commit
+        self.code_path = code_path
+        self.signature = signature
+        self.blob = blob
+        self._digest_prefix = digest_prefix
+
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
+    def _resolve_code(self, state):
+        '''Returns (code_path, signature).'''
+        parts = urlparse(self.code_source)
+        if parts.scheme == 'md5':
+            sig = parts.path
+            try:
+                return (state.blob_cache.executable_path(sig), sig)
+            except KeyError:
+                raise FilterDependencyError('Missing code for filter ' +
+                                        self.name)
+        else:
+            raise FilterUnsupportedSource()
+    # pylint: enable=E1101
+
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
+    def _resolve_blob(self, state):
+        '''Returns blob data.'''
+        parts = urlparse(self.blob_source)
+        if parts.scheme == 'md5':
+            try:
+                return state.blob_cache[parts.path]
+            except KeyError:
+                raise FilterDependencyError('Missing blob for filter ' +
+                                        self.name)
+        else:
+            raise FilterUnsupportedSource()
+    # pylint: enable=E1101
+
+    # pylint has trouble with ParseResult, pylint #8766
+    # pylint: disable=E1101
     @classmethod
-    def from_fspec(cls, fspec_lines):
-        '''Return a Filter generated from the list of fspec lines.'''
-        name = None
-        signature = None
-        threshold = None
-        arguments = []
-        dependencies = []
-
-        # The fspec format previously allowed comments, including at
-        # end-of-line, but modern fspecs are all produced programmatically by
-        # OpenDiamond-Java which never includes any.
-        for line in fspec_lines:
-            k, v = line.split(None, 1)
-            v = v.strip()
-            if k == 'FILTER':
-                name = v
-                if name == 'APPLICATION':
-                    # The FILTER APPLICATION stanza specifies "application
-                    # dependencies", which are a legacy construct.
-                    # Ignore these.
-                    return None
-            elif k == 'ARG':
-                arguments.append(v)
-            elif k == 'THRESHOLD':
-                try:
-                    threshold = float(v)
-                except ValueError:
-                    raise FilterSpecError('Threshold not an integer')
-            elif k == 'SIGNATURE':
-                signature = v
-            elif k == 'REQUIRES':
-                dependencies.append(v)
-            elif k == 'MERIT':
-                # Deprecated
-                pass
-            else:
-                raise FilterSpecError('Unknown fspec key %s' % k)
-
-        if name is None or signature is None or threshold is None:
-            raise FilterSpecError('Missing mandatory fspec key')
-        return cls(name, signature, threshold, arguments, dependencies)
+    def source_available(cls, state, uri):
+        '''Verify the URI to ensure that its data is accessible.  Return
+        True if we can access the data, False if we can't and should inform
+        the client to that effect.  Raise FilterUnsupportedSource if we don't
+        support the URI scheme.'''
+        parts = urlparse(uri)
+        if parts.scheme == 'md5':
+            return parts.path in state.blob_cache
+        else:
+            raise FilterUnsupportedSource()
+    # pylint: enable=E1101
 
     def bind(self, state):
         '''Return a _FilterRunner for this filter.'''
-        try:
-            code_path = state.blob_cache.executable_path(self.signature)
-        except KeyError:
-            raise FilterExecutionError('Missing code for filter ' + self.name)
-        return _FilterRunner(state, self, code_path)
+        # resolve() must be called first
+        assert self.code_path is not None
+        return _FilterRunner(state, self)
 
 
 class FilterStackRunner(threading.Thread):
@@ -804,30 +819,6 @@ class FilterStack(object):
 
     def __iter__(self):
         return iter(self._order)
-
-    def __getitem__(self, name):
-        '''Filter lookup by name.'''
-        return self._filters[name]
-
-    @classmethod
-    def from_fspec(cls, data):
-        '''Parse the fspec data and return a FilterStack.'''
-        fspec = []
-        filters = []
-        def add_filter(fspec):
-            if len(fspec) > 0:
-                filter = Filter.from_fspec(fspec)
-                if filter is not None:
-                    filters.append(filter)
-        for line in data.split('\n'):
-            if line.strip() == '':
-                continue
-            if line.startswith('FILTER'):
-                add_filter(fspec)
-                fspec = []
-            fspec.append(line)
-        add_filter(fspec)
-        return cls(filters)
 
     def bind(self, state, name='Filter', cleanup=None):
         '''Return a FilterStackRunner that can be used to process objects

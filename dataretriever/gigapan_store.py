@@ -45,6 +45,19 @@ def scope_app(environ, start_response):
     return expand_urls(int(gigapan_id))
     
 
+def tiles_in_gigapan(width, height):
+    """Modified from pyramid.iter_coords()."""
+    round_up = lambda x: int(ceil(x))
+    tiles_wide = round_up(width / float(256))
+    tiles_high = round_up(height / float(256))
+    levels_deep = log_2(max(tiles_wide, tiles_high)) + 1
+    inv = lambda lvl: levels_deep - lvl - 1
+    columns_at_level = lambda lvl: round_up(tiles_wide / float(1 << inv(lvl)))
+    rows_at_level = lambda lvl: round_up(tiles_high / float(1 << inv(lvl)))
+    return sum(columns_at_level(lvl) * rows_at_level(lvl)
+                for lvl in range(levels_deep))
+
+
 def expand_urls(id):
     yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
     yield '<objectlist>\n'
@@ -54,15 +67,7 @@ def expand_urls(id):
     width = info.get('width')
     levels = info.get('levels')
 
-    # still calculating stupidly
-    iter = iter_coords(width, height)
-    nPhotos = 0
-    try:
-        while True:
-            coord = iter.next()
-            nPhotos += 1
-    except StopIteration:
-        yield '<count adjust="%d"/>\n' % nPhotos
+    yield '<count adjust="%d"/>\n' % tiles_in_gigapan(width, height)
 
     iter = iter_coords(width, height)
 

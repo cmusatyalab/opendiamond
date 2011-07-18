@@ -35,6 +35,7 @@ import re
 from cStringIO import StringIO
 
 __all__ = ['scope_app', 'object_app']
+baseurl = 'gigapan'
 
 class GigaPanInfoCache:
     def __init__(self):

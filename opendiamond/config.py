@@ -224,8 +224,7 @@ class DiamondConfig(object):
             try:
                 self.certdata = open(self.certfile).read()
             except IOError:
-                raise DiamondConfigError("Couldn't read certificate file: "
-                                + self.certfile)
+                pass
 
         # Parse the Redis server address if specified
         if self.cache_server is not None:

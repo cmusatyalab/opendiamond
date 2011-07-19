@@ -25,8 +25,8 @@ setup(
     name = "opendiamond",
     version = "@VERSION@",
     packages = [
-	'dataretriever',
 	'opendiamond',
+	'opendiamond.dataretriever',
 	'opendiamond.filter',
 	'opendiamond.server',
 	'scopeserver_flickr',

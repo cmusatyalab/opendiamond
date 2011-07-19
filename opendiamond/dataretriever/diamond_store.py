@@ -22,7 +22,7 @@ OBJECT_URI = 'obj'
 STYLE = False
 
 from datetime import datetime, timedelta
-from dataretriever.util import guess_mime_type
+from opendiamond.dataretriever.util import guess_mime_type
 from opendiamond.config import DiamondConfig
 from wsgiref.util import shift_path_info
 from urllib import quote

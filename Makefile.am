@@ -8,20 +8,20 @@ pkgconfig_DATA = opendiamond.pc
 EXTRA_DIST = CREDITS LICENSE INSTALL \
 	setup.py \
 	pylintrc \
-	dataretriever/__init__.py \
-	dataretriever/diamond_store.py \
-	dataretriever/flickr_store.py \
-	dataretriever/gigapan_store.py \
-	dataretriever/mirage_store.py \
-	dataretriever/proxy_store.py \
-	dataretriever/pyramid.py \
-	dataretriever/util.py \
 	opendiamond/__init__.py \
 	opendiamond/bundle.py \
 	opendiamond/config.py \
 	opendiamond/helpers.py \
 	opendiamond/scope.py \
 	opendiamond/test.py \
+	opendiamond/dataretriever/__init__.py \
+	opendiamond/dataretriever/diamond_store.py \
+	opendiamond/dataretriever/flickr_store.py \
+	opendiamond/dataretriever/gigapan_store.py \
+	opendiamond/dataretriever/mirage_store.py \
+	opendiamond/dataretriever/proxy_store.py \
+	opendiamond/dataretriever/pyramid.py \
+	opendiamond/dataretriever/util.py \
 	opendiamond/filter/__init__.py \
 	opendiamond/filter/parameters.py \
 	opendiamond/server/__init__.py \
@@ -72,8 +72,6 @@ install-exec-local:
 	$(PYTHON) setup.py install --prefix=$(DESTDIR)$(prefix)
 
 uninstall-local:
-	$(RM) $(DESTDIR)$(pythondir)/dataretriever*.egg-info
-	$(RM) -r $(DESTDIR)$(pythondir)/dataretriever
 	$(RM) $(DESTDIR)$(pythondir)/opendiamond*.egg-info
 	$(RM) -r $(DESTDIR)$(pythondir)/opendiamond
 	$(RM) $(DESTDIR)$(pythondir)/scopeserver*.egg-info

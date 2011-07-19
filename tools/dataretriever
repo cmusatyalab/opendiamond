@@ -20,7 +20,7 @@ import sys
 import opendiamond
 from opendiamond.config import DiamondConfig
 from opendiamond.helpers import daemonize
-from dataretriever.util import DataRetriever
+from opendiamond.dataretriever.util import DataRetriever
 
 server_version = "DataRetriever/" + opendiamond.__version__
 
@@ -46,7 +46,7 @@ logging.getLogger().addHandler(logging.StreamHandler())
 # Initialize app with configured store modules
 modules = {}
 for store in config.retriever_stores:
-    modname = 'dataretriever.%s_store' % store
+    modname = 'opendiamond.dataretriever.%s_store' % store
     __import__(modname, level=0)
     module = sys.modules[modname]
     if hasattr(module, 'init'):

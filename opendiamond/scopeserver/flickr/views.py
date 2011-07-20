@@ -42,7 +42,11 @@ def index(request):
 
 	    scope = [ "/flickr/?%s" % query ]
 
-	    cookie = generate_cookie_django(scope, settings.FLICKR_SERVERS)
+	    proxies = (form.cleaned_data['proxied'] and
+			settings.FLICKR_PROXIES or None)
+	    cookie = generate_cookie_django(scope, settings.FLICKR_SERVERS,
+					proxies)
+
 	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
 	form = FlickrForm()

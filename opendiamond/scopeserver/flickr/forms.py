@@ -20,4 +20,4 @@ class FlickrForm(forms.Form):
     tag_mode = forms.BooleanField(label="Match all tags", required=False)
     text = forms.CharField(help_text="Searches title, description, and tags",
 			   required=False)
-
+    proxied = forms.BooleanField(label="Use proxies", required=False)

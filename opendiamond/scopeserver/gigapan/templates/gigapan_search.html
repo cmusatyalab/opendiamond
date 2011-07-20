@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form action="{% url browse %}" method="GET">
+<div class="fieldWrapper">
+  {{form}}
+  <input type="submit" value="Search"/>
+  <br>
+</div>
+{% if errors %}
+<div class="errors" style="margin-top:15px;">
+{{errors}}
+</div>
+{% endif %}
+</form>
+{% endblock %}

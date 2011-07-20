@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style type="text/css">
+.img_results li {
+    list-style-type: none;
+}
+.img_results input {
+    vertical-align: top;
+}
+
+.img_results ul {
+    margin: 0px;
+}
+
+.generate {
+    margin-top:10px;
+    margin-bottom:10px;
+    margin-left:10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<form action="{% url generate %}" method="POST">
+<span class="img_results">
+<div>Select some GigaPans to search:</div>
+<input class="generate" type="submit" value="Generate Cookie"/>
+{{ form.gigapan_choice }}
+<input class="generate" type="submit" value="Generate Cookie"/>
+</span>
+</form>
+{% endblock %}

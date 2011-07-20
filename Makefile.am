@@ -39,6 +39,13 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/scopeserver/gatekeeper/views.py \
 	opendiamond/scopeserver/gatekeeper/templates/gatekeeper.html \
 	opendiamond/scopeserver/gatekeeper/templates/gatekeeper_manage.html \
+	opendiamond/scopeserver/gigapan/__init__.py \
+	opendiamond/scopeserver/gigapan/forms.py \
+	opendiamond/scopeserver/gigapan/models.py \
+	opendiamond/scopeserver/gigapan/urls.py \
+	opendiamond/scopeserver/gigapan/views.py \
+	opendiamond/scopeserver/gigapan/templates/gigapan_browse.html \
+	opendiamond/scopeserver/gigapan/templates/gigapan_search.html \
 	opendiamond/scopeserver/mirage/__init__.py \
 	opendiamond/scopeserver/mirage/forms.py \
 	opendiamond/scopeserver/mirage/models.py \

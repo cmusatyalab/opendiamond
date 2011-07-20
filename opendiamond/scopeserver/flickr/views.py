@@ -18,7 +18,7 @@ from django.shortcuts import render_to_response
 from opendiamond.scope import generate_cookie_django
 from forms import FlickrForm
 
-@permission_required('access.search', login_url=settings.LOGIN_REDIRECT_URL)
+@permission_required("flickr.search")
 def index(request):
     if request.method == 'POST':
 	form = FlickrForm(request.POST)

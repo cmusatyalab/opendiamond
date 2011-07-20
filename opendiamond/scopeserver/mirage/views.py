@@ -18,7 +18,7 @@ from django.shortcuts import render_to_response
 from opendiamond.scope import generate_cookie_django
 from forms import MirageForm
 
-@permission_required('access.search', login_url=settings.LOGIN_REDIRECT_URL)
+@permission_required('mirage.search')
 def index(request):
     if request.method == 'POST':
 	form = MirageForm(request.POST)

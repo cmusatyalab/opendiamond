@@ -42,6 +42,4 @@ class MirageForm(forms.Form):
 		    "Select one or more VM images")
     paths = forms.CharField(required=False, widget=forms.Textarea, label=
 		    "Specify file name patterns (one per line)")
-    users = forms.CharField(required=False, widget=forms.Textarea, label=
-		    "Specify user names (one per line)")
 

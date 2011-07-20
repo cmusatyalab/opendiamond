@@ -28,13 +28,8 @@ def index(request):
 	    paths = [ path.strip() for path in paths ] # trim whitespace
 	    paths = [ path for path in paths if path ] # skip empty
 
-	    users = form.cleaned_data.get('users', '').split('\n')
-	    users = [ user.strip() for user in users ] # trim whitespace
-	    users = [ user for user in users if user ] # skip empty
-
 	    q = QueryDict('').copy()
 	    q.setlist('path', paths)
-	    q.setlist('user', users)
 	    query = q.urlencode()
 	    if query: query = "?" + query
 

@@ -36,10 +36,10 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/scopeserver/gatekeeper/views.py \
 	opendiamond/scopeserver/gatekeeper/templates/gatekeeper.html \
 	opendiamond/scopeserver/gatekeeper/templates/gatekeeper_manage.html \
-	opendiamond/scopeserver/vmfind/__init__.py \
-	opendiamond/scopeserver/vmfind/forms.py \
-	opendiamond/scopeserver/vmfind/views.py \
-	opendiamond/scopeserver/vmfind/templates/simple_form.html \
+	opendiamond/scopeserver/mirage/__init__.py \
+	opendiamond/scopeserver/mirage/forms.py \
+	opendiamond/scopeserver/mirage/views.py \
+	opendiamond/scopeserver/mirage/templates/simple_form.html \
 	opendiamond/server/__init__.py \
 	opendiamond/server/blobcache.py \
 	opendiamond/server/child.py \

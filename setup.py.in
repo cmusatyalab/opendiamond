@@ -32,7 +32,7 @@ setup(
 	'opendiamond.scopeserver',
 	'opendiamond.scopeserver.flickr',
 	'opendiamond.scopeserver.gatekeeper',
-	'opendiamond.scopeserver.vmfind',
+	'opendiamond.scopeserver.mirage',
     ],
     scripts = [
 	'@srcdir@/tools/cookiecutter',
@@ -45,7 +45,7 @@ setup(
     package_data = {
 	'opendiamond.scopeserver.flickr':	  [ 'templates/*.html' ],
 	'opendiamond.scopeserver.gatekeeper':	  [ 'templates/*.html' ],
-	'opendiamond.scopeserver.vmfind':	  [ 'templates/*.html' ],
+	'opendiamond.scopeserver.mirage':	  [ 'templates/*.html' ],
     },
     author = "OpenDiamond project, Carnegie Mellon University",
     author_email = "diamond@cs.cmu.edu",

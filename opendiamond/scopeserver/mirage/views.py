@@ -33,11 +33,17 @@ def index(request):
 	    query = q.urlencode()
 	    if query: query = "?" + query
 
-	    scope = [ "/mirage/%s%s" % (image, query) for image in
-			 form.cleaned_data['vmimages']]
+	    servers = form.cleaned_data['servers']
 
-	    cookie = generate_cookie_django(scope, settings.MIRAGE_SERVERS)
-	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
+	    cookie = []
+	    n = len(servers)
+	    for i in range(n):
+		scope = [ "%s/mirage/%dof%d%s" % \
+			  (settings.MIRAGE_DATARETRIEVER, i+1, n, query) ]
+		cookie.append(generate_cookie_django(scope, (servers[i],)))
+
+	    return HttpResponse(''.join(cookie),
+				mimetype='application/x-diamond-scope')
     else:
 	form = MirageForm()
 

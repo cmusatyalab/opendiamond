@@ -14,8 +14,8 @@
 from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.http import QueryDict, HttpResponse
-from django.shortcuts import render_to_response
 from opendiamond.scope import generate_cookie_django
+from opendiamond.scopeserver import render_response
 from forms import FlickrForm
 
 @permission_required("flickr.search")
@@ -51,8 +51,6 @@ def index(request):
     else:
 	form = FlickrForm()
 
-    return render_to_response('simple_form.html', {
+    return render_response(request, 'simple_form.html', {
 	'form': form,
-	'request': request,
     })
-

@@ -14,9 +14,10 @@
 from django.contrib.auth.decorators import login_required, permission_required
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import redirect
 from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
 from opendiamond.scope import generate_cookie_django
+from opendiamond.scopeserver import render_response
 from forms import GigaPanCookieForm, GigaPanSearchForm, GigaPanChoiceForm
 from urllib import quote_plus
 from urllib2 import urlopen, HTTPError
@@ -94,9 +95,8 @@ def browse(request):
 
         if ids:
             form = GigaPanChoiceForm(ids=ids)
-            return render_to_response('gigapan_browse.html', {
+            return render_response(request, 'gigapan_browse.html', {
                 'form': form,
-                'request': request,
             })
         else:
             return HttpResponseRedirect(reverse('index') + "?error=True")
@@ -108,13 +108,11 @@ def index(request):
     '''Generate search form'''
     form = GigaPanSearchForm()
     if request.GET:
-        return render_to_response('gigapan_search.html', {
+        return render_response(request, 'gigapan_search.html', {
             'form': form,
             'errors': "No results found",
-            'request': request,
         })
     else:
-        return render_to_response('gigapan_search.html', {
+        return render_response(request, 'gigapan_search.html', {
             'form': form,
-            'request': request,
         })

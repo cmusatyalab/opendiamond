@@ -15,8 +15,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import simplejson
-from django.shortcuts import render_to_response
 from opendiamond.scope import generate_cookie_django
+from opendiamond.scopeserver import render_response
 from forms import CollectionForm, ManageForm
 
 @login_required
@@ -37,9 +37,8 @@ def index(request):
     else:
 	form = CollectionForm(user=request.user)
 
-    return render_to_response('gatekeeper.html', {
+    return render_response(request, 'gatekeeper.html', {
 	'form': form,
-	'request': request,
     })
 
 
@@ -67,8 +66,6 @@ def manage(request):
     else:
 	form = ManageForm()
 
-    return render_to_response('gatekeeper_manage.html', {
+    return render_response(request, 'gatekeeper_manage.html', {
 	'form': form,
-	'request': request,
     })
-

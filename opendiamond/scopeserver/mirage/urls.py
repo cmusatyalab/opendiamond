@@ -13,6 +13,6 @@
 
 from django.conf.urls.defaults import *
 
-urlpatterns = patterns('opendiamond.scopeserver.vmfind.views',
+urlpatterns = patterns('opendiamond.scopeserver.mirage.views',
     (r'^$', 'index'),
 )

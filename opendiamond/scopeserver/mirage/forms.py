@@ -33,9 +33,9 @@ def MirageListPublished():
 
     p.stdout.close()
 
-class VMFindForm(forms.Form):
+class MirageForm(forms.Form):
     def __init__(self, *args, **kwargs):
-	super(VMFindForm, self).__init__(*args, **kwargs)
+	super(MirageForm, self).__init__(*args, **kwargs)
 	self.fields['vmimages'].choices = MirageListPublished()
 
     vmimages = forms.MultipleChoiceField(choices=(), required=False, label=

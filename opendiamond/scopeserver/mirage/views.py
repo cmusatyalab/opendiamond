@@ -16,12 +16,12 @@ from django.conf import settings
 from django.http import QueryDict, HttpResponse
 from django.shortcuts import render_to_response
 from opendiamond.scope import generate_cookie_django
-from forms import VMFindForm
+from forms import MirageForm
 
 @permission_required('access.search', login_url=settings.LOGIN_REDIRECT_URL)
 def index(request):
     if request.method == 'POST':
-	form = VMFindForm(request.POST)
+	form = MirageForm(request.POST)
 
 	if form.is_valid():
 	    paths = form.cleaned_data.get('paths', '').split('\n')
@@ -41,10 +41,10 @@ def index(request):
 	    scope = [ "/mirage/%s%s" % (image, query) for image in
 			 form.cleaned_data['vmimages']]
 
-	    cookie = generate_cookie_django(scope, settings.VMFIND_SERVERS)
+	    cookie = generate_cookie_django(scope, settings.MIRAGE_SERVERS)
 	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
-	form = VMFindForm()
+	form = MirageForm()
 
     return render_to_response('simple_form.html', {
 	'form': form,

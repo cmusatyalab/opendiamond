@@ -11,6 +11,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from __future__ import with_statement
 from datetime import datetime, timedelta
 from PIL import Image
 from threading import Lock

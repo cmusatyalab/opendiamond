@@ -95,7 +95,8 @@ def browse(request):
 
         if ids:
             form = GigaPanChoiceForm(ids=ids)
-            return render_response(request, 'gigapan_browse.html', {
+            return render_response(request, 'scopeserver/gigapan_browse.html',
+            {
                 'form': form,
             })
         else:
@@ -108,11 +109,11 @@ def index(request):
     '''Generate search form'''
     form = GigaPanSearchForm()
     if request.GET:
-        return render_response(request, 'gigapan_search.html', {
+        return render_response(request, 'scopeserver/gigapan_search.html', {
             'form': form,
             'errors': "No results found",
         })
     else:
-        return render_response(request, 'gigapan_search.html', {
+        return render_response(request, 'scopeserver/gigapan_search.html', {
             'form': form,
         })

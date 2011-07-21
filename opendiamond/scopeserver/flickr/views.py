@@ -51,6 +51,6 @@ def index(request):
     else:
 	form = FlickrForm()
 
-    return render_response(request, 'simple_form.html', {
+    return render_response(request, 'scopeserver/simple_form.html', {
 	'form': form,
     })

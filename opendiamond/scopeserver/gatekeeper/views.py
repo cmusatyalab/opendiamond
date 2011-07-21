@@ -37,7 +37,7 @@ def index(request):
     else:
 	form = CollectionForm(user=request.user)
 
-    return render_response(request, 'gatekeeper.html', {
+    return render_response(request, 'scopeserver/gatekeeper.html', {
 	'form': form,
     })
 
@@ -66,6 +66,6 @@ def manage(request):
     else:
 	form = ManageForm()
 
-    return render_response(request, 'gatekeeper_manage.html', {
+    return render_response(request, 'scopeserver/gatekeeper_manage.html', {
 	'form': form,
     })

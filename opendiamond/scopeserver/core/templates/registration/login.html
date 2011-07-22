@@ -1,0 +1,14 @@
+{% extends "scopeserver/base.html" %}
+
+{% block content %}
+
+<form method="post" action="{% url django.contrib.auth.views.login %}">
+{% csrf_token %}
+<input type="hidden" name="next" value="{{ next }}" />
+<table>
+{{ form.as_table }}
+<tr><td></td><td><input type="submit" value="Log in" /></td></tr>
+</table>
+</form>
+
+{% endblock %}

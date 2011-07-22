@@ -31,6 +31,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/scopeserver/core/static/scopeserver/base.css \
 	opendiamond/scopeserver/core/static/scopeserver/jquery.js \
 	opendiamond/scopeserver/core/static/scopeserver/style.css \
+	opendiamond/scopeserver/core/templates/registration/login.html \
 	opendiamond/scopeserver/core/templates/scopeserver/base.html \
 	opendiamond/scopeserver/core/templates/scopeserver/home.html \
 	opendiamond/scopeserver/core/templates/scopeserver/simple_form.html \

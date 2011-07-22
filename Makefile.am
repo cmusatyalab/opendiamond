@@ -77,13 +77,24 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	tools/diamond-bundle-python \
 	tools/volcano
 
+# Once pylint 0.24 becomes widely available, this should be replaced with
+# "--ignore dataretriever --ignore scopeserver".
+PYLINT_MODULES = \
+	opendiamond.bundle \
+	opendiamond.config \
+	opendiamond.filter \
+	opendiamond.helpers \
+	opendiamond.scope \
+	opendiamond.server \
+	opendiamond.test
+
 all-local: setup.py $(EXTRA_DIST)
 	$(PYTHON) setup.py build
 
 check-local:
 	@# Fail on serious pylint errors
 	PYTHONPATH=$(srcdir) \
-		$(PYLINT) --rcfile=$(srcdir)/pylintrc opendiamond || \
+		$(PYLINT) --rcfile=$(srcdir)/pylintrc $(PYLINT_MODULES) || \
 		[ $$(($$? & 3)) -eq 0 ]
 	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) $(srcdir)/opendiamond/test.py

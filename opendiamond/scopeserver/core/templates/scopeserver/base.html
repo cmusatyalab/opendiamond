@@ -23,7 +23,9 @@
         <li><a href="{% url opendiamond.scopeserver.core.views.index %}">Home</a></li>
 {% url opendiamond.scopeserver.gatekeeper.views.index as gatekeeper %}
 {% if gatekeeper %}
+    {% if user.is_staff or user.collection_set.all.count %}
         <li><a href="{{ gatekeeper }}">Gatekeeper</a></li>
+    {% endif %}
 {% endif %}
 {% url opendiamond.scopeserver.flickr.views.index as flickr %}
 {% if flickr %}

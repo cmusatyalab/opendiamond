@@ -1,6 +1,6 @@
 {% extends "scopeserver/base.html" %}
 {% block content %}
-{% if request.user.is_staff %}
+{% if user.is_staff %}
 <div id="rightbar"><a href="manage.html">Manage Permissions</a></div>
 {% endif %}
 <form method="POST" action="">

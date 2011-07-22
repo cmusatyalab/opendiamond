@@ -39,7 +39,6 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/scopeserver/flickr/models.py \
 	opendiamond/scopeserver/flickr/urls.py \
 	opendiamond/scopeserver/flickr/views.py \
-	opendiamond/scopeserver/flickr/templates/scopeserver/simple_form.html \
 	opendiamond/scopeserver/gatekeeper/__init__.py \
 	opendiamond/scopeserver/gatekeeper/admin.py \
 	opendiamond/scopeserver/gatekeeper/forms.py \
@@ -60,7 +59,6 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/scopeserver/mirage/models.py \
 	opendiamond/scopeserver/mirage/urls.py \
 	opendiamond/scopeserver/mirage/views.py \
-	opendiamond/scopeserver/mirage/templates/scopeserver/simple_form.html \
 	opendiamond/server/__init__.py \
 	opendiamond/server/blobcache.py \
 	opendiamond/server/child.py \

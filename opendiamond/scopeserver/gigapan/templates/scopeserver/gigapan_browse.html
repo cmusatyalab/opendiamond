@@ -23,6 +23,7 @@
 
 {% block content %}
 <form action="{% url generate %}" method="POST">
+{% csrf_token %}
 <span class="img_results">
 <div>Select some GigaPans to search:</div>
 <input class="generate" type="submit" value="Generate Cookie"/>

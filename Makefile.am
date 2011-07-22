@@ -25,6 +25,15 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/filter/__init__.py \
 	opendiamond/filter/parameters.py \
 	opendiamond/scopeserver/__init__.py \
+	opendiamond/scopeserver/core/__init__.py \
+	opendiamond/scopeserver/core/urls.py \
+	opendiamond/scopeserver/core/views.py \
+	opendiamond/scopeserver/core/static/scopeserver/base.css \
+	opendiamond/scopeserver/core/static/scopeserver/jquery.js \
+	opendiamond/scopeserver/core/static/scopeserver/style.css \
+	opendiamond/scopeserver/core/templates/scopeserver/base.html \
+	opendiamond/scopeserver/core/templates/scopeserver/home.html \
+	opendiamond/scopeserver/core/templates/scopeserver/simple_form.html \
 	opendiamond/scopeserver/flickr/__init__.py \
 	opendiamond/scopeserver/flickr/forms.py \
 	opendiamond/scopeserver/flickr/models.py \

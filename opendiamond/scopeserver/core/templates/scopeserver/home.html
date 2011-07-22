@@ -1,0 +1,14 @@
+{% extends "scopeserver/base.html" %}
+{% load i18n %}
+
+{% block content %}
+{% if request.GET.msg %}
+    <p class="warning">{{ request.GET.msg }}</p>
+{% endif %}
+
+<h2>Actions:</h2>
+<ul>
+    <li><a href="{% url auth_password_change %}">Change password</a></li>
+</ul>
+
+{% endblock %}

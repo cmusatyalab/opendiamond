@@ -1,6 +1,6 @@
 /*
  *  The OpenDiamond Platform for Interactive Search
- *  Version 5
+ *  Version 6
  *
  *  Copyright (c) 2002-2007 Intel Corporation
  *  Copyright (c) 2006 Larry Huston <larry@thehustons.net>

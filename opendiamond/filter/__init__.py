@@ -25,7 +25,7 @@ class Session(object):
     '''Represents the Diamond search session.'''
     def __init__(self, filter_name, conn=None):
         self.name = filter_name
-        self.conn = conn
+        self._conn = conn
 
     def log(self, level, message):
         if level == 'critical':
@@ -39,8 +39,8 @@ class Session(object):
         elif level == 'debug':
             lval = 0x10
         msg = '%s : %s' % (self.name, message)
-        if self.conn is not None:
-            self.conn.send_message('log', lval, msg)
+        if self._conn is not None:
+            self._conn.send_message('log', lval, msg)
         else:
             # Fallback logging to stderr so that filters can be tested
             # outside of Diamond
@@ -49,17 +49,17 @@ class Session(object):
     def get_vars(self, vars):
         '''vars is a tuple of session variables to be atomically read.
         Returns a dict.'''
-        if self.conn is None:
+        if self._conn is None:
             raise RuntimeError('No connection to Diamond')
-        self.conn.send_message('get-session-variables', vars)
-        return dict(zip(vars, [float(v) for v in self.conn.get_array()]))
+        self._conn.send_message('get-session-variables', vars)
+        return dict(zip(vars, [float(v) for v in self._conn.get_array()]))
 
     def update_vars(self, vars):
         '''vars is a dict of session variables to be atomically updated.'''
-        if self.conn is None:
+        if self._conn is None:
             raise RuntimeError('No connection to Diamond')
         names, values = zip(*vars.items())
-        self.conn.send_message('update-session-variables', names, values)
+        self._conn.send_message('update-session-variables', names, values)
 
 
 class Filter(object):
@@ -165,18 +165,18 @@ class Object(object):
     can be useful for filter testing.'''
 
     def __init__(self, attrs=()):
-        self.attrs = dict(attrs)
-        self.valid = True
+        self._attrs = dict(attrs)
+        self._valid = True
         self._image = None
 
     def get_binary(self, key):
         '''Get the specified object attribute as raw binary data.'''
         self.check_valid()
-        if key not in self.attrs:
-            self.attrs[key] = self._get_attribute(key)
-        if self.attrs[key] is None:
+        if key not in self._attrs:
+            self._attrs[key] = self._get_attribute(key)
+        if self._attrs[key] is None:
             raise KeyError()
-        return self.attrs[key]
+        return self._attrs[key]
 
     def set_binary(self, key, value):
         '''Set the specified object attribute as raw binary data.'''
@@ -184,7 +184,7 @@ class Object(object):
         if value is None:
             raise ValueError('Attribute value cannot be None')
         self._set_attribute(key, value)
-        self.attrs[key] = value
+        self._attrs[key] = value
 
     def get_string(self, key):
         '''Get the specified object attribute, interpreting the raw data
@@ -298,13 +298,13 @@ class Object(object):
         self._omit_attribute(key)
 
     def check_valid(self):
-        if not self.valid:
+        if not self._valid:
             raise LingeringObjectError()
 
     def invalidate(self):
         '''Ensure the Object can't be used to send commands to Diamond once
         Diamond has moved on to another object'''
-        self.valid = False
+        self._valid = False
 
     def _get_attribute(self, _key):
         return None
@@ -313,41 +313,41 @@ class Object(object):
         pass
 
     def _omit_attribute(self, key):
-        if key not in self.attrs:
+        if key not in self._attrs:
             raise KeyError()
 
 
-class DiamondObject(Object):
+class _DiamondObject(Object):
     '''A Diamond object to be evaluated.'''
 
     def __init__(self, conn):
         Object.__init__(self)
-        self.conn = conn
+        self._conn = conn
 
     def _get_attribute(self, key):
-        self.conn.send_message('get-attribute', key)
-        return self.conn.get_item()
+        self._conn.send_message('get-attribute', key)
+        return self._conn.get_item()
 
     def _set_attribute(self, key, value):
-        self.conn.send_message('set-attribute', key, value)
+        self._conn.send_message('set-attribute', key, value)
 
     def _omit_attribute(self, key):
-        self.conn.send_message('omit-attribute', key)
-        if not self.conn.get_boolean():
+        self._conn.send_message('omit-attribute', key)
+        if not self._conn.get_boolean():
             raise KeyError()
 
 
-class DiamondConnection(object):
+class _DiamondConnection(object):
     '''Proxy object for the stdin/stdout protocol connection with the
     Diamond server.'''
     def __init__(self, fin, fout):
-        self.fin = fin
-        self.fout = fout
-        self.output_lock = threading.Lock()
+        self._fin = fin
+        self._fout = fout
+        self._output_lock = threading.Lock()
 
     def get_item(self):
         '''Read and return a string or blob.'''
-        sizebuf = self.fin.readline()
+        sizebuf = self._fin.readline()
         if len(sizebuf) == 0:
             # End of file
             raise IOError('End of input stream')
@@ -355,11 +355,11 @@ class DiamondConnection(object):
             # No length value == no data
             return None
         size = int(sizebuf)
-        item = self.fin.read(size)
+        item = self._fin.read(size)
         if len(item) != size:
             raise IOError('Short read from stream')
         # Swallow trailing newline
-        self.fin.read(1)
+        self._fin.read(1)
         return item
 
     def get_array(self):
@@ -380,35 +380,35 @@ class DiamondConnection(object):
         it is serialized as an array of values terminated by a blank line.'''
         def send_value(value):
             value = str(value)
-            self.fout.write('%d\n%s\n' % (len(value), value))
-        with self.output_lock:
-            self.fout.write('%s\n' % tag)
+            self._fout.write('%d\n%s\n' % (len(value), value))
+        with self._output_lock:
+            self._fout.write('%s\n' % tag)
             for value in values:
                 if isinstance(value, list) or isinstance(value, tuple):
                     for element in value:
                         send_value(element)
-                    self.fout.write('\n')
+                    self._fout.write('\n')
                 else:
                     send_value(value)
-            self.fout.flush()
+            self._fout.flush()
 
 
-class StdoutThread(threading.Thread):
+class _StdoutThread(threading.Thread):
     name = 'stdout thread'
 
     def __init__(self, stdout_pipe, conn):
         threading.Thread.__init__(self)
         self.setDaemon(True)
-        self.pipe = stdout_pipe
-        self.conn = conn
+        self._pipe = stdout_pipe
+        self._conn = conn
 
     def run(self):
         try:
             while True:
-                buf = self.pipe.read(32768)
+                buf = self._pipe.read(32768)
                 if len(buf) == 0:
                     break
-                self.conn.send_message('stdout', buf)
+                self._conn.send_message('stdout', buf)
         except IOError:
             pass
 
@@ -427,9 +427,9 @@ def run_filter_loop(filter_class):
         os.dup2(write_fd, 1)
         sys.stdout = os.fdopen(1, 'w', 0)
         os.close(write_fd)
-        conn = DiamondConnection(fin, fout)
+        conn = _DiamondConnection(fin, fout)
         # Send the fake stdout to Diamond in the background
-        StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
+        _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
 
         # Read arguments and initialize filter
         ver = int(conn.get_item())
@@ -444,7 +444,7 @@ def run_filter_loop(filter_class):
 
         # Main loop
         while True:
-            obj = DiamondObject(conn)
+            obj = _DiamondObject(conn)
             result = filter(obj)
             if result is True:
                 result = 1

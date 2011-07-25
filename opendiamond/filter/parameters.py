@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+import math
+
 class Parameters(object):
     '''A list of formal parameters accepted by a Filter.'''
     def __init__(self, *params):
@@ -132,7 +134,8 @@ class NumberParameter(BaseParameter):
 
     def parse(self, str):
         val = float(str)
-        if val == self._disabled_value:
+        if (val == self._disabled_value or math.isnan(val) and
+                                math.isnan(self._disabled_value)):
             # Bypass min/max checks
             return val
         if self._min is not None and val < self._min:

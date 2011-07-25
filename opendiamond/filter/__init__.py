@@ -177,7 +177,8 @@ class Filter(object):
     # Names of options to be passed as arguments to this filter.
     arguments = ()
     # Name of the file (within the bundle or in the filesystem) to use as
-    # the blob argument.
+    # the blob argument.  If a Ref, the name of an option specifying the
+    # filename.
     blob = None
     # Set to True if the blob argument is a Python egg that should be added
     # to sys.path.
@@ -254,7 +255,11 @@ class Filter(object):
         el.append(arguments)
         # Blob argument
         if cls.blob is not None:
-            el.append(element('blob', {'data': cls.blob}))
+            if isinstance(cls.blob, Ref):
+                attrs = {'option': str(cls.blob)}
+            else:
+                attrs = {'data': cls.blob}
+            el.append(element('blob', attrs))
         return el
 
 

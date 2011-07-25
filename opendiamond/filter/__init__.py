@@ -78,13 +78,24 @@ class Search(object):
         if options is None:
             options = []
         self.display_name = display_name
-        self.filters = _FilterList(filters)
-        self.options = OptionList(options)
+        self._filters = _FilterList(filters)
+        self._options = OptionList(options)
 
         # Check all filters for valid references
-        option_names = set(self.options.get_names())
+        option_names = set(self._options.get_names())
         filter_labels = set(f.label for f in filters if f.label is not None)
-        self.filters.check_config(option_names, filter_labels)
+        self._filters.check_config(option_names, filter_labels)
+
+    def run(self, argv=sys.argv):
+        '''Returns True if we did something, False if not.'''
+        if '--filter' in argv:
+            self._run_loop()
+            return True
+        elif '--get-manifest' in argv:
+            print self.get_manifest(),
+            return True
+        else:
+            return False
 
     def get_manifest(self):
         '''Return an XML document describing this search.'''
@@ -92,16 +103,59 @@ class Search(object):
             'xmlns': 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1',
             'displayName': self.display_name,
         })
-        opts = self.options.describe()
+        opts = self._options.describe()
         if len(opts) > 0:
             root.append(opts)
-        root.append(self.filters.describe())
+        root.append(self._filters.describe())
         buf = StringIO()
         etree = ElementTree(root)
         etree.write(buf, encoding='UTF-8', xml_declaration=True)
         # Now run the data through minidom for pretty-printing
         dom = minidom.parseString(buf.getvalue())
         return dom.toprettyxml(indent='  ', encoding='UTF-8')
+
+    def _run_loop(self):
+        try:
+            # Set aside stdin and stdout to prevent them from being accessed by
+            # mistake, even in forked children
+            fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb', 1)
+            fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb', 32768)
+            fh = open('/dev/null', 'r')
+            os.dup2(fh.fileno(), 0)
+            sys.stdin = os.fdopen(0, 'r')
+            fh.close()
+            read_fd, write_fd = os.pipe()
+            os.dup2(write_fd, 1)
+            sys.stdout = os.fdopen(1, 'w', 0)
+            os.close(write_fd)
+            conn = _DiamondConnection(fin, fout)
+            # Send the fake stdout to Diamond in the background
+            _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
+
+            # Read arguments and initialize filter
+            ver = int(conn.get_item())
+            if ver != 1:
+                raise ValueError('Unknown protocol version %d' % ver)
+            name = conn.get_item()
+            args = conn.get_array()
+            blob = conn.get_item()
+            session = Session(name, conn)
+            filter = self._filters.get_filter(self._options, args, blob,
+                                    session)
+            conn.send_message('init-success')
+
+            # Main loop
+            while True:
+                obj = _DiamondObject(conn)
+                result = filter(obj)
+                if result is True:
+                    result = 1
+                elif result is False or result is None:
+                    result = 0
+                conn.send_message('result', result)
+                obj.invalidate()
+        except IOError:
+            pass
 
 
 class Filter(object):
@@ -512,59 +566,3 @@ class _StdoutThread(threading.Thread):
                 self._conn.send_message('stdout', buf)
         except IOError:
             pass
-
-
-def run_search_loop(search):
-    try:
-        # Set aside stdin and stdout to prevent them from being accessed by
-        # mistake, even in forked children
-        fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb', 1)
-        fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb', 32768)
-        fh = open('/dev/null', 'r')
-        os.dup2(fh.fileno(), 0)
-        sys.stdin = os.fdopen(0, 'r')
-        fh.close()
-        read_fd, write_fd = os.pipe()
-        os.dup2(write_fd, 1)
-        sys.stdout = os.fdopen(1, 'w', 0)
-        os.close(write_fd)
-        conn = _DiamondConnection(fin, fout)
-        # Send the fake stdout to Diamond in the background
-        _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
-
-        # Read arguments and initialize filter
-        ver = int(conn.get_item())
-        if ver != 1:
-            raise ValueError('Unknown protocol version %d' % ver)
-        name = conn.get_item()
-        args = conn.get_array()
-        blob = conn.get_item()
-        session = Session(name, conn)
-        filter = search.filters.get_filter(search.options, args, blob,
-                                session)
-        conn.send_message('init-success')
-
-        # Main loop
-        while True:
-            obj = _DiamondObject(conn)
-            result = filter(obj)
-            if result is True:
-                result = 1
-            elif result is False or result is None:
-                result = 0
-            conn.send_message('result', result)
-            obj.invalidate()
-    except IOError:
-        pass
-
-
-def run_search(argv, search):
-    '''Returns True if we did something, False if not.'''
-    if '--filter' in argv:
-        run_search_loop(search)
-        return True
-    elif '--get-manifest' in argv:
-        print search.get_manifest(),
-        return True
-    else:
-        return False

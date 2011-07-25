@@ -20,8 +20,8 @@ import unittest
 import uuid
 import textwrap
 
-from opendiamond.filter.options import (Parameters, BooleanParameter,
-                        StringParameter, NumberParameter, ChoiceParameter)
+from opendiamond.filter.options import (OptionList, BooleanOption,
+                        StringOption, NumberOption, ChoiceOption)
 from opendiamond.scope import ScopeCookie, ScopeError
 
 # unittest uses Java-style naming conventions
@@ -282,83 +282,68 @@ class TestCookieBadSignature(_TestHandGeneratedCookie):
     verify_exc = ScopeError
 
 
-class TestFilterParameters(unittest.TestCase):
-    '''Test opendiamond.filter parameter handling.'''
-
-    maxDiff = None
+class TestFilterOptions(unittest.TestCase):
+    '''Test opendiamond.filter option handling.'''
 
     def setUp(self):
-        self.params = Parameters(
-            BooleanParameter('Boolean param'),
-            StringParameter('Strn', default='xyzzy plugh',
-                        disabled_value='off', initially_enabled=False),
-            NumberParameter('Even integer parameter with long label', max=10,
-                        increment=2, disabled_value=15),
-            ChoiceParameter('Choices', (
+        self.options = OptionList([
+            BooleanOption('bool', 'Boolean param'),
+            StringOption('str', 'Strn', default='xyzzy plugh',
+                        initially_enabled=False, disabled_value='off'),
+            NumberOption('number', 'Even integer option with long label',
+                        max=10, step=2, initially_enabled=True,
+                        disabled_value=15),
+            ChoiceOption('choice', 'Choices', (
                 ('foo', 'Do something with foo'),
                 ('bar', 'Do something else with bar'),
-            ), disabled_value='baz')
-        )
-        self.description = {
-            'Label-0': 'Boolean param',
-            'Type-0': 'boolean',
-            'Initially-Enabled-0': 'true',
-            'Label-1': 'Strn',
-            'Type-1': 'string',
-            'Initially-Enabled-1': 'false',
-            'Default-1': 'xyzzy plugh',
-            'Disabled-Value-1': 'off',
-            'Label-2': 'Even integer parameter with long label',
-            'Type-2': 'number',
-            'Initially-Enabled-2': 'true',
-            'Maximum-2': 10,
-            'Increment-2': 2,
-            'Disabled-Value-2': 15,
-            'Label-3': 'Choices',
-            'Type-3': 'choice',
-            'Initially-Enabled-3': 'true',
-            'Choice-0-3': 'Do something with foo',
-            'Choice-1-3': 'Do something else with bar',
-            'Disabled-Value-3': -1,
-        }
+            ), initially_enabled=True, disabled_value='baz')
+        ])
+        self.optnames = ('bool', 'str', 'number', 'choice')
 
     def test_round_trip(self):
-        '''Ensure we can round-trip a set of parameters.'''
-        self.assertEqual(self.params.parse(['true', 'twelve', '6', '1']),
-                            [True, 'twelve', 6.0, 'bar'])
-
-    def test_manifest(self):
-        self.assertEqual(self.params.describe(), self.description)
-
-    def test_zero_length_string(self):
-        '''Ensure we can parse a zero-length string argument.'''
-        self.assertEqual(self.params.parse(['true', '', '6', '1']),
-                            [True, '', 6.0, 'bar'])
+        '''Ensure we can round-trip a set of options.'''
+        self.assertEqual(self.options.parse(self.optnames,
+                ['true', 'twelve', '6', 'bar']), {
+            'bool': True,
+            'str': 'twelve',
+            'number': 6.0,
+            'choice': 'bar',
+        })
 
     def test_number_range(self):
         '''Try parsing an out-of-range number argument.'''
-        self.assertRaises(ValueError, lambda: self.params.parse(['true',
-                            'twelve', '12', '1']))
+        self.assertRaises(ValueError, lambda: self.options.parse(self.optnames,
+                ['true', 'twelve', '12', 'bar']))
 
     def test_number_default(self):
         '''Ensure we can parse an out-of-range default number argument.'''
-        self.assertEqual(self.params.parse(['true', 'twelve', '15', '1']),
-                            [True, 'twelve', 15.0, 'bar'])
+        self.assertEqual(self.options.parse(self.optnames,
+                ['true', 'twelve', '15', 'bar']), {
+            'bool': True,
+            'str': 'twelve',
+            'number': 15.0,
+            'choice': 'bar',
+        })
 
     def test_invalid_boolean(self):
         '''Try parsing an invalid boolean argument.'''
-        self.assertRaises(ValueError, lambda: self.params.parse(['foo',
-                            'twelve', '6', '1']))
+        self.assertRaises(ValueError, lambda: self.options.parse(self.optnames,
+                ['foo', 'twelve', '6', 'bar']))
 
     def test_choice_range(self):
-        '''Try parsing an out-of-range choice argument.'''
-        self.assertRaises(ValueError, lambda: self.params.parse(['true',
-                            'twelve', '6', '2']))
+        '''Try parsing an invalid choice argument.'''
+        self.assertRaises(ValueError, lambda: self.options.parse(self.optnames,
+                ['true', 'twelve', '6', 'quux']))
 
     def test_choice_default(self):
         '''Ensure we can parse a default choice argument.'''
-        self.assertEqual(self.params.parse(['true', 'twelve', '6', '-1']),
-                            [True, 'twelve', 6.0, 'baz'])
+        self.assertEqual(self.options.parse(self.optnames,
+                ['true', 'twelve', '6', 'baz']), {
+            'bool': True,
+            'str': 'twelve',
+            'number': 6.0,
+            'choice': 'baz',
+        })
 
 
 if __name__ == '__main__':

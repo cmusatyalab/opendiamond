@@ -12,77 +12,78 @@
 #
 
 import math
+from opendiamond.filter.util import element
 
-class Parameters(object):
-    '''A list of formal parameters accepted by a Filter.'''
-    def __init__(self, *params):
-        self._params = params
+class OptionList(object):
+    '''A list of options to be displayed in the user interface for a search.'''
+
+    def __init__(self, options):
+        self._options = tuple(options)
+        self._option_map = dict((o.name, o) for o in options)
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__,
-                        ', '.join(repr(p) for p in self._params))
+                        ', '.join(repr(p) for p in self._options))
+
+    def get_names(self):
+        return self._option_map.keys()
 
     def describe(self):
-        '''Return a dict describing the parameter list, suitable for
-        opendiamond-manifest.txt.'''
-        ret = {}
-        for i in range(len(self._params)):
-            info = self._params[i].describe()
-            ret.update(('%s-%d' % (k, i), v) for k, v in info.iteritems())
-        return ret
+        '''Return an XML element describing the option list.'''
+        el = element('options')
+        for opt in self._options:
+            el.append(opt.describe())
+        return el
 
-    def parse(self, args):
-        '''Parse the specified argument list and return a list of parsed
-        arguments.'''
-        if len(self._params) != len(args):
+    def parse(self, optnames, args):
+        '''Parse the specified argument list composed of the specified option
+        names and return a dict mapping option names to parsed arguments.'''
+        if len(optnames) != len(args):
             raise ValueError('Incorrect argument list length')
-        return [self._params[i].parse(args[i]) for i in range(len(args))]
+        ret = dict()
+        for name, value in zip(optnames, args):
+            if name in self._option_map:
+                ret[name] = self._option_map[name].parse(value)
+            else:
+                raise ValueError('Unknown option "%s"' % name)
+        return ret
 
 
-class BaseParameter(object):
-    '''The base type for a formal parameter.'''
-    type = 'unknown'
+class _BaseOption(object):
+    '''The base class for a option.'''
 
-    def __init__(self, label, default=None, disabled_value=None,
-                            initially_enabled=True):
-        self._label = label
-        self._default = default
-        self._disabled_value = disabled_value
-        self._initially_enabled = initially_enabled
-
-    def __repr__(self):
-        return '%s(%s, %s, %s, %s)' % (self.__class__.__name__,
-                            repr(self._label), repr(self._default),
-                            repr(self._disabled_value),
-                            repr(self._initially_enabled))
+    def __init__(self, name):
+        self.name = name
 
     def describe(self):
-        ret = {
-            'Label': self._label,
-            'Type': self.type,
-            'Initially-Enabled': self._initially_enabled and 'true' or 'false',
-        }
-        if self._default is not None:
-            ret['Default'] = self._default
-        if self._disabled_value is not None:
-            ret['Disabled-Value'] = self._disabled_value
-        return ret
+        raise NotImplementedError()
 
     def parse(self, str):
         raise NotImplementedError()
 
 
-class BooleanParameter(BaseParameter):
-    '''A boolean formal parameter.'''
-    type = 'boolean'
+class BooleanOption(_BaseOption):
+    '''A boolean option.'''
 
-    def __init__(self, label, default=None):
-        if default is not None:
-            if default:
-                default = 'true'
-            else:
-                default = 'false'
-        BaseParameter.__init__(self, label, default)
+    def __init__(self, name, display_name, default=None):
+        _BaseOption.__init__(self, name)
+        self._display_name = display_name
+        if default:
+            self._default = True
+        else:
+            self._default = None
+
+    def __repr__(self):
+        return '%s(%s, %s, %s)' % (self.__class__.__name__,
+                            repr(self.name), repr(self._display_name),
+                            repr(self._default))
+
+    def describe(self):
+        return element('booleanOption', {
+            'displayName': self._display_name,
+            'name': self.name,
+            'default': self._default,
+        })
 
     def parse(self, str):
         if str == 'true':
@@ -93,44 +94,70 @@ class BooleanParameter(BaseParameter):
             raise ValueError('Argument must be true or false')
 
 
-class StringParameter(BaseParameter):
-    '''A string formal parameter.'''
-    type = 'string'
+class StringOption(_BaseOption):
+    '''A string option.'''
+
+    def __init__(self, name, display_name, default=None,
+                    initially_enabled=None, disabled_value=None):
+        _BaseOption.__init__(self, name)
+        self._display_name = display_name
+        self._default = default
+        self._initially_enabled = initially_enabled
+        self._disabled_value = disabled_value
+
+    def __repr__(self):
+        return '%s(%s, %s, %s, %s, %s)' % (self.__class__.__name__,
+                            repr(self.name), repr(self._display_name),
+                            repr(self._default), repr(self._initially_enabled),
+                            repr(self._disabled_value))
+
+    def describe(self):
+        return element('stringOption', {
+            'displayName': self._display_name,
+            'name': self.name,
+            'default': self._default,
+            'initiallyEnabled': self._initially_enabled,
+            'disabledValue': self._disabled_value,
+        })
 
     def parse(self, str):
         return str
 
 
-class NumberParameter(BaseParameter):
-    '''A number formal parameter.'''
-    type = 'number'
+class NumberOption(_BaseOption):
+    '''A number option.'''
 
-    def __init__(self, label, default=None, min=None, max=None,
-                        increment=None, disabled_value=None,
-                        initially_enabled=True):
-        BaseParameter.__init__(self, label, default, disabled_value,
-                            initially_enabled)
+    def __init__(self, name, display_name, default=None, min=None, max=None,
+                        step=None, initially_enabled=None,
+                        disabled_value=None):
+        _BaseOption.__init__(self, name)
+        self._display_name = display_name
+        self._default = default
         self._min = min
         self._max = max
-        self._increment = increment
+        self._step = step
+        self._initially_enabled = initially_enabled
+        self._disabled_value = disabled_value
 
     def __repr__(self):
-        return '%s(%s, %s, %s, %s, %s, %s, %s)' % (self.__class__.__name__,
-                                repr(self._label), repr(self._default),
-                                repr(self._min), repr(self._max),
-                                repr(self._increment),
-                                repr(self._disabled_value),
-                                repr(self._initially_enabled))
+        return '%s(%s, %s, %s, %s, %s, %s, %s, %s)' % (self.__class__.__name__,
+                                repr(self.name), repr(self._display_name),
+                                repr(self._default), repr(self._min),
+                                repr(self._max), repr(self._step),
+                                repr(self._initially_enabled),
+                                repr(self._disabled_value))
 
     def describe(self):
-        ret = BaseParameter.describe(self)
-        if self._min is not None:
-            ret['Minimum'] = self._min
-        if self._max is not None:
-            ret['Maximum'] = self._max
-        if self._increment is not None:
-            ret['Increment'] = self._increment
-        return ret
+        return element('numberOption', {
+            'displayName': self._display_name,
+            'name': self.name,
+            'default': self._default,
+            'min': self._min,
+            'max': self._max,
+            'step': self._step,
+            'initiallyEnabled': self._initially_enabled,
+            'disabledValue': self._disabled_value,
+        })
 
     def parse(self, str):
         val = float(str)
@@ -145,44 +172,53 @@ class NumberParameter(BaseParameter):
         return val
 
 
-class ChoiceParameter(BaseParameter):
-    '''A multiple-choice formal parameter.'''
-    type = 'choice'
+class ChoiceOption(_BaseOption):
+    '''A multiple-choice option.'''
 
-    def __init__(self, label, choices, default=None, disabled_value=None,
-                                initially_enabled=True):
-        '''choices is a tuple of (parsed-value, label) pairs'''
-        if default is not None:
-            for i, tag in enumerate(zip(*choices)[0]):
-                if tag == default:
-                    default = i
-                    break
-            else:
-                raise ValueError('Default is not one of the choices')
-        self._disabled_name = disabled_value
-        if disabled_value is not None:
-            disabled_value = -1
-        BaseParameter.__init__(self, label, default, disabled_value,
-                                initially_enabled)
+    def __init__(self, name, display_name, choices, default=None,
+                                initially_enabled=None, disabled_value=None):
+        '''choices is a tuple of (value, display_name) pairs'''
+        _BaseOption.__init__(self, name)
+        self._display_name = display_name
         self._choices = tuple(choices)
+        self._default = default
+        self._initially_enabled = initially_enabled
+        self._disabled_value = disabled_value
+        if len(choices) == 0:
+            raise ValueError('No choices specified')
+        self._choice_set = set(zip(*choices)[0])
+        if default is not None and default not in self._choice_set:
+            raise ValueError('Default is not one of the choices')
+        if initially_enabled is not None:
+            if disabled_value is None:
+                disabled_value = ''
+            self._choice_set.add(disabled_value)
 
     def __repr__(self):
-        return '%s(%s, %s, %s, %s, %s)' % (self.__class__.__name__,
-                                repr(self._label), repr(self._choices),
-                                repr(self._default),
-                                repr(self._disabled_name),
-                                repr(self._initially_enabled))
+        return '%s(%s, %s, %s, %s, %s, %s)' % (self.__class__.__name__,
+                                repr(self.name), repr(self._display_name),
+                                repr(self._choices), repr(self._default),
+                                repr(self._initially_enabled),
+                                repr(self._disabled_value))
 
     def describe(self):
-        ret = BaseParameter.describe(self)
-        for i in range(len(self._choices)):
-            ret['Choice-%d' % i] = self._choices[i][1]
-        return ret
+        el = element('choiceOption', {
+            'displayName': self._display_name,
+            'name': self.name,
+            'initiallyEnabled': self._initially_enabled,
+            'disabledValue': self._disabled_value,
+        })
+        for value, display_name in self._choices:
+            attrs = {
+                'displayName': display_name,
+                'value': value,
+            }
+            if value == self._default:
+                attrs['default'] = True
+            el.append(element('choice', attrs))
+        return el
 
     def parse(self, str):
-        index = int(str)
-        if index == -1 and self._disabled_name is not None:
-            return self._disabled_name
-        if index < 0 or index >= len(self._choices):
-            raise ValueError('Selection out of range')
-        return self._choices[index][0]
+        if str not in self._choice_set:
+            raise ValueError('Choice not one of available alternatives')
+        return str

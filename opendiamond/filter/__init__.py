@@ -12,14 +12,18 @@
 #
 
 from __future__ import with_statement
+from cStringIO import StringIO
 import os
 import PIL.Image
 import struct
 import sys
 from tempfile import mkstemp
 import threading
+from xml.dom import minidom
+from xml.etree.ElementTree import ElementTree
 
-from opendiamond.filter.options import Parameters
+from opendiamond.filter.options import OptionList
+from opendiamond.filter.util import element
 
 class Session(object):
     '''Represents the Diamond search session.'''
@@ -62,42 +66,76 @@ class Session(object):
         self._conn.send_message('update-session-variables', names, values)
 
 
+class Search(object):
+    '''A search, comprising zero or more configuration options and one or
+    more filters.'''
+
+    def __init__(self, display_name, filters, options=None):
+        '''filters is a list of filter classes (not instances).  options
+        is a list of option instances.'''
+        if not filters:
+            raise ValueError("At least one filter must be specified")
+        if options is None:
+            options = []
+        self.display_name = display_name
+        self.filters = _FilterList(filters)
+        self.options = OptionList(options)
+
+        # Check all filters for valid references
+        option_names = set(self.options.get_names())
+        filter_labels = set(f.label for f in filters if f.label is not None)
+        self.filters.check_config(option_names, filter_labels)
+
+    def get_manifest(self):
+        '''Return an XML document describing this search.'''
+        root = element('search', {
+            'xmlns': 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1',
+            'displayName': self.display_name,
+        })
+        opts = self.options.describe()
+        if len(opts) > 0:
+            root.append(opts)
+        root.append(self.filters.describe())
+        buf = StringIO()
+        etree = ElementTree(root)
+        etree.write(buf, encoding='UTF-8', xml_declaration=True)
+        # Now run the data through minidom for pretty-printing
+        dom = minidom.parseString(buf.getvalue())
+        return dom.toprettyxml(indent='  ', encoding='UTF-8')
+
+
 class Filter(object):
     '''A Diamond filter.  Implement this.'''
-    # Filter name.
-    name = 'UNCONFIGURED'
-    # Filter instance name.
-    instance_name = 'filter'
-    # Whether the instance name should be editable in the UI.  Should be
-    # True unless the filter bundle is being generated, pre-configured, by
-    # some external tool.
-    instance_name_editable = True
-    # Minimum filter score to accept.
+    # Fixed name for this filter on the wire.  This should not be used
+    # unless there is a specific reason to hardcode the filter name.
+    fixed_name = None
+    # Filter label for dependency references.
+    label = None
+    # If not None, the minimum filter score to accept.  If a Ref, the name
+    # of an option specifying the minimum filter score.
     min_score = 1
-    # Maximum filter score to accept.
-    max_score = float('inf')
-    # Alias for min_score.
-    threshold = None
-    # Whether the thresholds should be editable in the UI.
-    thresholds_editable = False
-    # Alias for thresholds_editable.
-    threshold_editable = None
-    # Description of formal parameters accepted by the filter.  These become
-    # settings in the HyperFind UI.
-    params = Parameters()
-    # Filter dependencies
+    # If not None, the maximum filter score to accept.  If a Ref, the name
+    # of an option specifying the maximum filter score.
+    max_score = None
+    # Filter dependencies.  Strings represent fixed filter names; Ref
+    # objects represent filter labels.
     dependencies = ('RGB',)
+    # Names of options to be passed as arguments to this filter.
+    arguments = ()
+    # Name of the file (within the bundle or in the filesystem) to use as
+    # the blob argument.
+    blob = None
     # Set to True if the blob argument is a Python egg that should be added
     # to sys.path.
     blob_is_egg = False
 
     def __init__(self, args, blob, session=Session('filter')):
         '''Called to initialize the filter.  After a subclass calls the
-        superclass constructor, it will find the parsed arguments in
-        self.args and the blob, if any, in self.blob (unless self.blob_is_egg
-        is True).'''
-        self.session = session
-        self.args = self.params.parse(args)
+        constructor, it will find the parsed arguments stored as object
+        attributes named after the options, and the blob, if any, in self.blob
+        (unless self.blob_is_egg is True).'''
+        for k, v in args.iteritems():
+            setattr(self, k, v)
         if self.blob_is_egg:
             # NamedTemporaryFile always deletes the file on close on
             # Python 2.5, so we can't use it
@@ -109,6 +147,7 @@ class Filter(object):
             self.blob = None
         else:
             self.blob = blob
+        self.session = session
 
     def __call__(self, object):
         '''Called once for each object to be evaluated.  Returns the Diamond
@@ -116,30 +155,92 @@ class Filter(object):
         raise NotImplementedError()
 
     @classmethod
-    def get_manifest(cls):
-        manifest = cls.params.describe()
-        if cls.threshold is not None:
-            min_score = cls.threshold
-        else:
-            min_score = cls.min_score
-        manifest.update({
-            'Filter': cls.name,
-            'Instance': cls.instance_name,
-            'Min-Score': min_score,
-            'Max-Score': cls.max_score,
+    def check_config(cls, option_names, filter_labels):
+        '''Ensure all option and filter references are valid.'''
+        for dep in cls.dependencies:
+            if isinstance(dep, Ref) and str(dep) not in filter_labels:
+                raise ValueError('Unknown filter label: %s' % dep)
+        for arg in cls.arguments:
+            if str(arg) not in option_names:
+                raise ValueError('Unknown option name: %s' % arg)
+        for val in cls.min_score, cls.max_score:
+            if isinstance(val, Ref) and str(val) not in option_names:
+                raise ValueError('Unknown option name: %s' % val)
+
+    @classmethod
+    def describe(cls, filter_index):
+        el = element('filter', {
+            'fixedName': cls.fixed_name,
+            'label': cls.label,
+            'code': 'filter',
         })
-        if len(cls.dependencies) > 0:
-            manifest['Dependencies'] = ','.join(cls.dependencies)
-        if not cls.instance_name_editable:
-            manifest['Instance-Editable'] = 'false'
-        if cls.threshold_editable is not None:
-            thresholds_editable = cls.threshold_editable
-        else:
-            thresholds_editable = cls.thresholds_editable
-        if thresholds_editable:
-            manifest['Thresholds-Editable'] = 'true'
-        return ''.join('%s: %s\n' % (k, v) for k, v in
-                            sorted(manifest.items()))
+        # Filter thresholds
+        for name, value in (('minScore', cls.min_score),
+                            ('maxScore', cls.max_score)):
+            if isinstance(value, Ref):
+                el.append(element(name, {'option': str(value)}))
+            elif value is not None:
+                el.append(element(name, {'value': value}))
+        # Filter dependencies
+        if cls.dependencies:
+            dependencies = element('dependencies')
+            for dep in cls.dependencies:
+                if isinstance(dep, Ref):
+                    attrs = {'label': str(dep)}
+                else:
+                    attrs = {'fixedName': dep}
+                dependencies.append(element('dependency', attrs))
+            el.append(dependencies)
+        # Filter arguments.  Always add an initial argument specifying
+        # which Filter to execute.
+        arguments = element('arguments')
+        arguments.append(element('argument', {'value': filter_index}))
+        for opt in cls.arguments:
+            arguments.append(element('argument', {'option': opt}))
+        el.append(arguments)
+        # Blob argument
+        if cls.blob is not None:
+            el.append(element('blob', {'data': cls.blob}))
+        return el
+
+
+class Ref(object):
+    '''A reference to a filter label or option name.'''
+    def __init__(self, val):
+        self._val = val
+
+    def __str__(self):
+        return self._val
+
+
+class _FilterList(object):
+    '''A list of filter classes in a search.'''
+
+    def __init__(self, filters):
+        '''filters is a list of filter classes (not instances).'''
+        self._filters = tuple(filters)
+
+    def check_config(self, option_names, filter_labels):
+        '''Check all filters for valid references.'''
+        for filter in self._filters:
+            filter.check_config(option_names, filter_labels)
+
+    def describe(self):
+        '''Return an XML element describing the filter list.'''
+        filters = element('filters')
+        for i, filter in enumerate(self._filters):
+            filters.append(filter.describe(i))
+        return filters
+
+    def get_filter(self, options, args, blob, session):
+        '''Return a Filter instance initialized with the specified argument
+        list, blob argument, and session state.'''
+        # Determine which Filter to configure
+        index = int(args.pop(0))
+        filter_class = self._filters[index]
+        # Parse arguments and initialize instance
+        argmap = options.parse([str(s) for s in filter_class.arguments], args)
+        return filter_class(argmap, blob, session)
 
 
 class _DummyFilterImpl(Filter):
@@ -385,8 +486,8 @@ class _DiamondConnection(object):
             self._fout.write('%s\n' % tag)
             for value in values:
                 if isinstance(value, list) or isinstance(value, tuple):
-                    for element in value:
-                        send_value(element)
+                    for el in value:
+                        send_value(el)
                     self._fout.write('\n')
                 else:
                     send_value(value)
@@ -413,7 +514,7 @@ class _StdoutThread(threading.Thread):
             pass
 
 
-def run_filter_loop(filter_class):
+def run_search_loop(search):
     try:
         # Set aside stdin and stdout to prevent them from being accessed by
         # mistake, even in forked children
@@ -439,7 +540,8 @@ def run_filter_loop(filter_class):
         args = conn.get_array()
         blob = conn.get_item()
         session = Session(name, conn)
-        filter = filter_class(args, blob, session)
+        filter = search.filters.get_filter(search.options, args, blob,
+                                session)
         conn.send_message('init-success')
 
         # Main loop
@@ -456,13 +558,13 @@ def run_filter_loop(filter_class):
         pass
 
 
-def run_filter(argv, filter_class):
+def run_search(argv, search):
     '''Returns True if we did something, False if not.'''
     if '--filter' in argv:
-        run_filter_loop(filter_class)
+        run_search_loop(search)
         return True
     elif '--get-manifest' in argv:
-        print filter_class.get_manifest(),
+        print search.get_manifest(),
         return True
     else:
         return False

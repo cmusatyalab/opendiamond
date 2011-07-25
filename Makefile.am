@@ -24,6 +24,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/dataretriever/util.py \
 	opendiamond/filter/__init__.py \
 	opendiamond/filter/options.py \
+	opendiamond/filter/util.py \
 	opendiamond/scopeserver/__init__.py \
 	opendiamond/scopeserver/core/__init__.py \
 	opendiamond/scopeserver/core/urls.py \
@@ -76,6 +77,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	tools/dataretriever \
 	tools/diamondd \
 	tools/diamond-bundle-python \
+	tools/diamond-bundle-search \
 	tools/volcano
 
 # Once pylint 0.24 becomes widely available, this should be replaced with
@@ -110,6 +112,7 @@ uninstall-local:
 	$(RM) $(DESTDIR)$(bindir)/dataretriever
 	$(RM) $(DESTDIR)$(bindir)/diamondd
 	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-python
+	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-search
 
 clean-local:
 	$(RM) -r build

@@ -15,25 +15,25 @@ import os
 import subprocess
 import zipfile
 
-def make_zipfile(path, manifest, files):
+def bundle_generic(out, manifest, files):
     '''manifest is a string, files is a dict of filename => path pairs'''
-    zip = zipfile.ZipFile(path, mode='w', compression=zipfile.ZIP_DEFLATED)
-    zip.writestr('opendiamond-manifest.txt', manifest)
-    for name, path in files.items():
+    zip = zipfile.ZipFile(out, mode='w', compression=zipfile.ZIP_DEFLATED)
+    zip.writestr('opendiamond-search.xml', manifest)
+    for name, path in files.iteritems():
         zip.write(path, name)
     zip.close()
 
 
-def bundle_python(out, filter, blob=None):
+def bundle_python(out, search, additional=None):
     try:
-        proc = subprocess.Popen(['python', os.path.realpath(filter),
+        proc = subprocess.Popen(['python', os.path.realpath(search),
                             '--get-manifest'], stdout=subprocess.PIPE)
     except OSError:
-        raise Exception("Couldn't execute filter program")
+        raise Exception("Couldn't execute search program")
     manifest = proc.communicate()[0]
     if proc.returncode != 0:
-        raise Exception("Couldn't generate filter manifest")
-    files = {'filter': filter}
-    if blob is not None:
-        files['blob'] = blob
-    make_zipfile(out, manifest, files)
+        raise Exception("Couldn't generate search manifest")
+    files = {'filter': search}
+    if additional is not None:
+        files.update((os.path.basename(f), f) for f in additional)
+    bundle_generic(out, manifest, files)

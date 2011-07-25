@@ -23,7 +23,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/dataretriever/pyramid.py \
 	opendiamond/dataretriever/util.py \
 	opendiamond/filter/__init__.py \
-	opendiamond/filter/parameters.py \
+	opendiamond/filter/options.py \
 	opendiamond/scopeserver/__init__.py \
 	opendiamond/scopeserver/core/__init__.py \
 	opendiamond/scopeserver/core/urls.py \

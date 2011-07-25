@@ -20,7 +20,7 @@ import unittest
 import uuid
 import textwrap
 
-from opendiamond.filter.parameters import (Parameters, BooleanParameter,
+from opendiamond.filter.options import (Parameters, BooleanParameter,
                         StringParameter, NumberParameter, ChoiceParameter)
 from opendiamond.scope import ScopeCookie, ScopeError
 

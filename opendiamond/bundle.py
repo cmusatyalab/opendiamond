@@ -92,3 +92,44 @@ def bundle_python(out, search, additional=None):
     if additional is not None:
         files.update((os.path.basename(f), f) for f in additional)
     bundle_generic(out, manifest, files)
+
+
+def bundle_macro(out, display_name, filter, arguments, files):
+    '''Produce a basic search bundle wrapping a macro to be interpreted by
+    the specified filter (such as fil_imagej_exec or fil_matlab_exec).
+    The only search options will be the minimum and maximum scores (ranging
+    from 0 to 100), both of which will be optional.  The specified list of
+    constant arguments will be passed to the filter.  The blob argument will
+    be a Zip file containing the specified files under their original names.
+    The search will depend on the RGB filter.'''
+    filemap = dict((os.path.basename(f), f) for f in files)
+    manifest = element('search',
+        element('options',
+            element('numberOption', displayName='Minimum score',
+                    name='minScore', default=1, min=0, max=100, step=.05,
+                    initiallyEnabled=True, disabledValue=float('-inf')),
+            element('numberOption', displayName='Maximum score',
+                    name='maxScore', default=1, min=0, max=100, step=.05,
+                    initiallyEnabled=False, disabledValue=float('inf')),
+        ),
+        element('filters',
+            element('filter',
+                element('minScore', option='minScore'),
+                element('maxScore', option='maxScore'),
+                element('dependencies',
+                    element('dependency', fixedName='RGB'),
+                ),
+                element('arguments',
+                    *[element('argument', value=v) for v in arguments]
+                ),
+                element('blob',
+                    *[element('member', filename=f, data=f) for f in
+                            filemap.iterkeys()]
+                ),
+                code=filter,
+            ),
+        ),
+        xmlns=BUNDLE_NS,
+        displayName=display_name,
+    )
+    bundle_generic(out, format_manifest(manifest), filemap)

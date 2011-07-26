@@ -46,7 +46,9 @@ def _xmlattr(item):
 
 
 def bundle_generic(out, manifest, files):
-    '''manifest is a string, files is a dict of filename => path pairs'''
+    '''Write a search bundle to the file specified in out.  manifest is the
+    XML manifest for the bundle as a string.  files is a dict of
+    filename => path pairs.'''
     zip = zipfile.ZipFile(out, mode='w', compression=zipfile.ZIP_DEFLATED)
     zip.writestr('opendiamond-search.xml', manifest)
     for name, path in files.iteritems():
@@ -55,6 +57,9 @@ def bundle_generic(out, manifest, files):
 
 
 def bundle_python(out, search, additional=None):
+    '''Write a search bundle for the Python filter whose path is specified
+    in search to the file specified in out.  Include the additional files
+    specified.'''
     try:
         proc = subprocess.Popen(['python', os.path.realpath(search),
                             '--get-manifest'], stdout=subprocess.PIPE)

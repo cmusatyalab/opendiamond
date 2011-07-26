@@ -68,7 +68,7 @@ class Search(object):
     more filters.'''
     # A human-readable name for this search.
     display_name = 'UNCONFIGURED'
-    # A list of option instances.
+    # A list of option instances or OptionGroups.
     options = ()
     # A list of filter classes (not instances) to be included in the search.
     filters = ()

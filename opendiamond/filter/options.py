@@ -20,8 +20,19 @@ class OptionList(object):
     def __init__(self, options):
         self._options = tuple(options)
         self._option_map = dict()
+        have_option = False
+        have_group = False
         for option in options:
+            if isinstance(option, _BaseOption):
+                have_option = True
+            elif isinstance(option, OptionGroup):
+                have_group = True
+            else:
+                raise ValueError('Unknown object in option list')
             self._option_map.update(option.get_name_map())
+        if have_option and have_group:
+            raise ValueError('Option list cannot contain both options ' +
+                                        'and groups')
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__,
@@ -46,6 +57,26 @@ class OptionList(object):
             else:
                 raise ValueError('Unknown option "%s"' % name)
         return ret
+
+
+class OptionGroup(object):
+    def __init__(self, display_name, *options):
+        self._display_name = display_name
+        self._options = options
+        self._option_map = dict()
+        for option in options:
+            if not isinstance(option, _BaseOption):
+                raise ValueError('Unknown object in option list')
+            self._option_map.update(option.get_name_map())
+
+    def get_name_map(self):
+        return dict(self._option_map)
+
+    def describe(self):
+        '''Return an XML element describing the option group.'''
+        return element('optionGroup',
+                        *[opt.describe() for opt in self._options],
+                        displayName=self._display_name)
 
 
 class _BaseOption(object):

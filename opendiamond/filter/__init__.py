@@ -19,7 +19,7 @@ import sys
 from tempfile import mkstemp
 import threading
 
-from opendiamond.bundle import element, format_manifest
+from opendiamond.bundle import BUNDLE_NS, element, format_manifest
 from opendiamond.filter.options import OptionList
 
 class Session(object):
@@ -97,7 +97,7 @@ class Search(object):
     def get_manifest(self):
         '''Return an XML document describing this search.'''
         root = element('search', {
-            'xmlns': 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1',
+            'xmlns': BUNDLE_NS,
             'displayName': self.display_name,
         })
         opts = self._options.describe()

@@ -19,6 +19,8 @@ from xml.dom import minidom
 from xml.etree.ElementTree import ElementTree, Element
 import zipfile
 
+BUNDLE_NS = 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1'
+
 def element(name, attrs=None):
     '''Return an XML element with the specified name and attributes.'''
     el = Element(name)

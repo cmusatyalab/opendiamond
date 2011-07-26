@@ -70,8 +70,6 @@ class Search(object):
     def __init__(self, display_name, filters, options=None):
         '''filters is a list of filter classes (not instances).  options
         is a list of option instances.'''
-        if not filters:
-            raise ValueError("At least one filter must be specified")
         if options is None:
             options = []
         self.display_name = display_name
@@ -89,12 +87,13 @@ class Search(object):
             self._run_loop()
             return True
         elif '--get-manifest' in argv:
-            print self.get_manifest(),
+            print self.manifest,
             return True
         else:
             return False
 
-    def get_manifest(self):
+    @property
+    def manifest(self):
         '''Return an XML document describing this search.'''
         root = element('search',
             self._options.describe(),
@@ -273,6 +272,8 @@ class _FilterList(object):
 
     def __init__(self, filters):
         '''filters is a list of filter classes (not instances).'''
+        if not filters:
+            raise ValueError("At least one filter must be specified")
         self._filters = tuple(filters)
 
     def check_config(self, option_names, filter_labels):

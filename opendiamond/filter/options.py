@@ -30,10 +30,7 @@ class OptionList(object):
 
     def describe(self):
         '''Return an XML element describing the option list.'''
-        el = element('options')
-        for opt in self._options:
-            el.append(opt.describe())
-        return el
+        return element('options', *[opt.describe() for opt in self._options])
 
     def parse(self, optnames, args):
         '''Parse the specified argument list composed of the specified option

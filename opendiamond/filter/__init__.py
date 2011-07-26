@@ -96,12 +96,12 @@ class Search(object):
 
     def get_manifest(self):
         '''Return an XML document describing this search.'''
-        root = element('search', xmlns=BUNDLE_NS,
-                                displayName=self.display_name)
-        opts = self._options.describe()
-        if len(opts) > 0:
-            root.append(opts)
-        root.append(self._filters.describe())
+        root = element('search',
+            self._options.describe(),
+            self._filters.describe(),
+            xmlns=BUNDLE_NS,
+            displayName=self.display_name,
+        )
         return format_manifest(root)
 
     def _run_loop(self):
@@ -214,38 +214,34 @@ class Filter(object):
 
     @classmethod
     def describe(cls, filter_index):
-        el = element('filter', fixedName=cls.fixed_name, label=cls.label,
-                                code='filter')
-        # Filter thresholds
-        for name, value in (('minScore', cls.min_score),
-                            ('maxScore', cls.max_score)):
+        def cond_ref(element_name, attr_if_ref, attr_if_not_ref, value):
+            '''Conditionally return an element with the specified name and
+            attributes, depending on the specified value.'''
             if isinstance(value, Ref):
-                el.append(element(name, option=str(value)))
+                return element(element_name, **{attr_if_ref: str(value)})
             elif value is not None:
-                el.append(element(name, value=value))
-        # Filter dependencies
-        if cls.dependencies:
-            dependencies = element('dependencies')
-            for dep in cls.dependencies:
-                if isinstance(dep, Ref):
-                    dependencies.append(element('dependency', label=str(dep)))
-                else:
-                    dependencies.append(element('dependency', fixedName=dep))
-            el.append(dependencies)
-        # Filter arguments.  Always add an initial argument specifying
-        # which Filter to execute.
-        arguments = element('arguments')
-        arguments.append(element('argument', value=filter_index))
-        for opt in cls.arguments:
-            arguments.append(element('argument', option=opt))
-        el.append(arguments)
-        # Blob argument
-        if cls.blob is not None:
-            if isinstance(cls.blob, Ref):
-                el.append(element('blob', option=str(cls.blob)))
+                return element(element_name, **{attr_if_not_ref: value})
             else:
-                el.append(element('blob', data=cls.blob))
-        return el
+                return None
+
+        return element('filter',
+            cond_ref('minScore', 'option', 'value', cls.min_score),
+            cond_ref('maxScore', 'option', 'value', cls.max_score),
+            element('dependencies',
+                *[cond_ref('dependency', 'label', 'fixedName', dep)
+                        for dep in cls.dependencies]
+            ),
+            element('arguments',
+                # Always add an initial argument specifying which Filter to
+                # execute.
+                element('argument', value=filter_index),
+                *[element('argument', option=opt) for opt in cls.arguments]
+            ),
+            cond_ref('blob', 'option', 'data', cls.blob),
+            fixedName=cls.fixed_name,
+            label=cls.label,
+            code='filter',
+        )
 
 
 class Ref(object):
@@ -271,10 +267,9 @@ class _FilterList(object):
 
     def describe(self):
         '''Return an XML element describing the filter list.'''
-        filters = element('filters')
-        for i, filter in enumerate(self._filters):
-            filters.append(filter.describe(i))
-        return filters
+        return element('filters',
+            *[filter.describe(i) for i, filter in enumerate(self._filters)]
+        )
 
     def get_filter(self, options, args, blob, session):
         '''Return a Filter instance initialized with the specified argument

@@ -12,17 +12,14 @@
 #
 
 from __future__ import with_statement
-from cStringIO import StringIO
 import os
 import PIL.Image
 import struct
 import sys
 from tempfile import mkstemp
 import threading
-from xml.dom import minidom
-from xml.etree.ElementTree import ElementTree
 
-from opendiamond.bundle import element
+from opendiamond.bundle import element, format_manifest
 from opendiamond.filter.options import OptionList
 
 class Session(object):
@@ -107,12 +104,7 @@ class Search(object):
         if len(opts) > 0:
             root.append(opts)
         root.append(self._filters.describe())
-        buf = StringIO()
-        etree = ElementTree(root)
-        etree.write(buf, encoding='UTF-8', xml_declaration=True)
-        # Now run the data through minidom for pretty-printing
-        dom = minidom.parseString(buf.getvalue())
-        return dom.toprettyxml(indent='  ', encoding='UTF-8')
+        return format_manifest(root)
 
     def _run_loop(self):
         try:

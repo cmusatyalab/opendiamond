@@ -11,10 +11,12 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from cStringIO import StringIO
 import math
 import os
 import subprocess
-from xml.etree.ElementTree import Element
+from xml.dom import minidom
+from xml.etree.ElementTree import ElementTree, Element
 import zipfile
 
 def element(name, attrs=None):
@@ -43,6 +45,17 @@ def _xmlattr(item):
         elif math.isinf(item):
             return 'INF'
     return str(item)
+
+
+def format_manifest(root):
+    '''Given an XML root element for a bundle manifest, return the manifest
+    serialized as a string.'''
+    buf = StringIO()
+    etree = ElementTree(root)
+    etree.write(buf, encoding='UTF-8', xml_declaration=True)
+    # Now run the data through minidom for pretty-printing
+    dom = minidom.parseString(buf.getvalue())
+    return dom.toprettyxml(indent='  ', encoding='UTF-8')
 
 
 def bundle_generic(out, manifest, files):

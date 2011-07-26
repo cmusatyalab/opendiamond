@@ -166,9 +166,12 @@ class Filter(object):
     dependencies = ('RGB',)
     # Names of options to be passed as arguments to this filter.
     arguments = ()
-    # Name of the file (within the bundle or in the filesystem) to use as
-    # the blob argument.  If a Ref, the name of an option specifying the
-    # filename.
+    # If a string, the name of the file (within the bundle or in the
+    # filesystem) to use as the blob argument.  If a Ref, the name of an
+    # option specifying the filename.  If a list or tuple, the client will
+    # construct the blob argument as a Zip file; each element of the list
+    # must be a (filename, target) pair, where the filename is the name of
+    # the Zip file member and the target is a string or Ref as above.
     blob = None
     # Set to True if the blob argument is a Python egg that should be added
     # to sys.path.
@@ -214,15 +217,27 @@ class Filter(object):
 
     @classmethod
     def describe(cls, filter_index):
-        def cond_ref(element_name, attr_if_ref, attr_if_not_ref, value):
+        def cond_ref(element_name, attr_if_ref, attr_if_not_ref, value,
+                            **attrs):
             '''Conditionally return an element with the specified name and
             attributes, depending on the specified value.'''
-            if isinstance(value, Ref):
-                return element(element_name, **{attr_if_ref: str(value)})
-            elif value is not None:
-                return element(element_name, **{attr_if_not_ref: value})
-            else:
+            if value is None:
                 return None
+            if isinstance(value, Ref):
+                attrs[attr_if_ref] = str(value)
+            else:
+                attrs[attr_if_not_ref] = value
+            return element(element_name, **attrs)
+
+        # Blob argument
+        if isinstance(cls.blob, list) or isinstance(cls.blob, tuple):
+            # Zip file with one or more members
+            blob = element('blob',
+                *[cond_ref('member', 'option', 'data', target,
+                        filename=filename) for filename, target in cls.blob]
+            )
+        else:
+            blob = cond_ref('blob', 'option', 'data', cls.blob)
 
         return element('filter',
             cond_ref('minScore', 'option', 'value', cls.min_score),
@@ -237,7 +252,7 @@ class Filter(object):
                 element('argument', value=filter_index),
                 *[element('argument', option=opt) for opt in cls.arguments]
             ),
-            cond_ref('blob', 'option', 'data', cls.blob),
+            blob,
             fixedName=cls.fixed_name,
             label=cls.label,
             code='filter',

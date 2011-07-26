@@ -66,19 +66,23 @@ class Session(object):
 class Search(object):
     '''A search, comprising zero or more configuration options and one or
     more filters.'''
+    # A human-readable name for this search.
+    display_name = 'UNCONFIGURED'
+    # A list of option instances.
+    options = ()
+    # A list of filter classes (not instances) to be included in the search.
+    filters = ()
 
-    def __init__(self, display_name, filters, options=None):
+    def __init__(self):
         '''filters is a list of filter classes (not instances).  options
         is a list of option instances.'''
-        if options is None:
-            options = []
-        self.display_name = display_name
-        self._filters = _FilterList(filters)
-        self._options = OptionList(options)
+        self._filters = _FilterList(self.filters)
+        self._options = OptionList(self.options)
 
         # Check all filters for valid references
         option_names = set(self._options.get_names())
-        filter_labels = set(f.label for f in filters if f.label is not None)
+        filter_labels = set(f.label for f in self.filters
+                            if f.label is not None)
         self._filters.check_config(option_names, filter_labels)
 
     def run(self, argv=sys.argv):

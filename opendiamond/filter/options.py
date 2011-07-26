@@ -79,11 +79,8 @@ class BooleanOption(_BaseOption):
                             repr(self._default))
 
     def describe(self):
-        return element('booleanOption', {
-            'displayName': self._display_name,
-            'name': self.name,
-            'default': self._default,
-        })
+        return element('booleanOption', displayName=self._display_name,
+                            name=self.name, default=self._default)
 
     def parse(self, str):
         if str == 'true':
@@ -112,13 +109,10 @@ class StringOption(_BaseOption):
                             repr(self._disabled_value))
 
     def describe(self):
-        return element('stringOption', {
-            'displayName': self._display_name,
-            'name': self.name,
-            'default': self._default,
-            'initiallyEnabled': self._initially_enabled,
-            'disabledValue': self._disabled_value,
-        })
+        return element('stringOption', displayName=self._display_name,
+                            name=self.name, default=self._default,
+                            initiallyEnabled=self._initially_enabled,
+                            disabledValue=self._disabled_value)
 
     def parse(self, str):
         return str
@@ -148,16 +142,11 @@ class NumberOption(_BaseOption):
                                 repr(self._disabled_value))
 
     def describe(self):
-        return element('numberOption', {
-            'displayName': self._display_name,
-            'name': self.name,
-            'default': self._default,
-            'min': self._min,
-            'max': self._max,
-            'step': self._step,
-            'initiallyEnabled': self._initially_enabled,
-            'disabledValue': self._disabled_value,
-        })
+        return element('numberOption', displayName=self._display_name,
+                                name=self.name, default=self._default,
+                                min=self._min, max=self._max, step=self._step,
+                                initiallyEnabled=self._initially_enabled,
+                                disabledValue=self._disabled_value)
 
     def parse(self, str):
         val = float(str)
@@ -202,12 +191,10 @@ class ChoiceOption(_BaseOption):
                                 repr(self._disabled_value))
 
     def describe(self):
-        el = element('choiceOption', {
-            'displayName': self._display_name,
-            'name': self.name,
-            'initiallyEnabled': self._initially_enabled,
-            'disabledValue': self._disabled_value,
-        })
+        el = element('choiceOption', displayName=self._display_name,
+                                name=self.name,
+                                initiallyEnabled=self._initially_enabled,
+                                disabledValue=self._disabled_value)
         for value, display_name in self._choices:
             attrs = {
                 'displayName': display_name,
@@ -215,7 +202,7 @@ class ChoiceOption(_BaseOption):
             }
             if value == self._default:
                 attrs['default'] = True
-            el.append(element('choice', attrs))
+            el.append(element('choice', **attrs))
         return el
 
     def parse(self, str):

@@ -96,10 +96,8 @@ class Search(object):
 
     def get_manifest(self):
         '''Return an XML document describing this search.'''
-        root = element('search', {
-            'xmlns': BUNDLE_NS,
-            'displayName': self.display_name,
-        })
+        root = element('search', xmlns=BUNDLE_NS,
+                                displayName=self.display_name)
         opts = self._options.describe()
         if len(opts) > 0:
             root.append(opts)
@@ -216,42 +214,37 @@ class Filter(object):
 
     @classmethod
     def describe(cls, filter_index):
-        el = element('filter', {
-            'fixedName': cls.fixed_name,
-            'label': cls.label,
-            'code': 'filter',
-        })
+        el = element('filter', fixedName=cls.fixed_name, label=cls.label,
+                                code='filter')
         # Filter thresholds
         for name, value in (('minScore', cls.min_score),
                             ('maxScore', cls.max_score)):
             if isinstance(value, Ref):
-                el.append(element(name, {'option': str(value)}))
+                el.append(element(name, option=str(value)))
             elif value is not None:
-                el.append(element(name, {'value': value}))
+                el.append(element(name, value=value))
         # Filter dependencies
         if cls.dependencies:
             dependencies = element('dependencies')
             for dep in cls.dependencies:
                 if isinstance(dep, Ref):
-                    attrs = {'label': str(dep)}
+                    dependencies.append(element('dependency', label=str(dep)))
                 else:
-                    attrs = {'fixedName': dep}
-                dependencies.append(element('dependency', attrs))
+                    dependencies.append(element('dependency', fixedName=dep))
             el.append(dependencies)
         # Filter arguments.  Always add an initial argument specifying
         # which Filter to execute.
         arguments = element('arguments')
-        arguments.append(element('argument', {'value': filter_index}))
+        arguments.append(element('argument', value=filter_index))
         for opt in cls.arguments:
-            arguments.append(element('argument', {'option': opt}))
+            arguments.append(element('argument', option=opt))
         el.append(arguments)
         # Blob argument
         if cls.blob is not None:
             if isinstance(cls.blob, Ref):
-                attrs = {'option': str(cls.blob)}
+                el.append(element('blob', option=str(cls.blob)))
             else:
-                attrs = {'data': cls.blob}
-            el.append(element('blob', attrs))
+                el.append(element('blob', data=cls.blob))
         return el
 
 

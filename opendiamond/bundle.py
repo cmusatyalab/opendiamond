@@ -21,15 +21,14 @@ import zipfile
 
 BUNDLE_NS = 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1'
 
-def element(name, attrs=None):
+def element(element_name, **attrs):
     '''Return an XML element with the specified name and attributes.'''
-    el = Element(name)
-    if attrs is not None:
-        for k, v in attrs.iteritems():
-            # Allow caller to specify an attribute value of None to skip the
-            # attribute
-            if v is not None:
-                el.set(k, _xmlattr(v))
+    el = Element(element_name)
+    for k, v in attrs.iteritems():
+        # Allow caller to specify an attribute value of None to skip the
+        # attribute
+        if v is not None:
+            el.set(k, _xmlattr(v))
     return el
 
 

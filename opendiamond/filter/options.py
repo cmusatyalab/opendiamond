@@ -19,7 +19,9 @@ class OptionList(object):
 
     def __init__(self, options):
         self._options = tuple(options)
-        self._option_map = dict((o.name, o) for o in options)
+        self._option_map = dict()
+        for option in options:
+            self._option_map.update(option.get_name_map())
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__,
@@ -50,7 +52,10 @@ class _BaseOption(object):
     '''The base class for a option.'''
 
     def __init__(self, name):
-        self.name = name
+        self._name = name
+
+    def get_name_map(self):
+        return {self._name: self}
 
     def describe(self):
         raise NotImplementedError()
@@ -72,12 +77,12 @@ class BooleanOption(_BaseOption):
 
     def __repr__(self):
         return '%s(%s, %s, %s)' % (self.__class__.__name__,
-                            repr(self.name), repr(self._display_name),
+                            repr(self._name), repr(self._display_name),
                             repr(self._default))
 
     def describe(self):
         return element('booleanOption', displayName=self._display_name,
-                            name=self.name, default=self._default)
+                            name=self._name, default=self._default)
 
     def parse(self, str):
         if str == 'true':
@@ -101,13 +106,13 @@ class StringOption(_BaseOption):
 
     def __repr__(self):
         return '%s(%s, %s, %s, %s, %s)' % (self.__class__.__name__,
-                            repr(self.name), repr(self._display_name),
+                            repr(self._name), repr(self._display_name),
                             repr(self._default), repr(self._initially_enabled),
                             repr(self._disabled_value))
 
     def describe(self):
         return element('stringOption', displayName=self._display_name,
-                            name=self.name, default=self._default,
+                            name=self._name, default=self._default,
                             initiallyEnabled=self._initially_enabled,
                             disabledValue=self._disabled_value)
 
@@ -132,7 +137,7 @@ class NumberOption(_BaseOption):
 
     def __repr__(self):
         return '%s(%s, %s, %s, %s, %s, %s, %s, %s)' % (self.__class__.__name__,
-                                repr(self.name), repr(self._display_name),
+                                repr(self._name), repr(self._display_name),
                                 repr(self._default), repr(self._min),
                                 repr(self._max), repr(self._step),
                                 repr(self._initially_enabled),
@@ -140,7 +145,7 @@ class NumberOption(_BaseOption):
 
     def describe(self):
         return element('numberOption', displayName=self._display_name,
-                                name=self.name, default=self._default,
+                                name=self._name, default=self._default,
                                 min=self._min, max=self._max, step=self._step,
                                 initiallyEnabled=self._initially_enabled,
                                 disabledValue=self._disabled_value)
@@ -182,14 +187,14 @@ class ChoiceOption(_BaseOption):
 
     def __repr__(self):
         return '%s(%s, %s, %s, %s, %s, %s)' % (self.__class__.__name__,
-                                repr(self.name), repr(self._display_name),
+                                repr(self._name), repr(self._display_name),
                                 repr(self._choices), repr(self._default),
                                 repr(self._initially_enabled),
                                 repr(self._disabled_value))
 
     def describe(self):
         el = element('choiceOption', displayName=self._display_name,
-                                name=self.name,
+                                name=self._name,
                                 initiallyEnabled=self._initially_enabled,
                                 disabledValue=self._disabled_value)
         for value, display_name in self._choices:

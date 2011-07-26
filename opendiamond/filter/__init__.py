@@ -22,8 +22,8 @@ import threading
 from xml.dom import minidom
 from xml.etree.ElementTree import ElementTree
 
+from opendiamond.bundle import element
 from opendiamond.filter.options import OptionList
-from opendiamond.filter.util import element
 
 class Session(object):
     '''Represents the Diamond search session.'''

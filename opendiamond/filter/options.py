@@ -12,7 +12,7 @@
 #
 
 import math
-from opendiamond.filter.util import element
+from opendiamond.bundle import element
 
 class OptionList(object):
     '''A list of options to be displayed in the user interface for a search.'''

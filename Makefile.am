@@ -24,7 +24,6 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/dataretriever/util.py \
 	opendiamond/filter/__init__.py \
 	opendiamond/filter/options.py \
-	opendiamond/filter/util.py \
 	opendiamond/scopeserver/__init__.py \
 	opendiamond/scopeserver/core/__init__.py \
 	opendiamond/scopeserver/core/urls.py \

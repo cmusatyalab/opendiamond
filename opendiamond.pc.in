@@ -1,8 +1,11 @@
 # This file is called opendiamond.pc for historical reasons, but really
-# only describes libfilter, which is the only exported library
+# only describes libfilter, which is the only exported library.  It can
+# also be used to determine the bindir directory which contains
+# diamond-bundle-search.
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
+bindir=@bindir@
 libdir=@libdir@
 includedir=@includedir@
 

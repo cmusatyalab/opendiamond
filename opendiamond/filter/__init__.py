@@ -100,17 +100,23 @@ class Filter(object):
         raise NotImplementedError()
 
     @classmethod
-    def run(cls, argv=sys.argv):
+    def run(cls, classes=None, argv=sys.argv):
         '''Try to run the filter.  Returns True if we did something,
-        False if not.'''
+        False if not.
+
+        If classes is specified, it is a list of filter classes that
+        should be supported.  In this case, the first filter argument must
+        specify the name of the class that should be executed during this
+        run of the program.  That argument will be stripped from the
+        argument list before it is given to the filter.'''
         if '--filter' in argv:
-            cls._run_loop()
+            cls._run_loop(classes)
             return True
         else:
             return False
 
     @classmethod
-    def _run_loop(cls):
+    def _run_loop(cls, classes=None):
         try:
             # Set aside stdin and stdout to prevent them from being accessed by
             # mistake, even in forked children
@@ -136,7 +142,19 @@ class Filter(object):
             args = conn.get_array()
             blob = conn.get_item()
             session = Session(name, conn)
-            filter = cls(args, blob, session)
+            if classes is not None:
+                # Use the class named by the first filter argument
+                target = args.pop(0)
+                for class_ in classes:
+                    if class_.__name__ == target:
+                        filter_class = class_
+                        break
+                else:
+                    raise ValueError('Filter class %s is not available' %
+                                        target)
+            else:
+                filter_class = cls
+            filter = filter_class(args, blob, session)
             conn.send_message('init-success')
 
             # Main loop

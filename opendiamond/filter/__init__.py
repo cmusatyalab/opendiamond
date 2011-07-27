@@ -20,7 +20,6 @@ from tempfile import mkstemp
 import threading
 
 from opendiamond.bundle import BUNDLE_NS, element, format_manifest
-from opendiamond.filter.options import OptionList
 
 class Session(object):
     '''Represents the Diamond search session.'''
@@ -63,51 +62,55 @@ class Session(object):
         self._conn.send_message('update-session-variables', names, values)
 
 
-class Search(object):
-    '''A search, comprising zero or more configuration options and one or
-    more filters.'''
-    # A human-readable name for this search.
-    display_name = 'UNCONFIGURED'
-    # A list of option instances or OptionGroups.
-    options = ()
-    # A list of filter classes (not instances) to be included in the search.
-    filters = ()
+class Filter(object):
+    '''A Diamond filter.  Implement this.'''
+    # List of Parameters representing argument types and the corresponding
+    # attributes to store the arguments in.  For example, argument 0 will be
+    # stored in a Filter attribute named by params[0].
+    params = ()
+    # Set to True if the blob argument is a Python egg that should be added
+    # to sys.path.
+    blob_is_egg = False
 
-    def __init__(self):
-        '''filters is a list of filter classes (not instances).  options
-        is a list of option instances.'''
-        self._filters = _FilterList(self.filters)
-        self._options = OptionList(self.options)
+    def __init__(self, args, blob, session=Session('filter')):
+        '''Called to initialize the filter.  After a subclass calls the
+        constructor, it will find the parsed arguments stored as object
+        attributes as specified by the parameters, and the blob, if any,
+        in self.blob (unless self.blob_is_egg is True).'''
+        if len(args) != len(self.params):
+            raise ValueError('Incorrect argument list length')
+        for param, arg in zip(self.params, args):
+            setattr(self, str(param), param.parse(arg))
+        if self.blob_is_egg:
+            # NamedTemporaryFile always deletes the file on close on
+            # Python 2.5, so we can't use it
+            fd, name = mkstemp(prefix='filter-', suffix='.egg')
+            egg = os.fdopen(fd, 'r+')
+            egg.write(blob)
+            egg.close()
+            sys.path.append(name)
+            self.blob = None
+        else:
+            self.blob = blob
+        self.session = session
 
-        # Check all filters for valid references
-        option_names = set(self._options.get_names())
-        filter_labels = set(f.label for f in self.filters
-                            if f.label is not None)
-        self._filters.check_config(option_names, filter_labels)
+    def __call__(self, object):
+        '''Called once for each object to be evaluated.  Returns the Diamond
+        search score.'''
+        raise NotImplementedError()
 
-    def run(self, argv=sys.argv):
-        '''Returns True if we did something, False if not.'''
+    @classmethod
+    def run(cls, argv=sys.argv):
+        '''Try to run the filter.  Returns True if we did something,
+        False if not.'''
         if '--filter' in argv:
-            self._run_loop()
-            return True
-        elif '--get-manifest' in argv:
-            print self.manifest,
+            cls._run_loop()
             return True
         else:
             return False
 
-    @property
-    def manifest(self):
-        '''Return an XML document describing this search.'''
-        root = element('search',
-            self._options.describe(),
-            self._filters.describe(),
-            xmlns=BUNDLE_NS,
-            displayName=self.display_name,
-        )
-        return format_manifest(root)
-
-    def _run_loop(self):
+    @classmethod
+    def _run_loop(cls):
         try:
             # Set aside stdin and stdout to prevent them from being accessed by
             # mistake, even in forked children
@@ -133,8 +136,7 @@ class Search(object):
             args = conn.get_array()
             blob = conn.get_item()
             session = Session(name, conn)
-            filter = self._filters.get_filter(self._options, args, blob,
-                                    session)
+            filter = cls(args, blob, session)
             conn.send_message('init-success')
 
             # Main loop
@@ -149,157 +151,6 @@ class Search(object):
                 obj.invalidate()
         except IOError:
             pass
-
-
-class Filter(object):
-    '''A Diamond filter.  Implement this.'''
-    # Fixed name for this filter on the wire.  This should not be used
-    # unless there is a specific reason to hardcode the filter name.
-    fixed_name = None
-    # Filter label for dependency references.
-    label = None
-    # If not None, the minimum filter score to accept.  If a Ref, the name
-    # of an option specifying the minimum filter score.
-    min_score = 1
-    # If not None, the maximum filter score to accept.  If a Ref, the name
-    # of an option specifying the maximum filter score.
-    max_score = None
-    # Filter dependencies.  Strings represent fixed filter names; Ref
-    # objects represent filter labels.
-    dependencies = ('RGB',)
-    # Names of options to be passed as arguments to this filter.
-    arguments = ()
-    # If a string, the name of the file (within the bundle or in the
-    # filesystem) to use as the blob argument.  If a Ref, the name of an
-    # option specifying the filename.  If a list or tuple, the client will
-    # construct the blob argument as a Zip file; each element of the list
-    # must be a (filename, target) pair, where the filename is the name of
-    # the Zip file member and the target is a string or Ref as above.
-    blob = None
-    # Set to True if the blob argument is a Python egg that should be added
-    # to sys.path.
-    blob_is_egg = False
-
-    def __init__(self, args, blob, session=Session('filter')):
-        '''Called to initialize the filter.  After a subclass calls the
-        constructor, it will find the parsed arguments stored as object
-        attributes named after the options, and the blob, if any, in self.blob
-        (unless self.blob_is_egg is True).'''
-        for k, v in args.iteritems():
-            setattr(self, k, v)
-        if self.blob_is_egg:
-            # NamedTemporaryFile always deletes the file on close on
-            # Python 2.5, so we can't use it
-            fd, name = mkstemp(prefix='filter-', suffix='.egg')
-            egg = os.fdopen(fd, 'r+')
-            egg.write(blob)
-            egg.close()
-            sys.path.append(name)
-            self.blob = None
-        else:
-            self.blob = blob
-        self.session = session
-
-    def __call__(self, object):
-        '''Called once for each object to be evaluated.  Returns the Diamond
-        search score.'''
-        raise NotImplementedError()
-
-    @classmethod
-    def check_config(cls, option_names, filter_labels):
-        '''Ensure all option and filter references are valid.'''
-        for dep in cls.dependencies:
-            if isinstance(dep, Ref) and str(dep) not in filter_labels:
-                raise ValueError('Unknown filter label: %s' % dep)
-        for arg in cls.arguments:
-            if str(arg) not in option_names:
-                raise ValueError('Unknown option name: %s' % arg)
-        for val in cls.min_score, cls.max_score:
-            if isinstance(val, Ref) and str(val) not in option_names:
-                raise ValueError('Unknown option name: %s' % val)
-
-    @classmethod
-    def describe(cls, filter_index):
-        def cond_ref(element_name, attr_if_ref, attr_if_not_ref, value,
-                            **attrs):
-            '''Conditionally return an element with the specified name and
-            attributes, depending on the specified value.'''
-            if value is None:
-                return None
-            if isinstance(value, Ref):
-                attrs[attr_if_ref] = str(value)
-            else:
-                attrs[attr_if_not_ref] = value
-            return element(element_name, **attrs)
-
-        # Blob argument
-        if isinstance(cls.blob, list) or isinstance(cls.blob, tuple):
-            # Zip file with one or more members
-            blob = element('blob',
-                *[cond_ref('member', 'option', 'data', target,
-                        filename=filename) for filename, target in cls.blob]
-            )
-        else:
-            blob = cond_ref('blob', 'option', 'data', cls.blob)
-
-        return element('filter',
-            cond_ref('minScore', 'option', 'value', cls.min_score),
-            cond_ref('maxScore', 'option', 'value', cls.max_score),
-            element('dependencies',
-                *[cond_ref('dependency', 'label', 'fixedName', dep)
-                        for dep in cls.dependencies]
-            ),
-            element('arguments',
-                # Always add an initial argument specifying which Filter to
-                # execute.
-                element('argument', value=filter_index),
-                *[element('argument', option=opt) for opt in cls.arguments]
-            ),
-            blob,
-            fixedName=cls.fixed_name,
-            label=cls.label,
-            code='filter',
-        )
-
-
-class Ref(object):
-    '''A reference to a filter label or option name.'''
-    def __init__(self, val):
-        self._val = val
-
-    def __str__(self):
-        return self._val
-
-
-class _FilterList(object):
-    '''A list of filter classes in a search.'''
-
-    def __init__(self, filters):
-        '''filters is a list of filter classes (not instances).'''
-        if not filters:
-            raise ValueError("At least one filter must be specified")
-        self._filters = tuple(filters)
-
-    def check_config(self, option_names, filter_labels):
-        '''Check all filters for valid references.'''
-        for filter in self._filters:
-            filter.check_config(option_names, filter_labels)
-
-    def describe(self):
-        '''Return an XML element describing the filter list.'''
-        return element('filters',
-            *[filter.describe(i) for i, filter in enumerate(self._filters)]
-        )
-
-    def get_filter(self, options, args, blob, session):
-        '''Return a Filter instance initialized with the specified argument
-        list, blob argument, and session state.'''
-        # Determine which Filter to configure
-        index = int(args.pop(0))
-        filter_class = self._filters[index]
-        # Parse arguments and initialize instance
-        argmap = options.parse([str(s) for s in filter_class.arguments], args)
-        return filter_class(argmap, blob, session)
 
 
 class _DummyFilterImpl(Filter):

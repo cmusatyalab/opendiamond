@@ -14,7 +14,6 @@
 from cStringIO import StringIO
 import math
 import os
-import subprocess
 from xml.dom import minidom
 from xml.etree.ElementTree import ElementTree, Element
 import zipfile
@@ -74,24 +73,6 @@ def bundle_generic(out, manifest, files):
     for name, path in files.iteritems():
         zip.write(path, name)
     zip.close()
-
-
-def bundle_python(out, search, additional=None):
-    '''Write a search bundle for the Python filter whose path is specified
-    in search to the file specified in out.  Include the additional files
-    specified.'''
-    try:
-        proc = subprocess.Popen(['python', os.path.realpath(search),
-                            '--get-manifest'], stdout=subprocess.PIPE)
-    except OSError:
-        raise Exception("Couldn't execute search program")
-    manifest = proc.communicate()[0]
-    if proc.returncode != 0:
-        raise Exception("Couldn't generate search manifest")
-    files = {'filter': search}
-    if additional is not None:
-        files.update((os.path.basename(f), f) for f in additional)
-    bundle_generic(out, manifest, files)
 
 
 def bundle_macro(out, display_name, filter, arguments, files):

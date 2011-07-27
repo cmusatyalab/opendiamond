@@ -20,8 +20,6 @@ import unittest
 import uuid
 import textwrap
 
-from opendiamond.filter.options import (OptionList, BooleanOption,
-                        StringOption, NumberOption, ChoiceOption)
 from opendiamond.scope import ScopeCookie, ScopeError
 
 # unittest uses Java-style naming conventions
@@ -280,70 +278,6 @@ class TestCookieBadSignature(_TestHandGeneratedCookie):
     modify_sig = staticmethod(lambda s: '331337' + s[6:])
     parse_exc = None
     verify_exc = ScopeError
-
-
-class TestFilterOptions(unittest.TestCase):
-    '''Test opendiamond.filter option handling.'''
-
-    def setUp(self):
-        self.options = OptionList([
-            BooleanOption('bool', 'Boolean param'),
-            StringOption('str', 'Strn', default='xyzzy plugh',
-                        initially_enabled=False, disabled_value='off'),
-            NumberOption('number', 'Even integer option with long label',
-                        max=10, step=2, initially_enabled=True,
-                        disabled_value=15),
-            ChoiceOption('choice', 'Choices', (
-                ('foo', 'Do something with foo'),
-                ('bar', 'Do something else with bar'),
-            ), initially_enabled=True, disabled_value='baz')
-        ])
-        self.optnames = ('bool', 'str', 'number', 'choice')
-
-    def test_round_trip(self):
-        '''Ensure we can round-trip a set of options.'''
-        self.assertEqual(self.options.parse(self.optnames,
-                ['true', 'twelve', '6', 'bar']), {
-            'bool': True,
-            'str': 'twelve',
-            'number': 6.0,
-            'choice': 'bar',
-        })
-
-    def test_number_range(self):
-        '''Try parsing an out-of-range number argument.'''
-        self.assertRaises(ValueError, lambda: self.options.parse(self.optnames,
-                ['true', 'twelve', '12', 'bar']))
-
-    def test_number_default(self):
-        '''Ensure we can parse an out-of-range default number argument.'''
-        self.assertEqual(self.options.parse(self.optnames,
-                ['true', 'twelve', '15', 'bar']), {
-            'bool': True,
-            'str': 'twelve',
-            'number': 15.0,
-            'choice': 'bar',
-        })
-
-    def test_invalid_boolean(self):
-        '''Try parsing an invalid boolean argument.'''
-        self.assertRaises(ValueError, lambda: self.options.parse(self.optnames,
-                ['foo', 'twelve', '6', 'bar']))
-
-    def test_choice_range(self):
-        '''Try parsing an invalid choice argument.'''
-        self.assertRaises(ValueError, lambda: self.options.parse(self.optnames,
-                ['true', 'twelve', '6', 'quux']))
-
-    def test_choice_default(self):
-        '''Ensure we can parse a default choice argument.'''
-        self.assertEqual(self.options.parse(self.optnames,
-                ['true', 'twelve', '6', 'baz']), {
-            'bool': True,
-            'str': 'twelve',
-            'number': 6.0,
-            'choice': 'baz',
-        })
 
 
 if __name__ == '__main__':

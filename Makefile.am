@@ -23,7 +23,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/dataretriever/pyramid.py \
 	opendiamond/dataretriever/util.py \
 	opendiamond/filter/__init__.py \
-	opendiamond/filter/options.py \
+	opendiamond/filter/parameters.py \
 	opendiamond/scopeserver/__init__.py \
 	opendiamond/scopeserver/core/__init__.py \
 	opendiamond/scopeserver/core/urls.py \
@@ -75,7 +75,6 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	tools/cookiecutter \
 	tools/dataretriever \
 	tools/diamondd \
-	tools/diamond-bundle-python \
 	tools/diamond-bundle-search \
 	tools/volcano
 
@@ -110,7 +109,6 @@ uninstall-local:
 	$(RM) $(DESTDIR)$(bindir)/cookiecutter
 	$(RM) $(DESTDIR)$(bindir)/dataretriever
 	$(RM) $(DESTDIR)$(bindir)/diamondd
-	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-python
 	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-search
 
 clean-local:

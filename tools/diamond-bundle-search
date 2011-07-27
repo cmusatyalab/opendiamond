@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser.add_option('-o', dest='outfile', metavar='outfile',
             help='path to output file')
     opts, args = parser.parse_args()
-    if len(args) != 1:
+    if len(args) < 1:
         parser.error('no manifest specified')
     manifest = args.pop(0)
     outfile = opts.outfile

@@ -23,6 +23,8 @@ from zipfile import ZipFile
 
 from opendiamond.bundle import BUNDLE_NS, element, format_manifest
 
+EXAMPLE_DIR = 'examples'
+
 class Session(object):
     '''Represents the Diamond search session.'''
     def __init__(self, filter_name, conn=None):
@@ -76,6 +78,9 @@ class Filter(object):
     # set to a ZipFile object.
     # Otherwise, self.blob will be set to the blob data.
     blob_format = None
+    # Set to True to decode example images from the blob argument and set
+    # self.examples to a list of PIL.Image.
+    load_examples = False
 
     def __init__(self, args, blob, session=Session('filter')):
         '''Called to initialize the filter.  After a subclass calls the
@@ -99,6 +104,16 @@ class Filter(object):
             self.blob = ZipFile(StringIO(blob), 'r')
         else:
             self.blob = blob
+        if self.load_examples:
+            self.examples = []
+            zf = ZipFile(StringIO(blob), 'r')
+            for path in zf.namelist():
+                if (path.startswith(EXAMPLE_DIR + '/') and
+                                    not path.endswith('/')):
+                    # We don't use zf.open() because it would cause all
+                    # Images to share the same file offset pointer
+                    data = zf.read(path)
+                    self.examples.append(PIL.Image.open(StringIO(data)))
         self.session = session
 
     def __call__(self, object):

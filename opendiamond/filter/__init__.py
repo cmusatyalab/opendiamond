@@ -12,12 +12,14 @@
 #
 
 from __future__ import with_statement
+from cStringIO import StringIO
 import os
 import PIL.Image
 import struct
 import sys
 from tempfile import mkstemp
 import threading
+from zipfile import ZipFile
 
 from opendiamond.bundle import BUNDLE_NS, element, format_manifest
 
@@ -68,9 +70,12 @@ class Filter(object):
     # attributes to store the arguments in.  For example, argument 0 will be
     # stored in a Filter attribute named by params[0].
     params = ()
-    # Set to True if the blob argument is a Python egg that should be added
-    # to sys.path.
-    blob_is_egg = False
+    # Set to "egg" if the blob argument is a Python egg that should be added
+    # to sys.path.  In this case, self.blob is set to None.
+    # Set to "zip" if the blob argument is a Zip file.  self.blob will be
+    # set to a ZipFile object.
+    # Otherwise, self.blob will be set to the blob data.
+    blob_format = None
 
     def __init__(self, args, blob, session=Session('filter')):
         '''Called to initialize the filter.  After a subclass calls the
@@ -81,7 +86,7 @@ class Filter(object):
             raise ValueError('Incorrect argument list length')
         for param, arg in zip(self.params, args):
             setattr(self, str(param), param.parse(arg))
-        if self.blob_is_egg:
+        if self.blob_format == 'egg':
             # NamedTemporaryFile always deletes the file on close on
             # Python 2.5, so we can't use it
             fd, name = mkstemp(prefix='filter-', suffix='.egg')
@@ -90,6 +95,8 @@ class Filter(object):
             egg.close()
             sys.path.append(name)
             self.blob = None
+        elif self.blob_format == 'zip':
+            self.blob = ZipFile(StringIO(blob), 'r')
         else:
             self.blob = blob
         self.session = session

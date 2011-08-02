@@ -112,10 +112,10 @@ def object_app(environ, start_response):
         im = Image.open(input_stream)
         new_image = im.crop((0, 0, img_width, img_height))
         result = StringIO()
-        new_image.save(result, "PPM")
+        new_image.save(result, "PNG")
         content_length = result.tell()
         result.seek(0)
-        content_type = "image/x-portable-anymap"
+        content_type = "image/png"
     else:
         result = obj
         content_type = obj.headers['Content-Type']

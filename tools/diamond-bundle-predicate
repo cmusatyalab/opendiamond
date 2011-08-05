@@ -13,8 +13,9 @@
 #
 
 import os
-from opendiamond.bundle import bundle_generic
+from opendiamond.bundle import bundle_generic, BUNDLE_NS
 from optparse import OptionParser
+from xml.etree import ElementTree
 
 if __name__ == '__main__':
     parser = OptionParser(
@@ -26,14 +27,24 @@ if __name__ == '__main__':
     opts, args = parser.parse_args()
     if len(args) < 1:
         parser.error('no manifest specified')
-    manifest = args.pop(0)
-    outfile = opts.outfile
-    if outfile is None:
-        outfile = os.path.splitext(manifest)[0] + '.pred'
-    filemap = dict((os.path.basename(a), a) for a in args)
 
     try:
+        manifest = args.pop(0)
         data = open(manifest).read()
+        element = ElementTree.fromstring(data)
+        nsroot = '{' + BUNDLE_NS + '}'
+        if element.tag == nsroot + 'predicate':
+            suffix = '.pred'
+        elif element.tag == nsroot + 'codec':
+            suffix = '.codec'
+        else:
+            raise Exception('Unknown root element ' + element.tag)
+
+        outfile = opts.outfile
+        if outfile is None:
+            outfile = os.path.splitext(manifest)[0] + suffix
+        filemap = dict((os.path.basename(a), a) for a in args)
+
         bundle_generic(outfile, data, filemap)
     except Exception, e:
         parser.error(str(e))

@@ -19,7 +19,7 @@ from optparse import OptionParser
 if __name__ == '__main__':
     parser = OptionParser(
         usage='%prog [-h] [-o outfile] manifest files...',
-        description='Package an OpenDiamond search into a search bundle.',
+        description='Package an OpenDiamond predicate or codec.',
     )
     parser.add_option('-o', dest='outfile', metavar='outfile',
             help='path to output file')
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     manifest = args.pop(0)
     outfile = opts.outfile
     if outfile is None:
-        outfile = os.path.splitext(manifest)[0] + '.search'
+        outfile = os.path.splitext(manifest)[0] + '.pred'
     filemap = dict((os.path.basename(a), a) for a in args)
 
     try:

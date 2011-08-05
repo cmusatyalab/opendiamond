@@ -75,7 +75,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	tools/cookiecutter \
 	tools/dataretriever \
 	tools/diamondd \
-	tools/diamond-bundle-search \
+	tools/diamond-bundle-predicate \
 	tools/volcano
 
 # Once pylint 0.24 becomes widely available, this should be replaced with
@@ -109,7 +109,7 @@ uninstall-local:
 	$(RM) $(DESTDIR)$(bindir)/cookiecutter
 	$(RM) $(DESTDIR)$(bindir)/dataretriever
 	$(RM) $(DESTDIR)$(bindir)/diamondd
-	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-search
+	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-predicate
 
 clean-local:
 	$(RM) -r build

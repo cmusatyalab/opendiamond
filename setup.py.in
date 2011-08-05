@@ -40,7 +40,7 @@ setup(
 	'@srcdir@/tools/cookiecutter',
 	'@srcdir@/tools/dataretriever',
 	'@srcdir@/tools/diamondd',
-	'@srcdir@/tools/diamond-bundle-search',
+	'@srcdir@/tools/diamond-bundle-predicate',
 	# volcano is not installed
     ],
     package_dir = { '': '@srcdir@' },

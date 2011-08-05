@@ -65,26 +65,27 @@ def format_manifest(root):
 
 
 def bundle_generic(out, manifest, files):
-    '''Write a search bundle to the file specified in out.  manifest is the
-    XML manifest for the bundle as a string.  files is a dict of
+    '''Write a predicate or codec bundle to the file specified in out.  Codec
+    bundles must have a ".codec" extension; predicates ".pred".  manifest is
+    the XML manifest for the bundle as a string.  files is a dict of
     filename => path pairs.'''
     zip = zipfile.ZipFile(out, mode='w', compression=zipfile.ZIP_DEFLATED)
-    zip.writestr('opendiamond-search.xml', manifest)
+    zip.writestr('opendiamond-bundle.xml', manifest)
     for name, path in files.iteritems():
         zip.write(path, name)
     zip.close()
 
 
 def bundle_macro(out, display_name, filter, arguments, files):
-    '''Produce a basic search bundle wrapping a macro to be interpreted by
+    '''Produce a basic predicate bundle wrapping a macro to be interpreted by
     the specified filter (such as fil_imagej_exec or fil_matlab_exec).
-    The only search options will be the minimum and maximum scores (ranging
+    The only predicate options will be the minimum and maximum scores (ranging
     from 0 to 100), both of which will be optional.  The specified list of
     constant arguments will be passed to the filter.  The blob argument will
     be a Zip file containing the specified files under their original names.
-    The search will depend on the RGB filter.'''
+    The predicate will depend on the RGB filter.'''
     filemap = dict((os.path.basename(f), f) for f in files)
-    manifest = element('search',
+    manifest = element('predicate',
         element('options',
             element('numberOption', displayName='Minimum score',
                     name='minScore', default=1, min=0, max=100, step=.05,

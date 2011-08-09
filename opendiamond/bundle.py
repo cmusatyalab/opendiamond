@@ -17,15 +17,16 @@ from lxml.etree import Element, ParseError
 import zipfile
 
 BUNDLE_NS = 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1'
+BUNDLE_NS_PFX = '{' + BUNDLE_NS + '}'
 
 class InvalidManifest(Exception):
     pass
 
 
 def element(element_name, *children, **attrs):
-    '''Return an XML element with the specified name, attributes, and
-    children.'''
-    el = Element(element_name)
+    '''Return an XML element in the bundle namespace with the specified
+    name, attributes, and children.'''
+    el = Element(BUNDLE_NS_PFX + element_name, nsmap={None: BUNDLE_NS})
     for k, v in attrs.iteritems():
         # Allow caller to specify an attribute value of None to skip the
         # attribute
@@ -118,7 +119,6 @@ def bundle_macro(out, display_name, filter, arguments, files):
                 code=filter,
             ),
         ),
-        xmlns=BUNDLE_NS,
         displayName=display_name,
     )
     bundle_generic(out, root, filemap)

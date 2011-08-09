@@ -12,7 +12,7 @@
 #
 
 import os
-from opendiamond.bundle import bundle_generic, parse_manifest, BUNDLE_NS
+from opendiamond.bundle import bundle_generic, parse_manifest, BUNDLE_NS_PFX
 from optparse import OptionParser
 
 if __name__ == '__main__':
@@ -29,10 +29,9 @@ if __name__ == '__main__':
     try:
         manifest = args.pop(0)
         element = parse_manifest(open(manifest).read())
-        nsroot = '{' + BUNDLE_NS + '}'
-        if element.tag == nsroot + 'predicate':
+        if element.tag == BUNDLE_NS_PFX + 'predicate':
             suffix = '.pred'
-        elif element.tag == nsroot + 'codec':
+        elif element.tag == BUNDLE_NS_PFX + 'codec':
             suffix = '.codec'
         else:
             raise Exception('Unknown root element ' + element.tag)

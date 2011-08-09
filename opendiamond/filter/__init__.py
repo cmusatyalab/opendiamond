@@ -20,8 +20,6 @@ from tempfile import mkstemp
 import threading
 from zipfile import ZipFile
 
-from opendiamond.bundle import BUNDLE_NS, element, format_manifest
-
 EXAMPLE_DIR = 'examples'
 
 class Session(object):

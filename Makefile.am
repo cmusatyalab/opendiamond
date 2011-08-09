@@ -8,6 +8,8 @@ pkgconfig_DATA = opendiamond.pc
 EXTRA_DIST = CREDITS LICENSE INSTALL \
 	setup.py \
 	pylintrc \
+	bundle/bundle.xsd \
+	bundle/bundle.xslt \
 	opendiamond/__init__.py \
 	opendiamond/bundle.py \
 	opendiamond/config.py \

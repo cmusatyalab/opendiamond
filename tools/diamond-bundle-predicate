@@ -12,8 +12,7 @@
 #
 
 import os
-from lxml import etree
-from opendiamond.bundle import bundle_generic, BUNDLE_NS
+from opendiamond.bundle import bundle_generic, parse_manifest, BUNDLE_NS
 from optparse import OptionParser
 
 if __name__ == '__main__':
@@ -30,7 +29,7 @@ if __name__ == '__main__':
     try:
         manifest = args.pop(0)
         data = open(manifest).read()
-        element = etree.fromstring(data)
+        element = parse_manifest(data)
         nsroot = '{' + BUNDLE_NS + '}'
         if element.tag == nsroot + 'predicate':
             suffix = '.pred'

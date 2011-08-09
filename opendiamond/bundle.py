@@ -13,10 +13,14 @@
 import math
 import os
 from lxml import etree
-from lxml.etree import Element
+from lxml.etree import Element, ParseError
 import zipfile
 
 BUNDLE_NS = 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1'
+
+class InvalidManifest(Exception):
+    pass
+
 
 def element(element_name, *children, **attrs):
     '''Return an XML element with the specified name, attributes, and
@@ -56,6 +60,15 @@ def format_manifest(root):
     serialized as a string.'''
     return etree.tostring(root, encoding='UTF-8', xml_declaration=True,
                             pretty_print=True)
+
+
+def parse_manifest(data):
+    '''Given a bundle manifest as a string, parse it and return the root
+    element.  Throw InvalidManifest if there is a problem.'''
+    try:
+        return etree.fromstring(data)
+    except ParseError, e:
+        raise InvalidManifest(str(e))
 
 
 def bundle_generic(out, manifest, files):

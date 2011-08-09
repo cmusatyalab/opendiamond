@@ -20,6 +20,15 @@ class opendiamond_build_py(build_py):
 	st = os.stat(os.path.join(self.get_package_dir(''), 'configure.ac'))
 	os.utime(newfile, (st.st_atime, st.st_mtime))
 
+    def build_package_data(self):
+	build_py.build_package_data(self)
+	# Copy bundle/bundle.xsd into opendiamond package.  package_data
+	# won't do this because bundle.xsd is not in the package directory.
+	f = 'bundle.xsd'
+	src = os.path.join(self.get_package_dir(''), 'bundle', f)
+	dest = os.path.join(self.build_lib, 'opendiamond', f)
+	self.copy_file(src, dest)
+
 
 setup(
     name = "opendiamond",
@@ -45,6 +54,7 @@ setup(
     ],
     package_dir = { '': '@srcdir@' },
     package_data = {
+	# bundle/bundle.xsd is handled above
 	'opendiamond.scopeserver.core':		  [ 'templates/scopeserver/*.html', 'templates/registration/*.html', 'static/scopeserver/*' ],
 	'opendiamond.scopeserver.flickr':	  [ 'templates/scopeserver/*.html' ],
 	'opendiamond.scopeserver.gatekeeper':	  [ 'templates/scopeserver/*.html' ],

@@ -71,13 +71,13 @@ def parse_manifest(data):
         raise InvalidManifest(str(e))
 
 
-def bundle_generic(out, manifest, files):
+def bundle_generic(out, root, files):
     '''Write a predicate or codec bundle to the file specified in out.  Codec
-    bundles must have a ".codec" extension; predicates ".pred".  manifest is
-    the XML manifest for the bundle as a string.  files is a dict of
+    bundles must have a ".codec" extension; predicates ".pred".  root is the
+    root element of the XML manifest for the bundle.  files is a dict of
     filename => path pairs.'''
     zip = zipfile.ZipFile(out, mode='w', compression=zipfile.ZIP_DEFLATED)
-    zip.writestr('opendiamond-bundle.xml', manifest)
+    zip.writestr('opendiamond-bundle.xml', format_manifest(root))
     for name, path in files.iteritems():
         zip.write(path, name)
     zip.close()
@@ -92,7 +92,7 @@ def bundle_macro(out, display_name, filter, arguments, files):
     be a Zip file containing the specified files under their original names.
     The predicate will depend on the RGB filter.'''
     filemap = dict((os.path.basename(f), f) for f in files)
-    manifest = element('predicate',
+    root = element('predicate',
         element('options',
             element('numberOption', displayName='Minimum score',
                     name='minScore', default=1, min=0, max=100, step=.05,
@@ -121,4 +121,4 @@ def bundle_macro(out, display_name, filter, arguments, files):
         xmlns=BUNDLE_NS,
         displayName=display_name,
     )
-    bundle_generic(out, format_manifest(manifest), filemap)
+    bundle_generic(out, root, filemap)

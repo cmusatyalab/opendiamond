@@ -28,8 +28,7 @@ if __name__ == '__main__':
 
     try:
         manifest = args.pop(0)
-        data = open(manifest).read()
-        element = parse_manifest(data)
+        element = parse_manifest(open(manifest).read())
         nsroot = '{' + BUNDLE_NS + '}'
         if element.tag == nsroot + 'predicate':
             suffix = '.pred'
@@ -43,6 +42,6 @@ if __name__ == '__main__':
             outfile = os.path.splitext(manifest)[0] + suffix
         filemap = dict((os.path.basename(a), a) for a in args)
 
-        bundle_generic(outfile, data, filemap)
+        bundle_generic(outfile, element, filemap)
     except Exception, e:
         parser.error(str(e))

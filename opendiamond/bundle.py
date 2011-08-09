@@ -13,11 +13,20 @@
 import math
 import os
 from lxml import etree
-from lxml.etree import Element, ParseError
+from lxml.etree import DocumentInvalid, Element, ParseError
 import zipfile
 
-BUNDLE_NS = 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1'
+# pkg_resources does fancy things with exports
+# pylint: disable=E0611
+from pkg_resources import resource_string
+# pylint: enable=E0611
+
+
+_schema_doc = etree.fromstring(resource_string(__name__, "bundle.xsd"))
+_schema = etree.XMLSchema(_schema_doc)
+BUNDLE_NS = _schema_doc.get('targetNamespace')
 BUNDLE_NS_PFX = '{' + BUNDLE_NS + '}'
+
 
 class InvalidManifest(Exception):
     pass
@@ -64,11 +73,22 @@ def format_manifest(root):
 
 
 def parse_manifest(data):
-    '''Given a bundle manifest as a string, parse it and return the root
-    element.  Throw InvalidManifest if there is a problem.'''
+    '''Given a bundle manifest as a string, parse and validate it and return
+    the root element.  Raise InvalidManifest if there is a problem.'''
     try:
-        return etree.fromstring(data)
+        el = etree.fromstring(data)
+        validate_manifest(el)
+        return el
     except ParseError, e:
+        raise InvalidManifest(str(e))
+
+
+def validate_manifest(root):
+    '''Given an XML root element for a bundle manifest, validate the
+    manifest and raise InvalidManifest if there is a problem.'''
+    try:
+        _schema.assertValid(root)
+    except DocumentInvalid, e:
         raise InvalidManifest(str(e))
 
 
@@ -76,7 +96,9 @@ def bundle_generic(out, root, files):
     '''Write a predicate or codec bundle to the file specified in out.  Codec
     bundles must have a ".codec" extension; predicates ".pred".  root is the
     root element of the XML manifest for the bundle.  files is a dict of
-    filename => path pairs.'''
+    filename => path pairs.  Raise InvalidManifest if the manifest is
+    invalid.'''
+    validate_manifest(root)
     zip = zipfile.ZipFile(out, mode='w', compression=zipfile.ZIP_DEFLATED)
     zip.writestr('opendiamond-bundle.xml', format_manifest(root))
     for name, path in files.iteritems():

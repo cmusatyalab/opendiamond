@@ -10,11 +10,10 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from cStringIO import StringIO
 import math
 import os
-from xml.dom import minidom
-from xml.etree.ElementTree import ElementTree, Element
+from lxml import etree
+from lxml.etree import Element
 import zipfile
 
 BUNDLE_NS = 'http://diamond.cs.cmu.edu/xmlns/opendiamond/bundle-1'
@@ -55,12 +54,8 @@ def _xmlattr(item):
 def format_manifest(root):
     '''Given an XML root element for a bundle manifest, return the manifest
     serialized as a string.'''
-    buf = StringIO()
-    etree = ElementTree(root)
-    etree.write(buf, encoding='UTF-8', xml_declaration=True)
-    # Now run the data through minidom for pretty-printing
-    dom = minidom.parseString(buf.getvalue())
-    return dom.toprettyxml(indent='  ', encoding='UTF-8')
+    return etree.tostring(root, encoding='UTF-8', xml_declaration=True,
+                            pretty_print=True)
 
 
 def bundle_generic(out, manifest, files):

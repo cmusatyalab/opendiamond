@@ -69,12 +69,9 @@ class Filter(object):
     # attributes to store the arguments in.  For example, argument 0 will be
     # stored in a Filter attribute named by params[0].
     params = ()
-    # Set to "egg" if the blob argument is a Python egg that should be added
-    # to sys.path.  In this case, self.blob is set to None.
-    # Set to "zip" if the blob argument is a Zip file.  self.blob will be
-    # set to a ZipFile object.
-    # Otherwise, self.blob will be set to the blob data.
-    blob_format = None
+    # If False, self.blob will be set to the contents of the blob argument.
+    # If True, self.blob will be a ZipFile object wrapping the blob argument.
+    blob_is_zip = False
     # Set to True to decode example images from the blob argument and set
     # self.examples to a list of PIL.Image.
     load_examples = False
@@ -88,16 +85,7 @@ class Filter(object):
             raise ValueError('Incorrect argument list length')
         for param, arg in zip(self.params, args):
             setattr(self, str(param), param.parse(arg))
-        if self.blob_format == 'egg':
-            # NamedTemporaryFile always deletes the file on close on
-            # Python 2.5, so we can't use it
-            fd, name = mkstemp(prefix='filter-', suffix='.egg')
-            egg = os.fdopen(fd, 'r+')
-            egg.write(blob)
-            egg.close()
-            sys.path.append(name)
-            self.blob = None
-        elif self.blob_format == 'zip':
+        if self.blob_is_zip:
             self.blob = ZipFile(StringIO(blob), 'r')
         else:
             self.blob = blob
@@ -117,6 +105,23 @@ class Filter(object):
         '''Called once for each object to be evaluated.  Returns the Diamond
         search score.'''
         raise NotImplementedError()
+
+    def load_egg(self, module=None, globals=None, data=None):
+        '''Treat data as the contents of an egg and add it to the Python
+        path.  If data is not specified, self.blob will be used.  As a
+        convenience, if module is specified, it will be added to the
+        specified globals, which should be set to globals().'''
+        if data is None:
+            data = self.blob
+        # NamedTemporaryFile always deletes the file on close on
+        # Python 2.5, so we can't use it
+        fd, name = mkstemp(prefix='filter-', suffix='.egg')
+        egg = os.fdopen(fd, 'r+')
+        egg.write(data)
+        egg.close()
+        sys.path.append(name)
+        if module is not None:
+            globals[module] = __import__(module, level=0)
 
     @classmethod
     def run(cls, classes=None, argv=sys.argv):

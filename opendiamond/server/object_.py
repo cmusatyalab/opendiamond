@@ -14,11 +14,13 @@
 
 from cStringIO import StringIO
 import pycurl as curl
-from urlparse import urlparse
+from urlparse import urljoin, urlparse
+import simplejson as json
 
 from opendiamond.helpers import md5
 from opendiamond.server.protocol import XDR_attribute, XDR_object
 
+ATTR_HEADER_URL = 'x-attributes'
 ATTR_HEADER_PREFIX = 'x-attr-'
 # Object attributes handled directly by the server
 ATTR_DATA = ''
@@ -197,14 +199,45 @@ class ObjectLoader(object):
             raise ObjectLoadError(e[1])
         # Load the object data
         obj[ATTR_DATA] = self._body.getvalue()
-        # Process initial attributes
+        # Process loose initial attributes
         for key, value in self._headers.iteritems():
             if key.lower().startswith(ATTR_HEADER_PREFIX):
                 key = key.replace(ATTR_HEADER_PREFIX, '', 1)
                 obj[key] = value + '\0'
+        # Look for URL giving additional initial attributes
+        if ATTR_HEADER_URL in self._headers:
+            attr_url = urljoin(url, self._headers[ATTR_HEADER_URL])
+        else:
+            attr_url = None
         # Release fetched data
         self._headers = {}
         self._body = StringIO()
+        # Fetch additional initial attributes if specified
+        if attr_url is not None:
+            self._load_attributes(obj, attr_url)
+
+    # The return type of json.loads() confuses pylint
+    # pylint: disable=E1103
+    def _load_attributes(self, obj, url):
+        '''Load JSON-encoded attribute data from the specified URL.'''
+        self._curl.setopt(curl.URL, url)
+        try:
+            self._curl.perform()
+        except curl.error, e:
+            raise ObjectLoadError(e[1])
+        # Load attribute data
+        try:
+            attrs = json.loads(self._body.getvalue())
+            if not isinstance(attrs, dict):
+                raise ObjectLoadError("Failed to retrieve object attributes")
+        except ValueError, e:
+            raise ObjectLoadError(str(e))
+        for k, v in attrs.iteritems():
+            obj[k] = str(v) + '\0'
+        # Release fetched data
+        self._headers = {}
+        self._body = StringIO()
+    # pylint: enable=E1103
 
     def _handle_header(self, hdr):
         hdr = hdr.rstrip('\r\n')

@@ -135,12 +135,11 @@ class Object(EmptyObject):
         self._signatures[key] = md5(value).hexdigest()
 
 
-class ObjectLoader(object):
-    '''A context for populating an Object from the dataretriever.  Allows a
-    single HTTP connection to be reused to fetch multiple objects.  Must not
-    be used by more than one thread.'''
+class _HttpLoader(object):
+    '''A context for loading Object data via HTTP.  Caches and reuses HTTP
+    connections.  Must not be used by more than one thread.'''
 
-    def __init__(self, config, blob_cache):
+    def __init__(self, config):
         self._curl = curl.Curl()
         self._curl.setopt(curl.NOSIGNAL, 1)
         self._curl.setopt(curl.FAILONERROR, 1)
@@ -151,6 +150,43 @@ class ObjectLoader(object):
         self._curl.setopt(curl.WRITEFUNCTION, self._handle_body)
         self._headers = {}
         self._body = StringIO()
+
+    def get(self, url):
+        '''Fetch the specified URL and return (header_dict, body).'''
+        # Perform the fetch
+        self._curl.setopt(curl.URL, url)
+        try:
+            self._curl.perform()
+        except curl.error, e:
+            raise ObjectLoadError(e[1])
+        # Localize fetched data and release this object's copy
+        headers = self._headers
+        self._headers = {}
+        body = self._body.getvalue()
+        self._body = StringIO()
+        return (headers, body)
+
+    def _handle_header(self, hdr):
+        hdr = hdr.rstrip('\r\n')
+        if hdr.startswith('HTTP/'):
+            # New HTTP status line, discard existing headers
+            self._headers = {}
+        elif hdr != '':
+            # This is simplistic.
+            key, value = hdr.split(': ', 1)
+            self._headers[key] = value
+
+    def _handle_body(self, data):
+        self._body.write(data)
+
+
+class ObjectLoader(object):
+    '''A context for populating an Object from the dataretriever.  Allows
+    network connections to be reused to fetch multiple objects.  Must not
+    be used by more than one thread.'''
+
+    def __init__(self, config, blob_cache):
+        self._http = _HttpLoader(config)
         self._blob_cache = blob_cache
 
     # pylint has trouble with ParseResult, pylint #8766
@@ -192,62 +228,30 @@ class ObjectLoader(object):
             raise ObjectLoadError('Object not in cache')
 
     def _load_dataretriever(self, obj, url):
-        self._curl.setopt(curl.URL, url)
-        try:
-            self._curl.perform()
-        except curl.error, e:
-            raise ObjectLoadError(e[1])
+        headers, body = self._http.get(url)
         # Load the object data
-        obj[ATTR_DATA] = self._body.getvalue()
+        obj[ATTR_DATA] = body
         # Process loose initial attributes
-        for key, value in self._headers.iteritems():
+        for key, value in headers.iteritems():
             if key.lower().startswith(ATTR_HEADER_PREFIX):
                 key = key.replace(ATTR_HEADER_PREFIX, '', 1)
                 obj[key] = value + '\0'
-        # Look for URL giving additional initial attributes
-        if ATTR_HEADER_URL in self._headers:
-            attr_url = urljoin(url, self._headers[ATTR_HEADER_URL])
-        else:
-            attr_url = None
-        # Release fetched data
-        self._headers = {}
-        self._body = StringIO()
         # Fetch additional initial attributes if specified
-        if attr_url is not None:
+        if ATTR_HEADER_URL in headers:
+            attr_url = urljoin(url, headers[ATTR_HEADER_URL])
             self._load_attributes(obj, attr_url)
 
     # The return type of json.loads() confuses pylint
     # pylint: disable=E1103
     def _load_attributes(self, obj, url):
         '''Load JSON-encoded attribute data from the specified URL.'''
-        self._curl.setopt(curl.URL, url)
+        _headers, body = self._http.get(url)
         try:
-            self._curl.perform()
-        except curl.error, e:
-            raise ObjectLoadError(e[1])
-        # Load attribute data
-        try:
-            attrs = json.loads(self._body.getvalue())
+            attrs = json.loads(body)
             if not isinstance(attrs, dict):
                 raise ObjectLoadError("Failed to retrieve object attributes")
         except ValueError, e:
             raise ObjectLoadError(str(e))
         for k, v in attrs.iteritems():
             obj[k] = str(v) + '\0'
-        # Release fetched data
-        self._headers = {}
-        self._body = StringIO()
     # pylint: enable=E1103
-
-    def _handle_header(self, hdr):
-        hdr = hdr.rstrip('\r\n')
-        if hdr.startswith('HTTP/'):
-            # New HTTP status line, discard existing headers
-            self._headers = {}
-        elif hdr != '':
-            # This is simplistic.
-            key, value = hdr.split(': ', 1)
-            self._headers[key] = value
-
-    def _handle_body(self, data):
-        self._body.write(data)

@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
         outfile = opts.outfile
         if outfile is None:
-            outfile = os.path.splitext(manifest)[0] + suffix
+            outfile = os.path.splitext(os.path.basename(manifest))[0] + suffix
         filemap = dict((os.path.basename(a), a) for a in args)
 
         bundle_generic(outfile, element, filemap)

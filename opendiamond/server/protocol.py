@@ -52,16 +52,15 @@ class XDR_attribute(XDREncodable):
 
 class XDR_object(XDREncodable):
     '''Blast channel object data; reply only'''
-    def __init__(self, search_id, obj, attrs):
+    def __init__(self, search_id, attrs):
         '''attrs is a list of XDR_attribute.'''
         XDREncodable.__init__(self)
         self.search_id = search_id
-        self.obj = obj
         self.attrs = attrs
 
     def encode(self, xdr):
         xdr.pack_uint(self.search_id)
-        xdr.pack_opaque(self.obj)
+        xdr.pack_opaque('')  # was object data, now stored in attrs['']
         self.encode_array(xdr, self.attrs)
 
 

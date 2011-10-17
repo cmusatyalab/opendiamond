@@ -18,6 +18,7 @@ import shutil
 import signal
 import sys
 from tempfile import mkdtemp
+import time
 
 from opendiamond.helpers import signalname
 
@@ -89,7 +90,21 @@ class _SearchChild(object):
                                 pass
                             else:
                                 killed.add(pid)
-                os.rmdir(self._cgroupdir)
+                for _i in range(3):
+                    # rmdir has been seen to return "device or resource busy"
+                    # or "interrupted system call".  The former can be
+                    # returned when there are processes remaining in a cgroup,
+                    # so this may indicate a race within the cgroup
+                    # implementation.
+                    try:
+                        os.rmdir(self._cgroupdir)
+                    except OSError:
+                        time.sleep(0.001)
+                    else:
+                        break
+                else:
+                    # Leak an empty cgroup
+                    _log.warning("Couldn't remove %s", self._cgroupdir)
                 _log.info('PID %d exiting, killed %d processes', self.pid,
                                         len(killed))
             else:

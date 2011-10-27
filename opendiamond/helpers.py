@@ -17,7 +17,9 @@ import logging
 import os
 import resource
 import signal
+import sys
 from threading import Lock
+from urlparse import urlparse
 
 _log = logging.getLogger(__name__)
 
@@ -107,3 +109,16 @@ try:
 except ImportError, _e:
     connection_ok = _DummyTcpWrappers(str(_e))
 # pylint: enable=C0103
+
+
+# urlparse wrapper to handle http://bugs.python.org/issue11467
+# URIs starting with md5:[0-9] would fail in Python 2.7.1
+# pylint has trouble with ParseResult, pylint #8766
+# pylint: disable=E1101
+def split_scheme(url):
+    if sys.version_info[0:3] == (2, 7, 1) and url.startswith('md5:'):
+        return url.split(':')
+    else:
+        parts = urlparse(url)
+        return (parts.scheme, parts.path)
+# pylint: enable=E1101

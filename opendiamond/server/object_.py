@@ -14,10 +14,10 @@
 
 from cStringIO import StringIO
 import pycurl as curl
-from urlparse import urljoin, urlparse
+from urlparse import urljoin
 import simplejson as json
 
-from opendiamond.helpers import md5
+from opendiamond.helpers import md5, split_scheme
 from opendiamond.server.protocol import XDR_attribute, XDR_object
 
 ATTR_HEADER_URL = 'x-attributes'
@@ -183,36 +183,30 @@ class ObjectLoader(object):
         self._http = _HttpLoader(config)
         self._blob_cache = blob_cache
 
-    # pylint has trouble with ParseResult, pylint #8766
-    # pylint: disable=E1101
     def source_available(self, obj):
         '''Examine the Object and return whether we think we will be able
         to load it, without actually doing so.  This can be used during
         reexecution to determine whether we should return
         DiamondRPCFCacheMiss to the client.'''
-        parts = urlparse(str(obj))
-        if parts.scheme == 'md5':
-            return parts.path in self._blob_cache
+        scheme, path = split_scheme(str(obj))
+        if scheme == 'md5':
+            return path in self._blob_cache
         else:
             # Assume we can always load other types of URLs
             return True
-    # pylint: enable=E1101
 
-    # pylint has trouble with ParseResult, pylint #8766
-    # pylint: disable=E1101
     def load(self, obj):
         '''Retrieve the Object and update it with the information we
         receive.'''
         uri = str(obj)
-        parts = urlparse(uri)
-        if parts.scheme == 'md5':
-            self._load_blobcache(obj, parts.path)
+        scheme, path = split_scheme(uri)
+        if scheme == 'md5':
+            self._load_blobcache(obj, path)
         else:
             self._load_dataretriever(obj, uri)
         # Set display name if not already in initial attributes
         if ATTR_DISPLAY_NAME not in obj:
             obj[ATTR_DISPLAY_NAME] = uri + '\0'
-    # pylint: enable=E1101
 
     def _load_blobcache(self, obj, signature):
         # Load the object data

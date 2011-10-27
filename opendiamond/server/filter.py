@@ -64,9 +64,8 @@ import signal
 import simplejson as json
 import subprocess
 import threading
-from urlparse import urlparse
 
-from opendiamond.helpers import md5, signalname
+from opendiamond.helpers import md5, signalname, split_scheme
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
@@ -470,13 +469,11 @@ class Filter(object):
         self.blob = blob
         self._digest_prefix = digest_prefix
 
-    # pylint has trouble with ParseResult, pylint #8766
-    # pylint: disable=E1101
     def _resolve_code(self, state):
         '''Returns (code_path, signature).'''
-        parts = urlparse(self.code_source)
-        if parts.scheme == 'md5':
-            sig = parts.path
+        scheme, path = split_scheme(self.code_source)
+        if scheme == 'md5':
+            sig = path
             try:
                 return (state.blob_cache.executable_path(sig), sig)
             except KeyError:
@@ -484,37 +481,30 @@ class Filter(object):
                                         self.name)
         else:
             raise FilterUnsupportedSource()
-    # pylint: enable=E1101
 
-    # pylint has trouble with ParseResult, pylint #8766
-    # pylint: disable=E1101
     def _resolve_blob(self, state):
         '''Returns blob data.'''
-        parts = urlparse(self.blob_source)
-        if parts.scheme == 'md5':
+        scheme, path = split_scheme(self.blob_source)
+        if scheme == 'md5':
             try:
-                return state.blob_cache[parts.path]
+                return state.blob_cache[path]
             except KeyError:
                 raise FilterDependencyError('Missing blob for filter ' +
                                         self.name)
         else:
             raise FilterUnsupportedSource()
-    # pylint: enable=E1101
 
-    # pylint has trouble with ParseResult, pylint #8766
-    # pylint: disable=E1101
     @classmethod
     def source_available(cls, state, uri):
         '''Verify the URI to ensure that its data is accessible.  Return
         True if we can access the data, False if we can't and should inform
         the client to that effect.  Raise FilterUnsupportedSource if we don't
         support the URI scheme.'''
-        parts = urlparse(uri)
-        if parts.scheme == 'md5':
-            return parts.path in state.blob_cache
+        scheme, path = split_scheme(uri)
+        if scheme == 'md5':
+            return path in state.blob_cache
         else:
             raise FilterUnsupportedSource()
-    # pylint: enable=E1101
 
     def bind(self, state):
         '''Return a _FilterRunner for this filter.'''

@@ -195,6 +195,7 @@ class ConnListener(object):
         try:
             while True:
                 sock, addr = lsock.accept()
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
                 host = addr[0]
                 if connection_ok('diamondd', host):
                     pconn = _PendingConn(sock, host)

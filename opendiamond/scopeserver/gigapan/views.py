@@ -86,7 +86,7 @@ def browse(request):
             except HTTPError:
                 ids = []
         else:
-            url = "http://gigapan.org/gigapans/page/1/matching/"
+            url = "http://api.gigapan.org/beta/gigapans/page/1/matching/"
             url += "%s/most_popular.json" % quote_plus(query)
             text = str(urlopen(url).read())
             data = json.loads(text)

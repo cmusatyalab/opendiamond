@@ -124,7 +124,7 @@ class Filter(object):
             globals[module] = __import__(module, level=0)
 
     @classmethod
-    def run(cls, classes=None, argv=sys.argv):
+    def run(cls, classes=None, argv=None):
         '''Try to run the filter.  Returns True if we did something,
         False if not.
 
@@ -133,6 +133,8 @@ class Filter(object):
         specify the name of the class that should be executed during this
         run of the program.  That argument will be stripped from the
         argument list before it is given to the filter.'''
+        if argv is None:
+            argv = sys.argv
         if '--filter' in argv:
             cls._run_loop(classes)
             return True

@@ -1,4 +1,4 @@
-# The contents of this file will be overwritten by setup.py during
-# "make install".
+# This file is here for pylint, and is not installed.  Makefile.am
+# generates the installed version including the version number.
 
 __version__ = 'UNSPECIFIED'

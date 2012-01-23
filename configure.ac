@@ -67,6 +67,5 @@ libfilter/Makefile
 newscope/Makefile
 tests/Makefile
 opendiamond.pc
-setup.py
 ])
 AC_OUTPUT

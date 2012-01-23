@@ -5,12 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opendiamond.pc
 
-EXTRA_DIST = CREDITS LICENSE INSTALL \
-	setup.py \
-	pylintrc \
-	bundle/bundle.xsd \
-	bundle/bundle.xslt \
-	opendiamond/__init__.py \
+nobase_python_PYTHON = \
 	opendiamond/bundle.py \
 	opendiamond/config.py \
 	opendiamond/helpers.py \
@@ -30,13 +25,6 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/scopeserver/core/__init__.py \
 	opendiamond/scopeserver/core/urls.py \
 	opendiamond/scopeserver/core/views.py \
-	opendiamond/scopeserver/core/static/scopeserver/base.css \
-	opendiamond/scopeserver/core/static/scopeserver/jquery.js \
-	opendiamond/scopeserver/core/static/scopeserver/style.css \
-	opendiamond/scopeserver/core/templates/registration/login.html \
-	opendiamond/scopeserver/core/templates/scopeserver/base.html \
-	opendiamond/scopeserver/core/templates/scopeserver/home.html \
-	opendiamond/scopeserver/core/templates/scopeserver/simple_form.html \
 	opendiamond/scopeserver/flickr/__init__.py \
 	opendiamond/scopeserver/flickr/forms.py \
 	opendiamond/scopeserver/flickr/models.py \
@@ -48,15 +36,11 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/scopeserver/gatekeeper/models.py \
 	opendiamond/scopeserver/gatekeeper/urls.py \
 	opendiamond/scopeserver/gatekeeper/views.py \
-	opendiamond/scopeserver/gatekeeper/templates/scopeserver/gatekeeper.html \
-	opendiamond/scopeserver/gatekeeper/templates/scopeserver/gatekeeper_manage.html \
 	opendiamond/scopeserver/gigapan/__init__.py \
 	opendiamond/scopeserver/gigapan/forms.py \
 	opendiamond/scopeserver/gigapan/models.py \
 	opendiamond/scopeserver/gigapan/urls.py \
 	opendiamond/scopeserver/gigapan/views.py \
-	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_browse.html \
-	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_search.html \
 	opendiamond/scopeserver/mirage/__init__.py \
 	opendiamond/scopeserver/mirage/forms.py \
 	opendiamond/scopeserver/mirage/models.py \
@@ -73,11 +57,36 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 	opendiamond/server/scopelist.py \
 	opendiamond/server/search.py \
 	opendiamond/server/sessionvars.py \
-	opendiamond/server/statistics.py \
+	opendiamond/server/statistics.py
+
+noinst_PYTHON = \
+	opendiamond/__init__.py
+
+nobase_dist_python_DATA = \
+	opendiamond/scopeserver/core/static/scopeserver/base.css \
+	opendiamond/scopeserver/core/static/scopeserver/jquery.js \
+	opendiamond/scopeserver/core/static/scopeserver/style.css \
+	opendiamond/scopeserver/core/templates/registration/login.html \
+	opendiamond/scopeserver/core/templates/scopeserver/base.html \
+	opendiamond/scopeserver/core/templates/scopeserver/home.html \
+	opendiamond/scopeserver/core/templates/scopeserver/simple_form.html \
+	opendiamond/scopeserver/gatekeeper/templates/scopeserver/gatekeeper.html \
+	opendiamond/scopeserver/gatekeeper/templates/scopeserver/gatekeeper_manage.html \
+	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_browse.html \
+	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_search.html
+
+dist_pkgpython_DATA = \
+	bundle/bundle.xsd
+
+dist_bin_SCRIPTS = \
 	tools/cookiecutter \
 	tools/dataretriever \
 	tools/diamondd \
-	tools/diamond-bundle-predicate \
+	tools/diamond-bundle-predicate
+
+EXTRA_DIST = CREDITS LICENSE INSTALL \
+	pylintrc \
+	bundle/bundle.xslt \
 	tools/volcano
 
 # Once pylint 0.24 becomes widely available, this should be replaced with
@@ -91,9 +100,6 @@ PYLINT_MODULES = \
 	opendiamond.server \
 	opendiamond.test
 
-all-local: setup.py $(EXTRA_DIST)
-	$(PYTHON) setup.py build
-
 check-local:
 	@# Fail on serious pylint errors
 	PYTHONPATH=$(srcdir) \
@@ -103,15 +109,11 @@ check-local:
 		$(PYTHON) $(srcdir)/opendiamond/test.py
 
 install-exec-local:
-	$(PYTHON) setup.py install --prefix=$(DESTDIR)$(prefix)
-
-uninstall-local:
-	$(RM) $(DESTDIR)$(pythondir)/opendiamond*.egg-info
-	$(RM) -r $(DESTDIR)$(pythondir)/opendiamond
-	$(RM) $(DESTDIR)$(bindir)/cookiecutter
-	$(RM) $(DESTDIR)$(bindir)/dataretriever
-	$(RM) $(DESTDIR)$(bindir)/diamondd
-	$(RM) $(DESTDIR)$(bindir)/diamond-bundle-predicate
-
-clean-local:
-	$(RM) -r build
+	@# Fabricate opendiamond/__init__.py containing the software version
+	$(MKDIR_P) $(DESTDIR)/$(pkgpythondir)
+	echo "__version__ = '$(VERSION)'" > $(DESTDIR)$(pkgpythondir)/__init__.py
+	@# Set the __init__.py utimes to those of configure.ac to prevent
+	@# file conflicts when installing both 32-bit and 64-bit RPM packages.
+	@# Using configure.ac as the source file ensures that __init__.pyc
+	@# is updated when the software version changes.
+	touch -r $(top_srcdir)/configure.ac $(DESTDIR)$(pkgpythondir)/__init__.py

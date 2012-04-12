@@ -15,7 +15,7 @@
 # XDR classes are oddly named for consistency with OpenDiamond-Java
 # pylint: disable=C0103
 
-from opendiamond.server.rpc import XDREncodable, RPCError, RPCEncodingError
+from opendiamond.rpc import XDREncodable, RPCError, RPCEncodingError
 
 MAX_ATTRIBUTE_NAME = 256
 MAX_FILTER_NAME = 128

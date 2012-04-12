@@ -18,7 +18,7 @@ from urlparse import urljoin
 import simplejson as json
 
 from opendiamond.helpers import md5, split_scheme
-from opendiamond.server.protocol import XDR_attribute, XDR_object
+from opendiamond.protocol import XDR_attribute, XDR_object
 
 ATTR_HEADER_URL = 'x-attributes'
 ATTR_HEADER_PREFIX = 'x-attr-'

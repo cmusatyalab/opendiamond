@@ -17,7 +17,7 @@ import logging
 import threading
 import time
 
-from opendiamond.server.protocol import XDR_search_stats, XDR_filter_stats
+from opendiamond.protocol import XDR_search_stats, XDR_filter_stats
 
 _log = logging.getLogger(__name__)
 

@@ -66,8 +66,8 @@ import subprocess
 import threading
 
 from opendiamond.helpers import md5, signalname, split_scheme
+from opendiamond.rpc import ConnectionFailure
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
-from opendiamond.server.rpc import ConnectionFailure
 from opendiamond.server.statistics import FilterStatistics, Timer
 
 ATTR_FILTER_SCORE = '_filter.%s_score'	# arg: filter name

@@ -15,17 +15,15 @@
 from functools import wraps
 import logging
 
+from opendiamond import protocol
+from opendiamond.protocol import (DiamondRPCFailure, DiamondRPCFCacheMiss,
+        DiamondRPCCookieExpired, DiamondRPCSchemeNotSupported)
+from opendiamond.rpc import RPCHandlers, RPCError, RPCProcedureUnavailable
 from opendiamond.scope import ScopeCookie, ScopeError, ScopeCookieExpired
 from opendiamond.server.blobcache import BlobCache
 from opendiamond.server.filter import (FilterStack, Filter,
         FilterDependencyError, FilterUnsupportedSource)
 from opendiamond.server.object_ import EmptyObject, Object, ObjectLoader
-from opendiamond.server import protocol
-from opendiamond.server.protocol import (DiamondRPCFailure,
-        DiamondRPCFCacheMiss, DiamondRPCCookieExpired,
-        DiamondRPCSchemeNotSupported)
-from opendiamond.server.rpc import (RPCHandlers, RPCError,
-        RPCProcedureUnavailable)
 from opendiamond.server.scopelist import ScopeListLoader
 from opendiamond.server.sessionvars import SessionVariables
 from opendiamond.server.statistics import SearchStatistics

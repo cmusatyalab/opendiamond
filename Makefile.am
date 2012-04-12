@@ -9,6 +9,8 @@ nobase_python_PYTHON = \
 	opendiamond/bundle.py \
 	opendiamond/config.py \
 	opendiamond/helpers.py \
+	opendiamond/protocol.py \
+	opendiamond/rpc.py \
 	opendiamond/scope.py \
 	opendiamond/test.py \
 	opendiamond/dataretriever/__init__.py \
@@ -52,8 +54,6 @@ nobase_python_PYTHON = \
 	opendiamond/server/filter.py \
 	opendiamond/server/listen.py \
 	opendiamond/server/object_.py \
-	opendiamond/server/protocol.py \
-	opendiamond/server/rpc.py \
 	opendiamond/server/scopelist.py \
 	opendiamond/server/search.py \
 	opendiamond/server/sessionvars.py \

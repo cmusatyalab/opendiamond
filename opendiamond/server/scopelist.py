@@ -64,13 +64,10 @@ class ScopeListLoader(object):
     def __iter__(self):
         return self
 
-    # Generators confuse pylint, pylint #20062
-    # pylint: disable=E1101
     def next(self):
         '''Return the next Object.'''
         with self._lock:
             return self._generator.next()
-    # pylint: enable=E1101
 
     def _generator_func(self):
         # Build URL opener

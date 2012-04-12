@@ -6,6 +6,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opendiamond.pc
 
 nobase_python_PYTHON = \
+	opendiamond/blobcache.py \
 	opendiamond/bundle.py \
 	opendiamond/config.py \
 	opendiamond/helpers.py \
@@ -49,7 +50,6 @@ nobase_python_PYTHON = \
 	opendiamond/scopeserver/mirage/urls.py \
 	opendiamond/scopeserver/mirage/views.py \
 	opendiamond/server/__init__.py \
-	opendiamond/server/blobcache.py \
 	opendiamond/server/child.py \
 	opendiamond/server/filter.py \
 	opendiamond/server/listen.py \

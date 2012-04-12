@@ -85,9 +85,9 @@ import signal
 import sys
 
 import opendiamond
+from opendiamond.blobcache import BlobCache
 from opendiamond.helpers import daemonize, signalname
 from opendiamond.rpc import RPCConnection, ConnectionFailure
-from opendiamond.server.blobcache import BlobCache
 from opendiamond.server.child import ChildManager
 from opendiamond.server.listen import ConnListener
 from opendiamond.server.search import Search

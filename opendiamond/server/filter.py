@@ -472,7 +472,7 @@ class Filter(object):
     def _resolve_code(self, state):
         '''Returns (code_path, signature).'''
         scheme, path = split_scheme(self.code_source)
-        if scheme == 'md5':
+        if scheme == state.blob_cache.digest:
             sig = path
             try:
                 return (state.blob_cache.executable_path(sig), sig)
@@ -485,7 +485,7 @@ class Filter(object):
     def _resolve_blob(self, state):
         '''Returns blob data.'''
         scheme, path = split_scheme(self.blob_source)
-        if scheme == 'md5':
+        if scheme == state.blob_cache.digest:
             try:
                 return state.blob_cache[path]
             except KeyError:
@@ -501,7 +501,7 @@ class Filter(object):
         the client to that effect.  Raise FilterUnsupportedSource if we don't
         support the URI scheme.'''
         scheme, path = split_scheme(uri)
-        if scheme == 'md5':
+        if scheme == state.blob_cache.digest:
             return path in state.blob_cache
         else:
             raise FilterUnsupportedSource()

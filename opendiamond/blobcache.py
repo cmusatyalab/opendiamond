@@ -12,13 +12,12 @@
 
 '''On-disk caching of filter code and blob arguments.'''
 
+import hashlib
 import logging
 import os
 import shutil
 from tempfile import mktemp, mkstemp, mkdtemp
 import time
-
-from opendiamond.helpers import md5
 
 GC_SUFFIX = '-'
 
@@ -52,8 +51,9 @@ class BlobCache(object):
     The second attempt should succeed since the file's mtime is current.
     '''
 
-    def __init__(self, basedir):
+    def __init__(self, basedir, digest='md5'):
         self.basedir = basedir
+        self.digest = digest
         # Ensure _executable_dir is inside the search-specific tempdir
         self._executable_dir = mkdtemp(dir=os.environ.get('TMPDIR'),
                                         prefix='executable-')
@@ -103,7 +103,9 @@ class BlobCache(object):
 
     def add(self, data):
         '''Add the specified data to the cache.'''
-        sig = md5(data).hexdigest()
+        hash = hashlib.new(self.digest)
+        hash.update(data)
+        sig = hash.hexdigest()
         # NamedTemporaryFile always deletes the file on close on Python 2.5,
         # so we can't use it
         fd, name = mkstemp(dir=self.basedir)

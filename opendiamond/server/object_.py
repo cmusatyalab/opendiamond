@@ -189,7 +189,7 @@ class ObjectLoader(object):
         reexecution to determine whether we should return
         DiamondRPCFCacheMiss to the client.'''
         scheme, path = split_scheme(str(obj))
-        if scheme == 'md5':
+        if scheme == self._blob_cache.digest:
             return path in self._blob_cache
         else:
             # Assume we can always load other types of URLs
@@ -200,7 +200,7 @@ class ObjectLoader(object):
         receive.'''
         uri = str(obj)
         scheme, path = split_scheme(uri)
-        if scheme == 'md5':
+        if scheme == self._blob_cache.digest:
             self._load_blobcache(obj, path)
         else:
             self._load_dataretriever(obj, uri)

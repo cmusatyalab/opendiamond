@@ -14,6 +14,8 @@ nobase_python_PYTHON = \
 	opendiamond/rpc.py \
 	opendiamond/scope.py \
 	opendiamond/test.py \
+	opendiamond/blaster/__init__.py \
+	opendiamond/blaster/handlers.py \
 	opendiamond/dataretriever/__init__.py \
 	opendiamond/dataretriever/diamond_store.py \
 	opendiamond/dataretriever/flickr_store.py \
@@ -63,6 +65,10 @@ noinst_PYTHON = \
 	opendiamond/__init__.py
 
 nobase_dist_python_DATA = \
+	opendiamond/blaster/static/testui/crypto-sha256.js \
+	opendiamond/blaster/static/testui/jquery.js \
+	opendiamond/blaster/static/testui/spinner.gif \
+	opendiamond/blaster/templates/testui/search.html \
 	opendiamond/scopeserver/core/static/scopeserver/base.css \
 	opendiamond/scopeserver/core/static/scopeserver/jquery.js \
 	opendiamond/scopeserver/core/static/scopeserver/style.css \
@@ -79,6 +85,7 @@ dist_pkgpython_DATA = \
 	bundle/bundle.xsd
 
 dist_bin_SCRIPTS = \
+	tools/blaster \
 	tools/cookiecutter \
 	tools/dataretriever \
 	tools/diamondd \

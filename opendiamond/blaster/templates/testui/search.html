@@ -1,0 +1,273 @@
+<!doctype html>
+<title>Diamond - JSON Blaster</title>
+<script type="text/javascript" src="{{ static_url('testui/jquery.js') }}"></script>
+<script type="text/javascript" src="{{ static_url('testui/crypto-sha256.js') }}"></script>
+
+<style type="text/css">
+.hidden {
+  display: none;
+}
+
+#filters, .filter {
+  margin-top: 2em;
+}
+
+#scope {
+  margin-top: 1em;
+}
+
+table {
+  table-layout: fixed;
+}
+
+th {
+  text-align: right;
+  padding-right: 0.5em;
+  width: 8em;
+}
+</style>
+
+<div id="prototype" class="hidden">
+  <div class="filter">
+    <table>
+      <tr><th>Name<td><input type="text" name="name" size="40">
+      <tr><th>Filter<td><input type="file" name="code"><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
+      <tr><th>Arguments<td><input class="multiple" type="text" name="arguments" size="40">
+      <tr><th>Blob argument<td><input type="file" name="blob"><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
+      <tr><th>Dependencies<td><input class="multiple" type="text" name="dependencies" size="40">
+      <tr><th>Minimum score<td><input type="text" name="min_score" size="40">
+      <tr><th>Maximum score<td><input type="text" name="max_score" size="40">
+      <tr><th><td><input class="delete" type="submit" value="Delete filter">
+    </table>
+  </div>
+</div>
+
+<input id="add" type="submit" value="Add filter">
+<input id="search" type="submit" value="Search">
+
+<table id="scope">
+  <tr><th>Scope cookie<td><input name="cookie" type="file"><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
+</table>
+
+<div id="filters">
+</div>
+
+<div id="results" style="white-space: pre">
+</div>
+
+<script type="text/javascript">
+$(function() {
+  var filterIndex = 1;
+  var pendingIO = 0;
+
+  // Start an I/O operation.
+  function _pending_inc() {
+    pendingIO++;
+    $('#search').attr('disabled', 'disabled');
+  }
+
+  // Finish an I/O operation.
+  function _pending_dec() {
+    if (!--pendingIO) {
+      $('#search').removeAttr('disabled');
+    }
+  }
+
+  // Handle loading of a scope cookie.
+  $('#scope [name=cookie]').change(function() {
+    var input = this;
+    var reader = new FileReader();
+    _pending_inc();
+    reader.onloadend = function() {
+      if (reader.error) {
+        alert('Error reading file.');
+        $(input).removeData('data');
+      } else {
+        $(input).data('data', reader.result);
+      }
+      $(input).next().hide();
+      _pending_dec();
+    }
+    $(input).next().show();
+    reader.readAsText(this.files[0]);
+  });
+
+  function _multiple_keypress_handler() {
+    // Handle the first keypress in the last field of the
+    // arguments/dependencies lists.
+    var new_row = $('<tr><th><td><input type="text" size="40">');
+    new_row.find('input').attr('name', $(this).attr('name'));
+    new_row.find('input').one('keypress', _multiple_keypress_handler);
+    $(this).closest('tr').after(new_row);
+  }
+
+  $('#add').click(function(ev) {
+    // Add a filter.
+    ev.preventDefault();
+    var form = $('#prototype').contents().clone();
+    form.find('[name=name]').attr('value', 'Filter-' + filterIndex++);
+
+    // Bind the multiple-item list fields.
+    form.find('.multiple').one('keypress', _multiple_keypress_handler);
+
+    // Bind the delete button.
+    form.find('.delete').click(function() {
+      $(this).closest('.filter').slideUp('fast', function() {
+        $(this).remove();
+      });
+    });
+
+    // Handle file selection in the filter/blob argument fields.
+    form.find('[type=file]').change(function() {
+      var input = this;
+      var file = this.files[0];
+      var reader = new FileReader();
+      _pending_inc();
+      function finish() {
+        $(input).next().hide();
+        _pending_dec();
+      }
+      reader.onloadend = function() {
+        if (reader.error) {
+          alert('Error reading file.');
+          $(input).removeData('sha256');
+          finish();
+        } else {
+          // Compute the SHA-256
+          var binary = Crypto.charenc.Binary.stringToBytes(reader.result);
+          var sha256 = Crypto.SHA256(binary)
+          $(input).data('sha256', sha256);
+
+          // See if we need to upload the blob
+          $.ajax({
+            type: 'HEAD',
+            url: '/blob/' + sha256,
+            success: function(data, textStatus, jqXHR) {
+              finish();
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              // Upload it
+              $.ajax({
+                type: 'POST',
+                url: '/blob',
+                contentType: 'application/octet-stream', 
+                data: file,
+                processData: false,
+                success: function(data, textStatus, jqXHR) {
+                  finish();
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                  alert('Error uploading file.')
+                  finish();
+                },
+              });
+            },
+          });
+        }
+      }
+      $(input).next().show();
+      reader.readAsBinaryString(file);
+    });
+
+    // Add the form to the DOM.
+    form.hide();
+    $('#filters').append(form);
+    form.slideDown('fast');
+  });
+
+  // Copy a string from a text field into an object.
+  function _load_string(out, obj, name) {
+    var value = $(obj).find('[name=' + name + ']').attr('value');
+    if (value !== '') {
+      out[name] = value;
+    }
+  }
+
+  // Copy a floating-point number from a text field into an object.
+  function _load_number(out, obj, name) {
+    var value = $(obj).find('[name=' + name + ']').attr('value');
+    if (value !== '') {
+      value = parseFloat(value);
+      if (isNaN(value)) {
+        throw 'Invalid number';
+      }
+      out[name] = value;
+    }
+  }
+
+  // Copy a list of strings from a set of text fields into an object.
+  function _load_list(out, obj, name) {
+    var list = [];
+    $(obj).find('[name=' + name + ']').each(function(i, el) {
+      var value = $(el).attr('value');
+      if (value !== '') {
+        list.push(value);
+      }
+    });
+    if (list.length) {
+      out[name] = list;
+    }
+  }
+
+  // Copy metadata on a chosen file from a file input field to an object.
+  function _load_file(out, obj, name) {
+    var sha256 = $(obj).find('[name=' + name + ']').data('sha256');
+    if (typeof sha256 !== 'undefined') {
+      out[name] = {
+        sha256: sha256,
+      };
+    }
+  }
+
+  // Handle the search button.
+  $('#search').click(function(ev) {
+    ev.preventDefault();
+
+    // Filters
+    var fconfigs = [];
+    try {
+      $('#filters').find('.filter').each(function(i, filter) {
+        var fconfig = {}
+        _load_string(fconfig, filter, 'name');
+        _load_list(fconfig, filter, 'arguments');
+        _load_list(fconfig, filter, 'dependencies');
+        _load_number(fconfig, filter, 'min_score');
+        _load_number(fconfig, filter, 'max_score');
+        _load_file(fconfig, filter, 'code');
+        _load_file(fconfig, filter, 'blob');
+        fconfigs.push(fconfig);
+      });
+    } catch (err) {
+      if (err === 'Invalid number') {
+        alert('Invalid score value.');
+      }
+      throw err;
+    }
+
+    // Cookies
+    var cookies = [];
+    var cookie_data = $('#scope [name=cookie]').data('data');
+    if (typeof cookie_data !== 'undefined') {
+      cookies.push(cookie_data);
+    }
+
+    // Start the search
+    var search = {
+      cookies: cookies,
+      filters: fconfigs,
+    };
+    $.ajax({
+      type: 'POST',
+      url: '/',
+      contentType: 'application/json', 
+      data: JSON.stringify(search),
+      success: function(data, textStatus, jqXHR) {
+        $('#results').text(data);
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        $('#results').text('Error: ' + errorThrown);
+      },
+    });
+  });
+});
+</script>

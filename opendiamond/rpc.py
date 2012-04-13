@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2011 Carnegie Mellon University
+#  Copyright (c) 2011-2012 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -15,9 +15,9 @@
 from __future__ import with_statement
 import logging
 import socket
-import struct
 import threading
-from xdrlib import Packer, Unpacker, Error as XDRError
+
+from opendiamond.xdr import XDR, XDRStruct, XDREncodingError
 
 _log = logging.getLogger(__name__)
 
@@ -35,50 +35,14 @@ class RPCProcedureUnavailable(RPCError):
     code = -3
 
 
-class XDREncodable(object):
-    '''Base class for an XDR-encodable data structure.'''
-
-    def encode(self, xdr):
-        '''Serialize the object into an XDR stream.'''
-        raise NotImplementedError()
-
-    @staticmethod
-    def encode_int(xdr, val):
-        '''Due to Python #9696, packer.pack_int() fails for negative values
-        on Python < 2.7.2.  Work around this.'''
-        xdr.pack_fstring(4, struct.pack('>i', val))
-
-    @staticmethod
-    def encode_array(xdr, items):
-        '''Packer.pack_array() is inconvenient for recursive descent.  This
-        method is more convenient.'''
-        xdr.pack_uint(len(items))
-        for item in items:
-            item.encode(xdr)
-
-
-class _RPCHeader(XDREncodable):
+class _RPCHeader(XDRStruct):
     '''An RPC message header.'''
-
-    def __init__(self, xdr=None, sequence=None, status=None, cmd=None,
-                        datalen=None):
-        XDREncodable.__init__(self)
-        if xdr is not None:
-            self.sequence = xdr.unpack_uint()
-            self.status = xdr.unpack_int()
-            self.cmd = xdr.unpack_int()
-            self.datalen = xdr.unpack_uint()
-        else:
-            self.sequence = sequence
-            self.status = status
-            self.cmd = cmd
-            self.datalen = datalen
-
-    def encode(self, xdr):
-        xdr.pack_uint(self.sequence)
-        self.encode_int(xdr, self.status)
-        self.encode_int(xdr, self.cmd)
-        xdr.pack_uint(self.datalen)
+    members = (
+        'sequence', XDR.uint(),
+        'status', XDR.int(),
+        'cmd', XDR.int(),
+        'datalen', XDR.uint(),
+    )
 
 
 class _RPCRequest(object):
@@ -120,7 +84,7 @@ class RPCConnection(object):
 
         while True:
             with self._lock:
-                hdr = _RPCHeader(xdr=Unpacker(read_bytes(16)))
+                hdr = _RPCHeader.decode(read_bytes(16))
                 data = read_bytes(hdr.datalen)
             # We only handle request traffic; ignore reply messages
             if hdr.status == RPC_PENDING:
@@ -128,11 +92,10 @@ class RPCConnection(object):
 
     def _reply(self, request, status=0, body=''):
         assert status == 0 or len(body) == 0
-        xdr = Packer()
-        request.make_reply_header(status, body).encode(xdr)
+        hdr = request.make_reply_header(status, body).encode()
         with self._lock:
             try:
-                self._sock.sendall(xdr.get_buffer() + body)
+                self._sock.sendall(hdr + body)
             except socket.error, e:
                 self._sock.close()
                 raise ConnectionFailure(str(e))
@@ -149,12 +112,10 @@ class RPCConnection(object):
                 handler_name = (handler.im_class.__name__ + '.' +
                                 handler.__name__)
                 if handler.rpc_request_class is not None:
-                    unpacker = Unpacker(req.data)
-                    req_obj = handler.rpc_request_class(xdr=unpacker)
-                    unpacker.done()
+                    req_obj = handler.rpc_request_class.decode(req.data)
             except KeyError:
                 raise RPCProcedureUnavailable()
-            except (XDRError, ValueError, EOFError, struct.error):
+            except (EOFError, XDREncodingError):
                 raise RPCEncodingError()
 
             # Call handler
@@ -169,9 +130,7 @@ class RPCConnection(object):
                 ret = ''
             else:
                 assert isinstance(ret_obj, handler.rpc_reply_class)
-                xdr = Packer()
-                ret_obj.encode(xdr)
-                ret = xdr.get_buffer()
+                ret = ret_obj.encode()
 
             # Send reply
             self._reply(req, body=ret)

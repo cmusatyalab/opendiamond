@@ -67,12 +67,13 @@ class SearchStatistics(_Statistics):
                 avg_obj_time = self.execution_ns / self.objs_processed
             except ZeroDivisionError:
                 avg_obj_time = 0
-            return XDR_search_stats([s.xdr() for s in filter_stats],
+            return XDR_search_stats(
                 objs_total=objs_total,
                 objs_processed=self.objs_processed,
                 objs_dropped=self.objs_dropped,
                 objs_nproc=self.objs_passed,
                 avg_obj_time=avg_obj_time,
+                filter_stats=[s.xdr() for s in filter_stats],
             )
 
 

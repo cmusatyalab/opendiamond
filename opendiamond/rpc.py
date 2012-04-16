@@ -37,6 +37,9 @@ class RPCProcedureUnavailable(RPCError):
 
 class RPCHeader(XDRStruct):
     '''An RPC message header.'''
+
+    ENCODED_LENGTH = 16
+
     members = (
         'sequence', XDR.uint(),
         'status', XDR.int(),
@@ -84,7 +87,7 @@ class RPCConnection(object):
 
         while True:
             with self._lock:
-                hdr = RPCHeader.decode(read_bytes(16))
+                hdr = RPCHeader.decode(read_bytes(RPCHeader.ENCODED_LENGTH))
                 data = read_bytes(hdr.datalen)
             # We only handle request traffic; ignore reply messages
             if hdr.status == RPC_PENDING:

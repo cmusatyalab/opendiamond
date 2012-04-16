@@ -21,13 +21,10 @@ import socket
 from weakref import WeakValueDictionary
 
 from opendiamond.helpers import connection_ok
+from opendiamond.protocol import PORT, NONCE_LEN, NULL_NONCE
 
 # Listen parameters
 BACKLOG = 16
-PORT = 5872
-# Nonce details
-NONCE_LEN = 16
-NULL_NONCE = '\x00' * 16
 # Connection identifiers
 CONTROL = 0
 DATA = 1

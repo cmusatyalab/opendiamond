@@ -18,6 +18,12 @@
 from opendiamond.rpc import RPCError
 from opendiamond.xdr import XDR, XDRStruct
 
+# Default port
+PORT = 5872
+# Nonce details
+NONCE_LEN = 16
+NULL_NONCE = '\x00' * NONCE_LEN
+
 MAX_ATTRIBUTE_NAME = 256
 MAX_FILTER_NAME = 128
 MAX_FILTERS = 64

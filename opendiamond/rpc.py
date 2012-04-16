@@ -35,7 +35,7 @@ class RPCProcedureUnavailable(RPCError):
     code = -3
 
 
-class _RPCHeader(XDRStruct):
+class RPCHeader(XDRStruct):
     '''An RPC message header.'''
     members = (
         'sequence', XDR.uint(),
@@ -54,7 +54,7 @@ class _RPCRequest(object):
 
     def make_reply_header(self, status, data):
         '''Return the header for an RPC reply.'''
-        return _RPCHeader(sequence=self.hdr.sequence, status=status,
+        return RPCHeader(sequence=self.hdr.sequence, status=status,
                             cmd=self.hdr.cmd, datalen=len(data))
 
 
@@ -84,7 +84,7 @@ class RPCConnection(object):
 
         while True:
             with self._lock:
-                hdr = _RPCHeader.decode(read_bytes(16))
+                hdr = RPCHeader.decode(read_bytes(16))
                 data = read_bytes(hdr.datalen)
             # We only handle request traffic; ignore reply messages
             if hdr.status == RPC_PENDING:

@@ -1,7 +1,6 @@
 <!doctype html>
 <title>Diamond - JSON Blaster</title>
 <script type="text/javascript" src="{{ static_url('testui/jquery.js') }}"></script>
-<script type="text/javascript" src="{{ static_url('testui/crypto-sha256.js') }}"></script>
 
 <style type="text/css">
 .hidden {
@@ -130,37 +129,23 @@ $(function() {
       reader.onloadend = function() {
         if (reader.error) {
           alert('Error reading file.');
-          $(input).removeData('sha256');
+          $(input).removeData('uri');
           finish();
         } else {
-          // Compute the SHA-256
-          var binary = Crypto.charenc.Binary.stringToBytes(reader.result);
-          var sha256 = Crypto.SHA256(binary)
-          $(input).data('sha256', sha256);
-
-          // See if we need to upload the blob
           $.ajax({
-            type: 'HEAD',
-            url: '/blob/' + sha256,
+            type: 'POST',
+            url: '/blob',
+            contentType: 'application/octet-stream',
+            data: file,
+            processData: false,
             success: function(data, textStatus, jqXHR) {
+              $(input).data('uri', jqXHR.getResponseHeader('Location'));
               finish();
             },
             error: function(jqXHR, textStatus, errorThrown) {
-              // Upload it
-              $.ajax({
-                type: 'POST',
-                url: '/blob',
-                contentType: 'application/octet-stream', 
-                data: file,
-                processData: false,
-                success: function(data, textStatus, jqXHR) {
-                  finish();
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                  alert('Error uploading file.')
-                  finish();
-                },
-              });
+              alert('Error uploading file.')
+              $(input).removeData('uri');
+              finish();
             },
           });
         }
@@ -211,10 +196,10 @@ $(function() {
 
   // Copy metadata on a chosen file from a file input field to an object.
   function _load_file(out, obj, name) {
-    var sha256 = $(obj).find('[name=' + name + ']').data('sha256');
-    if (typeof sha256 !== 'undefined') {
+    var uri = $(obj).find('[name=' + name + ']').data('uri');
+    if (typeof uri !== 'undefined') {
       out[name] = {
-        sha256: sha256,
+        uri: uri,
       };
     }
   }

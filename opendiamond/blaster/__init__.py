@@ -18,8 +18,7 @@ from tornado.options import define, options
 import tornado.web
 
 from opendiamond.blobcache import BlobCache
-from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler,
-        BlobHandler)
+from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler)
 
 define('cache_dir', default=os.path.expanduser('~/.diamond/cache-json'),
         metavar='DIR', help='Cache directory for binary objects')
@@ -29,7 +28,6 @@ class JSONBlaster(tornado.web.Application):
     handlers = (
         (r'/$', SearchHandler),
         (r'/blob$', PostBlobHandler),
-        (r'/blob/([0-9a-f]{64})$', BlobHandler),
     )
 
     app_settings = {

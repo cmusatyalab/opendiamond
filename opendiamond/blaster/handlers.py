@@ -16,6 +16,8 @@ import json
 from tornado.options import define, options
 from tornado.web import RequestHandler, HTTPError
 
+CACHE_URN_SCHEME = 'blob'
+
 # HTTP method handlers have specific argument lists rather than
 # (self, *args, **kwargs) as in the superclass.
 # pylint: disable=W0221
@@ -49,11 +51,6 @@ class SearchHandler(_BlasterRequestHandler):
 
 class PostBlobHandler(_BlasterRequestHandler):
     def post(self):
-        self.blob_cache.add(self.request.body)
+        sig = self.blob_cache.add(self.request.body)
+        self.set_header('Location', '%s:%s' % (CACHE_URN_SCHEME, sig))
         self.set_status(204)
-
-
-class BlobHandler(_BlasterRequestHandler):
-    def head(self, sha256):
-        if sha256 not in self.blob_cache:
-            raise HTTPError(404)

@@ -121,6 +121,7 @@ class BlobCache(object):
                 pass
         finally:
             os.unlink(name)
+        return sig
 
     def executable_path(self, sig):
         '''Return a path to the file containing the specified data

@@ -250,7 +250,7 @@ $(function() {
         $('#results').text(data);
       },
       error: function(jqXHR, textStatus, errorThrown) {
-        $('#results').text('Error: ' + errorThrown);
+        $('#results').text('Error: ' + jqXHR.responseText);
       },
     });
   });

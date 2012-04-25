@@ -31,21 +31,30 @@ class _BlasterRequestHandler(RequestHandler):
     def blob_cache(self):
         return self.application.blob_cache
 
+    def write_error(self, code, **kwargs):
+        exc_type, exc_value, exc_tb = kwargs.get('exc_info', [None] * 3)
+        if exc_type is not None and issubclass(exc_type, HTTPError):
+            self.set_header('Content-Type', 'text/plain')
+            if exc_value.log_message:
+                self.write(exc_value.log_message + '\n')
+        else:
+            RequestHandler.write_error(self, code, **kwargs)
+
 
 class SearchHandler(_BlasterRequestHandler):
     def get(self):
         if options.enable_testui:
             self.render('testui/search.html')
         else:
-            raise HTTPError(405)
+            raise HTTPError(405, 'Method not allowed')
 
     def post(self):
         if self.request.headers['Content-Type'] != 'application/json':
-            raise HTTPError(415)
+            raise HTTPError(415, 'Content type must be application/json')
         try:
             config = json.loads(self.request.body)
-        except ValueError:
-            raise HTTPError(400)
+        except ValueError, e:
+            raise HTTPError(400, str(e))
         self.write(json.dumps(config, indent=2))
 
 

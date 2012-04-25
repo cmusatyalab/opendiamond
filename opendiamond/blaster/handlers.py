@@ -13,8 +13,10 @@
 '''JSON Blaster request handlers.'''
 
 import simplejson as json
+import os
 from tornado.options import define, options
 from tornado.web import RequestHandler, HTTPError
+import validictory
 
 CACHE_URN_SCHEME = 'blob'
 
@@ -24,6 +26,12 @@ CACHE_URN_SCHEME = 'blob'
 
 define('enable_testui', default=True,
         help='Enable the example user interface')
+
+
+def _load_schema(name):
+    with open(os.path.join(os.path.dirname(__file__), name)) as fh:
+        return json.load(fh)
+SEARCH_SCHEMA = _load_schema('schema-search.json')
 
 
 class _BlasterRequestHandler(RequestHandler):
@@ -53,6 +61,10 @@ class SearchHandler(_BlasterRequestHandler):
             raise HTTPError(415, 'Content type must be application/json')
         try:
             config = json.loads(self.request.body)
+            # required_by_default=False and blank_by_default=True for
+            # JSON Schema draft 3 semantics
+            validictory.validate(config, SEARCH_SCHEMA,
+                    required_by_default=False, blank_by_default=True)
         except ValueError, e:
             raise HTTPError(400, str(e))
         self.write(json.dumps(config, indent=2))

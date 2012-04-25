@@ -66,6 +66,7 @@ noinst_PYTHON = \
 	opendiamond/__init__.py
 
 nobase_dist_python_DATA = \
+	opendiamond/blaster/schema-search.json \
 	opendiamond/blaster/static/testui/jquery.js \
 	opendiamond/blaster/static/testui/spinner.gif \
 	opendiamond/blaster/templates/testui/search.html \

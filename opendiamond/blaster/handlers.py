@@ -12,7 +12,7 @@
 
 '''JSON Blaster request handlers.'''
 
-import json
+import simplejson as json
 from tornado.options import define, options
 from tornado.web import RequestHandler, HTTPError
 

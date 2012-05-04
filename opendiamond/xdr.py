@@ -30,21 +30,26 @@ class _XDRTypeHandler(object):
 
 
 class _XDRPrimitiveHandler(_XDRTypeHandler):
-    def __init__(self, name, max_length=None):
+    def __init__(self, name, args=(), max_length=None):
         _XDRTypeHandler.__init__(self)
         self._name = name
+        self._args = args
         self._max_length = max_length
 
     def _check(self, val):
         if self._max_length is not None and len(val) > self._max_length:
             raise XDREncodingError()
+        if self._max_length is None and len(self._args) != 0:
+            if len(val) != self._args[0]:
+                raise XDREncodingError()
         return val
 
     def pack(self, xdr, val):
-        getattr(xdr, 'pack_' + self._name)(self._check(val))
+        args = self._args + (self._check(val), )
+        getattr(xdr, 'pack_' + self._name)(*args)
 
     def unpack(self, xdr):
-        return self._check(getattr(xdr, 'unpack_' + self._name)())
+        return self._check(getattr(xdr, 'unpack_' + self._name)(*(self._args)))
 
 
 class _XDRIntHandler(_XDRTypeHandler):
@@ -150,7 +155,11 @@ class XDR(object):
 
     @staticmethod
     def string(max_length=None):
-        return _XDRPrimitiveHandler('string', max_length)
+        return _XDRPrimitiveHandler('string', (), max_length)
+
+    @staticmethod
+    def fopaque(fixed_length=0):
+        return _XDRPrimitiveHandler('fopaque', (fixed_length, ))
 
     @staticmethod
     def opaque():

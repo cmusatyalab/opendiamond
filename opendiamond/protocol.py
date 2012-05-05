@@ -54,7 +54,6 @@ class XDR_attribute(XDRStruct):
 class XDR_object(XDRStruct):
     '''Blast channel object data'''
     members = (
-        'search_id', XDR.uint(),
         # was object data, now stored in attrs['']
         None, XDR.constant(XDR.opaque(), ''),
         'attrs', XDR.array(XDR.struct(XDR_attribute)),

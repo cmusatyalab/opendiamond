@@ -174,7 +174,7 @@ class Search(RPCHandlers):
         for blob in params.blobs:
             self._state.blob_cache.add(blob)
 
-    @RPCHandlers.handler(27, protocol.XDR_start)
+    @RPCHandlers.handler(28, protocol.XDR_start)
     @running(False)
     def start(self, params):
         '''Start the search.'''

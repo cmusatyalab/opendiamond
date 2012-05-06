@@ -98,7 +98,7 @@ class XDR_blob_data(XDRStruct):
 class XDR_start(XDRStruct):
     '''Start-search parameters'''
     members = (
-        'search_id', XDR.uint(),
+        'search_id', XDR.fstring(36),
         'attrs', XDR.optional(XDR.array(XDR.string(MAX_ATTRIBUTE_NAME))),
     )
 

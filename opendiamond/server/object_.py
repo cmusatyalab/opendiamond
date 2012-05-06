@@ -101,9 +101,9 @@ class EmptyObject(object):
             attrs.append(XDR_attribute(name, value))
         return attrs
 
-    def xdr(self, search_id, output_set=None):
+    def xdr(self, output_set=None):
         '''Return an XDR_object.'''
-        return XDR_object(search_id, self.xdr_attributes(output_set))
+        return XDR_object(self.xdr_attributes(output_set))
 
 
 class Object(EmptyObject):

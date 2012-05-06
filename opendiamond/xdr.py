@@ -47,6 +47,40 @@ class _XDRPrimitiveHandler(_XDRTypeHandler):
         return self._check(getattr(xdr, 'unpack_' + self._name)())
 
 
+class _XDRFStringHandler(_XDRTypeHandler):
+    def __init__(self, length):
+        _XDRTypeHandler.__init__(self)
+        self._length = length
+
+    def _check(self, val):
+        if len(val) != self._length:
+            raise XDREncodingError()
+        return val
+
+    def pack(self, xdr, val):
+        xdr.pack_fstring(self._length, self._check(val))
+
+    def unpack(self, xdr):
+        return self._check(xdr.unpack_fstring(self._length))
+
+
+class _XDRFOpaqueHandler(_XDRTypeHandler):
+    def __init__(self, length):
+        _XDRTypeHandler.__init__(self)
+        self._length = length
+
+    def __check(self, val):
+        if len(val) != self._length:
+            raise XDREncodingError()
+        return val
+
+    def pack(self, xdr, val):
+        xdr.pack_fopaque(self._length, self._check(val))
+
+    def unpack(self, xdr):
+        return self._check(xdr.unpack_fopaque(self._length))
+
+
 class _XDRIntHandler(_XDRTypeHandler):
     def pack(self, xdr, val):
         '''Due to Python #9696, xdr.pack_int() fails for negative values
@@ -155,6 +189,14 @@ class XDR(object):
     @staticmethod
     def opaque():
         return _XDRPrimitiveHandler('opaque')
+
+    @staticmethod
+    def fstring(length):
+        return _XDRFStringHandler(length)
+
+    @staticmethod
+    def fopaque(length):
+        return _XDRFOpaqueHandler(length)
 
     @staticmethod
     def array(item_handler, max_length=None):

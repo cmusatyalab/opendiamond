@@ -12,6 +12,7 @@
 
 '''JSON Blaster request handlers.'''
 
+from hashlib import sha256
 import simplejson as json
 import os
 from urlparse import urlparse
@@ -88,6 +89,11 @@ class _BlasterBlob(Blob):
                     raise HTTPError(400, 'Blob missing from blob cache')
             else:
                 raise HTTPError(400, 'Unacceptable blob URI scheme')
+
+            # Check hash if requested
+            if self._expected_sha256 is not None:
+                if sha256(data).hexdigest() != self._expected_sha256:
+                    raise HTTPError(400, 'SHA-256 mismatch on %s' % self.uri)
 
             # Commit
             self._data = data

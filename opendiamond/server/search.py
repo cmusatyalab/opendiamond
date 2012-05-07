@@ -254,7 +254,7 @@ class _BlastChannelSender(RPCHandlers):
         self._obj = obj
         self._sent = False
 
-    @RPCHandlers.handler(1, reply_class=protocol.XDR_object)
+    @RPCHandlers.handler(2, reply_class=protocol.XDR_object)
     def get_object(self):
         '''Return an accepted object.'''
         assert not self._sent
@@ -277,10 +277,10 @@ class BlastChannel(object):
 
     def send(self, obj):
         '''Send the specified Object on the blast channel.'''
-        xdr = obj.xdr(self._search_id, self._push_attrs)
+        xdr = obj.xdr(self._push_attrs)
         _BlastChannelSender(xdr).send(self._conn)
 
     def close(self):
         '''Tell the client that no more objects will be returned.'''
-        xdr = EmptyObject().xdr(self._search_id)
+        xdr = EmptyObject().xdr()
         _BlastChannelSender(xdr).send(self._conn)

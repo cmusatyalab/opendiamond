@@ -253,32 +253,35 @@ def generate_cookie_django(scopeurls, servers, proxies=None):
 def _main():
     import sys
     args = sys.argv[1:]
-
+    # filename is mandatory
     try:
-        data = open(args.pop(0)).read()
-        cookie = ScopeCookie.parse(data)
-        print str(cookie),
+        filename = args.pop(0)
     except IndexError:
         print >> sys.stderr, \
                 'Usage: scope.py <cookie-file> [server-name [cert-file]]'
         sys.exit(1)
-    except ScopeError, e:
-        print str(e)
-        sys.exit(1)
-
+    # certificate validation is optional
     try:
         server = args.pop(0)
-        try:
-            certfile = args.pop(0)
-        except IndexError:
-            certfile = os.path.expanduser(os.path.join('~', '.diamond',
-                                    'CERTS'))
-        certdata = open(certfile).read()
-        print
-        cookie.verify([server], certdata)
-        print 'Cookie verified successfully'
     except IndexError:
-        pass
+        server = None
+    # certfile defaults to ~/.diamond/CERTS
+    try:
+        certfile = args.pop(0)
+    except IndexError:
+        certfile = os.path.expanduser(os.path.join('~', '.diamond',
+                                'CERTS'))
+
+    try:
+        data = open(filename).read()
+        cookie = ScopeCookie.parse(data)
+        print str(cookie),
+
+        if server is not None:
+            certdata = open(certfile).read()
+            print
+            cookie.verify([server], certdata)
+            print 'Cookie verified successfully'
     except ScopeError, e:
         print str(e)
         sys.exit(1)

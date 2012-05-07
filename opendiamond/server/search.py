@@ -188,8 +188,7 @@ class Search(RPCHandlers):
         else:
             # Encode everything
             push_attrs = None
-        self._state.blast = BlastChannel(self._blast_conn, params.search_id,
-                                push_attrs)
+        self._state.blast = BlastChannel(self._blast_conn, push_attrs)
         self._running = True
         _log.info('Starting search %d', params.search_id)
         self._filters.start_threads(self._state, self._state.config.threads)
@@ -254,7 +253,7 @@ class _BlastChannelSender(RPCHandlers):
         self._obj = obj
         self._sent = False
 
-    @RPCHandlers.handler(1, reply_class=protocol.XDR_object)
+    @RPCHandlers.handler(2, reply_class=protocol.XDR_object)
     def get_object(self):
         '''Return an accepted object.'''
         assert not self._sent
@@ -270,17 +269,16 @@ class _BlastChannelSender(RPCHandlers):
 class BlastChannel(object):
     '''A wrapper for a blast channel connection.'''
 
-    def __init__(self, conn, search_id, push_attrs):
+    def __init__(self, conn, push_attrs):
         self._conn = conn
-        self._search_id = search_id
         self._push_attrs = push_attrs
 
     def send(self, obj):
         '''Send the specified Object on the blast channel.'''
-        xdr = obj.xdr(self._search_id, self._push_attrs)
+        xdr = obj.xdr(self._push_attrs)
         _BlastChannelSender(xdr).send(self._conn)
 
     def close(self):
         '''Tell the client that no more objects will be returned.'''
-        xdr = EmptyObject().xdr(self._search_id)
+        xdr = EmptyObject().xdr()
         _BlastChannelSender(xdr).send(self._conn)

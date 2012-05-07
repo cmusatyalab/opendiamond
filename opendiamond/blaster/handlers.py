@@ -12,7 +12,6 @@
 
 '''JSON Blaster request handlers.'''
 
-from hashlib import sha256
 import simplejson as json
 import os
 from urlparse import urlparse
@@ -24,6 +23,7 @@ import validictory
 
 import opendiamond
 from opendiamond.blaster.search import Blob, EmptyBlob
+from opendiamond.helpers import sha256
 
 CACHE_URN_SCHEME = 'blob'
 
@@ -49,7 +49,7 @@ class _BlasterRequestHandler(RequestHandler):
         return self.application.blob_cache
 
     def write_error(self, code, **kwargs):
-        exc_type, exc_value, exc_tb = kwargs.get('exc_info', [None] * 3)
+        exc_type, exc_value, _exc_tb = kwargs.get('exc_info', [None] * 3)
         if exc_type is not None and issubclass(exc_type, HTTPError):
             self.set_header('Content-Type', 'text/plain')
             if exc_value.log_message:
@@ -61,10 +61,10 @@ class _BlasterRequestHandler(RequestHandler):
 class _BlasterBlob(Blob):
     '''Instances with the same URI compare equal and hash to the same value.'''
 
-    def __init__(self, uri, sha256=None):
+    def __init__(self, uri, expected_sha256=None):
         Blob.__init__(self)
         self.uri = uri
-        self._expected_sha256 = sha256
+        self._expected_sha256 = expected_sha256
         self._data = None
 
     def __str__(self):
@@ -81,6 +81,8 @@ class _BlasterBlob(Blob):
     def __eq__(self, other):
         return isinstance(other, type(self)) and self.uri == other.uri
 
+    # pylint doesn't understand named tuples
+    # pylint: disable=E1101
     @gen.engine
     def fetch(self, blob_cache, callback=None):
         if self._data is None:
@@ -119,6 +121,7 @@ class _BlasterBlob(Blob):
 
         if callback is not None:
             callback()
+    # pylint: enable=E1101
 
 
 class SearchHandler(_BlasterRequestHandler):

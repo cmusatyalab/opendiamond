@@ -55,10 +55,11 @@ def signalname(signum):
     return 'signal %d' % signum
 
 
-# hashlib confuses pylint, pylint #51250.  Provide md5 here to centralize
-# the workaround.
+# hashlib confuses pylint, pylint #51250.  Provide md5 and sha256 here to
+# centralize the workaround.
 # pylint: disable=C0103,E1101
 md5 = hashlib.md5
+sha256 = hashlib.sha256
 # pylint: enable=C0103,E1101
 
 

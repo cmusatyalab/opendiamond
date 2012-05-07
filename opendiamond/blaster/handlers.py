@@ -14,9 +14,13 @@
 
 import simplejson as json
 import os
+from urlparse import urlparse
+from tornado import gen
 from tornado.options import define, options
-from tornado.web import RequestHandler, HTTPError
+from tornado.web import asynchronous, RequestHandler, HTTPError
 import validictory
+
+from opendiamond.blaster.search import Blob, EmptyBlob
 
 CACHE_URN_SCHEME = 'blob'
 
@@ -49,6 +53,49 @@ class _BlasterRequestHandler(RequestHandler):
             RequestHandler.write_error(self, code, **kwargs)
 
 
+class _BlasterBlob(Blob):
+    '''Instances with the same URI compare equal and hash to the same value.'''
+
+    def __init__(self, uri, sha256=None):
+        Blob.__init__(self)
+        self.uri = uri
+        self._expected_sha256 = sha256
+        self._data = None
+
+    def __str__(self):
+        if self._data is None:
+            raise RuntimeError('Attempting to read an unfetched blob')
+        return self._data
+
+    def __repr__(self):
+        return '<_BlasterBlob %s>' % (self.uri)
+
+    def __hash__(self):
+        return hash(self.uri)
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self.uri == other.uri
+
+    @gen.engine
+    def fetch(self, blob_cache, callback=None):
+        if self._data is None:
+            # Fetch data
+            parts = urlparse(self.uri)
+            if parts.scheme == 'blob':
+                try:
+                    data = blob_cache[parts.path]
+                except KeyError:
+                    raise HTTPError(400, 'Blob missing from blob cache')
+            else:
+                raise HTTPError(400, 'Unacceptable blob URI scheme')
+
+            # Commit
+            self._data = data
+
+        if callback is not None:
+            callback()
+
+
 class SearchHandler(_BlasterRequestHandler):
     def get(self):
         if options.enable_testui:
@@ -56,9 +103,13 @@ class SearchHandler(_BlasterRequestHandler):
         else:
             raise HTTPError(405, 'Method not allowed')
 
+    @asynchronous
+    @gen.engine
     def post(self):
         if self.request.headers['Content-Type'] != 'application/json':
             raise HTTPError(415, 'Content type must be application/json')
+
+        # Load JSON
         try:
             config = json.loads(self.request.body)
             # required_by_default=False and blank_by_default=True for
@@ -67,7 +118,26 @@ class SearchHandler(_BlasterRequestHandler):
                     required_by_default=False, blank_by_default=True)
         except ValueError, e:
             raise HTTPError(400, str(e))
+
+        # Build blob list
+        blobs = {}  # blob -> itself  (for deduplication)
+        def make_blob(obj):
+            if obj is not None:
+                blob = _BlasterBlob(obj['uri'], obj.get('sha256'))
+                # Intern the blob
+                return blobs.setdefault(blob, blob)
+            else:
+                return EmptyBlob()
+        blob_list = [make_blob(f['code']) for f in config['filters']] + \
+                [make_blob(f.get('blob')) for f in config['filters']]
+
+        # Fetch blobs
+        yield [gen.Task(blob.fetch, self.blob_cache)
+                for blob in blobs.values()]
+
+        # Dump JSON
         self.write(json.dumps(config, indent=2))
+        self.finish()
 
 
 class PostBlobHandler(_BlasterRequestHandler):

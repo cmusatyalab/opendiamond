@@ -255,6 +255,15 @@ def generate_cookie_django(scopeurls, servers, proxies=None):
                             keyfile=keyfile, expires=expires)
 
 
+def get_cookie_map(cookies):
+    '''Given a list of ScopeCookies, return a dict: server -> [ScopeCookie].'''
+    map = {}
+    for cookie in cookies:
+        for server in cookie.servers:
+            map.setdefault(server, []).append(cookie)
+    return map
+
+
 def _main():
     import sys
     args = sys.argv[1:]

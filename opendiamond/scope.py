@@ -202,6 +202,11 @@ class ScopeCookie(object):
         except NameError:
             raise ScopeError('Missing cookie header')
 
+    @classmethod
+    def split(cls, data):
+        '''Split the megacookie data into individual encoded scope cookies.'''
+        return re.findall(BOUNDARY_START + BASE64_RE + BOUNDARY_END, data)
+
 
 def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
                     expires=None):
@@ -274,14 +279,14 @@ def _main():
 
     try:
         data = open(filename).read()
-        cookie = ScopeCookie.parse(data)
-        print str(cookie),
+        cookies = [ScopeCookie.parse(c) for c in ScopeCookie.split(data)]
+        print '\n\n'.join([str(c) for c in cookies])
 
         if server is not None:
             certdata = open(certfile).read()
-            print
-            cookie.verify([server], certdata)
-            print 'Cookie verified successfully'
+            for cookie in cookies:
+                cookie.verify([server], certdata)
+            print 'Cookies verified successfully'
     except ScopeError, e:
         print str(e)
         sys.exit(1)

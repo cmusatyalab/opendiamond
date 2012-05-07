@@ -174,7 +174,7 @@ class Search(RPCHandlers):
         for blob in params.blobs:
             self._state.blob_cache.add(blob)
 
-    @RPCHandlers.handler(27, protocol.XDR_start)
+    @RPCHandlers.handler(28, protocol.XDR_start)
     @running(False)
     def start(self, params):
         '''Start the search.'''
@@ -277,10 +277,10 @@ class BlastChannel(object):
 
     def send(self, obj):
         '''Send the specified Object on the blast channel.'''
-        xdr = obj.xdr(self._search_id, self._push_attrs)
+        xdr = obj.xdr(self._push_attrs)
         _BlastChannelSender(xdr).send(self._conn)
 
     def close(self):
         '''Tell the client that no more objects will be returned.'''
-        xdr = EmptyObject().xdr(self._search_id)
+        xdr = EmptyObject().xdr()
         _BlastChannelSender(xdr).send(self._conn)

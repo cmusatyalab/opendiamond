@@ -16,11 +16,13 @@ from hashlib import sha256
 import simplejson as json
 import os
 from urlparse import urlparse
+from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
 from tornado.options import define, options
 from tornado.web import asynchronous, RequestHandler, HTTPError
 import validictory
 
+import opendiamond
 from opendiamond.blaster.search import Blob, EmptyBlob
 
 CACHE_URN_SCHEME = 'blob'
@@ -31,6 +33,8 @@ CACHE_URN_SCHEME = 'blob'
 
 define('enable_testui', default=True,
         help='Enable the example user interface')
+define('http_proxy', type=str, default=None,
+        metavar='HOST:PORT', help='Use a proxy for HTTP client requests')
 
 
 def _load_schema(name):
@@ -87,6 +91,21 @@ class _BlasterBlob(Blob):
                     data = blob_cache[parts.path]
                 except KeyError:
                     raise HTTPError(400, 'Blob missing from blob cache')
+            elif parts.scheme == 'http' or parts.scheme == 'https':
+                client = AsyncHTTPClient()
+                if options.http_proxy is not None:
+                    proxy_host, proxy_port = options.http_proxy.split(':', 1)
+                    proxy_port = int(proxy_port)
+                else:
+                    proxy_host = proxy_port = None
+                response = yield gen.Task(client.fetch, self.uri,
+                        user_agent='JSONBlaster/%s' % opendiamond.__version__,
+                        proxy_host=proxy_host, proxy_port=proxy_port,
+                        validate_cert=False)
+                if response.error:
+                    raise HTTPError(400, 'Error fetching <%s>: %s' % (
+                            self.uri, str(response.error)))
+                data = response.body
             else:
                 raise HTTPError(400, 'Unacceptable blob URI scheme')
 

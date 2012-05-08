@@ -24,6 +24,7 @@ import validictory
 import opendiamond
 from opendiamond.blaster.search import Blob, EmptyBlob
 from opendiamond.helpers import sha256
+from opendiamond.scope import ScopeCookie, ScopeError
 
 CACHE_URN_SCHEME = 'blob'
 
@@ -146,6 +147,17 @@ class SearchHandler(_BlasterRequestHandler):
                     required_by_default=False, blank_by_default=True)
         except ValueError, e:
             raise HTTPError(400, str(e))
+
+        # Build cookies
+        # Assume each "cookie" may actually be a megacookie
+        try:
+            cookies = [ScopeCookie.parse(c) for mc in config['cookies']
+                    for c in ScopeCookie.split(mc)]
+        except ScopeError, e:
+            raise HTTPError(400, 'Invalid scope cookie: %s' % e)
+        if not cookies:
+            # No cookies could be parsed out of the client's cookie list
+            raise HTTPError(400, 'No scope cookies found')
 
         # Build blob list
         blobs = {}  # blob -> itself  (for deduplication)

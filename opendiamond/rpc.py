@@ -25,8 +25,26 @@ RPC_PENDING = -1
 
 class ConnectionFailure(Exception):
     '''RPC connection died.'''
+
+
 class RPCError(Exception):
     '''Base class for RPC error codes.'''
+    # pylint doesn't know about __subclasses__
+    # pylint: disable=E1101
+    @classmethod
+    def get_class(cls, code):
+        '''Return the error subclass for the specified code.'''
+        for c in cls.__subclasses__():
+            if c.code == code:
+                return c
+            try:
+                return c.get_class(code)
+            except KeyError:
+                pass
+        raise KeyError('Error code %d' % code)
+    # pylint: enable=E1101
+
+
 class RPCEncodingError(RPCError):
     '''Bad XDR structure.'''
     code = -2

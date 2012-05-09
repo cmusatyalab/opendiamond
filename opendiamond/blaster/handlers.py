@@ -125,22 +125,11 @@ class _BlasterBlob(Blob):
     # pylint: enable=E1101
 
 
-class SearchHandler(_BlasterRequestHandler):
-    def get(self):
-        if options.enable_testui:
-            self.render('testui/search.html')
-        else:
-            raise HTTPError(405, 'Method not allowed')
-
-    @asynchronous
-    @gen.engine
-    def post(self):
-        if self.request.headers['Content-Type'] != 'application/json':
-            raise HTTPError(415, 'Content type must be application/json')
-
+class _SearchSpec(object):
+    def __init__(self, data):
         # Load JSON
         try:
-            config = json.loads(self.request.body)
+            config = json.loads(data)
             # required_by_default=False and blank_by_default=True for
             # JSON Schema draft 3 semantics
             validictory.validate(config, SEARCH_SCHEMA,
@@ -151,11 +140,11 @@ class SearchHandler(_BlasterRequestHandler):
         # Build cookies
         # Assume each "cookie" may actually be a megacookie
         try:
-            cookies = [ScopeCookie.parse(c) for mc in config['cookies']
+            self.cookies = [ScopeCookie.parse(c) for mc in config['cookies']
                     for c in ScopeCookie.split(mc)]
         except ScopeError, e:
             raise HTTPError(400, 'Invalid scope cookie: %s' % e)
-        if not cookies:
+        if not self.cookies:
             # No cookies could be parsed out of the client's cookie list
             raise HTTPError(400, 'No scope cookies found')
 
@@ -170,13 +159,33 @@ class SearchHandler(_BlasterRequestHandler):
                 return EmptyBlob()
         blob_list = [make_blob(f['code']) for f in config['filters']] + \
                 [make_blob(f.get('blob')) for f in config['filters']]
+        self.blobs = blobs.values()
 
-        # Fetch blobs
-        yield [gen.Task(blob.fetch, self.blob_cache)
-                for blob in blobs.values()]
+    @gen.engine
+    def fetch_blobs(self, blob_cache, callback=None):
+        yield [gen.Task(blob.fetch, blob_cache) for blob in self.blobs]
+        if callback is not None:
+            callback()
 
-        # Dump JSON
-        self.write(json.dumps(config, indent=2))
+
+class SearchHandler(_BlasterRequestHandler):
+    def get(self):
+        if options.enable_testui:
+            self.render('testui/search.html')
+        else:
+            raise HTTPError(405, 'Method not allowed')
+
+    @asynchronous
+    @gen.engine
+    def post(self):
+        # Build search spec
+        if self.request.headers['Content-Type'] != 'application/json':
+            raise HTTPError(415, 'Content type must be application/json')
+        spec = _SearchSpec(self.request.body)
+        yield gen.Task(spec.fetch_blobs, self.blob_cache)
+
+        # Return result
+        self.write('OK')
         self.finish()
 
 

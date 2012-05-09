@@ -14,6 +14,7 @@
 
 import simplejson as json
 import os
+import cPickle as pickle
 from urlparse import urlparse
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
@@ -48,6 +49,10 @@ class _BlasterRequestHandler(RequestHandler):
     @property
     def blob_cache(self):
         return self.application.blob_cache
+
+    @property
+    def search_spec_cache(self):
+        return self.application.search_spec_cache
 
     def write_error(self, code, **kwargs):
         exc_type, exc_value, _exc_tb = kwargs.get('exc_info', [None] * 3)
@@ -184,8 +189,13 @@ class SearchHandler(_BlasterRequestHandler):
         spec = _SearchSpec(self.request.body)
         yield gen.Task(spec.fetch_blobs, self.blob_cache)
 
+        # Store it
+        pickled = pickle.dumps(spec, pickle.HIGHEST_PROTOCOL)
+        search_key = self.search_spec_cache.add(pickled)
+
         # Return result
-        self.write('OK')
+        self.set_status(204)
+        self.set_header('X-Search-Key', search_key)
         self.finish()
 
 

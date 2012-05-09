@@ -190,7 +190,7 @@ class Search(RPCHandlers):
             push_attrs = None
         self._state.blast = BlastChannel(self._blast_conn, push_attrs)
         self._running = True
-        _log.info('Starting search %d', params.search_id)
+        _log.info('Starting search %s', params.search_id)
         self._filters.start_threads(self._state, self._state.config.threads)
 
     @RPCHandlers.handler(21, protocol.XDR_reexecute,

@@ -204,3 +204,11 @@ class PostBlobHandler(_BlasterRequestHandler):
         sig = self.blob_cache.add(self.request.body)
         self.set_header('Location', '%s:%s' % (CACHE_URN_SCHEME, sig))
         self.set_status(204)
+
+
+class ResultsHandler(_BlasterRequestHandler):
+    def get(self):
+        if options.enable_testui:
+            self.render('testui/results.html')
+        else:
+            raise HTTPError(403, 'Forbidden')

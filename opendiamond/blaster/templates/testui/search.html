@@ -51,9 +51,6 @@ th {
 <div id="filters">
 </div>
 
-<div id="results" style="white-space: pre">
-</div>
-
 <script type="text/javascript">
 $(function() {
   var filterIndex = 1;
@@ -236,6 +233,11 @@ $(function() {
       cookies.push(cookie_data);
     }
 
+    // Open a window to receive the search results while we still have
+    // the browser's attention
+    var child_window = window.open('');
+    var target_url = '/results';
+
     // Start the search
     var search = {
       cookies: cookies,
@@ -247,10 +249,12 @@ $(function() {
       contentType: 'application/json', 
       data: JSON.stringify(search),
       success: function(data, textStatus, jqXHR) {
-        $('#results').text(data);
+        var search_key = jqXHR.getResponseHeader('X-Search-Key');
+        child_window.location = target_url + '#s' + search_key;
       },
       error: function(jqXHR, textStatus, errorThrown) {
-        $('#results').text('Error: ' + jqXHR.responseText);
+        child_window.location = target_url + '#e' +
+            escape(jqXHR.responseText);
       },
     });
   });

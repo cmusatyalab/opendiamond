@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Search Results</title>
+<script type="text/javascript" src="{{ static_url('testui/jquery.js') }}"></script>
+
+<style type="text/css">
+</style>
+
+<div id="content">
+</div>
+
+<script type="text/javascript">
+$(function() {
+  var status = window.location.hash[1];
+  var data = window.location.hash.slice(2);
+
+  if (status === 'e') {
+    // Error
+    $('#content').text('Error: ' + unescape(data));
+  } else {
+    // Success
+    var search_key = data;
+    $('#content').text(search_key);
+  }
+});
+</script>

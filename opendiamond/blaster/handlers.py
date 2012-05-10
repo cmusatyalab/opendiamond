@@ -12,11 +12,12 @@
 
 '''JSON Blaster request handlers.'''
 
+import logging
 import simplejson as json
 import os
 import cPickle as pickle
+from sockjs.tornado import SockJSConnection
 from urlparse import urlparse
-from tornadio2 import SocketConnection, event
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
 from tornado.options import define, options
@@ -40,10 +41,21 @@ define('http_proxy', type=str, default=None,
         metavar='HOST:PORT', help='Use a proxy for HTTP client requests')
 
 
+_log = logging.getLogger(__name__)
+
+
 def _load_schema(name):
     with open(os.path.join(os.path.dirname(__file__), name)) as fh:
         return json.load(fh)
+EVENT_SCHEMA = _load_schema('schema-event.json')
 SEARCH_SCHEMA = _load_schema('schema-search.json')
+
+
+def _validate_json(schema, obj):
+    # required_by_default=False and blank_by_default=True for
+    # JSON Schema draft 3 semantics
+    validictory.validate(obj, schema, required_by_default=False,
+            blank_by_default=True)
 
 
 class _BlasterRequestHandler(RequestHandler):
@@ -136,10 +148,7 @@ class _SearchSpec(object):
         # Load JSON
         try:
             config = json.loads(data)
-            # required_by_default=False and blank_by_default=True for
-            # JSON Schema draft 3 semantics
-            validictory.validate(config, SEARCH_SCHEMA,
-                    required_by_default=False, blank_by_default=True)
+            _validate_json(SEARCH_SCHEMA, config)
         except ValueError, e:
             raise HTTPError(400, str(e))
 
@@ -242,22 +251,47 @@ class _TestSearch(object):
         self._timer.stop()
 
 
-class SearchConnection(SocketConnection):
+class _StructuredSocketConnection(SockJSConnection):
+    @classmethod
+    def event(cls, func):
+        '''Decorator specifying that this function is an event handler.'''
+        func.event_handler = True
+        return func
+
+    # pylint is confused by msg.get()
+    # pylint: disable=E1103
+    def on_message(self, data):
+        try:
+            msg = json.loads(data)
+            _validate_json(EVENT_SCHEMA, msg)
+        except ValueError, e:
+            raise HTTPError(400, str(e))
+        event = msg['event']
+        try:
+            handler = getattr(self, event)
+        except AttributeError:
+            _log.warning('Unknown event type %s' % event)
+            return
+        if not getattr(handler, 'event_handler', False):
+            _log.warning('Event %s has invalid handler' % event)
+            return
+        handler(**msg.get('data', {}))
+    # pylint: enable=E1103
+
+    def emit(self, event, **args):
+        self.send(json.dumps({
+            'event': event,
+            'data': args,
+        }))
+
+
+class SearchConnection(_StructuredSocketConnection):
     def __init__(self, *args, **kwargs):
-        SocketConnection.__init__(self, *args, **kwargs)
+        _StructuredSocketConnection.__init__(self, *args, **kwargs)
         self._search = None
 
-    def on_message(self, _message):
-        # Must be overridden; superclass is abstract
-        raise HTTPError(400, 'Cannot send messages here')
-
-    @event
+    @_StructuredSocketConnection.event
     def start(self, search_key):
-        '''Ideally this would be handled in on_open(), but query parameters
-        are per-socket rather than per-connection, so we can't reliably pass
-        the search key when opening the connection (socket.io-client #331).
-        So we have a separate start event instead.'''
-
         # Sanity checks
         if self._search is not None:
             raise HTTPError(400, 'Search already started')
@@ -280,13 +314,13 @@ class SearchConnection(SocketConnection):
     def _result(self, data):
         self.emit('result', **data)
 
-    @event
+    @_StructuredSocketConnection.event
     def pause(self):
         if self._search is None:
             raise HTTPError(400, 'Search not yet started')
         self._search.pause()
 
-    @event
+    @_StructuredSocketConnection.event
     def resume(self):
         if self._search is None:
             raise HTTPError(400, 'Search not yet started')

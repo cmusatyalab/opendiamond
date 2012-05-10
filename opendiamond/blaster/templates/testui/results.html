@@ -1,7 +1,7 @@
 <!doctype html>
 <title>Search Results</title>
 <script type="text/javascript" src="{{ static_url('testui/jquery.js') }}"></script>
-<script type="text/javascript" src="{{ static_url('testui/socket.io.js') }}"></script>
+<script type="text/javascript" src="{{ static_url('sockjs.js') }}"></script>
 
 <style type="text/css">
 </style>
@@ -16,12 +16,37 @@ $(function() {
   var status = window.location.hash[1];
   var data = window.location.hash.slice(2);
 
+  function make_sock(url) {
+    var sock = new SockJS(url);
+    var handlers = {};
+
+    sock.onmessage = function(ev) {
+      var msg = JSON.parse(ev.data);
+      if (typeof(handlers[msg.event]) === 'function') {
+        handlers[msg.event](msg.data);
+      }
+    };
+
+    sock.on = function(event, func) {
+      handlers[event] = func;
+    };
+
+    sock.emit = function(event, data)  {
+      sock.send(JSON.stringify({
+        'event': event,
+        'data': data
+      }));
+    };
+
+    return sock;
+  }
+
   if (status === 'e') {
     // Error
     $('#content').text('Error: ' + unescape(data));
   } else {
     // Success
-    var sock = io.connect('/search');
+    var sock = make_sock('/search');
     var search_key = data;
     var paused = false;
     var MAX_UNEXPOSED = 50;
@@ -55,10 +80,12 @@ $(function() {
       }
     }
 
-    sock.on('connect', function() {
-      sock.emit('start', search_key);
+    sock.onopen = function() {
+      sock.emit('start', {
+        'search_key': search_key
+      });
       $('#results').html('');
-    });
+    };
 
     sock.on('result', function(data) {
       var jq = $('<li>' + data.search_key + ' ' + data.count + '</li>');

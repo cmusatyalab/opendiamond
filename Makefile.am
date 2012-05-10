@@ -67,9 +67,10 @@ noinst_PYTHON = \
 	opendiamond/__init__.py
 
 nobase_dist_python_DATA = \
+	opendiamond/blaster/schema-event.json \
 	opendiamond/blaster/schema-search.json \
+	opendiamond/blaster/static/sockjs.js \
 	opendiamond/blaster/static/testui/jquery.js \
-	opendiamond/blaster/static/testui/socket.io.js \
 	opendiamond/blaster/static/testui/spinner.gif \
 	opendiamond/blaster/templates/testui/results.html \
 	opendiamond/blaster/templates/testui/search.html \

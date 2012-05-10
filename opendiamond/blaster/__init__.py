@@ -13,7 +13,7 @@
 '''JSON Blaster web application.'''
 
 import os
-from tornadio2 import SocketConnection, TornadioRouter
+from sockjs.tornado import SockJSRouter
 import tornado.ioloop
 from tornado.options import define, options
 import tornado.web
@@ -30,16 +30,6 @@ define('search_cache_dir',
         metavar='DIR', help='Cache directory for search definitions')
 
 
-class _JSONBlasterConnection(SocketConnection):
-    __endpoints__ = {
-        '/search': SearchConnection,
-    }
-
-    def on_message(self, _message):
-        # Must be overridden; superclass is abstract
-        raise tornado.web.HTTPError(400, 'Cannot send messages here')
-
-
 class JSONBlaster(tornado.web.Application):
     handlers = (
         (r'/$', SearchHandler),
@@ -48,14 +38,18 @@ class JSONBlaster(tornado.web.Application):
     )
 
     app_settings = {
-        'enabled_protocols': ['websocket', 'xhr-polling', 'jsonp-polling'],
         'static_path': os.path.join(os.path.dirname(__file__), 'static'),
         'template_path': os.path.join(os.path.dirname(__file__), 'templates'),
     }
 
+    sockjs_settings = {
+        'sockjs_url': '/static/sockjs.js',
+    }
+
     def __init__(self, **kwargs):
         handlers = list(self.handlers)
-        TornadioRouter(_JSONBlasterConnection).apply_routes(handlers)
+        SockJSRouter(SearchConnection, '/search',
+                self.sockjs_settings).apply_routes(handlers)
         settings = dict(self.app_settings)
         settings.update(kwargs)
         tornado.web.Application.__init__(self, handlers, **settings)

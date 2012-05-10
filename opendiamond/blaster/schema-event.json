@@ -1,0 +1,16 @@
+{
+    "title": "A SockJS event",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "event": {
+            "title": "The name of the event",
+            "type": "string",
+            "required": true
+        },
+        "data": {
+            "title": "Event data",
+            "type": ["object", "null"]
+        }
+    }
+}

@@ -7,8 +7,6 @@
 </style>
 
 <div id="content">
-<input type="submit" value="Pause" id="pause">
-<input type="submit" value="Resume" id="resume">
 <ul id="results">
 </ul>
 </div>
@@ -25,6 +23,37 @@ $(function() {
     // Success
     var sock = io.connect('/search');
     var search_key = data;
+    var paused = false;
+    var MAX_UNEXPOSED = 50;
+
+    function pause() {
+      if (!paused) {
+        paused = true;
+        sock.emit('pause');
+      }
+    }
+
+    function resume() {
+      if (paused) {
+        paused = false;
+        sock.emit('resume');
+      }
+    }
+
+    function is_unexposed(jq) {
+      return jq.offset().top > $(document).scrollTop() + $(window).height();
+    }
+
+    function update_exposed() {
+      $('.unexposed').each(function(i, el) {
+        if (!is_unexposed($(el))) {
+          $(el).removeClass('unexposed');
+        }
+      });
+      if (paused && $('.unexposed').length < MAX_UNEXPOSED) {
+        resume();
+      }
+    }
 
     sock.on('connect', function() {
       sock.emit('start', search_key);
@@ -32,16 +61,18 @@ $(function() {
     });
 
     sock.on('result', function(data) {
-      $('#results').append('<li>' + data.search_key + ' ' + data.count + '</li>');
+      var jq = $('<li>' + data.search_key + ' ' + data.count + '</li>');
+      $('#results').append(jq);
+      if (is_unexposed(jq)) {
+        jq.addClass('unexposed');
+      }
+      if (!paused && $('.unexposed').length >= MAX_UNEXPOSED) {
+        pause();
+      }
     });
 
-    $('#pause').click(function() {
-      sock.emit('pause');
-    });
-
-    $('#resume').click(function() {
-      sock.emit('resume');
-    });
+    $(window).resize(update_exposed);
+    $(window).scroll(update_exposed);
   }
 });
 </script>

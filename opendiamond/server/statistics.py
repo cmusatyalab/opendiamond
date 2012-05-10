@@ -58,13 +58,13 @@ class SearchStatistics(_Statistics):
             ('objs_dropped', 'Objects dropped'),
             ('objs_passed', 'Objects passed'),
             ('objs_unloadable', 'Objects failing to load'),
-            ('execution_ns', 'Total object examination time (ns)'))
+            ('execution_us', 'Total object examination time (us)'))
 
     def xdr(self, objs_total, filter_stats):
         '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
-                avg_obj_time = self.execution_ns / self.objs_processed
+                avg_obj_time = self.execution_us / self.objs_processed
             except ZeroDivisionError:
                 avg_obj_time = 0
 
@@ -89,7 +89,7 @@ class FilterStatistics(_Statistics):
             ('objs_cache_passed', 'Objects skipped by cache'),
             ('objs_compute', 'Objects examined by filter'),
             ('objs_terminate', 'Objects causing filter to terminate'),
-            ('execution_ns', 'Filter execution time (ns)'))
+            ('execution_us', 'Filter execution time (us)'))
 
     def __init__(self, name):
         _Statistics.__init__(self)
@@ -100,7 +100,7 @@ class FilterStatistics(_Statistics):
         '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
-                avg_exec_time = self.execution_ns / self.objs_processed
+                avg_exec_time = self.execution_us / self.objs_processed
             except ZeroDivisionError:
                 avg_exec_time = 0
 
@@ -128,5 +128,5 @@ class Timer(object):
 
     @property
     def elapsed(self):
-        '''Elapsed time in ns.'''
-        return int(self.elapsed_seconds * 1e9)
+        '''Elapsed time in us.'''
+        return int(self.elapsed_seconds * 1e6)

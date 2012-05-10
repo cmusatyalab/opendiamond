@@ -414,7 +414,7 @@ class _FilterRunner(_ObjectProcessor):
             accept = self.threshold(result)
             self._filter.stats.update('objs_processed', 'objs_compute',
                                     objs_dropped=int(not accept),
-                                    execution_ns=timer.elapsed)
+                                    execution_us=timer.elapsed)
             lengths = [len(obj[k]) for k in result.output_attrs]
             throughput = int(sum(lengths) / timer.elapsed_seconds)
             if throughput < ATTRIBUTE_CACHE_THRESHOLD:
@@ -727,7 +727,7 @@ class FilterStackRunner(threading.Thread):
             accept = self._evaluate(obj)
         finally:
             self._state.stats.update('objs_processed',
-                                    execution_ns=timer.elapsed,
+                                    execution_us=timer.elapsed,
                                     objs_passed=int(accept),
                                     objs_dropped=int(not accept))
         return accept

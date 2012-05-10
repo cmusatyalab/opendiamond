@@ -17,7 +17,7 @@ import logging
 import threading
 import time
 
-from opendiamond.protocol import XDR_search_stats, XDR_filter_stats
+from opendiamond.protocol import XDR_search_stats, XDR_filter_stats, XDR_Stat
 
 _log = logging.getLogger(__name__)
 
@@ -67,12 +67,15 @@ class SearchStatistics(_Statistics):
                 avg_obj_time = self.execution_ns / self.objs_processed
             except ZeroDivisionError:
                 avg_obj_time = 0
+
+            stats = []
+            stats.append(XDR_Stat('objs_total', objs_total))
+            stats.append(XDR_Stat('avg_obj_time', avg_obj_time))
+            for name, _desc in self.attrs:
+                stats.append(XDR_Stat(name, getattr(self, name)))
+
             return XDR_search_stats(
-                objs_total=objs_total,
-                objs_processed=self.objs_processed,
-                objs_dropped=self.objs_dropped,
-                objs_nproc=self.objs_passed,
-                avg_obj_time=avg_obj_time,
+                stats=stats,
                 filter_stats=[s.xdr() for s in filter_stats],
             )
 
@@ -100,13 +103,15 @@ class FilterStatistics(_Statistics):
                 avg_exec_time = self.execution_ns / self.objs_processed
             except ZeroDivisionError:
                 avg_exec_time = 0
-            return XDR_filter_stats(self.name,
-                objs_processed=self.objs_processed,
-                objs_dropped=self.objs_dropped,
-                objs_cache_dropped=self.objs_cache_dropped,
-                objs_cache_passed=self.objs_cache_passed,
-                objs_compute=self.objs_compute,
-                avg_exec_time=avg_exec_time,
+
+            stats = []
+            stats.append(XDR_Stat('avg_exec_time', avg_exec_time))
+            for name, _desc in self.attrs:
+                stats.append(XDR_Stat(name, getattr(self, name)))
+
+            return XDR_filter_stats(
+                name=self.name,
+                stats=stats
             )
 
 

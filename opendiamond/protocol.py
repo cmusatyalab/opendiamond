@@ -101,42 +101,27 @@ class XDR_start(XDRStruct):
     )
 
 
-class _XDRStats(XDRStruct):
-    '''Base class for XDR_filter_stats and XDR_search_stats'''
-
-    def __init__(self, *args, **kwargs):
-        XDRStruct.__init__(self, *args, **kwargs)
-        for attr, _handler in self._members():
-            if attr is not None and getattr(self, attr) is None:
-                setattr(self, attr, 0)
-
-
-class XDR_filter_stats(_XDRStats):
-    '''Filter statistics'''
+class XDR_Stat(XDRStruct):
+    '''Statistics key-value pair'''
     members = (
-        'name', XDR.string(MAX_FILTER_NAME),
-        'objs_processed', XDR.int(),
-        'objs_dropped', XDR.int(),
-        'objs_cache_dropped', XDR.int(),
-        'objs_cache_passed', XDR.int(),
-        'objs_compute', XDR.int(),
-        None, XDR.constant(XDR.int(), 0),  # hits_inter_session
-        None, XDR.constant(XDR.int(), 0),  # hits_inter_query
-        None, XDR.constant(XDR.int(), 0),  # hits_intra_query
-        'avg_exec_time', XDR.hyper(),
+        "name", XDR.string(),
+        "value", XDR.hyper(),
     )
 
 
-class XDR_search_stats(_XDRStats):
+class XDR_filter_stats(XDRStruct):
+    '''Filter statistics'''
+    members = (
+        'name', XDR.string(),
+        'stats', XDR.array(XDR.struct(XDR_Stat)),
+    )
+
+
+class XDR_search_stats(XDRStruct):
     '''Search statistics'''
     members = (
-        'objs_total', XDR.int(),
-        'objs_processed', XDR.int(),
-        'objs_dropped', XDR.int(),
-        'objs_nproc', XDR.int(),  # should be called objs_passed
-        None, XDR.constant(XDR.int(), 0),  # system_load
-        'avg_obj_time', XDR.hyper(),
-        'filter_stats', XDR.array(XDR.struct(XDR_filter_stats), MAX_FILTERS),
+        'stats', XDR.array(XDR.struct(XDR_Stat)),
+        'filter_stats', XDR.array(XDR.struct(XDR_filter_stats)),
     )
 
 

@@ -16,6 +16,7 @@ import simplejson as json
 import os
 import cPickle as pickle
 from urlparse import urlparse
+from tornadio2 import SocketConnection, event
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
 from tornado.options import define, options
@@ -212,3 +213,85 @@ class ResultsHandler(_BlasterRequestHandler):
             self.render('testui/results.html')
         else:
             raise HTTPError(403, 'Forbidden')
+
+
+class _TestSearch(object):
+    def __init__(self, search_key, callback):
+        from tornado.ioloop import PeriodicCallback
+        self._search_key = search_key
+        self._callback = callback
+        self._count = 0
+        self._timer = PeriodicCallback(self._result, 1000)
+        self._timer.start()
+
+    def _result(self):
+        self._callback({
+            'count': self._count,
+            'search_key': self._search_key
+        })
+        self._count += 1
+
+    def pause(self):
+        self._timer.stop()
+
+    def resume(self):
+        self._timer.start()
+
+    def close(self):
+        self._timer.stop()
+
+
+class SearchConnection(SocketConnection):
+    def __init__(self, *args, **kwargs):
+        SocketConnection.__init__(self, *args, **kwargs)
+        self._search = None
+
+    def on_message(self, _message):
+        # Must be overridden; superclass is abstract
+        raise HTTPError(400, 'Cannot send messages here')
+
+    @event
+    def start(self, search_key):
+        '''Ideally this would be handled in on_open(), but query parameters
+        are per-socket rather than per-connection, so we can't reliably pass
+        the search key when opening the connection (socket.io-client #331).
+        So we have a separate start event instead.'''
+
+        # Sanity checks
+        if self._search is not None:
+            raise HTTPError(400, 'Search already started')
+
+        # Load the search spec
+        search_spec_cache = self.session.handler.application.search_spec_cache
+        try:
+            pickled = search_spec_cache[search_key]
+        except KeyError:
+            raise HTTPError(400, 'Invalid search key')
+        try:
+            search_spec = pickle.loads(pickled)
+        except Exception:
+            raise HTTPError(400, 'Corrupt search key')
+
+        # Start the search
+        print 'start', search_key
+        self._search = _TestSearch(search_key, self._result)
+
+    def _result(self, data):
+        self.emit('result', **data)
+
+    @event
+    def pause(self):
+        if self._search is None:
+            raise HTTPError(400, 'Search not yet started')
+        self._search.pause()
+
+    @event
+    def resume(self):
+        if self._search is None:
+            raise HTTPError(400, 'Search not yet started')
+        self._search.resume()
+
+    def on_close(self):
+        print 'close'
+        if self._search is not None:
+            self._search.close()

@@ -1,11 +1,16 @@
 <!doctype html>
 <title>Search Results</title>
 <script type="text/javascript" src="{{ static_url('testui/jquery.js') }}"></script>
+<script type="text/javascript" src="{{ static_url('testui/socket.io.js') }}"></script>
 
 <style type="text/css">
 </style>
 
 <div id="content">
+<input type="submit" value="Pause" id="pause">
+<input type="submit" value="Resume" id="resume">
+<ul id="results">
+</ul>
 </div>
 
 <script type="text/javascript">
@@ -18,8 +23,25 @@ $(function() {
     $('#content').text('Error: ' + unescape(data));
   } else {
     // Success
+    var sock = io.connect('/search');
     var search_key = data;
-    $('#content').text(search_key);
+
+    sock.on('connect', function() {
+      sock.emit('start', search_key);
+      $('#results').html('');
+    });
+
+    sock.on('result', function(data) {
+      $('#results').append('<li>' + data.search_key + ' ' + data.count + '</li>');
+    });
+
+    $('#pause').click(function() {
+      sock.emit('pause');
+    });
+
+    $('#resume').click(function() {
+      sock.emit('resume');
+    });
   }
 });
 </script>

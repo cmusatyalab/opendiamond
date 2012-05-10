@@ -13,13 +13,14 @@
 '''JSON Blaster web application.'''
 
 import os
+from tornadio2 import SocketConnection, TornadioRouter
 import tornado.ioloop
 from tornado.options import define, options
 import tornado.web
 
 from opendiamond.blobcache import BlobCache
 from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler,
-        ResultsHandler)
+        ResultsHandler, SearchConnection)
 
 define('blob_cache_dir',
         default=os.path.expanduser('~/.diamond/blob-cache-json'),
@@ -27,6 +28,16 @@ define('blob_cache_dir',
 define('search_cache_dir',
         default=os.path.expanduser('~/.diamond/search-cache-json'),
         metavar='DIR', help='Cache directory for search definitions')
+
+
+class _JSONBlasterConnection(SocketConnection):
+    __endpoints__ = {
+        '/search': SearchConnection,
+    }
+
+    def on_message(self, _message):
+        # Must be overridden; superclass is abstract
+        raise tornado.web.HTTPError(400, 'Cannot send messages here')
 
 
 class JSONBlaster(tornado.web.Application):
@@ -37,14 +48,17 @@ class JSONBlaster(tornado.web.Application):
     )
 
     app_settings = {
+        'enabled_protocols': ['websocket', 'xhr-polling', 'jsonp-polling'],
         'static_path': os.path.join(os.path.dirname(__file__), 'static'),
         'template_path': os.path.join(os.path.dirname(__file__), 'templates'),
     }
 
     def __init__(self, **kwargs):
+        handlers = list(self.handlers)
+        TornadioRouter(_JSONBlasterConnection).apply_routes(handlers)
         settings = dict(self.app_settings)
         settings.update(kwargs)
-        tornado.web.Application.__init__(self, self.handlers, **settings)
+        tornado.web.Application.__init__(self, handlers, **settings)
         def make_cache(path):
             if not os.path.isdir(path):
                 os.makedirs(path, 0700)

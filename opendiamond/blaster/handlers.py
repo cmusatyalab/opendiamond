@@ -196,6 +196,7 @@ class SearchHandler(_BlasterRequestHandler):
 
         # Return result
         self.set_status(204)
+        self.set_header('Location', '/search')
         self.set_header('X-Search-Key', search_key)
         self.finish()
 

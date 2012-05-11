@@ -87,8 +87,8 @@ class RPCConnection(object):
         self._lock = threading.Lock()
 
     def _receive(self):
+        '''self._lock must be held.'''
         def read_bytes(count):
-            '''self._lock must be held.'''
             bufs = []
             try:
                 while count > 0:
@@ -104,63 +104,63 @@ class RPCConnection(object):
             return ''.join(bufs)
 
         while True:
-            with self._lock:
-                hdr = RPCHeader.decode(read_bytes(RPCHeader.ENCODED_LENGTH))
-                data = read_bytes(hdr.datalen)
+            hdr = RPCHeader.decode(read_bytes(RPCHeader.ENCODED_LENGTH))
+            data = read_bytes(hdr.datalen)
             # We only handle request traffic; ignore reply messages
             if hdr.status == RPC_PENDING:
                 return _RPCRequest(hdr, data)
 
     def _reply(self, request, status=0, body=''):
+        '''self._lock must be held.'''
         assert status == 0 or len(body) == 0
         hdr = request.make_reply_header(status, body).encode()
-        with self._lock:
-            try:
-                self._sock.sendall(hdr + body)
-            except socket.error, e:
-                self._sock.close()
-                raise ConnectionFailure(str(e))
+        try:
+            self._sock.sendall(hdr + body)
+        except socket.error, e:
+            self._sock.close()
+            raise ConnectionFailure(str(e))
 
     def dispatch(self, handlers):
         '''Receive an RPC request, call a handler in handlers to process it,
         and transmit the reply.'''
-        req = self._receive()
-        try:
-            # Look up handler and decode request
-            handler_name = 'Command %d' % req.hdr.cmd
+        with self._lock:
+            req = self._receive()
             try:
-                handler = handlers.get_handler(req.hdr.cmd)
-                handler_name = (handler.im_class.__name__ + '.' +
-                                handler.__name__)
+                # Look up handler and decode request
+                handler_name = 'Command %d' % req.hdr.cmd
+                try:
+                    handler = handlers.get_handler(req.hdr.cmd)
+                    handler_name = (handler.im_class.__name__ + '.' +
+                                    handler.__name__)
+                    if handler.rpc_request_class is not None:
+                        req_obj = handler.rpc_request_class.decode(req.data)
+                except KeyError:
+                    raise RPCProcedureUnavailable()
+                except (EOFError, XDREncodingError):
+                    raise RPCEncodingError()
+
+                # Call handler
                 if handler.rpc_request_class is not None:
-                    req_obj = handler.rpc_request_class.decode(req.data)
-            except KeyError:
-                raise RPCProcedureUnavailable()
-            except (EOFError, XDREncodingError):
-                raise RPCEncodingError()
+                    ret_obj = handler(req_obj)
+                else:
+                    ret_obj = handler()
 
-            # Call handler
-            if handler.rpc_request_class is not None:
-                ret_obj = handler(req_obj)
-            else:
-                ret_obj = handler()
+                # Encode reply
+                if ret_obj is None:
+                    assert handler.rpc_reply_class is None
+                    ret = ''
+                else:
+                    assert isinstance(ret_obj, handler.rpc_reply_class)
+                    ret = ret_obj.encode()
 
-            # Encode reply
-            if ret_obj is None:
-                assert handler.rpc_reply_class is None
-                ret = ''
-            else:
-                assert isinstance(ret_obj, handler.rpc_reply_class)
-                ret = ret_obj.encode()
-
-            # Send reply
-            self._reply(req, body=ret)
-            if handlers.log_rpcs:
-                _log.debug('%s => success', handler_name)
-        except RPCError, e:
-            self._reply(req, status=e.code)
-            if handlers.log_rpcs:
-                _log.debug('%s => %s', handler_name, e.__class__.__name__)
+                # Send reply
+                self._reply(req, body=ret)
+                if handlers.log_rpcs:
+                    _log.debug('%s => success', handler_name)
+            except RPCError, e:
+                self._reply(req, status=e.code)
+                if handlers.log_rpcs:
+                    _log.debug('%s => %s', handler_name, e.__class__.__name__)
 
 
 # _RPCMeta accesses a protected member of the classes it controls

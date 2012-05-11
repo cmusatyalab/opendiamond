@@ -88,7 +88,7 @@ $(function() {
     };
 
     sock.on('result', function(data) {
-      var jq = $('<li>' + data.search_key + ' ' + data.count + '</li>');
+      var jq = $('<li>' + data._ObjectID + '</li>');
       $('#results').append(jq);
       if (is_unexposed(jq)) {
         jq.addClass('unexposed');

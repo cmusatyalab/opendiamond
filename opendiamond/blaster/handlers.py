@@ -25,7 +25,8 @@ from tornado.web import asynchronous, RequestHandler, HTTPError
 import validictory
 
 import opendiamond
-from opendiamond.blaster.search import Blob, EmptyBlob
+from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
+        FilterSpec)
 from opendiamond.helpers import sha256
 from opendiamond.scope import ScopeCookie, ScopeError
 
@@ -163,7 +164,7 @@ class _SearchSpec(object):
             # No cookies could be parsed out of the client's cookie list
             raise HTTPError(400, 'No scope cookies found')
 
-        # Build blob list
+        # Build filters
         blobs = {}  # blob -> itself  (for deduplication)
         def make_blob(obj):
             if obj is not None:
@@ -172,8 +173,15 @@ class _SearchSpec(object):
                 return blobs.setdefault(blob, blob)
             else:
                 return EmptyBlob()
-        blob_list = [make_blob(f['code']) for f in config['filters']] + \
-                [make_blob(f.get('blob')) for f in config['filters']]
+        self.filters = [FilterSpec(
+                    name=f['name'],
+                    code=make_blob(f['code']),
+                    arguments=f.get('arguments', []),
+                    blob_argument=make_blob(f.get('blob')),
+                    dependencies=f.get('dependencies', []),
+                    min_score=f.get('min_score', float('-inf')),
+                    max_score=f.get('max_score', float('inf'))
+                ) for f in config['filters']]
         self.blobs = blobs.values()
 
     @gen.engine
@@ -181,6 +189,9 @@ class _SearchSpec(object):
         yield [gen.Task(blob.fetch, blob_cache) for blob in self.blobs]
         if callback is not None:
             callback()
+
+    def make_search(self, **kwargs):
+        return DiamondSearch(self.cookies, self.filters, **kwargs)
 
 
 class SearchHandler(_BlasterRequestHandler):
@@ -225,32 +236,6 @@ class ResultsHandler(_BlasterRequestHandler):
             raise HTTPError(403, 'Forbidden')
 
 
-class _TestSearch(object):
-    def __init__(self, search_key, callback):
-        from tornado.ioloop import PeriodicCallback
-        self._search_key = search_key
-        self._callback = callback
-        self._count = 0
-        self._timer = PeriodicCallback(self._result, 1000)
-        self._timer.start()
-
-    def _result(self):
-        self._callback({
-            'count': self._count,
-            'search_key': self._search_key
-        })
-        self._count += 1
-
-    def pause(self):
-        self._timer.stop()
-
-    def resume(self):
-        self._timer.start()
-
-    def close(self):
-        self._timer.stop()
-
-
 class _StructuredSocketConnection(SockJSConnection):
     @classmethod
     def event(cls, func):
@@ -291,6 +276,7 @@ class SearchConnection(_StructuredSocketConnection):
         self._search = None
 
     @_StructuredSocketConnection.event
+    @gen.engine
     def start(self, search_key):
         # Sanity checks
         if self._search is not None:
@@ -309,10 +295,29 @@ class SearchConnection(_StructuredSocketConnection):
 
         # Start the search
         print 'start', search_key
-        self._search = _TestSearch(search_key, self._result)
+        self._search = search_spec.make_search(
+            object_callback=self._result,
+            finished_callback=self._finished,
+            close_callback=self._closed,
+        )
+        search_id = yield gen.Task(self._search.start)
 
-    def _result(self, data):
-        self.emit('result', **data)
+        # Return search ID to client
+        self.emit('search_started', search_id=search_id)
+
+    def _result(self, obj):
+        '''Blast channel result.'''
+        self.emit('result', _ObjectID=obj['_ObjectID'])
+
+    def _finished(self):
+        '''Search has completed.'''
+        self.emit('search_complete')
+        self._search.close()
+
+    def _closed(self):
+        '''Search closed.'''
+        # Close the SockJS connection
+        self.close()
 
     @_StructuredSocketConnection.event
     def pause(self):
@@ -327,6 +332,10 @@ class SearchConnection(_StructuredSocketConnection):
         self._search.resume()
 
     def on_close(self):
-        print 'close'
+        '''SockJS connection closed.'''
+        # Close the Diamond connection
         if self._search is not None:
-            self._search.close()
+            print 'close'
+            search = self._search
+            self._search = None
+            search.close()

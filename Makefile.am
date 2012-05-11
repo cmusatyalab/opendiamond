@@ -17,6 +17,7 @@ nobase_python_PYTHON = \
 	opendiamond/xdr.py \
 	opendiamond/blaster/__init__.py \
 	opendiamond/blaster/handlers.py \
+	opendiamond/blaster/rpc.py \
 	opendiamond/blaster/search.py \
 	opendiamond/dataretriever/__init__.py \
 	opendiamond/dataretriever/diamond_store.py \

@@ -245,6 +245,42 @@ class DiamondSearch(object):
     def resume(self):
         self._blast.resume()
 
+    @gen.engine
+    def get_stats(self, callback=None):
+        def combine_into(dest, src, key_map):
+            for dk, sk in key_map.iteritems():
+                dest.setdefault(dk, 0)
+                dest[dk] += getattr(src, sk)
+        try:
+            results = yield [gen.Task(c.control.request_stats)
+                    for c in self._connections.values()]
+        except RPCError:
+            _log.exception('Statistics request failed')
+            self.close()
+        stats = {}
+        filter_stats = {}
+        for result in results:
+            combine_into(stats, result, {
+                'objs_total': 'objs_total',
+                'objs_processed': 'objs_processed',
+                'objs_dropped': 'objs_dropped',
+                'objs_passed': 'objs_nproc',
+                'avg_obj_time_ns': 'avg_obj_time',
+            })
+            for filter in result.filter_stats:
+                combine_into(filter_stats.setdefault(filter.name, {}),
+                        filter, {
+                    'objs_processed': 'objs_processed',
+                    'objs_dropped': 'objs_dropped',
+                    'objs_cache_dropped': 'objs_cache_dropped',
+                    'objs_cache_passed': 'objs_cache_passed',
+                    'objs_computed': 'objs_compute',
+                    'avg_exec_time_ns': 'avg_exec_time',
+                })
+        stats['filters'] = filter_stats
+        if callback is not None:
+            callback(stats)
+
     def close(self):
         if not self._closed:
             self._closed = True

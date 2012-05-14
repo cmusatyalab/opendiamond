@@ -12,6 +12,7 @@
 
 '''JSON Blaster request handlers.'''
 
+from datetime import timedelta
 import logging
 import simplejson as json
 import os
@@ -20,6 +21,7 @@ from sockjs.tornado import SockJSConnection
 from urlparse import urlparse
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
+from tornado.ioloop import IOLoop
 from tornado.options import define, options
 from tornado.web import asynchronous, RequestHandler, HTTPError
 import validictory
@@ -31,6 +33,7 @@ from opendiamond.helpers import sha256
 from opendiamond.scope import ScopeCookie, ScopeError
 
 CACHE_URN_SCHEME = 'blob'
+STATS_INTERVAL = timedelta(milliseconds=1000)
 
 # HTTP method handlers have specific argument lists rather than
 # (self, *args, **kwargs) as in the superclass.
@@ -305,12 +308,33 @@ class SearchConnection(_StructuredSocketConnection):
         # Return search ID to client
         self.emit('search_started', search_id=search_id)
 
+        # Start statistics coroutine
+        self._stats_coroutine()
+
+    @gen.engine
+    def _stats_coroutine(self):
+        '''Statistics coroutine.'''
+        while self._search is not None:
+            yield gen.Task(self._send_stats)
+            yield gen.Task(IOLoop.instance().add_timeout, STATS_INTERVAL)
+
+    @gen.engine
+    def _send_stats(self, callback=None):
+        '''Fetch stats and send them to the client.'''
+        stats = yield gen.Task(self._search.get_stats)
+        self.emit('statistics', **stats)
+        if callback is not None:
+            callback()
+
     def _result(self, obj):
         '''Blast channel result.'''
         self.emit('result', _ObjectID=obj['_ObjectID'])
 
+    @gen.engine
     def _finished(self):
         '''Search has completed.'''
+        # Send final stats
+        yield gen.Task(self._send_stats)
         self.emit('search_complete')
         self._search.close()
 

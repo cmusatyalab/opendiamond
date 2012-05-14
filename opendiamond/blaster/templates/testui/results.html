@@ -4,9 +4,26 @@
 <script type="text/javascript" src="{{ static_url('sockjs.js') }}"></script>
 
 <style type="text/css">
+#statistics {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 0.3em;
+  width: 100%;
+  background-color: #ddd;
+  font-weight: bold;
+  text-align: center;
+}
+
+#results {
+  padding-top: 2em;
+}
 </style>
 
 <div id="content">
+<div id="statistics">
+Initializing...
+</div>
 <ul id="results">
 </ul>
 </div>
@@ -96,6 +113,11 @@ $(function() {
       if (!paused && $('.unexposed').length >= MAX_UNEXPOSED) {
         pause();
       }
+    });
+
+    sock.on('statistics', function(data) {
+      $('#statistics').text(data.objs_processed + '/' + data.objs_total +
+          ' objects processed');
     });
 
     $(window).resize(update_exposed);

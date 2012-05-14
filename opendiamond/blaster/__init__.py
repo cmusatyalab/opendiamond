@@ -19,6 +19,7 @@ from tornado.options import define, options
 import tornado.web
 
 from opendiamond.blobcache import BlobCache
+from opendiamond.blaster.cache import SearchCache
 from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler,
         ResultsHandler, SearchConnection)
 
@@ -53,9 +54,9 @@ class JSONBlaster(tornado.web.Application):
         settings = dict(self.app_settings)
         settings.update(kwargs)
         tornado.web.Application.__init__(self, handlers, **settings)
-        def make_cache(path):
-            if not os.path.isdir(path):
-                os.makedirs(path, 0700)
-            return BlobCache(path, 'sha256')
-        self.blob_cache = make_cache(options.blob_cache_dir)
-        self.search_spec_cache = make_cache(options.search_cache_dir)
+
+        if not os.path.isdir(options.blob_cache_dir):
+            os.makedirs(options.blob_cache_dir, 0700)
+        self.blob_cache = BlobCache(options.blob_cache_dir, 'sha256')
+
+        self.search_cache = SearchCache(options.search_cache_dir)

@@ -16,7 +16,6 @@ from datetime import timedelta
 import logging
 import simplejson as json
 import os
-import cPickle as pickle
 from sockjs.tornado import SockJSConnection
 from urlparse import urlparse
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
@@ -27,6 +26,7 @@ from tornado.web import asynchronous, RequestHandler, HTTPError
 import validictory
 
 import opendiamond
+from opendiamond.blaster.cache import SearchCacheLoadError
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import sha256
@@ -68,8 +68,8 @@ class _BlasterRequestHandler(RequestHandler):
         return self.application.blob_cache
 
     @property
-    def search_spec_cache(self):
-        return self.application.search_spec_cache
+    def search_cache(self):
+        return self.application.search_cache
 
     def write_error(self, code, **kwargs):
         exc_type, exc_value, _exc_tb = kwargs.get('exc_info', [None] * 3)
@@ -214,8 +214,7 @@ class SearchHandler(_BlasterRequestHandler):
         yield gen.Task(spec.fetch_blobs, self.blob_cache)
 
         # Store it
-        pickled = pickle.dumps(spec, pickle.HIGHEST_PROTOCOL)
-        search_key = self.search_spec_cache.add(pickled)
+        search_key = self.search_cache.put_search(spec)
 
         # Return result
         self.set_status(204)
@@ -278,6 +277,10 @@ class SearchConnection(_StructuredSocketConnection):
         _StructuredSocketConnection.__init__(self, *args, **kwargs)
         self._search = None
 
+    @property
+    def search_cache(self):
+        return self.session.handler.application.search_cache
+
     @_StructuredSocketConnection.event
     @gen.engine
     def start(self, search_key):
@@ -286,14 +289,11 @@ class SearchConnection(_StructuredSocketConnection):
             raise HTTPError(400, 'Search already started')
 
         # Load the search spec
-        search_spec_cache = self.session.handler.application.search_spec_cache
         try:
-            pickled = search_spec_cache[search_key]
+            search_spec = self.search_cache.get_search(search_key)
         except KeyError:
             raise HTTPError(400, 'Invalid search key')
-        try:
-            search_spec = pickle.loads(pickled)
-        except Exception:
+        except SearchCacheLoadError:
             raise HTTPError(400, 'Corrupt search key')
 
         # Start the search

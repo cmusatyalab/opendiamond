@@ -17,11 +17,12 @@ from sockjs.tornado import SockJSRouter
 import tornado.ioloop
 from tornado.options import define, options
 import tornado.web
+from tornado.web import url
 
 from opendiamond.blobcache import BlobCache
 from opendiamond.blaster.cache import SearchCache
 from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler,
-        ResultsHandler, SearchConnection)
+        AttributeHandler, ResultsHandler, SearchConnection)
 
 define('blob_cache_dir',
         default=os.path.expanduser('~/.diamond/blob-cache-json'),
@@ -35,6 +36,8 @@ class JSONBlaster(tornado.web.Application):
     handlers = (
         (r'/$', SearchHandler),
         (r'/blob$', PostBlobHandler),
+        url(r'/attribute/([0-9a-f]{64})/([0-9a-f]{64})/(.+)$',
+                AttributeHandler, name='attribute'),
         (r'/results$', ResultsHandler),
     )
 

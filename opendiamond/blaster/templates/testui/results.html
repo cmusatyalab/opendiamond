@@ -17,6 +17,13 @@
 
 #results {
   padding-top: 2em;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+#results li {
+  list-style-type: none;
+  float: left;
 }
 </style>
 
@@ -105,7 +112,15 @@ $(function() {
     };
 
     sock.on('result', function(data) {
-      var jq = $('<li>' + data._ObjectID + '</li>');
+      var thumbnail = data['thumbnail.jpeg'];
+      var url;
+      if (thumbnail) {
+        url = thumbnail.url;
+      } else {
+        url = "{{ static_url('testui/unknown.png') }}";
+      }
+      var jq = $('<li><img></li>');
+      jq.find('img').attr('src', url);
       $('#results').append(jq);
       if (is_unexposed(jq)) {
         jq.addClass('unexposed');

@@ -230,6 +230,22 @@ class PostBlobHandler(_BlasterRequestHandler):
         self.set_status(204)
 
 
+class AttributeHandler(_BlasterRequestHandler):
+    def get(self, search_key, object_key, attr_name):
+        try:
+            data = self.search_cache.get_object_attribute(search_key,
+                    object_key, attr_name)
+        except KeyError:
+            raise HTTPError(404, 'Not found')
+
+        if attr_name.endswith('.jpeg'):
+            self.set_header('Content-Type', 'image/jpeg')
+        else:
+            self.set_header('Content-Type', 'application/octet-stream')
+
+        self.write(data)
+
+
 class ResultsHandler(_BlasterRequestHandler):
     def get(self):
         if options.enable_testui:
@@ -276,10 +292,14 @@ class SearchConnection(_StructuredSocketConnection):
     def __init__(self, *args, **kwargs):
         _StructuredSocketConnection.__init__(self, *args, **kwargs)
         self._search = None
+        self._search_key = None
 
     @property
     def search_cache(self):
         return self.session.handler.application.search_cache
+
+    def reverse_url(self, *args, **kwargs):
+        return self.session.handler.application.reverse_url(*args, **kwargs)
 
     @_StructuredSocketConnection.event
     @gen.engine
@@ -298,6 +318,7 @@ class SearchConnection(_StructuredSocketConnection):
 
         # Start the search
         print 'start', search_key
+        self._search_key = search_key
         self._search = search_spec.make_search(
             object_callback=self._result,
             finished_callback=self._finished,
@@ -328,7 +349,15 @@ class SearchConnection(_StructuredSocketConnection):
 
     def _result(self, obj):
         '''Blast channel result.'''
-        self.emit('result', _ObjectID=obj['_ObjectID'])
+        object_key = self.search_cache.put_search_result(self._search_key,
+                obj['_ObjectID'], obj)
+        result = {}
+        for k in obj:
+            result[k] = {
+                'url': self.reverse_url('attribute', self._search_key,
+                        object_key, k),
+            }
+        self.emit('result', **result)
 
     @gen.engine
     def _finished(self):

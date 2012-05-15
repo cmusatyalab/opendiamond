@@ -74,6 +74,7 @@ nobase_dist_python_DATA = \
 	opendiamond/blaster/static/sockjs.js \
 	opendiamond/blaster/static/testui/jquery.js \
 	opendiamond/blaster/static/testui/spinner.gif \
+	opendiamond/blaster/static/testui/unknown.png \
 	opendiamond/blaster/templates/testui/results.html \
 	opendiamond/blaster/templates/testui/search.html \
 	opendiamond/scopeserver/core/static/scopeserver/base.css \

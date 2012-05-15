@@ -13,6 +13,7 @@
 import cPickle as pickle
 import os
 from tempfile import NamedTemporaryFile
+import zipfile
 
 from opendiamond.helpers import sha256
 
@@ -34,6 +35,12 @@ class SearchCache(object):
     def _search_path(self, search_key):
         return os.path.join(self._search_dir_path(search_key), 'search')
 
+    def _object_path(self, search_key, object_key):
+        return os.path.join(self._search_dir_path(search_key), object_key)
+
+    def _object_key(self, object_id):
+        return sha256(object_id).hexdigest()
+
     def _hash_file(self, filh):
         filh.seek(0)
         hash = sha256()
@@ -43,6 +50,12 @@ class SearchCache(object):
                 break
             hash.update(buf)
         return hash.hexdigest()
+
+    def _attr_key(self, name):
+        if name == '':
+            return '__OBJECT_DATA__'
+        else:
+            return name
 
     def put_search(self, obj):
         fh = NamedTemporaryFile(dir=self._basedir, delete=False)
@@ -68,3 +81,23 @@ class SearchCache(object):
             raise KeyError()
         except Exception:
             raise SearchCacheLoadError()
+
+    def put_search_result(self, search_key, object_id, result):
+        '''result is a dict of object attributes.'''
+        fh = NamedTemporaryFile(dir=self._basedir, delete=False)
+        zf = zipfile.ZipFile(fh, 'w', zipfile.ZIP_STORED, True)
+        for k, v in result.iteritems():
+            zf.writestr(self._attr_key(k), v)
+        zf.close()
+        fh.close()
+        object_key = self._object_key(object_id)
+        os.rename(fh.name, self._object_path(search_key, object_key))
+        return object_key
+
+    def get_object_attribute(self, search_key, object_key, attr_name):
+        try:
+            path = self._object_path(search_key, object_key)
+            with zipfile.ZipFile(path, 'r') as zf:
+                return zf.read(self._attr_key(attr_name))
+        except IOError:
+            raise KeyError()

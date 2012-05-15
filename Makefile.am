@@ -6,6 +6,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opendiamond.pc
 
 nobase_python_PYTHON = \
+	opendiamond/attributes.py \
 	opendiamond/blobcache.py \
 	opendiamond/bundle.py \
 	opendiamond/config.py \

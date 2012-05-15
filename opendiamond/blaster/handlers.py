@@ -26,6 +26,8 @@ from tornado.web import asynchronous, RequestHandler, HTTPError
 import validictory
 
 import opendiamond
+from opendiamond.attributes import (StringAttributeCodec,
+        IntegerAttributeCodec, DoubleAttributeCodec, PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
@@ -60,6 +62,55 @@ def _validate_json(schema, obj):
     # JSON Schema draft 3 semantics
     validictory.validate(obj, schema, required_by_default=False,
             blank_by_default=True)
+
+
+def _make_object_json(obj, url_factory):
+    '''Convert an object attribute dict into a dict suitable for JSON
+    encoding.  url_factory(k) is a function to convert an attribute name
+    into a URL.'''
+    result = {}
+    for k, v in obj.iteritems():
+        data = None
+        # Inline known attribute types that can be represented in JSON
+        if k.endswith('.int'):
+            data = IntegerAttributeCodec().decode(v)
+        elif k.endswith('.double'):
+            data = DoubleAttributeCodec().decode(v)
+        elif k.endswith('.patches'):
+            distance, patches = PatchesAttributeCodec().decode(v)
+            data = {
+                'distance': distance,
+                'patches': [{
+                    'x0': tl[0],
+                    'y0': tl[1],
+                    'x1': br[0],
+                    'y1': br[1]
+                } for tl, br in patches],
+            }
+        else:
+            # Treat remaining attributes as strings if: they don't have
+            # a suffix representing a known binary type, they can be decoded
+            # by the string codec (i.e., their last byte is 0), they are
+            # valid UTF-8, and they are not the '' (object data) attribute.
+            try:
+                _base, suffix = k.rsplit('.', 1)
+            except ValueError:
+                suffix = None
+            try:
+                if k != '' and suffix not in ('jpeg', 'rgbimage', 'binary'):
+                    data = StringAttributeCodec().decode(v).decode('UTF-8')
+            except ValueError:
+                pass
+
+        if data is not None:
+            result[k] = {
+                'data': data,
+            }
+        else:
+            result[k] = {
+                'url': url_factory(k),
+            }
+    return result
 
 
 class _BlasterRequestHandler(RequestHandler):
@@ -351,12 +402,10 @@ class SearchConnection(_StructuredSocketConnection):
         '''Blast channel result.'''
         object_key = self.search_cache.put_search_result(self._search_key,
                 obj['_ObjectID'], obj)
-        result = {}
-        for k in obj:
-            result[k] = {
-                'url': self.reverse_url('attribute', self._search_key,
-                        object_key, k),
-            }
+        def factory(k):
+            return self.reverse_url('attribute', self._search_key,
+                    object_key, k)
+        result = _make_object_json(obj, factory)
         self.emit('result', **result)
 
     @gen.engine

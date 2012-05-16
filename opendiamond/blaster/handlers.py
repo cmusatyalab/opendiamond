@@ -12,9 +12,11 @@
 
 '''JSON Blaster request handlers.'''
 
+from cStringIO import StringIO
 from datetime import timedelta
 import logging
 import magic
+import PIL.Image
 import simplejson as json
 import os
 from sockjs.tornado import SockJSConnection
@@ -28,7 +30,8 @@ import validictory
 
 import opendiamond
 from opendiamond.attributes import (StringAttributeCodec,
-        IntegerAttributeCodec, DoubleAttributeCodec, PatchesAttributeCodec)
+        IntegerAttributeCodec, DoubleAttributeCodec, RGBImageAttributeCodec,
+        PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
@@ -72,8 +75,9 @@ def _validate_json(schema, obj):
 
 def _make_object_json(obj, url_factory):
     '''Convert an object attribute dict into a dict suitable for JSON
-    encoding.  url_factory(k) is a function to convert an attribute name
-    into a URL.'''
+    encoding.  url_factory(k, transcode) is a function to convert an
+    attribute name into a URL that produces an image (if transcode is True)
+    or the raw attribute data (otherwise).'''
     result = {}
     for k, v in obj.iteritems():
         data = None
@@ -114,7 +118,8 @@ def _make_object_json(obj, url_factory):
             }
         else:
             result[k] = {
-                'url': url_factory(k),
+                'raw_url': url_factory(k, False),
+                'image_url': url_factory(k, True),
             }
     return result
 
@@ -288,6 +293,12 @@ class PostBlobHandler(_BlasterRequestHandler):
 
 
 class AttributeHandler(_BlasterRequestHandler):
+    # Handlers use initialize(), not __init__
+    # pylint: disable=W0201
+    def initialize(self, transcode=False):
+        self._transcode = transcode
+    # pylint: enable=W0201
+
     def get(self, search_key, object_key, attr_name):
         try:
             data = self.search_cache.get_object_attribute(search_key,
@@ -299,6 +310,20 @@ class AttributeHandler(_BlasterRequestHandler):
             mime = 'image/jpeg'
         else:
             mime = _magic.buffer(data)
+
+        if self._transcode and mime not in ('image/jpeg', 'image/png'):
+            try:
+                if attr_name.endswith('.rgbimage'):
+                    img = RGBImageAttributeCodec().decode(data)
+                else:
+                    img = PIL.Image.open(StringIO(data))
+                buf = StringIO()
+                img.save(buf, 'PNG')
+                data = buf.getvalue()
+                mime = 'image/png'
+            except IOError:
+                # Couldn't parse image
+                pass
 
         self.set_header('Content-Type', mime)
         self.write(data)
@@ -409,9 +434,10 @@ class SearchConnection(_StructuredSocketConnection):
         '''Blast channel result.'''
         object_key = self.search_cache.put_search_result(self._search_key,
                 obj['_ObjectID'], obj)
-        def factory(k):
-            return self.reverse_url('attribute', self._search_key,
-                    object_key, k)
+        def factory(k, transcode):
+            return self.reverse_url(
+                    transcode and 'attribute-image' or 'attribute-raw',
+                    self._search_key, object_key, k)
         result = _make_object_json(obj, factory)
         self.emit('result', **result)
 

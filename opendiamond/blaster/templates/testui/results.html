@@ -115,7 +115,7 @@ $(function() {
       var thumbnail = data['thumbnail.jpeg'];
       var url;
       if (thumbnail) {
-        url = thumbnail.url;
+        url = thumbnail.image_url;
       } else {
         url = "{{ static_url('testui/unknown.png') }}";
       }

@@ -92,5 +92,9 @@ class JSONBlaster(tornado.web.Application):
                 BlobCache.prune(self.blob_cache.basedir, self.blob_cache_days)
             except Exception:
                 _log.exception('Pruning blob cache')
+            try:
+                self.search_cache.prune()
+            except Exception:
+                _log.exception('Pruning search cache')
             time.sleep(self.cache_prune_interval)
     # pylint: enable=W0703

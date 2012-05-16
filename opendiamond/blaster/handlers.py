@@ -255,6 +255,11 @@ class _SearchSpec(object):
         if callback is not None:
             callback()
 
+    @property
+    def expires(self):
+        return reduce(lambda a, b: a if a < b else b,
+                [c.expires for c in self.cookies])
+
     def make_search(self, **kwargs):
         return DiamondSearch(self.cookies, self.filters, **kwargs)
 
@@ -276,7 +281,7 @@ class SearchHandler(_BlasterRequestHandler):
         yield gen.Task(spec.fetch_blobs, self.blob_cache)
 
         # Store it
-        search_key = self.search_cache.put_search(spec)
+        search_key = self.search_cache.put_search(spec, spec.expires)
 
         # Return result
         self.set_status(204)

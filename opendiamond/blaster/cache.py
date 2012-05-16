@@ -11,18 +11,26 @@
 #
 
 import cPickle as pickle
+from datetime import datetime
+import dateutil.parser
+from dateutil.tz import tzutc
+import logging
 import os
+import shutil
 from tempfile import NamedTemporaryFile
 import zipfile
 
 from opendiamond.helpers import sha256
+
+_log = logging.getLogger(__name__)
 
 class SearchCacheLoadError(Exception):
     pass
 
 
 class SearchCache(object):
-    '''Assumes single-threaded, single-process access to the cache.'''
+    '''Assumes single-threaded, single-process access to the cache
+    (except for pruning).'''
 
     def __init__(self, path):
         if not os.path.exists(path):
@@ -34,6 +42,9 @@ class SearchCache(object):
 
     def _search_path(self, search_key):
         return os.path.join(self._search_dir_path(search_key), 'search')
+
+    def _search_expiration_path(self, search_key):
+        return os.path.join(self._search_dir_path(search_key), 'expires')
 
     def _object_path(self, search_key, object_key):
         return os.path.join(self._search_dir_path(search_key), object_key)
@@ -57,20 +68,29 @@ class SearchCache(object):
         else:
             return name
 
-    def put_search(self, obj):
-        fh = NamedTemporaryFile(dir=self._basedir, delete=False)
-        pickle.dump(obj, fh, pickle.HIGHEST_PROTOCOL)
-        search_key = self._hash_file(fh)
-        fh.close()
+    def put_search(self, obj, expiration):
+        '''obj is an application-defined search object.  expiration is a
+        timezone-aware datetime specifying when the search expires.'''
+
+        obj_fh = NamedTemporaryFile(dir=self._basedir, delete=False)
+        pickle.dump(obj, obj_fh, pickle.HIGHEST_PROTOCOL)
+        search_key = self._hash_file(obj_fh)
+        obj_fh.close()
+
+        exp_fh = NamedTemporaryFile(dir=self._basedir, delete=False)
+        exp_fh.write(expiration.isoformat() + '\n')
+        exp_fh.close()
 
         dirpath = self._search_dir_path(search_key)
         filepath = self._search_path(search_key)
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
         if not os.path.exists(filepath):
-            os.rename(fh.name, filepath)
+            os.rename(exp_fh.name, self._search_expiration_path(search_key))
+            os.rename(obj_fh.name, filepath)
         else:
-            os.unlink(fh.name)
+            os.unlink(exp_fh.name)
+            os.unlink(obj_fh.name)
         return search_key
 
     def get_search(self, search_key):
@@ -101,3 +121,23 @@ class SearchCache(object):
                 return zf.read(self._attr_key(attr_name))
         except IOError:
             raise KeyError()
+
+    def prune(self):
+        '''May be run in a different thread.'''
+        now = datetime.now(tzutc())
+        expired = 0
+        for search_key in os.listdir(self._basedir):
+            # search_key may or may not be a search key; we have to check
+            # the filesystem to make sure
+            exp_path = self._search_expiration_path(search_key)
+            try:
+                with open(exp_path, 'r') as fh:
+                    exp_time = dateutil.parser.parse(fh.read())
+            except IOError:
+                # No expiration file ==> not a search
+                continue
+            if exp_time < now:
+                shutil.rmtree(self._search_dir_path(search_key))
+                expired += 1
+        if expired:
+            _log.info('Expired %d searches', expired)

@@ -14,6 +14,7 @@
 
 from datetime import timedelta
 import logging
+import magic
 import simplejson as json
 import os
 from sockjs.tornado import SockJSConnection
@@ -48,6 +49,11 @@ define('http_proxy', type=str, default=None,
 
 
 _log = logging.getLogger(__name__)
+
+
+_magic = magic.open(magic.NONE)
+_magic.setflags(magic.MIME_TYPE)
+_magic.load()
 
 
 def _load_schema(name):
@@ -290,10 +296,11 @@ class AttributeHandler(_BlasterRequestHandler):
             raise HTTPError(404, 'Not found')
 
         if attr_name.endswith('.jpeg'):
-            self.set_header('Content-Type', 'image/jpeg')
+            mime = 'image/jpeg'
         else:
-            self.set_header('Content-Type', 'application/octet-stream')
+            mime = _magic.buffer(data)
 
+        self.set_header('Content-Type', mime)
         self.write(data)
 
 

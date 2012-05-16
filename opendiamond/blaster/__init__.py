@@ -12,8 +12,11 @@
 
 '''JSON Blaster web application.'''
 
+import logging
 import os
 from sockjs.tornado import SockJSRouter
+import threading
+import time
 import tornado.ioloop
 from tornado.options import define, options
 import tornado.web
@@ -30,6 +33,8 @@ define('blob_cache_dir',
 define('search_cache_dir',
         default=os.path.expanduser('~/.diamond/search-cache-json'),
         metavar='DIR', help='Cache directory for search definitions')
+
+_log = logging.getLogger(__name__)
 
 
 class JSONBlaster(tornado.web.Application):
@@ -53,6 +58,11 @@ class JSONBlaster(tornado.web.Application):
         'sockjs_url': '/static/sockjs.js',
     }
 
+    cache_prune_interval = 3600 # seconds
+    # The blob cache is only used as a holding area for blobs that will soon
+    # be added to a search, so cache objects don't need a long lifetime.
+    blob_cache_days = 1
+
     def __init__(self, **kwargs):
         handlers = list(self.handlers)
         SockJSRouter(SearchConnection, '/search',
@@ -66,3 +76,21 @@ class JSONBlaster(tornado.web.Application):
         self.blob_cache = BlobCache(options.blob_cache_dir, 'sha256')
 
         self.search_cache = SearchCache(options.search_cache_dir)
+
+        self._pruner = threading.Thread(target=self._prune_cache_thread,
+                name='prune-cache')
+        self._pruner.daemon = True
+        self._pruner.start()
+
+    # We don't want to abort the pruning thread on an exception
+    # pylint: disable=W0703
+    def _prune_cache_thread(self):
+        '''Runs as a separate Python thread; cannot interact with Tornado
+        state.'''
+        while True:
+            try:
+                BlobCache.prune(self.blob_cache.basedir, self.blob_cache_days)
+            except Exception:
+                _log.exception('Pruning blob cache')
+            time.sleep(self.cache_prune_interval)
+    # pylint: enable=W0703

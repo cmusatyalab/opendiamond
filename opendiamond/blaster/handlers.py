@@ -73,11 +73,9 @@ def _validate_json(schema, obj):
             blank_by_default=True)
 
 
-def _make_object_json(obj, url_factory):
+def _make_object_json(application, search_key, object_key, obj):
     '''Convert an object attribute dict into a dict suitable for JSON
-    encoding.  url_factory(k, transcode) is a function to convert an
-    attribute name into a URL that produces an image (if transcode is True)
-    or the raw attribute data (otherwise).'''
+    encoding.'''
     result = {}
     for k, v in obj.iteritems():
         data = None
@@ -118,8 +116,10 @@ def _make_object_json(obj, url_factory):
             }
         else:
             result[k] = {
-                'raw_url': url_factory(k, False),
-                'image_url': url_factory(k, True),
+                'raw_url': application.reverse_url('attribute-raw',
+                        search_key, object_key, k),
+                'image_url': application.reverse_url('attribute-image',
+                        search_key, object_key, k),
             }
     return result
 
@@ -383,11 +383,12 @@ class SearchConnection(_StructuredSocketConnection):
         self._search_key = None
 
     @property
-    def search_cache(self):
-        return self.session.handler.application.search_cache
+    def application(self):
+        return self.session.handler.application
 
-    def reverse_url(self, *args, **kwargs):
-        return self.session.handler.application.reverse_url(*args, **kwargs)
+    @property
+    def search_cache(self):
+        return self.application.search_cache
 
     @_StructuredSocketConnection.event
     @gen.engine
@@ -439,11 +440,8 @@ class SearchConnection(_StructuredSocketConnection):
         '''Blast channel result.'''
         object_key = self.search_cache.put_search_result(self._search_key,
                 obj['_ObjectID'], obj)
-        def factory(k, transcode):
-            return self.reverse_url(
-                    transcode and 'attribute-image' or 'attribute-raw',
-                    self._search_key, object_key, k)
-        result = _make_object_json(obj, factory)
+        result = _make_object_json(self.application, self._search_key,
+                object_key, obj)
         self.emit('result', **result)
 
     @gen.engine

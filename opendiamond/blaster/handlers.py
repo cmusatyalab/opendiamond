@@ -267,7 +267,7 @@ class _SearchSpec(object):
 class SearchHandler(_BlasterRequestHandler):
     def get(self):
         if options.enable_testui:
-            self.render('testui/search.html')
+            self.redirect(self.reverse_url('ui-search'))
         else:
             raise HTTPError(405, 'Method not allowed')
 
@@ -334,10 +334,17 @@ class AttributeHandler(_BlasterRequestHandler):
         self.write(data)
 
 
-class ResultsHandler(_BlasterRequestHandler):
+class UIHandler(_BlasterRequestHandler):
+    # Handlers use initialize(), not __init__
+    # pylint: disable=W0201
+    def initialize(self, template):
+        self._template = template
+    # pylint: enable=W0201
+
     def get(self):
         if options.enable_testui:
-            self.render('testui/results.html')
+            self.render(os.path.join('testui', self._template),
+                    results_url=self.reverse_url('ui-results'))
         else:
             raise HTTPError(403, 'Forbidden')
 

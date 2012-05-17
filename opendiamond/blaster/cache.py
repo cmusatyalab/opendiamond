@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from collections import Mapping
 import cPickle as pickle
 from datetime import datetime
 import dateutil.parser
@@ -24,8 +25,40 @@ from opendiamond.helpers import sha256
 
 _log = logging.getLogger(__name__)
 
+
+def _attr_key_to_member(key):
+    if key == '':
+        return '__OBJECT_DATA__'
+    else:
+        return key
+
+
+def _member_to_attr_key(name):
+    if name == '__OBJECT_DATA__':
+        return ''
+    else:
+        return name
+
+
 class SearchCacheLoadError(Exception):
     pass
+
+
+class _CachedSearchResult(Mapping):
+    def __init__(self, path):
+        self._zip = zipfile.ZipFile(path, 'r')
+
+    def __len__(self):
+        return len(self._zip.namelist())
+
+    def __iter__(self):
+        return (_member_to_attr_key(n) for n in self._zip.namelist())
+
+    def __contains__(self, key):
+        return _attr_key_to_member(key) in self._zip.namelist()
+
+    def __getitem__(self, key):
+        return self._zip.read(_attr_key_to_member(key))
 
 
 class SearchCache(object):
@@ -61,12 +94,6 @@ class SearchCache(object):
                 break
             hash.update(buf)
         return hash.hexdigest()
-
-    def _attr_key(self, name):
-        if name == '':
-            return '__OBJECT_DATA__'
-        else:
-            return name
 
     def put_search(self, obj, expiration):
         '''obj is an application-defined search object.  expiration is a
@@ -107,18 +134,17 @@ class SearchCache(object):
         fh = NamedTemporaryFile(dir=self._basedir, delete=False)
         zf = zipfile.ZipFile(fh, 'w', zipfile.ZIP_STORED, True)
         for k, v in result.iteritems():
-            zf.writestr(self._attr_key(k), v)
+            zf.writestr(_attr_key_to_member(k), v)
         zf.close()
         fh.close()
         object_key = self._object_key(object_id)
         os.rename(fh.name, self._object_path(search_key, object_key))
         return object_key
 
-    def get_object_attribute(self, search_key, object_key, attr_name):
+    def get_search_result(self, search_key, object_key):
         try:
-            path = self._object_path(search_key, object_key)
-            with zipfile.ZipFile(path, 'r') as zf:
-                return zf.read(self._attr_key(attr_name))
+            return _CachedSearchResult(self._object_path(search_key,
+                    object_key))
         except IOError:
             raise KeyError()
 

@@ -306,8 +306,8 @@ class AttributeHandler(_BlasterRequestHandler):
 
     def get(self, search_key, object_key, attr_name):
         try:
-            data = self.search_cache.get_object_attribute(search_key,
-                    object_key, attr_name)
+            data = self.search_cache.get_search_result(search_key,
+                    object_key)[attr_name]
         except KeyError:
             raise HTTPError(404, 'Not found')
 

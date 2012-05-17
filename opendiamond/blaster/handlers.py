@@ -278,7 +278,8 @@ class SearchHandler(_BlasterRequestHandler):
     @gen.engine
     def post(self):
         # Build search spec
-        if self.request.headers['Content-Type'] != 'application/json':
+        content_type = self.request.headers['Content-Type'].split(';')[0]
+        if content_type != 'application/json':
             raise HTTPError(415, 'Content type must be application/json')
         spec = _SearchSpec(self.request.body)
         yield gen.Task(spec.fetch_blobs, self.blob_cache)

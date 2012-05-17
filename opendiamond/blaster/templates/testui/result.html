@@ -1,0 +1,61 @@
+<!doctype html>
+<title>Search Result</title>
+<script type="text/javascript" src="{{ static_url('testui/jquery.js') }}"></script>
+
+<style type="text/css">
+#attributes {
+  table-layout: fixed;
+  width: 100%;
+  border-spacing: 0.5em 0.2em;
+  text-align: left;
+  word-wrap: break-word;
+}
+
+#attributes td {
+  font-family: monospace;
+}
+</style>
+
+<div id="image">
+</div>
+
+<table id="attributes">
+<col width="30%">
+<col width="70%">
+<tr><th>Name<th>Value
+</table>
+
+<script type="text/javascript">
+$(function() {
+  $.ajax({
+    type: 'GET',
+    url: window.location.hash.slice(1),
+    dataType: 'json',
+    success: function(obj, textStatus, jqXHR) {
+      // Load image data
+      var a = $('<a>').appendTo('#image');
+      var img = $('<img>').appendTo(a);
+      a.attr('href', obj[''].image_url);
+      img.attr('src', obj[''].image_url);
+
+      // Load attributes table
+      var attrs = Object.keys(obj);
+      attrs.sort();
+      $.each(attrs, function(i, k) {
+        if (k === '') {
+          return;
+        }
+        var v = obj[k];
+        var row = $('<tr>').appendTo('#attributes');
+        row.append($('<td>').addClass('name').text(k));
+        row.append($('<td>').addClass('value').text(
+            typeof v.data !== 'undefined' ? v.data : '<Binary>'));
+      });
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      $('#image').text(errorThrown);
+      $('#attributes').text('');
+    }
+  });
+});
+</script>

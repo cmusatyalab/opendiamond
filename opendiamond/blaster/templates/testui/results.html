@@ -112,14 +112,15 @@ $(function() {
 
     sock.on('result', function(data) {
       var thumbnail = data['thumbnail.jpeg'];
-      var url;
+      var image_url;
       if (thumbnail) {
-        url = thumbnail.image_url;
+        image_url = thumbnail.image_url;
       } else {
-        url = "{{ static_url('testui/unknown.png') }}";
+        image_url = "{{ static_url('testui/unknown.png') }}";
       }
-      var jq = $('<li><img></li>');
-      jq.find('img').attr('src', url);
+      var jq = $('<li><a target="_blank"><img></a></li>');
+      jq.find('a').attr('href', '{{ result_url }}#' + data._ResultURL.data);
+      jq.find('img').attr('src', image_url);
       $('#results').append(jq);
       if (is_unexposed(jq)) {
         jq.addClass('unexposed');

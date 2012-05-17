@@ -52,6 +52,8 @@ class JSONBlaster(tornado.web.Application):
                 kwargs={'template': 'search.html'}),
         url(r'/ui/results$', UIHandler, name='ui-results',
                 kwargs={'template': 'results.html'}),
+        url(r'/ui/result$', UIHandler, name='ui-result',
+                kwargs={'template': 'result.html'}),
     )
 
     app_settings = {

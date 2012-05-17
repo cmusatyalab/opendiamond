@@ -121,8 +121,9 @@ def _make_object_json(application, search_key, object_key, obj):
                 'image_url': application.reverse_url('attribute-image',
                         search_key, object_key, k),
             }
-    result['_ResultURL'] = application.reverse_url('result', search_key,
-            object_key)
+    result['_ResultURL'] = {
+        'data': application.reverse_url('result', search_key, object_key),
+    }
     return result
 
 

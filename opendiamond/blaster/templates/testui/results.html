@@ -110,6 +110,10 @@ $(function() {
       });
     };
 
+    sock.onclose = function() {
+      $('#statistics').append(', connection closed');
+    };
+
     sock.on('result', function(data) {
       var thumbnail = data['thumbnail.jpeg'];
       var image_url;

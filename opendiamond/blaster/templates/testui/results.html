@@ -108,7 +108,6 @@ $(function() {
       sock.emit('start', {
         'search_key': search_key
       });
-      $('#results').html('');
     };
 
     sock.on('result', function(data) {

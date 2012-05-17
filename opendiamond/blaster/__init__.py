@@ -41,9 +41,9 @@ class JSONBlaster(tornado.web.Application):
     handlers = (
         (r'/$', SearchHandler),
         (r'/blob$', PostBlobHandler),
-        url(r'/attribute/([0-9a-f]{64})/([0-9a-f]{64})/raw/(.+)$',
+        url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})/raw/(.+)$',
                 AttributeHandler, name='attribute-raw'),
-        url(r'/attribute/([0-9a-f]{64})/([0-9a-f]{64})/image/(.+)$',
+        url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})/image/(.+)$',
                 AttributeHandler, kwargs={'transcode': True},
                 name='attribute-image'),
         (r'/results$', ResultsHandler),

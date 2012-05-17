@@ -45,7 +45,7 @@ th {
 <input id="search" type="submit" value="Search">
 
 <table id="scope">
-  <tr><th>Scope cookie<td><input name="cookie" type="file"><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
+  <tr><th>Scope cookie<td><!-- input dynamically inserted here --><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
 </table>
 
 <div id="filters">
@@ -69,8 +69,12 @@ $(function() {
     }
   }
 
-  // Handle loading of a scope cookie.
-  $('#scope [name=cookie]').change(function() {
+  // Handle loading of a scope cookie.  Dynamically create the cookie
+  // input so some browsers won't prepopulate the field (incorrectly, since
+  // our handler doesn't get a chance to run).
+  var scope_input = $('<input name="cookie" type="file">').
+      prependTo($('#scope td'));
+  scope_input.change(function() {
     var input = this;
     var reader = new FileReader();
     _pending_inc();

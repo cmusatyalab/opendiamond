@@ -71,9 +71,13 @@ class JSONBlaster(tornado.web.Application):
     blob_cache_days = 1
 
     def __init__(self, **kwargs):
+        router = SockJSRouter(SearchConnection, '/search',
+                self.sockjs_settings)
+        # Allow connections to find the application
+        router.application = self
+
         handlers = list(self.handlers)
-        SockJSRouter(SearchConnection, '/search',
-                self.sockjs_settings).apply_routes(handlers)
+        router.apply_routes(handlers)
         settings = dict(self.app_settings)
         settings.update(kwargs)
         tornado.web.Application.__init__(self, handlers, **settings)

@@ -409,7 +409,7 @@ class SearchConnection(_StructuredSocketConnection):
 
     @property
     def application(self):
-        return self.session.handler.application
+        return self.session.server.application
 
     @property
     def search_cache(self):

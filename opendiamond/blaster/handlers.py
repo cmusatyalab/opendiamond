@@ -121,6 +121,8 @@ def _make_object_json(application, search_key, object_key, obj):
                 'image_url': application.reverse_url('attribute-image',
                         search_key, object_key, k),
             }
+    result['_ResultURL'] = application.reverse_url('result', search_key,
+            object_key)
     return result
 
 
@@ -295,6 +297,19 @@ class PostBlobHandler(_BlasterRequestHandler):
         sig = self.blob_cache.add(self.request.body)
         self.set_header('Location', '%s:%s' % (CACHE_URN_SCHEME, sig))
         self.set_status(204)
+
+
+class ResultHandler(_BlasterRequestHandler):
+    def get(self, search_key, object_key):
+        try:
+            obj = self.search_cache.get_search_result(search_key,
+                    object_key)
+        except KeyError:
+            raise HTTPError(404, 'Not found')
+        result = _make_object_json(self.application, search_key, object_key,
+                obj)
+        self.set_header('Content-Type', 'application/json')
+        self.write(json.dumps(result))
 
 
 class AttributeHandler(_BlasterRequestHandler):

@@ -25,7 +25,7 @@ from tornado.web import url
 from opendiamond.blobcache import BlobCache
 from opendiamond.blaster.cache import SearchCache
 from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler,
-        AttributeHandler, UIHandler, SearchConnection)
+        ResultHandler, AttributeHandler, UIHandler, SearchConnection)
 
 define('blob_cache_dir',
         default=os.path.expanduser('~/.diamond/blob-cache-json'),
@@ -41,6 +41,8 @@ class JSONBlaster(tornado.web.Application):
     handlers = (
         (r'/$', SearchHandler),
         (r'/blob$', PostBlobHandler),
+        url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})$',
+                ResultHandler, name='result'),
         url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})/raw/(.*)$',
                 AttributeHandler, name='attribute-raw'),
         url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})/image/(.*)$',

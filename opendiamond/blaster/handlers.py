@@ -36,6 +36,8 @@ from opendiamond.blaster.cache import SearchCacheLoadError
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import sha256
+from opendiamond.protocol import DiamondRPCCookieExpired
+from opendiamond.rpc import RPCError
 from opendiamond.scope import ScopeCookie, ScopeError
 
 CACHE_URN_SCHEME = 'blob'
@@ -438,7 +440,15 @@ class SearchConnection(_StructuredSocketConnection):
             finished_callback=self._finished,
             close_callback=self._closed,
         )
-        search_id = yield gen.Task(self._search.start)
+        try:
+            search_id = yield gen.Task(self._search.start)
+        except DiamondRPCCookieExpired:
+            self._fail('Scope cookie expired')
+            return
+        except RPCError:
+            _log.exception('start failed')
+            self._fail('Could not start search')
+            return
 
         # Return search ID to client
         self.emit('search_started', search_id=search_id)
@@ -493,6 +503,10 @@ class SearchConnection(_StructuredSocketConnection):
         if self._search is None:
             raise HTTPError(400, 'Search not yet started')
         self._search.resume()
+
+    def _fail(self, detail):
+        self.emit('error', message=detail)
+        self.close()
 
     def on_close(self):
         '''SockJS connection closed.'''

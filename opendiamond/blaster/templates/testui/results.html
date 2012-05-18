@@ -158,6 +158,10 @@ $(function() {
           ' objects processed');
     });
 
+    sock.on('error', function(data) {
+      error(data.message);
+    });
+
     $(window).resize(update_exposed);
     $(window).scroll(update_exposed);
   }

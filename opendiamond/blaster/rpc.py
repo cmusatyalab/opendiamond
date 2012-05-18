@@ -97,7 +97,7 @@ class _RPCClientConnection(object):
         else:
             body = ''
         seq = self._sequence.next()
-        self._pending[seq] = (yield gen.Callback('reply'))
+        self._pending[seq] = stack_context.wrap((yield gen.Callback('reply')))
         self._send_message(seq, RPC_PENDING, cmd, body)
 
         status, data = (yield gen.Wait('reply')).args

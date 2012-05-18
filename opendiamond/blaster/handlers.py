@@ -35,7 +35,7 @@ from opendiamond.attributes import (StringAttributeCodec,
 from opendiamond.blaster.cache import SearchCacheLoadError
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
-from opendiamond.helpers import sha256
+from opendiamond.helpers import connection_ok, sha256
 from opendiamond.protocol import DiamondRPCCookieExpired
 from opendiamond.rpc import RPCError
 from opendiamond.scope import ScopeCookie, ScopeError
@@ -127,6 +127,16 @@ def _make_object_json(application, search_key, object_key, obj):
         'data': application.reverse_url('result', search_key, object_key),
     }
     return result
+
+
+def _restricted(func):
+    '''Decorator that returns 403 if the remote IP is forbidden by
+    TCP Wrappers.'''
+    def wrapper(self, *args, **kwargs):
+        if not connection_ok('blaster', self.request.remote_ip):
+            raise HTTPError(403, 'Forbidden')
+        return func(self, *args, **kwargs)
+    return wrapper
 
 
 class _BlasterRequestHandler(RequestHandler):
@@ -270,6 +280,7 @@ class _SearchSpec(object):
 
 
 class SearchHandler(_BlasterRequestHandler):
+    @_restricted
     def get(self):
         if options.enable_testui:
             self.redirect(self.reverse_url('ui-search'))
@@ -278,6 +289,7 @@ class SearchHandler(_BlasterRequestHandler):
 
     @asynchronous
     @gen.engine
+    @_restricted
     def post(self):
         # Build search spec
         content_type = self.request.headers['Content-Type'].split(';')[0]
@@ -297,6 +309,7 @@ class SearchHandler(_BlasterRequestHandler):
 
 
 class PostBlobHandler(_BlasterRequestHandler):
+    @_restricted
     def post(self):
         sig = self.blob_cache.add(self.request.body)
         self.set_header('Location', '%s:%s' % (CACHE_URN_SCHEME, sig))
@@ -360,6 +373,7 @@ class UIHandler(_BlasterRequestHandler):
         self._template = template
     # pylint: enable=W0201
 
+    @_restricted
     def get(self):
         if options.enable_testui:
             self.render(os.path.join('testui', self._template),

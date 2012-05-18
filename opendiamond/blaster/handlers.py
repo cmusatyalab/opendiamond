@@ -20,6 +20,7 @@ import PIL.Image
 import os
 import simplejson as json
 from sockjs.tornado import SockJSConnection
+import time
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
 from tornado.ioloop import IOLoop
@@ -42,6 +43,8 @@ from opendiamond.scope import ScopeCookie, ScopeError
 
 CACHE_URN_SCHEME = 'blob'
 STATS_INTERVAL = timedelta(milliseconds=1000)
+PING_INTERVAL = timedelta(seconds=10)
+CONNECTION_TIMEOUT = 30  # seconds
 
 # HTTP method handlers have specific argument lists rather than
 # (self, *args, **kwargs) as in the superclass.
@@ -422,6 +425,7 @@ class SearchConnection(_StructuredSocketConnection):
         _StructuredSocketConnection.__init__(self, *args, **kwargs)
         self._search = None
         self._search_key = None
+        self._last_pong = None
 
     @property
     def application(self):
@@ -467,8 +471,9 @@ class SearchConnection(_StructuredSocketConnection):
         # Return search ID to client
         self.emit('search_started', search_id=search_id)
 
-        # Start statistics coroutine
+        # Start coroutines
         self._stats_coroutine()
+        self._keepalive_coroutine()
 
     @gen.engine
     def _stats_coroutine(self):
@@ -476,6 +481,21 @@ class SearchConnection(_StructuredSocketConnection):
         while self._search is not None:
             yield gen.Task(self._send_stats)
             yield gen.Task(IOLoop.instance().add_timeout, STATS_INTERVAL)
+
+    @gen.engine
+    def _keepalive_coroutine(self):
+        '''SockJS times out polling connections quickly, but websocket
+        connections don't time out until TCP does, which can take 15 minutes.
+        Ping the client periodically, and if it doesn't respond for a while,
+        close the connection.'''
+        self._last_pong = time.time()
+        while self._search is not None:
+            if time.time() > self._last_pong + CONNECTION_TIMEOUT:
+                _log.info('Client connection timed out')
+                self.close()
+                return
+            self.emit('ping')
+            yield gen.Task(IOLoop.instance().add_timeout, PING_INTERVAL)
 
     @gen.engine
     def _send_stats(self, callback=None):
@@ -518,6 +538,10 @@ class SearchConnection(_StructuredSocketConnection):
         if self._search is None:
             raise HTTPError(400, 'Search not yet started')
         self._search.resume()
+
+    @_StructuredSocketConnection.event
+    def pong(self):
+        self._last_pong = time.time()
 
     def _fail(self, detail):
         self.emit('error', message=detail)

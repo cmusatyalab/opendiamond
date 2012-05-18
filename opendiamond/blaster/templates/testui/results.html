@@ -162,6 +162,10 @@ $(function() {
       error(data.message);
     });
 
+    sock.on('ping', function(data) {
+      sock.emit('pong');
+    });
+
     $(window).resize(update_exposed);
     $(window).scroll(update_exposed);
   }

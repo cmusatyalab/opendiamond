@@ -4,15 +4,26 @@
 <script type="text/javascript" src="{{ static_url('sockjs.js') }}"></script>
 
 <style type="text/css">
-#statistics {
+#infobar {
   position: fixed;
   top: 0;
   left: 0;
-  padding: 0.3em;
   width: 100%;
-  background-color: #ddd;
   font-weight: bold;
   text-align: center;
+}
+
+#infobar div {
+  padding: 0.3em;
+}
+
+#statistics {
+  background-color: #ddd;
+}
+
+#error {
+  display: none;
+  background-color: #d88;
 }
 
 #results {
@@ -27,13 +38,16 @@
 }
 </style>
 
-<div id="content">
+<div id="infobar">
 <div id="statistics">
 Initializing...
 </div>
+<div id="error">
+</div>
+</div>
+
 <ul id="results">
 </ul>
-</div>
 
 <script type="text/javascript">
 $(function() {
@@ -65,9 +79,14 @@ $(function() {
     return sock;
   }
 
+  function error(text) {
+    $('#error').text(text).show();
+  }
+
   if (status === 'e') {
     // Error
-    $('#content').text('Error: ' + unescape(data));
+    $('#statistics').hide();
+    error(unescape(data));
   } else {
     // Success
     var sock = make_sock('/search');
@@ -111,7 +130,7 @@ $(function() {
     };
 
     sock.onclose = function() {
-      $('#statistics').append(', connection closed');
+      error('Connection closed');
     };
 
     sock.on('result', function(data) {

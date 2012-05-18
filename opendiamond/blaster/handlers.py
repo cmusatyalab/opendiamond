@@ -447,7 +447,7 @@ class SearchConnection(_StructuredSocketConnection):
             raise HTTPError(400, 'Corrupt search key')
 
         # Start the search
-        print 'start', search_key
+        _log.info('Starting search %s', search_key)
         self._search_key = search_key
         self._search = search_spec.make_search(
             object_callback=self._result,
@@ -503,6 +503,7 @@ class SearchConnection(_StructuredSocketConnection):
 
     def _closed(self):
         '''Search closed.'''
+        _log.info('Search %s terminated', self._search_key)
         # Close the SockJS connection
         self.close()
 
@@ -526,7 +527,6 @@ class SearchConnection(_StructuredSocketConnection):
         '''SockJS connection closed.'''
         # Close the Diamond connection
         if self._search is not None:
-            print 'close'
             search = self._search
             self._search = None
             search.close()

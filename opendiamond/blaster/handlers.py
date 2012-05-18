@@ -17,15 +17,15 @@ from datetime import timedelta
 import logging
 import magic
 import PIL.Image
-import simplejson as json
 import os
+import simplejson as json
 from sockjs.tornado import SockJSConnection
-from urlparse import urlparse
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.options import define, options
 from tornado.web import asynchronous, RequestHandler, HTTPError
+from urlparse import urlparse
 import validictory
 
 import opendiamond

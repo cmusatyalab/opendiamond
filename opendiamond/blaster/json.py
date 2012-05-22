@@ -15,21 +15,21 @@ import simplejson as json
 import threading
 import validictory
 
-_strictness = threading.local()
+_strict_config = threading.local()
 
 
 @contextmanager
-def strictness(strict):
+def _strictness(strict):
     '''Context manager to save the strictness setting in a thread-local
     so that we don't have to explicitly pass it to all of the constructors.'''
-    if not hasattr(_strictness, 'enabled'):
-        _strictness.enabled = None
-    saved = _strictness.enabled
-    _strictness.enabled = strict
+    if not hasattr(_strict_config, 'enabled'):
+        _strict_config.enabled = None
+    saved = _strict_config.enabled
+    _strict_config.enabled = strict
     try:
         yield
     finally:
-        _strictness.enabled = saved
+        _strict_config.enabled = saved
 
 
 class _JSONSchema(dict):
@@ -41,9 +41,9 @@ class _JSONSchema(dict):
         properties.'''
 
         if type == 'object' and 'additionalProperties' not in kwargs:
-            if getattr(_strictness, 'enabled', None) is None:
+            if getattr(_strict_config, 'enabled', None) is None:
                 raise RuntimeError('strictness not specified')
-            kwargs['additionalProperties'] = not _strictness.enabled
+            kwargs['additionalProperties'] = not _strict_config.enabled
         dict.__init__(self,
                 title=title,
                 type=type,
@@ -89,7 +89,7 @@ class SearchConfig(_JSONSchema):
     '''A search specification.'''
 
     def __init__(self, strict=False):
-        with strictness(strict):
+        with _strictness(strict):
             _JSONSchema.__init__(self,
                 'Configuration for a Diamond search',
                 'object',
@@ -165,7 +165,7 @@ class SearchConfigResult(_JSONSchema):
     '''The response to a search request.'''
 
     def __init__(self, strict=False):
-        with strictness(strict):
+        with _strictness(strict):
             _JSONSchema.__init__(self,
                 'Response to a Diamond search request',
                 'object',
@@ -270,7 +270,7 @@ class ClientToServerEvent(_JSONSchema):
     '''A client-to-server SockJS event.'''
 
     def __init__(self, strict=False):
-        with strictness(strict):
+        with _strictness(strict):
             _JSONSchema.__init__(self,
                 'A client-to-server SockJS event',
                 [
@@ -431,7 +431,7 @@ class ServerToClientEvent(_JSONSchema):
     '''A server-to-client SockJS event.'''
 
     def __init__(self, strict=False):
-        with strictness(strict):
+        with _strictness(strict):
             _JSONSchema.__init__(self,
                 'A server-to-client SockJS event',
                 [

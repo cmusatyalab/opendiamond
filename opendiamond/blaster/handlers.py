@@ -27,13 +27,13 @@ from tornado.ioloop import IOLoop
 from tornado.options import define, options
 from tornado.web import asynchronous, RequestHandler, HTTPError
 from urlparse import urlparse
-import validictory
 
 import opendiamond
 from opendiamond.attributes import (StringAttributeCodec,
         IntegerAttributeCodec, DoubleAttributeCodec, RGBImageAttributeCodec,
         PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
+from opendiamond.blaster.json import SocketEvent, SearchConfig
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import connection_ok, sha256
@@ -64,18 +64,8 @@ _magic.setflags(magic.MIME_TYPE)
 _magic.load()
 
 
-def _load_schema(name):
-    with open(os.path.join(os.path.dirname(__file__), name)) as fh:
-        return json.load(fh)
-EVENT_SCHEMA = _load_schema('schema-event.json')
-SEARCH_SCHEMA = _load_schema('schema-search.json')
-
-
-def _validate_json(schema, obj):
-    # required_by_default=False and blank_by_default=True for
-    # JSON Schema draft 3 semantics
-    validictory.validate(obj, schema, required_by_default=False,
-            blank_by_default=True)
+_event_schema = SocketEvent(strict=False)
+_search_schema = SearchConfig(strict=False)
 
 
 def _make_object_json(application, search_key, object_key, obj):
@@ -232,7 +222,7 @@ class _SearchSpec(object):
         # Load JSON
         try:
             config = json.loads(data)
-            _validate_json(SEARCH_SCHEMA, config)
+            _search_schema.validate(config)
         except ValueError, e:
             raise HTTPError(400, str(e))
 
@@ -398,7 +388,7 @@ class _StructuredSocketConnection(SockJSConnection):
     def on_message(self, data):
         try:
             msg = json.loads(data)
-            _validate_json(EVENT_SCHEMA, msg)
+            _event_schema.validate(msg)
         except ValueError, e:
             raise HTTPError(400, str(e))
         event = msg['event']

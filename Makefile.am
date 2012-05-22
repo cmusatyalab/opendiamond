@@ -19,6 +19,7 @@ nobase_python_PYTHON = \
 	opendiamond/blaster/__init__.py \
 	opendiamond/blaster/cache.py \
 	opendiamond/blaster/handlers.py \
+	opendiamond/blaster/json.py \
 	opendiamond/blaster/rpc.py \
 	opendiamond/blaster/search.py \
 	opendiamond/dataretriever/__init__.py \
@@ -70,8 +71,6 @@ noinst_PYTHON = \
 	opendiamond/__init__.py
 
 nobase_dist_python_DATA = \
-	opendiamond/blaster/schema-event.json \
-	opendiamond/blaster/schema-search.json \
 	opendiamond/blaster/static/sockjs.js \
 	opendiamond/blaster/static/testui/jquery.js \
 	opendiamond/blaster/static/testui/spinner.gif \

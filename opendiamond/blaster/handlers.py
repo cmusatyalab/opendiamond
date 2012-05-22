@@ -33,8 +33,8 @@ from opendiamond.attributes import (StringAttributeCodec,
         IntegerAttributeCodec, DoubleAttributeCodec, RGBImageAttributeCodec,
         PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
-from opendiamond.blaster.json import (SearchConfig, ClientToServerEvent,
-        ServerToClientEvent)
+from opendiamond.blaster.json import (SearchConfig, SearchConfigResult,
+        ClientToServerEvent, ServerToClientEvent)
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import connection_ok, sha256
@@ -67,6 +67,7 @@ _magic.load()
 
 # Be strict in what we send and liberal in what we accept
 _search_schema = SearchConfig(strict=False)
+_search_result_schema = SearchConfigResult(strict=True)
 _c2s_event_schema = ClientToServerEvent(strict=False)
 _s2c_event_schema = ServerToClientEvent(strict=True)
 
@@ -298,9 +299,14 @@ class SearchHandler(_BlasterRequestHandler):
         search_key = self.search_cache.put_search(spec, spec.expires)
 
         # Return result
-        self.set_status(204)
-        self.set_header('Location', '/search')
-        self.set_header('X-Search-Key', search_key)
+        result = {
+            'socket_url': '/search',
+            'search_key': search_key,
+        }
+        _search_result_schema.validate(result)
+        self.set_status(200)
+        self.set_header('Content-Type', 'application/json')
+        self.write(json.dumps(result))
         self.finish()
 
 

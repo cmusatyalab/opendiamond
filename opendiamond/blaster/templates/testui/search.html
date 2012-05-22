@@ -252,9 +252,9 @@ $(function() {
       url: '/',
       contentType: 'application/json', 
       data: JSON.stringify(search),
+      dataType: 'json',
       success: function(data, textStatus, jqXHR) {
-        var search_key = jqXHR.getResponseHeader('X-Search-Key');
-        child_window.location = target_url + '#s' + search_key;
+        child_window.location = target_url + '#s' + data.search_key;
       },
       error: function(jqXHR, textStatus, errorThrown) {
         child_window.location = target_url + '#e' +

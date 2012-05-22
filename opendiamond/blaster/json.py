@@ -161,6 +161,30 @@ class SearchConfig(_JSONSchema):
             )
 
 
+class SearchConfigResult(_JSONSchema):
+    '''The response to a search request.'''
+
+    def __init__(self, strict=False):
+        with strictness(strict):
+            _JSONSchema.__init__(self,
+                'Response to a Diamond search request',
+                'object',
+                properties=dict(
+                    socket_url=_JSONSchema(
+                        'URL of the SockJS socket',
+                        'string',
+                        required=True,
+                        format='uri',
+                    ),
+                    search_key=_JSONSchema(
+                        'The search key to include in the start event',
+                        'string',
+                        required=True,
+                    ),
+                ),
+            )
+
+
 class _SingleEvent(_JSONSchema):
     '''A SockJS event message.'''
 

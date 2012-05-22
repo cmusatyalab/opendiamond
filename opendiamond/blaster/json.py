@@ -10,20 +10,40 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from contextlib import contextmanager
 import simplejson as json
+import threading
 import validictory
+
+_strictness = threading.local()
+
+
+@contextmanager
+def strictness(strict):
+    '''Context manager to save the strictness setting in a thread-local
+    so that we don't have to explicitly pass it to all of the constructors.'''
+    if not hasattr(_strictness, 'enabled'):
+        _strictness.enabled = None
+    saved = _strictness.enabled
+    _strictness.enabled = strict
+    try:
+        yield
+    finally:
+        _strictness.enabled = saved
+
 
 class _JSONSchema(dict):
     '''A JSON schema.'''
 
-    def __init__(self, title, type, strict=None, **kwargs):
-        '''For the object type, strict indicates whether unknown
-        object properties are accepted.'''
+    def __init__(self, title, type, **kwargs):
+        '''If strictness is enabled, the type is object, and kwargs does
+        not include additionalProperties, we do not accept unknown object
+        properties.'''
 
         if type == 'object' and 'additionalProperties' not in kwargs:
-            if strict is None:
-                raise RuntimeError('strict not specified')
-            kwargs['additionalProperties'] = not strict
+            if getattr(_strictness, 'enabled', None) is None:
+                raise RuntimeError('strictness not specified')
+            kwargs['additionalProperties'] = not _strictness.enabled
         dict.__init__(self,
                 title=title,
                 type=type,
@@ -42,11 +62,10 @@ class _JSONSchema(dict):
 class _SearchBlob(_JSONSchema):
     '''A blob specification.'''
 
-    def __init__(self, title, strict=False, **kwargs):
+    def __init__(self, title, **kwargs):
         _JSONSchema.__init__(self,
             title,
             'object',
-            strict=strict,
             properties=dict(
                 uri=_JSONSchema(
                     'The data URI',
@@ -70,85 +89,82 @@ class SearchConfig(_JSONSchema):
     '''A search specification.'''
 
     def __init__(self, title=None, strict=False):
-        _JSONSchema.__init__(self,
-            title or 'Configuration for a Diamond search',
-            'object',
-            strict=strict,
-            properties=dict(
-                cookies=_JSONSchema(
-                    'List of scope cookies',
-                    'array',
-                    required=True,
-                    minItems=1,
-                    uniqueItems=True,
-                    items=_JSONSchema(
-                        'A scope cookie',
-                        'string'
+        with strictness(strict):
+            _JSONSchema.__init__(self,
+                title or 'Configuration for a Diamond search',
+                'object',
+                properties=dict(
+                    cookies=_JSONSchema(
+                        'List of scope cookies',
+                        'array',
+                        required=True,
+                        minItems=1,
+                        uniqueItems=True,
+                        items=_JSONSchema(
+                            'A scope cookie',
+                            'string'
+                        ),
                     ),
-                ),
-                filters=_JSONSchema(
-                    'List of configured filters',
-                    'array',
-                    required=True,
-                    minItems=1,
-                    uniqueItems=True,
-                    items=_JSONSchema(
-                        'A filter',
-                        'object',
-                        strict=strict,
-                        properties=dict(
-                            name=_JSONSchema(
-                                'Unique filter name',
-                                'string',
-                                required=True,
-                                minLength=1,
-                            ),
-                            code=_SearchBlob(
-                                'Pointer to executable code',
-                                strict=strict,
-                                required=True,
-                            ),
-                            blob=_SearchBlob(
-                                'Pointer to data for the blob argument',
-                                strict=strict,
-                            ),
-                            arguments=_JSONSchema(
-                                'List of string arguments',
-                                'array',
-                                items=_JSONSchema(
-                                    'A string argument',
+                    filters=_JSONSchema(
+                        'List of configured filters',
+                        'array',
+                        required=True,
+                        minItems=1,
+                        uniqueItems=True,
+                        items=_JSONSchema(
+                            'A filter',
+                            'object',
+                            properties=dict(
+                                name=_JSONSchema(
+                                    'Unique filter name',
                                     'string',
-                                ),
-                            ),
-                            dependencies=_JSONSchema(
-                                'List of names of depended-on filters',
-                                'array',
-                                uniqueItems=True,
-                                items=_JSONSchema(
-                                    'A filter name',
-                                    'string',
+                                    required=True,
                                     minLength=1,
                                 ),
-                            ),
-                            min_score=_JSONSchema(
-                                'Minimum score passing the filter',
-                                'number',
-                            ),
-                            max_score=_JSONSchema(
-                                'Maximum score passing the filter',
-                                'number',
+                                code=_SearchBlob(
+                                    'Pointer to executable code',
+                                    required=True,
+                                ),
+                                blob=_SearchBlob(
+                                    'Pointer to data for the blob argument',
+                                ),
+                                arguments=_JSONSchema(
+                                    'List of string arguments',
+                                    'array',
+                                    items=_JSONSchema(
+                                        'A string argument',
+                                        'string',
+                                    ),
+                                ),
+                                dependencies=_JSONSchema(
+                                    'List of names of depended-on filters',
+                                    'array',
+                                    uniqueItems=True,
+                                    items=_JSONSchema(
+                                        'A filter name',
+                                        'string',
+                                        minLength=1,
+                                    ),
+                                ),
+                                min_score=_JSONSchema(
+                                    'Minimum score passing the filter',
+                                    'number',
+                                ),
+                                max_score=_JSONSchema(
+                                    'Maximum score passing the filter',
+                                    'number',
+                                ),
                             ),
                         ),
                     ),
                 ),
-            ),
-        )
+            )
 
 
 class _SingleEvent(_JSONSchema):
     '''A SockJS event message.'''
 
-    def __init__(self, title, event, data, strict=False, **kwargs):
+    def __init__(self, title, event, data, **kwargs):
         if data is None:
             data = _JSONSchema(
                 'Null or an empty object',
@@ -157,14 +173,12 @@ class _SingleEvent(_JSONSchema):
                     _JSONSchema(
                         'An empty object',
                         'object',
-                        strict=strict,
                     ),
                 ],
             )
         _JSONSchema.__init__(self,
             title,
             'object',
-            strict=strict,
             properties=dict(
                 event=_JSONSchema(
                     'The event type',
@@ -179,14 +193,13 @@ class _SingleEvent(_JSONSchema):
 
 
 class _StartEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'Start the search',
             'start',
             _JSONSchema(
                 'Arguments to start event',
                 'object',
-                strict=strict,
                 required=True,
                 properties=dict(
                     search_key=_JSONSchema(
@@ -196,27 +209,24 @@ class _StartEvent(_SingleEvent):
                     ),
                 ),
             ),
-            strict=strict,
         )
 
 
 class _PongEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'A response to a ping message',
             'pong',
             None,
-            strict=strict,
         )
 
 
 class _PauseEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'Pause the search',
             'pause',
             None,
-            strict=strict,
             description='''Pause each Diamond server after it
 produces the next result.  Note that results may continue to arrive at the
 client for an indefinite period.''',
@@ -224,12 +234,11 @@ client for an indefinite period.''',
 
 
 class _ResumeEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'Resume the search after it is paused',
             'resume',
             None,
-            strict=strict,
         )
 
 
@@ -237,26 +246,26 @@ class ClientToServerEvent(_JSONSchema):
     '''A client-to-server SockJS event.'''
 
     def __init__(self, strict=False):
-        _JSONSchema.__init__(self,
-            'A client-to-server SockJS event',
-            [
-                _StartEvent(strict),
-                _PongEvent(strict),
-                _PauseEvent(strict),
-                _ResumeEvent(strict),
-            ],
-        )
+        with strictness(strict):
+            _JSONSchema.__init__(self,
+                'A client-to-server SockJS event',
+                [
+                    _StartEvent(),
+                    _PongEvent(),
+                    _PauseEvent(),
+                    _ResumeEvent(),
+                ],
+            )
 
 
 class _SearchStartedEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'Search has been started',
             'search_started',
             _JSONSchema(
                 'Information about the search',
                 'object',
-                strict=strict,
                 required=True,
                 properties=dict(
                     search_id=_JSONSchema(
@@ -266,27 +275,24 @@ class _SearchStartedEvent(_SingleEvent):
                     ),
                 ),
             ),
-            strict=strict,
         )
 
 
 class _PingEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'A keepalive event',
             'ping',
             None,
-            strict=strict,
             description='The client must respond with a pong event.',
         )
 
 
 class _AttributeValue(_JSONSchema):
-    def __init__(self, strict=False):
+    def __init__(self):
         _JSONSchema.__init__(self,
             'The value of an object attribute',
             'object',
-            strict=strict,
             properties=dict(
                 data=_JSONSchema(
                     'The decoded attribute data',
@@ -307,20 +313,18 @@ class _AttributeValue(_JSONSchema):
 
 
 class _ResultEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'A search result',
             'result',
             _JSONSchema(
                 'The attributes of the result object',
                 'object',
-                strict=strict,
                 required=True,
                 properties=dict(
                     _ResultURL=_JSONSchema(
                         'The location of this search result',
                         'object',
-                        strict=strict,
                         properties=dict(
                             data=_JSONSchema(
                                 'The location URL',
@@ -331,9 +335,8 @@ class _ResultEvent(_SingleEvent):
                         required=True,
                     ),
                 ),
-                additionalProperties=_AttributeValue(strict),
+                additionalProperties=_AttributeValue(),
             ),
-            strict=strict,
         )
 
 
@@ -346,7 +349,7 @@ class _Statistic(_JSONSchema):
 
 
 class _StatisticsEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'A statistics update',
             'statistics',
@@ -368,29 +371,26 @@ class _StatisticsEvent(_SingleEvent):
                 ),
                 additionalProperties=_Statistic(),
             ),
-            strict=strict,
         )
 
 
 class _SearchCompleteEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'A notification of search completion',
             'search_complete',
             None,
-            strict=strict,
         )
 
 
 class _ErrorEvent(_SingleEvent):
-    def __init__(self, strict=False):
+    def __init__(self):
         _SingleEvent.__init__(self,
             'A failure report',
             'error',
             _JSONSchema(
                 'The error detail',
                 'object',
-                strict=strict,
                 required=True,
                 properties=dict(
                     message=_JSONSchema(
@@ -400,7 +400,6 @@ class _ErrorEvent(_SingleEvent):
                     ),
                 ),
             ),
-            strict=strict,
         )
 
 
@@ -408,17 +407,18 @@ class ServerToClientEvent(_JSONSchema):
     '''A server-to-client SockJS event.'''
 
     def __init__(self, strict=False):
-        _JSONSchema.__init__(self,
-            'A server-to-client SockJS event',
-            [
-                _SearchStartedEvent(strict),
-                _PingEvent(strict),
-                _ResultEvent(strict),
-                _StatisticsEvent(strict),
-                _SearchCompleteEvent(strict),
-                _ErrorEvent(strict),
-            ],
-        )
+        with strictness(strict):
+            _JSONSchema.__init__(self,
+                'A server-to-client SockJS event',
+                [
+                    _SearchStartedEvent(),
+                    _PingEvent(),
+                    _ResultEvent(),
+                    _StatisticsEvent(),
+                    _SearchCompleteEvent(),
+                    _ErrorEvent(),
+                ],
+            )
 
 
 def _main():

@@ -88,10 +88,10 @@ class _SearchBlob(_JSONSchema):
 class SearchConfig(_JSONSchema):
     '''A search specification.'''
 
-    def __init__(self, title=None, strict=False):
+    def __init__(self, strict=False):
         with strictness(strict):
             _JSONSchema.__init__(self,
-                title or 'Configuration for a Diamond search',
+                'Configuration for a Diamond search',
                 'object',
                 properties=dict(
                     cookies=_JSONSchema(

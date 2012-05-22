@@ -17,7 +17,7 @@ import logging
 import threading
 import time
 
-from opendiamond.protocol import XDR_search_stats, XDR_filter_stats
+from opendiamond.protocol import XDR_search_stats, XDR_filter_stats, XDR_stat
 
 _log = logging.getLogger(__name__)
 
@@ -58,21 +58,24 @@ class SearchStatistics(_Statistics):
             ('objs_dropped', 'Objects dropped'),
             ('objs_passed', 'Objects passed'),
             ('objs_unloadable', 'Objects failing to load'),
-            ('execution_ns', 'Total object examination time (ns)'))
+            ('execution_us', 'Total object examination time (us)'))
 
     def xdr(self, objs_total, filter_stats):
         '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
-                avg_obj_time = self.execution_ns / self.objs_processed
+                avg_obj_time = self.execution_us / self.objs_processed
             except ZeroDivisionError:
                 avg_obj_time = 0
+
+            stats = []
+            stats.append(XDR_stat('objs_total', objs_total))
+            stats.append(XDR_stat('avg_obj_time', avg_obj_time))
+            for name, _desc in self.attrs:
+                stats.append(XDR_stat(name, getattr(self, name)))
+
             return XDR_search_stats(
-                objs_total=objs_total,
-                objs_processed=self.objs_processed,
-                objs_dropped=self.objs_dropped,
-                objs_nproc=self.objs_passed,
-                avg_obj_time=avg_obj_time,
+                stats=stats,
                 filter_stats=[s.xdr() for s in filter_stats],
             )
 
@@ -86,7 +89,7 @@ class FilterStatistics(_Statistics):
             ('objs_cache_passed', 'Objects skipped by cache'),
             ('objs_compute', 'Objects examined by filter'),
             ('objs_terminate', 'Objects causing filter to terminate'),
-            ('execution_ns', 'Filter execution time (ns)'))
+            ('execution_us', 'Filter execution time (us)'))
 
     def __init__(self, name):
         _Statistics.__init__(self)
@@ -97,16 +100,18 @@ class FilterStatistics(_Statistics):
         '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
-                avg_exec_time = self.execution_ns / self.objs_processed
+                avg_exec_time = self.execution_us / self.objs_processed
             except ZeroDivisionError:
                 avg_exec_time = 0
-            return XDR_filter_stats(self.name,
-                objs_processed=self.objs_processed,
-                objs_dropped=self.objs_dropped,
-                objs_cache_dropped=self.objs_cache_dropped,
-                objs_cache_passed=self.objs_cache_passed,
-                objs_compute=self.objs_compute,
-                avg_exec_time=avg_exec_time,
+
+            stats = []
+            stats.append(XDR_stat('avg_exec_time', avg_exec_time))
+            for name, _desc in self.attrs:
+                stats.append(XDR_stat(name, getattr(self, name)))
+
+            return XDR_filter_stats(
+                name=self.name,
+                stats=stats
             )
 
 
@@ -123,5 +128,5 @@ class Timer(object):
 
     @property
     def elapsed(self):
-        '''Elapsed time in ns.'''
-        return int(self.elapsed_seconds * 1e9)
+        '''Elapsed time in us.'''
+        return int(self.elapsed_seconds * 1e6)

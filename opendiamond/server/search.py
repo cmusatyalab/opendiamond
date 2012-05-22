@@ -193,7 +193,7 @@ class Search(RPCHandlers):
         _log.info('Starting search %s', params.search_id)
         self._filters.start_threads(self._state, self._state.config.threads)
 
-    @RPCHandlers.handler(22, protocol.XDR_reexecute,
+    @RPCHandlers.handler(30, protocol.XDR_reexecute,
                              protocol.XDR_attribute_list)
     def reexecute_filters(self, params):
         '''Reexecute the search on the specified object.'''
@@ -209,7 +209,7 @@ class Search(RPCHandlers):
         if not loader.source_available(obj):
             raise DiamondRPCFCacheMiss()
         drop = not runner.evaluate(obj)
-        if params.attrs != None and len(params.attrs) != 0:
+        if params.attrs is not None:
             output_attrs = set(params.attrs)
         else:
             # If no output attributes were specified, encode everything

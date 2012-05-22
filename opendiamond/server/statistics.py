@@ -17,7 +17,7 @@ import logging
 import threading
 import time
 
-from opendiamond.protocol import XDR_search_stats, XDR_filter_stats, XDR_Stat
+from opendiamond.protocol import XDR_search_stats, XDR_filter_stats, XDR_stat
 
 _log = logging.getLogger(__name__)
 
@@ -69,10 +69,10 @@ class SearchStatistics(_Statistics):
                 avg_obj_time = 0
 
             stats = []
-            stats.append(XDR_Stat('objs_total', objs_total))
-            stats.append(XDR_Stat('avg_obj_time', avg_obj_time))
+            stats.append(XDR_stat('objs_total', objs_total))
+            stats.append(XDR_stat('avg_obj_time', avg_obj_time))
             for name, _desc in self.attrs:
-                stats.append(XDR_Stat(name, getattr(self, name)))
+                stats.append(XDR_stat(name, getattr(self, name)))
 
             return XDR_search_stats(
                 stats=stats,
@@ -105,9 +105,9 @@ class FilterStatistics(_Statistics):
                 avg_exec_time = 0
 
             stats = []
-            stats.append(XDR_Stat('avg_exec_time', avg_exec_time))
+            stats.append(XDR_stat('avg_exec_time', avg_exec_time))
             for name, _desc in self.attrs:
-                stats.append(XDR_Stat(name, getattr(self, name)))
+                stats.append(XDR_stat(name, getattr(self, name)))
 
             return XDR_filter_stats(
                 name=self.name,

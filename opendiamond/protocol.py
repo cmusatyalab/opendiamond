@@ -101,7 +101,7 @@ class XDR_start(XDRStruct):
     )
 
 
-class XDR_Stat(XDRStruct):
+class XDR_stat(XDRStruct):
     '''Statistics key-value pair'''
     members = (
         "name", XDR.string(),
@@ -113,14 +113,14 @@ class XDR_filter_stats(XDRStruct):
     '''Filter statistics'''
     members = (
         'name', XDR.string(),
-        'stats', XDR.array(XDR.struct(XDR_Stat)),
+        'stats', XDR.array(XDR.struct(XDR_stat)),
     )
 
 
 class XDR_search_stats(XDRStruct):
     '''Search statistics'''
     members = (
-        'stats', XDR.array(XDR.struct(XDR_Stat)),
+        'stats', XDR.array(XDR.struct(XDR_stat)),
         'filter_stats', XDR.array(XDR.struct(XDR_filter_stats)),
     )
 

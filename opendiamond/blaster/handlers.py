@@ -451,6 +451,9 @@ class SearchConnection(_StructuredSocketConnection):
         except SearchCacheLoadError:
             raise HTTPError(400, 'Corrupt search key')
 
+        # Start pinging the client
+        self._keepalive_coroutine()
+
         # Start the search
         _log.info('Starting search %s', search_key)
         self._search_key = search_key
@@ -472,9 +475,8 @@ class SearchConnection(_StructuredSocketConnection):
         # Return search ID to client
         self.emit('search_started', search_id=search_id)
 
-        # Start coroutines
+        # Start statistics coroutine
         self._stats_coroutine()
-        self._keepalive_coroutine()
 
     @gen.engine
     def _stats_coroutine(self):

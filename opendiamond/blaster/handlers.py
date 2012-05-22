@@ -398,15 +398,15 @@ class _StructuredSocketConnection(SockJSConnection):
             msg = json.loads(data)
             self._c2s_schema.validate(msg)
         except ValueError, e:
-            raise HTTPError(400, str(e))
+            self.error(str(e))
+            return
         event = msg['event']
         try:
             handler = getattr(self, event)
+            if not getattr(handler, 'event_handler', False):
+                raise AttributeError()
         except AttributeError:
-            _log.warning('Unknown event type %s' % event)
-            return
-        if not getattr(handler, 'event_handler', False):
-            _log.warning('Event %s has invalid handler' % event)
+            self.error('Unknown event type %s' % event)
             return
         handler(**msg.get('data', {}))
     # pylint: enable=E1103
@@ -418,6 +418,19 @@ class _StructuredSocketConnection(SockJSConnection):
         }
         self._s2c_schema.validate(data)
         self.send(json.dumps(data))
+
+    def error(self, message):
+        raise NotImplementedError()
+
+
+# Avoid pylint R0922.
+class _SecondConcreteImplementationOf(_StructuredSocketConnection):
+    def __init__(self, *args, **kwargs):
+        _StructuredSocketConnection.__init__(self, *args, **kwargs)
+        raise RuntimeError("Don't instantiate this.")
+
+    def error(self, message):
+        pass
 
 
 class SearchConnection(_StructuredSocketConnection):
@@ -441,15 +454,18 @@ class SearchConnection(_StructuredSocketConnection):
     def start(self, search_key):
         # Sanity checks
         if self._search is not None:
-            raise HTTPError(400, 'Search already started')
+            self.error('Search already started')
+            return
 
         # Load the search spec
         try:
             search_spec = self.search_cache.get_search(search_key)
         except KeyError:
-            raise HTTPError(400, 'Invalid search key')
+            self.error('Invalid search key')
+            return
         except SearchCacheLoadError:
-            raise HTTPError(400, 'Corrupt search key')
+            self.error('Corrupt search key')
+            return
 
         # Start pinging the client
         self._keepalive_coroutine()
@@ -465,11 +481,13 @@ class SearchConnection(_StructuredSocketConnection):
         try:
             search_id = yield gen.Task(self._search.start)
         except DiamondRPCCookieExpired:
-            self._fail('Scope cookie expired')
+            self.error('Scope cookie expired')
+            self.close()
             return
         except RPCError:
             _log.exception('start failed')
-            self._fail('Could not start search')
+            self.error('Could not start search')
+            self.close()
             return
 
         # Return search ID to client
@@ -533,22 +551,23 @@ class SearchConnection(_StructuredSocketConnection):
     @_StructuredSocketConnection.event
     def pause(self):
         if self._search is None:
-            raise HTTPError(400, 'Search not yet started')
+            self.error('Search not yet started')
+            return
         self._search.pause()
 
     @_StructuredSocketConnection.event
     def resume(self):
         if self._search is None:
-            raise HTTPError(400, 'Search not yet started')
+            self.error('Search not yet started')
+            return
         self._search.resume()
 
     @_StructuredSocketConnection.event
     def pong(self):
         self._last_pong = time.time()
 
-    def _fail(self, detail):
-        self.emit('error', message=detail)
-        self.close()
+    def error(self, message):
+        self.emit('error', message=message)
 
     def on_close(self):
         '''SockJS connection closed.'''

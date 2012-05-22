@@ -33,7 +33,8 @@ from opendiamond.attributes import (StringAttributeCodec,
         IntegerAttributeCodec, DoubleAttributeCodec, RGBImageAttributeCodec,
         PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
-from opendiamond.blaster.json import SocketEvent, SearchConfig
+from opendiamond.blaster.json import (SearchConfig, ClientToServerEvent,
+        ServerToClientEvent)
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import connection_ok, sha256
@@ -64,8 +65,10 @@ _magic.setflags(magic.MIME_TYPE)
 _magic.load()
 
 
-_event_schema = SocketEvent(strict=False)
+# Be strict in what we send and liberal in what we accept
 _search_schema = SearchConfig(strict=False)
+_c2s_event_schema = ClientToServerEvent(strict=False)
+_s2c_event_schema = ServerToClientEvent(strict=True)
 
 
 def _make_object_json(application, search_key, object_key, obj):
@@ -377,6 +380,11 @@ class UIHandler(_BlasterRequestHandler):
 
 
 class _StructuredSocketConnection(SockJSConnection):
+    def __init__(self, c2s_schema, s2c_schema, *args, **kwargs):
+        self._c2s_schema = c2s_schema
+        self._s2c_schema = s2c_schema
+        SockJSConnection.__init__(self, *args, **kwargs)
+
     @classmethod
     def event(cls, func):
         '''Decorator specifying that this function is an event handler.'''
@@ -388,7 +396,7 @@ class _StructuredSocketConnection(SockJSConnection):
     def on_message(self, data):
         try:
             msg = json.loads(data)
-            _event_schema.validate(msg)
+            self._c2s_schema.validate(msg)
         except ValueError, e:
             raise HTTPError(400, str(e))
         event = msg['event']
@@ -404,15 +412,18 @@ class _StructuredSocketConnection(SockJSConnection):
     # pylint: enable=E1103
 
     def emit(self, event, **args):
-        self.send(json.dumps({
+        data = {
             'event': event,
             'data': args,
-        }))
+        }
+        self._s2c_schema.validate(data)
+        self.send(json.dumps(data))
 
 
 class SearchConnection(_StructuredSocketConnection):
     def __init__(self, *args, **kwargs):
-        _StructuredSocketConnection.__init__(self, *args, **kwargs)
+        _StructuredSocketConnection.__init__(self, _c2s_event_schema,
+                _s2c_event_schema, *args, **kwargs)
         self._search = None
         self._search_key = None
         self._last_pong = None

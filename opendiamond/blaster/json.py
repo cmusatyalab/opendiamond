@@ -17,7 +17,10 @@ class _JSONSchema(dict):
     '''A JSON schema.'''
 
     def __init__(self, title, type, strict=None, **kwargs):
-        if type == 'object':
+        '''For the object type, strict indicates whether unknown
+        object properties are accepted.'''
+
+        if type == 'object' and 'additionalProperties' not in kwargs:
             if strict is None:
                 raise RuntimeError('strict not specified')
             kwargs['additionalProperties'] = not strict
@@ -142,25 +145,279 @@ class SearchConfig(_JSONSchema):
         )
 
 
-class SocketEvent(_JSONSchema):
-    '''A SockJS event.'''
+class _SingleEvent(_JSONSchema):
+    '''A SockJS event message.'''
 
-    def __init__(self, strict=False):
+    def __init__(self, title, event, data, strict=False, **kwargs):
+        if data is None:
+            data = _JSONSchema(
+                'Null or an empty object',
+                [
+                    'null',
+                    _JSONSchema(
+                        'An empty object',
+                        'object',
+                        strict=strict,
+                    ),
+                ],
+            )
         _JSONSchema.__init__(self,
-            'A SockJS event',
+            title,
             'object',
             strict=strict,
             properties=dict(
                 event=_JSONSchema(
-                    'The name of the event',
+                    'The event type',
                     'string',
                     required=True,
+                    enum=[event],
                 ),
-                data=_JSONSchema(
-                    'Event data',
-                    ['null', 'object'],
+                data=data,
+            ),
+            **kwargs
+        )
+
+
+class _StartEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'Start the search',
+            'start',
+            _JSONSchema(
+                'Arguments to start event',
+                'object',
+                strict=strict,
+                required=True,
+                properties=dict(
+                    search_key=_JSONSchema(
+                        'The search key',
+                        'string',
+                        required=True,
+                    ),
                 ),
             ),
+            strict=strict,
+        )
+
+
+class _PongEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'A response to a ping message',
+            'pong',
+            None,
+            strict=strict,
+        )
+
+
+class _PauseEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'Pause the search',
+            'pause',
+            None,
+            strict=strict,
+            description='''Pause each Diamond server after it
+produces the next result.  Note that results may continue to arrive at the
+client for an indefinite period.''',
+        )
+
+
+class _ResumeEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'Resume the search after it is paused',
+            'resume',
+            None,
+            strict=strict,
+        )
+
+
+class ClientToServerEvent(_JSONSchema):
+    '''A client-to-server SockJS event.'''
+
+    def __init__(self, strict=False):
+        _JSONSchema.__init__(self,
+            'A client-to-server SockJS event',
+            [
+                _StartEvent(strict),
+                _PongEvent(strict),
+                _PauseEvent(strict),
+                _ResumeEvent(strict),
+            ],
+        )
+
+
+class _SearchStartedEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'Search has been started',
+            'search_started',
+            _JSONSchema(
+                'Information about the search',
+                'object',
+                strict=strict,
+                required=True,
+                properties=dict(
+                    search_id=_JSONSchema(
+                        'The search ID',
+                        'number',
+                        required=True,
+                    ),
+                ),
+            ),
+            strict=strict,
+        )
+
+
+class _PingEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'A keepalive event',
+            'ping',
+            None,
+            strict=strict,
+            description='The client must respond with a pong event.',
+        )
+
+
+class _AttributeValue(_JSONSchema):
+    def __init__(self, strict=False):
+        _JSONSchema.__init__(self,
+            'The value of an object attribute',
+            'object',
+            strict=strict,
+            properties=dict(
+                data=_JSONSchema(
+                    'The decoded attribute data',
+                    ['string', 'number', 'object'],
+                ),
+                image_url=_JSONSchema(
+                    'The location of the attribute rendered as an image',
+                    'string',
+                    format='uri',
+                ),
+                raw_url=_JSONSchema(
+                    'The location of the attribute raw data',
+                    'string',
+                    format='uri',
+                ),
+            ),
+        )
+
+
+class _ResultEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'A search result',
+            'result',
+            _JSONSchema(
+                'The attributes of the result object',
+                'object',
+                strict=strict,
+                required=True,
+                properties=dict(
+                    _ResultURL=_JSONSchema(
+                        'The location of this search result',
+                        'object',
+                        strict=strict,
+                        properties=dict(
+                            data=_JSONSchema(
+                                'The location URL',
+                                'string',
+                                required=True,
+                            ),
+                        ),
+                        required=True,
+                    ),
+                ),
+                additionalProperties=_AttributeValue(strict),
+            ),
+            strict=strict,
+        )
+
+
+class _Statistic(_JSONSchema):
+    def __init__(self):
+        _JSONSchema.__init__(self,
+            'A statistic',
+            'number',
+        )
+
+
+class _StatisticsEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'A statistics update',
+            'statistics',
+            _JSONSchema(
+                'Statistics about the entire search',
+                'object',
+                required=True,
+                properties=dict(
+                    filters=_JSONSchema(
+                        'Statistics blocks for individual filters',
+                        'object',
+                        required=True,
+                        additionalProperties=_JSONSchema(
+                            'Statistics about an individual filter',
+                            'object',
+                            additionalProperties=_Statistic(),
+                        ),
+                    ),
+                ),
+                additionalProperties=_Statistic(),
+            ),
+            strict=strict,
+        )
+
+
+class _SearchCompleteEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'A notification of search completion',
+            'search_complete',
+            None,
+            strict=strict,
+        )
+
+
+class _ErrorEvent(_SingleEvent):
+    def __init__(self, strict=False):
+        _SingleEvent.__init__(self,
+            'A failure report',
+            'error',
+            _JSONSchema(
+                'The error detail',
+                'object',
+                strict=strict,
+                required=True,
+                properties=dict(
+                    message=_JSONSchema(
+                        'The error message',
+                        'string',
+                        required=True,
+                    ),
+                ),
+            ),
+            strict=strict,
+        )
+
+
+class ServerToClientEvent(_JSONSchema):
+    '''A server-to-client SockJS event.'''
+
+    def __init__(self, strict=False):
+        _JSONSchema.__init__(self,
+            'A server-to-client SockJS event',
+            [
+                _SearchStartedEvent(strict),
+                _PingEvent(strict),
+                _ResultEvent(strict),
+                _StatisticsEvent(strict),
+                _SearchCompleteEvent(strict),
+                _ErrorEvent(strict),
+            ],
         )
 
 

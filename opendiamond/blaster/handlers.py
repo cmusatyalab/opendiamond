@@ -34,7 +34,7 @@ from opendiamond.attributes import (StringAttributeCodec,
         PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
 from opendiamond.blaster.json import (SearchConfig, SearchConfigResult,
-        ClientToServerEvent, ServerToClientEvent)
+        ResultObject, ClientToServerEvent, ServerToClientEvent)
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import connection_ok, sha256
@@ -68,6 +68,7 @@ _magic.load()
 # Be strict in what we send and liberal in what we accept
 _search_schema = SearchConfig(strict=False)
 _search_result_schema = SearchConfigResult(strict=True)
+_result_object_schema = ResultObject(strict=True)
 _c2s_event_schema = ClientToServerEvent(strict=False)
 _s2c_event_schema = ServerToClientEvent(strict=True)
 
@@ -123,6 +124,7 @@ def _make_object_json(application, search_key, object_key, obj):
     result['_ResultURL'] = {
         'data': application.reverse_url('result', search_key, object_key),
     }
+    _result_object_schema.validate(result)
     return result
 
 

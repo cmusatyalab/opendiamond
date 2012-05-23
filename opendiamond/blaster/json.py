@@ -336,31 +336,44 @@ class _AttributeValue(_JSONSchema):
         )
 
 
+class _ResultObject(_JSONSchema):
+    def __init__(self, **kwargs):
+        _JSONSchema.__init__(self,
+            'The attributes of the result object',
+            'object',
+            properties=dict(
+                _ResultURL=_JSONSchema(
+                    'The location of this search result',
+                    'object',
+                    properties=dict(
+                        data=_JSONSchema(
+                            'The location URL',
+                            'string',
+                            required=True,
+                        ),
+                    ),
+                    required=True,
+                ),
+            ),
+            additionalProperties=_AttributeValue(),
+            **kwargs
+        )
+
+
+class ResultObject(_ResultObject):
+    '''A _ResultObject for external consumption.'''
+
+    def __init__(self, strict=False):
+        with _strictness(strict):
+            _ResultObject.__init__(self)
+
+
 class _ResultEvent(_SingleEvent):
     def __init__(self):
         _SingleEvent.__init__(self,
             'A search result',
             'result',
-            _JSONSchema(
-                'The attributes of the result object',
-                'object',
-                required=True,
-                properties=dict(
-                    _ResultURL=_JSONSchema(
-                        'The location of this search result',
-                        'object',
-                        properties=dict(
-                            data=_JSONSchema(
-                                'The location URL',
-                                'string',
-                                required=True,
-                            ),
-                        ),
-                        required=True,
-                    ),
-                ),
-                additionalProperties=_AttributeValue(),
-            ),
+            _ResultObject(required=True),
         )
 
 

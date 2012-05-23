@@ -217,7 +217,7 @@ class Search(RPCHandlers):
         return protocol.XDR_attribute_list(obj.xdr_attributes(output_attrs,
                                 for_drop=drop))
 
-    @RPCHandlers.handler(15, reply_class=protocol.XDR_search_stats)
+    @RPCHandlers.handler(29, reply_class=protocol.XDR_search_stats)
     @running(True)
     def request_stats(self):
         '''Return current search statistics.'''

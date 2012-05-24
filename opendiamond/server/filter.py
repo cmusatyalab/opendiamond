@@ -189,8 +189,8 @@ class _FilterResult(object):
     attributes used to produce them.'''
 
     def __init__(self, input_attrs=None, output_attrs=None, score=0.0):
-        self.input_attrs = input_attrs or {}	# name -> SHA256(value)
-        self.output_attrs = output_attrs or {}	# name -> SHA256(value)
+        self.input_attrs = input_attrs or {}	# name -> MD5(value)
+        self.output_attrs = output_attrs or {}	# name -> MD5(value)
         self.score = score
         # Whether to cache output attributes in the attribute cache
         self.cache_output = False

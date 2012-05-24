@@ -116,8 +116,7 @@ except ImportError, _e:
 # URIs starting with sha256:[0-9a-f] would fail in Python 2.7.1
 # pylint has trouble with ParseResult, pylint #8766
 # pylint: disable=E1101
-
-def split_scheme_sha256(url):
+def split_scheme(url):
     if sys.version_info[0:3] == (2, 7, 1) and url.startswith('sha256:'):
         return url.split(':')
     else:

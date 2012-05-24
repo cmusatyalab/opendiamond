@@ -17,7 +17,7 @@ import pycurl as curl
 from urlparse import urljoin
 import simplejson as json
 
-from opendiamond.helpers import md5, split_scheme_sha256
+from opendiamond.helpers import md5, split_scheme
 from opendiamond.protocol import XDR_attribute, XDR_object
 
 ATTR_HEADER_URL = 'x-attributes'
@@ -64,7 +64,7 @@ class EmptyObject(object):
         raise TypeError()
 
     def get_signature(self, key):
-        '''Return the SHA256 hash of the attribute value.'''
+        '''Return the MD5 hash of the attribute value.'''
         return self._signatures[key]
 
     def omit(self, key):
@@ -188,7 +188,7 @@ class ObjectLoader(object):
         to load it, without actually doing so.  This can be used during
         reexecution to determine whether we should return
         DiamondRPCFCacheMiss to the client.'''
-        scheme, path = split_scheme_sha256(str(obj))
+        scheme, path = split_scheme(str(obj))
         if scheme == 'sha256':
             return path in self._blob_cache
         else:
@@ -199,7 +199,7 @@ class ObjectLoader(object):
         '''Retrieve the Object and update it with the information we
         receive.'''
         uri = str(obj)
-        scheme, path = split_scheme_sha256(uri)
+        scheme, path = split_scheme(uri)
         if scheme == 'sha256':
             self._load_blobcache(obj, path)
         else:

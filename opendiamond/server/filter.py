@@ -65,7 +65,7 @@ import simplejson as json
 import subprocess
 import threading
 
-from opendiamond.helpers import md5, signalname, split_scheme_sha256
+from opendiamond.helpers import md5, signalname, split_scheme
 from opendiamond.rpc import ConnectionFailure
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.statistics import FilterStatistics, Timer
@@ -471,7 +471,7 @@ class Filter(object):
 
     def _resolve_code(self, state):
         '''Returns (code_path, signature).'''
-        scheme, path = split_scheme_sha256(self.code_source)
+        scheme, path = split_scheme(self.code_source)
         if scheme == 'sha256':
             sig = path
             try:
@@ -484,7 +484,7 @@ class Filter(object):
 
     def _resolve_blob(self, state):
         '''Returns blob data.'''
-        scheme, path = split_scheme_sha256(self.blob_source)
+        scheme, path = split_scheme(self.blob_source)
         if scheme == 'sha256':
             try:
                 return state.blob_cache[path]
@@ -500,7 +500,7 @@ class Filter(object):
         True if we can access the data, False if we can't and should inform
         the client to that effect.  Raise FilterUnsupportedSource if we don't
         support the URI scheme.'''
-        scheme, path = split_scheme_sha256(uri)
+        scheme, path = split_scheme(uri)
         if scheme == 'sha256':
             return path in state.blob_cache
         else:

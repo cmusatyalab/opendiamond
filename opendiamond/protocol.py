@@ -144,7 +144,7 @@ class XDR_reexecute(XDRStruct):
     '''Reexecute argument'''
     members = (
         'object_id', XDR.string(),
-        'attrs', XDR.array(XDR.string(MAX_ATTRIBUTE_NAME)),
+        'attrs', XDR.optional(XDR.array(XDR.string(MAX_ATTRIBUTE_NAME))),
     )
 
 

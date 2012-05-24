@@ -65,7 +65,7 @@ import simplejson as json
 import subprocess
 import threading
 
-from opendiamond.helpers import md5, signalname, split_scheme
+from opendiamond.helpers import md5, signalname, split_scheme_sha256
 from opendiamond.rpc import ConnectionFailure
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.statistics import FilterStatistics, Timer
@@ -189,8 +189,8 @@ class _FilterResult(object):
     attributes used to produce them.'''
 
     def __init__(self, input_attrs=None, output_attrs=None, score=0.0):
-        self.input_attrs = input_attrs or {}	# name -> MD5(value)
-        self.output_attrs = output_attrs or {}	# name -> MD5(value)
+        self.input_attrs = input_attrs or {}	# name -> SHA256(value)
+        self.output_attrs = output_attrs or {}	# name -> SHA256(value)
         self.score = score
         # Whether to cache output attributes in the attribute cache
         self.cache_output = False
@@ -471,8 +471,8 @@ class Filter(object):
 
     def _resolve_code(self, state):
         '''Returns (code_path, signature).'''
-        scheme, path = split_scheme(self.code_source)
-        if scheme == state.blob_cache.digest:
+        scheme, path = split_scheme_sha256(self.code_source)
+        if scheme == 'sha256':
             sig = path
             try:
                 return (state.blob_cache.executable_path(sig), sig)
@@ -484,8 +484,8 @@ class Filter(object):
 
     def _resolve_blob(self, state):
         '''Returns blob data.'''
-        scheme, path = split_scheme(self.blob_source)
-        if scheme == state.blob_cache.digest:
+        scheme, path = split_scheme_sha256(self.blob_source)
+        if scheme == 'sha256':
             try:
                 return state.blob_cache[path]
             except KeyError:
@@ -500,8 +500,8 @@ class Filter(object):
         True if we can access the data, False if we can't and should inform
         the client to that effect.  Raise FilterUnsupportedSource if we don't
         support the URI scheme.'''
-        scheme, path = split_scheme(uri)
-        if scheme == state.blob_cache.digest:
+        scheme, path = split_scheme_sha256(uri)
+        if scheme == 'sha256':
             return path in state.blob_cache
         else:
             raise FilterUnsupportedSource()

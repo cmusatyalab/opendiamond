@@ -41,4 +41,4 @@ class JSONBlaster(tornado.web.Application):
         tornado.web.Application.__init__(self, self.handlers, **settings)
         if not os.path.isdir(options.cache_dir):
             os.makedirs(options.cache_dir, 0700)
-        self.blob_cache = BlobCache(options.cache_dir, 'sha256')
+        self.blob_cache = BlobCache(options.cache_dir)

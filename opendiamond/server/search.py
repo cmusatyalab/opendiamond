@@ -96,7 +96,7 @@ class Search(RPCHandlers):
     @RPCHandlers.handler(25, protocol.XDR_setup, protocol.XDR_blob_list)
     @running(False)
     def setup(self, params):
-        '''Configure the search and return a list of MD5 signatures not
+        '''Configure the search and return a list of SHA256 signatures not
         present in the blob cache.'''
         def log_header(desc):
             _log.info('  %s:', desc)

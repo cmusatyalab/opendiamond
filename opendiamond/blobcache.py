@@ -12,19 +12,19 @@
 
 '''On-disk caching of filter code and blob arguments.'''
 
-import hashlib
 import logging
 import os
 import shutil
 from tempfile import mktemp, mkstemp, mkdtemp
 import time
+from opendiamond.helpers import sha256
 
 GC_SUFFIX = '-'
 
 _log = logging.getLogger(__name__)
 
 class BlobCache(object):
-    '''A cache of binary data identified by its MD5 hash in hex.
+    '''A cache of binary data identified by its SHA256 hash in hex.
 
     A blob is eligible for garbage collection if its mtime is older than the
     configured lifetime.  Whenever we access a blob (by reading it or via
@@ -51,9 +51,8 @@ class BlobCache(object):
     The second attempt should succeed since the file's mtime is current.
     '''
 
-    def __init__(self, basedir, digest='md5'):
+    def __init__(self, basedir):
         self.basedir = basedir
-        self.digest = digest
         # Ensure _executable_dir is inside the search-specific tempdir
         self._executable_dir = mkdtemp(dir=os.environ.get('TMPDIR'),
                                         prefix='executable-')
@@ -103,8 +102,7 @@ class BlobCache(object):
 
     def add(self, data):
         '''Add the specified data to the cache.'''
-        hash = hashlib.new(self.digest)
-        hash.update(data)
+        hash = sha256(data)
         sig = hash.hexdigest()
         # NamedTemporaryFile always deletes the file on close on Python 2.5,
         # so we can't use it

@@ -24,11 +24,6 @@ PORT = 5872
 NONCE_LEN = 16
 NULL_NONCE = '\x00' * NONCE_LEN
 
-MAX_ATTRIBUTE_NAME = 256
-MAX_FILTER_NAME = 128
-MAX_FILTERS = 64
-MAX_BLOBS = 2 * MAX_FILTERS	# Filter + blob argument
-
 class DiamondRPCFailure(RPCError):
     '''Generic Diamond RPC failure.'''
     code = 500
@@ -46,7 +41,7 @@ class DiamondRPCSchemeNotSupported(RPCError):
 class XDR_attribute(XDRStruct):
     '''An object attribute'''
     members = (
-        'name', XDR.string(MAX_ATTRIBUTE_NAME),
+        'name', XDR.string(),
         'value', XDR.opaque(),
     )
 
@@ -61,16 +56,16 @@ class XDR_object(XDRStruct):
 class XDR_blob_list(XDRStruct):
     '''A list of blob URIs'''
     members = (
-        'uris', XDR.array(XDR.string(), MAX_BLOBS),
+        'uris', XDR.array(XDR.string()),
     )
 
 
 class XDR_filter_config(XDRStruct):
     '''Configuration for a single filter'''
     members = (
-        'name', XDR.string(MAX_FILTER_NAME),
+        'name', XDR.string(),
         'arguments', XDR.array(XDR.string()),
-        'dependencies', XDR.array(XDR.string(MAX_FILTER_NAME), MAX_FILTERS),
+        'dependencies', XDR.array(XDR.string()),
         'min_score', XDR.double(),
         'max_score', XDR.double(),
         'code', XDR.string(),
@@ -82,14 +77,14 @@ class XDR_setup(XDRStruct):
     '''Search setup parameters'''
     members = (
         'cookies', XDR.array(XDR.string()),
-        'filters', XDR.array(XDR.struct(XDR_filter_config), MAX_FILTERS),
+        'filters', XDR.array(XDR.struct(XDR_filter_config)),
     )
 
 
 class XDR_blob_data(XDRStruct):
     '''Blob data to be added to the blob cache'''
     members = (
-        'blobs', XDR.array(XDR.opaque(), MAX_BLOBS),
+        'blobs', XDR.array(XDR.opaque()),
     )
 
 
@@ -97,7 +92,7 @@ class XDR_start(XDRStruct):
     '''Start-search parameters'''
     members = (
         'search_id', XDR.fopaque(36),
-        'attrs', XDR.optional(XDR.array(XDR.string(MAX_ATTRIBUTE_NAME))),
+        'attrs', XDR.optional(XDR.array(XDR.string())),
     )
 
 
@@ -144,7 +139,7 @@ class XDR_reexecute(XDRStruct):
     '''Reexecute argument'''
     members = (
         'object_id', XDR.string(),
-        'attrs', XDR.optional(XDR.array(XDR.string(MAX_ATTRIBUTE_NAME))),
+        'attrs', XDR.optional(XDR.array(XDR.string())),
     )
 
 

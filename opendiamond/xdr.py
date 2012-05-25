@@ -30,21 +30,15 @@ class _XDRTypeHandler(object):
 
 
 class _XDRPrimitiveHandler(_XDRTypeHandler):
-    def __init__(self, name, max_length=None):
+    def __init__(self, name):
         _XDRTypeHandler.__init__(self)
         self._name = name
-        self._max_length = max_length
-
-    def _check(self, val):
-        if self._max_length is not None and len(val) > self._max_length:
-            raise XDREncodingError()
-        return val
 
     def pack(self, xdr, val):
-        getattr(xdr, 'pack_' + self._name)(self._check(val))
+        getattr(xdr, 'pack_' + self._name)(val)
 
     def unpack(self, xdr):
-        return self._check(getattr(xdr, 'unpack_' + self._name)())
+        return getattr(xdr, 'unpack_' + self._name)()
 
 
 class _XDRFOpaqueHandler(_XDRTypeHandler):
@@ -75,26 +69,18 @@ class _XDRIntHandler(_XDRTypeHandler):
 
 
 class _XDRArrayHandler(_XDRTypeHandler):
-    def __init__(self, item_handler, max_length=None):
+    def __init__(self, item_handler):
         _XDRTypeHandler.__init__(self)
         self._item_handler = item_handler
-        self._max_length = max_length
-
-    def _check(self, val):
-        if self._max_length is not None and len(val) > self._max_length:
-            raise XDREncodingError()
-        return val
 
     def pack(self, xdr, vals):
-        self._check(vals)
         # Packer.pack_array() is inconvenient for recursive descent.
         xdr.pack_uint(len(vals))
         for val in vals:
             self._item_handler.pack(xdr, val)
 
     def unpack(self, xdr):
-        return self._check(xdr.unpack_array(lambda:
-                self._item_handler.unpack(xdr)))
+        return xdr.unpack_array(lambda:self._item_handler.unpack(xdr))
 
 
 class _XDROptionalHandler(_XDRTypeHandler):
@@ -166,8 +152,8 @@ class XDR(object):
         return _XDRPrimitiveHandler('double')
 
     @staticmethod
-    def string(max_length=None):
-        return _XDRPrimitiveHandler('string', max_length)
+    def string():
+        return _XDRPrimitiveHandler('string')
 
     @staticmethod
     def opaque():
@@ -178,8 +164,8 @@ class XDR(object):
         return _XDRFOpaqueHandler(length)
 
     @staticmethod
-    def array(item_handler, max_length=None):
-        return _XDRArrayHandler(item_handler, max_length)
+    def array(item_handler):
+        return _XDRArrayHandler(item_handler)
 
     @staticmethod
     def optional(item_handler):

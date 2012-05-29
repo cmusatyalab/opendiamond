@@ -414,7 +414,7 @@ class _FilterRunner(_ObjectProcessor):
             accept = self.threshold(result)
             self._filter.stats.update('objs_processed', 'objs_compute',
                                     objs_dropped=int(not accept),
-                                    execution_ns=timer.elapsed)
+                                    execution_us=timer.elapsed)
             lengths = [len(obj[k]) for k in result.output_attrs]
             throughput = int(sum(lengths) / timer.elapsed_seconds)
             if throughput < ATTRIBUTE_CACHE_THRESHOLD:
@@ -472,7 +472,7 @@ class Filter(object):
     def _resolve_code(self, state):
         '''Returns (code_path, signature).'''
         scheme, path = split_scheme(self.code_source)
-        if scheme == state.blob_cache.digest:
+        if scheme == 'sha256':
             sig = path
             try:
                 return (state.blob_cache.executable_path(sig), sig)
@@ -485,7 +485,7 @@ class Filter(object):
     def _resolve_blob(self, state):
         '''Returns blob data.'''
         scheme, path = split_scheme(self.blob_source)
-        if scheme == state.blob_cache.digest:
+        if scheme == 'sha256':
             try:
                 return state.blob_cache[path]
             except KeyError:
@@ -501,7 +501,7 @@ class Filter(object):
         the client to that effect.  Raise FilterUnsupportedSource if we don't
         support the URI scheme.'''
         scheme, path = split_scheme(uri)
-        if scheme == state.blob_cache.digest:
+        if scheme == 'sha256':
             return path in state.blob_cache
         else:
             raise FilterUnsupportedSource()
@@ -727,7 +727,7 @@ class FilterStackRunner(threading.Thread):
             accept = self._evaluate(obj)
         finally:
             self._state.stats.update('objs_processed',
-                                    execution_ns=timer.elapsed,
+                                    execution_us=timer.elapsed,
                                     objs_passed=int(accept),
                                     objs_dropped=int(not accept))
         return accept

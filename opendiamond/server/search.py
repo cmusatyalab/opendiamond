@@ -96,7 +96,7 @@ class Search(RPCHandlers):
     @RPCHandlers.handler(25, protocol.XDR_setup, protocol.XDR_blob_list)
     @running(False)
     def setup(self, params):
-        '''Configure the search and return a list of MD5 signatures not
+        '''Configure the search and return a list of SHA256 signatures not
         present in the blob cache.'''
         def log_header(desc):
             _log.info('  %s:', desc)
@@ -174,7 +174,7 @@ class Search(RPCHandlers):
         for blob in params.blobs:
             self._state.blob_cache.add(blob)
 
-    @RPCHandlers.handler(27, protocol.XDR_start)
+    @RPCHandlers.handler(28, protocol.XDR_start)
     @running(False)
     def start(self, params):
         '''Start the search.'''
@@ -188,13 +188,12 @@ class Search(RPCHandlers):
         else:
             # Encode everything
             push_attrs = None
-        self._state.blast = BlastChannel(self._blast_conn, params.search_id,
-                                push_attrs)
+        self._state.blast = BlastChannel(self._blast_conn, push_attrs)
         self._running = True
-        _log.info('Starting search %d', params.search_id)
+        _log.info('Starting search %s', params.search_id)
         self._filters.start_threads(self._state, self._state.config.threads)
 
-    @RPCHandlers.handler(21, protocol.XDR_reexecute,
+    @RPCHandlers.handler(30, protocol.XDR_reexecute,
                              protocol.XDR_attribute_list)
     def reexecute_filters(self, params):
         '''Reexecute the search on the specified object.'''
@@ -210,7 +209,7 @@ class Search(RPCHandlers):
         if not loader.source_available(obj):
             raise DiamondRPCFCacheMiss()
         drop = not runner.evaluate(obj)
-        if len(params.attrs):
+        if params.attrs is not None:
             output_attrs = set(params.attrs)
         else:
             # If no output attributes were specified, encode everything
@@ -218,7 +217,7 @@ class Search(RPCHandlers):
         return protocol.XDR_attribute_list(obj.xdr_attributes(output_attrs,
                                 for_drop=drop))
 
-    @RPCHandlers.handler(15, reply_class=protocol.XDR_search_stats)
+    @RPCHandlers.handler(29, reply_class=protocol.XDR_search_stats)
     @running(True)
     def request_stats(self):
         '''Return current search statistics.'''
@@ -254,7 +253,7 @@ class _BlastChannelSender(RPCHandlers):
         self._obj = obj
         self._sent = False
 
-    @RPCHandlers.handler(1, reply_class=protocol.XDR_object)
+    @RPCHandlers.handler(2, reply_class=protocol.XDR_object)
     def get_object(self):
         '''Return an accepted object.'''
         assert not self._sent
@@ -270,17 +269,16 @@ class _BlastChannelSender(RPCHandlers):
 class BlastChannel(object):
     '''A wrapper for a blast channel connection.'''
 
-    def __init__(self, conn, search_id, push_attrs):
+    def __init__(self, conn, push_attrs):
         self._conn = conn
-        self._search_id = search_id
         self._push_attrs = push_attrs
 
     def send(self, obj):
         '''Send the specified Object on the blast channel.'''
-        xdr = obj.xdr(self._search_id, self._push_attrs)
+        xdr = obj.xdr(self._push_attrs)
         _BlastChannelSender(xdr).send(self._conn)
 
     def close(self):
         '''Tell the client that no more objects will be returned.'''
-        xdr = EmptyObject().xdr(self._search_id)
+        xdr = EmptyObject().xdr()
         _BlastChannelSender(xdr).send(self._conn)

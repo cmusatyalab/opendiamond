@@ -113,11 +113,11 @@ except ImportError, _e:
 
 
 # urlparse wrapper to handle http://bugs.python.org/issue11467
-# URIs starting with md5:[0-9] would fail in Python 2.7.1
+# URIs starting with sha256:[0-9a-f] would fail in Python 2.7.1
 # pylint has trouble with ParseResult, pylint #8766
 # pylint: disable=E1101
 def split_scheme(url):
-    if sys.version_info[0:3] == (2, 7, 1) and url.startswith('md5:'):
+    if sys.version_info[0:3] == (2, 7, 1) and url.startswith('sha256:'):
         return url.split(':')
     else:
         parts = urlparse(url)

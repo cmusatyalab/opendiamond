@@ -101,9 +101,9 @@ class EmptyObject(object):
             attrs.append(XDR_attribute(name, value))
         return attrs
 
-    def xdr(self, search_id, output_set=None):
+    def xdr(self, output_set=None):
         '''Return an XDR_object.'''
-        return XDR_object(search_id, self.xdr_attributes(output_set))
+        return XDR_object(self.xdr_attributes(output_set))
 
 
 class Object(EmptyObject):
@@ -189,7 +189,7 @@ class ObjectLoader(object):
         reexecution to determine whether we should return
         DiamondRPCFCacheMiss to the client.'''
         scheme, path = split_scheme(str(obj))
-        if scheme == self._blob_cache.digest:
+        if scheme == 'sha256':
             return path in self._blob_cache
         else:
             # Assume we can always load other types of URLs
@@ -200,7 +200,7 @@ class ObjectLoader(object):
         receive.'''
         uri = str(obj)
         scheme, path = split_scheme(uri)
-        if scheme == self._blob_cache.digest:
+        if scheme == 'sha256':
             self._load_blobcache(obj, path)
         else:
             self._load_dataretriever(obj, uri)

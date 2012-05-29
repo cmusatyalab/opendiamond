@@ -11,7 +11,7 @@
   margin-top: 2em;
 }
 
-#scope {
+#static-params {
   margin-top: 1em;
 }
 
@@ -42,10 +42,11 @@ th {
 </div>
 
 <input id="add" type="submit" value="Add filter">
-<input id="search" type="submit" value="Search">
+<input id="search" class="execute" type="submit" value="Search">
 
-<table id="scope">
-  <tr><th>Scope cookie<td><!-- input dynamically inserted here --><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
+<table id="static-params">
+  <tr><th>Scope cookie<td id="scope"><!-- input dynamically inserted here --><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
+  <tr><th>Local object<td id="local"><!-- input dynamically inserted here --><input id="evaluate" class="execute" type="submit" value="Evaluate"><img class="hidden" src="{{ static_url('testui/spinner.gif') }}">
 </table>
 
 <div id="filters">
@@ -59,21 +60,59 @@ $(function() {
   // Start an I/O operation.
   function _pending_inc() {
     pendingIO++;
-    $('#search').attr('disabled', 'disabled');
+    $('.execute').attr('disabled', 'disabled');
   }
 
   // Finish an I/O operation.
   function _pending_dec() {
     if (!--pendingIO) {
-      $('#search').removeAttr('disabled');
+      $('.execute').removeAttr('disabled');
     }
+  }
+
+  // Upload a blob when a file is selected.
+  function _blob_selection_handler() {
+    var input = this;
+    var file = this.files[0];
+    var reader = new FileReader();
+    _pending_inc();
+    function finish() {
+      $(input).nextAll('img').hide();
+      _pending_dec();
+    }
+    reader.onloadend = function() {
+      if (reader.error) {
+        alert('Error reading file.');
+        $(input).removeData('uri');
+        finish();
+      } else {
+        $.ajax({
+          type: 'POST',
+          url: '/blob',
+          contentType: 'application/octet-stream',
+          data: file,
+          processData: false,
+          success: function(data, textStatus, jqXHR) {
+            $(input).data('uri', jqXHR.getResponseHeader('Location'));
+            finish();
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            alert('Error uploading file.')
+            $(input).removeData('uri');
+            finish();
+          },
+        });
+      }
+    }
+    $(input).nextAll('img').show();
+    reader.readAsBinaryString(file);
   }
 
   // Handle loading of a scope cookie.  Dynamically create the cookie
   // input so some browsers won't prepopulate the field (incorrectly, since
   // our handler doesn't get a chance to run).
   var scope_input = $('<input name="cookie" type="file">').
-      prependTo($('#scope td'));
+      prependTo($('#scope'));
   scope_input.change(function() {
     var input = this;
     var reader = new FileReader();
@@ -85,12 +124,19 @@ $(function() {
       } else {
         $(input).data('data', reader.result);
       }
-      $(input).next().hide();
+      $(input).nextAll('img').hide();
       _pending_dec();
     }
-    $(input).next().show();
+    $(input).nextAll('img').show();
     reader.readAsText(this.files[0]);
   });
+
+  // Handle loading of a local object.  Dynamically create the file input
+  // so some browsers won't prepopulate the field (incorrectly, since our
+  // handler doesn't get a chance to run).
+  var local_input = $('<input name="object" type="file">').
+      prependTo($('#local'));
+  local_input.change(_blob_selection_handler);
 
   function _multiple_keypress_handler() {
     // Handle the first keypress in the last field of the
@@ -118,42 +164,7 @@ $(function() {
     });
 
     // Handle file selection in the filter/blob argument fields.
-    form.find('[type=file]').change(function() {
-      var input = this;
-      var file = this.files[0];
-      var reader = new FileReader();
-      _pending_inc();
-      function finish() {
-        $(input).next().hide();
-        _pending_dec();
-      }
-      reader.onloadend = function() {
-        if (reader.error) {
-          alert('Error reading file.');
-          $(input).removeData('uri');
-          finish();
-        } else {
-          $.ajax({
-            type: 'POST',
-            url: '/blob',
-            contentType: 'application/octet-stream',
-            data: file,
-            processData: false,
-            success: function(data, textStatus, jqXHR) {
-              $(input).data('uri', jqXHR.getResponseHeader('Location'));
-              finish();
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-              alert('Error uploading file.')
-              $(input).removeData('uri');
-              finish();
-            },
-          });
-        }
-      }
-      $(input).next().show();
-      reader.readAsBinaryString(file);
-    });
+    form.find('[type=file]').change(_blob_selection_handler);
 
     // Add the form to the DOM.
     form.hide();
@@ -205,8 +216,8 @@ $(function() {
     }
   }
 
-  // Handle the search button.
-  $('#search').click(function(ev) {
+  // Handle the search and evaluate buttons.
+  $('.execute').click(function(ev) {
     ev.preventDefault();
 
     // Filters
@@ -240,13 +251,15 @@ $(function() {
     // Open a window to receive the search results while we still have
     // the browser's attention
     var child_window = window.open('');
-    var target_url = '{{ results_url }}';
+    var results_url = '{{ results_url }}';
+    var result_url = '{{ result_url }}';
 
-    // Start the search
+    // Create the search
     var search = {
       cookies: cookies,
       filters: fconfigs,
     };
+    var want_evaluate = $(this).prop('id') === 'evaluate';
     $.ajax({
       type: 'POST',
       url: '/',
@@ -254,10 +267,30 @@ $(function() {
       data: JSON.stringify(search),
       dataType: 'json',
       success: function(data, textStatus, jqXHR) {
-        child_window.location = target_url + '#s' + data.search_key;
+        if (want_evaluate) {
+          var evaluate = {};
+          _load_file(evaluate, $('#local'), 'object');
+
+          $.ajax({
+            type: 'POST',
+            url: data.evaluate_url,
+            contentType: 'application/json',
+            data: JSON.stringify(evaluate),
+            dataType: 'json',
+            success: function(data, textStatus, jqXHR) {
+              child_window.location = result_url + '#' + data._ResultURL.data;
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              child_window.location = results_url + '#e' +
+                  escape(jqXHR.responseText);
+            },
+          });
+        } else {
+          child_window.location = results_url + '#s' + data.search_key;
+        }
       },
       error: function(jqXHR, textStatus, errorThrown) {
-        child_window.location = target_url + '#e' +
+        child_window.location = results_url + '#e' +
             escape(jqXHR.responseText);
       },
     });

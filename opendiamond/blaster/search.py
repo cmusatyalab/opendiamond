@@ -17,7 +17,7 @@ from tornado import gen, stack_context
 from opendiamond.blaster.rpc import ControlConnection, BlastConnection
 from opendiamond.helpers import md5
 from opendiamond.protocol import (XDR_setup, XDR_filter_config,
-        XDR_blob_data, XDR_start)
+        XDR_blob_data, XDR_start, XDR_reexecute, DiamondRPCFCacheMiss)
 from opendiamond.rpc import RPCError
 from opendiamond.scope import get_cookie_map
 
@@ -88,15 +88,15 @@ class _DiamondConnection(object):
         if callback is not None:
             callback()
 
+    def _md5_uri(self, md5sum):
+        return 'md5:' + md5sum
+
     @gen.engine
     def setup(self, cookies, filters, callback=None):
-        def uri(md5sum):
-            return 'md5:' + md5sum
-
         uri_data = {}
         for f in filters:
-            uri_data[uri(f.code.md5)] = str(f.code)
-            uri_data[uri(f.blob_argument.md5)] = str(f.blob_argument)
+            uri_data[self._md5_uri(f.code.md5)] = str(f.code)
+            uri_data[self._md5_uri(f.blob_argument.md5)] = str(f.blob_argument)
 
         # Send setup request
         request = XDR_setup(
@@ -107,8 +107,8 @@ class _DiamondConnection(object):
                         dependencies=f.dependencies,
                         min_score=f.min_score,
                         max_score=f.max_score,
-                        code=uri(f.code.md5),
-                        blob=uri(f.blob_argument.md5)
+                        code=self._md5_uri(f.code.md5),
+                        blob=self._md5_uri(f.blob_argument.md5)
                     ) for f in filters],
         )
         reply = yield gen.Task(self.control.setup, request)
@@ -145,6 +145,27 @@ class _DiamondConnection(object):
             object = None
         if callback is not None:
             callback(object)
+
+    @gen.engine
+    def evaluate(self, cookies, filters, blob, attrs=None, callback=None):
+        yield gen.Task(self.connect)
+        yield gen.Task(self.setup, cookies, filters)
+
+        # Send reexecute request
+        request = XDR_reexecute(object_id=self._md5_uri(blob.md5),
+                attrs=attrs or [])
+        try:
+            reply = yield gen.Task(self.control.reexecute_filters, request)
+        except DiamondRPCFCacheMiss:
+            # Send object data and retry
+            yield gen.Task(self.control.send_blobs,
+                    XDR_blob_data(blobs=[str(blob)]))
+            reply = yield gen.Task(self.control.reexecute_filters, request)
+
+        # Return object attributes
+        obj = dict((attr.name, attr.value) for attr in reply.attrs)
+        if callback is not None:
+            callback(obj)
 
     def close(self):
         if not self._closed:
@@ -238,6 +259,19 @@ class DiamondSearch(object):
         self.resume()
         if callback is not None:
             callback(search_id)
+
+    @gen.engine
+    def evaluate(self, blob, callback=None):
+        # Try to pick the same server for the same blob
+        server_index = abs(hash(blob.md5)) % len(self._connections)
+        hostname = sorted(self._connections)[server_index]
+        conn = self._connections[hostname]
+
+        # Reexecute
+        obj = yield gen.Task(conn.evaluate, self._cookies[hostname],
+                self._filters, blob)
+        if callback is not None:
+            callback(obj)
 
     def pause(self):
         self._blast.pause()

@@ -181,6 +181,28 @@ class SearchConfigResult(_JSONSchema):
                         'string',
                         required=True,
                     ),
+                    evaluate_url=_JSONSchema(
+                        'URL for evaluating the search on data',
+                        'string',
+                        format='uri',
+                    ),
+                ),
+            )
+
+
+class EvaluateRequest(_JSONSchema):
+    '''A request to evaluate the search on data.'''
+
+    def __init__(self, strict=False):
+        with _strictness(strict):
+            _JSONSchema.__init__(self,
+                'A request to evaluate the search on some data',
+                'object',
+                properties=dict(
+                    object=_SearchBlob(
+                        'The data to evaluate',
+                        required=True,
+                    ),
                 ),
             )
 

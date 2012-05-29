@@ -34,7 +34,8 @@ from opendiamond.attributes import (StringAttributeCodec,
         PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
 from opendiamond.blaster.json import (SearchConfig, SearchConfigResult,
-        ResultObject, ClientToServerEvent, ServerToClientEvent)
+        EvaluateRequest, ResultObject, ClientToServerEvent,
+        ServerToClientEvent)
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import connection_ok, sha256
@@ -68,6 +69,7 @@ _magic.load()
 # Be strict in what we send and liberal in what we accept
 _search_schema = SearchConfig(strict=False)
 _search_result_schema = SearchConfigResult(strict=True)
+_evaluate_request_schema = EvaluateRequest(strict=False)
 _result_object_schema = ResultObject(strict=True)
 _c2s_event_schema = ClientToServerEvent(strict=False)
 _s2c_event_schema = ServerToClientEvent(strict=True)
@@ -146,6 +148,10 @@ class _BlasterRequestHandler(RequestHandler):
     @property
     def search_cache(self):
         return self.application.search_cache
+
+    @property
+    def request_content_type(self):
+        return self.request.headers['Content-Type'].split(';')[0]
 
     def write_error(self, code, **kwargs):
         exc_type, exc_value, _exc_tb = kwargs.get('exc_info', [None] * 3)
@@ -291,8 +297,7 @@ class SearchHandler(_BlasterRequestHandler):
     @_restricted
     def post(self):
         # Build search spec
-        content_type = self.request.headers['Content-Type'].split(';')[0]
-        if content_type != 'application/json':
+        if self.request_content_type != 'application/json':
             raise HTTPError(415, 'Content type must be application/json')
         spec = _SearchSpec(self.request.body)
         yield gen.Task(spec.fetch_blobs, self.blob_cache)
@@ -302,6 +307,7 @@ class SearchHandler(_BlasterRequestHandler):
 
         # Return result
         result = {
+            'evaluate_url': self.reverse_url('evaluate', search_key),
             'socket_url': '/search',
             'search_key': search_key,
         }
@@ -318,6 +324,68 @@ class PostBlobHandler(_BlasterRequestHandler):
         sig = self.blob_cache.add(self.request.body)
         self.set_header('Location', '%s:%s' % (CACHE_URN_SCHEME, sig))
         self.set_status(204)
+
+
+class EvaluateHandler(_BlasterRequestHandler):
+    _running = False
+
+    @asynchronous
+    @gen.engine
+    @_restricted
+    def post(self, search_key):
+        # Load the search spec
+        try:
+            search_spec = self.search_cache.get_search(search_key)
+        except KeyError:
+            raise HTTPError(404)
+        except SearchCacheLoadError:
+            raise HTTPError(400, 'Corrupt search key')
+
+        # Load JSON request
+        if self.request_content_type != 'application/json':
+            raise HTTPError(415, 'Content type must be application/json')
+        try:
+            request = json.loads(self.request.body)
+            _evaluate_request_schema.validate(request)
+        except ValueError, e:
+            raise HTTPError(400, str(e))
+
+        # Load the object data
+        req_obj = request['object']
+        blob = _BlasterBlob(req_obj['uri'], req_obj.get('sha256'))
+        yield gen.Task(blob.fetch, self.blob_cache)
+
+        # Reexecute
+        _log.info('Evaluating search %s on object %s', search_key, blob.md5)
+        self._running = True
+        search = search_spec.make_search(close_callback=self._closed)
+        try:
+            obj = yield gen.Task(search.evaluate, blob)
+        except DiamondRPCCookieExpired:
+            raise HTTPError(400, 'Scope cookie expired')
+        except RPCError:
+            _log.exception('evaluate failed')
+            raise HTTPError(400, 'Evaluation failed')
+        finally:
+            self._running = False
+            search.close()
+
+        # Store object in cache
+        object_key = self.search_cache.put_search_result(search_key,
+                obj['_ObjectID'], obj)
+
+        # Return result
+        result = _make_object_json(self.application, search_key, object_key,
+                obj)
+        self.set_status(200)
+        self.set_header('Content-Type', 'application/json')
+        self.write(json.dumps(result))
+        self.finish()
+
+    def _closed(self):
+        '''Reexecution connection closed.'''
+        if self._running:
+            raise HTTPError(400, 'Evaluation failed')
 
 
 class ResultHandler(_BlasterRequestHandler):

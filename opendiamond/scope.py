@@ -287,6 +287,15 @@ def get_cookie_map(cookies):
     return map
 
 
+def get_blaster_map(cookies):
+    '''Given a list of ScopeCookies, return a dict: blaster -> [ScopeCookie].'''
+    map = {}
+    for cookie in cookies:
+        map.setdefault(cookie.blaster, []).append(cookie)
+    map.pop(None, None)
+    return map
+
+
 def _main():
     import sys
     args = sys.argv[1:]

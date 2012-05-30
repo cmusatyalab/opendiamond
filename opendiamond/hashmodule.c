@@ -134,6 +134,42 @@ static void MurmurHash3_x64_128 ( const void * key, const int len,
   ((uint64_t*)out)[1] = h2;
 }
 
+static int Test_MurmurHash3_x64_128 ( void )
+{
+  const int hashbytes = 128 / 8;
+  const uint32_t expected = 0x6384BA69;
+
+  uint8_t key[256];
+  uint8_t hashes[hashbytes * 256];
+  uint8_t final[hashbytes];
+  int i;
+
+  memset(key, 0, sizeof(key));
+  memset(hashes, 0, sizeof(hashes));
+  memset(final, 0, sizeof(final));
+
+  // Hash keys of the form {0}, {0,1}, {0,1,2}... up to N=255,using 256-N as
+  // the seed
+
+  for(i = 0; i < 256; i++)
+  {
+    key[i] = (uint8_t)i;
+
+    MurmurHash3_x64_128(key,i,256-i,&hashes[i*hashbytes]);
+  }
+
+  // Then hash the result array
+
+  MurmurHash3_x64_128(hashes,hashbytes*256,0,final);
+
+  // The first four bytes of that hash, interpreted as a little-endian integer, is our
+  // verification value
+
+  uint32_t verification = (final[0] << 0) | (final[1] << 8) | (final[2] << 16) | (final[3] << 24);
+
+  return verification == expected;
+}
+
 static inline char nibble_to_char(int v)
 {
   if (v < 10) {
@@ -210,5 +246,10 @@ static PyMethodDef HashMethods[] = {
 
 PyMODINIT_FUNC inithash(void)
 {
+  if (!Test_MurmurHash3_x64_128()) {
+    PyErr_SetString(PyExc_ImportError, "Murmur hash self-test failed");
+    return;
+  }
+
   Py_InitModule("hash", HashMethods);
 }

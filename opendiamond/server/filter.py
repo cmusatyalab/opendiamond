@@ -412,7 +412,7 @@ class _FilterRunner(_ObjectProcessor):
                                 % self)
         finally:
             accept = self.threshold(result)
-            self._filter.stats.update('objs_processed', 'objs_compute',
+            self._filter.stats.update('objs_processed', 'objs_computed',
                                     objs_dropped=int(not accept),
                                     execution_us=timer.elapsed)
             lengths = [len(obj[k]) for k in result.output_attrs]

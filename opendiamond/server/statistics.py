@@ -64,15 +64,16 @@ class SearchStatistics(_Statistics):
         '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
-                avg_obj_time = self.execution_us / self.objs_processed
+                avg_obj_us = self.execution_us / self.objs_processed
             except ZeroDivisionError:
-                avg_obj_time = 0
+                avg_obj_us = 0
 
             stats = []
             stats.append(XDR_stat('objs_total', objs_total))
-            stats.append(XDR_stat('avg_obj_time', avg_obj_time))
+            stats.append(XDR_stat('avg_obj_time_us', avg_obj_us))
             for name, _desc in self.attrs:
-                stats.append(XDR_stat(name, getattr(self, name)))
+                if name != 'execution_us':
+                    stats.append(XDR_stat(name, getattr(self, name)))
 
             return XDR_search_stats(
                 stats=stats,
@@ -87,7 +88,7 @@ class FilterStatistics(_Statistics):
             ('objs_dropped', 'Total objects dropped'),
             ('objs_cache_dropped', 'Objects dropped by cache'),
             ('objs_cache_passed', 'Objects skipped by cache'),
-            ('objs_compute', 'Objects examined by filter'),
+            ('objs_computed', 'Objects examined by filter'),
             ('objs_terminate', 'Objects causing filter to terminate'),
             ('execution_us', 'Filter execution time (us)'))
 
@@ -100,14 +101,15 @@ class FilterStatistics(_Statistics):
         '''Return an XDR statistics structure for these statistics.'''
         with self._lock:
             try:
-                avg_exec_time = self.execution_us / self.objs_processed
+                avg_exec_us = self.execution_us / self.objs_processed
             except ZeroDivisionError:
-                avg_exec_time = 0
+                avg_exec_us = 0
 
             stats = []
-            stats.append(XDR_stat('avg_exec_time', avg_exec_time))
+            stats.append(XDR_stat('avg_exec_time_us', avg_exec_us))
             for name, _desc in self.attrs:
-                stats.append(XDR_stat(name, getattr(self, name)))
+                if name != 'execution_us':
+                    stats.append(XDR_stat(name, getattr(self, name)))
 
             return XDR_filter_stats(
                 name=self.name,

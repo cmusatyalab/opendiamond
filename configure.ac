@@ -47,6 +47,9 @@ esac
 
 AC_SUBST(PKGCONFIG_REQUIRES)
 
+# Python (for extension modules)
+PKG_CHECK_MODULES(PYTHON, [python >= 2.6])
+
 # glib
 PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.12, gthread-2.0])
 

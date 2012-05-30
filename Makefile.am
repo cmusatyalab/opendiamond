@@ -100,6 +100,11 @@ dist_bin_SCRIPTS = \
 	tools/diamondd \
 	tools/diamond-bundle-predicate
 
+nobase_pyexec_LTLIBRARIES = opendiamond/hash.la
+opendiamond_hash_la_SOURCES = opendiamond/hashmodule.c
+opendiamond_hash_la_CFLAGS = $(PYTHON_CFLAGS)
+opendiamond_hash_la_LDFLAGS = -avoid-version -module
+
 EXTRA_DIST = CREDITS LICENSE INSTALL \
 	pylintrc \
 	bundle/bundle.xslt \
@@ -123,3 +128,6 @@ install-exec-local:
 	@# Using configure.ac as the source file ensures that __init__.pyc
 	@# is updated when the software version changes.
 	touch -r $(top_srcdir)/configure.ac $(DESTDIR)$(pkgpyexecdir)/__init__.py
+
+install-exec-hook:
+	rm -f $(pkgpyexecdir)/hash.la $(pkgpyexecdir)/hash.a

@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opendiamond.pc
 
-nobase_python_PYTHON = \
+nobase_pyexec_PYTHON = \
 	opendiamond/attributes.py \
 	opendiamond/blobcache.py \
 	opendiamond/bundle.py \
@@ -70,7 +70,7 @@ nobase_python_PYTHON = \
 noinst_PYTHON = \
 	opendiamond/__init__.py
 
-nobase_dist_python_DATA = \
+nobase_dist_pyexec_DATA = \
 	opendiamond/blaster/static/sockjs.js \
 	opendiamond/blaster/static/testui/jquery.js \
 	opendiamond/blaster/static/testui/spinner.gif \
@@ -90,7 +90,7 @@ nobase_dist_python_DATA = \
 	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_browse.html \
 	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_search.html
 
-dist_pkgpython_DATA = \
+dist_pkgpyexec_DATA = \
 	bundle/bundle.xsd
 
 dist_bin_SCRIPTS = \
@@ -116,10 +116,10 @@ check-local:
 
 install-exec-local:
 	@# Fabricate opendiamond/__init__.py containing the software version
-	$(MKDIR_P) $(DESTDIR)/$(pkgpythondir)
-	echo "__version__ = '$(VERSION)'" > $(DESTDIR)$(pkgpythondir)/__init__.py
+	$(MKDIR_P) $(DESTDIR)/$(pkgpyexecdir)
+	echo "__version__ = '$(VERSION)'" > $(DESTDIR)$(pkgpyexecdir)/__init__.py
 	@# Set the __init__.py utimes to those of configure.ac to prevent
 	@# file conflicts when installing both 32-bit and 64-bit RPM packages.
 	@# Using configure.ac as the source file ensures that __init__.pyc
 	@# is updated when the software version changes.
-	touch -r $(top_srcdir)/configure.ac $(DESTDIR)$(pkgpythondir)/__init__.py
+	touch -r $(top_srcdir)/configure.ac $(DESTDIR)$(pkgpyexecdir)/__init__.py

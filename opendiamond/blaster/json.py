@@ -316,7 +316,7 @@ class _SearchStartedEvent(_SingleEvent):
                 properties=dict(
                     search_id=_JSONSchema(
                         'The search ID',
-                        'number',
+                        'string',
                         required=True,
                     ),
                 ),

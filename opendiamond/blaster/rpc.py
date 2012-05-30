@@ -171,10 +171,10 @@ def _stub(cmd, request_class=None, reply_class=None):
 class ControlConnection(_RPCClientConnection):
     setup = _stub(25, protocol.XDR_setup, protocol.XDR_blob_list)
     send_blobs = _stub(26, protocol.XDR_blob_data)
-    start = _stub(27, protocol.XDR_start)
-    reexecute_filters = _stub(21, protocol.XDR_reexecute,
+    start = _stub(28, protocol.XDR_start)
+    reexecute_filters = _stub(30, protocol.XDR_reexecute,
             protocol.XDR_attribute_list)
-    request_stats = _stub(15, None, protocol.XDR_search_stats)
+    request_stats = _stub(29, None, protocol.XDR_search_stats)
     session_variables_get = _stub(18, None, protocol.XDR_session_vars)
     session_variables_set = _stub(19, None, protocol.XDR_session_vars)
 
@@ -186,7 +186,7 @@ class ControlConnection(_RPCClientConnection):
 
 
 class BlastConnection(_RPCClientConnection):
-    get_object = _stub(1, None, protocol.XDR_object)
+    get_object = _stub(2, None, protocol.XDR_object)
 
     # We intentionally make the nonce mandatory
     # pylint: disable=W0222

@@ -11,11 +11,11 @@
 #
 
 import logging
-import random
 from tornado import gen, stack_context
+import uuid
 
 from opendiamond.blaster.rpc import ControlConnection, BlastConnection
-from opendiamond.helpers import md5
+from opendiamond.helpers import sha256
 from opendiamond.protocol import (XDR_setup, XDR_filter_config,
         XDR_blob_data, XDR_start, XDR_reexecute, DiamondRPCFCacheMiss)
 from opendiamond.rpc import RPCError
@@ -29,7 +29,7 @@ class Blob(object):
     The data can be retrieved with str().'''
 
     def __init__(self):
-        self._md5 = None
+        self._sha256 = None
 
     def __str__(self):
         raise NotImplementedError()
@@ -38,10 +38,10 @@ class Blob(object):
         return '<Blob>'
 
     @property
-    def md5(self):
-        if self._md5 is None:
-            self._md5 = md5(str(self)).hexdigest()
-        return self._md5
+    def sha256(self):
+        if self._sha256 is None:
+            self._sha256 = sha256(str(self)).hexdigest()
+        return self._sha256
 
 
 class EmptyBlob(Blob):
@@ -88,15 +88,15 @@ class _DiamondConnection(object):
         if callback is not None:
             callback()
 
-    def _md5_uri(self, md5sum):
-        return 'md5:' + md5sum
+    def _blob_uri(self, blob):
+        return 'sha256:' + blob.sha256
 
     @gen.engine
     def setup(self, cookies, filters, callback=None):
         uri_data = {}
         for f in filters:
-            uri_data[self._md5_uri(f.code.md5)] = str(f.code)
-            uri_data[self._md5_uri(f.blob_argument.md5)] = str(f.blob_argument)
+            uri_data[self._blob_uri(f.code)] = str(f.code)
+            uri_data[self._blob_uri(f.blob_argument)] = str(f.blob_argument)
 
         # Send setup request
         request = XDR_setup(
@@ -107,8 +107,8 @@ class _DiamondConnection(object):
                         dependencies=f.dependencies,
                         min_score=f.min_score,
                         max_score=f.max_score,
-                        code=self._md5_uri(f.code.md5),
-                        blob=self._md5_uri(f.blob_argument.md5)
+                        code=self._blob_uri(f.code),
+                        blob=self._blob_uri(f.blob_argument)
                     ) for f in filters],
         )
         reply = yield gen.Task(self.control.setup, request)
@@ -152,8 +152,7 @@ class _DiamondConnection(object):
         yield gen.Task(self.setup, cookies, filters)
 
         # Send reexecute request
-        request = XDR_reexecute(object_id=self._md5_uri(blob.md5),
-                attrs=attrs or [])
+        request = XDR_reexecute(object_id=self._blob_uri(blob), attrs=attrs)
         try:
             reply = yield gen.Task(self.control.reexecute_filters, request)
         except DiamondRPCFCacheMiss:
@@ -250,7 +249,7 @@ class DiamondSearch(object):
 
     @gen.engine
     def start(self, callback=None):
-        search_id = int(random.getrandbits(31))
+        search_id = str(uuid.uuid4())
         # On connection error, our close callback will run and this will
         # never return
         yield [gen.Task(c.run_search, search_id, self._cookies[h],
@@ -263,7 +262,7 @@ class DiamondSearch(object):
     @gen.engine
     def evaluate(self, blob, callback=None):
         # Try to pick the same server for the same blob
-        server_index = abs(hash(blob.md5)) % len(self._connections)
+        server_index = abs(hash(blob.sha256)) % len(self._connections)
         hostname = sorted(self._connections)[server_index]
         conn = self._connections[hostname]
 
@@ -281,10 +280,10 @@ class DiamondSearch(object):
 
     @gen.engine
     def get_stats(self, callback=None):
-        def combine_into(dest, src, key_map):
-            for dk, sk in key_map.iteritems():
-                dest.setdefault(dk, 0)
-                dest[dk] += getattr(src, sk)
+        def combine_into(dest, src):
+            for stat in src:
+                dest.setdefault(stat.name, 0)
+                dest[stat.name] += stat.value
         try:
             results = yield [gen.Task(c.control.request_stats)
                     for c in self._connections.values()]
@@ -294,23 +293,10 @@ class DiamondSearch(object):
         stats = {}
         filter_stats = {}
         for result in results:
-            combine_into(stats, result, {
-                'objs_total': 'objs_total',
-                'objs_processed': 'objs_processed',
-                'objs_dropped': 'objs_dropped',
-                'objs_passed': 'objs_nproc',
-                'avg_obj_time_ns': 'avg_obj_time',
-            })
+            combine_into(stats, result.stats)
             for filter in result.filter_stats:
                 combine_into(filter_stats.setdefault(filter.name, {}),
-                        filter, {
-                    'objs_processed': 'objs_processed',
-                    'objs_dropped': 'objs_dropped',
-                    'objs_cache_dropped': 'objs_cache_dropped',
-                    'objs_cache_passed': 'objs_cache_passed',
-                    'objs_computed': 'objs_compute',
-                    'avg_exec_time_ns': 'avg_exec_time',
-                })
+                        filter.stats)
         stats['filters'] = filter_stats
         if callback is not None:
             callback(stats)

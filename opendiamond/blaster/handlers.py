@@ -356,7 +356,8 @@ class EvaluateHandler(_BlasterRequestHandler):
         yield gen.Task(blob.fetch, self.blob_cache)
 
         # Reexecute
-        _log.info('Evaluating search %s on object %s', search_key, blob.md5)
+        _log.info('Evaluating search %s on object %s', search_key,
+                blob.sha256)
         self._running = True
         search = search_spec.make_search(close_callback=self._closed)
         try:

@@ -48,7 +48,14 @@ esac
 AC_SUBST(PKGCONFIG_REQUIRES)
 
 # Python (for extension modules)
-PKG_CHECK_MODULES(PYTHON, [python >= 2.6])
+PKG_CHECK_MODULES(PYTHON, [python >= 2.6], [:], [
+	AC_PATH_PROG([PYTHON_CONFIG], [python-config])
+	if test z$PYTHON_CONFIG = z ; then
+		AC_MSG_ERROR([$PYTHON_PKG_ERRORS])
+	fi
+	PYTHON_CFLAGS=$($PYTHON_CONFIG --cflags)
+	PYTHON_LIBS=$($PYTHON_CONFIG --libs)
+])
 
 # glib
 PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.12, gthread-2.0])

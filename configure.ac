@@ -28,7 +28,7 @@ AM_PATH_PYTHON([2.6])
 AC_PATH_PROG([PYLINT], [pylint])
 AC_ARG_VAR([PYLINT], [path to pylint])
 if test z$PYLINT = z ; then
-	AC_MSG_ERROR([pylint not found])
+	PYLINT=:
 fi
 
 LT_INIT()

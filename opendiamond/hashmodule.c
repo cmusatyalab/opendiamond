@@ -237,8 +237,8 @@ static PyObject *do_murmur3_x64_128(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef HashMethods[] = {
-  {"murmur3", do_murmur3_x64_128, METH_VARARGS,
-      "murmur3(data, seed=0) -> string\n\n"
+  {"murmur3_x64_128", do_murmur3_x64_128, METH_VARARGS,
+      "murmur3_x64_128(data, seed=0) -> string\n\n"
       "Returns a 128-bit MurmurHash3-x64 non-cryptographic hash as a hex\n"
       "string."},
   {NULL, NULL, 0, NULL}

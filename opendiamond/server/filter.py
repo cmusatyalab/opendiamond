@@ -16,21 +16,28 @@ There are two caches, both accessible via key lookups in the same
 Redis database.
 
 Result cache:
-    'result:' + MD5(
+    'result:' + murmur(
         ' '.join(
-            filter signature,
-            ' '.join(filter arguments),
-            filter blob argument,
+            murmur(
+                ' '.join(
+                    SHA256(filter code),
+                    ' '.join(filter arguments),
+                    SHA256(filter blob argument),
+                ),
+            ),
             object ID
         )
     ) => JSON({
-        'input_attrs': {attribute name => MD5(attribute value)},
-        'output_attrs': {attribute name => MD5(attribute value)},
+        'input_attrs': {attribute name => murmur(attribute value)},
+        'output_attrs': {attribute name => murmur(attribute value)},
         'score': filter score
     })
 
 Attribute cache:
-    'attribute:' + MD5(attribute value) => attribute value
+    'attribute:' + murmur(attribute value) => attribute value
+
+murmur() is the output of MurmurHash3_x64_128 with a seed of 0xbb40e64d.
+murmur() and SHA256() both produce a lowercase hex string.
 
 The purpose of the result cache is to reuse drop decisions without needing
 to rerun any filters.  A result cache lookup on an object returns an array
@@ -65,7 +72,7 @@ import simplejson as json
 import subprocess
 import threading
 
-from opendiamond.helpers import md5, signalname, split_scheme
+from opendiamond.helpers import murmur, signalname, split_scheme
 from opendiamond.rpc import ConnectionFailure
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.statistics import FilterStatistics, Timer
@@ -189,8 +196,8 @@ class _FilterResult(object):
     attributes used to produce them.'''
 
     def __init__(self, input_attrs=None, output_attrs=None, score=0.0):
-        self.input_attrs = input_attrs or {}	# name -> MD5(value)
-        self.output_attrs = output_attrs or {}	# name -> MD5(value)
+        self.input_attrs = input_attrs or {}	# name -> murmur(value)
+        self.output_attrs = output_attrs or {}	# name -> murmur(value)
         self.score = score
         # Whether to cache output attributes in the attribute cache
         self.cache_output = False
@@ -227,13 +234,11 @@ class _ObjectProcessor(object):
     def get_cache_key(self, obj):
         '''Return the result cache lookup key for previous filter executions
         on this object.'''
-        digest = self._get_cache_digest()
-        digest.update(str(obj))
-        return 'result:' + digest.hexdigest()
+        return 'result:' + murmur(self._get_cache_digest() + ' ' + str(obj))
 
     def _get_cache_digest(self):
-        '''Return a digest object with object-independent information about
-        the filter (e.g. its arguments) already hashed into it.'''
+        '''Return a short string representing object-independent information
+        about the filter (e.g. its arguments).'''
         raise NotImplementedError()
 
     def cache_hit(self, result):
@@ -258,13 +263,12 @@ class _ObjectFetcher(_ObjectProcessor):
         _ObjectProcessor.__init__(self)
         self._state = state
         self._loader = ObjectLoader(state.config, state.blob_cache)
-        self._digest_prefix = md5('dataretriever ')
 
     def __str__(self):
         return 'fetcher'
 
     def _get_cache_digest(self):
-        return self._digest_prefix.copy()
+        return 'dataretriever'
 
     def evaluate(self, obj):
         try:
@@ -298,7 +302,7 @@ class _FilterRunner(_ObjectProcessor):
         return self._filter.name
 
     def _get_cache_digest(self):
-        return self._filter.get_cache_digest()
+        return self._filter.cache_digest
 
     def cache_hit(self, result):
         accept = self.threshold(result)
@@ -444,12 +448,7 @@ class Filter(object):
         self.code_path = None
         self.signature = None
         self.blob = None
-        self._digest_prefix = None
-
-    def get_cache_digest(self):
-        '''Return a digest object with information about the filter (e.g.
-        its arguments) already hashed into it.'''
-        return self._digest_prefix.copy()
+        self.cache_digest = None
 
     def resolve(self, state):
         '''Ensure filter code and blob argument are available in the blob
@@ -457,23 +456,23 @@ class Filter(object):
         if self.code_path is not None:
             return
         # Get path to filter code
-        code_path, signature = self._resolve_code(state)
+        code_path, code_signature = self._resolve_code(state)
         # Get contents of blob argument
-        blob = self._resolve_blob(state)
+        blob, blob_signature = self._resolve_blob(state)
         # Initialize digest
-        summary = [signature] + self.arguments + [blob]
-        digest_prefix = md5(' '.join(summary))
+        summary = [code_signature] + self.arguments + [blob_signature]
+        cache_digest = murmur(' '.join(summary))
         # Commit
         self.code_path = code_path
-        self.signature = signature
+        self.signature = code_signature
         self.blob = blob
-        self._digest_prefix = digest_prefix
+        self.cache_digest = cache_digest
 
     def _resolve_code(self, state):
         '''Returns (code_path, signature).'''
         scheme, path = split_scheme(self.code_source)
         if scheme == 'sha256':
-            sig = path
+            sig = path.lower()
             try:
                 return (state.blob_cache.executable_path(sig), sig)
             except KeyError:
@@ -483,11 +482,12 @@ class Filter(object):
             raise FilterUnsupportedSource()
 
     def _resolve_blob(self, state):
-        '''Returns blob data.'''
+        '''Returns (blob data, signature).'''
         scheme, path = split_scheme(self.blob_source)
         if scheme == 'sha256':
+            sig = path.lower()
             try:
-                return state.blob_cache[path]
+                return (state.blob_cache[sig], sig)
             except KeyError:
                 raise FilterDependencyError('Missing blob for filter ' +
                                         self.name)

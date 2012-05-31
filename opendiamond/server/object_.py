@@ -17,7 +17,7 @@ import pycurl as curl
 from urlparse import urljoin
 import simplejson as json
 
-from opendiamond.helpers import md5, split_scheme
+from opendiamond.helpers import murmur, split_scheme
 from opendiamond.protocol import XDR_attribute, XDR_object
 
 ATTR_HEADER_URL = 'x-attributes'
@@ -126,7 +126,7 @@ class Object(EmptyObject):
 
     def __setitem__(self, key, value):
         self._attrs[key] = value
-        self._signatures[key] = md5(value).hexdigest()
+        self._signatures[key] = murmur(value)
 
 
 class _HttpLoader(object):

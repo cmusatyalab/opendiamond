@@ -21,6 +21,8 @@ import sys
 from threading import Lock
 from urlparse import urlparse
 
+from opendiamond.hash import murmur3_x64_128
+
 _log = logging.getLogger(__name__)
 
 # We use os._exit() to avoid calling destructors after fork()
@@ -55,12 +57,18 @@ def signalname(signum):
     return 'signal %d' % signum
 
 
-# hashlib confuses pylint, pylint #51250.  Provide md5 and sha256 here to
-# centralize the workaround.
+# hashlib confuses pylint, pylint #51250.  Provide sha256 here to centralize
+# the workaround.
 # pylint: disable=C0103,E1101
-md5 = hashlib.md5
 sha256 = hashlib.sha256
 # pylint: enable=C0103,E1101
+
+
+def murmur(data):
+    '''Return a lower-case hex string representing the MurmurHash3-x64-128
+    hash of the specified data using the seed 0xbb40e64d (the first 10
+    digits of pi, in hex).'''
+    return murmur3_x64_128(data, 0xbb40e64d)
 
 
 class _TcpWrappers(object):

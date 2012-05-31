@@ -68,7 +68,8 @@ nobase_pyexec_PYTHON = \
 	opendiamond/server/statistics.py
 
 noinst_PYTHON = \
-	opendiamond/__init__.py
+	opendiamond/__init__.py \
+	opendiamond/hash.py
 
 nobase_dist_pyexec_DATA = \
 	opendiamond/blaster/static/sockjs.js \
@@ -112,8 +113,11 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 
 check-local:
 	@# Fail on serious pylint errors
-	PYTHONPATH=$(srcdir) \
-		$(PYLINT) --rcfile=$(srcdir)/pylintrc \
+	@# Ensure the cwd doesn't have an opendiamond directory for pylint
+	@# to choke on
+	cd tests && \
+		PYTHONPATH=$(abs_srcdir) \
+		$(PYLINT) --rcfile=$(abs_srcdir)/pylintrc \
 		--ignore dataretriever,scopeserver opendiamond || \
 		[ $$(($$? & 3)) -eq 0 ]
 	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \

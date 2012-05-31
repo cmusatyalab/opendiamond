@@ -134,7 +134,8 @@ install-exec-local:
 	touch -r $(top_srcdir)/configure.ac $(DESTDIR)$(pkgpyexecdir)/__init__.py
 
 install-exec-hook:
-	rm -f $(pkgpyexecdir)/hash.la $(pkgpyexecdir)/hash.a
+	rm -f $(DESTDIR)$(pkgpyexecdir)/hash.la \
+		$(DESTDIR)$(pkgpyexecdir)/hash.a
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(pkgpyexecdir)/__init__.py \

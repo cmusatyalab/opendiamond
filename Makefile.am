@@ -135,3 +135,7 @@ install-exec-local:
 
 install-exec-hook:
 	rm -f $(pkgpyexecdir)/hash.la $(pkgpyexecdir)/hash.a
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(pkgpyexecdir)/__init__.py \
+		$(DESTDIR)$(pkgpyexecdir)/hash.so

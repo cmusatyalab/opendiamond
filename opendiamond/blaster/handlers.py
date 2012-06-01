@@ -61,8 +61,8 @@ define('http_proxy', type=str, default=None,
 _log = logging.getLogger(__name__)
 
 
-_magic = magic.open(magic.NONE)
-_magic.setflags(magic.MIME_TYPE)
+_magic = magic.open(magic.MAGIC_NONE)
+_magic.setflags(getattr(magic, 'MAGIC_MIME_TYPE', 0x10))
 _magic.load()
 
 

@@ -18,9 +18,11 @@ persistent=no
 # R0913: Too many arguments
 # R0914: Too many local variables
 # R0915: Too many statements
+# R0921: Abstract class not referenced
+# R0922: Abstract class is only referenced %s times
 # W0142: Used * or ** magic
 # W0622: Redefining a built-in function
-disable=C0111,I0011,R0201,R0801,R0901,R0902,R0903,R0904,R0911,R0912,R0913,R0914,R0915,W0142,W0622
+disable=C0111,I0011,R0201,R0801,R0901,R0902,R0903,R0904,R0911,R0912,R0913,R0914,R0915,R0921,R0922,W0142,W0622
 
 [REPORTS]
 # Disable reports

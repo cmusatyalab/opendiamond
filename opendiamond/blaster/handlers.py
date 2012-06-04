@@ -500,16 +500,6 @@ class _StructuredSocketConnection(SockJSConnection):
         raise NotImplementedError()
 
 
-# Avoid pylint R0922.
-class _SecondConcreteImplementationOf(_StructuredSocketConnection):
-    def __init__(self, *args, **kwargs):
-        _StructuredSocketConnection.__init__(self, *args, **kwargs)
-        raise RuntimeError("Don't instantiate this.")
-
-    def error(self, message):
-        pass
-
-
 class SearchConnection(_StructuredSocketConnection):
     def __init__(self, *args, **kwargs):
         _StructuredSocketConnection.__init__(self, _c2s_event_schema,

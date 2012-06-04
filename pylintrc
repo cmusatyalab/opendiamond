@@ -35,3 +35,7 @@ include-ids=yes
 variable-rgx=[a-z_][a-z0-9_]*$
 # Allow module-level variables prefixed by underscore
 const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__)|(_[a-z][a-z0-9_]+))$
+
+[CLASSES]
+# initialize() method on Tornado handler classes is allowed to create attrs
+defining-attr-methods=__init__,__new__,initialize

@@ -327,7 +327,8 @@ class PostBlobHandler(_BlasterRequestHandler):
 
 
 class EvaluateHandler(_BlasterRequestHandler):
-    _running = False
+    def initialize(self):
+        self._running = False
 
     @asynchronous
     @gen.engine
@@ -403,11 +404,8 @@ class ResultHandler(_BlasterRequestHandler):
 
 
 class AttributeHandler(_BlasterRequestHandler):
-    # Handlers use initialize(), not __init__
-    # pylint: disable=W0201
     def initialize(self, transcode=False):
         self._transcode = transcode
-    # pylint: enable=W0201
 
     def get(self, search_key, object_key, attr_name):
         try:
@@ -440,11 +438,8 @@ class AttributeHandler(_BlasterRequestHandler):
 
 
 class UIHandler(_BlasterRequestHandler):
-    # Handlers use initialize(), not __init__
-    # pylint: disable=W0201
     def initialize(self, template):
         self._template = template
-    # pylint: enable=W0201
 
     @_restricted
     def get(self):

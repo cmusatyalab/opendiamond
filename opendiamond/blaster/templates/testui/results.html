@@ -142,7 +142,7 @@ $(function() {
         image_url = "{{ static_url('testui/unknown.png') }}";
       }
       var jq = $('<li><a target="_blank"><img></a></li>');
-      jq.find('a').attr('href', '{{ result_url }}#' + data._ResultURL.data);
+      jq.find('a').attr('href', '{{ reverse_url("ui-result") }}#' + data._ResultURL.data);
       jq.find('img').attr('src', image_url);
       $('#results').append(jq);
       if (is_unexposed(jq)) {

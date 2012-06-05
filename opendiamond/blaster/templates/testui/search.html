@@ -251,8 +251,8 @@ $(function() {
     // Open a window to receive the search results while we still have
     // the browser's attention
     var child_window = window.open('');
-    var results_url = '{{ results_url }}';
-    var result_url = '{{ result_url }}';
+    var results_url = '{{ reverse_url("ui-results") }}';
+    var result_url = '{{ reverse_url("ui-result") }}';
 
     // Create the search
     var search = {

@@ -444,9 +444,7 @@ class UIHandler(_BlasterRequestHandler):
     @_restricted
     def get(self):
         if options.enable_testui:
-            self.render(os.path.join('testui', self._template),
-                    results_url=self.reverse_url('ui-results'),
-                    result_url=self.reverse_url('ui-result'))
+            self.render(os.path.join('testui', self._template))
         else:
             raise HTTPError(403, 'Forbidden')
 

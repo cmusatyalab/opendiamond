@@ -26,7 +26,7 @@ from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.options import define, options
 from tornado.web import asynchronous, RequestHandler, HTTPError
-from urlparse import urlparse
+from urlparse import urljoin, urlparse
 
 import opendiamond
 from opendiamond.attributes import (StringAttributeCodec,
@@ -308,7 +308,7 @@ class SearchHandler(_BlasterRequestHandler):
         # Return result
         result = {
             'evaluate_url': self.reverse_url('evaluate', search_key),
-            'socket_url': '/search',
+            'socket_url': urljoin(options.baseurl, '/search'),
             'search_key': search_key,
         }
         _search_result_schema.validate(result)

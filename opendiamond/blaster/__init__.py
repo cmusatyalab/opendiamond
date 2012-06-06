@@ -15,6 +15,7 @@
 import logging
 import os
 from sockjs.tornado import SockJSRouter
+from urlparse import urljoin
 import threading
 import time
 import tornado.ioloop
@@ -28,6 +29,8 @@ from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler,
         EvaluateHandler, ResultHandler, AttributeHandler, UIHandler,
         SearchConnection)
 
+define('baseurl', type=str, default=None,
+        metavar='URL', help='Base URL for this JSON Blaster')
 define('blob_cache_dir',
         default=os.path.expanduser('~/.diamond/blob-cache-json'),
         metavar='DIR', help='Cache directory for binary objects')
@@ -74,6 +77,9 @@ class JSONBlaster(tornado.web.Application):
     blob_cache_days = 1
 
     def __init__(self, **kwargs):
+        if options.baseurl is None:
+            raise ValueError('Base URL must be configured')
+
         router = SockJSRouter(SearchConnection, '/search',
                 self.sockjs_settings)
         # Allow connections to find the application
@@ -95,6 +101,12 @@ class JSONBlaster(tornado.web.Application):
                 name='prune-cache')
         self._pruner.daemon = True
         self._pruner.start()
+
+    def reverse_url(self, name, *args):
+        '''Ensure all emitted URLs are absolute, since the browser's base
+        URL will point to the frontend application and not to us.'''
+        relative = tornado.web.Application.reverse_url(self, name, *args)
+        return urljoin(options.baseurl, relative)
 
     # We don't want to abort the pruning thread on an exception
     # pylint: disable=W0703

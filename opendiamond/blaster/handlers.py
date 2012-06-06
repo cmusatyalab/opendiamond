@@ -108,7 +108,8 @@ def _make_object_json(application, search_key, object_key, obj):
             except ValueError:
                 suffix = None
             try:
-                if k != '' and suffix not in ('jpeg', 'rgbimage', 'binary'):
+                if k != '' and suffix not in ('jpeg', 'png', 'rgbimage',
+                        'binary'):
                     data = StringAttributeCodec().decode(v).decode('UTF-8')
             except ValueError:
                 pass

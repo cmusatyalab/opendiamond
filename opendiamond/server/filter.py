@@ -706,9 +706,13 @@ class FilterStackRunner(threading.Thread):
                 resultmap[cache_keys[runner]] = result.encode()
                 # Attribute cache entries, if the filter was expensive enough
                 if result.cache_output:
-                    resultmap.update([(self._get_attribute_key(valsig),
-                                            obj[key]) for key, valsig in
-                                            result.output_attrs.iteritems()])
+                    for key, valsig in result.output_attrs.iteritems():
+                        # If this attribute was subsequently overwritten by a
+                        # different filter, make sure we're not caching the
+                        # newer value against this key.
+                        if valsig == obj.get_signature(key):
+                            attribute_key = self._get_attribute_key(valsig)
+                            resultmap[attribute_key] = obj[key]
             # Do it
             if self._redis is not None and resultmap:
                 try:

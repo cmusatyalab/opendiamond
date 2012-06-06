@@ -17,6 +17,7 @@ from datetime import timedelta
 import logging
 import magic
 import PIL.Image
+import PIL.ImageColor
 import os
 import simplejson as json
 from sockjs.tornado import SockJSConnection
@@ -414,17 +415,31 @@ class AttributeHandler(_BlasterRequestHandler):
         except KeyError:
             raise HTTPError(404, 'Not found')
 
+        tint = self.get_argument('tint', None)
+        if tint is not None:
+            try:
+                tint = PIL.ImageColor.getrgb('#' + tint)
+            except ValueError:
+                raise HTTPError(400, 'Invalid tint value')
+
         if attr_name.endswith('.jpeg'):
             mime = 'image/jpeg'
         else:
             mime = _magic.buffer(data)
 
-        if self._transcode and mime not in ('image/jpeg', 'image/png'):
+        if self._transcode and (tint is not None or
+                mime not in ('image/jpeg', 'image/png')):
             try:
                 if attr_name.endswith('.rgbimage'):
                     img = RGBImageAttributeCodec().decode(data)
                 else:
                     img = PIL.Image.open(StringIO(data))
+                if tint is not None:
+                    if img.mode != 'L':
+                        img = img.convert('L')
+                    transparent = PIL.Image.new('RGBA', img.size, (0,) * 4)
+                    filled = PIL.Image.new('RGB', img.size, tint)
+                    img = PIL.Image.composite(filled, transparent, img)
                 buf = StringIO()
                 img.save(buf, 'PNG')
                 data = buf.getvalue()

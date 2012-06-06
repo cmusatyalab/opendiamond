@@ -2,6 +2,8 @@
 <title>Search Results</title>
 <script type="text/javascript" src="{{ static_url('testui/jquery.js') }}"></script>
 <script type="text/javascript" src="{{ static_url('sockjs.js') }}"></script>
+<script type="text/javascript" src="{{ static_url('json-blaster.js') }}"></script>
+<script type="text/javascript" src="{{ static_url('json-blaster-autopause.js') }}"></script>
 
 <style type="text/css">
 #infobar {
@@ -54,31 +56,6 @@ $(function() {
   var status = window.location.hash[1];
   var data = window.location.hash.slice(2);
 
-  function make_sock(url) {
-    var sock = new SockJS(url);
-    var handlers = {};
-
-    sock.onmessage = function(ev) {
-      var msg = JSON.parse(ev.data);
-      if (typeof(handlers[msg.event]) === 'function') {
-        handlers[msg.event](msg.data);
-      }
-    };
-
-    sock.on = function(event, func) {
-      handlers[event] = func;
-    };
-
-    sock.emit = function(event, data)  {
-      sock.send(JSON.stringify({
-        'event': event,
-        'data': data
-      }));
-    };
-
-    return sock;
-  }
-
   function error(text) {
     $('#error:hidden').text(text).show();
   }
@@ -89,51 +66,14 @@ $(function() {
     error(unescape(data));
   } else {
     // Success
-    var sock = make_sock('/search');
-    var search_key = data;
-    var paused = false;
-    var MAX_UNEXPOSED = 50;
+    var blaster = new JSONBlasterSocket('/search', data);
+    var autopause = new AutoPause(blaster);
 
-    function pause() {
-      if (!paused) {
-        paused = true;
-        sock.emit('pause');
-      }
-    }
-
-    function resume() {
-      if (paused) {
-        paused = false;
-        sock.emit('resume');
-      }
-    }
-
-    function is_unexposed(jq) {
-      return jq.offset().top > $(document).scrollTop() + $(window).height();
-    }
-
-    function update_exposed() {
-      $('.unexposed').each(function(i, el) {
-        if (!is_unexposed($(el))) {
-          $(el).removeClass('unexposed');
-        }
-      });
-      if (paused && $('.unexposed').length < MAX_UNEXPOSED) {
-        resume();
-      }
-    }
-
-    sock.onopen = function() {
-      sock.emit('start', {
-        'search_key': search_key
-      });
-    };
-
-    sock.onclose = function() {
+    blaster.onclose(function() {
       error('Connection closed');
-    };
+    });
 
-    sock.on('result', function(data) {
+    blaster.on('result', function(data) {
       var thumbnail = data['thumbnail.jpeg'];
       var image_url;
       if (thumbnail) {
@@ -145,29 +85,17 @@ $(function() {
       jq.find('a').attr('href', '{{ reverse_url("ui-result") }}#' + data._ResultURL.data);
       jq.find('img').attr('src', image_url);
       $('#results').append(jq);
-      if (is_unexposed(jq)) {
-        jq.addClass('unexposed');
-      }
-      if (!paused && $('.unexposed').length >= MAX_UNEXPOSED) {
-        pause();
-      }
+      autopause.element_added(jq);
     });
 
-    sock.on('statistics', function(data) {
+    blaster.on('statistics', function(data) {
       $('#statistics').text(data.objs_processed + '/' + data.objs_total +
           ' objects processed');
     });
 
-    sock.on('error', function(data) {
+    blaster.on('error', function(data) {
       error(data.message);
     });
-
-    sock.on('ping', function(data) {
-      sock.emit('pong');
-    });
-
-    $(window).resize(update_exposed);
-    $(window).scroll(update_exposed);
   }
 });
 </script>

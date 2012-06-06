@@ -72,6 +72,8 @@ noinst_PYTHON = \
 	opendiamond/hash.py
 
 nobase_dist_pyexec_DATA = \
+	opendiamond/blaster/static/json-blaster.js \
+	opendiamond/blaster/static/json-blaster-autopause.js \
 	opendiamond/blaster/static/sockjs.js \
 	opendiamond/blaster/static/testui/jquery.js \
 	opendiamond/blaster/static/testui/spinner.gif \

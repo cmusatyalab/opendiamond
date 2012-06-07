@@ -34,7 +34,7 @@
             <organization>
             </organization>
             <address>
-                <email>jaharkes@andrew.cmu.edu</email>
+                <email>jaharkes AT andrew DOT cmu DOT edu</email>
             </address>
         </author>
         <author fullname="Mahadev Satyanarayanan" initials="M."
@@ -226,18 +226,26 @@
                     to minimize the effect of round-trip latency.
                 </t>
                 <t>
-                    The search ends when the server indicates that the search has
-                    completed by returning an object containing not attributes.
-                    Alternatively, the client MAY end the search prematurely by
-                    stop calling the get_object RPC, and closing control and blast
+                    When the search has completed the server returns an object
+                    containing no attributes. The client MAY terminate the
+                    search at any time by closing the control and blast
                     connections.
                 </t>
+                <t>
+                    Below is a typical protocol interaction in a regex-like
+                    notation:
+                </t>
+                <figure>
+                    <artwork>
+    setup send_blobs? (reexecute+ |
+        (start (statistics | (get_session_variables set_session_variables))*))</artwork>
+                </figure>
             </section>
             <section anchor="requesting_and_retrieving_attributes"
                     title="Requesting and Retrieving Attributes">
                 <t>
                     A client may specify a list of attributes when starting a
-                    search or reexecution. This list is called push attribute
+                    search or reexecution. This list is called the push attribute
                     list and it serves to restrict the set of attribute values
                     that will be returned: the server returns the keys of all
                     object attributes, but only returns values for those
@@ -255,78 +263,78 @@
                     MUST verify that this signature is from a trusted public key
                     before executing a search. Scope cookies also contain the
                     URLs of scope lists, which enumerate the objects to be
-                    searched. Additionally, a scope cookie contains the
-                    following:
+                    searched.
+                </t>
+                <t>
+                    Scope cookies are Base64-encoded, and the beginning and the
+                    end of a scope cookie are delimited by the strings:
+                </t>
+                <figure>
+                    <artwork>
+    -----BEGIN OPENDIAMOND SCOPECOOKIE-----
+
+    -----END OPENDIAMOND SCOPECOOKIE-----</artwork>
+                </figure>
+                <t>
+                    The Base64-decoded contents of a scope cookie can be represented as
+                    follows:
+                </t>
+                <figure>
+                    <artwork>
+    scope-cookie = signature LF data
+
+    signature = 1*(DIGIT / "a" / "b" / "c" / "d" / "e" / "f")
+
+    data = header LF body
+
+    headers = *(header LF)
+
+    (* Each header must appear once only *)
+    header = "Version:" version |
+             "Serial:" random-uuid |
+             "Expires:" expiration-time |
+             "Servers:" servers-list |
+             "Blaster:" URL |
+             "Description:" UTF-8-text
+
+    servers-list = server-address *((";" | ",") server-address)
+
+    body = scopelist-url *(LF scopelist-url) [LF]</artwork>
+                </figure>
+                <t>
+                    Scope cookie headers are defined as follows:
                 </t>
                 <t>
                     <list style="hanging">
-                        <t hangText="Version :">
-                            Cookie format version. The current version is 1.0.
+                        <t hangText="Version (mandatory) :">
+                            Cookie format version. The current version is 1.
                         </t>
-                        <t hangText="Serial :">
+                        <t hangText="Serial (mandatory) :">
                             Random UUID that uniquely identifies the scope
                             cookie.
                         </t>
-                        <t hangText="Expires :">
-                            The expiration time of the scope cookie in the
-                            ISO8601 format. The server MUST not accept an
+                        <t hangText="Expires (mandatory) :">
+                            The expiration time of the scope cookie in
+                            ISO8601 format. The server MUST NOT accept an
                             expired cookie.
                         </t>
-                        <t hangText="Servers :">
-                            The list of Diamond server hostnames or IP
-                            addresses, separated by commas or semicolons. The
-                            server MUST verify that its name appears in this
-                            list.
+                        <t hangText="Servers (mandatory) :">
+                            A list of hostnames or IP addresses for Diamond
+                            servers to be contacted for this search, separated
+                            by commas or semicolons. The server MUST verify that
+                            its name appears in this list.
                         </t>
-                        <t hangText="Blaster (optional):">
+                        <t hangText="Blaster (optional) :">
                             The URL for the JSON Blaster that can communicate
                             with the Diamond servers specified by the Servers
                             header.
                         </t>
-                        <t hangText="Description (optional):">
+                        <t hangText="Description (optional) :">
                             A short human-readable description of the data
                             referenced by the scope cookie.
                         </t>
                     </list>
                 </t>
-                <t>
-                    Scope cookies are Base64-encoded, and the beginning and the
-                    end of a scope cookies are delimited by the strings:
-                </t>
-                <t>
-                    <list style="empty">
-                        <t>
-                            -----BEGIN OPENDIAMOND SCOPECOOKIE-----
-                        </t>
-                        <t>
-                            -----END OPENDIAMOND SCOPECOOKIE-----
-                        </t>
-                    </list>
-                </t>
-                <t>
-                    The contents of a scope cookie can be represented as
-                    follows:
-                </t>
-                <figure>
-                    <artwork>
-    scope-cookie =  signature LF
-                    data
-
-    data =      headers LF
-                LF
-                body
-
-    (* Each head must appear once only *)
-    headers =   "Version:" version LF |
-                "Serial:" random-uuid LF |
-                "Expires:" expiration-time LF |
-                "Servers:" servers-list LF |        (* each server delimited by ";" or "," *)
-                "Blaster:" URL LF |
-                "Description:" UTF-8-text LF
-
-    body =      dataretriever-urls                  (* delimited by "\n" *)
-                    </artwork>
-                </figure>
             </section>
         </section>
         <section anchor="nonce_exchange" title="Nonce Exchange">
@@ -334,7 +342,7 @@
                 A control connection and a blast connection are paired with a
                 handshake using an exchange of random nonces. As soon as the
                 socket connection is established for the control connection, the
-                client MUST send a sequence of 16 null characters as a nonce.
+                client MUST send a sequence of 16 null bytes as a nonce.
                 The server MUST respond with a random nonce of 16 characters.
                 The client uses this random nonce to establish the blast
                 connection. As soon as the socket connection is established for
@@ -349,8 +357,7 @@
                 </t>
                 <figure>
                     <artwork>
-    typedef opaque nonce[16];
-                    </artwork>
+    typedef opaque nonce[16];</artwork>
                 </figure>
             </section>
         </section>
@@ -373,8 +380,7 @@
         int status;             /* See Section 3.3 for status code definitions */
         int command;            /* See Section 3.4 for command code definitions */
         opaque message_body&lt;&gt;;
-    };
-                    </artwork>
+    };</artwork>
                 </figure>
                 <section anchor="request_message" title="Request Message">
                     <t>
@@ -420,8 +426,7 @@
         DIAMOND_FCACHEMISS              = 501, /* requested object is not cached */
         DIAMOND_COOKIE_EXPIRED          = 504, /* scope cookies have expired */
         DIAMOND_SCHEME_NOT_SUPPORTED    = 505  /* server does not support blob uri scheme */
-    };
-                    </artwork>
+    };</artwork>
                 </figure>
             </section>
             <section anchor="command" title="Command">
@@ -445,9 +450,7 @@
     enum blast_command_code
     {
         get_object              = 2 /* used to request objects (Section 4.2.1) */
-    };
-
-                    </artwork>
+    };</artwork>
                 </figure>
             </section>
         </section>
@@ -536,8 +539,7 @@
     {
         cookie cookies&lt;&gt;;
         filter_config filters&lt;&gt;;
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                     <section anchor="setup_response_body_encoding"
@@ -552,8 +554,7 @@
     struct setup_response_body
     {
         uri uris&lt;&gt;;
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                 </section>
@@ -585,8 +586,7 @@
     struct send_blobs_request_body
     {
         blob blobs&lt;&gt;;
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                     <section anchor="send_blobs_response_body_encoding"
@@ -641,8 +641,7 @@
     {
         opaque search_id[36];
         attribute_name *attribute_list;
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                     <section anchor="start_response_body_encoding"
@@ -702,8 +701,7 @@
     {
         string object_id&lt;&gt;;
         attribute_name *attributes_list; /* see Section 4.1.3.1 for attribute_name */
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                     <section anchor="reexecute_response_body_encoding"
@@ -723,8 +721,7 @@
     struct reexecute_response_body
     {
         attribute attributes&lt;&gt;;
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                 </section>
@@ -763,8 +760,7 @@
     {
         stat stats&lt;&gt;;  /* list of statistics associated with search */
         filter_stat filter_stats&lt;&gt;;   /* filter-specific statistics */
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                 </section>
@@ -808,8 +804,7 @@
     struct get_session_variables_response_body
     {
         session_variable session_variables&lt;&gt;;
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
 
                     </section>
@@ -843,8 +838,7 @@
     {
         /* See Section 4.1.6.1 for session_variable definition */
         session_variable session_variables&lt;&gt;;
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                     <section anchor="set_session_variables_response_body"
@@ -903,8 +897,7 @@
     struct object
     {
         attribute attributes&lt;&gt;; /* See Section 3.1.4.2 for attribute definition */
-    };
-                            </artwork>
+    };</artwork>
                         </figure>
                     </section>
                 </section>
@@ -1074,13 +1067,10 @@
                         <t hangText=".patches :">
                             Regions of interest in an image. The value is
                             encoded as a C structure with little-endian members
-                            (go to the end of this appendix section for the
-                            structure). The distance value signifies how
+                            (see below). The distance value signifies how
                             dissimilar the regions of interest are from the
-                            example patches provided by a client. for example,
+                            example patches provided by a client. For example,
                             if there is a 90% resemblance, the distance is 0.1.
-                        </t>
-                        <t>
                             The minimum and maximum x/y values specify the
                             upper-left and lower-right pixel coordinates of a
                             region within the image.
@@ -1106,8 +1096,7 @@
         int32_t min_y;
         int32_t max_x;
         int32_t max_y;
-    };
-                        </artwork>
+    };</artwork>
                     </figure>
                 </t>
             </section>
@@ -1129,7 +1118,7 @@
                         <t hangText="objs_passed :">
                             Total number of objects passed after being processed.
                         </t>
-                        <t hangText="objs_unloadablie :">
+                        <t hangText="objs_unloadable :">
                             Total number of objects that could not be fetched.
                         </t>
                         <t hangText="avg_obj_time_us :">
@@ -1158,7 +1147,7 @@
                         Number of objects examined by the filter.
                     </t>
                     <t hangText="objs_terminate :">
-                        Number of objects causing filter to crash.
+                        Number of objects causing the filter to crash.
                     </t>
                     <t hangText="avg_exec_time_us :">
                         Average filter execution time per object.

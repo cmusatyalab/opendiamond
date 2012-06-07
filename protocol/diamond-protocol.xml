@@ -6,9 +6,9 @@
 <?rfc rfcedstyle="yes"?>
 <?rfc toc="yes"?>
 <?rfc iprnotified="no"?>
-<rfc category="std" docName="rfc.xml">
+<rfc category="std">
     <front>
-        <title>OpenDiamond Protocol</title>
+        <title>Diamond Protocol</title>
         <author fullname="HongJai Cho" initials="HJ." surname="Cho">
             <organization>
             </organization>
@@ -155,6 +155,7 @@
                     describes the OpenDiamond wire protocol.
                     <xref target="requesting_and_retrieving_attributes"/>
                     describes the basics of requesting object attributes.
+                    <xref target="scope_cookies"/> describes scope cookies.
                     <xref target="nonce_exchange"/> describes the nonce exchange
                     process that is required to begin a search.
                     <xref target="protocol_message"/> describes the structure of
@@ -170,7 +171,7 @@
                 </t>
             </section>
             <section anchor="opendiamond_protocol_overview"
-                    title="OpenDiamond Protocol Overview">
+                    title="Diamond Protocol Overview">
                 <t>
                     OpenDiamond uses a custom XDR-based Remote Procedure Call
                     (RPC) protocol in a client-server model. Similar to a
@@ -237,7 +238,7 @@
                 </t>
                 <figure>
                     <artwork>
-    setup send_blobs? (reexecute+ |
+    setup send_blobs? ((reexecute (send_blobs reexecute)?)+ |
         (start (statistics | (get_session_variables set_session_variables))*))</artwork>
                 </figure>
             </section>

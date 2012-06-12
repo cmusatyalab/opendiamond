@@ -108,17 +108,17 @@ opendiamond_hash_la_SOURCES = opendiamond/hashmodule.c
 opendiamond_hash_la_CFLAGS = $(PYTHON_CFLAGS)
 opendiamond_hash_la_LDFLAGS = -avoid-version -module
 
-dist_doc_DATA = protocol/diamond-protocol.html
-MAINTAINERCLEANFILES = protocol/diamond-protocol.html
+dist_doc_DATA = doc/diamond-protocol.html
+MAINTAINERCLEANFILES = doc/diamond-protocol.html
 
 EXTRA_DIST = CREDITS LICENSE INSTALL \
 	pylintrc \
 	bundle/bundle.xslt \
-	protocol/diamond-protocol.xml \
+	doc/diamond-protocol.xml \
 	tools/volcano
 
-protocol/diamond-protocol.html: protocol/diamond-protocol.xml
-	$(MKDIR_P) protocol
+doc/diamond-protocol.html: doc/diamond-protocol.xml
+	$(MKDIR_P) doc
 	$(XML2RFC) --html -f $@ $^
 
 check-local:

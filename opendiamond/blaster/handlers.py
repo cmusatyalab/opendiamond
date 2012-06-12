@@ -402,6 +402,8 @@ class ResultHandler(_BlasterRequestHandler):
         result = _make_object_json(self.application, search_key, object_key,
                 obj)
         self.set_header('Content-Type', 'application/json')
+        # Allow caching for one week
+        self.set_header('Cache-Control', 'max-age=604800')
         self.write(json.dumps(result))
 
 
@@ -450,6 +452,8 @@ class AttributeHandler(_BlasterRequestHandler):
                 pass
 
         self.set_header('Content-Type', mime)
+        # Allow caching for one week
+        self.set_header('Cache-Control', 'max-age=604800')
         self.write(data)
 
 

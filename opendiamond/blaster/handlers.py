@@ -401,12 +401,18 @@ class ResultHandler(_BlasterRequestHandler):
             raise HTTPError(404, 'Not found')
         result = _make_object_json(self.application, search_key, object_key,
                 obj)
-        self.set_header('Content-Type', 'application/json')
+        objdata = json.dumps(result)
+        jsonp = self.get_argument('jsonp', None)
         # Allow cross-domain access to result data
         self.set_header('Access-Control-Allow-Origin', '*')
         # Allow caching for one week
         self.set_header('Cache-Control', 'max-age=604800')
-        self.write(json.dumps(result))
+        if jsonp is not None:
+            self.set_header('Content-Type', 'application/javascript')
+            objdata = '%s(%s);' % (jsonp, objdata)
+        else:
+            self.set_header('Content-Type', 'application/json')
+        self.write(objdata)
 
 
 class AttributeHandler(_BlasterRequestHandler):

@@ -1032,9 +1032,15 @@
                         <t hangText="_cols.int :">
                             width of an object in pixels
                         </t>
-                        <t hangText="_filter.%s.patches (%s is the name of the
-                                filter) :">
-                            regions of interest located by the named filter
+                        <t hangText="_filter.%s.patches :">
+                            regions of interest located by the named filter.
+                            %s is the name of the filter.
+                        </t>
+                        <t hangText="_filter.%s.heatmap.png :">
+                            a grayscale heat map of regions deemed
+                            interesting by the filter; brighter pixels
+                            are more interesting.  %s is the name of the
+                            filter.
                         </t>
                     </list>
                 </t>
@@ -1062,6 +1068,9 @@
                         </t>
                         <t hangText=".jpeg :">
                             JPEG image data
+                        </t>
+                        <t hangText=".png :">
+                            PNG image data
                         </t>
                         <t hangText=".patches :">
                             Regions of interest in an image. The value is

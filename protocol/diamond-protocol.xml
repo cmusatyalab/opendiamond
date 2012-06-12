@@ -908,11 +908,10 @@
                 The OpenDiamond system allows users to run arbitrary x86
                 executable filter code on the servers. Although this feature
                 makes the OpenDiamond platform a versatile search system, it
-                also imposes a great threat to system integrity. The
-                OpenDiamond system does not impose rules on what filter code
-                can be executed on the server, nor does it inspect the
-                filter code. Thus, the OpenDiamond system is vunerable to
-                various types of code injection attacks.
+                also poses a major threat to server integrity. Server
+                implementations must take care to execute filter code in a
+                restricted sandbox to minimize the damage that can be caused
+                by rogue filters.
             </t>
         </section>
     </middle>

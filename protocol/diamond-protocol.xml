@@ -9,13 +9,6 @@
 <rfc category="std">
     <front>
         <title>Diamond Protocol</title>
-        <author fullname="HongJai Cho" initials="HJ." surname="Cho">
-            <organization>
-            </organization>
-            <address>
-                <email>ahjcho.tb AT gmail DOT com</email>
-            </address>
-        </author>
         <author fullname="Benjamin Gilbert" initials="B." surname="Gilbert">
             <organization>
             </organization>
@@ -23,11 +16,18 @@
                 <email>bgilbert AT cs DOT cmu DOT edu</email>
             </address>
         </author>
-        <author fullname="Wolfgang Richter" initials="W." surname="Richter">
+        <author fullname="HongJai Cho" initials="HJ." surname="Cho">
             <organization>
             </organization>
             <address>
-                <email>wolf AT cs DOT cmu DOT edu</email>
+                <email>ahjcho.tb AT gmail DOT com</email>
+            </address>
+        </author>
+        <author fullname="Adam Goode" initials="A." surname="Goode">
+            <organization>
+            </organization>
+            <address>
+                <email></email>
             </address>
         </author>
         <author fullname="Jan Harkes" initials="J." surname="Harkes">
@@ -37,12 +37,33 @@
                 <email>jaharkes AT andrew DOT cmu DOT edu</email>
             </address>
         </author>
+        <author fullname="Larry Huston" initials="L." surname="Huston">
+            <orginization>
+            </orginization>
+            <address>
+                <email></email>
+            </address>
+        </author>
+        <author fullname="Wolfgang Richter" initials="W." surname="Richter">
+            <organization>
+            </organization>
+            <address>
+                <email>wolf AT cs DOT cmu DOT edu</email>
+            </address>
+        </author>
         <author fullname="Mahadev Satyanarayanan" initials="M."
-            surname="Satyanarayanan">
+                surname="Satyanarayanan">
             <organization>
             </organization>
             <address>
                 <email>satya AT cs DOT cmu DOT edu</email>
+            </address>
+        </author>
+        <author fullname="Rahul Sukthankar" initials="R." surname="Sukthankar">
+            <orginization>
+            </orginization>
+            <address>
+                <email>rahul AT cs DOT cmu DOT edu</email>
             </address>
         </author>
         <date year="2012" />

@@ -402,6 +402,8 @@ class ResultHandler(_BlasterRequestHandler):
         result = _make_object_json(self.application, search_key, object_key,
                 obj)
         self.set_header('Content-Type', 'application/json')
+        # Allow cross-domain access to result data
+        self.set_header('Access-Control-Allow-Origin', '*')
         # Allow caching for one week
         self.set_header('Cache-Control', 'max-age=604800')
         self.write(json.dumps(result))
@@ -452,6 +454,8 @@ class AttributeHandler(_BlasterRequestHandler):
                 pass
 
         self.set_header('Content-Type', mime)
+        # Allow cross-domain access to image data via canvas
+        self.set_header('Access-Control-Allow-Origin', '*')
         # Allow caching for one week
         self.set_header('Cache-Control', 'max-age=604800')
         self.write(data)

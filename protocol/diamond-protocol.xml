@@ -1,0 +1,1182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?>
+<?rfc compact="yes"?>
+<?rfc symrefs="yes"?>
+<?rfc rfcedstyle="yes"?>
+<?rfc toc="yes"?>
+<?rfc iprnotified="no"?>
+<rfc category="std">
+    <front>
+        <title>Diamond Protocol</title>
+        <author fullname="Benjamin Gilbert" initials="B." surname="Gilbert">
+            <organization>
+            </organization>
+            <address>
+                <email>bgilbert AT cs DOT cmu DOT edu</email>
+            </address>
+        </author>
+        <author fullname="HongJai Cho" initials="HJ." surname="Cho">
+            <organization>
+            </organization>
+            <address>
+                <email>ahjcho.tb AT gmail DOT com</email>
+            </address>
+        </author>
+        <author fullname="Adam Goode" initials="A." surname="Goode">
+            <organization>
+            </organization>
+            <address>
+                <email></email>
+            </address>
+        </author>
+        <author fullname="Jan Harkes" initials="J." surname="Harkes">
+            <organization>
+            </organization>
+            <address>
+                <email>jaharkes AT andrew DOT cmu DOT edu</email>
+            </address>
+        </author>
+        <author fullname="Larry Huston" initials="L." surname="Huston">
+            <orginization>
+            </orginization>
+            <address>
+                <email></email>
+            </address>
+        </author>
+        <author fullname="Wolfgang Richter" initials="W." surname="Richter">
+            <organization>
+            </organization>
+            <address>
+                <email>wolf AT cs DOT cmu DOT edu</email>
+            </address>
+        </author>
+        <author fullname="Mahadev Satyanarayanan" initials="M."
+                surname="Satyanarayanan">
+            <organization>
+            </organization>
+            <address>
+                <email>satya AT cs DOT cmu DOT edu</email>
+            </address>
+        </author>
+        <author fullname="Rahul Sukthankar" initials="R." surname="Sukthankar">
+            <orginization>
+            </orginization>
+            <address>
+                <email>rahul AT cs DOT cmu DOT edu</email>
+            </address>
+        </author>
+        <date year="2012" />
+        <keyword>diamond</keyword>
+        <keyword>Diamond</keyword>
+        <keyword>Carnegie Mellon</keyword>
+        <keyword>image</keyword>
+        <keyword>search</keyword>
+        <keyword>non-indexed</keyword>
+        <abstract>
+            <t>
+                The Diamond system is a framework for interactive search of
+                non-indexed content such as medical images. The Diamond system
+                is centered around an open source implementation named
+                OpenDiamond. The Diamond protocol defines the communication
+                mechanisms between the Diamond server and the client. The
+                Diamond protocol carries data serialized according to the RFC
+                4506 format, and uses a custom Remote Procedure Call (RPC)
+                protocol.
+            </t>
+        </abstract>
+    </front>
+    <middle>
+        <section anchor="introduction" title="Introduction">
+            <section anchor="overview" title="Overview">
+                <t>
+                    The OpenDiamond system is a client-server search system that
+                    enables interactive search of Internet repositories that
+                    store vast amounts of complex and non-indexed data, such as
+                    webcam photographs and medical images. These data are
+                    referred to as objects, and a user can configure a search to
+                    return only the objects that meet some user-specified
+                    requirements. The user does this by requesting the
+                    OpenDiamond servers to run user-provided executables against
+                    the objects. For each executable the user also provides
+                    string parameters, a binary argument and various other
+                    configuration parameters (see <xref target="setup"/> for a
+                    detailed list). The executable is called a filter, and the
+                    binary argument is called a blob argument; together, these
+                    are called blobs.  At runtime, each filter produces a
+                    floating-point value called a score; for an object to pass
+                    the filter, its score must be within the range specified by
+                    the minimum and maximum threshold values in the
+                    configuration parameters.
+                </t>
+                <t>
+                    Before initiating a search, a user must first define the
+                    scope: the set of objects that she desires to execute the
+                    search on. The user does this through the scopeserver, one
+                    of the main components of the OpenDiamond system. Using a
+                    web browser, the user connects to the scopeserver,
+                    authenticates, and selects a set of objects.  Optionally,
+                    she can instruct the scopeserver to further restrict the set
+                    based on arbitrary object metadata.  Once a scope has been
+                    selected, the user downloads a set of scope cookies, which
+                    are the entities that define the scope of objects to be
+                    searched.
+                </t>
+                <t>
+                    Once the user obtains the scope cookies, she can invoke a
+                    client application to send the scope cookies to the servers,
+                    and the servers use the cookies to define the search scope.
+                    The client application also sends the filter configurations,
+                    which include a list of blob signatures that the servers use
+                    to determine whether they have all the blobs that are
+                    necessary to execute the search. After the client
+                    application has sent the blobs that are missing, the servers
+                    are ready for the search.
+                </t>
+                <t>
+                    To initiate the search, the client application specifies the
+                    properties of objects that a user desires by sending the
+                    servers the names of a set of desired attributes. Attributes
+                    are named binary property values associated with an object,
+                    and the servers can use them to return properties of objects,
+                    such as thumbnail images, to the user. Attributes are
+                    typically generated by the filters while an object is being
+                    examined.
+                </t>
+                <t>
+                    Upon the search request, the servers query the dataretrievers,
+                    which are essentially proxy servers that retrieve data from
+                    Internet repositories, to return the objects specified by
+                    the scope cookies. Once the servers obtain the objects, they
+                    carry out the selection process using the filters, and they
+                    return to the user the requested attributes for the objects
+                    that pass the filters. Typically in a search, a user will
+                    only request a subset of all the attributes, such as a small
+                    thumbnail image and the object name. Users can then request
+                    a more detailed set of information including more
+                    attributes. This process is referred to as reexecution.
+                </t>
+                <t>
+                    The servers maintain double-precision floating-point values
+                    called session variables that are specific to a particular
+                    search. A filter can use these variables to keep track of
+                    typical parameter values for objects encountered during the
+                    search.  This allows the filter to detect significant
+                    differences between the object it is currently examining and
+                    the objects that have already been examined. The OpenDiamond
+                    system is a distributed system, and by nature, the states
+                    across all servers can differ. To prevent the servers from
+                    becoming too far out of sync, the client can periodically
+                    retrieve the session variables, merge their values together,
+                    and send the combined values to all of the servers.
+                </t>
+                <t>
+                    The remainder of this RFC is organized as follows.
+                    <xref target="opendiamond_protocol_overview"/> briefly
+                    describes the OpenDiamond wire protocol.
+                    <xref target="requesting_and_retrieving_attributes"/>
+                    describes the basics of requesting object attributes.
+                    <xref target="scope_cookies"/> describes scope cookies.
+                    <xref target="nonce_exchange"/> describes the nonce exchange
+                    process that is required to begin a search.
+                    <xref target="protocol_message"/> describes the structure of
+                    an OpenDiamond RPC. <xref target="rpc_definitions"/>
+                    describes the protocol RPCs.
+                    <xref target="security_considerations"/> discusses system
+                    integrity and issues associated with security.
+                    <xref target="terminology"/> provides a reference guide of
+                    common Diamond terminology. <xref target="attributes"/>
+                    lists commonly-used Diamond attributes and attribute types.
+                    <xref target="list_of_statistics"/>  lists server and
+                    filter-specific statistics values.
+                </t>
+            </section>
+            <section anchor="opendiamond_protocol_overview"
+                    title="Diamond Protocol Overview">
+                <t>
+                    OpenDiamond uses a custom XDR-based Remote Procedure Call
+                    (RPC) protocol in a client-server model. Similar to a
+                    regular function or a procedure call, all operations are
+                    synchronous; when a client makes a request, it waits until
+                    the results of the remote procedure it requests are
+                    returned.
+                </t>
+                <t>
+                    To perform a search, a client establishes two TCP
+                    connections with the server: the control connection and the
+                    blast connection. As the server can perform multiple
+                    simultaneous searches for multiple users, there must be a
+                    way to associate the control and blast connections of the
+                    same search. The two connections are therefore paired using
+                    an exchange of random nonces.  The blast channel is used for
+                    transferring objects found during a search, and the control
+                    channel is used for all other client-server interactions.
+                </t>
+                <t>
+                    Through the control channel, a client can use a set of RPCs
+                    to request searches, manipulate session variables or
+                    retrieve server statistics. The client typically begins a
+                    search by using the setup RPC (<xref target="setup"/>) to
+                    send the scope cookies and filter configurations to the
+                    server. The filter configuration does not include a copy of
+                    the filter code or blob arguments, as these are typically
+                    quite large; instead, a SHA-256 signature of this data is
+                    sent. The server replies with a list of filters and blob
+                    arguments it does not have. The client then uses the
+                    send_blobs RPC (<xref target="send_blobs"/>) to send the
+                    missing filters and blob arguments. After these initial
+                    steps, the server is ready to perform a search. The client
+                    can then call the start RPC (<xref target="start"/>) to
+                    initiate the search, and/or the reexecute RPC
+                    (<xref target="reexecute"/>) to obtain more information on a
+                    particular object. The client can also use the statistics
+                    RPC (<xref target="statistics"/>) to obtain statistical
+                    information regarding the server, such as the average
+                    processing time of objects. If session variables are
+                    supported by the filters being used, the client can retrieve
+                    and update session variables with the get_session_variables
+                    (<xref target="get_session_variables"/>) and
+                    set_session_variables
+                    (<xref target="set_session_variables"/>) RPCs.
+                </t>
+                <t>
+                    The blast channel is used for transferring search result
+                    objects. A client can call the get_object RPC
+                    (<xref target="get_object"/>) to request an object. The
+                    get_object RPC does not have to be used synchronously, and
+                    the client will typically pipeline multiple get_object RPCs
+                    to minimize the effect of round-trip latency.
+                </t>
+                <t>
+                    When the search has completed the server returns an object
+                    containing no attributes. The client MAY terminate the
+                    search at any time by closing the control and blast
+                    connections.
+                </t>
+                <t>
+                    Below is a typical protocol interaction in a regex-like
+                    notation:
+                </t>
+                <figure>
+                    <artwork>
+    setup send_blobs? ((reexecute (send_blobs reexecute)?)+ |
+        (start (statistics | (get_session_variables set_session_variables))*))</artwork>
+                </figure>
+            </section>
+            <section anchor="requesting_and_retrieving_attributes"
+                    title="Requesting and Retrieving Attributes">
+                <t>
+                    A client may specify a list of attributes when starting a
+                    search or reexecution. This list is called the push attribute
+                    list and it serves to restrict the set of attribute values
+                    that will be returned: the server returns the keys of all
+                    object attributes, but only returns values for those
+                    attributes included in the push attributes list. If no push
+                    attribute list is specified, the server returns values for
+                    all attributes. As a special case, the server MUST always
+                    return a value for the _ObjectID attribute.
+                </t>
+            </section>
+            <section anchor="scope_cookies" title="Scope Cookies">
+                <t>
+                    OpenDiamond servers use cookies for two purposes: for
+                    authorization and to specify the objects to search. A scope
+                    cookie includes a cryptographic signature, and the servers
+                    MUST verify that this signature is from a trusted public key
+                    before executing a search. Scope cookies also contain the
+                    URLs of scope lists, which enumerate the objects to be
+                    searched.
+                </t>
+                <t>
+                    Scope cookies are Base64-encoded, and the beginning and the
+                    end of a scope cookie are delimited by the strings:
+                </t>
+                <figure>
+                    <artwork>
+    -----BEGIN OPENDIAMOND SCOPECOOKIE-----
+
+    -----END OPENDIAMOND SCOPECOOKIE-----</artwork>
+                </figure>
+                <t>
+                    The Base64-decoded contents of a scope cookie can be represented as
+                    follows:
+                </t>
+                <figure>
+                    <artwork>
+    scope-cookie = signature LF data
+
+    signature = 1*(DIGIT / "a" / "b" / "c" / "d" / "e" / "f")
+
+    data = header LF body
+
+    headers = *(header LF)
+
+    (* Each header must appear once only *)
+    header = "Version:" version |
+             "Serial:" random-uuid |
+             "Expires:" expiration-time |
+             "Servers:" servers-list |
+             "Blaster:" URL |
+             "Description:" UTF-8-text
+
+    servers-list = server-address *((";" | ",") server-address)
+
+    body = scopelist-url *(LF scopelist-url) [LF]</artwork>
+                </figure>
+                <t>
+                    Scope cookie headers are defined as follows:
+                </t>
+                <t>
+                    <list style="hanging">
+                        <t hangText="Version (mandatory) :">
+                            Cookie format version. The current version is 1.
+                        </t>
+                        <t hangText="Serial (mandatory) :">
+                            Random UUID that uniquely identifies the scope
+                            cookie.
+                        </t>
+                        <t hangText="Expires (mandatory) :">
+                            The expiration time of the scope cookie in
+                            ISO8601 format. The server MUST NOT accept an
+                            expired cookie.
+                        </t>
+                        <t hangText="Servers (mandatory) :">
+                            A list of hostnames or IP addresses for Diamond
+                            servers to be contacted for this search, separated
+                            by commas or semicolons. The server MUST verify that
+                            its name appears in this list.
+                        </t>
+                        <t hangText="Blaster (optional) :">
+                            The URL for the JSON Blaster that can communicate
+                            with the Diamond servers specified by the Servers
+                            header.
+                        </t>
+                        <t hangText="Description (optional) :">
+                            A short human-readable description of the data
+                            referenced by the scope cookie.
+                        </t>
+                    </list>
+                </t>
+            </section>
+        </section>
+        <section anchor="nonce_exchange" title="Nonce Exchange">
+            <t>
+                A control connection and a blast connection are paired with a
+                handshake using an exchange of random nonces. As soon as the
+                socket connection is established for the control connection, the
+                client MUST send a sequence of 16 null bytes as a nonce.
+                The server MUST respond with a random nonce of 16 characters.
+                The client uses this random nonce to establish the blast
+                connection. As soon as the socket connection is established for
+                the blast connection, the client MUST send this random nonce and
+                the server MUST respond with the same random nonce.
+            </t>
+            <section anchor="nonce" title="Nonce">
+                <t>
+                    A nonce is a sequence of 16 random bytes. Below is the XDR
+                    representation of a nonce, serialized according to the RFC
+                    4506 format:
+                </t>
+                <figure>
+                    <artwork>
+    typedef opaque nonce[16];</artwork>
+                </figure>
+            </section>
+        </section>
+        <section anchor="protocol_message" title="Protocol Message">
+            <section anchor="message" title="Messages">
+                <t>
+                    Diamond client-server messages consist of requests from
+                    client to server and responses from server to client. The
+                    requests and responses consist of a header and an optional
+                    body depending on the RPC. Request and response messages are
+                    serialized according to the RFC 4506 format. Below is the
+                    generic protocol message in the XDR data description
+                    language.
+                </t>
+                <figure>
+                    <artwork>
+    struct message
+    {
+        int sequence_number;
+        int status;             /* See Section 3.3 for status code definitions */
+        int command;            /* See Section 3.4 for command code definitions */
+        opaque message_body&lt;&gt;;
+    };</artwork>
+                </figure>
+                <section anchor="request_message" title="Request Message">
+                    <t>
+                        Request messages are signified by a status code of
+                        MINIRPC_PENDING (<xref target="status"/>).
+                    </t>
+                </section>
+                <section anchor="response_message" title="Response Message">
+                    <t>
+                        A successful response message MUST have the status code
+                        of MINIRPC_OK (<xref target="status"/>). A non-zero
+                        status code indicates an error. Negative codes indicate
+                        errors at the RPC protocol layer, and positive codes
+                        indicate errors in the application layer. The status
+                        code MINIRPC_PENDING MUST NOT be used in a response
+                        message. Error responses MUST have an empty message
+                        body.
+                    </t>
+                </section>
+            </section>
+            <section anchor="sequence_number" title="Sequence Number">
+                <t>
+                    Each request MUST have a unique sequence number. The
+                    sequence number of the server response MUST match the
+                    sequence number of the request.
+                </t>
+            </section>
+            <section anchor="status" title="Status">
+                <t>
+                    The status element signifies the status of a particular RPC.
+                    Below is the list of status codes:
+                </t>
+                <figure>
+                    <artwork>
+    enum status_code
+    {
+        MINIRPC_OK                      = 0,   /* request processed successfully */
+        MINIRPC_PENDING                 = -1,  /* denotes that a message is a client request */
+        MINIRPC_ENCODING_ERR            = -2,  /* encoding error due to bad XDR structure */
+        MINIRPC_PROCEDURE_UNAVAIL       = -3,  /* requested remote procedure not available */
+        MINIRPC_INVALID_ARGUMENT        = -4,  /* request message body contains invalid value */
+        DIAMOND_FAILURE                 = 500, /* no search scope, filters configured; cookie invalid */
+        DIAMOND_FCACHEMISS              = 501, /* requested object is not cached */
+        DIAMOND_COOKIE_EXPIRED          = 504, /* scope cookies have expired */
+        DIAMOND_SCHEME_NOT_SUPPORTED    = 505  /* server does not support blob uri scheme */
+    };</artwork>
+                </figure>
+            </section>
+            <section anchor="command" title="Command">
+                <t>
+                    The command element indicates the remote procedure to
+                    execute. Below is the list of command codes:
+                </t>
+                <figure>
+                    <artwork>
+    enum control_command_code
+    {
+        setup                   = 25, /* used for search configuration (Section 4.1.1) */
+        send_blobs              = 26, /* used to send filters and blob arguments (Section 4.1.2) */
+        start                   = 28, /* used to initiate search (Section 4.1.3) */
+        reexecute               = 30, /* used to request reexecution (Section 4.1.4) */
+        statistics              = 29, /* used to request server statistics (Section 4.1.5) */
+        get_session_variables   = 18, /* used to request session variables (Section 4.1.6) */
+        set_session_variables   = 19  /* used to update session variables (Section 4.1.7) */
+    };
+
+    enum blast_command_code
+    {
+        get_object              = 2 /* used to request objects (Section 4.2.1) */
+    };</artwork>
+                </figure>
+            </section>
+        </section>
+        <section anchor="rpc_definitions" title="RPC Definitions">
+            <section anchor="control_connection_rpc_definitions"
+                    title="Control Connection RPC Definitions">
+                <section anchor="setup" title="setup">
+                    <t>
+                        The setup RPC is used to configure the server for a
+                        search. In this RPC, a client sends the server the
+                        following entities to be used for search configuration:
+                    </t>
+                    <t>
+                        <list style="symbols">
+                            <t>
+                                scope cookies
+                            </t>
+                            <t>
+                                a list of filter configurations
+                            </t>
+                        </list>
+                    </t>
+                    <t>
+                        The server uses the scope cookies to define the set of
+                        objects to be searched.
+                    </t>
+                    <t>
+                        Each filter configuration contains the following:
+                    </t>
+                    <t>
+                        <list style="symbols">
+                            <t>
+                                a filter name, which MUST be unique for this
+                                search
+                            </t>
+                            <t>
+                                a list of string arguments to the filter
+                            </t>
+                            <t>
+                                the names of the other filters that must process
+                                an object before this filter does
+                            </t>
+                            <t>
+                                minimum and maximum bounds on the score for an
+                                object to pass
+                            </t>
+                            <t>
+                                filter URI
+                            </t>
+                            <t>
+                                blob argument URI
+                            </t>
+                        </list>
+                    </t>
+                    <t>
+                        The filter and blob argument URIs have the following
+                        format: sha256:&lt;hexadecimal SHA-256 sum&gt;.
+                    </t>
+                    <t>
+                        The server MUST respond with a list of blob URIs that
+                        are not present in its cache.
+                    </t>
+                    <section anchor="setup_request_body_encoding"
+                            title="setup Request Body Encoding">
+                        <t>
+                            The setup request body uses the following format:
+                        </t>
+                        <figure>
+                            <artwork>
+    typedef string cookie&lt;&gt;;
+    typedef string argument&lt;&gt;;
+    typedef string dependency&lt;&gt;;
+
+    struct filter_config
+    {
+        string name&lt;&gt;;                /* filter name */
+        argument arguments&lt;&gt;;         /* arguments to the filter */
+        dependency dependencies&lt;&gt;;    /* list of other filters that the filter is dependent on */
+        double min_score;             /* lower threshold to pass filter execution */
+        double max_score;             /* upper threshold to pass filter execution */
+        string code&lt;&gt;;                /* filter uri */
+        string blob&lt;&gt;;                /* blob argument uri */
+    };
+
+    struct setup_request_body
+    {
+        cookie cookies&lt;&gt;;
+        filter_config filters&lt;&gt;;
+    };</artwork>
+                        </figure>
+                    </section>
+                    <section anchor="setup_response_body_encoding"
+                            title="setup Response Body Encoding">
+                        <t>
+                            The setup response body uses the following format:
+                        </t>
+                        <figure>
+                            <artwork>
+    typedef string uri&lt;&gt;;
+
+    struct setup_response_body
+    {
+        uri uris&lt;&gt;;
+    };</artwork>
+                        </figure>
+                    </section>
+                </section>
+                <section anchor="send_blobs" title="send_blobs">
+                    <t>
+                        The send_blobs RPC is used to transmit filters and blob
+                        arguments to be added to the server's cache.
+                    </t>
+                    <t>
+                        The response from the server MUST have an empty body.
+                    </t>
+                    <t>
+                        The purpose of send_blobs is to send filters and blob
+                        arguments that are missing in the server. Therefore
+                        send_blobs RPC SHOULD only be used after the setup RPC,
+                        and only if the server indicates that there are missing
+                        filters and blobs.
+                    </t>
+                    <section anchor="send_blobs_request_body_encoding"
+                            title="send_blobs Request Body Encoding">
+                        <t>
+                            The send_blobs request body uses the following
+                            format:
+                        </t>
+                        <figure>
+                            <artwork>
+    typedef opaque blob&lt;&gt;;
+
+    struct send_blobs_request_body
+    {
+        blob blobs&lt;&gt;;
+    };</artwork>
+                        </figure>
+                    </section>
+                    <section anchor="send_blobs_response_body_encoding"
+                            title="send_blobs Response Body Encoding">
+                        <t>
+                            The send_blobs response body MUST be empty.
+                        </t>
+                    </section>
+                </section>
+                <section anchor="start" title="start">
+                    <t>
+                        The start RPC is used to request that the server
+                        initiate a search. In this RPC, a client sends to the
+                        server the following entities to be used for the search.
+                    </t>
+                    <t>
+                        <list style="symbols">
+                            <t>
+                                search ID
+                            </t>
+                            <t>
+                                list of push attributes
+                            </t>
+                        </list>
+                    </t>
+                    <t>
+                        The search ID is used to correlate searches across
+                        multiple servers; each server used in a search MUST
+                        receive the same search ID. The search ID MUST be a
+                        UUID in canonical string representaion, and SHOULD be
+                        unique to the requested search over the lifetime of the
+                        scope cookies used.
+                    </t>
+                    <t>
+                        When the start RPC is invoked, the server begins
+                        evaluating the objects in the scope and returning passed
+                        objects via the get_object RPC. The start RPC MUST NOT
+                        be called until necessary configuration has been
+                        performed using the setup and send_blobs RPCs. The
+                        response from the server MUST have an empty body.
+                    </t>
+                    <section anchor="start_request_body_encoding"
+                            title="start Request Body Encoding">
+                        <t>
+                            The start request body uses the following format:
+                        </t>
+                        <figure>
+                            <artwork>
+    typedef string attribute_name&lt;&gt;;
+
+    struct start_request_body
+    {
+        opaque search_id[36];
+        attribute_name *attribute_list;
+    };</artwork>
+                        </figure>
+                    </section>
+                    <section anchor="start_response_body_encoding"
+                            title="start Response Body Encoding">
+                        <t>
+                            The start response body MUST be empty.
+                        </t>
+                    </section>
+                </section>
+                <section anchor="reexecute" title="reexecute">
+                    <t>
+                        A search invoked by the start RPC evaluates every object
+                        in the scope. The reexecute RPC, in contrast, allows a
+                        Diamond client to request that the filters be executed
+                        against one particular object, to obtain additional
+                        information about it. In this RPC, a client sends to the
+                        server the following:
+                    </t>
+                    <t>
+                        <list style="symbols">
+                            <t>
+                                object ID
+                            </t>
+                            <t>
+                                a list of push attributes
+                            </t>
+                        </list>
+                    </t>
+                    <t>
+                        The object ID identifies the object to be processed, and
+                        is obtained from the _ObjectID attribute from a previous
+                        search.
+                    </t>
+                    <t>
+                        A client MAY specify an object ID consisting of the
+                        string "sha256:" followed by an SHA-256 hash value in
+                        hexadecimal. If an object matching this checksum is
+                        stored in the server's cache, the server MUST perform
+                        reexecution on this object. Otherwise, the server MUST
+                        respond with a DIAMOND_FCACHEMISS error. The client MAY
+                        then call send_blobs to send the object and then retry
+                        the reexecute RPC.
+                    </t>
+                    <t>
+                        If the requested object is dropped by the filters, the
+                        server MUST return only the _ObjectID attribute.
+                    </t>
+                    <section anchor="reexecute_request_body_encoding"
+                            title="reexecute Request Body Encoding">
+                        <t>
+                            The reexecute request body uses the following
+                            format:
+                        </t>
+                        <figure>
+                            <artwork>
+    struct reexecute_request_body
+    {
+        string object_id&lt;&gt;;
+        attribute_name *attributes_list; /* see Section 4.1.3.1 for attribute_name */
+    };</artwork>
+                        </figure>
+                    </section>
+                    <section anchor="reexecute_response_body_encoding"
+                            title="reexecute Response Body Encoding">
+                        <t>
+                            The reexecute response body uses the following
+                            format:
+                        </t>
+                        <figure>
+                            <artwork>
+    struct attribute
+    {
+        string name&lt;&gt;;
+        opaque data&lt;&gt;;
+    };
+
+    struct reexecute_response_body
+    {
+        attribute attributes&lt;&gt;;
+    };</artwork>
+                        </figure>
+                    </section>
+                </section>
+                <section anchor="statistics" title="statistics">
+                    <t>
+                        The statistics RPC is used to request that the server
+                        return statistical information about the search.
+                    </t>
+                    <section anchor="statistics_request_body_encoding"
+                            title="statistics Request Body Encoding">
+                        <t>
+                            The statistics request body MUST be empty.
+                        </t>
+                    </section>
+                    <section anchor="statistics_response_body_encoding"
+                            title="statistics Response Body Encoding">
+                        <t>
+                            The statistics response body uses the following
+                            format:
+                        </t>
+                        <figure>
+                            <artwork>
+    struct stat
+    {
+        string name&lt;&gt;;    /* name of statistic */
+        hyper value;
+    };
+
+    struct filter_stat
+    {
+        string name&lt;&gt;;    /* name of filter */
+        stat stats&lt;&gt;;     /* list of statistics of this filter */
+    };
+
+    struct statistics_response_body
+    {
+        stat stats&lt;&gt;;  /* list of statistics associated with search */
+        filter_stat filter_stats&lt;&gt;;   /* filter-specific statistics */
+    };</artwork>
+                        </figure>
+                    </section>
+                </section>
+                <section anchor="get_session_variables"
+                        title="get_session_variables">
+                    <t>
+                        A client can retrieve the server's session variables by
+                        calling the get_session_variables procedure.
+                    </t>
+                    <t>
+                        The get_session_variables RPC MUST have an empty request
+                        body.
+                    </t>
+                    <t>
+                        The client MUST NOT call get_session_variables twice
+                        without an intervening set_session_variables call.
+                    </t>
+                    <section anchor="get_session_variables_request_body"
+                            title="get_session_variables Request Body
+                            Encoding">
+                        <t>
+                            The get_session_variables request body MUST be
+                            empty.
+                        </t>
+                    </section>
+                    <section anchor="get_session_variables_response_body"
+                            title="get_session_variables Response Body
+                            Encoding">
+                        <t>
+                            The get_session_variables response body uses the
+                            following format:
+                        </t>
+                        <figure>
+                            <artwork>
+    struct session_variable
+    {
+        string name&lt;&gt;;
+        double value;
+    };
+
+    struct get_session_variables_response_body
+    {
+        session_variable session_variables&lt;&gt;;
+    };</artwork>
+                        </figure>
+
+                    </section>
+                </section>
+                <section anchor="set_session_variables"
+                        title="set_session_variables">
+                    <t>
+                        A client can use the set_session_variables RPC to modify
+                        the server's session variables.
+                    </t>
+                    <t>
+                        The server MUST update each specified session variable
+                        to contain the specified value plus the difference
+                        between the current value of the variable and its value
+                        at the time of the most recent get_session_variables RPC.
+                    </t>
+                    <t>
+                        The response to this RPC MUST have an empty message
+                        body.
+                    </t>
+                    <section anchor="set_session_variables_request_body"
+                            title="set_session_variables Request Body
+                        Encoding">
+                        <t>
+                            The set_session_variables request body uses the
+                            following format:
+                        </t>
+                        <figure>
+                            <artwork>
+    struct set_session_variables_request_body
+    {
+        /* See Section 4.1.6.1 for session_variable definition */
+        session_variable session_variables&lt;&gt;;
+    };</artwork>
+                        </figure>
+                    </section>
+                    <section anchor="set_session_variables_response_body"
+                            title="set_session_variables Response Body
+                        Encoding">
+                        <t>
+                            The set_session_variables response body MUST be
+                            empty.
+                        </t>
+                    </section>
+                </section>
+            </section>
+            <section anchor="blast_connection_rpc_definitions"
+                    title="Blast Connection RPC Definitions">
+                <section anchor="get_object" title="get_object">
+                    <t>
+                        The get_object RPC is called on the blast connection to
+                        request an object that has passed the filters. This RPC
+                        will block until an object is ready. If no get_object
+                        RPCs are pending and the server produces a search
+                        result, the server MAY block, MAY queue the object and
+                        continue executing the search, but MUST NOT drop the
+                        search result. Multiple get_object requests MAY be
+                        pipelined so that the effect of round-trip latency
+                        between object requests can be minimized.
+                    </t>
+                    <t>
+                        The client MAY perform the get_object RPC at any time
+                        after the blast connection is established. The server
+                        MUST indicate that the search has completed by returning
+                        an object containing no attributes on the blast
+                        channel. If the client performs further get_object RPCs
+                        after the completion of the search, the server's
+                        response is undefined.
+                    </t>
+                    <t>
+                        The attributes included in the object struct MUST comply
+                        with the rules specified in
+                        <xref target="requesting_and_retrieving_attributes"/>.
+                        The list of push attributes is taken from the start
+                        RPC.
+                    </t>
+                    <section anchor="get_object_request_body_encoding"
+                            title="get_object Request Body Encoding">
+                        <t>
+                            The get_object request body MUST be empty.
+                        </t>
+                    </section>
+                    <section anchor="object_encoding" title="object Encoding">
+                        <t>
+                            The XDR representation of a Diamond object is shown
+                            below:
+                        </t>
+                        <figure>
+                            <artwork>
+    struct object
+    {
+        attribute attributes&lt;&gt;; /* See Section 3.1.4.2 for attribute definition */
+    };</artwork>
+                        </figure>
+                    </section>
+                </section>
+            </section>
+        </section>
+        <section anchor="security_considerations" title="Security Considerations">
+            <t>
+                The OpenDiamond system allows users to run arbitrary x86
+                executable filter code on the servers. Although this feature
+                makes the OpenDiamond platform a versatile search system, it
+                also imposes a great threat to system integrity. The
+                OpenDiamond system does not impose rules on what filter code
+                can be executed on the server, nor does it inspect the
+                filter code. Thus, the OpenDiamond system is vunerable to
+                various types of code injection attacks.
+            </t>
+        </section>
+    </middle>
+    <back>
+        <section anchor="terminology" title="Terminology">
+            <t>
+                <list style="hanging">
+                    <t hangText="attribute :">
+                        A named binary value associated with an object during
+                        search execution. As an object is retrieved and filters
+                        are executed against it, attributes are associated with
+                        the object which can store result values, image
+                        thumbnails data, and so on.
+                    </t>
+                    <t hangText="blob argument :">
+                        A binary argument to a filter.
+                    </t>
+                    <t hangText="dataretriever :">
+                        The dataretriever is a simple HTTP server that emits an
+                        object list and objects in the format that an
+                        OpenDiamond server expects. In a simple Diamond setup,
+                        the scopeserver would be configured to produce a URL
+                        that points to a dataretriever local to the system that
+                        the OpenDiamond server is running on. The dataretriever
+                        will read objects locally and feed them to the
+                        OpenDiamond server.
+                    </t>
+                    <t hangText="filter :">
+                        A single program to be included in a search. Responsible
+                        for a single task, such as face detection or texture
+                        recognition. A filter is started when the search starts
+                        and killed when the search completes. Filters accept
+                        zero or more string arguments and exactly one blob
+                        (binary) argument. Filters can have dependencies on
+                        other filters; for example, a face detection filter can
+                        depend on another filter that decodes JPEG image to an
+                        RGB pixel array.
+                    </t>
+                    <t hangText="object :">
+                        A unit of data to be searched, such as a single image or
+                        text file. Each object to be examined is processed by
+                        one or more filters.
+                    </t>
+                    <t hangText="scope :">
+                        The set of objects to be examined during a particular
+                        search, typically computed via user interaction with a
+                        scopeserver. The scope is encoded in a scope cookie
+                        which is downloaded to the Diamond client, and then
+                        uploaded to one or more Diamond servers.
+                    </t>
+                    <t hangText="scope cookie :">
+                        OpenDiamond uses scope cookies to define what objects
+                        are going to be searched. The scope cookie contains one
+                        or more URLs, which the OpenDiamond server program uses
+                        to contact a dataretriever, which returns a list of
+                        objects. Each object in this list is again identified
+                        by a URL, which is used to retrieve the object before
+                        it is passed to the filters.
+                    </t>
+                    <t hangText="session variable :">
+                        The servers maintain double-precision floating-point
+                        values called session variables that are specific to a
+                        particular search. A filter can use these variables to
+                        keep track of typical parameter values for objects
+                        encountered during the search. This allows the filter to
+                        detect significant differences between the object it is
+                        currently examining and the objects that have already
+                        been examined. The OpenDiamond system is a distributed
+                        system, and by nature, the states across all servers can
+                        differ. To prevent the servers from becoming too far out
+                        of sync, the client can periodically retrieve the
+                        session variables, merge their values together, and send
+                        the combined values to all of the servers.
+                    </t>
+                </list>
+            </t>
+        </section>
+        <section anchor="attributes" title="Attributes">
+            <section anchor="attributes_that_are_handled_directly_by_the_server"
+                    title="Attributes that are Handled Directly by the Server">
+                <t> Most attributes are generated by filters while an object is
+                    being examined, but some attributes are generated directly
+                    by the server. These include:
+                </t>
+                <t>
+                    <list style="hanging">
+                        <t hangText="&quot;&quot; (the zero-length string):">
+                            object data
+                        </t>
+                        <t hangText="_ObjectID :">
+                            URI uniquely identifying an object
+                        </t>
+                        <t hangText="Display-Name :">
+                            user-friendly name of an object
+                        </t>
+                        <t hangText="Device-Name :">
+                            string uniquely identifying the server that
+                            processed this object
+                        </t>
+                        <t hangText="_filter.%s_score (%s is the name of the
+                                filter) :">
+                            the score assigned to the object by the named
+                            filter, as a string
+                        </t>
+                    </list>
+                </t>
+            </section>
+            <section anchor="common_diamond_attributes"
+                    title="Common Diamond Attributes">
+                <t>
+                    <list style="hanging">
+                        <t hangText="thumbnail.jpeg :">
+                            small thumbnail image for the object
+                        </t>
+                        <t hangText="_rows.int :">
+                            height of an object in pixels
+                        </t>
+                        <t hangText="_cols.int :">
+                            width of an object in pixels
+                        </t>
+                        <t hangText="_filter.%s.patches (%s is the name of the
+                                filter) :">
+                            regions of interest located by the named filter
+                        </t>
+                    </list>
+                </t>
+            </section>
+            <section anchor="attribute_name_suffixes"
+                    title="Attribute Name Suffixes">
+                <t>
+                    By convention, Diamond attribute names include a suffix that
+                    indicates the type of data stored in the value. This allows
+                    the client to implement generic display handlers for
+                    different types of data.
+                </t>
+                <t>
+                    <list style="hanging">
+                        <t hangText=".int :">
+                            32-bit binary-encoded little-endian integer
+                        </t>
+                        <t hangText=".float :">
+                            32-bit binary-encoded little-endian floating-point
+                            value
+                        </t>
+                        <t hangText=".double :">
+                            64-bit binary-encoded little-endian floating-point
+                            value
+                        </t>
+                        <t hangText=".jpeg :">
+                            JPEG image data
+                        </t>
+                        <t hangText=".patches :">
+                            Regions of interest in an image. The value is
+                            encoded as a C structure with little-endian members
+                            (see below). The distance value signifies how
+                            dissimilar the regions of interest are from the
+                            example patches provided by a client. For example,
+                            if there is a 90% resemblance, the distance is 0.1.
+                            The minimum and maximum x/y values specify the
+                            upper-left and lower-right pixel coordinates of a
+                            region within the image.
+                        </t>
+                        <t hangText=".binary :">
+                            Arbitrary binary data such as object data.
+                        </t>
+                    </list>
+                </t>
+                <t>
+                    <figure>
+                        <artwork>
+    struct patches
+    {
+        int32_t num_patches;
+        double distance;
+        struct patch patches[0];
+    };
+
+    struct patch
+    {
+        int32_t min_x;
+        int32_t min_y;
+        int32_t max_x;
+        int32_t max_y;
+    };</artwork>
+                    </figure>
+                </t>
+            </section>
+        </section>
+        <section anchor="list_of_statistics" title="List of Statistics">
+            <section anchor="list_of_server_statistics"
+                    title="List of Server Statistics">
+                <t>
+                    <list style="hanging">
+                        <t hangText="objs_total :">
+                            Total number of objects in the scope.
+                        </t>
+                        <t hangText="objs_processed :">
+                            Total number of processed objects.
+                        </t>
+                        <t hangText="objs_dropped :">
+                            Total number of objects dropped while being processed.
+                        </t>
+                        <t hangText="objs_passed :">
+                            Total number of objects passed after being processed.
+                        </t>
+                        <t hangText="objs_unloadable :">
+                            Total number of objects that could not be fetched.
+                        </t>
+                        <t hangText="avg_obj_time_us :">
+                            Average processing time per object in microseconds.
+                        </t>
+                    </list>
+                </t>
+            </section>
+            <section anchor="list_of_filter_statistics"
+                    title="List of Filter Statistics">
+                <t>
+                <list style="hanging">
+                    <t hangText="objs_processed :">
+                        Number of objects considered.
+                    </t>
+                    <t hangText="objs_dropped :">
+                        Number of objects dropped.
+                    </t>
+                    <t hangText="objs_cache_dropped :">
+                        Number of objects dropped by the cache.
+                    </t>
+                    <t hangText="objs_cache_passed :">
+                        Number of objects accepted by the cache.
+                    </t>
+                    <t hangText="objs_computed :">
+                        Number of objects examined by the filter.
+                    </t>
+                    <t hangText="objs_terminate :">
+                        Number of objects causing the filter to crash.
+                    </t>
+                    <t hangText="avg_exec_time_us :">
+                        Average filter execution time per object.
+                    </t>
+                </list>
+            </t>
+            </section>
+        </section>
+    </back>
+</rfc>

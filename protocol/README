@@ -1,0 +1,28 @@
+# README
+
+The following files are needed when parsing rfc.xml with DTD validation.
+
+ - rfc2629.dtd : can be downloaded from
+   www.w3.org/2008/xmlsec/Drafts/algorithms-rfc/rfc2629.dtd
+
+ - rfc2629-xhtml.ent : can be downloaded from
+   simpleupdateprotocol.googlecode.com/svn-history/r27/trunk/spec/rfc/2629-xhtml.net
+
+ - rfc2629-other.ent : can be donwloaded from
+   simpleupdateprotocol.googlecode.com/svn-history/r27/trunk/spec/rfc/2629-other.net
+
+Finally, use Python xml2rfc package to parse rfc.xml. The package can be found 
+at:
+    
+ http://pypi.python.org/pypi/xml2rfc
+
+After downloading all of above documents and packages, running the following 
+command will generate .txt and .html files:
+
+ $ xml2rfc rfc.xml -d rfc2629.dtd --raw --html
+
+To parse rfc.xml and generate the .txt and .html files without doing the DTD
+validation, run the following script:
+
+ $ sh create_rfc_raw_html.sh
+

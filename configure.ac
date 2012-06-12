@@ -25,11 +25,12 @@ AC_PROG_CC_C99
 AM_PATH_PYTHON([2.6])
 
 # pylint
-AC_PATH_PROG([PYLINT], [pylint])
+AC_PATH_PROG([PYLINT], [pylint], [:])
 AC_ARG_VAR([PYLINT], [path to pylint])
-if test z$PYLINT = z ; then
-	PYLINT=:
-fi
+
+# xml2rfc
+AC_PATH_PROG([XML2RFC], [xml2rfc], [false])
+AC_ARG_VAR([XML2RFC], [path to xml2rfc])
 
 LT_INIT()
 

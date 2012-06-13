@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from cStringIO import StringIO
 import PIL.Image
 import struct
 
@@ -96,3 +97,17 @@ class PatchesAttributeCodec(_AttributeCodec):
         len = struct.calcsize(fmt)
         data, remainder = data[0:len], data[len:]
         return (remainder,) + struct.unpack(fmt, data)
+
+
+class HeatMapAttributeCodec(_AttributeCodec):
+    '''Codec for a heat map image.  Decodes to a PIL.Image.'''
+
+    def encode(self, item):
+        if item.mode != 'L':
+            item = item.convert('L')
+        buf = StringIO()
+        item.save(buf, 'png', optimize=1)
+        return buf.getvalue()
+
+    def decode(self, data):
+        return PIL.Image.open(StringIO(data))

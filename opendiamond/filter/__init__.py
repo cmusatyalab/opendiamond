@@ -21,7 +21,7 @@ from zipfile import ZipFile
 
 from opendiamond.attributes import (StringAttributeCodec,
         IntegerAttributeCodec, DoubleAttributeCodec, RGBImageAttributeCodec,
-        PatchesAttributeCodec)
+        PatchesAttributeCodec, HeatMapAttributeCodec)
 
 EXAMPLE_DIR = 'examples'
 
@@ -285,6 +285,17 @@ class Object(object):
         filter name from Session.'''
         self.set_binary(key,
                 PatchesAttributeCodec().encode((distance, patches)))
+
+    def get_heatmap(self, key):
+        '''Get the specified object attribute, interpreting the raw data
+        as a heat map image.'''
+        return HeatMapAttributeCodec().decode(self.get_binary(key))
+
+    def set_heatmap(self, key, value):
+        '''Set the specified object attribute as a heat map image.  The key
+        name should probably be _filter.%s.heatmap.png, where %s is the
+        filter name from Session.'''
+        self.set_binary(key, HeatMapAttributeCodec().encode(value))
 
     def __getitem__(self, key):
         '''Syntactic sugar for self.get_string().'''

@@ -616,7 +616,7 @@
                         The search ID is used to correlate searches across
                         multiple servers; each server used in a search MUST
                         receive the same search ID. The search ID MUST be a
-                        UUID in canonical string representaion, and SHOULD be
+                        UUID in canonical string representation, and SHOULD be
                         unique to the requested search over the lifetime of the
                         scope cookies used.
                     </t>

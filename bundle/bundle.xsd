@@ -410,9 +410,17 @@ A single filter argument.
 The name of the option specifying the argument value.
       </jxb:javadoc></jxb:property></xsd:appinfo></xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="label" type="xsd:string">
+      <xsd:annotation><xsd:appinfo><jxb:property><jxb:javadoc>
+The label of the filter whose name should be used as the argument value.
+Labels can only refer to filters within the same predicate or codec.
+Overridden by the "option" attribute.
+      </jxb:javadoc></jxb:property></xsd:appinfo></xsd:annotation>
+    </xsd:attribute>
     <xsd:attribute name="value" type="xsd:string">
       <xsd:annotation><xsd:appinfo><jxb:property><jxb:javadoc>
-A constant value for the argument.  Overridden by the "option" attribute.
+A constant value for the argument.  Overridden by the "option" and "label"
+attributes.
       </jxb:javadoc></jxb:property></xsd:appinfo></xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>

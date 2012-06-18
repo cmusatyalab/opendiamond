@@ -383,7 +383,8 @@ class _ResultObject(_JSONSchema):
 
 
 class ResultObject(_ResultObject):
-    '''A _ResultObject for external consumption.'''
+    '''A search result.'''
+    # Specifically, a _ResultObject for external consumption.
 
     def __init__(self, strict=False):
         with _strictness(strict):
@@ -488,6 +489,13 @@ def _main():
             or sys.argv[1][0] == '_'
             or sys.argv[2] not in ('strict', 'permissive')):
         print >> sys.stderr, 'Arguments: SchemaClass {strict|permissive}'
+        print >> sys.stderr
+        print >> sys.stderr, 'SchemaClass can be one of the following:'
+        for name, obj in sorted(globals().iteritems()):
+            if (isinstance(obj, type) and issubclass(obj, _JSONSchema)
+                    and not name.startswith('_')):
+                print '    %-25s: %s' % (name,
+                        getattr(obj, '__doc__', 'Undocumented'))
         sys.exit(1)
 
     globals()[sys.argv[1]](sys.argv[2] == 'strict').dump(sys.stdout)

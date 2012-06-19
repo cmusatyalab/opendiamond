@@ -10,10 +10,15 @@
 // RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 //
 
-function AutoPause(blaster, max_unexposed, tag_class) {
+function AutoPause(blasters, max_unexposed, tag_class) {
   // Make sure "new" was used
   if (!(this instanceof arguments.callee)) {
     throw new Error('Constructor called as a function');
+  }
+
+  // Normalize a single blaster to an array
+  if (!(blasters instanceof Array)) {
+    blasters = [blasters];
   }
 
   // Default parameters
@@ -39,7 +44,9 @@ function AutoPause(blaster, max_unexposed, tag_class) {
       }
     });
     if ($(selector).length < max_unexposed) {
-      blaster.resume();
+      $.each(blasters, function(i, blaster) {
+        blaster.resume();
+      });
     }
   }
 
@@ -53,7 +60,9 @@ function AutoPause(blaster, max_unexposed, tag_class) {
       $(el).addClass(tag_class);
     }
     if ($(selector).length >= max_unexposed) {
-      blaster.pause();
+      $.each(blasters, function(i, blaster) {
+        blaster.pause();
+      });
     }
   };
 }

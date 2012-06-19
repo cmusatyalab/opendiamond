@@ -183,18 +183,26 @@ class _DiamondBlastSet(object):
         # Connections that have not finished searching
         self._connections = set(connections)
         # Connections without an outstanding blast request
-        self._paused = set(connections)
-        # False if we are paused
-        self._running = False
+        self._blocking = set(connections)
+        self._started = False
+        self._paused = False
+
+    def start(self):
+        assert not self._started
+        self._started = True
+        self._try_start()
 
     def pause(self):
-        self._running = False
+        self._paused = True
 
     def resume(self):
-        if not self._running:
-            self._running = True
-            restart = self._paused
-            self._paused = set()
+        self._paused = False
+        self._try_start()
+
+    def _try_start(self):
+        if self._started and not self._paused:
+            restart = self._blocking
+            self._blocking = set()
             for conn in restart:
                 # Restart handler coroutine
                 self._handle_objects(conn)
@@ -204,7 +212,7 @@ class _DiamondBlastSet(object):
         '''Coroutine that requests blast channel objects on the specified
         connection until the blast set is paused or the connection finishes
         searching.'''
-        while self._running:
+        while not self._paused:
             try:
                 obj = yield gen.Task(conn.get_result)
             except RPCError:
@@ -215,7 +223,7 @@ class _DiamondBlastSet(object):
             if obj is None:
                 # Connection has finished searching
                 self._connections.discard(conn)
-                self._paused.discard(conn)
+                self._blocking.discard(conn)
                 if (self._finished_callback is not None
                         and not self._connections):
                     # All connections have finished searching
@@ -224,7 +232,7 @@ class _DiamondBlastSet(object):
 
             if self._object_callback is not None:
                 self._object_callback(obj)
-        self._paused.add(conn)
+        self._blocking.add(conn)
 
 
 class DiamondSearch(object):
@@ -255,7 +263,7 @@ class DiamondSearch(object):
         yield [gen.Task(c.run_search, search_id, self._cookies[h],
                 self._filters) for h, c in self._connections.iteritems()]
         # Start blast channels
-        self.resume()
+        self._blast.start()
         if callback is not None:
             callback(search_id)
 

@@ -448,9 +448,9 @@ class AttributeHandler(_BlasterRequestHandler):
                 if tint is not None:
                     if img.mode != 'L':
                         img = img.convert('L')
-                    transparent = PIL.Image.new('RGBA', img.size, (0,) * 4)
-                    filled = PIL.Image.new('RGB', img.size, tint)
-                    img = PIL.Image.composite(filled, transparent, img)
+                    alpha = img
+                    img = PIL.Image.new('RGB', img.size, tint)
+                    img.putalpha(alpha)
                 buf = StringIO()
                 img.save(buf, 'PNG')
                 data = buf.getvalue()

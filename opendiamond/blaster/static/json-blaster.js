@@ -20,6 +20,7 @@ function JSONBlasterSocket(url, search_key) {
   var blaster = this;
   var sock = new SockJS(url);
   var handlers = {};
+  var connected = false;
   var paused = false;
 
   // Private methods
@@ -51,24 +52,28 @@ function JSONBlasterSocket(url, search_key) {
   };
 
   this.pause = function() {
-    if (!paused) {
-      paused = true;
+    if (connected && !paused) {
       blaster.emit('pause');
     }
+    paused = true;
   };
 
   this.resume = function() {
-    if (paused) {
-      paused = false;
+    if (connected && paused) {
       blaster.emit('resume');
     }
+    paused = false;
   };
 
   // SockJS callbacks
   sock.onopen = function() {
+    connected = true;
     blaster.emit('start', {
       'search_key': search_key
     });
+    if (paused) {
+      blaster.emit('pause');
+    }
     run_handler('__open');
   };
 
@@ -78,6 +83,7 @@ function JSONBlasterSocket(url, search_key) {
   };
 
   sock.onclose = function() {
+    connected = false;
     run_handler('__close');
   };
 

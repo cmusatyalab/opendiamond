@@ -39,7 +39,8 @@ def index(request):
 	    for i in range(n):
 		scope = [ "%s/mirage/%dof%d%s" % \
 			  (settings.MIRAGE_DATARETRIEVER, i+1, n, query) ]
-		cookie.append(generate_cookie_django(scope, (servers[i],)))
+		cookie.append(generate_cookie_django(scope, (servers[i],),
+		        blaster=getattr(settings, 'MIRAGE_BLASTER', None)))
 
 	    return HttpResponse(''.join(cookie),
 				mimetype='application/x-diamond-scope')

@@ -31,6 +31,7 @@ def generate_cookie(ids):
         return 'http://%s:5873%s' % (settings.GIGAPAN_SERVER, gigapan)
     gigapans = ["/gigapan/%d" % int(gigapan_id) for gigapan_id in ids]
     proxies = settings.GIGAPAN_PROXIES
+    blaster = getattr(settings, 'GIGAPAN_BLASTER', None)
     if len(proxies) > len(gigapans):
         mapping = {}  # gigapan -> [proxy]
         gigapan_index = 0
@@ -42,10 +43,12 @@ def generate_cookie(ids):
             if len(mapping[gigapan]) > 1:
                 cookies.append(generate_cookie_django([gigapan],
                                     servers=[settings.GIGAPAN_SERVER],
-                                    proxies=mapping[gigapan]))
+                                    proxies=mapping[gigapan],
+                                    blaster=blaster))
             else:
                 cookies.append(generate_cookie_django([full_url(gigapan)],
-                                                      mapping[gigapan]))
+                                                      mapping[gigapan],
+                                                      blaster=blaster))
         cookie = ''.join(cookies)
     else:
         mapping = {}  # proxy -> [gigapan]
@@ -54,8 +57,8 @@ def generate_cookie(ids):
             mapping.setdefault(proxies[proxy_index],
                                []).append(full_url(gigapan))
             proxy_index = (proxy_index + 1) % len(proxies)
-        cookie = ''.join([generate_cookie_django(mapping[proxy], [proxy])
-                          for proxy in proxies])
+        cookie = ''.join([generate_cookie_django(mapping[proxy], [proxy],
+                          blaster=blaster) for proxy in proxies])
 
     return HttpResponse(cookie, mimetype='application/x-diamond-scope')
 

@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
@@ -30,7 +31,8 @@ def index(request):
               servers = set()
               for server in collection.servers.all():
                   servers.add(server.host)
-              cookie.extend(generate_cookie_django(scope, servers))
+              cookie.extend(generate_cookie_django(scope, servers,
+                      blaster=getattr(settings, 'GATEKEEPER_BLASTER', None)))
 
           return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:

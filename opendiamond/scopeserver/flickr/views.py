@@ -44,7 +44,8 @@ def index(request):
 	    proxies = (form.cleaned_data['proxied'] and
 			settings.FLICKR_PROXIES or None)
 	    cookie = generate_cookie_django(scope, settings.FLICKR_SERVERS,
-					proxies)
+					proxies, blaster=getattr(settings,
+					'FLICKR_BLASTER', None))
 
 	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:

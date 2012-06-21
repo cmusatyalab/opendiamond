@@ -1032,6 +1032,9 @@
                         <t hangText="_cols.int :">
                             width of an object in pixels
                         </t>
+                        <t hangText="_rgb_image.rgbimage :">
+                            decoded pixel data for the object.
+                        </t>
                         <t hangText="_filter.%s.patches :">
                             regions of interest located by the named filter.
                             %s is the name of the filter.
@@ -1072,6 +1075,13 @@
                         <t hangText=".png :">
                             PNG image data
                         </t>
+                        <t hangText=".rgbimage :">
+                            Uncompressed pixel data, encoded as a C
+                            structure with little-endian members (see below).
+                            Since these attributes can be large, filters
+                            that produce them will typically request that
+                            the Diamond server not return them to the client.
+                        </t>
                         <t hangText=".patches :">
                             Regions of interest in an image. The value is
                             encoded as a C structure with little-endian members
@@ -1091,6 +1101,34 @@
                 <t>
                     <figure>
                         <artwork>
+    struct RGBImage
+    {
+        uint32_t type;      /* RGBImageType */
+        uint32_t nbytes;    /* size of this struct */
+        int32_t height;
+        int32_t width;
+        struct RGBPixel data[0];
+    };
+
+    struct RGBPixel
+    {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t a;          /* mainly just padding */
+    };
+
+    enum RGBImageType
+    {
+        IMAGE_UNKNOWN = 0,
+        IMAGE_PBM = 1,
+        IMAGE_PGM = 2,
+        IMAGE_PPM = 3,
+        IMAGE_TIFF = 4,
+        IMAGE_JPEG = 5,
+        IMAGE_PNG = 6
+    };
+
     struct __attribute__((packed)) patches
     {
         int32_t num_patches;

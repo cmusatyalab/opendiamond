@@ -1091,7 +1091,7 @@
                 <t>
                     <figure>
                         <artwork>
-    struct patches
+    struct __attribute__((packed)) patches
     {
         int32_t num_patches;
         double distance;

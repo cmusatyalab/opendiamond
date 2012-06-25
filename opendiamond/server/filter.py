@@ -526,6 +526,19 @@ class FilterStackRunner(threading.Thread):
         self._cleanup = cleanup	# cleanup.__del__ fires when all workers exit
         self._warned_cache_update = False
 
+    def _ensure_cache(self):
+        '''Connect to Redis cache if not already connected.  Called from
+        worker thread context, rather than in __init__, to avoid any
+        redis-py thread-safety issues.'''
+        config = self._state.config
+        if self._redis is None and config.cache_server is not None:
+            host, port = config.cache_server
+            self._redis = Redis(host=host, port=port,
+                                db=config.cache_database,
+                                password=config.cache_password)
+            # Ensure the Redis server is available
+            self._redis.ping()
+
     def _get_attribute_key(self, value_sig):
         '''Return an attribute cache lookup key for the specified signature.'''
         return 'attribute:' + value_sig
@@ -725,6 +738,8 @@ class FilterStackRunner(threading.Thread):
 
     def evaluate(self, obj):
         '''Evaluate the object and return True to accept or False to drop.'''
+        # Connect to Redis cache if not already connected
+        self._ensure_cache()
         timer = Timer()
         accept = False
         try:
@@ -739,15 +754,6 @@ class FilterStackRunner(threading.Thread):
     def run(self):
         '''Thread function.'''
         try:
-            config = self._state.config
-            if config.cache_server is not None:
-                host, port = config.cache_server
-                self._redis = Redis(host=host, port=port,
-                                    db=config.cache_database,
-                                    password=config.cache_password)
-                # Ensure the Redis server is available
-                self._redis.ping()
-
             # ScopeListLoader properly handles interleaved access by
             # multiple threads
             for obj in self._state.scope:

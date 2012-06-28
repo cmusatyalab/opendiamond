@@ -65,6 +65,10 @@ function JSONBlasterSocket(url, search_key) {
     paused = false;
   };
 
+  this.close = function() {
+    sock.close();
+  };
+
   // SockJS callbacks
   sock.onopen = function() {
     connected = true;

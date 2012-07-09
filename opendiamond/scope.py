@@ -130,6 +130,8 @@ class ScopeCookie(object):
         # Unicode strings can cause signature validation errors
         servers = [str(s) for s in servers]
         scopeurls = [str(u) for u in scopeurls]
+        if blaster is not None:
+            blaster = str(blaster)
         # Generate scope data
         serial = str(uuid.uuid4())
         headers = [('Version', COOKIE_VERSION),

@@ -557,17 +557,19 @@ class SearchConnection(_StructuredSocketConnection):
             self.error('Corrupt search key')
             return
 
-        # Start pinging the client
-        self._keepalive_coroutine()
-
-        # Start the search
-        _log.info('Starting search %s', search_key)
+        # Create the search
         self._search_key = search_key
         self._search = search_spec.make_search(
             object_callback=self._result,
             finished_callback=self._finished,
             close_callback=self._closed,
         )
+
+        # Now that self._search is set, start pinging the client
+        self._keepalive_coroutine()
+
+        # Start the search
+        _log.info('Starting search %s', search_key)
         try:
             search_id = yield gen.Task(self._search.start)
         except DiamondRPCCookieExpired:

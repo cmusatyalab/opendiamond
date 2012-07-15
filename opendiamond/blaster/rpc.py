@@ -20,7 +20,7 @@ from tornado.iostream import IOStream
 
 from opendiamond import protocol
 from opendiamond.rpc import (RPCHeader, RPC_PENDING, RPCError,
-        RPCEncodingError)
+        RPCEncodingError, ConnectionFailure)
 
 _log = logging.getLogger(__name__)
 
@@ -73,9 +73,9 @@ class _RPCClientConnection(object):
     def _read(self, count, callback=None):
         try:
             buf = yield gen.Task(self._stream.read_bytes, count)
-        except IOError:
+        except IOError, e:
             self.close()
-            raise
+            raise ConnectionFailure(str(e))
 
         if callback is not None:
             callback(buf)
@@ -129,7 +129,7 @@ class _RPCClientConnection(object):
                 # Always read the body, regardless of encoding errors, to
                 # keep the stream in sync
                 data = yield gen.Task(self._read, hdr.datalen)
-            except IOError:
+            except ConnectionFailure:
                 return
 
             if hdr.status == RPC_PENDING:

@@ -18,7 +18,7 @@ from opendiamond.blaster.rpc import ControlConnection, BlastConnection
 from opendiamond.helpers import sha256
 from opendiamond.protocol import (XDR_setup, XDR_filter_config,
         XDR_blob_data, XDR_start, XDR_reexecute, DiamondRPCFCacheMiss)
-from opendiamond.rpc import RPCError
+from opendiamond.rpc import RPCError, ConnectionFailure
 from opendiamond.scope import get_cookie_map
 
 _log = logging.getLogger(__name__)
@@ -215,6 +215,8 @@ class _DiamondBlastSet(object):
         while not self._paused:
             try:
                 obj = yield gen.Task(conn.get_result)
+            except ConnectionFailure:
+                return
             except RPCError:
                 _log.exception('Cannot receive blast object')
                 conn.close()

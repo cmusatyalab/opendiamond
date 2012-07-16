@@ -32,6 +32,7 @@ class _RPCClientConnection(object):
         self._stream = None
         self._sequence = itertools.count()
         self._pending = {}  # sequence -> callback
+        self._pending_read = None
         self._close_callback = stack_context.wrap(close_callback)
 
     @gen.engine
@@ -64,6 +65,10 @@ class _RPCClientConnection(object):
             self._handle_close()
 
     def _handle_close(self):
+        if self._pending_read is not None:
+            # The pending read callback will never be called.  Call it
+            # ourselves to clean up.
+            self._pending_read(None)
         if self._close_callback is not None:
             cb = self._close_callback
             self._close_callback = None
@@ -71,11 +76,20 @@ class _RPCClientConnection(object):
 
     @gen.engine
     def _read(self, count, callback=None):
+        if self._pending_read is not None:
+            raise RuntimeError('Double read on connection')
+        self._pending_read = stack_context.wrap((yield gen.Callback('read')))
         try:
-            buf = yield gen.Task(self._stream.read_bytes, count)
+            self._stream.read_bytes(count, callback=self._pending_read)
+            buf = yield gen.Wait('read')
+            if buf is None:
+                # _handle_close() is cleaning us up
+                raise ConnectionFailure('Connection closed')
         except IOError, e:
             self.close()
             raise ConnectionFailure(str(e))
+        finally:
+            self._pending_read = None
 
         if callback is not None:
             callback(buf)
@@ -105,6 +119,8 @@ class _RPCClientConnection(object):
             reply = reply_class.decode(data)
         elif len(data) > 0:
             raise RPCEncodingError('Unexpected reply data')
+        elif status is None:
+            raise ConnectionFailure('Connection closed')
         elif status != 0:
             try:
                 raise RPCError.get_class(status)()
@@ -130,6 +146,11 @@ class _RPCClientConnection(object):
                 # keep the stream in sync
                 data = yield gen.Task(self._read, hdr.datalen)
             except ConnectionFailure:
+                # Error out pending callbacks
+                callbacks = self._pending.values()
+                self._pending.clear()
+                for callback in callbacks:
+                    callback(None, '')
                 return
 
             if hdr.status == RPC_PENDING:

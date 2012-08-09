@@ -21,6 +21,7 @@ Result cache:
             murmur(
                 ' '.join(
                     SHA256(filter code),
+                    filter name,
                     ' '.join(filter arguments),
                     SHA256(filter blob argument),
                 ),
@@ -460,7 +461,8 @@ class Filter(object):
         # Get contents of blob argument
         blob, blob_signature = self._resolve_blob(state)
         # Initialize digest
-        summary = [code_signature] + self.arguments + [blob_signature]
+        summary = ([code_signature, self.name] + self.arguments +
+                [blob_signature])
         cache_digest = murmur(' '.join(summary))
         # Commit
         self.code_path = code_path
@@ -702,9 +704,7 @@ class FilterStackRunner(threading.Thread):
                     return False
                 elif runner.send_score:
                     # Store the filter score in the object.  This attribute
-                    # is never cached because the filter name is controlled
-                    # by the client and can arbitrarily change across
-                    # searches.
+                    # is not cached because that would be redundant.
                     attrname = ATTR_FILTER_SCORE % runner
                     obj[attrname] = str(result.score) + '\0'
             # Object passes all filters, accept

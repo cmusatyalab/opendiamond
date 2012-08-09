@@ -18,8 +18,6 @@
 
 #define PYTHON_UNLOCK_THRESHOLD (1 << 20)  /* 0.4 ms on a 2.66 GHz Core 2 */
 
-#define	FORCE_INLINE __attribute__((always_inline))
-
 static inline uint32_t rotl32 ( uint32_t x, int8_t r )
 {
   return (x << r) | (x >> (32 - r));
@@ -37,13 +35,13 @@ static inline uint64_t rotl64 ( uint64_t x, int8_t r )
 
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
-static FORCE_INLINE uint64_t getblock ( const uint64_t * p, int i )
+static inline uint64_t getblock ( const uint64_t * p, int i )
 {
   return p[i];
 }
 
 // Finalization mix - force all bits of a hash block to avalanche
-static FORCE_INLINE uint64_t fmix ( uint64_t k )
+static inline uint64_t fmix ( uint64_t k )
 {
   k ^= k >> 33;
   k *= BIG_CONSTANT(0xff51afd7ed558ccd);

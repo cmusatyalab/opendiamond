@@ -51,14 +51,13 @@ class ScopeCookieExpired(ScopeError):
 
 
 class ScopeCookie(object):
-    def __init__(self, serial, description, expires, blaster, servers,
-            scopeurls, data, signature):
+    def __init__(self, serial, expires, blaster, servers, scopeurls, data,
+            signature):
         '''Do not call this directly; use generate() or parse() instead.'''
         # Ensure the expiration time is tz-aware
         if expires.tzinfo is None or expires.tzinfo.utcoffset(expires) is None:
             raise ScopeError('Expiration time does not include time zone')
         self.serial = serial		# A UUID object
-        self.description = description	# A human-readable description or None
         self.expires = expires		# A datetime object
         self.blaster = blaster		# The URL of the JSON blaster or None
         self.servers = servers		# A list
@@ -71,9 +70,8 @@ class ScopeCookie(object):
         return binascii.hexlify(self.signature) + '\n' + self.data
 
     def __repr__(self):
-        return ('<ScopeCookie %s (%s), blaster %s, servers %s, expiration %s>' %
-                (self.serial, self.description, self.blaster, self.servers,
-                self.expires))
+        return ('<ScopeCookie %s, blaster %s, servers %s, expiration %s>' %
+                (self.serial, self.blaster, self.servers, self.expires))
 
     def __iter__(self):
         '''Return an iterator over the scope URLs.'''
@@ -120,13 +118,11 @@ class ScopeCookie(object):
         raise ScopeError("Couldn't validate scope cookie signature")
 
     @classmethod
-    def generate(cls, servers, scopeurls, expires, keydata, blaster=None,
-            description=None):
+    def generate(cls, servers, scopeurls, expires, keydata, blaster=None):
         '''Generate and return a new ScopeCookie.  servers and scopeurls
         are lists of strings, already Punycoded/URL-encoded as appropriate.
         expires is a timezone-aware datetime.  keydata is a PEM-encoded
-        private key.  blaster is an optional string, already URL-encoded.
-        description is an optional string.'''
+        private key.  blaster is an optional string, already URL-encoded.'''
         # Unicode strings can cause signature validation errors
         servers = [str(s) for s in servers]
         scopeurls = [str(u) for u in scopeurls]
@@ -140,10 +136,6 @@ class ScopeCookie(object):
                    ('Servers', ';'.join(servers))]
         if blaster is not None:
             headers.append(('Blaster', blaster))
-        if description is not None:
-            if '\n' in description:
-                raise ScopeError('Description cannot contain newlines')
-            headers.append(('Description', description))
         hdrbuf = ''.join('%s: %s\n' % (k, v) for k, v in headers)
         data = hdrbuf + '\n' + '\n'.join(scopeurls) + '\n'
         # Load the signing key
@@ -153,8 +145,7 @@ class ScopeCookie(object):
         key.sign_update(data)
         sig = key.sign_final()
         # Return the scope cookie
-        return cls(serial, description, expires, blaster, servers, scopeurls,
-                data, sig)
+        return cls(serial, expires, blaster, servers, scopeurls, data, sig)
 
     @classmethod
     def parse(cls, data):
@@ -183,7 +174,6 @@ class ScopeCookie(object):
             raise ScopeError('Malformed signature')
         # Parse headers
         blaster = None
-        description = None
         for line in header.splitlines():
             k, v = line.split(':', 1)
             v = v.strip()
@@ -212,15 +202,13 @@ class ScopeCookie(object):
                             if s.strip() != '']
             elif k == 'Blaster':
                 blaster = v
-            elif k == 'Description':
-                description = v
         # Parse body
         scopeurls = [s for s in [u.strip() for u in body.split('\n')]
                     if s != '']
         # Build scope cookie object
         try:
-            return cls(serial, description, expires, blaster, servers,
-                    scopeurls, data, signature)
+            return cls(serial, expires, blaster, servers, scopeurls, data,
+                    signature)
         except NameError:
             raise ScopeError('Missing cookie header')
 
@@ -231,7 +219,7 @@ class ScopeCookie(object):
 
 
 def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
-                    expires=None, blaster=None, description=None):
+                    expires=None, blaster=None):
     '''High-level helper function: generate a scope cookie for the given
     scope URLs and servers and return its encoded form as a string.  keyfile
     defaults to ~/.diamond/key.pem and expiration defaults to one hour.  If
@@ -246,8 +234,8 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
     def generate(scopeurls, servers):
         return ScopeCookie.generate(servers, scopeurls,
                                     datetime.now(tzutc()) + expires,
-                                    open(keyfile).read(), blaster=blaster,
-                                    description=description).encode()
+                                    open(keyfile).read(),
+                                    blaster=blaster).encode()
     if proxies is None:
         return generate(scopeurls, servers)
     else:
@@ -260,8 +248,7 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
         return ''.join(cookies)
 
 
-def generate_cookie_django(scopeurls, servers, proxies=None, blaster=None,
-        description=None):
+def generate_cookie_django(scopeurls, servers, proxies=None, blaster=None):
     '''A variant of generate_cookie() which pulls the more obscure fixed
     arguments from Django settings.
 
@@ -276,8 +263,7 @@ def generate_cookie_django(scopeurls, servers, proxies=None, blaster=None,
     if expires is not None:
         expires = timedelta(seconds=expires)
     return generate_cookie(scopeurls, servers, proxies=proxies,
-                            keyfile=keyfile, expires=expires, blaster=blaster,
-                            description=description)
+                            keyfile=keyfile, expires=expires, blaster=blaster)
 
 
 def get_cookie_map(cookies):

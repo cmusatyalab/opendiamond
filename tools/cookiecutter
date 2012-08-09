@@ -29,9 +29,6 @@ def main():
     parser.add_option('-v', '--verbose',
             dest='verbose', action='store_true',
             help='be verbose')
-    parser.add_option('-d', '--description', metavar='text',
-            dest='description', default=None,
-            help='text describing the scope')
     parser.add_option('-b', '--blaster', metavar='url',
             dest='blaster', default=None,
             help='JSON Blaster that can relay for the specified servers')
@@ -70,7 +67,7 @@ def main():
 
     # Build and sign the cookie
     cookie = ScopeCookie.generate(opts.servers, scopeurls, expires, keydata,
-            blaster=opts.blaster, description=opts.description)
+            blaster=opts.blaster)
 
     # Print decoded cookie to stderr if verbose
     if opts.verbose:

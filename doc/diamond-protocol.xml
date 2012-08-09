@@ -294,8 +294,7 @@
              "Serial:" random-uuid |
              "Expires:" expiration-time |
              "Servers:" servers-list |
-             "Blaster:" URL |
-             "Description:" UTF-8-text
+             "Blaster:" URL
 
     servers-list = server-address *((";" | ",") server-address)
 
@@ -328,10 +327,6 @@
                             The URL for the JSON Blaster that can communicate
                             with the Diamond servers specified by the Servers
                             header.
-                        </t>
-                        <t hangText="Description (optional) :">
-                            A short human-readable description of the data
-                            referenced by the scope cookie.
                         </t>
                     </list>
                 </t>

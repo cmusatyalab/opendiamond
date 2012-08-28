@@ -97,9 +97,12 @@ def object_app(environ, start_response):
 
     obj = urlopen(url)
     info = gigapan_info_cache[id]
-    real_level = (info.get('levels') - 1) - lvl
-    level_width = info.get('width') / 2**real_level
-    level_height = info.get('height') / 2**real_level
+    levels = int(info.get('levels'))
+    width = int(info.get('width'))
+    height = int(info.get('height'))
+    real_level = (levels - 1) - lvl
+    level_width = width / 2**real_level
+    level_height = height / 2**real_level
     bottom_right = ((col + 1) * TILE_SIZE, (row + 1) * TILE_SIZE)
     img_width = img_height = TILE_SIZE
     if bottom_right[0] > level_width:
@@ -130,9 +133,9 @@ def object_app(environ, start_response):
         ('Expires',                     timestr),
 
         ('x-attr-gigapan_id',           str(id)),
-        ('x-attr-gigapan_height',       str(info.get('height'))),
-        ('x-attr-gigapan_width',        str(info.get('width'))),
-        ('x-attr-gigapan_levels',       str(info.get('levels'))),
+        ('x-attr-gigapan_height',       str(height)),
+        ('x-attr-gigapan_width',        str(width)),
+        ('x-attr-gigapan_levels',       str(levels)),
         ('x-attr-tile_level',           str(lvl)),
         ('x-attr-tile_col',             str(col)),
         ('x-attr-tile_row',             str(row)),

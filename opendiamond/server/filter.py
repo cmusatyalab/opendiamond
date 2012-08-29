@@ -31,6 +31,7 @@ Result cache:
     ) => JSON({
         'input_attrs': {attribute name => murmur(attribute value)},
         'output_attrs': {attribute name => murmur(attribute value)},
+        'omit_attrs': [attribute name],     # optional
         'score': filter score
     })
 
@@ -192,33 +193,42 @@ class _FilterProcess(object):
 
 
 class _FilterResult(object):
-    '''A summary of the result of running a filter on an object: the score
-    and hashes of the output attributes, together with hashes of the input
-    attributes used to produce them.'''
+    '''A summary of the result of running a filter on an object: the score,
+    hashes of the output attributes, and list of omit attributes, together
+    with hashes of the input attributes used to produce them.'''
 
-    def __init__(self, input_attrs=None, output_attrs=None, score=0.0):
+    def __init__(self, input_attrs=None, output_attrs=None, omit_attrs=None,
+            score=0.0):
         self.input_attrs = input_attrs or {}	# name -> murmur(value)
         self.output_attrs = output_attrs or {}	# name -> murmur(value)
+        self.omit_attrs = omit_attrs and set(omit_attrs) or set()  # names
         self.score = score
         # Whether to cache output attributes in the attribute cache
         self.cache_output = False
 
     def encode(self):
-        return json.dumps({
+        props = {
             'input_attrs': self.input_attrs,
             'output_attrs': self.output_attrs,
             'score': self.score,
-        })
+        }
+        if self.omit_attrs:
+            props['omit_attrs'] = list(self.omit_attrs)
+        return json.dumps(props)
 
+    # pylint thinks json.loads() returns bool?
+    # pylint: disable=E1103
     @classmethod
     def decode(cls, data):
         if data is None:
             return None
         dct = json.loads(data)
         try:
-            return cls(dct['input_attrs'], dct['output_attrs'], dct['score'])
+            return cls(dct['input_attrs'], dct['output_attrs'],
+                    dct.get('omit_attrs'), dct['score'])
         except KeyError:
             return None
+    # pylint: enable=E1103
 
 
 class _ObjectProcessor(object):
@@ -350,6 +360,7 @@ class _FilterRunner(_ObjectProcessor):
                     key = proc.get_item()
                     try:
                         obj.omit(key)
+                        result.omit_attrs.add(key)
                         proc.send(True)
                     except KeyError:
                         proc.send(False)
@@ -659,9 +670,14 @@ class FilterStackRunner(threading.Thread):
             return False
         else:
             _debug('Cached output values for %s', runner)
-            # Load the attribute values into the object.
+            # Load the attribute values and omit set into the object.
             for key, value in zip(keys, values):
                 obj[key] = value
+            for key in result.omit_attrs:
+                try:
+                    obj.omit(key)
+                except KeyError:
+                    _log.warning('Impossible omit attribute in result cache')
             # Notify the runner that it had a cache hit.
             runner.cache_hit(result)
             return True

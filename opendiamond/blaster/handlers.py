@@ -41,7 +41,7 @@ from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
 from opendiamond.helpers import connection_ok, sha256
 from opendiamond.protocol import DiamondRPCCookieExpired
-from opendiamond.rpc import RPCError
+from opendiamond.rpc import ConnectionFailure, RPCError
 from opendiamond.scope import ScopeCookie, ScopeError
 
 CACHE_URN_SCHEME = 'blob'
@@ -367,7 +367,7 @@ class EvaluateHandler(_BlasterRequestHandler):
             obj = yield gen.Task(search.evaluate, blob)
         except DiamondRPCCookieExpired:
             raise HTTPError(400, 'Scope cookie expired')
-        except RPCError:
+        except (RPCError, ConnectionFailure):
             _log.exception('evaluate failed')
             raise HTTPError(400, 'Evaluation failed')
         finally:
@@ -576,7 +576,7 @@ class SearchConnection(_StructuredSocketConnection):
             self.error('Scope cookie expired')
             self.close()
             return
-        except RPCError:
+        except (RPCError, ConnectionFailure):
             _log.exception('start failed')
             self.error('Could not start search')
             self.close()

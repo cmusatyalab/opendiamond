@@ -29,7 +29,7 @@ Result cache:
             object ID
         )
     ) => JSON({
-        'input_attrs': {attribute name => murmur(attribute value)},
+        'input_attrs': {attribute name => murmur(attribute value) or None},
         'output_attrs': {attribute name => murmur(attribute value)},
         'omit_attrs': [attribute name],     # optional
         'score': filter score
@@ -200,6 +200,7 @@ class _FilterResult(object):
     def __init__(self, input_attrs=None, output_attrs=None, omit_attrs=None,
             score=0.0):
         self.input_attrs = input_attrs or {}	# name -> murmur(value)
+						# (or -> None if no such attr)
         self.output_attrs = output_attrs or {}	# name -> murmur(value)
         self.omit_attrs = omit_attrs and set(omit_attrs) or set()  # names
         self.score = score
@@ -351,6 +352,11 @@ class _FilterRunner(_ObjectProcessor):
                         result.input_attrs[key] = obj.get_signature(key)
                     else:
                         proc.send(None)
+                        # Record the failure in the result cache.  Otherwise,
+                        # subsequent searches may reuse the cached result
+                        # (probably a drop) even if the attribute becomes
+                        # available.
+                        result.input_attrs[key] = None
                 elif cmd == 'set-attribute':
                     key = proc.get_item()
                     value = proc.get_item()
@@ -600,6 +606,18 @@ class FilterStackRunner(threading.Thread):
                 # For each input attribute...
                 for key, valsig in result.input_attrs.iteritems():
                     # ...try to find a resolvable filter that generated it.
+                    if valsig is None:
+                        # The result claims the filter tried and failed to
+                        # load an input attribute.  We can only resolve this
+                        # result if all other filter results are cached *and*
+                        # none of them contain the attribute.  (The failure
+                        # already indicates a dependency bug in the searchlet,
+                        # so it's not sufficient to check the filter's
+                        # declared dependencies.)  This is an unusual case,
+                        # so simply declare this result unresolvable.
+                        _debug('%s key %s was missing; skipping resolution',
+                                runner, key)
+                        return
                     for cur in output_attrs.get(key, ()):
                         if cache_results[cur].output_attrs[key] != valsig:
                             # This filter generated the right attribute name
@@ -648,10 +666,18 @@ class FilterStackRunner(threading.Thread):
         this runner, thereby avoiding the need to reexecute the filter.
         Return True if successful.'''
         for key, valsig in result.input_attrs.iteritems():
-            if key not in obj or obj.get_signature(key) != valsig:
-                # Input attribute is not present in the object or does
-                # not have the correct hash.  We recheck the hash
-                # because one of the dependent filters may have been
+            if valsig is None and key in obj:
+                # The previous execution tried to read the attribute
+                # and failed, but the attribute is now available.  We
+                # need to reexecute this filter.
+                _debug('Key %s now present; skipping attribute cache for %s',
+                        key, runner)
+                return False
+            if (valsig is not None and
+                    (key not in obj or obj.get_signature(key) != valsig)):
+                # Input attribute should be present in the object but is
+                # missing or does not have the correct hash.  We recheck the
+                # hash because one of the dependent filters may have been
                 # rerun (due to uncached result values) and may have
                 # (improperly) produced a different output this time.
                 _debug('Missing dependent value for %s: %s', runner, key)

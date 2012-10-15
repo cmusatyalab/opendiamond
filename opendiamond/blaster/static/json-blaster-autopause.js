@@ -34,7 +34,8 @@ function AutoPause(blasters, max_unexposed, tag_class) {
 
   // Private methods
   function is_unexposed(el) {
-    return $(el).offset().top > $(document).scrollTop() + $(window).height();
+    return !$(el).is(':visible') ||
+        $(el).offset().top > $(document).scrollTop() + $(window).height();
   }
 
   function update_exposed() {
@@ -64,5 +65,9 @@ function AutoPause(blasters, max_unexposed, tag_class) {
         blaster.pause();
       });
     }
+  };
+
+  this.refresh = function() {
+    update_exposed();
   };
 }

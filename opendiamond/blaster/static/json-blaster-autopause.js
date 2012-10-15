@@ -31,6 +31,7 @@ function AutoPause(blasters, max_unexposed, tag_class) {
 
   // Private members
   var selector = '.' + tag_class;
+  var change_callback;
 
   // Private methods
   function is_unexposed(el) {
@@ -39,12 +40,19 @@ function AutoPause(blasters, max_unexposed, tag_class) {
   }
 
   function update_exposed() {
+    var changed = false;
     $(selector).each(function(i, el) {
       if (!is_unexposed(el)) {
         $(el).removeClass(tag_class);
+        changed = true;
       }
     });
-    if ($(selector).length < max_unexposed) {
+
+    var count = $(selector).length;
+    if (changed && change_callback) {
+      change_callback(count);
+    }
+    if (count < max_unexposed) {
       $.each(blasters, function(i, blaster) {
         blaster.resume();
       });
@@ -57,10 +65,17 @@ function AutoPause(blasters, max_unexposed, tag_class) {
 
   // Public methods
   this.element_added = function(el) {
+    var changed = false;
     if (is_unexposed(el)) {
       $(el).addClass(tag_class);
+      changed = true;
     }
-    if ($(selector).length >= max_unexposed) {
+
+    var count = $(selector).length;
+    if (changed && change_callback) {
+      change_callback(count);
+    }
+    if (count >= max_unexposed) {
       $.each(blasters, function(i, blaster) {
         blaster.pause();
       });
@@ -69,5 +84,10 @@ function AutoPause(blasters, max_unexposed, tag_class) {
 
   this.refresh = function() {
     update_exposed();
+  };
+
+  // Callback takes the number of unviewed results
+  this.onchange = function(callback) {
+    change_callback = callback;
   };
 }

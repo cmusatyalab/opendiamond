@@ -86,9 +86,9 @@ function JSONBlasterSocket(url, search_key) {
     run_handler(msg.event, msg.data);
   };
 
-  sock.onclose = function() {
+  sock.onclose = function(ev) {
     connected = false;
-    run_handler('__close');
+    run_handler('__close', ev);
   };
 
   // Default event handlers

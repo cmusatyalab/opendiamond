@@ -85,7 +85,7 @@ import signal
 import sys
 
 import opendiamond
-from opendiamond.blobcache import BlobCache
+from opendiamond.blobcache import ExecutableBlobCache
 from opendiamond.helpers import daemonize, signalname
 from opendiamond.rpc import RPCConnection, ConnectionFailure
 from opendiamond.server.child import ChildManager
@@ -286,7 +286,8 @@ class DiamondServer(object):
         if datetime.now() - self._last_cache_prune < timedelta(hours=1):
             return
         self._last_cache_prune = datetime.now()
-        BlobCache.prune(self.config.cachedir, self.config.blob_cache_days)
+        ExecutableBlobCache.prune(self.config.cachedir,
+                self.config.blob_cache_days)
 
     def _handle_signal(self, sig, _frame):
         '''Signal handler in the supervisor.'''

@@ -16,7 +16,7 @@ from functools import wraps
 import logging
 
 from opendiamond import protocol
-from opendiamond.blobcache import BlobCache
+from opendiamond.blobcache import ExecutableBlobCache
 from opendiamond.protocol import (DiamondRPCFailure, DiamondRPCFCacheMiss,
         DiamondRPCCookieExpired, DiamondRPCSchemeNotSupported)
 from opendiamond.rpc import RPCHandlers, RPCError, RPCProcedureUnavailable
@@ -34,7 +34,7 @@ class SearchState(object):
     '''Search state that is also needed by filter code.'''
     def __init__(self, config):
         self.config = config
-        self.blob_cache = BlobCache(config.cachedir)
+        self.blob_cache = ExecutableBlobCache(config.cachedir)
         self.session_vars = SessionVariables()
         self.stats = SearchStatistics()
         self.scope = None

@@ -82,9 +82,9 @@ def stat_gigapan(id):
         api_response = parse_json(http_get(api_url))
         assert int(api_response.get('id')) == int(id)
         return api_response
-    except Exception, e:
+    except Exception:
         print >> sys.stderr, "Couldn't parse the data returned by %s." % api_url
-        raise e
+        raise
 
 def missing_tiles(root, id):
     # Use dircache to cut down on overhead for existence checks

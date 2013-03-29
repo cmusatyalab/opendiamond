@@ -10,7 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-import os, sys, urllib
+import json, os, sys, urllib
 from math import ceil
 
 def log_2(x):
@@ -78,8 +78,7 @@ def stat_gigapan(id):
     try:
         api_url = 'http://api.gigapan.org/beta/gigapans/%d.json' % id
         http_get = lambda u: urllib.urlopen(u).read()
-        parse_json = lambda s: eval(s.replace('null', 'None'))
-        api_response = parse_json(http_get(api_url))
+        api_response = json.loads(http_get(api_url))
         assert int(api_response.get('id')) == int(id)
         return api_response
     except Exception:

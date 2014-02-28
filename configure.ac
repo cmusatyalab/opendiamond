@@ -66,7 +66,7 @@ AC_SEARCH_LIBS([pthread_create],
 	[pthread],, AC_MSG_FAILURE([cannot find pthread_create function]))
 
 # some options and includes
-AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/lib/libfilter -DG_DISABLE_DEPRECATED -DG_DISABLE_SINGLE_INCLUDES'])
+AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/lib/libfilter -DG_DISABLE_SINGLE_INCLUDES'])
 
 AC_SUBST(AM_CFLAGS, ['-Wall -Wextra -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -fvisibility=hidden -Wno-unused-parameter -ffunction-sections -fdata-sections $(GLIB2_CFLAGS)'])
 

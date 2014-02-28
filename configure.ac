@@ -66,7 +66,9 @@ AC_SEARCH_LIBS([pthread_create],
 	[pthread],, AC_MSG_FAILURE([cannot find pthread_create function]))
 
 # some options and includes
-AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/lib/libfilter -DG_DISABLE_SINGLE_INCLUDES'])
+# The min/max glib version is actually 2.12, but glib doesn't have special
+# handling for API changes that old
+AC_SUBST(AM_CPPFLAGS, ['-D_REENTRANT -I$(top_srcdir)/lib/libfilter -DG_DISABLE_SINGLE_INCLUDES -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_26 -DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_MIN_REQUIRED'])
 
 AC_SUBST(AM_CFLAGS, ['-Wall -Wextra -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -fvisibility=hidden -Wno-unused-parameter -ffunction-sections -fdata-sections $(GLIB2_CFLAGS)'])
 

@@ -94,7 +94,7 @@ from opendiamond.server.search import Search
 
 SEARCH_LOG_DATE_FORMAT = '%Y-%m-%d-%H:%M:%S'
 SEARCH_LOG_FORMAT = 'search-%s-%d.log'		# Args: date, pid
-SEARCH_LOG_REGEX = 'search-(.+)-[0-9]+\.log$'	# Match group: timestamp
+SEARCH_LOG_REGEX = r'search-(.+)-[0-9]+\.log$'	# Match group: timestamp
 
 _log = logging.getLogger(__name__)
 
@@ -163,7 +163,7 @@ class DiamondServer(object):
                                         opendiamond.__version__, os.getpid())
             _log.info('Server IDs: %s', ', '.join(self.config.serverids))
             if self.config.cache_server:
-                _log.info('Cache: %s:%d' % self.config.cache_server)
+                _log.info('Cache: %s:%d', *self.config.cache_server)
             while True:
                 # Check for search logs that need to be pruned
                 self._prune_child_logs()

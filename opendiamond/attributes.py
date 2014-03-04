@@ -74,7 +74,7 @@ class RGBImageAttributeCodec(_AttributeCodec):
 
 
 class PatchesAttributeCodec(_AttributeCodec):
-    '''Codec for a list of patches.  Decodes to (distance, patches), where 
+    '''Codec for a list of patches.  Decodes to (distance, patches), where
     distance is a double, patches is a tuple of (upper_left_coord,
     lower_right_coord) tuples, and a coordinate is an (x, y) tuple.'''
 

@@ -658,8 +658,8 @@ class FilterStackRunner(threading.Thread):
                     for cur in deps:
                         cur.cache_hit(cache_results[cur])
                     return True
-        else:
-            return False
+
+        return False
 
     def _attribute_cache_try_load(self, runner, obj, result):
         '''Try to update object attributes from the cached result from

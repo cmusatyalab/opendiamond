@@ -14,6 +14,7 @@
 
 from cStringIO import StringIO
 from datetime import timedelta
+from hashlib import sha256
 import logging
 import magic
 import PIL.Image
@@ -39,7 +40,7 @@ from opendiamond.blaster.json import (SearchConfig, SearchConfigResult,
         ServerToClientEvent)
 from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
         FilterSpec)
-from opendiamond.helpers import connection_ok, sha256
+from opendiamond.helpers import connection_ok
 from opendiamond.protocol import DiamondRPCCookieExpired
 from opendiamond.rpc import ConnectionFailure, RPCError
 from opendiamond.scope import ScopeCookie, ScopeError
@@ -51,7 +52,7 @@ CONNECTION_TIMEOUT = 30  # seconds
 
 # HTTP method handlers have specific argument lists rather than
 # (self, *args, **kwargs) as in the superclass.
-# pylint: disable=W0221
+# pylint: disable=arguments-differ
 
 define('enable_testui', default=True,
         help='Enable the example user interface')
@@ -188,8 +189,6 @@ class _BlasterBlob(Blob):
     def __eq__(self, other):
         return isinstance(other, type(self)) and self.uri == other.uri
 
-    # pylint doesn't understand named tuples
-    # pylint: disable=E1101
     @gen.engine
     def fetch(self, blob_cache, callback=None):
         if self._data is None:
@@ -228,7 +227,6 @@ class _BlasterBlob(Blob):
 
         if callback is not None:
             callback()
-    # pylint: enable=E1101
 
 
 class _SearchSpec(object):
@@ -492,7 +490,7 @@ class _StructuredSocketConnection(SockJSConnection):
         return func
 
     # pylint is confused by msg.get()
-    # pylint: disable=E1103
+    # pylint: disable=maybe-no-member
     def on_message(self, data):
         try:
             msg = json.loads(data)
@@ -509,7 +507,7 @@ class _StructuredSocketConnection(SockJSConnection):
             self.error('Unknown event type %s' % event)
             return
         handler(**msg.get('data', {}))
-    # pylint: enable=E1103
+    # pylint: enable=maybe-no-member
 
     def emit(self, event, **args):
         data = {

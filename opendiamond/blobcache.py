@@ -12,12 +12,12 @@
 
 '''On-disk caching of filter code and blob arguments.'''
 
+from hashlib import sha256
 import logging
 import os
 import shutil
 from tempfile import mktemp, mkstemp, mkdtemp
 import time
-from opendiamond.helpers import sha256
 
 GC_SUFFIX = '-'
 
@@ -90,12 +90,12 @@ class BlobCache(object):
             return False
 
     # pylint is confused by the lambda expression
-    # pylint: disable=W0108
+    # pylint: disable=unnecessary-lambda
     def __getitem__(self, sig):
         self._access(sig)
         return self._try_with_rescue(sig,
                         lambda: open(self._path(sig), 'rb').read(), IOError)
-    # pylint: enable=W0108
+    # pylint: enable=unnecessary-lambda
 
     def add(self, data):
         '''Add the specified data to the cache.'''

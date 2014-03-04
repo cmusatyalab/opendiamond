@@ -30,7 +30,7 @@ class ConnectionFailure(Exception):
 class RPCError(Exception):
     '''Base class for RPC error codes.'''
     # pylint doesn't know about __subclasses__
-    # pylint: disable=E1101
+    # pylint: disable=no-member
     @classmethod
     def get_class(cls, code):
         '''Return the error subclass for the specified code.'''
@@ -42,7 +42,7 @@ class RPCError(Exception):
             except KeyError:
                 pass
         raise KeyError('Error code %d' % code)
-    # pylint: enable=E1101
+    # pylint: enable=no-member
 
 
 class RPCEncodingError(RPCError):
@@ -164,7 +164,7 @@ class RPCConnection(object):
 
 
 # _RPCMeta accesses a protected member of the classes it controls
-# pylint: disable=W0212
+# pylint: disable=protected-access
 class _RPCMeta(type):
     '''Metaclass for RPCHandlers that collects the methods tagged with
     @RPCHandlers.handler into a dictionary.'''
@@ -178,7 +178,7 @@ class _RPCMeta(type):
                 # f is an unbound method
                 obj._cmds[f.rpc_procedure] = f
         return obj
-# pylint: enable=W0212
+# pylint: enable=protected-access
 
 
 class RPCHandlers(object):
@@ -199,10 +199,10 @@ class RPCHandlers(object):
         return decorator
 
     # self._cmds is created by _RPCMeta
-    # pylint: disable=E1101
+    # pylint: disable=no-member
     def get_handler(self, procedure):
         '''Returns the handler function for the specified procedure number
         or raises KeyError.'''
         # self._cmds contains unbound methods; return a bound one
         return self._cmds[procedure].__get__(self, self.__class__)
-    # pylint: enable=E1101
+    # pylint: enable=no-member

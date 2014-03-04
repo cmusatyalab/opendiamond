@@ -218,7 +218,7 @@ class _FilterResult(object):
         return json.dumps(props)
 
     # pylint thinks json.loads() returns bool?
-    # pylint: disable=E1103
+    # pylint: disable=maybe-no-member
     @classmethod
     def decode(cls, data):
         if data is None:
@@ -229,7 +229,7 @@ class _FilterResult(object):
                     dct.get('omit_attrs'), dct['score'])
         except KeyError:
             return None
-    # pylint: enable=E1103
+    # pylint: enable=maybe-no-member
 
 
 class _ObjectProcessor(object):

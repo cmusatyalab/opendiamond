@@ -181,7 +181,7 @@ class XDR(object):
 
 
 # This is a context manager, we're not using naming rules for classes
-# pylint: disable=C0103
+# pylint: disable=invalid-name
 class _convert_exceptions(object):
     def __enter__(self):
         return self
@@ -190,7 +190,7 @@ class _convert_exceptions(object):
         if type in (XDRError, ValueError, struct.error):
             raise XDREncodingError()
         return False
-# pylint: enable=C0103
+# pylint: enable=invalid-name
 
 
 class XDRStruct(object):

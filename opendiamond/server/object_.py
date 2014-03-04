@@ -230,7 +230,7 @@ class ObjectLoader(object):
             self._load_attributes(obj, attr_url)
 
     # The return type of json.loads() confuses pylint
-    # pylint: disable=E1103
+    # pylint: disable=maybe-no-member
     def _load_attributes(self, obj, url):
         '''Load JSON-encoded attribute data from the specified URL.'''
         _headers, body = self._http.get(url)
@@ -242,4 +242,4 @@ class ObjectLoader(object):
             raise ObjectLoadError(str(e))
         for k, v in attrs.iteritems():
             obj[k] = str(v) + '\0'
-    # pylint: enable=E1103
+    # pylint: enable=maybe-no-member

@@ -15,13 +15,12 @@ import cPickle as pickle
 from datetime import datetime
 import dateutil.parser
 from dateutil.tz import tzutc
+from hashlib import sha256
 import logging
 import os
 import shutil
 from tempfile import NamedTemporaryFile
 import zipfile
-
-from opendiamond.helpers import sha256
 
 _log = logging.getLogger(__name__)
 

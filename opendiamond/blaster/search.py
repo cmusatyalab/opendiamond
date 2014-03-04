@@ -10,12 +10,12 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from hashlib import sha256
 import logging
 from tornado import gen, stack_context
 import uuid
 
 from opendiamond.blaster.rpc import ControlConnection, BlastConnection
-from opendiamond.helpers import sha256
 from opendiamond.protocol import (XDR_setup, XDR_filter_config,
         XDR_blob_data, XDR_start, XDR_reexecute, DiamondRPCFCacheMiss)
 from opendiamond.rpc import RPCError, ConnectionFailure

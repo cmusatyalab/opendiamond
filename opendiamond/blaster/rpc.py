@@ -134,7 +134,7 @@ class _RPCClientConnection(object):
             callback(reply)
 
     # We intentionally have a catch-all exception handler
-    # pylint: disable=W0703
+    # pylint: disable=broad-except
     @gen.engine
     def _reply_handler(self):
         '''Reply-handling coroutine.  Must not throw exceptions.'''
@@ -171,11 +171,11 @@ class _RPCClientConnection(object):
             except Exception:
                 # Don't crash the coroutine if the callback fails
                 _log.exception('Reply callback raised exception')
-    # pylint: enable=W0703
+    # pylint: enable=broad-except
 
 
 # pylint doesn't understand that this is an instance method factory
-# pylint: disable=W0212
+# pylint: disable=protected-access
 def _stub(cmd, request_class=None, reply_class=None):
     if request_class is not None:
         request_type = request_class
@@ -186,7 +186,7 @@ def _stub(cmd, request_class=None, reply_class=None):
             raise RPCEncodingError('Incorrect request type')
         self._call(cmd, request, reply_class, callback)
     return call
-# pylint: enable=W0212
+# pylint: enable=protected-access
 
 
 class ControlConnection(_RPCClientConnection):
@@ -200,18 +200,18 @@ class ControlConnection(_RPCClientConnection):
     session_variables_set = _stub(19, None, protocol.XDR_session_vars)
 
     # We intentionally omit the nonce argument
-    # pylint: disable=W0221
+    # pylint: disable=arguments-differ
     def connect(self, address, callback=None):
         _RPCClientConnection.connect(self, address, callback=callback)
-    # pylint: enable=W0221
+    # pylint: enable=arguments-differ
 
 
 class BlastConnection(_RPCClientConnection):
     get_object = _stub(2, None, protocol.XDR_object)
 
     # We intentionally make the nonce mandatory
-    # pylint: disable=W0222
+    # pylint: disable=signature-differs
     def connect(self, address, nonce, callback=None):
         _RPCClientConnection.connect(self, address, nonce=nonce,
                 callback=callback)
-    # pylint: enable=W0222
+    # pylint: enable=signature-differs

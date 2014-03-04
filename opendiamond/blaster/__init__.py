@@ -109,7 +109,7 @@ class JSONBlaster(tornado.web.Application):
         return urljoin(options.baseurl, relative)
 
     # We don't want to abort the pruning thread on an exception
-    # pylint: disable=W0703
+    # pylint: disable=broad-except
     def _prune_cache_thread(self):
         '''Runs as a separate Python thread; cannot interact with Tornado
         state.'''
@@ -123,4 +123,4 @@ class JSONBlaster(tornado.web.Application):
             except Exception:
                 _log.exception('Pruning search cache')
             time.sleep(self.cache_prune_interval)
-    # pylint: enable=W0703
+    # pylint: enable=broad-except

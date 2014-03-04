@@ -13,7 +13,7 @@
 '''XDR serialization/deserialization for the Diamond wire protocol.'''
 
 # XDR classes are oddly named for consistency with OpenDiamond-Java
-# pylint: disable=C0103
+# pylint: disable=invalid-name
 
 from opendiamond.rpc import RPCError
 from opendiamond.xdr import XDR, XDRStruct

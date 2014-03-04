@@ -62,7 +62,7 @@ class DiamondConfig(object):
     '''Container for a set of configuration values.'''
 
     # We dynamically assign object properties, which confuses pylint
-    # pylint: disable=E0203,E1101,E1103
+    # pylint: disable=no-member,maybe-no-member,access-member-before-definition
     def __init__(self, path=None, **kwargs):
         '''kwargs are attr=value pairs which should override any values
         parsed from the config file.  Only valid config attributes are
@@ -243,4 +243,4 @@ class DiamondConfig(object):
         # Set default dataretriever stores
         if not self.retriever_stores:
             self.retriever_stores = ['diamond', 'proxy']
-    # pylint: enable=E0203,E1101,E1103
+    # pylint: enable=no-member,maybe-no-member,access-member-before-definition

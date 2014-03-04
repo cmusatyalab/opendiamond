@@ -35,7 +35,7 @@ class _ScopeListHandler(ContentHandler):
         self.pending_objects = []
 
     # We're overriding a method; we can't control its name
-    # pylint: disable=C0103
+    # pylint: disable=invalid-name
     def startElement(self, name, attrs):
         if name == 'objectlist':
             # count is optional
@@ -46,7 +46,7 @@ class _ScopeListHandler(ContentHandler):
             self.count += int(attrs['adjust'])
         elif name == 'object':
             self.pending_objects.append(attrs['src'])
-    # pylint: enable=C0103
+    # pylint: enable=invalid-name
 
 
 class ScopeListLoader(object):

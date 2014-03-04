@@ -14,13 +14,8 @@ import math
 import os
 from lxml import etree
 from lxml.etree import DocumentInvalid, Element, ParseError
-import zipfile
-
-# pkg_resources does fancy things with exports
-# pylint: disable=E0611
 from pkg_resources import resource_string
-# pylint: enable=E0611
-
+import zipfile
 
 _schema_doc = etree.fromstring(resource_string(__name__, "bundle.xsd"))
 _schema = etree.XMLSchema(_schema_doc)

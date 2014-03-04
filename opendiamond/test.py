@@ -22,7 +22,7 @@ import textwrap
 from opendiamond.scope import ScopeCookie, ScopeError
 
 # unittest uses Java-style naming conventions
-# pylint: disable=C0103
+# pylint: disable=invalid-name
 
 class KeyPair(object):
     def __init__(self, key, cert):

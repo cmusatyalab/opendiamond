@@ -12,7 +12,6 @@
 
 from __future__ import with_statement
 from ctypes import cdll, c_char_p, c_int
-import hashlib
 import logging
 import os
 import resource
@@ -26,7 +25,7 @@ from opendiamond.hash import murmur3_x64_128
 _log = logging.getLogger(__name__)
 
 # We use os._exit() to avoid calling destructors after fork()
-# pylint: disable=W0212
+# pylint: disable=protected-access
 def daemonize():
     # Double-fork
     if os.fork():
@@ -45,7 +44,7 @@ def daemonize():
     os.open("/dev/null", os.O_RDWR)
     os.dup2(0, 1)
     os.dup2(0, 2)
-# pylint: enable=W0212
+# pylint: enable=protected-access
 
 
 def signalname(signum):
@@ -55,13 +54,6 @@ def signalname(signum):
                 getattr(signal, attr) == signum):
             return attr
     return 'signal %d' % signum
-
-
-# hashlib confuses pylint, pylint #51250.  Provide sha256 here to centralize
-# the workaround.
-# pylint: disable=C0103,E1101
-sha256 = hashlib.sha256
-# pylint: enable=C0103,E1101
 
 
 def murmur(data):

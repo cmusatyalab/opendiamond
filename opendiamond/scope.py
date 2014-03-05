@@ -100,22 +100,28 @@ class ScopeCookie(object):
         # Load certificates
         certs = [X509.load_cert_string(cd) for cd in certdata]
         # Find a certificate that verifies the signature
+        failure = "Couldn't validate scope cookie signature"
         for cert in certs:
-            # Rudimentary certificate checks
-            if cert.verify() != 1:
-                continue
-            if cert.get_not_before().get_datetime() > now:
-                continue
-            if cert.get_not_after().get_datetime() < now:
-                continue
             # Check the signature
             key = cert.get_pubkey()
             key.verify_init()
             key.verify_update(self.data)
-            if key.verify_final(self.signature) == 1:
-                # We have a match
-                return
-        raise ScopeError("Couldn't validate scope cookie signature")
+            if key.verify_final(self.signature) != 1:
+                # Signature does not match certificate
+                continue
+            # Signature valid; now check the certificate
+            if cert.verify() != 1:
+                failure = 'Scope cookie signed by invalid certificate'
+                continue
+            if cert.get_not_before().get_datetime() > now:
+                failure = 'Scope cookie signed by postdated certificate'
+                continue
+            if cert.get_not_after().get_datetime() < now:
+                failure = 'Scope cookie signed by expired certificate'
+                continue
+            # We have a match
+            return
+        raise ScopeError(failure)
 
     @classmethod
     def generate(cls, servers, scopeurls, expires, keydata, blaster=None):

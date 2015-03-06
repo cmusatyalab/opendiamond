@@ -60,7 +60,9 @@ class RGBImageAttributeCodec(_AttributeCodec):
     '''Codec for an RGBImage structure.  Decodes to a PIL.Image.'''
 
     def encode(self, item):
-        pixels = item.tostring('raw', 'RGBX', 0, 1)
+        # tobytes in Pillow >= 2.0.0, tostring in older Pillow/PIL
+        tobytes = getattr(item, 'tobytes', item.tostring)
+        pixels = tobytes('raw', 'RGBX', 0, 1)
         width, height = item.size
         header = struct.pack('IIii', 0, len(pixels) + 16, height, width)
         return header + pixels
@@ -69,8 +71,10 @@ class RGBImageAttributeCodec(_AttributeCodec):
         # Parse the dimensions out of the header
         height, width = struct.unpack('2i', data[8:16])
         # Read the image data
-        return PIL.Image.fromstring('RGB', (width, height), data[16:],
-                                'raw', 'RGBX', 0, 1)
+        # frombytes in Pillow >= 2.0.0, fromstring in older Pillow/PIL
+        frombytes = getattr(PIL.Image, 'frombytes', PIL.Image.fromstring)
+        return frombytes('RGB', (width, height), data[16:], 'raw', 'RGBX',
+                0, 1)
 
 
 class PatchesAttributeCodec(_AttributeCodec):

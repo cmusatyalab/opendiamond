@@ -77,19 +77,19 @@ class _SearchChild(object):
                 killed = set()
                 # Loop until all grandchildren are killed
                 while True:
-                    pids = [int(pid) for pid in open(self._taskfile)]
+                    with open(self._taskfile) as fh:
+                        pids = [int(pid) for pid in fh
+                                if int(pid) not in killed]
                     if len(pids) == 0:
                         break
                     for pid in pids:
-                        if pid not in killed:
-                            try:
-                                os.kill(pid, signal.SIGKILL)
-                            except OSError:
-                                # Unable to signal process; perhaps it has
-                                # already died
-                                pass
-                            else:
-                                killed.add(pid)
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                        except OSError:
+                            # Unable to signal process; perhaps it has
+                            # already died
+                            pass
+                        killed.add(pid)
                 for _i in range(3):
                     # rmdir has been seen to return "device or resource busy"
                     # or "interrupted system call".  The former can be

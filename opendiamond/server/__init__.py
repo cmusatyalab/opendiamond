@@ -156,6 +156,9 @@ class DiamondServer(object):
         self._logfile_handler.setFormatter(_TimestampedLogFormatter())
         baselog.addHandler(self._logfile_handler)
 
+    # We intentionally catch all exceptions
+    # pylint doesn't understand the conditional return in ConnListener.accept()
+    # pylint: disable=broad-except,unpacking-non-sequence
     def run(self):
         try:
             # Log startup of parent
@@ -193,7 +196,10 @@ class DiamondServer(object):
             # Don't attempt to shut down cleanly; just flush logging buffers
             logging.shutdown()
             sys.exit(1)
+    # pylint: enable=broad-except,unpacking-non-sequence
 
+    # We intentionally catch all exceptions
+    # pylint: disable=broad-except
     def _child(self, control, data):
         '''Main function for child process.'''
         # Close supervisor log, open child log
@@ -243,6 +249,7 @@ class DiamondServer(object):
             if search is not None:
                 search.shutdown()
             logging.shutdown()
+    # pylint: enable=broad-except
 
     def _prune_child_logs(self):
         '''Remove search logs older than the configured number of days.'''

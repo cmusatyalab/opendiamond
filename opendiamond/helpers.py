@@ -104,22 +104,19 @@ class _DummyTcpWrappers(object):
 
 
 # We're creating a callable, so don't use attribute naming rules
-# pylint: disable=C0103
+# pylint: disable=invalid-name
 try:
     connection_ok = _TcpWrappers()
 except ImportError, _e:
     connection_ok = _DummyTcpWrappers(str(_e))
-# pylint: enable=C0103
+# pylint: enable=invalid-name
 
 
 # urlparse wrapper to handle http://bugs.python.org/issue11467
 # URIs starting with sha256:[0-9a-f] would fail in Python 2.7.1
-# pylint has trouble with ParseResult, pylint #8766
-# pylint: disable=E1101
 def split_scheme(url):
     if sys.version_info[0:3] == (2, 7, 1) and url.startswith('sha256:'):
         return url.split(':')
     else:
         parts = urlparse(url)
         return (parts.scheme, parts.path)
-# pylint: enable=E1101

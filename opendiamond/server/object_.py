@@ -152,7 +152,7 @@ class _HttpLoader(object):
         try:
             self._curl.perform()
         except curl.error, e:
-            raise ObjectLoadError(e[1])
+            raise ObjectLoadError(e.args[1])
         # Localize fetched data and release this object's copy
         headers = self._headers
         self._headers = {}

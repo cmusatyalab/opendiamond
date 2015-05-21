@@ -254,6 +254,8 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
         return ''.join(cookies)
 
 
+# Don't complain if Django isn't installed on the build system
+# pylint: disable=import-error
 def generate_cookie_django(scopeurls, servers, proxies=None, blaster=None):
     '''A variant of generate_cookie() which pulls the more obscure fixed
     arguments from Django settings.
@@ -270,6 +272,7 @@ def generate_cookie_django(scopeurls, servers, proxies=None, blaster=None):
         expires = timedelta(seconds=expires)
     return generate_cookie(scopeurls, servers, proxies=proxies,
                             keyfile=keyfile, expires=expires, blaster=blaster)
+# pylint: enable=import-error
 
 
 def get_cookie_map(cookies):

@@ -793,6 +793,8 @@ class FilterStackRunner(threading.Thread):
                                     objs_dropped=int(not accept))
         return accept
 
+    # We want to catch all exceptions
+    # pylint: disable=broad-except
     def run(self):
         '''Thread function.'''
         try:
@@ -808,6 +810,7 @@ class FilterStackRunner(threading.Thread):
         except Exception:
             _log.exception('Worker thread exception')
             os.kill(os.getpid(), signal.SIGUSR1)
+    # pylint: enable=broad-except
 
 
 class Reference(object):

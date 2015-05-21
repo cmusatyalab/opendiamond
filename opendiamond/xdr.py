@@ -80,7 +80,7 @@ class _XDRArrayHandler(_XDRTypeHandler):
             self._item_handler.pack(xdr, val)
 
     def unpack(self, xdr):
-        return xdr.unpack_array(lambda:self._item_handler.unpack(xdr))
+        return xdr.unpack_array(lambda: self._item_handler.unpack(xdr))
 
 
 class _XDROptionalHandler(_XDRTypeHandler):

@@ -6,7 +6,7 @@
 <?rfc rfcedstyle="yes"?>
 <?rfc toc="yes"?>
 <?rfc iprnotified="no"?>
-<rfc category="std">
+<rfc category="std" docName="diamond-protocol">
     <front>
         <title>Diamond Protocol</title>
         <author fullname="Benjamin Gilbert" initials="B." surname="Gilbert">
@@ -44,7 +44,7 @@
                 <email>rahul AT cs DOT cmu DOT edu</email>
             </address>
         </author>
-        <date year="2012" />
+        <date year="2012" month="August" day="9"/>
         <keyword>diamond</keyword>
         <keyword>Diamond</keyword>
         <keyword>Carnegie Mellon</keyword>

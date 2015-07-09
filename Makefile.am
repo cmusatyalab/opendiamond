@@ -119,7 +119,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL \
 
 doc/diamond-protocol.html: doc/diamond-protocol.xml
 	$(MKDIR_P) doc
-	$(XML2RFC) --html -f $@ $^
+	$(XML2RFC) --html -o $@ $^
 
 check-local:
 	@# Fail on serious pylint errors

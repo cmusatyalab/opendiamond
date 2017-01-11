@@ -99,7 +99,7 @@ class _SearchChild(object):
                     try:
                         os.rmdir(self._cgroupdir)
                     except OSError:
-                        time.sleep(0.001)
+                        time.sleep(0.01)
                     else:
                         break
                 else:

@@ -237,7 +237,7 @@ class DiamondServer(object):
                 self._ignore_signals = True
         except ConnectionFailure:
             # Client closed connection
-            pass
+            _log.info('Client closed connection')
         except _Signalled, s:
             # Worker threads raise SIGUSR1 when they've encountered a
             # fatal error

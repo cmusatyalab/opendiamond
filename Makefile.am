@@ -5,12 +5,13 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opendiamond.pc
 
-nobase_pyexec_PYTHON = \
+nobase_noinst_PYTHON = \
 	opendiamond/__init__.py \
 	opendiamond/attributes.py \
 	opendiamond/blobcache.py \
 	opendiamond/bundle.py \
 	opendiamond/config.py \
+	opendiamond/hash.py \
 	opendiamond/helpers.py \
 	opendiamond/protocol.py \
 	opendiamond/rpc.py \
@@ -68,10 +69,8 @@ nobase_pyexec_PYTHON = \
 	opendiamond/server/sessionvars.py \
 	opendiamond/server/statistics.py
 
-noinst_PYTHON = \
-	opendiamond/hash.py
-
-nobase_dist_pyexec_DATA = \
+nobase_dist_noinst_DATA = \
+	opendiamond/hashmodule.c \
 	opendiamond/blaster/static/json-blaster.js \
 	opendiamond/blaster/static/json-blaster-autopause.js \
 	opendiamond/blaster/static/sockjs.js \
@@ -103,16 +102,12 @@ dist_bin_SCRIPTS = \
 	tools/diamondd \
 	tools/diamond-bundle-predicate
 
-nobase_pyexec_LTLIBRARIES = opendiamond/hash.la
-opendiamond_hash_la_SOURCES = opendiamond/hashmodule.c
-opendiamond_hash_la_CFLAGS = $(PYTHON_CFLAGS)
-opendiamond_hash_la_LDFLAGS = -avoid-version -module
-
 dist_doc_DATA = doc/diamond-protocol.html
 MAINTAINERCLEANFILES = doc/diamond-protocol.html
 
 EXTRA_DIST = CREDITS LICENSE INSTALL \
-	pylintrc \
+	setup.py setup.cfg \
+	pylintrc tox.ini \
 	bundle/bundle.xslt \
 	doc/diamond-protocol.xml \
 	tools/volcano
@@ -133,11 +128,18 @@ check-local:
 	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) $(srcdir)/opendiamond/test.py
 
+all-local:
+	(cd $(srcdir); $(PYTHON) setup.py build \
+		--build-base $(shell readlink -f $(builddir))/build \
+		--verbose)
 
-install-exec-hook:
-	rm -f $(DESTDIR)$(pkgpyexecdir)/hash.la \
-		$(DESTDIR)$(pkgpyexecdir)/hash.a
+install-exec-local:
+	$(PYTHON) $(srcdir)/setup.py install \
+		--prefix $(DESTDIR)$(prefix) \
+		--single-version-externally-managed \
+		--record $(DESTDIR)$(pkgpythondir)/install_files.txt \
+		--verbose
 
-uninstall-hook:
-	rm -f $(DESTDIR)$(pkgpyexecdir)/__init__.py \
-		$(DESTDIR)$(pkgpyexecdir)/hash.so
+uninstall-local:
+	cat $(DESTDIR)$(pkgpythondir)/install_files.txt | xargs rm -rf`
+	rm -rf $(DESTDIR)$(pkgpythondir)

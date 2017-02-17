@@ -6,6 +6,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opendiamond.pc
 
 nobase_pyexec_PYTHON = \
+	opendiamond/__init__.py \
 	opendiamond/attributes.py \
 	opendiamond/blobcache.py \
 	opendiamond/bundle.py \
@@ -68,7 +69,6 @@ nobase_pyexec_PYTHON = \
 	opendiamond/server/statistics.py
 
 noinst_PYTHON = \
-	opendiamond/__init__.py \
 	opendiamond/hash.py
 
 nobase_dist_pyexec_DATA = \
@@ -133,15 +133,6 @@ check-local:
 	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) $(srcdir)/opendiamond/test.py
 
-install-exec-local:
-	@# Fabricate opendiamond/__init__.py containing the software version
-	$(MKDIR_P) $(DESTDIR)/$(pkgpyexecdir)
-	echo "__version__ = '$(VERSION)'" > $(DESTDIR)$(pkgpyexecdir)/__init__.py
-	@# Set the __init__.py utimes to those of configure.ac to prevent
-	@# file conflicts when installing both 32-bit and 64-bit RPM packages.
-	@# Using configure.ac as the source file ensures that __init__.pyc
-	@# is updated when the software version changes.
-	touch -r $(top_srcdir)/configure.ac $(DESTDIR)$(pkgpyexecdir)/__init__.py
 
 install-exec-hook:
 	rm -f $(DESTDIR)$(pkgpyexecdir)/hash.la \

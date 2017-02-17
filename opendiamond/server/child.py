@@ -24,6 +24,7 @@ from opendiamond.helpers import signalname
 
 _log = logging.getLogger(__name__)
 
+
 class _SearchChild(object):
     '''A forked search process.'''
 
@@ -105,8 +106,8 @@ class _SearchChild(object):
                 else:
                     # Leak an empty cgroup
                     _log.warning("Couldn't remove %s", self._cgroupdir)
-                _log.info('PID %d exiting, killed %d processes', self.pid,
-                                        len(killed))
+                _log.info('PID %d exiting, killed %d processes',
+                          self.pid, len(killed))
             else:
                 _log.info('PID %d exiting', self.pid)
 
@@ -161,11 +162,11 @@ class ChildManager(object):
                 # No exited processes
                 break
             if os.WIFSIGNALED(status):
-                _log.info('PID %d exited on %s', pid,
-                                signalname(os.WTERMSIG(status)))
+                _log.info('PID %d exited on %s',
+                          pid, signalname(os.WTERMSIG(status)))
             else:
-                _log.info('PID %d exited with status %d', pid,
-                                os.WEXITSTATUS(status))
+                _log.info('PID %d exited with status %d',
+                          pid, os.WEXITSTATUS(status))
             self._cleanup_child(pid)
 
     def kill_all(self):

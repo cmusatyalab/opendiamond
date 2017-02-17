@@ -17,18 +17,20 @@ import logging
 
 from opendiamond import protocol
 from opendiamond.blobcache import ExecutableBlobCache
-from opendiamond.protocol import (DiamondRPCFailure, DiamondRPCFCacheMiss,
-        DiamondRPCCookieExpired, DiamondRPCSchemeNotSupported)
+from opendiamond.protocol import (
+    DiamondRPCFailure, DiamondRPCFCacheMiss, DiamondRPCCookieExpired,
+    DiamondRPCSchemeNotSupported)
 from opendiamond.rpc import RPCHandlers, RPCError, RPCProcedureUnavailable
 from opendiamond.scope import ScopeCookie, ScopeError, ScopeCookieExpired
-from opendiamond.server.filter import (FilterStack, Filter,
-        FilterDependencyError, FilterUnsupportedSource)
+from opendiamond.server.filter import (
+    FilterStack, Filter, FilterDependencyError, FilterUnsupportedSource)
 from opendiamond.server.object_ import EmptyObject, Object, ObjectLoader
 from opendiamond.server.scopelist import ScopeListLoader
 from opendiamond.server.sessionvars import SessionVariables
 from opendiamond.server.statistics import SearchStatistics
 
 _log = logging.getLogger(__name__)
+
 
 class SearchState(object):
     '''Search state that is also needed by filter code.'''
@@ -100,6 +102,7 @@ class Search(RPCHandlers):
         present in the blob cache.'''
         def log_header(desc):
             _log.info('  %s:', desc)
+
         def log_item(key, fmt, *args):
             _log.info('    %-14s ' + fmt, key + ':', *args)
 
@@ -132,13 +135,13 @@ class Search(RPCHandlers):
             log_item('Blob', '%s, %s', f.blob, blob_state)
             log_item('Arguments', '%s', ', '.join(f.arguments) or '<none>')
             log_item('Dependencies', '%s',
-                            ', '.join(f.dependencies) or '<none>')
+                     ', '.join(f.dependencies) or '<none>')
             log_item('Minimum score', '%f', f.min_score)
             log_item('Maximum score', '%f', f.max_score)
             if unsupported:
                 raise DiamondRPCSchemeNotSupported()
             filters.append(Filter(f.name, f.code, f.blob, f.min_score,
-                            f.max_score, f.arguments, f.dependencies))
+                           f.max_score, f.arguments, f.dependencies))
         filters = FilterStack(filters)
 
         # Parse scope cookies
@@ -150,9 +153,9 @@ class Search(RPCHandlers):
                 log_item('Servers', '%s', ', '.join(cookie.servers))
                 log_item('Expires', '%s', cookie.expires)
                 cookie.verify(self._state.config.serverids,
-                                self._state.config.certdata)
+                              self._state.config.certdata)
             scope = ScopeListLoader(self._state.config, self._server_id,
-                                cookies)
+                                    cookies)
         except ScopeCookieExpired, e:
             _log.warning('%s', e)
             raise DiamondRPCCookieExpired()
@@ -170,7 +173,7 @@ class Search(RPCHandlers):
     def send_blobs(self, params):
         '''Add blobs to the blob cache.'''
         _log.info('Received %d blobs, %d bytes', len(params.blobs),
-                    sum([len(b) for b in params.blobs]))
+                  sum([len(b) for b in params.blobs]))
         for blob in params.blobs:
             self._state.blob_cache.add(blob)
 
@@ -194,7 +197,7 @@ class Search(RPCHandlers):
         self._filters.start_threads(self._state, self._state.config.threads)
 
     @RPCHandlers.handler(30, protocol.XDR_reexecute,
-                             protocol.XDR_attribute_list)
+                         protocol.XDR_attribute_list)
     def reexecute_filters(self, params):
         '''Reexecute the search on the specified object.'''
         try:
@@ -214,16 +217,16 @@ class Search(RPCHandlers):
         else:
             # If no output attributes were specified, encode everything
             output_attrs = None
-        return protocol.XDR_attribute_list(obj.xdr_attributes(output_attrs,
-                                for_drop=drop))
+        return protocol.XDR_attribute_list(
+            obj.xdr_attributes(output_attrs, for_drop=drop))
 
     @RPCHandlers.handler(29, reply_class=protocol.XDR_search_stats)
     @running(True)
     def request_stats(self):
         '''Return current search statistics.'''
         filter_stats = [f.stats for f in self._filters]
-        return self._state.stats.xdr(self._state.scope.get_count(),
-                            filter_stats)
+        return self._state.stats.xdr(
+            self._state.scope.get_count(), filter_stats)
 
     @RPCHandlers.handler(18, reply_class=protocol.XDR_session_vars)
     @running(True)

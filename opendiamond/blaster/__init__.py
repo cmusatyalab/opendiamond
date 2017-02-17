@@ -25,18 +25,18 @@ from tornado.web import url
 
 from opendiamond.blobcache import BlobCache
 from opendiamond.blaster.cache import SearchCache
-from opendiamond.blaster.handlers import (SearchHandler, PostBlobHandler,
-        EvaluateHandler, ResultHandler, AttributeHandler, UIHandler,
-        SearchConnection)
+from opendiamond.blaster.handlers import (
+    SearchHandler, PostBlobHandler, EvaluateHandler, ResultHandler,
+    AttributeHandler, UIHandler, SearchConnection)
 
 define('baseurl', type=str, default=None,
-        metavar='URL', help='Base URL for this JSON Blaster')
+       metavar='URL', help='Base URL for this JSON Blaster')
 define('blob_cache_dir',
-        default=os.path.expanduser('~/.diamond/blob-cache-json'),
-        metavar='DIR', help='Cache directory for binary objects')
+       default=os.path.expanduser('~/.diamond/blob-cache-json'),
+       metavar='DIR', help='Cache directory for binary objects')
 define('search_cache_dir',
-        default=os.path.expanduser('~/.diamond/search-cache-json'),
-        metavar='DIR', help='Cache directory for search definitions')
+       default=os.path.expanduser('~/.diamond/search-cache-json'),
+       metavar='DIR', help='Cache directory for search definitions')
 
 _log = logging.getLogger(__name__)
 
@@ -46,20 +46,20 @@ class JSONBlaster(tornado.web.Application):
         (r'/$', SearchHandler),
         (r'/blob$', PostBlobHandler),
         url(r'/result/([0-9a-f]{64})$',
-                EvaluateHandler, name='evaluate'),
+            EvaluateHandler, name='evaluate'),
         url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})$',
-                ResultHandler, name='result'),
+            ResultHandler, name='result'),
         url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})/raw/(.*)$',
-                AttributeHandler, name='attribute-raw'),
+            AttributeHandler, name='attribute-raw'),
         url(r'/result/([0-9a-f]{64})/([0-9a-f]{64})/image/(.*)$',
-                AttributeHandler, kwargs={'transcode': True},
-                name='attribute-image'),
+            AttributeHandler, kwargs={'transcode': True},
+            name='attribute-image'),
         url(r'/ui$', UIHandler, name='ui-search',
-                kwargs={'template': 'search.html'}),
+            kwargs={'template': 'search.html'}),
         url(r'/ui/results$', UIHandler, name='ui-results',
-                kwargs={'template': 'results.html'}),
+            kwargs={'template': 'results.html'}),
         url(r'/ui/result$', UIHandler, name='ui-result',
-                kwargs={'template': 'result.html'}),
+            kwargs={'template': 'result.html'}),
     )
 
     app_settings = {
@@ -71,7 +71,7 @@ class JSONBlaster(tornado.web.Application):
         'sockjs_url': '/static/sockjs.js',
     }
 
-    cache_prune_interval = 3600 # seconds
+    cache_prune_interval = 3600  # seconds
     # The blob cache is only used as a holding area for blobs that will soon
     # be added to a search, so cache objects don't need a long lifetime.
     blob_cache_days = 1
@@ -81,7 +81,7 @@ class JSONBlaster(tornado.web.Application):
             raise ValueError('Base URL must be configured')
 
         router = SockJSRouter(SearchConnection, '/search',
-                self.sockjs_settings)
+                              self.sockjs_settings)
         # Allow connections to find the application
         router.application = self
 
@@ -98,7 +98,7 @@ class JSONBlaster(tornado.web.Application):
         self.search_cache = SearchCache(options.search_cache_dir)
 
         self._pruner = threading.Thread(target=self._prune_cache_thread,
-                name='prune-cache')
+                                        name='prune-cache')
         self._pruner.daemon = True
         self._pruner.start()
 

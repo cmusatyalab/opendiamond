@@ -15,4 +15,3 @@ from models import Collection, Server
 
 admin.site.register(Collection)
 admin.site.register(Server)
-

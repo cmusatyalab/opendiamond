@@ -21,13 +21,14 @@ import textwrap
 
 from opendiamond.scope import ScopeCookie, ScopeError
 
+
 # unittest uses Java-style naming conventions
 # pylint: disable=invalid-name
-
 class KeyPair(object):
     def __init__(self, key, cert):
         self.key = key
         self.cert = cert
+
 
 KeyPair.valid = (KeyPair('''-----BEGIN RSA PRIVATE KEY-----
 MIICXQIBAAKBgQDdMM19TmEBB/lwA5lym3nHwJ+xTL5pPg7F9JXzOs17TsaRI1Ot
@@ -134,13 +135,13 @@ class _TestScope(unittest.TestCase):
 
         if self.verify_exc:
             self.assertRaises(self.verify_exc,
-                                lambda: self.verify_cookie(cookie))
+                              lambda: self.verify_cookie(cookie))
             return
         self.verify_cookie(cookie)
 
     def generate_cookie(self):
         return ScopeCookie.generate(self.servers, self.scopeurls,
-                                        self.expires, self.key).encode()
+                                    self.expires, self.key).encode()
 
     def parse_cookie(self, data):
         return ScopeCookie.parse(data)
@@ -209,8 +210,8 @@ class _TestHandGeneratedCookie(_TestScope):
             headers['Expires'] = self.expires
         if self.serverids is not None:
             headers['Servers'] = ';'.join(self.serverids)
-        hdrbuf = ''.join(['%s: %s\n' % (key, value)
-                            for key, value in headers.iteritems()])
+        hdrbuf = ''.join('%s: %s\n' % (key, value)
+                         for key, value in headers.iteritems())
         data = hdrbuf + '\n' + '\n'.join(self.scopeurls) + '\n'
         key = EVP.load_key_string(self.key)
         key.sign_init()

@@ -14,25 +14,26 @@ from django import forms
 from django.contrib.auth.models import User
 from models import Collection
 
+
 class CollectionForm(forms.Form):
     def __init__(self, *args, **kwargs):
-	user = kwargs['user']
-	del kwargs['user']
-	super(CollectionForm, self).__init__(*args, **kwargs)
-	self.fields['collections'].queryset=user.collection_set.all()
+        user = kwargs['user']
+        del kwargs['user']
+        super(CollectionForm, self).__init__(*args, **kwargs)
+        self.fields['collections'].queryset = user.collection_set.all()
     collections = forms.ModelMultipleChoiceField(
-	queryset=Collection.objects.all(),
-	widget=forms.CheckboxSelectMultiple
+        queryset=Collection.objects.all(),
+        widget=forms.CheckboxSelectMultiple
     )
+
 
 class ManageForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all())
     collections = forms.ModelMultipleChoiceField(
-	queryset=Collection.objects.all(),
-	widget=forms.CheckboxSelectMultiple,
-	required=False,
+        queryset=Collection.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
     )
 
     class Media:
-	js = ('js/jquery.js',)
-
+        js = ('js/jquery.js',)

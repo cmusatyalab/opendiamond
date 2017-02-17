@@ -21,6 +21,7 @@ from opendiamond.protocol import XDR_search_stats, XDR_filter_stats, XDR_stat
 
 _log = logging.getLogger(__name__)
 
+
 class _Statistics(object):
     '''Base class for server statistics.'''
 
@@ -55,10 +56,10 @@ class SearchStatistics(_Statistics):
 
     label = 'Search statistics'
     attrs = (('objs_processed', 'Objects considered'),
-            ('objs_dropped', 'Objects dropped'),
-            ('objs_passed', 'Objects passed'),
-            ('objs_unloadable', 'Objects failing to load'),
-            ('execution_us', 'Total object examination time (us)'))
+             ('objs_dropped', 'Objects dropped'),
+             ('objs_passed', 'Objects passed'),
+             ('objs_unloadable', 'Objects failing to load'),
+             ('execution_us', 'Total object examination time (us)'))
 
     def xdr(self, objs_total, filter_stats):
         '''Return an XDR statistics structure for these statistics.'''
@@ -85,12 +86,12 @@ class FilterStatistics(_Statistics):
     '''Statistics for the execution of a single filter.'''
 
     attrs = (('objs_processed', 'Total objects considered'),
-            ('objs_dropped', 'Total objects dropped'),
-            ('objs_cache_dropped', 'Objects dropped by cache'),
-            ('objs_cache_passed', 'Objects skipped by cache'),
-            ('objs_computed', 'Objects examined by filter'),
-            ('objs_terminate', 'Objects causing filter to terminate'),
-            ('execution_us', 'Filter execution time (us)'))
+             ('objs_dropped', 'Total objects dropped'),
+             ('objs_cache_dropped', 'Objects dropped by cache'),
+             ('objs_cache_passed', 'Objects skipped by cache'),
+             ('objs_computed', 'Objects examined by filter'),
+             ('objs_terminate', 'Objects causing filter to terminate'),
+             ('execution_us', 'Filter execution time (us)'))
 
     def __init__(self, name):
         _Statistics.__init__(self)

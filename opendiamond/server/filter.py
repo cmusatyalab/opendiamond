@@ -79,11 +79,11 @@ from opendiamond.rpc import ConnectionFailure
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.statistics import FilterStatistics, Timer
 
-ATTR_FILTER_SCORE = '_filter.%s_score'	# arg: filter name
+ATTR_FILTER_SCORE = '_filter.%s_score'  # arg: filter name
 # If a filter produces attribute values at less than this rate
 # (total attribute value size / execution time), we will cache the attribute
 # values as well as the filter results.
-ATTRIBUTE_CACHE_THRESHOLD = 2 << 20	# bytes/sec
+ATTRIBUTE_CACHE_THRESHOLD = 2 << 20     # bytes/sec
 DEBUG = False
 
 _log = logging.getLogger(__name__)
@@ -92,12 +92,19 @@ if DEBUG:
 else:
     _debug = lambda *args, **kwargs: None
 
+
 class FilterDependencyError(Exception):
     '''Error processing filter dependencies.'''
+
+
 class FilterExecutionError(Exception):
     '''Error executing filter.'''
+
+
 class FilterUnsupportedSource(Exception):
     '''URI scheme for code or blob source is not supported.'''
+
+
 class _DropObject(Exception):
     '''Filter failed to process object.  The object should be dropped
     without caching the drop result.'''
@@ -108,9 +115,10 @@ class _FilterProcess(object):
     def __init__(self, code_argv, name, args, blob):
         try:
             self._name = name
-            self._proc = subprocess.Popen(code_argv + ['--filter'],
-                                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                close_fds=True, cwd=os.getenv('TMPDIR'))
+            self._proc = subprocess.Popen(
+                code_argv + ['--filter'],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                close_fds=True, cwd=os.getenv('TMPDIR'))
             self._fin = self._proc.stdout
             self._fout = self._proc.stdin
 
@@ -198,10 +206,10 @@ class _FilterResult(object):
     with hashes of the input attributes used to produce them.'''
 
     def __init__(self, input_attrs=None, output_attrs=None, omit_attrs=None,
-            score=0.0):
-        self.input_attrs = input_attrs or {}	# name -> murmur(value)
-						# (or -> None if no such attr)
-        self.output_attrs = output_attrs or {}	# name -> murmur(value)
+                 score=0.0):
+        # name -> murmur(value)  (or -> None if no such attr)
+        self.input_attrs = input_attrs or {}
+        self.output_attrs = output_attrs or {}  # name -> murmur(value)
         self.omit_attrs = omit_attrs and set(omit_attrs) or set()  # names
         self.score = score
         # Whether to cache output attributes in the attribute cache
@@ -226,7 +234,7 @@ class _FilterResult(object):
         dct = json.loads(data)
         try:
             return cls(dct['input_attrs'], dct['output_attrs'],
-                    dct.get('omit_attrs'), dct['score'])
+                       dct.get('omit_attrs'), dct['score'])
         except KeyError:
             return None
     # pylint: enable=maybe-no-member
@@ -319,20 +327,21 @@ class _FilterRunner(_ObjectProcessor):
     def cache_hit(self, result):
         accept = self.threshold(result)
         self._filter.stats.update('objs_processed',
-                                objs_dropped=int(not accept),
-                                objs_cache_dropped=int(not accept),
-                                objs_cache_passed=int(accept))
+                                  objs_dropped=int(not accept),
+                                  objs_cache_dropped=int(not accept),
+                                  objs_cache_passed=int(accept))
 
     def evaluate(self, obj):
         if self._proc is None:
             debug = self._state.config.debug_filters
             if self._filter.name in debug or self._filter.signature in debug:
                 argv = (self._state.config.debug_command +
-                            [self._filter.code_path])
+                        [self._filter.code_path])
             else:
                 argv = [self._filter.code_path]
             self._proc = _FilterProcess(argv, self._filter.name,
-                                    self._filter.arguments, self._filter.blob)
+                                        self._filter.arguments,
+                                        self._filter.blob)
             self._proc_initialized = False
         timer = Timer()
         result = _FilterResult()
@@ -382,10 +391,10 @@ class _FilterRunner(_ObjectProcessor):
                         values = [float(f) for f in values]
                     except ValueError:
                         raise FilterExecutionError(
-                                    '%s: bad session variable value' % self)
+                            '%s: bad session variable value' % self)
                     if len(keys) != len(values):
                         raise FilterExecutionError(
-                                    '%s: bad array lengths' % self)
+                            '%s: bad array lengths' % self)
                     valuemap = dict(zip(keys, values))
                     self._state.session_vars.filter_update(valuemap)
                 elif cmd == 'log':
@@ -424,19 +433,19 @@ class _FilterRunner(_ObjectProcessor):
                 # Filter died on an object.  Drop the object without caching
                 # the result.
                 _log.error('Filter %s (signature %s) died on object %s',
-                                self, self._filter.signature, obj)
+                           self, self._filter.signature, obj)
                 self._filter.stats.update('objs_terminate')
                 self._proc = None
                 raise _DropObject()
             else:
                 # Filter died during initialization.  Treat this as fatal.
                 raise FilterExecutionError("Filter %s failed to initialize"
-                                % self)
+                                           % self)
         finally:
             accept = self.threshold(result)
             self._filter.stats.update('objs_processed', 'objs_computed',
-                                    objs_dropped=int(not accept),
-                                    execution_us=timer.elapsed)
+                                      objs_dropped=int(not accept),
+                                      execution_us=timer.elapsed)
             lengths = [len(obj[k]) for k in result.output_attrs]
             throughput = int(sum(lengths) / timer.elapsed_seconds)
             if throughput < ATTRIBUTE_CACHE_THRESHOLD:
@@ -452,7 +461,7 @@ class Filter(object):
     '''A filter with arguments.'''
 
     def __init__(self, name, code_source, blob_source, min_score, max_score,
-                arguments, dependencies):
+                 arguments, dependencies):
         self.name = name
         self.code_source = code_source
         self.blob_source = blob_source
@@ -479,7 +488,7 @@ class Filter(object):
         blob, blob_signature = self._resolve_blob(state)
         # Initialize digest
         summary = ([code_signature, self.name] + self.arguments +
-                [blob_signature])
+                   [blob_signature])
         cache_digest = murmur(' '.join(summary))
         # Commit
         self.code_path = code_path
@@ -496,7 +505,7 @@ class Filter(object):
                 return (state.blob_cache.executable_path(sig), sig)
             except KeyError:
                 raise FilterDependencyError('Missing code for filter ' +
-                                        self.name)
+                                            self.name)
         else:
             raise FilterUnsupportedSource()
 
@@ -509,7 +518,7 @@ class Filter(object):
                 return (state.blob_cache[sig], sig)
             except KeyError:
                 raise FilterDependencyError('Missing blob for filter ' +
-                                        self.name)
+                                            self.name)
         else:
             raise FilterUnsupportedSource()
 
@@ -541,8 +550,8 @@ class FilterStackRunner(threading.Thread):
         self.setDaemon(True)
         self._state = state
         self._runners = filter_runners
-        self._redis = None	# May be None if caching is not enabled
-        self._cleanup = cleanup	# cleanup.__del__ fires when all workers exit
+        self._redis = None       # May be None if caching is not enabled
+        self._cleanup = cleanup  # cleanup.__del__ fires when all workers exit
         self._warned_cache_update = False
 
     def _ensure_cache(self):
@@ -582,8 +591,9 @@ class FilterStackRunner(threading.Thread):
         # originally run.)  We compute the set of filters that contributed
         # to a drop decision so that the runners can be notified to update
         # their statistics.
-        resolved = dict()	# runner -> set(runner + transitive depends)
-        inprocess = set()	# runner
+        resolved = dict()       # runner -> set(runner + transitive depends)
+        inprocess = set()       # runner
+
         def resolve(runner):
             '''If this runner has usable cached results, return a set
             containing the runner and its transitive dependencies.  Otherwise
@@ -616,7 +626,7 @@ class FilterStackRunner(threading.Thread):
                         # declared dependencies.)  This is an unusual case,
                         # so simply declare this result unresolvable.
                         _debug('%s key %s was missing; skipping resolution',
-                                runner, key)
+                               runner, key)
                         return
                     for cur in output_attrs.get(key, ()):
                         if cache_results[cur].output_attrs[key] != valsig:
@@ -630,7 +640,7 @@ class FilterStackRunner(threading.Thread):
                             # the hash of the dependency's arguments as a
                             # dummy argument to the runner's filter.
                             _log.warning('Result cache collision for ' +
-                                        'filter %s', runner)
+                                         'filter %s', runner)
                             continue
                         cur_deps = resolve(cur)
                         if cur_deps is not None:
@@ -671,7 +681,7 @@ class FilterStackRunner(threading.Thread):
                 # and failed, but the attribute is now available.  We
                 # need to reexecute this filter.
                 _debug('Key %s now present; skipping attribute cache for %s',
-                        key, runner)
+                       key, runner)
                 return False
             if (valsig is not None and
                     (key not in obj or obj.get_signature(key) != valsig)):
@@ -684,7 +694,7 @@ class FilterStackRunner(threading.Thread):
                 return False
         keys = result.output_attrs.keys()
         cache_keys = [self._get_attribute_key(result.output_attrs[k])
-                        for k in keys]
+                      for k in keys]
         if self._redis is not None and len(cache_keys) > 0:
             values = self._redis.mget(cache_keys)
         else:
@@ -719,8 +729,8 @@ class FilterStackRunner(threading.Thread):
         if self._redis is not None:
             keys = [cache_keys[r] for r in self._runners]
             results = [(runner, _FilterResult.decode(data))
-                                for runner, data in
-                                zip(self._runners, self._redis.mget(keys))]
+                       for runner, data in
+                       zip(self._runners, self._redis.mget(keys))]
             # runner -> _FilterResult
             cache_results = dict([(k, v) for k, v in results if v is not None])
         else:
@@ -735,8 +745,8 @@ class FilterStackRunner(threading.Thread):
             # Run each filter or load its prior result into the object.
             for runner in self._runners:
                 if (runner in cache_results and
-                            self._attribute_cache_try_load(runner, obj,
-                            cache_results[runner])):
+                    self._attribute_cache_try_load(runner, obj,
+                                                   cache_results[runner])):
                     result = cache_results[runner]
                 else:
                     result = runner.evaluate(obj)
@@ -788,9 +798,9 @@ class FilterStackRunner(threading.Thread):
             accept = self._evaluate(obj)
         finally:
             self._state.stats.update('objs_processed',
-                                    execution_us=timer.elapsed,
-                                    objs_passed=int(accept),
-                                    objs_dropped=int(not accept))
+                                     execution_us=timer.elapsed,
+                                     objs_passed=int(accept),
+                                     objs_dropped=int(not accept))
         return accept
 
     # We want to catch all exceptions
@@ -840,12 +850,13 @@ class FilterStack(object):
         resolved = set()
         # Filters we are currently resolving
         inprocess = set()
+
         def resolve(filter):
             if filter in resolved:
                 return
             if filter in inprocess:
                 raise FilterDependencyError('Circular dependency involving '
-                                    + filter.name)
+                                            + filter.name)
             inprocess.add(filter)
             for depname in filter.dependencies:
                 try:

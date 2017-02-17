@@ -12,15 +12,16 @@
 
 from django import forms
 from django.utils.html import mark_safe
-from urllib import urlencode
-import datetime
+
 
 class GigaPanCookieForm(forms.Form):
     gigapan_id = forms.CharField(required=True)
 
+
 class GigaPanSearchForm(forms.Form):
     search = forms.CharField(label='Please enter a search phrase:',
                              required=True)
+
 
 class GigaPanChoiceForm(forms.Form):
     gigapan_choice = forms.MultipleChoiceField(

@@ -21,7 +21,7 @@ if __name__ == '__main__':
         description='Package an OpenDiamond predicate or codec.',
     )
     parser.add_option('-o', dest='outfile', metavar='outfile',
-            help='path to output file')
+                      help='path to output file')
     opts, args = parser.parse_args()
     if len(args) < 1:
         parser.error('no manifest specified')

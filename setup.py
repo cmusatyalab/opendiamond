@@ -1,8 +1,9 @@
 import os
 from setuptools import setup, find_packages, Extension
 from setuptools.command.egg_info import egg_info
-from opendiamond import (__version__, PROJECT_NAME, PROJECT_URL,
-    PROJECT_LICENSE, PROJECT_AUTHOR, PROJECT_EMAIL, PROJECT_DESCRIPTION)
+from opendiamond import (
+    __version__, PROJECT_NAME, PROJECT_URL, PROJECT_LICENSE, PROJECT_AUTHOR,
+    PROJECT_EMAIL, PROJECT_DESCRIPTION)
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*'])
 REQUIRES = [
@@ -29,9 +30,11 @@ REQUIRES_DIAMONDD = [
 ]
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
-hashmodule = Extension("opendiamond.hash",
-    sources = [ "opendiamond/hashmodule.c" ],
+hashmodule = Extension(
+    "opendiamond.hash",
+    sources=["opendiamond/hashmodule.c"],
 )
+
 
 class EggInfoCommand(egg_info):
     def run(self):
@@ -42,6 +45,7 @@ class EggInfoCommand(egg_info):
                                          os.path.basename(self.egg_info))
         egg_info.run(self)
 
+
 setup(
     name=PROJECT_NAME,
     version=__version__,
@@ -51,7 +55,7 @@ setup(
     author=PROJECT_AUTHOR,
     author_email=PROJECT_EMAIL,
     packages=PACKAGES,
-    ext_modules = [ hashmodule ],
+    ext_modules=[hashmodule],
     zip_safe=False,
     install_requires=REQUIRES,
     extra_requires={

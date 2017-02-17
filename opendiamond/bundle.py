@@ -64,7 +64,7 @@ def format_manifest(root):
     '''Given an XML root element for a bundle manifest, return the manifest
     serialized as a string.'''
     return etree.tostring(root, encoding='UTF-8', xml_declaration=True,
-                            pretty_print=True)
+                          pretty_print=True)
 
 
 def parse_manifest(data):
@@ -110,32 +110,29 @@ def bundle_macro(out, display_name, filter, arguments, files):
     be a Zip file containing the specified files under their original names.
     The predicate will depend on the RGB filter.'''
     filemap = dict((os.path.basename(f), f) for f in files)
-    root = element('predicate',
-        element('options',
-            element('numberOption', displayName='Minimum score',
-                    name='minScore', default=1, min=0, max=100, step=.05,
-                    initiallyEnabled=True, disabledValue=float('-inf')),
-            element('numberOption', displayName='Maximum score',
-                    name='maxScore', default=1, min=0, max=100, step=.05,
-                    initiallyEnabled=False, disabledValue=float('inf')),
-        ),
-        element('filters',
-            element('filter',
-                element('minScore', option='minScore'),
-                element('maxScore', option='maxScore'),
-                element('dependencies',
-                    element('dependency', fixedName='RGB'),
-                ),
-                element('arguments',
-                    *[element('argument', value=v) for v in arguments]
-                ),
-                element('blob',
-                    *[element('member', filename=f, data=f) for f in
-                            filemap.iterkeys()]
-                ),
-                code=filter,
-            ),
-        ),
-        displayName=display_name,
+    options = element(
+        'options',
+        element('numberOption', displayName='Minimum score', name='minScore',
+                default=1, min=0, max=100, step=.05, initiallyEnabled=True,
+                disabledValue=float('-inf')),
+        element('numberOption', displayName='Maximum score', name='maxScore',
+                default=1, min=0, max=100, step=.05, initiallyEnabled=False,
+                disabledValue=float('inf')),
     )
+    filters = element(
+        'filters',
+        element(
+            'filter',
+            element('minScore', option='minScore'),
+            element('maxScore', option='maxScore'),
+            element('dependencies',
+                    element('dependency', fixedName='RGB'),),
+            element('arguments', *[element('argument', value=v)
+                                   for v in arguments]),
+            element('blob', *[element('member', filename=f, data=f)
+                              for f in filemap.iterkeys()]),
+            code=filter,
+        ),
+    )
+    root = element('predicate', options, filters, displayName=display_name)
     bundle_generic(out, root, filemap)

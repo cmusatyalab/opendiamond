@@ -10,9 +10,10 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import patterns
 
-urlpatterns = patterns('opendiamond.scopeserver.gatekeeper.views',
+urlpatterns = patterns(
+    'opendiamond.scopeserver.gatekeeper.views',
     (r'^manage.html', 'manage'),
     (r'^$', 'index'),
 )

@@ -13,7 +13,6 @@
 from collections import Mapping
 import cPickle as pickle
 from datetime import datetime
-import dateutil.parser
 from dateutil.tz import tzutc
 from hashlib import sha256
 import logging
@@ -21,6 +20,8 @@ import os
 import shutil
 from tempfile import NamedTemporaryFile
 import zipfile
+
+import dateutil.parser
 
 _log = logging.getLogger(__name__)
 
@@ -142,8 +143,8 @@ class SearchCache(object):
 
     def get_search_result(self, search_key, object_key):
         try:
-            return _CachedSearchResult(self._object_path(search_key,
-                    object_key))
+            return _CachedSearchResult(
+                self._object_path(search_key, object_key))
         except IOError:
             raise KeyError()
 

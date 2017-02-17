@@ -15,6 +15,7 @@
 from __future__ import with_statement
 import threading
 
+
 class _SessionVariable(object):
     '''A single session variable.'''
 
@@ -26,7 +27,7 @@ class _SessionVariable(object):
     def filter_get(self):
         '''Return the total value of the variable.'''
         return (self._global_val + self._local_val +
-                            self._between_get_and_set_val)
+                self._between_get_and_set_val)
 
     def filter_update(self, value, between_get_and_set):
         '''Add a new value produced by a filter into the variable.'''

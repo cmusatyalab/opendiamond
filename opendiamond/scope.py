@@ -14,19 +14,19 @@
 
 # Scope cookie format:
 #
-#	-----BEGIN OPENDIAMOND SCOPECOOKIE-----
-#	<base64-encoded inner cookie>
-#	-----END OPENDIAMOND SCOPECOOKIE-----
+#       -----BEGIN OPENDIAMOND SCOPECOOKIE-----
+#       <base64-encoded inner cookie>
+#       -----END OPENDIAMOND SCOPECOOKIE-----
 #
 # Inner cookie format:
 #
-#	<hexadecimally-encoded signature of all following data>\n
-#	Version: 1\n
-#	Serial: <uuid>\n
-#	Expires: <ISO-8601 timestamp>\n
-#	Servers: <server1>;<server2>;<server3>
-#	\n
-#	<scope URLs, one per line>
+#       <hexadecimally-encoded signature of all following data>\n
+#       Version: 1\n
+#       Serial: <uuid>\n
+#       Expires: <ISO-8601 timestamp>\n
+#       Servers: <server1>;<server2>;<server3>
+#       \n
+#       <scope URLs, one per line>
 
 import base64
 import binascii
@@ -44,26 +44,29 @@ BOUNDARY_END = '-----END OPENDIAMOND SCOPECOOKIE-----\n'
 COOKIE_VERSION = 1
 BASE64_RE = '[A-Za-z0-9+/=\n]+'
 
+
 class ScopeError(Exception):
     '''Error generating, parsing, or verifying scope cookie.'''
+
+
 class ScopeCookieExpired(ScopeError):
     '''Scope cookie has expired.'''
 
 
 class ScopeCookie(object):
     def __init__(self, serial, expires, blaster, servers, scopeurls, data,
-            signature):
+                 signature):
         '''Do not call this directly; use generate() or parse() instead.'''
         # Ensure the expiration time is tz-aware
         if expires.tzinfo is None or expires.tzinfo.utcoffset(expires) is None:
             raise ScopeError('Expiration time does not include time zone')
-        self.serial = serial		# A UUID object
-        self.expires = expires		# A datetime object
-        self.blaster = blaster		# The URL of the JSON blaster or None
-        self.servers = servers		# A list
-        self.scopeurls = scopeurls	# The list of scope URLs
-        self.data = data		# All of the above, as a string
-        self.signature = signature	# Binary signature of the data
+        self.serial = serial            # A UUID object
+        self.expires = expires          # A datetime object
+        self.blaster = blaster          # The URL of the JSON blaster or None
+        self.servers = servers          # A list
+        self.scopeurls = scopeurls      # The list of scope URLs
+        self.data = data                # All of the above, as a string
+        self.signature = signature      # Binary signature of the data
 
     def __str__(self):
         '''Return the decoded scope cookie.'''
@@ -95,7 +98,7 @@ class ScopeCookie(object):
             raise ScopeError('Cookie does not contain matching server name')
         # Split certdata into individual certificates
         begin = '-----BEGIN CERTIFICATE-----\n'
-        end = '-----END CERTIFICATE-----' # no trailing newline
+        end = '-----END CERTIFICATE-----'        # no trailing newline
         certdata = re.findall(begin + BASE64_RE + end, certdata)
         # Load certificates
         certs = [X509.load_cert_string(cd) for cd in certdata]
@@ -158,7 +161,7 @@ class ScopeCookie(object):
         '''Parse the scope cookie data and return a ScopeCookie.'''
         # Check for boundary markers and remove them
         match = re.match(BOUNDARY_START + '(' + BASE64_RE + ')' +
-                        BOUNDARY_END, data)
+                         BOUNDARY_END, data)
         if match is None:
             raise ScopeError('Invalid boundary markers')
         data = match.group(1)
@@ -205,16 +208,16 @@ class ScopeCookie(object):
                     raise ScopeError('Invalid date format')
             elif k == 'Servers':
                 servers = [s.strip() for s in re.split('[;,]', v)
-                            if s.strip() != '']
+                           if s.strip() != '']
             elif k == 'Blaster':
                 blaster = v
         # Parse body
         scopeurls = [s for s in [u.strip() for u in body.split('\n')]
-                    if s != '']
+                     if s != '']
         # Build scope cookie object
         try:
             return cls(serial, expires, blaster, servers, scopeurls, data,
-                    signature)
+                       signature)
         except NameError:
             raise ScopeError('Missing cookie header')
 
@@ -237,11 +240,13 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
         keyfile = os.path.expanduser(os.path.join('~', '.diamond', 'key.pem'))
     if expires is None:
         expires = timedelta(hours=1)
+
     def generate(scopeurls, servers):
         return ScopeCookie.generate(servers, scopeurls,
                                     datetime.now(tzutc()) + expires,
                                     open(keyfile).read(),
                                     blaster=blaster).encode()
+
     if proxies is None:
         return generate(scopeurls, servers)
     else:
@@ -249,7 +254,7 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
         n = len(proxies)
         for i in range(n):
             scope = ['/proxy/%dof%d/%s:5873%s' % (i + 1, n, server, url)
-                        for url in scopeurls for server in servers]
+                     for url in scopeurls for server in servers]
             cookies.append(generate(scope, (proxies[i],)))
         return ''.join(cookies)
 
@@ -271,12 +276,12 @@ def generate_cookie_django(scopeurls, servers, proxies=None, blaster=None):
     if expires is not None:
         expires = timedelta(seconds=expires)
     return generate_cookie(scopeurls, servers, proxies=proxies,
-                            keyfile=keyfile, expires=expires, blaster=blaster)
+                           keyfile=keyfile, expires=expires, blaster=blaster)
 # pylint: enable=import-error
 
 
 def get_cookie_map(cookies):
-    '''Given a list of ScopeCookies, return a dict: server -> [ScopeCookie].'''
+    '''Given a list of ScopeCookies, return a dict: server ->[ScopeCookie].'''
     map = {}
     for cookie in cookies:
         for server in cookie.servers:
@@ -285,7 +290,7 @@ def get_cookie_map(cookies):
 
 
 def get_blaster_map(cookies):
-    '''Given a list of ScopeCookies, return a dict: blaster -> [ScopeCookie].'''
+    '''Given a list of ScopeCookies, return a dict: blaster ->[ScopeCookie].'''
     map = {}
     for cookie in cookies:
         map.setdefault(cookie.blaster, []).append(cookie)
@@ -301,7 +306,7 @@ def _main():
         filename = args.pop(0)
     except IndexError:
         print >> sys.stderr, \
-                'Usage: scope.py <cookie-file> [server-name [cert-file]]'
+            'Usage: scope.py <cookie-file> [server-name [cert-file]]'
         sys.exit(1)
     # certificate validation is optional
     try:
@@ -312,8 +317,8 @@ def _main():
     try:
         certfile = args.pop(0)
     except IndexError:
-        certfile = os.path.expanduser(os.path.join('~', '.diamond',
-                                'CERTS'))
+        certfile = os.path.expanduser(
+            os.path.join('~', '.diamond', 'CERTS'))
 
     try:
         data = open(filename).read()

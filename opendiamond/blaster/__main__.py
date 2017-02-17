@@ -14,17 +14,17 @@
 import os
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
-from tornado.options import (define, options, parse_command_line,
-        parse_config_file)
+from tornado.options import (
+    define, options, parse_command_line, parse_config_file)
 
 from opendiamond.blaster import JSONBlaster
 
 define('config', default=os.path.expanduser('~/.diamond/blaster_config'),
-        metavar='PATH', help='Config file')
+       metavar='PATH', help='Config file')
 define('listen', default=':8080',
-        metavar='ADDRESS:PORT', help='Local address and port to listen on')
+       metavar='ADDRESS:PORT', help='Local address and port to listen on')
 define('reverse_proxy', default=False,
-        help='Run behind a reverse proxy')
+       help='Run behind a reverse proxy')
 
 
 def run():

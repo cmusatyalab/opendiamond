@@ -25,19 +25,21 @@ from opendiamond.helpers import connection_ok
 if not mimetypes.inited:
     mimetypes.init()
 extensions = mimetypes.types_map.copy()
-extensions.update({ '': 'application/octet-stream' })
+extensions.update({'': 'application/octet-stream'})
+
 
 def guess_mime_type(path):
     base, ext = posixpath.splitext(path)
     if ext in extensions:
-	return extensions[ext]
+        return extensions[ext]
     ext = ext.lower()
     if ext in extensions:
-	return extensions[ext]
+        return extensions[ext]
     else:
-	return extensions['']
+        return extensions['']
 
-# return xslt stylesheet which makes browsers show the scope list as thumbnails.
+
+# return xslt stylesheet which makes browsers show the scope list as thumbnails
 # guaranteed to bring chaos with any decent data set.
 def scopelist_xsl(environ, start_response):
     content = """\
@@ -61,42 +63,42 @@ def scopelist_xsl(environ, start_response):
 </xsl:stylesheet>
 """
     start_response("200 OK", [
-	("Content-Type", "text/xsl"),
-	("Content-Length", str(len(content))),
+        ("Content-Type", "text/xsl"),
+        ("Content-Length", str(len(content))),
     ])
     return [content]
+
 
 # WSGI middleware that cleans up PATH_INFO, dispatches requests based on a
 # dictionary of handlers and catches exceptions.
 class DataRetriever:
     def __init__(self, handlers):
-	self.handlers = handlers
-	self.handlers['scopelist.xsl'] = scopelist_xsl
+        self.handlers = handlers
+        self.handlers['scopelist.xsl'] = scopelist_xsl
 
     def __call__(self, environ, start_response):
-	if not connection_ok('dataretriever', environ['REMOTE_ADDR']):
-	    headers = [("Content-Type", "text/plain")]
-	    start_response("403 Forbidden", headers)
-	    return "Client not authorized"
+        if not connection_ok('dataretriever', environ['REMOTE_ADDR']):
+            headers = [("Content-Type", "text/plain")]
+            start_response("403 Forbidden", headers)
+            return "Client not authorized"
 
-	environ.setdefault('wsgi.file_wrapper', FileWrapper)
+        environ.setdefault('wsgi.file_wrapper', FileWrapper)
 
-	root = shift_path_info(environ)
+        root = shift_path_info(environ)
 
-	# clean up remaining path components
-	path = environ['PATH_INFO']
-	comp = [p for p in path.split('/') if p not in ('.', '..')]
-	environ['PATH_INFO'] = '/'.join(comp)
+        # clean up remaining path components
+        path = environ['PATH_INFO']
+        comp = [p for p in path.split('/') if p not in ('.', '..')]
+        environ['PATH_INFO'] = '/'.join(comp)
 
-	try:
-	    handler = self.handlers[root]
-	    response = handler(environ, start_response)
-	except KeyError, IOError:
-	    headers = [("Content-Type", "text/plain")]
-	    start_response("404 Object not found", headers)
-	    response = ['Object not found']
+        try:
+            handler = self.handlers[root]
+            response = handler(environ, start_response)
+        except (KeyError, IOError):
+            headers = [("Content-Type", "text/plain")]
+            start_response("404 Object not found", headers)
+            response = ['Object not found']
 
-	if environ['REQUEST_METHOD'] == 'HEAD':
-	    return [""]
-	return response
-
+        if environ['REQUEST_METHOD'] == 'HEAD':
+            return [""]
+        return response

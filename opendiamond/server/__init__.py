@@ -93,10 +93,11 @@ from opendiamond.server.listen import ConnListener
 from opendiamond.server.search import Search
 
 SEARCH_LOG_DATE_FORMAT = '%Y-%m-%d-%H:%M:%S'
-SEARCH_LOG_FORMAT = 'search-%s-%d.log'		# Args: date, pid
-SEARCH_LOG_REGEX = r'search-(.+)-[0-9]+\.log$'	# Match group: timestamp
+SEARCH_LOG_FORMAT = 'search-%s-%d.log'          # Args: date, pid
+SEARCH_LOG_REGEX = r'search-(.+)-[0-9]+\.log$'  # Match group: timestamp
 
 _log = logging.getLogger(__name__)
+
 
 class _Signalled(BaseException):
     '''Exception indicating that a signal has been received.'''
@@ -113,7 +114,7 @@ class _TimestampedLogFormatter(logging.Formatter):
 
     def __init__(self):
         logging.Formatter.__init__(self, '%(asctime)s %(message)s',
-                                '%Y-%m-%d %H:%M:%S')
+                                   '%Y-%m-%d %H:%M:%S')
 
     # We're overriding a method; we can't control its name
     # pylint: disable=invalid-name
@@ -151,8 +152,8 @@ class DiamondServer(object):
             handler = logging.StreamHandler()
             baselog.addHandler(handler)
         self._logfile_handler = TimedRotatingFileHandler(
-                                os.path.join(config.logdir, 'diamondd.log'),
-                                when='midnight', backupCount=config.logdays)
+            os.path.join(config.logdir, 'diamondd.log'), when='midnight',
+            backupCount=config.logdays)
         self._logfile_handler.setFormatter(_TimestampedLogFormatter())
         baselog.addHandler(self._logfile_handler)
 
@@ -163,7 +164,7 @@ class DiamondServer(object):
         try:
             # Log startup of parent
             _log.info('Starting supervisor %s, pid %d',
-                                        opendiamond.__version__, os.getpid())
+                      opendiamond.__version__, os.getpid())
             _log.info('Server IDs: %s', ', '.join(self.config.serverids))
             if self.config.cache_server:
                 _log.info('Cache: %s:%d', *self.config.cache_server)
@@ -221,8 +222,7 @@ class DiamondServer(object):
                 self._listener.shutdown()
                 # Log startup of child
                 _log.info('Starting search %s, pid %d',
-                                        opendiamond.__version__,
-                                        os.getpid())
+                          opendiamond.__version__, os.getpid())
                 _log.info('Peer: %s', control.getpeername()[0])
                 _log.info('Worker threads: %d', self.config.threads)
                 # Set up connection wrappers and search object
@@ -269,7 +269,7 @@ class DiamondServer(object):
                 continue
             try:
                 start = datetime.strptime(match.group(1),
-                                SEARCH_LOG_DATE_FORMAT)
+                                          SEARCH_LOG_DATE_FORMAT)
             except ValueError:
                 continue
             if start >= threshold:
@@ -294,7 +294,7 @@ class DiamondServer(object):
             return
         self._last_cache_prune = datetime.now()
         ExecutableBlobCache.prune(self.config.cachedir,
-                self.config.blob_cache_days)
+                                  self.config.blob_cache_days)
 
     def _handle_signal(self, sig, _frame):
         '''Signal handler in the supervisor.'''

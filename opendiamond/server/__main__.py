@@ -21,18 +21,19 @@ from opendiamond.server import DiamondServer
 # pylint: disable=invalid-name
 parser = OptionParser()
 attrs = set()
+
+
 def add_option(*args, **kwargs):
     opt = parser.add_option(*args, **kwargs)
     attrs.add(opt.dest)
 
 
 # Configure options
-add_option('-d',
-            dest='daemonize', action='store_false', default=True,
-            help='do not run as a daemon')
+add_option('-d', dest='daemonize', action='store_false', default=True,
+           help='do not run as a daemon')
 add_option('-e', metavar='SPEC',
-            dest='debug_filters', action='append', default=[],
-            help='filter name/signature to run under debugger')
+           dest='debug_filters', action='append', default=[],
+           help='filter name/signature to run under debugger')
 add_option('-E', metavar='COMMAND',
            dest='debug_command', action='store', default='valgrind',
            help='debug command to use with -e (default: valgrind)')

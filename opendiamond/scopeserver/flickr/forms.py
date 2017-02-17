@@ -12,11 +12,12 @@
 
 from django import forms
 
+
 class FlickrForm(forms.Form):
     tags = forms.CharField(widget=forms.Textarea,
-		           help_text="Tags to search for (one per line)",
-			   required=False)
+                           help_text="Tags to search for (one per line)",
+                           required=False)
     tag_mode = forms.BooleanField(label="Match all tags", required=False)
     text = forms.CharField(help_text="Searches title, description, and tags",
-			   required=False)
+                           required=False)
     proxied = forms.BooleanField(label="Use proxies", required=False)

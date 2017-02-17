@@ -10,8 +10,9 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import patterns
 
-urlpatterns = patterns('opendiamond.scopeserver.core.views',
+urlpatterns = patterns(
+    'opendiamond.scopeserver.core.views',
     (r'^$', 'index'),
 )

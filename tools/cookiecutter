@@ -17,33 +17,38 @@ from optparse import OptionParser
 import os
 import sys
 
-from opendiamond.scope import ScopeCookie, ScopeError
+from opendiamond.scope import ScopeCookie
+
 
 def main():
     # Parse command-line options
     default_key = os.path.expanduser(os.path.join('~', '.diamond', 'key.pem'))
     parser = OptionParser(
         usage='%prog [--help] [options] - generate scope cookie',
-        description='Generates an OpenDiamond(R) cookie. If no --scopeurl argument is given, the list of scope URLs will be read from stdin.'
+        description="""\
+Generates an OpenDiamond(R) cookie. If no --scopeurl argument is given, the
+list of scope URLs will be read from stdin."""
     )
-    parser.add_option('-v', '--verbose',
-            dest='verbose', action='store_true',
-            help='be verbose')
-    parser.add_option('-b', '--blaster', metavar='url',
-            dest='blaster', default=None,
-            help='JSON Blaster that can relay for the specified servers')
-    parser.add_option('-s', '--server', metavar='host',
-            dest='servers', action='append', default=[],
-            help='server that accepts the cookie (can be repeated)')
-    parser.add_option('-e', '--expire', metavar='time',
-            dest='expiry', default=3600,
-            help='time in seconds until cookie expires (3600)')
-    parser.add_option('-k', '--key', metavar='path',
-            dest='keyfile', default=default_key,
-            help='X509 private key ($HOME/.diamond/key.pem)')
-    parser.add_option('-u', '--scopeurl', metavar='host',
-            dest='scopeurls', action='append', default=[],
-            help='URL from which scopelist can be retrieved (can be repeated)')
+    parser.add_option(
+        '-v', '--verbose', dest='verbose', action='store_true',
+        help='be verbose')
+    parser.add_option(
+        '-b', '--blaster', metavar='url', dest='blaster', default=None,
+        help='JSON Blaster that can relay for the specified servers')
+    parser.add_option(
+        '-s', '--server', metavar='host', dest='servers', action='append',
+        default=[],
+        help='server that accepts the cookie (can be repeated)')
+    parser.add_option(
+        '-e', '--expire', metavar='time', dest='expiry', default=3600,
+        help='time in seconds until cookie expires (3600)')
+    parser.add_option(
+        '-k', '--key', metavar='path', dest='keyfile', default=default_key,
+        help='X509 private key ($HOME/.diamond/key.pem)')
+    parser.add_option(
+        '-u', '--scopeurl', metavar='host', dest='scopeurls', action='append',
+        default=[],
+        help='URL from which scopelist can be retrieved (can be repeated)')
     (opts, args) = parser.parse_args()
     if len(args) > 0:
         parser.error('Unrecognized trailing arguments')
@@ -67,7 +72,7 @@ def main():
 
     # Build and sign the cookie
     cookie = ScopeCookie.generate(opts.servers, scopeurls, expires, keydata,
-            blaster=opts.blaster)
+                                  blaster=opts.blaster)
 
     # Print decoded cookie to stderr if verbose
     if opts.verbose:

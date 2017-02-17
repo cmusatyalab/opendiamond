@@ -26,6 +26,7 @@ BASE_URL = 'http://localhost:5873/'
 
 _log = logging.getLogger(__name__)
 
+
 class _ScopeListHandler(ContentHandler):
     '''Gatherer for results produced by incremental scope list parsing.'''
 
@@ -100,7 +101,7 @@ class ScopeListLoader(object):
                         while len(self._handler.pending_objects) > 0:
                             url = self._handler.pending_objects.pop(0)
                             yield Object(self.server_id,
-                                            urljoin(scope_url, url))
+                                         urljoin(scope_url, url))
                 except urllib2.URLError, e:
                     _log.warning('Fetching %s: %s', scope_url, e)
                 except SAXParseException, e:
@@ -113,7 +114,7 @@ class ScopeListLoader(object):
                         # closing tags.  This is likely caused by a
                         # prematurely-terminated connection.
                         _log.warning('Parsing %s: incomplete scope list',
-                                        scope_url)
+                                     scope_url)
                     parser.reset()
         # Log successful completion
         _log.info('End of scope list')

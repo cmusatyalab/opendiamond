@@ -14,7 +14,6 @@
 #
 
 from wsgiref.util import shift_path_info
-from urllib import unquote_plus
 from urllib2 import urlopen
 from urlparse import urljoin
 try:
@@ -22,18 +21,20 @@ try:
 except ImportError:
     from xml.etree.ElementTree import iterparse
 
-baseurl = 'proxy'
+BASEURL = 'proxy'
+
 
 def scope_app(environ, start_response):
     root = shift_path_info(environ)
     index, count = map(int, root.split('of'))
 
     url = 'http:/' + environ['PATH_INFO']
-    if environ.has_key('QUERY_STRING'):
-	url += '?' + environ['QUERY_STRING']
+    if 'QUERY_STRING' in environ:
+        url += '?' + environ['QUERY_STRING']
 
     start_response("200 OK", [('Content-Type', "text/xml")])
     return parseScope(url, index, count)
+
 
 def parseScope(base_url, index, count):
     index = index - 1
@@ -44,16 +45,15 @@ def parseScope(base_url, index, count):
     yield '<objectlist>\n'
 
     root = None
-    for ev, el in iterparse(obj, events=("start","end")):
-	if ev == 'start' and root is None:
-	    root = el
-	if ev == 'end' and el.tag == 'object':
-	    if seen % count == index:
-		src = urljoin(base_url, el.attrib['src'])
-		yield '<count adjust="1"/><object src="%s"/>\n' % src
-	    seen += 1
-	    root.clear()
+    for ev, el in iterparse(obj, events=("start", "end")):
+        if ev == 'start' and root is None:
+            root = el
+        if ev == 'end' and el.tag == 'object':
+            if seen % count == index:
+                src = urljoin(base_url, el.attrib['src'])
+                yield '<count adjust="1"/><object src="%s"/>\n' % src
+            seen += 1
+            root.clear()
 
     yield '</objectlist>\n'
     obj.close()
-

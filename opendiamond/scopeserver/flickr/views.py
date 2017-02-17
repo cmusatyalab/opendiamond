@@ -17,40 +17,41 @@ from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
 from forms import FlickrForm
 
+
 @permission_required("flickr.search")
 def index(request):
     if request.method == 'POST':
-	form = FlickrForm(request.POST)
+        form = FlickrForm(request.POST)
 
-	if form.is_valid():
-	    tags = form.cleaned_data.get('tags', '').split('\n')
-	    tags = [ tag.strip() for tag in tags ] # trim whitespace
-	    tags = [ tag for tag in tags if tag ] # skip empty
+        if form.is_valid():
+            tags = form.cleaned_data.get('tags', '').split('\n')
+            tags = [tag.strip() for tag in tags]  # trim whitespace
+            tags = [tag for tag in tags if tag]   # skip empty
 
-	    tag_mode = form.cleaned_data['tag_mode'] and 'all' or 'any'
+            tag_mode = form.cleaned_data['tag_mode'] and 'all' or 'any'
 
-	    text = form.cleaned_data.get('text', '')
+            text = form.cleaned_data.get('text', '')
 
-	    q = QueryDict('').copy()
-	    if tags:
-		q['tags'] = ','.join(tags)
-		q['tag_mode'] = tag_mode
-	    if text:
-		q['text'] = text
-	    query = q.urlencode()
+            q = QueryDict('').copy()
+            if tags:
+                q['tags'] = ','.join(tags)
+                q['tag_mode'] = tag_mode
+            if text:
+                q['text'] = text
+            query = q.urlencode()
 
-	    scope = [ "/flickr/?%s" % query ]
+            scope = ["/flickr/?%s" % query]
 
-	    proxies = (form.cleaned_data['proxied'] and
-			settings.FLICKR_PROXIES or None)
-	    cookie = generate_cookie_django(scope, settings.FLICKR_SERVERS,
-					proxies, blaster=getattr(settings,
-					'FLICKR_BLASTER', None))
+            proxies = (form.cleaned_data['proxied'] and
+                       settings.FLICKR_PROXIES or None)
+            cookie = generate_cookie_django(
+                scope, settings.FLICKR_SERVERS, proxies,
+                blaster=getattr(settings, 'FLICKR_BLASTER', None))
 
-	    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
+            return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
-	form = FlickrForm()
+        form = FlickrForm()
 
     return render_response(request, 'scopeserver/simple_form.html', {
-	'form': form,
+        'form': form,
     })

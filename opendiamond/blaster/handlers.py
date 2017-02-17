@@ -31,15 +31,15 @@ from tornado.web import asynchronous, RequestHandler, HTTPError
 from urlparse import urljoin, urlparse
 
 import opendiamond
-from opendiamond.attributes import (StringAttributeCodec,
-        IntegerAttributeCodec, DoubleAttributeCodec, RGBImageAttributeCodec,
-        PatchesAttributeCodec)
+from opendiamond.attributes import (
+    StringAttributeCodec, IntegerAttributeCodec, DoubleAttributeCodec,
+    RGBImageAttributeCodec, PatchesAttributeCodec)
 from opendiamond.blaster.cache import SearchCacheLoadError
-from opendiamond.blaster.json import (SearchConfig, SearchConfigResult,
-        EvaluateRequest, ResultObject, ClientToServerEvent,
-        ServerToClientEvent)
-from opendiamond.blaster.search import (Blob, EmptyBlob, DiamondSearch,
-        FilterSpec)
+from opendiamond.blaster.json import (
+    SearchConfig, SearchConfigResult, EvaluateRequest, ResultObject,
+    ClientToServerEvent, ServerToClientEvent)
+from opendiamond.blaster.search import (
+    Blob, EmptyBlob, DiamondSearch, FilterSpec)
 from opendiamond.helpers import connection_ok
 from opendiamond.protocol import DiamondRPCCookieExpired
 from opendiamond.rpc import ConnectionFailure, RPCError
@@ -55,10 +55,9 @@ CONNECTION_TIMEOUT = 30  # seconds
 # pylint: disable=arguments-differ
 
 define('enable_testui', default=True,
-        help='Enable the example user interface')
+       help='Enable the example user interface')
 define('http_proxy', type=str, default=None,
-        metavar='HOST:PORT', help='Use a proxy for HTTP client requests')
-
+       metavar='HOST:PORT', help='Use a proxy for HTTP client requests')
 
 _log = logging.getLogger(__name__)
 
@@ -110,7 +109,7 @@ def _make_object_json(application, search_key, object_key, obj):
                 suffix = None
             try:
                 if k != '' and suffix not in ('jpeg', 'png', 'rgbimage',
-                        'binary'):
+                                              'binary'):
                     data = StringAttributeCodec().decode(v).decode('UTF-8')
             except ValueError:
                 pass
@@ -121,10 +120,10 @@ def _make_object_json(application, search_key, object_key, obj):
             }
         else:
             result[k] = {
-                'raw_url': application.reverse_url('attribute-raw',
-                        search_key, object_key, k),
-                'image_url': application.reverse_url('attribute-image',
-                        search_key, object_key, k),
+                'raw_url': application.reverse_url(
+                    'attribute-raw', search_key, object_key, k),
+                'image_url': application.reverse_url(
+                    'attribute-image', search_key, object_key, k),
             }
     result['_ResultURL'] = {
         'data': application.reverse_url('result', search_key, object_key),
@@ -206,13 +205,14 @@ class _BlasterBlob(Blob):
                     proxy_port = int(proxy_port)
                 else:
                     proxy_host = proxy_port = None
-                response = yield gen.Task(client.fetch, self.uri,
-                        user_agent='JSONBlaster/%s' % opendiamond.__version__,
-                        proxy_host=proxy_host, proxy_port=proxy_port,
-                        validate_cert=False)
+                response = yield gen.Task(
+                    client.fetch, self.uri,
+                    user_agent='JSONBlaster/%s' % opendiamond.__version__,
+                    proxy_host=proxy_host, proxy_port=proxy_port,
+                    validate_cert=False)
                 if response.error:
                     raise HTTPError(400, 'Error fetching <%s>: %s' % (
-                            self.uri, str(response.error)))
+                        self.uri, str(response.error)))
                 data = response.body
             else:
                 raise HTTPError(400, 'Unacceptable blob URI scheme')
@@ -242,7 +242,7 @@ class _SearchSpec(object):
         # Assume each "cookie" may actually be a megacookie
         try:
             self.cookies = [ScopeCookie.parse(c) for mc in config['cookies']
-                    for c in ScopeCookie.split(mc)]
+                            for c in ScopeCookie.split(mc)]
         except ScopeError, e:
             raise HTTPError(400, 'Invalid scope cookie: %s' % e)
         if not self.cookies:
@@ -251,6 +251,7 @@ class _SearchSpec(object):
 
         # Build filters
         blobs = {}  # blob -> itself  (for deduplication)
+
         def make_blob(obj):
             if obj is not None:
                 blob = _BlasterBlob(obj['uri'], obj.get('sha256'))
@@ -258,15 +259,17 @@ class _SearchSpec(object):
                 return blobs.setdefault(blob, blob)
             else:
                 return EmptyBlob()
-        self.filters = [FilterSpec(
-                    name=f['name'],
-                    code=make_blob(f['code']),
-                    arguments=f.get('arguments', []),
-                    blob_argument=make_blob(f.get('blob')),
-                    dependencies=f.get('dependencies', []),
-                    min_score=f.get('min_score', float('-inf')),
-                    max_score=f.get('max_score', float('inf'))
-                ) for f in config['filters']]
+
+        self.filters = [
+            FilterSpec(
+                name=f['name'],
+                code=make_blob(f['code']),
+                arguments=f.get('arguments', []),
+                blob_argument=make_blob(f.get('blob')),
+                dependencies=f.get('dependencies', []),
+                min_score=f.get('min_score', float('-inf')),
+                max_score=f.get('max_score', float('inf'))
+            ) for f in config['filters']]
         self.blobs = blobs.values()
 
     @gen.engine
@@ -278,7 +281,7 @@ class _SearchSpec(object):
     @property
     def expires(self):
         return reduce(lambda a, b: a if a < b else b,
-                [c.expires for c in self.cookies])
+                      [c.expires for c in self.cookies])
 
     def make_search(self, **kwargs):
         return DiamondSearch(self.cookies, self.filters, **kwargs)
@@ -357,8 +360,8 @@ class EvaluateHandler(_BlasterRequestHandler):
         yield gen.Task(blob.fetch, self.blob_cache)
 
         # Reexecute
-        _log.info('Evaluating search %s on object %s', search_key,
-                blob.sha256)
+        _log.info('Evaluating search %s on object %s',
+                  search_key, blob.sha256)
         self._running = True
         search = search_spec.make_search(close_callback=self._closed)
         try:
@@ -373,12 +376,12 @@ class EvaluateHandler(_BlasterRequestHandler):
             search.close()
 
         # Store object in cache
-        object_key = self.search_cache.put_search_result(search_key,
-                obj['_ObjectID'], obj)
+        object_key = self.search_cache.put_search_result(
+            search_key, obj['_ObjectID'], obj)
 
         # Return result
-        result = _make_object_json(self.application, search_key, object_key,
-                obj)
+        result = _make_object_json(self.application, search_key,
+                                   object_key, obj)
         self.set_status(200)
         self.set_header('Content-Type', 'application/json')
         self.write(json.dumps(result))
@@ -393,12 +396,12 @@ class EvaluateHandler(_BlasterRequestHandler):
 class ResultHandler(_BlasterRequestHandler):
     def get(self, search_key, object_key):
         try:
-            obj = self.search_cache.get_search_result(search_key,
-                    object_key)
+            obj = self.search_cache.get_search_result(
+                search_key, object_key)
         except KeyError:
             raise HTTPError(404, 'Not found')
-        result = _make_object_json(self.application, search_key, object_key,
-                obj)
+        result = _make_object_json(self.application, search_key,
+                                   object_key, obj)
         objdata = json.dumps(result)
         jsonp = self.get_argument('jsonp', None)
         # Allow cross-domain access to result data
@@ -419,8 +422,8 @@ class AttributeHandler(_BlasterRequestHandler):
 
     def get(self, search_key, object_key, attr_name):
         try:
-            data = self.search_cache.get_search_result(search_key,
-                    object_key)[attr_name]
+            data = self.search_cache.get_search_result(
+                search_key, object_key)[attr_name]
         except KeyError:
             raise HTTPError(404, 'Not found')
 
@@ -437,7 +440,7 @@ class AttributeHandler(_BlasterRequestHandler):
             mime = _magic.buffer(data)
 
         if self._transcode and (tint is not None or
-                mime not in ('image/jpeg', 'image/png')):
+                                mime not in ('image/jpeg', 'image/png')):
             try:
                 if attr_name.endswith('.rgbimage'):
                     img = RGBImageAttributeCodec().decode(data)
@@ -523,8 +526,8 @@ class _StructuredSocketConnection(SockJSConnection):
 
 class SearchConnection(_StructuredSocketConnection):
     def __init__(self, *args, **kwargs):
-        _StructuredSocketConnection.__init__(self, _c2s_event_schema,
-                _s2c_event_schema, *args, **kwargs)
+        _StructuredSocketConnection.__init__(
+            self, _c2s_event_schema, _s2c_event_schema, *args, **kwargs)
         self._search = None
         self._search_key = None
         self._last_pong = None
@@ -618,10 +621,10 @@ class SearchConnection(_StructuredSocketConnection):
 
     def _result(self, obj):
         '''Blast channel result.'''
-        object_key = self.search_cache.put_search_result(self._search_key,
-                obj['_ObjectID'], obj)
+        object_key = self.search_cache.put_search_result(
+            self._search_key, obj['_ObjectID'], obj)
         result = _make_object_json(self.application, self._search_key,
-                object_key, obj)
+                                   object_key, obj)
         self.emit('result', **result)
 
     @gen.engine

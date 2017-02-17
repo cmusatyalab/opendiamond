@@ -17,36 +17,39 @@ from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
 from forms import MirageForm
 
+
 @permission_required('mirage.search')
 def index(request):
     if request.method == 'POST':
-	form = MirageForm(request.POST)
+        form = MirageForm(request.POST)
 
-	if form.is_valid():
-	    paths = form.cleaned_data.get('paths', '').split('\n')
-	    paths = [ path.strip() for path in paths ] # trim whitespace
-	    paths = [ path for path in paths if path ] # skip empty
+        if form.is_valid():
+            paths = form.cleaned_data.get('paths', '').split('\n')
+            paths = [path.strip() for path in paths]  # trim whitespace
+            paths = [path for path in paths if path]  # skip empty
 
-	    q = QueryDict('').copy()
-	    q.setlist('path', paths)
-	    query = q.urlencode()
-	    if query: query = "?" + query
+            q = QueryDict('').copy()
+            q.setlist('path', paths)
+            query = q.urlencode()
+            if query:
+                query = "?" + query
 
-	    servers = form.cleaned_data['servers']
+            servers = form.cleaned_data['servers']
 
-	    cookie = []
-	    n = len(servers)
-	    for i in range(n):
-		scope = [ "%s/mirage/%dof%d%s" % \
-			  (settings.MIRAGE_DATARETRIEVER, i+1, n, query) ]
-		cookie.append(generate_cookie_django(scope, (servers[i],),
-		        blaster=getattr(settings, 'MIRAGE_BLASTER', None)))
+            cookie = []
+            n = len(servers)
+            for i in range(n):
+                scope = ["%s/mirage/%dof%d%s" %
+                         (settings.MIRAGE_DATARETRIEVER, i+1, n, query)]
+                cookie.append(generate_cookie_django(
+                    scope, (servers[i],),
+                    blaster=getattr(settings, 'MIRAGE_BLASTER', None)))
 
-	    return HttpResponse(''.join(cookie),
-				mimetype='application/x-diamond-scope')
+            return HttpResponse(''.join(cookie),
+                                mimetype='application/x-diamond-scope')
     else:
-	form = MirageForm()
+        form = MirageForm()
 
     return render_response(request, 'scopeserver/simple_form.html', {
-	'form': form,
+        'form': form,
     })

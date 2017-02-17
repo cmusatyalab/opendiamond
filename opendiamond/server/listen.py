@@ -31,8 +31,11 @@ DATA = 1
 
 _log = logging.getLogger(__name__)
 
+
 class ListenError(Exception):
     '''Error opening listening socket.'''
+
+
 class _ConnectionClosed(Exception):
     '''The socket has been closed.'''
 
@@ -160,7 +163,7 @@ class ConnListener(object):
     def __init__(self):
         # Get a list of potential bind addresses
         addrs = socket.getaddrinfo(None, PORT, 0, socket.SOCK_STREAM, 0,
-                                    socket.AI_PASSIVE)
+                                   socket.AI_PASSIVE)
         # Try to bind to each address
         socks = []
         for family, type, proto, _canonname, addr in addrs:
@@ -213,7 +216,7 @@ class ConnListener(object):
                 # Have the nonce.
                 if ret == CONTROL:
                     _log.debug('Control connection from %s, nonce %s',
-                                        pconn.peer, pconn.nonce_str)
+                               pconn.peer, pconn.nonce_str)
                     pconn.send_nonce()
                     self._nonce_to_pending[pconn.nonce] = pconn
                 else:
@@ -221,9 +224,8 @@ class ConnListener(object):
                     if control is not None:
                         # We have a match!  Clean up pending state and
                         # return the connection handles.
-                        _log.debug('Data connection from %s, accepted ' +
-                                            'nonce %s', pconn.peer,
-                                            pconn.nonce_str)
+                        _log.debug('Data connection from %s, accepted '
+                                   'nonce %s', pconn.peer, pconn.nonce_str)
                         pconn.send_nonce()
                         self._poll.unregister(control)
                         self._poll.unregister(pconn)
@@ -231,9 +233,8 @@ class ConnListener(object):
                     else:
                         # No control connection for this data connection.
                         # Close it.
-                        _log.warning('Data connection from %s, unknown ' +
-                                            'nonce %s', pconn.peer,
-                                            pconn.nonce_str)
+                        _log.warning('Data connection from %s, unknown '
+                                     'nonce %s', pconn.peer, pconn.nonce_str)
                         self._poll.unregister(pconn)
         except _ConnectionClosed:
             # Connection died, clean it up.  _nonce_to_pending holds a weak

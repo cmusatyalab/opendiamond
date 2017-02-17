@@ -10,14 +10,14 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
-from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
-from forms import GigaPanCookieForm, GigaPanSearchForm, GigaPanChoiceForm
+from forms import GigaPanSearchForm, GigaPanChoiceForm
 from urllib import quote_plus
 from urllib2 import urlopen, HTTPError
 
@@ -25,6 +25,7 @@ try:
     import json
 except ImportError:
     import simplejson as json
+
 
 def generate_cookie(ids):
     def full_url(gigapan):
@@ -41,14 +42,12 @@ def generate_cookie(ids):
         cookies = []
         for gigapan in gigapans:
             if len(mapping[gigapan]) > 1:
-                cookies.append(generate_cookie_django([gigapan],
-                                    servers=[settings.GIGAPAN_SERVER],
-                                    proxies=mapping[gigapan],
-                                    blaster=blaster))
+                cookies.append(generate_cookie_django(
+                    [gigapan], servers=[settings.GIGAPAN_SERVER],
+                    proxies=mapping[gigapan], blaster=blaster))
             else:
-                cookies.append(generate_cookie_django([full_url(gigapan)],
-                                                      mapping[gigapan],
-                                                      blaster=blaster))
+                cookies.append(generate_cookie_django(
+                    [full_url(gigapan)], mapping[gigapan], blaster=blaster))
         cookie = ''.join(cookies)
     else:
         mapping = {}  # proxy -> [gigapan]
@@ -62,6 +61,7 @@ def generate_cookie(ids):
 
     return HttpResponse(cookie, mimetype='application/x-diamond-scope')
 
+
 @permission_required("gigapan.search")
 def generate(request):
     '''Generate cookie'''
@@ -72,6 +72,7 @@ def generate(request):
         return generate_cookie(form.cleaned_data['gigapan_choice'])
     else:
         return redirect('index')
+
 
 @permission_required("gigapan.search")
 def browse(request):
@@ -97,14 +98,13 @@ def browse(request):
 
         if ids:
             form = GigaPanChoiceForm(ids=ids)
-            return render_response(request, 'scopeserver/gigapan_browse.html',
-            {
-                'form': form,
-            })
+            return render_response(
+                request, 'scopeserver/gigapan_browse.html', {'form': form})
         else:
             return HttpResponseRedirect(reverse('index') + "?error=True")
     else:
         return redirect('index')
+
 
 @permission_required("gigapan.search")
 def index(request):

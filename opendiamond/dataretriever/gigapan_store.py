@@ -16,40 +16,43 @@ from PIL import Image
 from threading import Lock
 from wsgiref.util import shift_path_info
 from urllib2 import urlopen
-from pyramid import *
+from pyramid import stat_gigapan, round_up, log_2, iter_coords, path_to_tile
 from cStringIO import StringIO
 
 __all__ = ['scope_app', 'object_app']
-baseurl = 'gigapan'
+BASEURL = 'gigapan'
 
 TILE_SIZE = 256
+
 
 class GigaPanInfoCache(object):
     def __init__(self):
         self._cache = {}
         self._lock = Lock()
+
     def __getitem__(self, id):
         with self._lock:
             if id not in self._cache:
                 self._cache[id] = stat_gigapan(id)
             return self._cache[id]
 
+
 gigapan_info_cache = GigaPanInfoCache()
+
 
 def scope_app(environ, start_response):
     root = shift_path_info(environ)
     if root == 'obj':
-	return object_app(environ, start_response)
+        return object_app(environ, start_response)
 
     gigapan_id = root.strip()
 
     start_response("200 OK", [('Content-Type', "text/xml")])
     return expand_urls(int(gigapan_id))
-    
+
 
 def tiles_in_gigapan(width, height):
     """Modified from pyramid.iter_coords()."""
-    round_up = lambda x: int(ceil(x))
     tiles_wide = round_up(width / float(TILE_SIZE))
     tiles_high = round_up(height / float(TILE_SIZE))
     levels_deep = log_2(max(tiles_wide, tiles_high)) + 1
@@ -57,7 +60,7 @@ def tiles_in_gigapan(width, height):
     columns_at_level = lambda lvl: round_up(tiles_wide / float(1 << inv(lvl)))
     rows_at_level = lambda lvl: round_up(tiles_high / float(1 << inv(lvl)))
     return sum(columns_at_level(lvl) * rows_at_level(lvl)
-                for lvl in range(levels_deep))
+               for lvl in range(levels_deep))
 
 
 def expand_urls(id):
@@ -67,7 +70,7 @@ def expand_urls(id):
     info = gigapan_info_cache[id]
     height = info.get('height')
     width = info.get('width')
-    levels = info.get('levels')
+    # levels = info.get('levels')
 
     yield '<count adjust="%d"/>\n' % tiles_in_gigapan(width, height)
 
@@ -76,13 +79,12 @@ def expand_urls(id):
     try:
         while True:
             coord = iter.next()
-            yield '<object src="obj/%s/%s/%s/%s"/>\n' % (id, coord[0], 
-                                                         coord[1], coord[2])
+            yield '<object src="obj/%s/%s/%s/%s"/>\n' % (
+                id, coord[0], coord[1], coord[2])
     except StopIteration:
         pass
 
     yield '</objectlist>'
-
 
 
 def object_app(environ, start_response):
@@ -126,7 +128,7 @@ def object_app(environ, start_response):
     time = datetime.utcnow() + timedelta(days=365)
     timestr = time.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
-    headers = [ # copy some headers for caching purposes
+    headers = [  # copy some headers for caching purposes
         ('Content-Length',		str(content_length)),
         ('Content-Type',		content_type),
         ('Last-Modified',		obj.headers['Last-Modified']),

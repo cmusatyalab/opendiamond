@@ -23,6 +23,7 @@ _log = logging.getLogger(__name__)
 
 RPC_PENDING = -1
 
+
 class ConnectionFailure(Exception):
     '''RPC connection died.'''
 
@@ -48,6 +49,8 @@ class RPCError(Exception):
 class RPCEncodingError(RPCError):
     '''Bad XDR structure.'''
     code = -2
+
+
 class RPCProcedureUnavailable(RPCError):
     '''Remote procedure not available.'''
     code = -3
@@ -76,7 +79,7 @@ class _RPCRequest(object):
     def make_reply_header(self, status, data):
         '''Return the header for an RPC reply.'''
         return RPCHeader(sequence=self.hdr.sequence, status=status,
-                            cmd=self.hdr.cmd, datalen=len(data))
+                         cmd=self.hdr.cmd, datalen=len(data))
 
 
 class RPCConnection(object):

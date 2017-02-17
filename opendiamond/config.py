@@ -17,6 +17,7 @@ import socket
 
 import opendiamond
 
+
 class DiamondConfigError(Exception):
     pass
 
@@ -81,8 +82,8 @@ class DiamondConfig(object):
                     path = os.path.join(os.environ['HOME'], '.diamond',
                                         'diamond_config')
                 except KeyError:
-                    raise DiamondConfigError("Couldn't get location of " +
-                                        "diamond_config")
+                    raise DiamondConfigError("Couldn't get location of "
+                                             "diamond_config")
         confdir = os.path.dirname(path)
 
         # Determine the default number of diamondd worker threads.  On
@@ -97,7 +98,7 @@ class DiamondConfig(object):
 
         # Define configuration parameters
         params = _ConfigParams(
-            ## diamondd
+            # -- diamondd
             # Cache directory expiration
             _Param('blob_cache_days', 'BLOBDAYS', 30),
             # Redis database
@@ -134,10 +135,10 @@ class DiamondConfig(object):
             # Worker threads per child process
             _Param('threads', 'THREADS', default_threads),
             # HTTP user agent
-            _Param('user_agent', None, 'OpenDiamond/%s'
-                                        % opendiamond.__version__),
+            _Param('user_agent', None,
+                   'OpenDiamond/%s' % opendiamond.__version__),
 
-            ## dataretriever
+            # -- dataretriever
             # Listen host
             _Param('retriever_host', 'DRHOST', '127.0.0.1'),
             # Listen port
@@ -153,7 +154,7 @@ class DiamondConfig(object):
             # Mirage store: repository path
             _Param('mirage_repository', 'MIRAGE_REPOSITORY'),
 
-            ## Deprecated config keys
+            # -- Deprecated config keys
             _Param(None, 'DATATYPE'),
         )
 
@@ -192,7 +193,7 @@ class DiamondConfig(object):
                 setattr(self, attr, kwargs[attr])
             else:
                 raise AttributeError('Could not override invalid ' +
-                                    'attribute ' + attr)
+                                     'attribute ' + attr)
 
         # Create directories
         for dir in self.cachedir, self.logdir:
@@ -209,8 +210,8 @@ class DiamondConfig(object):
             try:
                 for info in socket.getaddrinfo(hostname, None):
                     try:
-                        name = socket.getnameinfo(info[4],
-                                        socket.NI_NAMEREQD)[0]
+                        name = socket.getnameinfo(
+                            info[4], socket.NI_NAMEREQD)[0]
                         names.add(name)
                     except socket.gaierror:
                         pass

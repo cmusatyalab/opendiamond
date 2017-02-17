@@ -24,15 +24,22 @@ PORT = 5872
 NONCE_LEN = 16
 NULL_NONCE = '\x00' * NONCE_LEN
 
+
 class DiamondRPCFailure(RPCError):
     '''Generic Diamond RPC failure.'''
     code = 500
+
+
 class DiamondRPCFCacheMiss(RPCError):
     '''Filter code or blob argument missed in the blob cache.'''
     code = 501
+
+
 class DiamondRPCCookieExpired(RPCError):
     '''Proffered scope cookie has expired.'''
     code = 504
+
+
 class DiamondRPCSchemeNotSupported(RPCError):
     '''URI scheme not supported.'''
     code = 505

@@ -16,8 +16,9 @@ from tornado import gen, stack_context
 import uuid
 
 from opendiamond.blaster.rpc import ControlConnection, BlastConnection
-from opendiamond.protocol import (XDR_setup, XDR_filter_config,
-        XDR_blob_data, XDR_start, XDR_reexecute, DiamondRPCFCacheMiss)
+from opendiamond.protocol import (
+    XDR_setup, XDR_filter_config, XDR_blob_data, XDR_start, XDR_reexecute,
+    DiamondRPCFCacheMiss)
 from opendiamond.rpc import RPCError, ConnectionFailure
 from opendiamond.scope import get_cookie_map
 
@@ -59,7 +60,7 @@ class EmptyBlob(Blob):
 
 class FilterSpec(object):
     def __init__(self, name, code, arguments, blob_argument, dependencies,
-            min_score, max_score):
+                 min_score, max_score):
         '''code and blob are Blobs.'''
         self.name = name
         self.code = code
@@ -102,14 +103,14 @@ class _DiamondConnection(object):
         request = XDR_setup(
             cookies=[c.encode() for c in cookies],
             filters=[XDR_filter_config(
-                        name=f.name,
-                        arguments=f.arguments,
-                        dependencies=f.dependencies,
-                        min_score=f.min_score,
-                        max_score=f.max_score,
-                        code=self._blob_uri(f.code),
-                        blob=self._blob_uri(f.blob_argument)
-                    ) for f in filters],
+                name=f.name,
+                arguments=f.arguments,
+                dependencies=f.dependencies,
+                min_score=f.min_score,
+                max_score=f.max_score,
+                code=self._blob_uri(f.code),
+                blob=self._blob_uri(f.blob_argument)
+            ) for f in filters],
         )
         reply = yield gen.Task(self.control.setup, request)
 
@@ -124,7 +125,7 @@ class _DiamondConnection(object):
 
     @gen.engine
     def run_search(self, search_id, cookies, filters, attrs=None,
-            callback=None):
+                   callback=None):
         yield gen.Task(self.connect)
         yield gen.Task(self.setup, cookies, filters)
         request = XDR_start(search_id=search_id, attrs=attrs)
@@ -158,7 +159,7 @@ class _DiamondConnection(object):
         except DiamondRPCFCacheMiss:
             # Send object data and retry
             yield gen.Task(self.control.send_blobs,
-                    XDR_blob_data(blobs=[str(blob)]))
+                           XDR_blob_data(blobs=[str(blob)]))
             reply = yield gen.Task(self.control.reexecute_filters, request)
 
         # Return object attributes
@@ -177,7 +178,7 @@ class _DiamondConnection(object):
 
 class _DiamondBlastSet(object):
     def __init__(self, connections, object_callback=None,
-            finished_callback=None):
+                 finished_callback=None):
         self._object_callback = stack_context.wrap(object_callback)
         self._finished_callback = stack_context.wrap(finished_callback)
         # Connections that have not finished searching
@@ -239,7 +240,7 @@ class _DiamondBlastSet(object):
 
 class DiamondSearch(object):
     def __init__(self, cookies, filters, object_callback=None,
-            finished_callback=None, close_callback=None):
+                 finished_callback=None, close_callback=None):
         '''cookies is a list of ScopeCookie.  filters is a list of
         FilterSpec.'''
 
@@ -253,9 +254,9 @@ class DiamondSearch(object):
 
         # hostname -> connection
         self._connections = dict((h, _DiamondConnection(h, self.close))
-                for h in self._cookies)
+                                 for h in self._cookies)
         self._blast = _DiamondBlastSet(self._connections.values(),
-                object_callback, finished_callback)
+                                       object_callback, finished_callback)
 
     @gen.engine
     def start(self, callback=None):
@@ -263,7 +264,7 @@ class DiamondSearch(object):
         # On connection error, our close callback will run and this will
         # never return
         yield [gen.Task(c.run_search, search_id, self._cookies[h],
-                self._filters) for h, c in self._connections.iteritems()]
+               self._filters) for h, c in self._connections.iteritems()]
         # Start blast channels
         self._blast.start()
         if callback is not None:
@@ -278,7 +279,7 @@ class DiamondSearch(object):
 
         # Reexecute
         obj = yield gen.Task(conn.evaluate, self._cookies[hostname],
-                self._filters, blob)
+                             self._filters, blob)
         if callback is not None:
             callback(obj)
 
@@ -296,7 +297,7 @@ class DiamondSearch(object):
                 dest[stat.name] += stat.value
         try:
             results = yield [gen.Task(c.control.request_stats)
-                    for c in self._connections.values()]
+                             for c in self._connections.values()]
         except RPCError:
             _log.exception('Statistics request failed')
             self.close()
@@ -306,7 +307,7 @@ class DiamondSearch(object):
             combine_into(stats, result.stats)
             for filter in result.filter_stats:
                 combine_into(filter_stats.setdefault(filter.name, {}),
-                        filter.stats)
+                             filter.stats)
         stats['filters'] = filter_stats
         if callback is not None:
             callback(stats)

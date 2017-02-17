@@ -14,6 +14,7 @@ from cStringIO import StringIO
 import PIL.Image
 import struct
 
+
 class _AttributeCodec(object):
     '''Base class for a Diamond attribute codec.'''
 
@@ -74,7 +75,7 @@ class RGBImageAttributeCodec(_AttributeCodec):
         # frombytes in Pillow >= 2.0.0, fromstring in older Pillow/PIL
         frombytes = getattr(PIL.Image, 'frombytes', PIL.Image.fromstring)
         return frombytes('RGB', (width, height), data[16:], 'raw', 'RGBX',
-                0, 1)
+                         0, 1)
 
 
 class PatchesAttributeCodec(_AttributeCodec):

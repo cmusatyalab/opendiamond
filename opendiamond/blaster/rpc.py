@@ -19,8 +19,8 @@ from tornado import gen, stack_context
 from tornado.iostream import IOStream
 
 from opendiamond import protocol
-from opendiamond.rpc import (RPCHeader, RPC_PENDING, RPCError,
-        RPCEncodingError, ConnectionFailure)
+from opendiamond.rpc import (
+    RPCHeader, RPC_PENDING, RPCError, RPCEncodingError, ConnectionFailure)
 
 _log = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class _RPCClientConnection(object):
         # If the connect fails, our close callback will be called, and
         # the Wait will never return.
         self._stream.connect((address, protocol.PORT),
-                callback=(yield gen.Callback('connect')))
+                             callback=(yield gen.Callback('connect')))
         self._write(nonce)
         yield gen.Wait('connect')
 
@@ -156,7 +156,7 @@ class _RPCClientConnection(object):
             if hdr.status == RPC_PENDING:
                 _log.warning('RPC client received request message')
                 self._send_message(hdr.sequence, RPCEncodingError.code,
-                        hdr.cmd)
+                                   hdr.cmd)
                 continue
 
             try:
@@ -181,6 +181,7 @@ def _stub(cmd, request_class=None, reply_class=None):
         request_type = request_class
     else:
         request_type = type(None)
+
     def call(self, request=None, callback=None):
         if type(request) is not request_type:
             raise RPCEncodingError('Incorrect request type')
@@ -194,7 +195,7 @@ class ControlConnection(_RPCClientConnection):
     send_blobs = _stub(26, protocol.XDR_blob_data)
     start = _stub(28, protocol.XDR_start)
     reexecute_filters = _stub(30, protocol.XDR_reexecute,
-            protocol.XDR_attribute_list)
+                              protocol.XDR_attribute_list)
     request_stats = _stub(29, None, protocol.XDR_search_stats)
     session_variables_get = _stub(18, None, protocol.XDR_session_vars)
     session_variables_set = _stub(19, None, protocol.XDR_session_vars)
@@ -213,5 +214,5 @@ class BlastConnection(_RPCClientConnection):
     # pylint: disable=signature-differs
     def connect(self, address, nonce, callback=None):
         _RPCClientConnection.connect(self, address, nonce=nonce,
-                callback=callback)
+                                     callback=callback)
     # pylint: enable=signature-differs

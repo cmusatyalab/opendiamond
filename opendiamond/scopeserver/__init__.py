@@ -14,6 +14,7 @@ from django.conf import settings
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
+
 def render_response(request, template, map=None):
     '''A wrapper for render_to_response() that adds some additional variables
     to the template context without the need to configure a custom context
@@ -26,4 +27,4 @@ def render_response(request, template, map=None):
         'LOGOUT_URL': settings.LOGOUT_URL,
     })
     return render_to_response(template, map,
-                        context_instance=RequestContext(request))
+                              context_instance=RequestContext(request))

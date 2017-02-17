@@ -23,6 +23,7 @@ GC_SUFFIX = '-'
 
 _log = logging.getLogger(__name__)
 
+
 class BlobCache(object):
     '''A cache of binary data identified by its SHA256 hash in hex.
 
@@ -77,8 +78,8 @@ class BlobCache(object):
         garbage-collected.  Rescue the blob if necessary.  Raise KeyError
         if the blob is not in the cache.'''
         try:
-            self._try_with_rescue(sig,
-                        lambda: os.utime(self._path(sig), None), OSError)
+            self._try_with_rescue(
+                sig, lambda: os.utime(self._path(sig), None), OSError)
         except OSError:
             raise KeyError()
 
@@ -93,8 +94,8 @@ class BlobCache(object):
     # pylint: disable=unnecessary-lambda
     def __getitem__(self, sig):
         self._access(sig)
-        return self._try_with_rescue(sig,
-                        lambda: open(self._path(sig), 'rb').read(), IOError)
+        return self._try_with_rescue(
+            sig, lambda: open(self._path(sig), 'rb').read(), IOError)
     # pylint: enable=unnecessary-lambda
 
     def add(self, data):
@@ -163,7 +164,7 @@ class ExecutableBlobCache(BlobCache):
         BlobCache.__init__(self, basedir)
         # Ensure _executable_dir is inside the search-specific tempdir
         self._executable_dir = mkdtemp(dir=os.environ.get('TMPDIR'),
-                                        prefix='executable-')
+                                       prefix='executable-')
 
     def executable_path(self, sig):
         '''Return a path to the file containing the specified data
@@ -173,6 +174,7 @@ class ExecutableBlobCache(BlobCache):
         garbage-collection.'''
         src = self._path(sig)
         dest = os.path.join(self._executable_dir, sig)
+
         def make_dest():
             # Link the blob into a temporary directory.  This directory will
             # normally (but need not always) be deleted by the supervisor when

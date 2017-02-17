@@ -19,11 +19,12 @@ from tempfile import mkstemp
 import threading
 from zipfile import ZipFile
 
-from opendiamond.attributes import (StringAttributeCodec,
-        IntegerAttributeCodec, DoubleAttributeCodec, RGBImageAttributeCodec,
-        PatchesAttributeCodec, HeatMapAttributeCodec)
+from opendiamond.attributes import (
+    StringAttributeCodec, IntegerAttributeCodec, DoubleAttributeCodec,
+    RGBImageAttributeCodec, PatchesAttributeCodec, HeatMapAttributeCodec)
 
 EXAMPLE_DIR = 'examples'
+
 
 class Session(object):
     '''Represents the Diamond search session.'''
@@ -97,7 +98,7 @@ class Filter(object):
             zf = ZipFile(StringIO(blob), 'r')
             for path in zf.namelist():
                 if (path.startswith(EXAMPLE_DIR + '/') and
-                                    not path.endswith('/')):
+                        not path.endswith('/')):
                     # We don't use zf.open() because it would cause all
                     # Images to share the same file offset pointer
                     data = zf.read(path)
@@ -180,7 +181,7 @@ class Filter(object):
                         break
                 else:
                     raise ValueError('Filter class %s is not available' %
-                                        target)
+                                     target)
             else:
                 filter_class = cls
             filter = filter_class(args, blob, session)
@@ -283,8 +284,8 @@ class Object(object):
         lower_right_coord) tuples, where a coordinate is an (x, y) tuple.
         The key name should probably be _filter.%s.patches, where %s is the
         filter name from Session.'''
-        self.set_binary(key,
-                PatchesAttributeCodec().encode((distance, patches)))
+        self.set_binary(
+            key, PatchesAttributeCodec().encode((distance, patches)))
 
     def get_heatmap(self, key):
         '''Get the specified object attribute, interpreting the raw data

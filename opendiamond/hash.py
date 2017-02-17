@@ -13,5 +13,6 @@
 '''Dummy module to keep pylint happy during VPATH builds, since pylint
 reads the source directory and hash.so is in the build directory.'''
 
+
 def murmur3_x64_128(_data, _seed=0):
     raise RuntimeError('opendiamond.hash not properly loaded')

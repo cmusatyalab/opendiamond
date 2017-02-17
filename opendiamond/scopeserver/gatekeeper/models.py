@@ -13,11 +13,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Server(models.Model):
     host = models.CharField(max_length=100)
 
     def __unicode__(self):
-	return self.host
+        return self.host
+
 
 class Collection(models.Model):
     name = models.CharField(max_length=100)
@@ -26,5 +28,4 @@ class Collection(models.Model):
     servers = models.ManyToManyField(Server)
 
     def __unicode__(self):
-	return self.name
-
+        return self.name

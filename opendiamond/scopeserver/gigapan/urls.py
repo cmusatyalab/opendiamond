@@ -10,10 +10,11 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import patterns, url
 
-urlpatterns = patterns('opendiamond.scopeserver.gigapan.views',
-                       url(r'^$', 'index', name='index'),
-                       url(r'^generate', 'generate', name='generate'),
-                       url(r'^browse', 'browse', name='browse'),
+urlpatterns = patterns(
+    'opendiamond.scopeserver.gigapan.views',
+    url(r'^$', 'index', name='index'),
+    url(r'^generate', 'generate', name='generate'),
+    url(r'^browse', 'browse', name='browse'),
 )

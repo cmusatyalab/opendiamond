@@ -24,6 +24,7 @@ from opendiamond.hash import murmur3_x64_128
 
 _log = logging.getLogger(__name__)
 
+
 # We use os._exit() to avoid calling destructors after fork()
 # pylint: disable=protected-access
 def daemonize():

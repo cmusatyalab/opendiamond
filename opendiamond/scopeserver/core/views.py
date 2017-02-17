@@ -13,6 +13,7 @@
 from django.contrib.auth.decorators import login_required
 from opendiamond.scopeserver import render_response
 
+
 @login_required
 def index(request):
     return render_response(request, "scopeserver/home.html")

@@ -15,6 +15,7 @@
 import struct
 from xdrlib import Packer, Unpacker, Error as XDRError
 
+
 class XDREncodingError(Exception):
     pass
 

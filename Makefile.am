@@ -89,7 +89,7 @@ nobase_dist_pyexec_DATA = \
 	opendiamond/scopeserver/core/templates/scopeserver/home.html \
 	opendiamond/scopeserver/core/templates/scopeserver/simple_form.html \
 	opendiamond/scopeserver/gatekeeper/templates/scopeserver/gatekeeper.html \
-	opendiamond/scopeserver/gatekeeper/templates/scopeserver/gatekeeper_manage.html \
+	opendiamond/scopeserver/gatekeeper/templates/scopeserver/manage.html \
 	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_browse.html \
 	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_search.html
 

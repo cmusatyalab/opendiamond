@@ -67,6 +67,6 @@ def manage(request):
     else:
 	form = ManageForm()
 
-    return render_response(request, 'scopeserver/gatekeeper_manage.html', {
+    return render_response(request, 'scopeserver/manage.html', {
 	'form': form,
     })

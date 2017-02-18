@@ -126,7 +126,7 @@ check-local:
 		--ignore dataretriever,scopeserver opendiamond || \
 		[ $$(($$? & 3)) -eq 0 ]
 	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \
-		$(PYTHON) $(srcdir)/opendiamond/test.py
+		$(PYTHON) $(srcdir)/tests/test_cookies.py
 
 all-local:
 	(cd $(srcdir); $(PYTHON) setup.py build \

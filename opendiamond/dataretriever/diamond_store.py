@@ -13,6 +13,15 @@
 # Functions to access the OpenDiamond content store
 #
 
+from datetime import datetime, timedelta
+import os
+import re
+import rfc822
+from urllib import quote
+from wsgiref.util import shift_path_info
+
+from opendiamond.dataretriever.util import guess_mime_type
+
 # we could return file URLs iff running locally and there are no
 # text attributes
 # OBJECT_URI = 'file://' + DATAROOT
@@ -21,20 +30,14 @@ OBJECT_URI = 'obj'
 # include a reference to xslt stylesheet (only useful for debugging)
 STYLE = False
 
-from datetime import datetime, timedelta
-from opendiamond.dataretriever.util import guess_mime_type
-from wsgiref.util import shift_path_info
-from urllib import quote
-import rfc822
-import os
-import re
-
 __all__ = ['scope_app', 'object_app']
 BASEURL = 'collection'
 
+INDEXDIR = DATAROOT = None
+
 
 def init(config):
-    global INDEXDIR, DATAROOT
+    global INDEXDIR, DATAROOT  # pylint: disable=global-statement
     INDEXDIR = config.indexdir
     DATAROOT = config.dataroot
 
@@ -42,7 +45,7 @@ def init(config):
 def diamond_textattr(path):
     try:  # read attributes from '.text_attr' file
         for line in open(path + '.text_attr'):
-            m = re.match('^\s*"([^"]+)"\s*=\s*"([^"]*)"', line)
+            m = re.match(r'^\s*"([^"]+)"\s*=\s*"([^"]*)"', line)
             if not m:
                 continue
             yield m.groups()
@@ -50,10 +53,10 @@ def diamond_textattr(path):
         pass
 
 
-def GIDIDXParser(index):
+def gididx_parser(index):
     f = open(index, 'r')
     nentries = 0
-    for line in f:
+    for _ in f:
         nentries = nentries + 1
     f.close()
 
@@ -77,7 +80,7 @@ def scope_app(environ, start_response):
     index = os.path.join(INDEXDIR, index)
 
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return GIDIDXParser(index)
+    return gididx_parser(index)
 
 
 # Get file handle and attributes for a Diamond object

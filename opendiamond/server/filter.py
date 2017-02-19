@@ -67,12 +67,13 @@ less than 2 MB/s.
 
 import logging
 import os
-from redis import Redis
-from redis.exceptions import ResponseError
 import signal
-import simplejson as json
 import subprocess
 import threading
+
+from redis import Redis
+from redis.exceptions import ResponseError
+import simplejson as json
 
 from opendiamond.helpers import murmur, signalname, split_scheme
 from opendiamond.rpc import ConnectionFailure
@@ -90,7 +91,8 @@ _log = logging.getLogger(__name__)
 if DEBUG:
     _debug = _log.debug
 else:
-    _debug = lambda *args, **kwargs: None
+    def _debug(*args, **kwargs):  # pylint: disable=unused-argument
+        pass
 
 
 class FilterDependencyError(Exception):

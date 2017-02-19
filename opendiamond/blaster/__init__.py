@@ -14,10 +14,11 @@
 
 import logging
 import os
-from sockjs.tornado import SockJSRouter
 from urlparse import urljoin
 import threading
 import time
+
+from sockjs.tornado import SockJSRouter
 import tornado.ioloop
 from tornado.options import define, options
 import tornado.web

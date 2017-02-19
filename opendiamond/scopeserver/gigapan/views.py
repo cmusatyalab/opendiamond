@@ -10,16 +10,19 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from urllib import quote_plus
+from urllib2 import urlopen, HTTPError
+
 from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.http import HttpResponse, HttpResponseRedirect
+
 from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
-from forms import GigaPanSearchForm, GigaPanChoiceForm
-from urllib import quote_plus
-from urllib2 import urlopen, HTTPError
+
+from .forms import GigaPanSearchForm, GigaPanChoiceForm
 
 try:
     import json
@@ -94,12 +97,13 @@ def browse(request):
             url += "%s/most_popular.json" % quote_plus(query)
             text = str(urlopen(url).read())
             data = json.loads(text)
-            ids = [id for id, info in data[u'items']]
+            ids = [id for id, _ in data[u'items']]
 
         if ids:
-            form = GigaPanChoiceForm(ids=ids)
+            choiceform = GigaPanChoiceForm(ids=ids)
             return render_response(
-                request, 'scopeserver/gigapan_browse.html', {'form': form})
+                request, 'scopeserver/gigapan_browse.html',
+                {'form': choiceform})
         else:
             return HttpResponseRedirect(reverse('index') + "?error=True")
     else:

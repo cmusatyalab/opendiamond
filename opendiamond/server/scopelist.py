@@ -84,38 +84,36 @@ class ScopeListLoader(object):
         parser = make_parser()
         parser.setContentHandler(self._handler)
         # Walk scope URLs
-        for cookie in self.cookies:
-            for scope_url in cookie:
-                scope_url = urljoin(BASE_URL, scope_url)
+        for scope_url in (url for cookie in self.cookies for url in cookie):
+            scope_url = urljoin(BASE_URL, scope_url)
+            try:
+                # We use urllib2 here because different parts of a single
+                # HTTP response will be handled from different threads.
+                # pycurl does not support this.
+                fh = opener.open(scope_url)
+                # Read the scope list in 4 KB chunks
+                while True:
+                    buf = fh.read(4096)
+                    if len(buf) == 0:
+                        break
+                    parser.feed(buf)
+                    while len(self._handler.pending_objects) > 0:
+                        url = self._handler.pending_objects.pop(0)
+                        yield Object(self.server_id, urljoin(scope_url, url))
+            except urllib2.URLError, e:
+                _log.warning('Fetching %s: %s', scope_url, e)
+            except SAXParseException, e:
+                _log.warning('Parsing %s: %s', scope_url, e)
+            finally:
                 try:
-                    # We use urllib2 here because different parts of a single
-                    # HTTP response will be handled from different threads.
-                    # pycurl does not support this.
-                    fh = opener.open(scope_url)
-                    # Read the scope list in 4 KB chunks
-                    while True:
-                        buf = fh.read(4096)
-                        if len(buf) == 0:
-                            break
-                        parser.feed(buf)
-                        while len(self._handler.pending_objects) > 0:
-                            url = self._handler.pending_objects.pop(0)
-                            yield Object(self.server_id,
-                                         urljoin(scope_url, url))
-                except urllib2.URLError, e:
-                    _log.warning('Fetching %s: %s', scope_url, e)
-                except SAXParseException, e:
-                    _log.warning('Parsing %s: %s', scope_url, e)
-                finally:
-                    try:
-                        parser.close()
-                    except SAXParseException:
-                        # Received malformed XML, such as XML with missing
-                        # closing tags.  This is likely caused by a
-                        # prematurely-terminated connection.
-                        _log.warning('Parsing %s: incomplete scope list',
-                                     scope_url)
-                    parser.reset()
+                    parser.close()
+                except SAXParseException:
+                    # Received malformed XML, such as XML with missing
+                    # closing tags.  This is likely caused by a
+                    # prematurely-terminated connection.
+                    _log.warning('Parsing %s: incomplete scope list',
+                                 scope_url)
+                parser.reset()
         # Log successful completion
         _log.info('End of scope list')
 

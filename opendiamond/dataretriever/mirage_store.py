@@ -24,6 +24,8 @@ import fnmatch
 __all__ = ['scope_app', 'object_app']
 BASEURL = 'mirage'
 
+MIRAGE_REPOSITORY = None
+
 # this expression only matches files because the mode starts with '-'
 MGLV_RE = r"""
     (?P<mode>-.{9})\s+
@@ -41,7 +43,7 @@ class MirageParseError(Exception):
     pass
 
 
-class MirageObject:
+class MirageObject(object):
     def __init__(self, sha1sum):
         # Map from sha1 to content store
         link = os.path.join(MIRAGE_REPOSITORY, "slhome",
@@ -51,22 +53,22 @@ class MirageObject:
         # Set up wrapper around the object in the content store
         path = os.path.join(MIRAGE_REPOSITORY, "contentfiles",
                             "contents.%d" % idx)
-        self.f = open(path, 'rb')
-        self.f.seek(offset)
+        self.contentfile = open(path, 'rb')
+        self.contentfile.seek(offset)
         self.length = length
 
         # Parse out the header
-        chunk = self.f.read(27)
+        chunk = self.contentfile.read(27)
         if chunk[:23] != 'com.ibm.mirage.content\0':
             raise MirageParseError('header mismatch')
         length = struct.unpack('>I', chunk[23:])[0]
 
-        chunk = self.f.read(length + 8)
+        chunk = self.contentfile.read(length + 8)
         if chunk[:length] != 'com.ibm.mirage.sha1id\0':
             raise MirageParseError('object identifier is not sha1id')
         length = struct.unpack('>Q', chunk[length:])[0]
 
-        chunk = self.f.read(length + 8)
+        chunk = self.contentfile.read(length + 8)
         if chunk[:length-1] != sha1sum:
             raise MirageParseError('sha1 checksum mismatch')
         length = struct.unpack('>Q', chunk[length:])[0]
@@ -74,17 +76,17 @@ class MirageObject:
             raise MirageParseError('length mismatch')
 
     def close(self):
-        self.f.close()
+        self.contentfile.close()
 
     def read(self, size=4096):
         if size > self.length:
             size = self.length
-        chunk = self.f.read(size)
+        chunk = self.contentfile.read(size)
         self.length = self.length - len(chunk)
         return chunk
 
 
-def MirageListObjIDs(image_id, paths, uidregex="\d+"):
+def mirage_list_object_ids(image_id, paths, uidregex=r"\d+"):
     pathregex = '|'.join(fnmatch.translate(path)[:-1] for path in paths)
     mglv_re = re.compile(MGLV_RE % (uidregex, pathregex), re.X)
 
@@ -102,9 +104,9 @@ def MirageListObjIDs(image_id, paths, uidregex="\d+"):
     p.stdout.close()
 
 
-def MirageExtractEtcPasswd(image_id):
+def mirage_extract_etc_passwd(image_id):
     uidmap = {}
-    for path, sha1sum in MirageListObjIDs(
+    for path, sha1sum in mirage_list_object_ids(
             image_id, ['/etc/passwd', '/etc/group']):
         if path == '/etc/passwd':
             file = MirageObject(sha1sum).read(1024*1024)
@@ -120,17 +122,17 @@ def MirageExtractEtcPasswd(image_id):
     return uidmap
 
 
-def MirageListVerbose(image_id, paths, users=None):
+def mirage_list_verbose(image_id, paths, users=None):
     yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
     yield '<objectlist>\n'
     try:
         if users:
-            uidmap = MirageExtractEtcPasswd(image_id)
-            uidregex = '|'.join(str(uidmap[user]) for user in users)
+            uidmap = mirage_extract_etc_passwd(image_id)
+            uidregex = r'|'.join(str(uidmap[user]) for user in users)
         else:
-            uidregex = '\d+'
+            uidregex = r'\d+'
 
-        for _, sha1sum in MirageListObjIDs(image_id, paths, uidregex):
+        for _, sha1sum in mirage_list_object_ids(image_id, paths, uidregex):
             yield '<count adjust="1"/><object src="obj/%s"/>\n' % sha1sum
 
     except KeyError:
@@ -139,7 +141,7 @@ def MirageListVerbose(image_id, paths, users=None):
 
 
 def init(config):
-    global MIRAGE_REPOSITORY
+    global MIRAGE_REPOSITORY  # pylint: disable=global-statement
     MIRAGE_REPOSITORY = config.mirage_repository
 
 
@@ -157,9 +159,9 @@ def scope_app(environ, start_response):
     image_id = 'com.ibm.mirage.sha1id/' + root.lower()
 
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return MirageListVerbose(image_id,
-                             querydict.get('path', ['*']),
-                             querydict.get('user', None))
+    return mirage_list_verbose(image_id,
+                               querydict.get('path', ['*']),
+                               querydict.get('user', None))
 
 
 def object_app(environ, start_response):

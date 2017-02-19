@@ -11,8 +11,9 @@
 #
 
 from contextlib import contextmanager
-import simplejson as json
 import threading
+
+import simplejson as json
 import validictory
 
 _strict_config = threading.local()

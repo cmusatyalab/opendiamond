@@ -15,7 +15,7 @@ from django.conf import settings
 from django.http import QueryDict, HttpResponse
 from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
-from forms import MirageForm
+from .forms import MirageForm
 
 
 @permission_required('mirage.search')

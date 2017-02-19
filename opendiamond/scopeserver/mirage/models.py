@@ -14,5 +14,6 @@ from django.db import models
 
 
 class Access(models.Model):
+    # pylint: disable=model-missing-unicode
     class Meta:
         permissions = (("search", "Can search VM images"),)

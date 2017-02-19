@@ -28,6 +28,9 @@ REQUIRES_DATARETRIEVER = [
 REQUIRES_DIAMONDD = [
     'redis>=2.10.5',
 ]
+REQUIRES_SCOPESERVER = [
+    'Django<1.6',
+]
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
 hashmodule = Extension(

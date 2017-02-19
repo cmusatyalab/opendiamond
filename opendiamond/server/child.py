@@ -171,6 +171,6 @@ class ChildManager(object):
 
     def kill_all(self):
         '''Clean up all forked search processes.'''
-        for pid in self._children.keys():
+        for pid in self._children:
             _log.debug('Killing PID %d', pid)
             self._cleanup_child(pid)

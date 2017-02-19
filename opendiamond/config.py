@@ -151,6 +151,8 @@ class DiamondConfig(object):
             _Param('indexdir', 'INDEXDIR'),
             # Flickr store: API key
             _Param('flickr_api_key', 'FLICKR_KEY'),
+            # Flickr store: API secret
+            _Param('flickr_secret', 'FLICKR_SECRET'),
             # Mirage store: repository path
             _Param('mirage_repository', 'MIRAGE_REPOSITORY'),
 

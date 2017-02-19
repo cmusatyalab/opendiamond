@@ -12,13 +12,14 @@
 
 import math
 import os
-from lxml import etree
-from lxml.etree import DocumentInvalid, Element, ParseError
-from pkg_resources import resource_string
 import zipfile
 
-_schema_doc = etree.fromstring(resource_string(__name__, "bundle.xsd"))
-_schema = etree.XMLSchema(_schema_doc)
+import lxml.etree as et
+
+from pkg_resources import resource_string
+
+_schema_doc = et.fromstring(resource_string(__name__, "bundle.xsd"))
+_schema = et.XMLSchema(_schema_doc)
 BUNDLE_NS = _schema_doc.get('targetNamespace')
 BUNDLE_NS_PFX = '{' + BUNDLE_NS + '}'
 
@@ -30,7 +31,7 @@ class InvalidManifest(Exception):
 def element(element_name, *children, **attrs):
     '''Return an XML element in the bundle namespace with the specified
     name, attributes, and children.'''
-    el = Element(BUNDLE_NS_PFX + element_name, nsmap={None: BUNDLE_NS})
+    el = et.Element(BUNDLE_NS_PFX + element_name, nsmap={None: BUNDLE_NS})
     for k, v in attrs.iteritems():
         # Allow caller to specify an attribute value of None to skip the
         # attribute
@@ -63,18 +64,18 @@ def _xmlattr(item):
 def format_manifest(root):
     '''Given an XML root element for a bundle manifest, return the manifest
     serialized as a string.'''
-    return etree.tostring(root, encoding='UTF-8', xml_declaration=True,
-                          pretty_print=True)
+    return et.tostring(root, encoding='UTF-8', xml_declaration=True,
+                       pretty_print=True)
 
 
 def parse_manifest(data):
     '''Given a bundle manifest as a string, parse and validate it and return
     the root element.  Raise InvalidManifest if there is a problem.'''
     try:
-        el = etree.fromstring(data)
+        el = et.fromstring(data)
         validate_manifest(el)
         return el
-    except ParseError, e:
+    except et.ParseError, e:
         raise InvalidManifest(str(e))
 
 
@@ -83,7 +84,7 @@ def validate_manifest(root):
     manifest and raise InvalidManifest if there is a problem.'''
     try:
         _schema.assertValid(root)
-    except DocumentInvalid, e:
+    except et.DocumentInvalid, e:
         raise InvalidManifest(str(e))
 
 

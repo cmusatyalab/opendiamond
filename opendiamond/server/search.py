@@ -142,7 +142,7 @@ class Search(RPCHandlers):
                 raise DiamondRPCSchemeNotSupported()
             filters.append(Filter(f.name, f.code, f.blob, f.min_score,
                            f.max_score, f.arguments, f.dependencies))
-        filters = FilterStack(filters)
+        filterstack = FilterStack(filters)
 
         # Parse scope cookies
         try:
@@ -164,7 +164,7 @@ class Search(RPCHandlers):
             raise DiamondRPCFailure()
 
         # Commit
-        self._filters = filters
+        self._filters = filterstack
         self._state.scope = scope
         return protocol.XDR_blob_list(missing)
 

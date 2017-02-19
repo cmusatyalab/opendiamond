@@ -11,13 +11,15 @@
 #
 
 from __future__ import with_statement
+from cStringIO import StringIO
+from threading import Lock
+from urllib2 import urlopen
+from wsgiref.util import shift_path_info
+
 from datetime import datetime, timedelta
 from PIL import Image
-from threading import Lock
-from wsgiref.util import shift_path_info
-from urllib2 import urlopen
-from pyramid import stat_gigapan, round_up, log_2, iter_coords, path_to_tile
-from cStringIO import StringIO
+
+from .pyramid import stat_gigapan, round_up, log_2, iter_coords, path_to_tile
 
 __all__ = ['scope_app', 'object_app']
 BASEURL = 'gigapan'
@@ -30,14 +32,14 @@ class GigaPanInfoCache(object):
         self._cache = {}
         self._lock = Lock()
 
-    def __getitem__(self, id):
+    def __getitem__(self, gigapan_id):
         with self._lock:
-            if id not in self._cache:
-                self._cache[id] = stat_gigapan(id)
-            return self._cache[id]
+            if gigapan_id not in self._cache:
+                self._cache[gigapan_id] = stat_gigapan(gigapan_id)
+            return self._cache[gigapan_id]
 
 
-gigapan_info_cache = GigaPanInfoCache()
+_gigapan_info_cache = GigaPanInfoCache()
 
 
 def scope_app(environ, start_response):
@@ -56,18 +58,25 @@ def tiles_in_gigapan(width, height):
     tiles_wide = round_up(width / float(TILE_SIZE))
     tiles_high = round_up(height / float(TILE_SIZE))
     levels_deep = log_2(max(tiles_wide, tiles_high)) + 1
-    inv = lambda lvl: levels_deep - lvl - 1
-    columns_at_level = lambda lvl: round_up(tiles_wide / float(1 << inv(lvl)))
-    rows_at_level = lambda lvl: round_up(tiles_high / float(1 << inv(lvl)))
+
+    def inv(lvl):
+        return levels_deep - lvl - 1
+
+    def columns_at_level(lvl):
+        return round_up(tiles_wide / float(1 << inv(lvl)))
+
+    def rows_at_level(lvl):
+        return round_up(tiles_high / float(1 << inv(lvl)))
+
     return sum(columns_at_level(lvl) * rows_at_level(lvl)
                for lvl in range(levels_deep))
 
 
-def expand_urls(id):
+def expand_urls(gigapan_id):
     yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
     yield '<objectlist>\n'
 
-    info = gigapan_info_cache[id]
+    info = _gigapan_info_cache[gigapan_id]
     height = info.get('height')
     width = info.get('width')
     # levels = info.get('levels')
@@ -80,7 +89,7 @@ def expand_urls(id):
         while True:
             coord = iter.next()
             yield '<object src="obj/%s/%s/%s/%s"/>\n' % (
-                id, coord[0], coord[1], coord[2])
+                gigapan_id, coord[0], coord[1], coord[2])
     except StopIteration:
         pass
 
@@ -89,16 +98,16 @@ def expand_urls(id):
 
 def object_app(environ, start_response):
     components = environ['PATH_INFO'][1:].split('/')
-    id = int(components[0])
+    gigapan_id = int(components[0])
     lvl = int(components[1])
     col = int(components[2])
     row = int(components[3])
-    url_components = ["http://share.gigapan.org/gigapans0/", str(id),
+    url_components = ["http://share.gigapan.org/gigapans0/", str(gigapan_id),
                       '/tiles/', path_to_tile(lvl, col, row)]
     url = ''.join(url_components)
 
     obj = urlopen(url)
-    info = gigapan_info_cache[id]
+    info = _gigapan_info_cache[gigapan_id]
     levels = int(info.get('levels'))
     width = int(info.get('width'))
     height = int(info.get('height'))
@@ -129,18 +138,18 @@ def object_app(environ, start_response):
     timestr = time.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
     headers = [  # copy some headers for caching purposes
-        ('Content-Length',		str(content_length)),
-        ('Content-Type',		content_type),
-        ('Last-Modified',		obj.headers['Last-Modified']),
-        ('Expires',                     timestr),
+        ('Content-Length', str(content_length)),
+        ('Content-Type', content_type),
+        ('Last-Modified', obj.headers['Last-Modified']),
+        ('Expires', timestr),
 
-        ('x-attr-gigapan_id',           str(id)),
-        ('x-attr-gigapan_height',       str(height)),
-        ('x-attr-gigapan_width',        str(width)),
-        ('x-attr-gigapan_levels',       str(levels)),
-        ('x-attr-tile_level',           str(lvl)),
-        ('x-attr-tile_col',             str(col)),
-        ('x-attr-tile_row',             str(row)),
+        ('x-attr-gigapan_id', str(gigapan_id)),
+        ('x-attr-gigapan_height', str(height)),
+        ('x-attr-gigapan_width', str(width)),
+        ('x-attr-gigapan_levels', str(levels)),
+        ('x-attr-tile_level', str(lvl)),
+        ('x-attr-tile_col', str(col)),
+        ('x-attr-tile_row', str(row)),
     ]
     start_response("200 OK", headers)
     return environ['wsgi.file_wrapper'](result, 65536)

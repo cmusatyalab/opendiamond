@@ -21,10 +21,12 @@ import flickrapi
 
 BASEURL = 'flickr'
 
+FLICKR = None
+
 
 def init(config):
-    global flickr
-    flickr = flickrapi.FlickrAPI(config.flickr_api_key)
+    global FLICKR  # pylint: disable=global-statement
+    FLICKR = flickrapi.FlickrAPI(config.flickr_api_key, config.flickr_secret)
 
 
 def scope_app(environ, start_response):
@@ -41,15 +43,15 @@ def scope_app(environ, start_response):
     search_params['sort'] = "date-posted-asc"
 
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return FlickrObjList(search_params)
+    return flickr_object_list(search_params)
 
 
-def FlickrObjList(search_params):
+def flickr_object_list(search_params):
     nphotos = 0
     yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
     yield '<objectlist>\n'
     while 1:
-        photos = flickr.photos_search(**search_params).find('photos')
+        photos = FLICKR.photos_search(**search_params).find('photos')
 
         try:
             total = int(photos.attrib['total'])
@@ -70,18 +72,18 @@ def FlickrObjList(search_params):
     yield '</objectlist>'
 
 
-control_chars = [chr(x) for x in range(32)] + ['\x7f']
-stripcontrol = maketrans(''.join(control_chars), ' ' * len(control_chars))
+_control_chars = [chr(x) for x in range(32)] + ['\x7f']
+_stripcontrol = maketrans(''.join(_control_chars), ' ' * len(_control_chars))
 
 
 def http_strip(text):
-    return text.encode('ascii', 'replace').translate(stripcontrol)
+    return text.encode('ascii', 'replace').translate(_stripcontrol)
 
 
 def object_app(environ, start_response):
     photo_id = environ['PATH_INFO'][1:]
 
-    sizes = flickr.photos_getsizes(photo_id=photo_id).find('sizes')
+    sizes = FLICKR.photos_getsizes(photo_id=photo_id).find('sizes')
     for img in sizes:
         url = img.attrib['source']
         if img.attrib['label'] == 'Medium':
@@ -89,20 +91,20 @@ def object_app(environ, start_response):
 
     obj = urlopen(url)
 
-    info = flickr.photos_getinfo(photo_id=photo_id).find('photo')
+    info = FLICKR.photos_getinfo(photo_id=photo_id).find('photo')
     title = info.find('title').text or ''
     desc = info.find('description').text or ''
     date_taken = info.find('dates').attrib['taken']
     tags = ','.join(tag.text for tag in info.find('tags').findall('tag')) or ''
 
     headers = [  # copy some headers for caching purposes
-        ('Content-Length',		obj.headers['Content-Length']),
-        ('Content-Type',		obj.headers['Content-Type']),
-        ('Last-Modified',		obj.headers['Last-Modified']),
-        ('x-attr-title',		http_strip(title)),
-        ('x-attr-description',	http_strip(desc)),
-        ('x-attr-date-taken',	http_strip(date_taken)),
-        ('x-attr-tags',		http_strip(tags)),
+        ('Content-Length', obj.headers['Content-Length']),
+        ('Content-Type', obj.headers['Content-Type']),
+        ('Last-Modified', obj.headers['Last-Modified']),
+        ('x-attr-title', http_strip(title)),
+        ('x-attr-description', http_strip(desc)),
+        ('x-attr-date-taken', http_strip(date_taken)),
+        ('x-attr-tags', http_strip(tags)),
     ]
     start_response("200 OK", headers)
     return environ['wsgi.file_wrapper'](obj, 65536)

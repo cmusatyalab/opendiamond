@@ -24,24 +24,24 @@ from opendiamond.helpers import connection_ok
 # the following mime type guessing is from SimpleHTTPServer.py
 if not mimetypes.inited:
     mimetypes.init()
-extensions = mimetypes.types_map.copy()
-extensions.update({'': 'application/octet-stream'})
+_extensions = mimetypes.types_map.copy()
+_extensions.update({'': 'application/octet-stream'})
 
 
 def guess_mime_type(path):
-    base, ext = posixpath.splitext(path)
-    if ext in extensions:
-        return extensions[ext]
+    _, ext = posixpath.splitext(path)
+    if ext in _extensions:
+        return _extensions[ext]
     ext = ext.lower()
-    if ext in extensions:
-        return extensions[ext]
+    if ext in _extensions:
+        return _extensions[ext]
     else:
-        return extensions['']
+        return _extensions['']
 
 
 # return xslt stylesheet which makes browsers show the scope list as thumbnails
 # guaranteed to bring chaos with any decent data set.
-def scopelist_xsl(environ, start_response):
+def scopelist_xsl(environ, start_response):  # pylint: disable=unused-argument
     content = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0"
@@ -71,7 +71,7 @@ def scopelist_xsl(environ, start_response):
 
 # WSGI middleware that cleans up PATH_INFO, dispatches requests based on a
 # dictionary of handlers and catches exceptions.
-class DataRetriever:
+class DataRetriever(object):
     def __init__(self, handlers):
         self.handlers = handlers
         self.handlers['scopelist.xsl'] = scopelist_xsl

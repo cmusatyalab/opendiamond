@@ -17,7 +17,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import simplejson
 from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
-from forms import CollectionForm, ManageForm
+from .forms import CollectionForm, ManageForm
 
 
 @login_required
@@ -63,7 +63,7 @@ def manage(request):
             user = User.objects.get(id=user)
             for c in user.collection_set.all():
                 coll[c.id] = 1
-        except:
+        except Exception:  # pylint: disable=broad-except
             pass
         return HttpResponse(simplejson.dumps(coll),
                             mimetype="application/json")

@@ -13,9 +13,10 @@
 '''Representations of a Diamond object.'''
 
 from cStringIO import StringIO
-import pycurl as curl
 from urlparse import urljoin
 import simplejson as json
+
+import pycurl as curl
 
 from opendiamond.helpers import murmur, split_scheme
 from opendiamond.protocol import XDR_attribute, XDR_object

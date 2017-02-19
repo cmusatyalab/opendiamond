@@ -13,11 +13,12 @@
 from __future__ import with_statement
 from cStringIO import StringIO
 import os
-import PIL.Image
 import sys
 from tempfile import mkstemp
 import threading
 from zipfile import ZipFile
+
+import PIL.Image
 
 from opendiamond.attributes import (
     StringAttributeCodec, IntegerAttributeCodec, DoubleAttributeCodec,

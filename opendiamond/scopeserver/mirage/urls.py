@@ -12,6 +12,7 @@
 
 from django.conf.urls.defaults import patterns
 
+# pylint: disable=invalid-name
 urlpatterns = patterns(
     'opendiamond.scopeserver.mirage.views',
     (r'^$', 'index'),

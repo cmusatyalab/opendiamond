@@ -13,7 +13,6 @@
 from collections import Mapping
 import cPickle as pickle
 from datetime import datetime
-from dateutil.tz import tzutc
 from hashlib import sha256
 import logging
 import os
@@ -22,6 +21,7 @@ from tempfile import NamedTemporaryFile
 import zipfile
 
 import dateutil.parser
+from dateutil.tz import tzutc
 
 _log = logging.getLogger(__name__)
 

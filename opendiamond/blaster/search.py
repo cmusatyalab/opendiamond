@@ -12,8 +12,9 @@
 
 from hashlib import sha256
 import logging
-from tornado import gen, stack_context
 import uuid
+
+from tornado import gen, stack_context
 
 from opendiamond.blaster.rpc import ControlConnection, BlastConnection
 from opendiamond.protocol import (
@@ -117,8 +118,8 @@ class _DiamondConnection(object):
         # Send uncached blobs if there are any
         blobs = [uri_data[u] for u in reply.uris]
         if blobs:
-            request = XDR_blob_data(blobs=blobs)
-            yield gen.Task(self.control.send_blobs, request)
+            blob = XDR_blob_data(blobs=blobs)
+            yield gen.Task(self.control.send_blobs, blob)
 
         if callback is not None:
             callback()

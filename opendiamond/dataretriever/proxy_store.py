@@ -33,10 +33,10 @@ def scope_app(environ, start_response):
         url += '?' + environ['QUERY_STRING']
 
     start_response("200 OK", [('Content-Type', "text/xml")])
-    return parseScope(url, index, count)
+    return parse_scope(url, index, count)
 
 
-def parseScope(base_url, index, count):
+def parse_scope(base_url, index, count):
     index = index - 1
     seen = 0
     obj = urlopen(base_url)

@@ -11,8 +11,9 @@
 #
 
 from cStringIO import StringIO
-import PIL.Image
 import struct
+
+import PIL.Image
 
 
 class _AttributeCodec(object):

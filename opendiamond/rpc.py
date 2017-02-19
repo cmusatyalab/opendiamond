@@ -30,6 +30,8 @@ class ConnectionFailure(Exception):
 
 class RPCError(Exception):
     '''Base class for RPC error codes.'''
+    code = None
+
     # pylint doesn't know about __subclasses__
     # pylint: disable=no-member
     @classmethod

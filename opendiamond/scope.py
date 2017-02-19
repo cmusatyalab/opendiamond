@@ -31,13 +31,14 @@
 import base64
 import binascii
 from datetime import datetime, timedelta
-import dateutil.parser
-from dateutil.tz import tzutc
-from M2Crypto import EVP, X509
 import os
 import re
 import textwrap
 import uuid
+
+import dateutil.parser
+from dateutil.tz import tzutc
+from M2Crypto import EVP, X509
 
 BOUNDARY_START = '-----BEGIN OPENDIAMOND SCOPECOOKIE-----\n'
 BOUNDARY_END = '-----END OPENDIAMOND SCOPECOOKIE-----\n'

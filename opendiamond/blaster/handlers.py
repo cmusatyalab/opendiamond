@@ -16,19 +16,20 @@ from cStringIO import StringIO
 from datetime import timedelta
 from hashlib import sha256
 import logging
+import os
+import time
+from urlparse import urljoin, urlparse
+
 import magic
 import PIL.Image
 import PIL.ImageColor
-import os
 import simplejson as json
 from sockjs.tornado import SockJSConnection
-import time
 from tornado.curl_httpclient import CurlAsyncHTTPClient as AsyncHTTPClient
 from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.options import define, options
 from tornado.web import asynchronous, RequestHandler, HTTPError
-from urlparse import urljoin, urlparse
 
 import opendiamond
 from opendiamond.attributes import (
@@ -142,6 +143,9 @@ def _restricted(func):
     return wrapper
 
 
+# Method 'data_received' is abstract in class 'RequestHandler' but is not
+# overridden (abstract-method)
+# pylint: disable=abstract-method
 class _BlasterRequestHandler(RequestHandler):
     @property
     def blob_cache(self):

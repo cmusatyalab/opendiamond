@@ -183,7 +183,7 @@ def _stub(cmd, request_class=None, reply_class=None):
         request_type = type(None)
 
     def call(self, request=None, callback=None):
-        if type(request) is not request_type:
+        if not isinstance(request, request_type):
             raise RPCEncodingError('Incorrect request type')
         self._call(cmd, request, reply_class, callback)
     return call

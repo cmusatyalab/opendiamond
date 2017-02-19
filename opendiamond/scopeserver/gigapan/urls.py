@@ -12,6 +12,7 @@
 
 from django.conf.urls.defaults import patterns, url
 
+# pylint: disable=invalid-name
 urlpatterns = patterns(
     'opendiamond.scopeserver.gigapan.views',
     url(r'^$', 'index', name='index'),

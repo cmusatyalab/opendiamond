@@ -105,12 +105,12 @@ class _DummyTcpWrappers(object):
 
 
 # We're creating a callable, so don't use attribute naming rules
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,redefined-variable-type
 try:
     connection_ok = _TcpWrappers()
 except ImportError, _e:
     connection_ok = _DummyTcpWrappers(str(_e))
-# pylint: enable=invalid-name
+# pylint: enable=invalid-name,redefined-variable-type
 
 
 # urlparse wrapper to handle http://bugs.python.org/issue11467

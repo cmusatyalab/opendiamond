@@ -3,9 +3,20 @@
 [MASTER]
 # Don't store collected data.
 persistent=no
+load-plugins=pylint_django
+
+# A comma-separated list of package or module names from where C extensions may
+# be loaded. Extensions are loading into the active Python interpreter and may
+# run arbitrary code
+extension-pkg-whitelist=pycurl,lxml
 
 [MESSAGES CONTROL]
-disable=missing-docstring,locally-disabled,locally-enabled,no-self-use,duplicate-code,too-many-ancestors,too-many-instance-attributes,too-few-public-methods,too-many-public-methods,too-many-return-statements,too-many-branches,too-many-arguments,too-many-locals,too-many-statements,abstract-class-not-used,abstract-class-little-used,star-args,redefined-builtin,incomplete-protocol,bad-continuation
+disable=missing-docstring,locally-disabled,locally-enabled,no-self-use,
+ duplicate-code,too-many-ancestors,too-many-instance-attributes,
+ too-few-public-methods,too-many-public-methods,too-many-return-statements,
+ too-many-branches,too-many-arguments,too-many-locals,too-many-statements,
+ abstract-class-not-used,abstract-class-little-used,star-args,
+ redefined-builtin,incomplete-protocol,bad-continuation
 
 [REPORTS]
 # Disable reports
@@ -24,3 +35,15 @@ defining-attr-methods=__init__,__new__,initialize
 [VARIABLES]
 # Treat any variable name starting with _ as a dummy
 dummy-variables-rgx=_
+
+[TYPECHECK]
+# List of module names for which member attributes should not be checked
+# (useful for modules/projects where namespaces are manipulated during runtime
+# and thus existing member attributes cannot be deduced by static analysis. It
+# supports qualified module names, as well as Unix pattern matching.
+#ignored-modules=
+
+# List of classes names for which member attributes should not be checked
+# (useful for classes with attributes dynamically set). This supports can work
+# with qualified names.
+ignored-classes=opendiamond.config.DiamondConfig

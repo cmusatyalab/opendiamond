@@ -20,7 +20,7 @@ class MirageForm(forms.Form):
         self.fields['servers'].choices = zip(settings.MIRAGE_SERVERS,
                                              settings.MIRAGE_SERVERS)
 
-    paths = forms.CharField(required=False, widget=forms.Textarea, label=
-                            "Specify file name patterns (one per line)")
-    servers = forms.MultipleChoiceField(choices=(), required=False, label=
-                                        "Select one or more compute servers")
+    paths = forms.CharField(required=False, widget=forms.Textarea,
+                            label="Specify file name patterns (one per line)")
+    servers = forms.MultipleChoiceField(
+        choices=(), required=False, label="Select one or more compute servers")

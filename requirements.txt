@@ -2,6 +2,7 @@
 pip>=1.5.6
 M2Crypto==0.25.1
 Pillow==4.0.0
+lxml==3.7.3
 python-dateutil==2.6.0
 six==1.10.0
 
@@ -21,10 +22,11 @@ flickrapi==2.2.1
 redis==2.10.5
 
 # scopeserver
-Django==1.10.5
+Django==1.5.12
 
 # testing
 flake8>=3.0.4
 pylint>=1.5.6
+pylint-django>=0.7.2
 pytest>=2.9.2
 pytest-timeout>=1.0.0

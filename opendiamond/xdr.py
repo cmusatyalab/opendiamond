@@ -123,7 +123,7 @@ class _XDRStructHandler(_XDRTypeHandler):
         self._struct_class = struct_class
 
     def pack(self, xdr, val):
-        if type(val) is not self._struct_class:
+        if not isinstance(val, self._struct_class):
             raise XDREncodingError()
         val.encode_xdr(xdr)
 

@@ -13,6 +13,7 @@
 from django.db import models
 
 
+# pylint: disable=model-missing-unicode
 class Access(models.Model):
     class Meta:
         permissions = (("search", "Can search GigaPan images"),)

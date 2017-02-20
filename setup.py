@@ -6,17 +6,26 @@ from opendiamond import (__version__, PROJECT_NAME, PROJECT_URL,
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*'])
 REQUIRES = [
+    'pip>=1.5.6',
     'M2Crypto>=0.25.1',
     'Pillow>=4.0.0',
-    'file-magic>=0.3.0',
-    'pip>=1.5.6',
-    'pycurl>=7.43.0',
+    'lxml>=3.7.3',
     'python-dateutil>=2.6.0',
-    'simplejson>=3.10.0',
     'six>=1.10.0',
+]
+REQUIRES_BLASTER = [
+    'file-magic>=0.3.0',
+    'pycurl>=7.43.0',
+    'simplejson>=3.10.0',
     'sockjs-tornado>=1.0.3',
     'tornado>=4.4.2',
     'validictory>=1.1.0',
+]
+REQUIRES_DATARETRIEVER = [
+    'Paste>=2.0.3',
+]
+REQUIRES_DIAMONDD = [
+    'redis>=2.10.5',
 ]
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
@@ -45,6 +54,11 @@ setup(
     ext_modules = [ hashmodule ],
     zip_safe=False,
     install_requires=REQUIRES,
+    extra_requires={
+        'BLASTER': REQUIRES_BLASTER,
+        'DATARETRIEVER': REQUIRES_DATARETRIEVER,
+        'DIAMONDD': REQUIRES_DIAMONDD,
+    },
     test_suite='tests',
     include_package_data=True,
     package_dir={
@@ -63,9 +77,17 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'blaster = opendiamond.blaster.__main__:main',
+            'blaster = opendiamond.blaster.__main__:run [BLASTER]',
+            'diamondd = opendiamond.server.__main__:run [DIAMONDD]',
+            'dataretriever = opendiamond.dataretriever.__main__:run'
+            ' [DATARETRIEVER]',
         ]
     },
+    scripts=[
+        'tools/cookiecutter',
+        'tools/diamond-bundle-predicate',
+        'tools/volcano',
+    ],
     cmdclass={
         "egg_info": EggInfoCommand,
     },

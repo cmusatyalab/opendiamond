@@ -13,13 +13,14 @@
 
 import logging
 import optparse
-from paste import httpserver
 import sys
 
+from paste import httpserver
+
 import opendiamond
-from opendiamond.config import DiamondConfig
-from opendiamond.helpers import daemonize
-from opendiamond.dataretriever.util import DataRetriever
+from ..config import DiamondConfig
+from ..helpers import daemonize
+from .util import DataRetriever
 
 server_version = "DataRetriever/" + opendiamond.__version__
 
@@ -61,6 +62,7 @@ def run():
                      server_version=server_version,
                      protocol_version='HTTP/1.1',
                      daemon_threads=True)
+
 
 if __name__ == '__main__':
     run()

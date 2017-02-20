@@ -13,6 +13,16 @@ sockjs-tornado==1.0.3
 tornado==4.4.2
 validictory==1.1.0
 
+# dataretriever
+Paste==2.0.3
+flickrapi==2.2.1
+
+# diamondd
+redis==2.10.5
+
+# scopeserver
+Django==1.10.5
+
 # testing
 flake8>=3.0.4
 pylint>=1.5.6

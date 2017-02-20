@@ -26,15 +26,21 @@ define('listen', default=':8080',
 define('reverse_proxy', default=False,
         help='Run behind a reverse proxy')
 
-parse_command_line()
-if os.path.isfile(options.config):
-    parse_config_file(options.config)
 
-server = HTTPServer(JSONBlaster(), xheaders=options.reverse_proxy)
-if ':' in options.listen:
-    address, port = options.listen.split(':', 1)
-    port = int(port)
-else:
-    address, port = '', int(options.listen)
-server.listen(port, address=address)
-IOLoop.instance().start()
+def run():
+    parse_command_line()
+    if os.path.isfile(options.config):
+        parse_config_file(options.config)
+
+    server = HTTPServer(JSONBlaster(), xheaders=options.reverse_proxy)
+    if ':' in options.listen:
+        address, port = options.listen.split(':', 1)
+        port = int(port)
+    else:
+        address, port = '', int(options.listen)
+    server.listen(port, address=address)
+    IOLoop.instance().start()
+
+
+if __name__ == '__main__':
+    run()

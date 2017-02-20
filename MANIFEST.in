@@ -1,3 +1,4 @@
 include LICENSE CREDITS
 include bundle/* doc/*
 recursive-include opendiamond *.html *.css *.js *.gif *.png
+recursive-include tests *.py

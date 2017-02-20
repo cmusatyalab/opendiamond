@@ -8,9 +8,9 @@ from opendiamond import (
 PACKAGES = find_packages(exclude=['tests', 'tests.*'])
 REQUIRES = [
     'pip>=1.5.6',
-    'M2Crypto>=0.25.1',
-    'Pillow>=4.0.0',
-    'lxml>=3.7.3',
+    'M2Crypto>=0.21.1',
+    'Pillow>=2.6.1',
+    'lxml>=3.4.0',
     'python-dateutil>=2.6.0',
     'six>=1.10.0',
 ]
@@ -35,7 +35,7 @@ SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
 hashmodule = Extension(
     "opendiamond.hash",
-    sources=["opendiamond/hashmodule.c"],
+    sources=[os.path.join(SRC_PATH, "opendiamond/hashmodule.c")],
 )
 
 
@@ -61,7 +61,7 @@ setup(
     ext_modules=[hashmodule],
     zip_safe=False,
     install_requires=REQUIRES,
-    extra_requires={
+    extras_require={
         'BLASTER': REQUIRES_BLASTER,
         'DATARETRIEVER': REQUIRES_DATARETRIEVER,
         'DIAMONDD': REQUIRES_DIAMONDD,
@@ -80,7 +80,7 @@ setup(
         ],
     },
     data_files=[
-        ('opendiamond', ['bundle/bundle.xsd']),
+        ('opendiamond', [os.path.join(SRC_PATH, 'bundle/bundle.xsd')]),
     ],
     entry_points={
         'console_scripts': [
@@ -90,11 +90,6 @@ setup(
             ' [DATARETRIEVER]',
         ]
     },
-    scripts=[
-        'tools/cookiecutter',
-        'tools/diamond-bundle-predicate',
-        'tools/volcano',
-    ],
     cmdclass={
         "egg_info": EggInfoCommand,
     },

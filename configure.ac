@@ -24,9 +24,9 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC_C99
 AM_PATH_PYTHON([2.6])
 
-# pylint
-AC_PATH_PROG([PYLINT], [pylint], [:])
-AC_ARG_VAR([PYLINT], [path to pylint])
+# tox
+AC_PATH_PROG([TOX], [tox], [:])
+AC_ARG_VAR([TOX], [path to tox])
 
 # xml2rfc
 AC_PATH_PROG([XML2RFC], [xml2rfc], [false])

@@ -16,15 +16,16 @@ nobase_noinst_PYTHON = \
 	opendiamond/protocol.py \
 	opendiamond/rpc.py \
 	opendiamond/scope.py \
-	opendiamond/test.py \
 	opendiamond/xdr.py \
 	opendiamond/blaster/__init__.py \
+	opendiamond/blaster/__main__.py \
 	opendiamond/blaster/cache.py \
 	opendiamond/blaster/handlers.py \
 	opendiamond/blaster/json.py \
 	opendiamond/blaster/rpc.py \
 	opendiamond/blaster/search.py \
 	opendiamond/dataretriever/__init__.py \
+	opendiamond/dataretriever/__main__.py \
 	opendiamond/dataretriever/diamond_store.py \
 	opendiamond/dataretriever/flickr_store.py \
 	opendiamond/dataretriever/gigapan_store.py \
@@ -60,6 +61,7 @@ nobase_noinst_PYTHON = \
 	opendiamond/scopeserver/mirage/urls.py \
 	opendiamond/scopeserver/mirage/views.py \
 	opendiamond/server/__init__.py \
+	opendiamond/server/__main__.py \
 	opendiamond/server/child.py \
 	opendiamond/server/filter.py \
 	opendiamond/server/listen.py \
@@ -67,7 +69,8 @@ nobase_noinst_PYTHON = \
 	opendiamond/server/scopelist.py \
 	opendiamond/server/search.py \
 	opendiamond/server/sessionvars.py \
-	opendiamond/server/statistics.py
+	opendiamond/server/statistics.py \
+	tests/test_cookies.py
 
 nobase_dist_noinst_DATA = \
 	opendiamond/hashmodule.c \
@@ -92,22 +95,18 @@ nobase_dist_noinst_DATA = \
 	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_browse.html \
 	opendiamond/scopeserver/gigapan/templates/scopeserver/gigapan_search.html
 
-dist_pkgpyexec_DATA = \
-	bundle/bundle.xsd
-
 dist_bin_SCRIPTS = \
-	tools/blaster \
 	tools/cookiecutter \
-	tools/dataretriever \
-	tools/diamondd \
 	tools/diamond-bundle-predicate
 
 dist_doc_DATA = doc/diamond-protocol.html
 MAINTAINERCLEANFILES = doc/diamond-protocol.html
 
-EXTRA_DIST = CREDITS LICENSE INSTALL \
-	setup.py setup.cfg \
+EXTRA_DIST = CREDITS LICENSE INSTALL README.txt \
+	setup.py setup.cfg MANIFEST.in \
+	requirements.txt \
 	pylintrc tox.ini \
+	bundle/bundle.xsd \
 	bundle/bundle.xslt \
 	doc/diamond-protocol.xml \
 	tools/volcano
@@ -116,22 +115,14 @@ doc/diamond-protocol.html: doc/diamond-protocol.xml
 	$(MKDIR_P) doc
 	$(XML2RFC) --html -o $@ $^
 
-check-local:
-	@# Fail on serious pylint errors
-	@# Ensure the cwd doesn't have an opendiamond directory for pylint
-	@# to choke on
-	cd tests && \
-		PYTHONPATH=$(abs_srcdir) \
-		$(PYLINT) --rcfile=$(abs_srcdir)/pylintrc \
-		--ignore dataretriever,scopeserver opendiamond || \
-		[ $$(($$? & 3)) -eq 0 ]
-	PYTHONPATH=$(srcdir) PYTHONDONTWRITEBYTECODE=1 \
-		$(PYTHON) $(srcdir)/tests/test_cookies.py
-
 all-local:
 	(cd $(srcdir); $(PYTHON) setup.py build \
 		--build-base $(shell readlink -f $(builddir))/build \
 		--verbose)
+
+check-local:
+	@# don't worry when checks fail iff the source directory is readonly
+	TOXENV=py27,lint $(TOX) || test ! -d .tox
 
 install-exec-local:
 	$(PYTHON) $(srcdir)/setup.py install \
@@ -140,6 +131,9 @@ install-exec-local:
 		--record $(DESTDIR)$(pkgpythondir)/install_files.txt \
 		--verbose
 
+clean-local:
+	rm -rf $(builddir)/build
+
 uninstall-local:
-	cat $(DESTDIR)$(pkgpythondir)/install_files.txt | xargs rm -rf`
+	cat $(DESTDIR)$(pkgpythondir)/install_files.txt | xargs rm -rf
 	rm -rf $(DESTDIR)$(pkgpythondir)

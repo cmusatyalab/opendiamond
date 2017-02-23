@@ -92,3 +92,39 @@ def test_blobcache_gc_rescue(tmpdir, caplog):
 
     assert emptyfile_path.check(file=1)
     assert not gcfile_path.check(file=1)
+
+
+def test_executable_blobcache(tmpdir, monkeypatch):
+    execdir = tmpdir.mkdir('exec')
+    cachedir = tmpdir.mkdir('cache')
+
+    def mockreturn(*args, **kwargs):
+        return str(execdir)
+    monkeypatch.setattr(opendiamond.blobcache, 'mkdtemp', mockreturn)
+
+    cache = opendiamond.blobcache.ExecutableBlobCache(str(cachedir))
+    assert cachedir.listdir() == []
+
+    emptyfile = \
+        b'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+    assert cache.add(b'') == emptyfile
+    assert emptyfile in cache
+
+    emptyfile_path = cachedir.join(emptyfile)
+    assert emptyfile_path.check(file=1)
+
+    filestat = emptyfile_path.stat()
+    assert filestat.nlink == 1 and not filestat.mode & 0111
+
+    executable = cache.executable_path(emptyfile)
+    executable_path = execdir.join(emptyfile)
+    assert executable == str(executable_path)
+    assert executable_path.check(file=1)
+
+    # executable file will be a hardlink on unix systems
+    filestat = emptyfile_path.stat()
+    assert filestat.nlink == 2 and filestat.mode & 0111
+
+    # the original is changed too because iff we hardlinked
+    filestat = emptyfile_path.stat()
+    assert filestat.nlink == 2 and filestat.mode & 0111

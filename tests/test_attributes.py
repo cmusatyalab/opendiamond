@@ -23,15 +23,16 @@ def test_string_attr():
     codec = opendiamond.attributes.StringAttributeCodec()
     assert codec.encode("test") == b'test\0'
     assert codec.decode(b'test\0') == "test"
+    assert codec.decode(b'\0\0') == '\0'
 
     # conversion to string
     assert codec.encode(u"test") == b'test\0'
     assert codec.encode(1) == b'1\0'
 
     # bad inputs
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as e:
         assert codec.decode(b'test')
-        assert codec.decode(b'\0\0')
+    e.match('is not null-terminated')
 
 
 def test_integer_attr():
@@ -45,9 +46,13 @@ def test_integer_attr():
     assert codec.encode(1.0) == b'\1\0\0\0'
 
     # bad inputs
-    with pytest.raises(struct.error):
+    with pytest.raises(struct.error) as e:
         assert codec.encode("test")
+    e.match('cannot convert argument to integer')
+
+    with pytest.raises(struct.error) as e:
         assert codec.decode(b'\1')
+    e.match('unpack requires a string argument of length 4')
 
 
 def test_float_attr():
@@ -64,17 +69,21 @@ def test_float_attr():
     assert codec.encode(1) == b'\0\0\0\0\0\0\xf0?'
 
     # bad inputs
-    with pytest.raises(struct.error):
+    with pytest.raises(struct.error) as e:
         assert codec.encode("test")
+    e.match('required argument is not a float')
+
+    with pytest.raises(struct.error) as e:
         assert codec.decode(b'\0')
+    e.match('unpack requires a string argument of length 8')
 
 
 def test_rgbimage_attr():
     codec = opendiamond.attributes.RGBImageAttributeCodec()
 
     # RGB image
-    image = PIL.Image.new('RGB', (1, 1))
-    rawimage = b'\0\0\0\0\x14\0\0\0\1\0\0\0\1\0\0\0\0\0\0\0'
+    image = PIL.Image.new('RGB', (1, 2))
+    rawimage = b'\0\0\0\0\x18\0\0\0\2\0\0\0\1\0\0\0\0\0\0\0\0\0\0\0'
     assert codec.encode(image) == rawimage
     assert codec.decode(rawimage) == image
 
@@ -83,30 +92,35 @@ def test_rgbimage_attr():
         image = PIL.Image.new('RGB', (0, 0))
         assert codec.encode(image)
 
-    with pytest.raises(ValueError):
-        # no packer from RGBA to RGBX
-        image = PIL.Image.new('RGBA', (1, 1))
-        assert codec.encode(image)
+    for format in ('RGBA', 'L', '1'):
+        with pytest.raises(ValueError) as e:
+            image = PIL.Image.new(format, (1, 1))
+            assert codec.encode(image)
+        e.match('No packer found from %s to RGBX' % format)
 
-        # no packer from greyscale
-        image = PIL.Image.new('L', (1, 1))
-        assert codec.encode(image)
-
-        # no packer from bitmap
-        image = PIL.Image.new('1', (1, 1))
-        assert codec.encode(image)
-
-        # not enough image data
-        assert codec.decode(rawimage[:-2])
-
-        # invalid height in image header
-        badimage = rawimage[:8] + b'\2' + rawimage[9:]
-        assert codec.decode(badimage)
-
-    with pytest.raises(struct.error):
-        # truncated image data
+    # truncated header
+    with pytest.raises(struct.error) as e:
         assert codec.decode(b'')
-        assert codec.decode(rawimage[:2])
+    e.match('unpack requires a string argument of length 8')
+
+    with pytest.raises(struct.error) as e:
+        assert codec.decode(rawimage[:15])
+    e.match('unpack requires a string argument of length 8')
+
+    # truncated image data
+    with pytest.raises(ValueError) as e:
+        assert codec.decode(rawimage[:16])
+    e.match('not enough image data')
+
+    # extra data in the raw image gets ignored
+    badimage = rawimage[:8] + b'\1' + rawimage[9:]
+    assert codec.decode(badimage).size == (1, 1)
+
+    # insufficient data
+    with pytest.raises(ValueError) as e:
+        badimage = rawimage[:8] + b'\3' + rawimage[9:]
+        assert codec.decode(badimage)
+    e.match('not enough image data')
 
 
 def test_patches_attr():
@@ -124,11 +138,16 @@ def test_patches_attr():
     assert codec.encode((1, [])) == nopatches
     assert codec.encode((1.0, ())) == nopatches
 
-    with pytest.raises(struct.error):
+    # clipped patch data
+    with pytest.raises(struct.error) as e:
         assert codec.decode(onepatch[:-1])
+    e.match('unpack requires a string argument of length 16')
 
+    # insufficient number of patches
+    with pytest.raises(struct.error):
         badpatch = b'\2' + onepatch[1:]
         assert codec.decode(badpatch)
+    e.match('unpack requires a string argument of length 16')
 
 
 def test_heatmap_attr():
@@ -147,6 +166,6 @@ def test_heatmap_attr():
     assert codec.decode(raw_heatmap).size == heatmap.size
     assert codec.decode(raw_heatmap).load()[0, 0] == heatmap.load()[0, 0]
 
-    # heatmaps are always converted to greyscale
+    # heatmaps are always converted to greyscale during encoding
     heatmap = PIL.Image.new('RGB', (1, 1))
     assert codec.encode(heatmap) == raw_heatmap

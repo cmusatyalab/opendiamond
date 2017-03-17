@@ -9,10 +9,10 @@ PACKAGES = find_packages(exclude=['tests', 'tests.*'])
 REQUIRES = [
     'pip>=1.5.6',
     'M2Crypto>=0.21.1',
-    'Pillow>=2.6.1',
-    'lxml>=3.4.0',
-    'python-dateutil>=2.6.0',
-    'six>=1.10.0',
+    'Pillow>=2.0.0',
+    'lxml>=3.2.1',
+    'python-dateutil>=1.5',
+    'six>=1.9.0',
 ]
 REQUIRES_BLASTER = [
     'file-magic>=0.3.0',
@@ -23,10 +23,10 @@ REQUIRES_BLASTER = [
     'validictory>=1.1.0',
 ]
 REQUIRES_DATARETRIEVER = [
-    'Paste>=2.0.3',
+    'Paste>=1.7.5.1',
 ]
 REQUIRES_DIAMONDD = [
-    'redis>=2.10.5',
+    'redis>=2.10.3',
 ]
 REQUIRES_SCOPESERVER = [
     'Django<1.6',

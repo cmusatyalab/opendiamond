@@ -128,12 +128,12 @@ install-exec-local:
 	$(PYTHON) $(srcdir)/setup.py install \
 		--prefix $(DESTDIR)$(prefix) \
 		--single-version-externally-managed \
-		--record $(DESTDIR)$(pkgpythondir)/install_files.txt \
+		--record $(DESTDIR)$(pyexecdir)/opendiamond/install_files.txt \
 		--verbose
 
 clean-local:
 	rm -rf $(builddir)/build
 
 uninstall-local:
-	cat $(DESTDIR)$(pkgpythondir)/install_files.txt | xargs rm -rf
-	rm -rf $(DESTDIR)$(pkgpythondir)
+	cat $(DESTDIR)$(pyexecdir)/opendiamond/install_files.txt | xargs rm -rf
+	rm -rf $(DESTDIR)$(pyexecdir)/opendiamond

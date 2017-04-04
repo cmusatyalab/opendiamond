@@ -73,15 +73,14 @@ setup(
     },
     package_data={
         "opendiamond": [
+            "*.xsd",
+            "*.xslt",
             "blaster/static/*.js",
             "blaster/*/testui/*",
             "scopeserver/*/static/*/*",
             "scopeserver/*/templates/*/*",
         ],
     },
-    data_files=[
-        ('opendiamond', [os.path.join(SRC_PATH, 'bundle/bundle.xsd')]),
-    ],
     entry_points={
         'console_scripts': [
             'blaster = opendiamond.blaster.__main__:run [BLASTER]',

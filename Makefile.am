@@ -73,6 +73,8 @@ nobase_noinst_PYTHON = \
 	tests/test_cookies.py
 
 nobase_dist_noinst_DATA = \
+	opendiamond/bundle.xsd \
+	opendiamond/bundle.xslt \
 	opendiamond/hashmodule.c \
 	opendiamond/blaster/static/json-blaster.js \
 	opendiamond/blaster/static/json-blaster-autopause.js \
@@ -106,8 +108,6 @@ EXTRA_DIST = CREDITS LICENSE INSTALL README.txt \
 	setup.py setup.cfg MANIFEST.in \
 	requirements.txt \
 	pylintrc tox.ini \
-	bundle/bundle.xsd \
-	bundle/bundle.xslt \
 	doc/diamond-protocol.xml \
 	tools/volcano
 

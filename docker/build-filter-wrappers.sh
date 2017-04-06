@@ -7,7 +7,7 @@ IMAGEID="$1"
 for filter in /usr/local/share/diamond/filters/* ; do
     cat > $filter << EOF
 #!/bin/sh
-exec docker run --rm -it -v/dev/null:/dev/raw1394 --entrypoint $filter $IMAGEID "\$@"
+exec docker run --rm -i -v/dev/null:/dev/raw1394 --entrypoint $filter $IMAGEID "\$@"
 EOF
 done
 

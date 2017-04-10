@@ -70,6 +70,7 @@ import os
 import signal
 import subprocess
 import threading
+import time
 
 from redis import Redis
 from redis.exceptions import ResponseError
@@ -134,6 +135,14 @@ class _FilterProcess(object):
             raise FilterExecutionError('Unable to launch filter %s' % self)
 
     def __del__(self):
+        # try a 'gentle' shutdown first
+        try:
+            self._fout.close()
+            os.kill(self._proc.pid, signal.SIGTERM)
+            time.sleep(1)
+        except (OSError, IOError):
+            pass
+
         ret = self._proc.poll()
         if ret is None:
             os.kill(self._proc.pid, signal.SIGKILL)

@@ -10,7 +10,6 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-#import logging
 from StringIO import StringIO
 
 import pytest
@@ -26,12 +25,14 @@ NULL_MANIFEST = """\
     <filter code="fil_null"/>
   </filters>
 </predicate>
-"""
+"""  # noqa
 
 
 def test_format_manifest():
-    root = opendiamond.bundle.element('predicate',
-        opendiamond.bundle.element('filters',
+    root = opendiamond.bundle.element(
+        'predicate',
+        opendiamond.bundle.element(
+            'filters',
             opendiamond.bundle.element('filter', code='fil_null')
         ),
         displayName="null"
@@ -47,7 +48,7 @@ def test_validate_manifest():
     # We've tested good input with parse_manifest, now test some bad inputs
     with pytest.raises(TypeError) as e:
         assert opendiamond.bundle.validate_manifest('')
-    e.match('Invalid input object: str') 
+    e.match('Invalid input object: str')
 
     root = opendiamond.bundle.element('bad')
     with pytest.raises(opendiamond.bundle.InvalidManifest) as e:
@@ -59,7 +60,8 @@ def test_validate_manifest():
         assert opendiamond.bundle.validate_manifest(root)
     e.match("The attribute 'displayName' is required but missing.")
 
-    root = opendiamond.bundle.element('predicate',
+    root = opendiamond.bundle.element(
+        'predicate',
         opendiamond.bundle.element('options'),
         displayName="test"
     )
@@ -70,5 +72,5 @@ def test_validate_manifest():
 
 def test_bundle_macro():
     out = StringIO()
-    opendiamond.bundle.bundle_macro(out, 'test filter', 'fil_test', ['arg1', 'arg2'], files=[])
-
+    opendiamond.bundle.bundle_macro(
+        out, 'test filter', 'fil_test', ['arg1', 'arg2'], files=[])

@@ -14,7 +14,7 @@ for filter in /usr/local/share/diamond/filters/* ; do
     cat > $filter << EOF
 #!/bin/sh
 docker pull $IMAGEID >/dev/null 2>&1
-exec docker run --rm -i --log-driver=none -v/dev/null:/dev/raw1394 --entrypoint=$filter $IMAGEID "\$@"
+exec docker run --rm -i --log-driver=none --entrypoint=$filter $IMAGEID "\$@"
 EOF
 done
 

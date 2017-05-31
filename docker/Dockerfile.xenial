@@ -18,6 +18,7 @@ RUN sed -i "s/xenial main/xenial main multiverse/" /etc/apt/sources.list \
     python-m2crypto \
     python-pil \
     python-setuptools \
+    socat \
     xml2rfc
 
 RUN git clone https://github.com/cmusatyalab/opendiamond.git /usr/src/opendiamond \

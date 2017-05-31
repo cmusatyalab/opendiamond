@@ -14,7 +14,11 @@ for filter in /usr/local/share/diamond/filters/* ; do
     cat > $filter << EOF
 #!/bin/sh
 docker pull $IMAGEID >/dev/null 2>&1
-exec docker run --name filter-\$(cat /proc/sys/kernel/random/uuid) --rm -i --log-driver=none --entrypoint=$filter $IMAGEID "\$@"
+NAME=filter-\$(cat /proc/sys/kernel/random/uuid)
+docker run --name \$NAME --rm --detach --publish 127.0.0.1::5555 \
+    --entrypoint /diamond-init.sh $IMAGEID $filter "\$@" >/dev/null
+sleep 1
+exec socat - TCP4:\$(docker port \$NAME 5555)
 EOF
 done
 

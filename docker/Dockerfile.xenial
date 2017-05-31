@@ -27,3 +27,5 @@ RUN git clone https://github.com/cmusatyalab/opendiamond.git /usr/src/opendiamon
  && ldconfig
 
 COPY ./build-filter-wrappers.sh /
+COPY ./diamond-init.sh /
+EXPOSE 5555

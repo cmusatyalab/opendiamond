@@ -344,6 +344,7 @@ class _FilterRunner(_ObjectProcessor):
 
     def evaluate(self, obj):
         if self._proc is None:
+            timer = Timer()
             debug = self._state.config.debug_filters
             if self._filter.name in debug or self._filter.signature in debug:
                 argv = (self._state.config.debug_command +
@@ -354,11 +355,14 @@ class _FilterRunner(_ObjectProcessor):
                                         self._filter.arguments,
                                         self._filter.blob)
             self._proc_initialized = False
+            self._filter.stats.update(startup_us_avg=timer.elapsed)
         timer = Timer()
         result = _FilterResult()
         proc = self._proc
         try:
             while True:
+                # XXX Work here to change the filter protocol:
+                # https://github.com/cmusatyalab/opendiamond/wiki/FilterProtocol
                 cmd = proc.get_tag()
                 if cmd == 'init-success':
                     # The filter initialized successfully.  This may not
@@ -818,12 +822,17 @@ class FilterStackRunner(threading.Thread):
     # pylint: disable=broad-except
     def run(self):
         '''Thread function.'''
+        timer = Timer()
+        first_seen = False
         try:
             # ScopeListLoader properly handles interleaved access by
             # multiple threads
             for obj in self._state.scope:
                 if self.evaluate(obj):
                     self._state.blast.send(obj)
+                if not first_seen:
+                    self._state.stats.update(time_to_first_result=timer.elapsed)
+                    first_seen = True
         except ConnectionFailure:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.
@@ -855,6 +864,8 @@ class FilterStack(object):
         self._filters = dict([(f.name, f) for f in filters])
         # Ordered list of filters to execute
         self._order = list()
+
+        # If you are going to add some smartness of "filter ordering", work here.
 
         # Resolve declared dependencies
         # Filters we have already resolved

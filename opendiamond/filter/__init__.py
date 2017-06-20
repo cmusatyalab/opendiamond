@@ -376,6 +376,7 @@ class _DiamondObject(Object):
 class _DiamondConnection(object):
     '''Proxy object for the stdin/stdout protocol connection with the
     Diamond server.'''
+    # XXX Work here to change the filter protocol (client side)
     def __init__(self, fin, fout):
         self._fin = fin
         self._fout = fout

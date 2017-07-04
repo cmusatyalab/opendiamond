@@ -112,9 +112,15 @@ class _Statistics(object):
         values specified in **kwargs to the corresponding statistics.'''
         with self._lock:
             for name in args:
-                self._stats[name].advance(1)
+                try:
+                    self._stats[name].advance(1)
+                except KeyError:
+                    _log.warning('Key %s doesn\'t exist in %s', name, self.label)
             for name, value in kwargs.iteritems():
-                self._stats[name].advance(value)
+                try:
+                    self._stats[name].advance(value)
+                except KeyError:
+                    _log.warning('Key %s doesn\'t exist in %s', name, self.label)
 
     def log(self):
         '''Dump all statistics to the log.'''
@@ -132,7 +138,10 @@ class SearchStatistics(_Statistics):
              ('objs_passed', 'Objects passed', _Sum),
              ('objs_unloadable', 'Objects failing to load', _Sum),
              ('execution_us', 'Total object examination time (us)', _Sum),
-             ('time_to_first_result', 'Time to get first result (us)', _Min))
+             ('time_to_first_result', 'Time to get first result Min (us)', _Min),
+             ('time_to_first_result_max', 'Time to get first result Max (us)', _Max),
+             ('time_to_first_result_avg', 'Time to get first result Avg (us)', _Avg),
+             )
 
     def xdr(self, objs_total, filter_stats):
         '''Return an XDR statistics structure for these statistics.'''
@@ -165,7 +174,10 @@ class FilterStatistics(_Statistics):
              ('objs_computed', 'Objects examined by filter', _Sum),
              ('objs_terminate', 'Objects causing filter to terminate', _Sum),
              ('execution_us', 'Filter execution time (us)', _Sum),
-             ('startup_us_avg', 'Startup time (us)', _Avg))
+             ('startup_us_avg', 'Startup time Avg (us)', _Avg),
+             ('startup_us_min', 'Startup time Min (us)', _Min),
+             ('startup_us_max', 'Startup time Max (us)', _Max),
+             )
 
     def __init__(self, name):
         _Statistics.__init__(self)

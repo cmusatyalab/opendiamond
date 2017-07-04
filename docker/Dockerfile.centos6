@@ -25,12 +25,15 @@ RUN yum -y install \
     socat \
  && yum -y clean all
 
-RUN git clone https://github.com/cmusatyalab/opendiamond.git /usr/src/opendiamond \
- && cd /usr/src/opendiamond && autoreconf -f -i \
+ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
+
+RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ./configure CFLAGS=-m32 --prefix=/usr && make -C libfilter install && make clean \
  && ./configure --prefix=/usr --libdir=/usr/lib64 && make install && make clean \
  && ldconfig
 
-COPY ./build-filter-wrappers.sh /
-COPY ./diamond-init.sh /
+COPY build-filter-wrappers.sh bundle-predicates.sh /
+
+RUN chmod +x /build-filter-wrappers.sh /bundle-predicates.sh
+
 EXPOSE 5555

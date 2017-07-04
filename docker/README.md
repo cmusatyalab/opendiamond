@@ -28,6 +28,7 @@ can be created with the following command.
     mkdir artifacts
     docker run --rm -v `pwd`/artifacts:/artifacts {imageid} /build-filter-wrappers.sh
 
-This will create a `diamond-filters.tgz` archive in the artifacts directory
+This will create a `diamond-docker-filters.tgz` archive in the artifacts directory
 that contains `diamond/{predicates,codecs,filters}` but with executable filter
 code replaces with wrappers to execute the docker container.
+

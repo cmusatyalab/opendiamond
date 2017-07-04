@@ -70,6 +70,7 @@ nobase_noinst_PYTHON = \
 	opendiamond/server/search.py \
 	opendiamond/server/sessionvars.py \
 	opendiamond/server/statistics.py \
+	opendiamond/server/resource.py \
 	tests/test_cookies.py
 
 nobase_dist_noinst_DATA = \

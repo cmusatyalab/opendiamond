@@ -67,6 +67,12 @@ class Session(object):
         names, values = zip(*vars.items())
         self._conn.send_message('update-session-variables', names, values)
 
+    def ensure_resource(self, scope, rtype, params):
+        """Ensure a resource in a certain scope and return the handler"""
+        self._conn.send_message('ensure-resource', scope, rtype, params)
+        uri = self._conn.get_dict()
+        return uri
+
 
 class Filter(object):
     '''A Diamond filter.  Implement this.'''
@@ -410,6 +416,12 @@ class _DiamondConnection(object):
 
     def get_boolean(self):
         return self.get_item() == 'true'
+
+    def get_dict(self):
+        keys = self.get_array()
+        values = self.get_array()
+        dct = dict(zip(keys, values))
+        return dct
 
     def send_message(self, tag, *values):
         '''Atomically sends a message, consisting of a tag followed by one

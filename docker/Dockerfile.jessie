@@ -21,11 +21,14 @@ RUN sed -i "s/jessie main/jessie main non-free/" /etc/apt/sources.list \
     socat \
     xml2rfc
 
-RUN git clone https://github.com/cmusatyalab/opendiamond.git /usr/src/opendiamond \
- && cd /usr/src/opendiamond && autoreconf -f -i \
+ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
+
+RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ./configure && make install && make clean \
  && ldconfig
 
-COPY ./build-filter-wrappers.sh /
-COPY ./diamond-init.sh /
+COPY build-filter-wrappers.sh bundle-predicates.sh /
+
+RUN chmod +x /build-filter-wrappers.sh /bundle-predicates.sh
+
 EXPOSE 5555

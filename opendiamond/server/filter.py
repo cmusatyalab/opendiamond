@@ -68,6 +68,7 @@ less than 2 MB/s.
 import logging
 import os
 import signal
+import socket
 import subprocess
 import threading
 import time
@@ -75,6 +76,7 @@ import time
 from redis import Redis
 from redis.exceptions import ResponseError
 import simplejson as json
+import yaml
 
 from opendiamond.helpers import murmur, signalname, split_scheme
 from opendiamond.rpc import ConnectionFailure
@@ -85,7 +87,7 @@ ATTR_FILTER_SCORE = '_filter.%s_score'  # arg: filter name
 # If a filter produces attribute values at less than this rate
 # (total attribute value size / execution time), we will cache the attribute
 # values as well as the filter results.
-ATTRIBUTE_CACHE_THRESHOLD = 2 << 20     # bytes/sec
+ATTRIBUTE_CACHE_THRESHOLD = 2 << 20  # bytes/sec
 DEBUG = False
 
 _log = logging.getLogger(__name__)
@@ -108,22 +110,27 @@ class FilterUnsupportedSource(Exception):
     '''URI scheme for code or blob source is not supported.'''
 
 
+class FilterUnsupportedMode(Exception):
+    pass
+
+
 class _DropObject(Exception):
     '''Filter failed to process object.  The object should be dropped
     without caching the drop result.'''
 
 
-class _FilterProcess(object):
-    '''A connection to a running filter process.'''
-    def __init__(self, code_argv, name, args, blob):
+class _FilterConnection(object):
+    """A connection to a filter specified by fin and fout.
+
+    fin -- A file-like that WE can read from.
+    fout -- A file-like that WE can write to.
+    """
+
+    def __init__(self, fin, fout, name, args, blob):
         try:
             self._name = name
-            self._proc = subprocess.Popen(
-                code_argv + ['--filter'],
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                close_fds=True, cwd=os.getenv('TMPDIR'))
-            self._fin = self._proc.stdout
-            self._fout = self._proc.stdin
+            self._fin = fin
+            self._fout = fout
 
             # Send:
             # - Protocol version (1)
@@ -132,25 +139,7 @@ class _FilterProcess(object):
             # - Blob argument
             self.send(1, name, args, blob)
         except (OSError, IOError):
-            raise FilterExecutionError('Unable to launch filter %s' % self)
-
-    def __del__(self):
-        # try a 'gentle' shutdown first
-        try:
-            self._fout.close()
-            os.kill(self._proc.pid, signal.SIGTERM)
-            time.sleep(1)
-        except (OSError, IOError):
-            pass
-
-        ret = self._proc.poll()
-        if ret is None:
-            os.kill(self._proc.pid, signal.SIGKILL)
-            self._proc.wait()
-        elif ret < 0:
-            _log.info('Filter %s exited on %s', self, signalname(-ret))
-        elif ret > 0:
-            _log.info('Filter %s exited with status %d', self, ret)
+            raise FilterExecutionError('Unable to initialize filter %s' % self)
 
     def __str__(self):
         return self._name
@@ -192,9 +181,11 @@ class _FilterProcess(object):
            scalar => serialized as str(value)
            tuple or list => serialized as an array terminated by a blank line
         '''
+
         def send_value(value):
             value = str(value)
             self._fout.write('%d\n%s\n' % (len(value), value))
+
         for value in values:
             if isinstance(value, list) or isinstance(value, tuple):
                 for element in value:
@@ -209,6 +200,72 @@ class _FilterProcess(object):
             else:
                 send_value(value)
         self._fout.flush()
+
+    def send_dict(self, dct):
+        """Send a dictionary: a list of keys, then a list of values."""
+        assert isinstance(dct, dict)
+        keys = list(dct.keys())
+        values = [dct[k] for k in keys]
+        self.send(keys)
+        self.send(values)
+
+
+class _FilterProcess(_FilterConnection):
+    """Connection to filter in form of executables."""
+
+    def __init__(self, code_argv, name, args, blob):
+        try:
+            self._proc = subprocess.Popen(
+                code_argv + ['--filter'],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                close_fds=True, cwd=os.getenv('TMPDIR'))
+        except (OSError, IOError):
+            raise FilterExecutionError('Unable to execute filter code %s: %s' % (name, code_argv))
+
+        super(_FilterProcess, self).__init__(fin=self._proc.stdout, fout=self._proc.stdin, name=name, args=args,
+                                             blob=blob)
+
+    def __del__(self):
+        # try a 'gentle' shutdown first
+        try:
+            self._fout.close()
+            os.kill(self._proc.pid, signal.SIGTERM)
+            time.sleep(1)
+        except (OSError, IOError):
+            pass
+
+        ret = self._proc.poll()
+        if ret is None:
+            os.kill(self._proc.pid, signal.SIGKILL)
+            self._proc.wait()
+        elif ret < 0:
+            _log.info('Filter %s exited on %s', self, signalname(-ret))
+        elif ret > 0:
+            _log.info('Filter %s exited with status %d', self, ret)
+
+
+class _FilterTCP(_FilterConnection):
+    """Connection to a filter in form of a TCP port"""
+
+    def __init__(self, host, port, name, args, blob):
+        try:
+            self._address = (host, port)
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._sock.connect(self._address)
+        except IOError:
+            raise FilterExecutionError('Unable to connect to filter at %s, %s' % self._address)
+
+        super(_FilterTCP, self).__init__(fin=self._sock.makefile('rb'), fout=self._sock.makefile('wb'), name=name,
+                                         args=args, blob=blob)
+
+    def __del__(self):
+        try:
+            self._sock.shutdown(socket.SHUT_RDWR)
+            self._sock.close()
+            # _log.debug('Filter %s closed connection.' % self)
+        except IOError:
+            # _log.info('Filter %s did not close connection properly' % self)
+            pass
 
 
 class _FilterResult(object):
@@ -248,7 +305,7 @@ class _FilterResult(object):
                        dct.get('omit_attrs'), dct['score'])
         except KeyError:
             return None
-    # pylint: enable=maybe-no-member
+            # pylint: enable=maybe-no-member
 
 
 class _ObjectProcessor(object):
@@ -345,23 +402,26 @@ class _FilterRunner(_ObjectProcessor):
     def evaluate(self, obj):
         if self._proc is None:
             timer = Timer()
-            debug = self._state.config.debug_filters
-            if self._filter.name in debug or self._filter.signature in debug:
-                argv = (self._state.config.debug_command +
-                        [self._filter.code_path])
-            else:
-                argv = [self._filter.code_path]
-            self._proc = _FilterProcess(argv, self._filter.name,
-                                        self._filter.arguments,
-                                        self._filter.blob)
+            # debug = self._state.config.debug_filters
+            # if self._filter.name in debug or self._filter.signature in debug:
+            #     argv = (self._state.config.debug_command +
+            #             [self._filter.code_path])
+            # else:
+            #     argv = [self._filter.code_path]
+            # self._proc = _FilterProcess(argv, self._filter.name,
+            #                             self._filter.arguments,
+            #                             self._filter.blob)
+            self._proc = self._filter.connect()
             self._proc_initialized = False
-            self._filter.stats.update(startup_us_avg=timer.elapsed)
+            self._filter.stats.update(startup_us_avg=timer.elapsed,
+                                      startup_us_min=timer.elapsed,
+                                      startup_us_max=timer.elapsed)
         timer = Timer()
         result = _FilterResult()
         proc = self._proc
         try:
             while True:
-                # XXX Work here to change the filter protocol:
+                # XXX Work here to change the filter protocol (server side):
                 # https://github.com/cmusatyalab/opendiamond/wiki/FilterProtocol
                 cmd = proc.get_tag()
                 if cmd == 'init-success':
@@ -438,6 +498,17 @@ class _FilterRunner(_ObjectProcessor):
                 elif cmd == 'result':
                     result.score = float(proc.get_item())
                     break
+                elif cmd == 'ensure-resource':
+                    # Create scoped resource here
+                    scope = proc.get_item()
+                    rtype = proc.get_item()
+                    args = proc.get_array()
+                    if scope == 'session':
+                        uri = self._state.context.ensure_resource(rtype, *args)
+                    else:
+                        raise FilterExecutionError("Unrecognized resource scope" % scope)
+                    proc.send_dict(uri)
+                    break
                 elif cmd == '':
                     # Encountered EOF on pipe
                     raise IOError()
@@ -468,8 +539,7 @@ class _FilterRunner(_ObjectProcessor):
         return result
 
     def threshold(self, result):
-        return (result.score >= self._filter.min_score and
-                result.score <= self._filter.max_score)
+        return self._filter.min_score <= result.score <= self._filter.max_score
 
 
 class Filter(object):
@@ -492,6 +562,11 @@ class Filter(object):
         self.blob = None
         self.cache_digest = None
 
+    def connect(self):
+        """Return a FilterConnection. To be reloaded during resolve()"""
+        assert self is not None
+        raise FilterDependencyError('Filter mode is not resolved yet.')
+
     def resolve(self, state):
         '''Ensure filter code and blob argument are available in the blob
         cache, load the blob argument, and initialize the cache digest.'''
@@ -511,12 +586,17 @@ class Filter(object):
         self.blob = blob
         self.cache_digest = cache_digest
 
+        # Resolve mode and reload connect()
+        connector = self._resolve_mode(state)
+        self.connect = connector.__get__(self, None)  # bind to instance
+
     def _resolve_code(self, state):
         '''Returns (code_path, signature).'''
         scheme, path = split_scheme(self.code_source)
         if scheme == 'sha256':
             sig = path.lower()
             try:
+                # FIXME with filter mode introduced, not necessary to set the executable bit so early.
                 return (state.blob_cache.executable_path(sig), sig)
             except KeyError:
                 raise FilterDependencyError('Missing code for filter ' +
@@ -536,6 +616,46 @@ class Filter(object):
                                             self.name)
         else:
             raise FilterUnsupportedSource()
+
+    def _resolve_mode(self, state):
+        """ Return an unbound method which returns a FilterConnection when called."""
+        assert self.code_path is not None
+
+        # TODO Consider moving this to a separate factory class
+        def scan_mode(f):
+            """Scan the first 100 bytes of file for special tags."""
+            first_line = f.read(100)
+            if 'diamond-docker-helper' in first_line:
+                return 'docker'
+            else:
+                return 'default'
+
+        self.mode = scan_mode(open(self.code_path, 'r'))
+
+        _log.info('%s: %s' % (self.name, self.mode))
+
+        if self.mode == 'default':
+            # default executable mode
+            # TODO handle debug command
+            def wrapper(this):
+                return _FilterProcess(code_argv=[self.code_path], name=self.name, args=self.arguments, blob=self.blob)
+        elif self.mode == 'docker':
+            # Docker service accessed via TCP
+            try:
+                config = yaml.load(open(self.code_path, 'r'))
+                docker_image, docker_command, docker_port = config['docker_image'], config['docker_command'], \
+                                                            int(config['docker_port'])
+            except Exception as e:
+                raise FilterDependencyError(e)
+
+            def wrapper(this):
+                uri = state.context.ensure_resource('docker', docker_image, docker_command)
+                return _FilterTCP(host=uri['IPAddress'], port=docker_port, name=self.name, args=self.arguments,
+                                  blob=self.blob)
+        else:
+            raise FilterUnsupportedMode()
+
+        return wrapper
 
     @classmethod
     def source_available(cls, state, uri):
@@ -565,7 +685,7 @@ class FilterStackRunner(threading.Thread):
         self.setDaemon(True)
         self._state = state
         self._runners = filter_runners
-        self._redis = None       # May be None if caching is not enabled
+        self._redis = None  # May be None if caching is not enabled
         self._cleanup = cleanup  # cleanup.__del__ fires when all workers exit
         self._warned_cache_update = False
 
@@ -606,8 +726,8 @@ class FilterStackRunner(threading.Thread):
         # originally run.)  We compute the set of filters that contributed
         # to a drop decision so that the runners can be notified to update
         # their statistics.
-        resolved = dict()       # runner -> set(runner + transitive depends)
-        inprocess = set()       # runner
+        resolved = dict()  # runner -> set(runner + transitive depends)
+        inprocess = set()  # runner
 
         def resolve(runner):
             '''If this runner has usable cached results, return a set
@@ -755,13 +875,13 @@ class FilterStackRunner(threading.Thread):
         if self._result_cache_can_drop(obj, cache_results):
             return False
 
-        new_results = dict()		# runner -> result
+        new_results = dict()  # runner -> result
         try:
             # Run each filter or load its prior result into the object.
             for runner in self._runners:
                 if (runner in cache_results and
-                    self._attribute_cache_try_load(runner, obj,
-                                                   cache_results[runner])):
+                        self._attribute_cache_try_load(runner, obj,
+                                                       cache_results[runner])):
                     result = cache_results[runner]
                 else:
                     result = runner.evaluate(obj)
@@ -828,11 +948,15 @@ class FilterStackRunner(threading.Thread):
             # ScopeListLoader properly handles interleaved access by
             # multiple threads
             for obj in self._state.scope:
-                if self.evaluate(obj):
-                    self._state.blast.send(obj)
+                accept = self.evaluate(obj)
                 if not first_seen:
-                    self._state.stats.update(time_to_first_result=timer.elapsed)
+                    self._state.stats.update(time_to_first_result=timer.elapsed,
+                                             time_to_first_result_max=timer.elapsed,
+                                             time_to_first_result_avg=timer.elapsed)
                     first_seen = True
+                if accept:
+                    self._state.blast.send(obj)
+
         except ConnectionFailure:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.
@@ -840,7 +964,7 @@ class FilterStackRunner(threading.Thread):
         except Exception:
             _log.exception('Worker thread exception')
             os.kill(os.getpid(), signal.SIGUSR1)
-    # pylint: enable=broad-except
+            # pylint: enable=broad-except
 
 
 class Reference(object):
@@ -888,6 +1012,7 @@ class FilterStack(object):
             inprocess.remove(filter)
             self._order.append(filter)
             resolved.add(filter)
+
         for filter in filters:
             resolve(filter)
 

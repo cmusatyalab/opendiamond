@@ -28,6 +28,7 @@ from opendiamond.server.object_ import EmptyObject, Object, ObjectLoader
 from opendiamond.server.scopelist import ScopeListLoader
 from opendiamond.server.sessionvars import SessionVariables
 from opendiamond.server.statistics import SearchStatistics
+from opendiamond.server.resource import ResourceContext
 
 _log = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ class SearchState(object):
         self.stats = SearchStatistics()
         self.scope = None
         self.blast = None
+        self.context = ResourceContext('session-context')   # TODO change to something session-dependent
 
 
 class Search(RPCHandlers):
@@ -64,6 +66,8 @@ class Search(RPCHandlers):
             self._state.stats.log()
             for filter in self._filters:
                 filter.stats.log()
+
+        self._state.context.cleanup()
 
     # This is not a static method: it's only called when initializing the
     # class, and the staticmethod() decorator does not create a callable.

@@ -251,6 +251,7 @@ class _FilterTCP(_FilterConnection):
         try:
             self._address = (host, port)
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self._sock.connect(self._address)
         except IOError:
             raise FilterExecutionError('Unable to connect to filter at %s, %s' % self._address)

@@ -6,6 +6,8 @@ import uuid
 import time
 from weakref import WeakSet
 
+import subprocess
+
 from opendiamond.helpers import murmur
 import docker
 import docker.errors
@@ -145,6 +147,28 @@ class _Docker(_ResourceFactory):
             self._container.remove(force=True)
         except docker.errors.APIError:
             _log.warning('Unable to remove container %s.' % self._container.name)
-            pass
         else:
             _log.info('Stopped container %s.' % self._container.name)
+
+
+class _NvdiaDocker(_Docker):
+    type = 'nvidia-docker'
+
+    def __init__(self, image, command):
+        name = 'diamond-resource-nvdia-' + str(uuid.uuid4())
+        cmd_l = ['nvidia-docker', 'run', '--name', name, image, command]
+        try:
+            subprocess.Popen(cmd_l)
+        except OSError:
+            raise ResourceCreationError('nvidia-docker unable to start: (image=%s, command=%s)' % (image, command))
+
+        client = docker.from_env()
+        while True:
+            try:
+                self._container = client.containers.get(name)
+                break
+            except docker.errors.NotFound:
+                pass
+
+        while self._container.attrs['NetworkSettings']['IPAddress'] == '':
+            self._container.reload()

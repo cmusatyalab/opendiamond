@@ -151,13 +151,14 @@ class _Docker(_ResourceFactory):
             _log.info('Stopped container %s.' % self._container.name)
 
 
-class _NvdiaDocker(_Docker):
+class _NvidiaDocker(_Docker):
     type = 'nvidia-docker'
 
     def __init__(self, image, command):
-        name = 'diamond-resource-nvdia-' + str(uuid.uuid4())
-        cmd_l = ['nvidia-docker', 'run', '--name', name, image, command]
+        name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
+        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image, command]
         try:
+            _log.debug('Creating nvidia-docker: %s' % ' '.join(cmd_l))
             subprocess.Popen(cmd_l)
         except OSError:
             raise ResourceCreationError('nvidia-docker unable to start: (image=%s, command=%s)' % (image, command))

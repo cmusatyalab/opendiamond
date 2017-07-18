@@ -16,7 +16,7 @@ images to develop Diamond filters --- mainly for speaking the Diamond filter
 protocol and generating Dockerized filter wrappers.
 They are **not** intended for running Diamond daemon processes
 (e.g., diamondd/dataretriever/scopeserver).
-In particular, not all dependencies to run Diamond daemon are installed
+In particular, not all dependencies to run these daemons are installed
 in order to reduce build time and Docker image size.
 
 

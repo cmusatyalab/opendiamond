@@ -156,7 +156,7 @@ class _NvidiaDocker(_Docker):
 
     def __init__(self, image, command):
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
-        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image, command]
+        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + command.split()
         try:
             _log.debug('Creating nvidia-docker: %s' % ' '.join(cmd_l))
             subprocess.Popen(cmd_l)

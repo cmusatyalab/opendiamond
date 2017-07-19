@@ -121,23 +121,27 @@ class _Docker(_ResourceFactory):
 
     def __init__(self, image, command):
         image = image.strip()
+        name = 'diamond-resource-' + str(uuid.uuid4())
+
         try:
             client = docker.from_env()
             # The run() method will auto pull the image.
             # run() returns immediately. The returned container object doesn't have sufficient network information.
             self._container = client.containers.run(image=image, command=shlex.split(command), detach=True,
-                                                    name='diamond-resource-' + str(uuid.uuid4()),
-                                                    remove=True)
+                                                    name=name)
             # Reload until we get the IPAddress
             while self._container.attrs['NetworkSettings']['IPAddress'] == '':
                 self._container.reload()
         except docker.errors.ImageNotFound:
             raise ResourceCreationError('Docker image not found %s' % image)
         except docker.errors.APIError:
+            if hasattr(self, '_container'):
+                self._container.remove(force=True)
             raise ResourceCreationError('Docker server unable to run image=%s, command=%s' % (image, command))
         else:
             _log.info('Started container: (%s, %s), name: %s, IPAddress: %s' % (
                 image, command, self.uri['name'], self.uri['IPAddress']))
+
 
     @property
     def uri(self):
@@ -159,14 +163,21 @@ class _NvidiaDocker(_Docker):
     def __init__(self, image, command):
         image = image.strip()
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
-        cmd_l = ['nvidia-docker', 'run', '--rm', '--detach', '--name', name, image] + shlex.split(command)
+        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + shlex.split(command)
 
         try:
             # _log.debug('Creating nvidia-docker: %s' % cmd_l)
             subprocess.check_call(cmd_l)
         except (subprocess.CalledProcessError, OSError):
+            try:
+                # In case error happens after the container is created (e.g., unable to exec command inside)
+                client = docker.from_env()
+                client.containers.get(name).remove(force=True)
+            except:
+                pass
             raise ResourceCreationError('nvidia-docker unable to start: %s' % cmd_l)
 
+        # Retrieve and bind the container object
         client = docker.from_env()
         while True:
             try:

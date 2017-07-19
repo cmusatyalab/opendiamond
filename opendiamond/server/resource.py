@@ -1,9 +1,9 @@
+import shlex
 import threading
 
 import logging
 import uuid
 
-import time
 from weakref import WeakSet
 
 import subprocess
@@ -120,12 +120,14 @@ class _Docker(_ResourceFactory):
     type = 'docker'
 
     def __init__(self, image, command):
+        image = image.strip()
         try:
             client = docker.from_env()
             # The run() method will auto pull the image.
             # run() returns immediately. The returned container object doesn't have sufficient network information.
-            self._container = client.containers.run(image=image, command=command, detach=True,
-                                                    name='diamond-resource-' + str(uuid.uuid4()))
+            self._container = client.containers.run(image=image, command=shlex.split(command), detach=True,
+                                                    name='diamond-resource-' + str(uuid.uuid4()),
+                                                    remove=True)
             # Reload until we get the IPAddress
             while self._container.attrs['NetworkSettings']['IPAddress'] == '':
                 self._container.reload()
@@ -155,13 +157,15 @@ class _NvidiaDocker(_Docker):
     type = 'nvidia-docker'
 
     def __init__(self, image, command):
+        image = image.strip()
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
-        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + command.split()
+        cmd_l = ['nvidia-docker', 'run', '--rm', '--detach', '--name', name, image] + shlex.split(command)
+
         try:
-            _log.debug('Creating nvidia-docker: %s' % ' '.join(cmd_l))
-            subprocess.Popen(cmd_l)
-        except OSError:
-            raise ResourceCreationError('nvidia-docker unable to start: (image=%s, command=%s)' % (image, command))
+            # _log.debug('Creating nvidia-docker: %s' % cmd_l)
+            subprocess.check_call(cmd_l)
+        except (subprocess.CalledProcessError, OSError):
+            raise ResourceCreationError('nvidia-docker unable to start: %s' % cmd_l)
 
         client = docker.from_env()
         while True:

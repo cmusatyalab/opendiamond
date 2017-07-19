@@ -248,20 +248,23 @@ class _FilterTCP(_FilterConnection):
     """Connection to a filter in form of a TCP port"""
 
     def __init__(self, host, port, name, args, blob):
-        try:
-            self._address = (host, port)
-            # self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            # self._sock.settimeout(30.0)
+        self._address = (host, port)
+        for i in range(10):
             try:
-                # self._sock.connect(self._address)
-                self._sock = socket.create_connection(self._address, 15.0)
+                # OS may give up with its own timeout regardless of timeout set here
+                sock = socket.create_connection(self._address, 1.0)
             except socket.error:
-                time.sleep(15)
-                self._sock = socket.create_connection(self._address, 15.0)
-            self._sock.setblocking(1)   # timeout mode internally sets the socket to non-blocking
-        except socket.error:
+                time.sleep(1.0)
+                continue
+            else:
+                self._sock = sock
+                break
+
+        if not hasattr(self, '_sock'):
             raise FilterExecutionError('Unable to connect to filter at %s, %s' % self._address)
+
+        self._sock.setblocking(1)   # timeout mode internally sets the socket to non-blocking
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
         super(_FilterTCP, self).__init__(fin=self._sock.makefile('rb'), fout=self._sock.makefile('wb'), name=name,
                                          args=args, blob=blob)

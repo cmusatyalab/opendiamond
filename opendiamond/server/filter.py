@@ -250,10 +250,17 @@ class _FilterTCP(_FilterConnection):
     def __init__(self, host, port, name, args, blob):
         try:
             self._address = (host, port)
-            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self._sock.connect(self._address)
-        except IOError:
+            # self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            # self._sock.settimeout(30.0)
+            try:
+                # self._sock.connect(self._address)
+                self._sock = socket.create_connection(self._address, 15.0)
+            except socket.error:
+                time.sleep(15)
+                self._sock = socket.create_connection(self._address, 15.0)
+            self._sock.setblocking(1)   # timeout mode internally sets the socket to non-blocking
+        except socket.error:
             raise FilterExecutionError('Unable to connect to filter at %s, %s' % self._address)
 
         super(_FilterTCP, self).__init__(fin=self._sock.makefile('rb'), fout=self._sock.makefile('wb'), name=name,

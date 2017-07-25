@@ -23,6 +23,7 @@ from opendiamond.protocol import XDR_attribute, XDR_object
 
 ATTR_HEADER_URL = 'x-attributes'
 ATTR_HEADER_PREFIX = 'x-attr-'
+ATTR_HEADER_PREFIX_LEN = len(ATTR_HEADER_PREFIX)
 # Object attributes handled directly by the server
 ATTR_DATA = ''
 ATTR_OBJ_ID = '_ObjectID'
@@ -223,7 +224,7 @@ class ObjectLoader(object):
         # Process loose initial attributes
         for key, value in headers.iteritems():
             if key.lower().startswith(ATTR_HEADER_PREFIX):
-                key = key.replace(ATTR_HEADER_PREFIX, '', 1)
+                key = key[ATTR_HEADER_PREFIX_LEN:]
                 obj[key] = value + '\0'
         # Fetch additional initial attributes if specified
         if ATTR_HEADER_URL in headers:

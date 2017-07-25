@@ -65,6 +65,7 @@ def run():
                      port=config.retriever_port,
                      server_version=_server_version,
                      protocol_version='HTTP/1.1',
+                     use_threadpool=True,
                      daemon_threads=True)
 
 

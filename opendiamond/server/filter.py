@@ -220,10 +220,12 @@ class _FilterProcess(_FilterConnection):
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 close_fds=True, cwd=os.getenv('TMPDIR'))
         except (OSError, IOError):
-            raise FilterExecutionError('Unable to execute filter code %s: %s' % (name, code_argv))
+            raise FilterExecutionError(
+                'Unable to execute filter code %s: %s' % (name, code_argv))
 
-        super(_FilterProcess, self).__init__(fin=self._proc.stdout, fout=self._proc.stdin, name=name, args=args,
-                                             blob=blob)
+        super(_FilterProcess, self).__init__(
+            fin=self._proc.stdout, fout=self._proc.stdin,
+            name=name, args=args, blob=blob)
 
     def __del__(self):
         # try a 'gentle' shutdown first
@@ -251,7 +253,8 @@ class _FilterTCP(_FilterConnection):
         self._address = (host, port)
         for i in range(10):
             try:
-                # OS may give up with its own timeout regardless of timeout set here
+                # OS may give up with its own timeout regardless of
+                # timeout here
                 sock = socket.create_connection(self._address, 1.0)
             except socket.error:
                 time.sleep(1.0)
@@ -261,13 +264,21 @@ class _FilterTCP(_FilterConnection):
                 break
 
         if not hasattr(self, '_sock'):
-            raise FilterExecutionError('Unable to connect to filter at %s, %s' % self._address)
+            raise FilterExecutionError(
+                'Unable to connect to filter at %s, %s' % self._address
+            )
 
-        self._sock.setblocking(1)   # timeout mode internally sets the socket to non-blocking
+        # timeout mode internally sets the socket to non-blocking
+        self._sock.setblocking(1)
         self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-        super(_FilterTCP, self).__init__(fin=self._sock.makefile('rb'), fout=self._sock.makefile('wb'), name=name,
-                                         args=args, blob=blob)
+        super(_FilterTCP, self).__init__(
+            fin=self._sock.makefile('rb'),
+            fout=self._sock.makefile('wb'),
+            name=name,
+            args=args,
+            blob=blob
+        )
 
     def __del__(self):
         try:
@@ -517,7 +528,9 @@ class _FilterRunner(_ObjectProcessor):
                     if scope == 'session':
                         uri = self._state.context.ensure_resource(rtype, *args)
                     else:
-                        raise FilterExecutionError("Unrecognized resource scope" % scope)
+                        raise FilterExecutionError(
+                            "Unrecognized resource scope" % scope
+                        )
                     proc.send_dict(uri)
                     break
                 elif cmd == '':
@@ -607,7 +620,8 @@ class Filter(object):
         if scheme == 'sha256':
             sig = path.lower()
             try:
-                # FIXME with filter mode introduced, not necessary to set the executable bit so early.
+                # FIXME with filter mode introduced, not necessary to set the
+                # executable bit so early.
                 return (state.blob_cache.executable_path(sig), sig)
             except KeyError:
                 raise FilterDependencyError('Missing code for filter ' +
@@ -629,7 +643,7 @@ class Filter(object):
             raise FilterUnsupportedSource()
 
     def _resolve_mode(self, state):
-        """ Return an unbound method which returns a FilterConnection when called."""
+        """ Return an unbound method which returns a FilterConnection. """
         assert self.code_path is not None
 
         # TODO Consider moving this to a separate factory class
@@ -649,20 +663,33 @@ class Filter(object):
             # default executable mode
             # TODO handle debug command
             def wrapper(this):
-                return _FilterProcess(code_argv=[self.code_path], name=self.name, args=self.arguments, blob=self.blob)
+                return _FilterProcess(
+                    code_argv=[self.code_path],
+                    name=self.name,
+                    args=self.arguments,
+                    blob=self.blob
+                )
         elif self.mode == 'docker':
             # Docker service accessed via TCP
             try:
                 config = yaml.load(open(self.code_path, 'r'))
-                docker_image, docker_command, docker_port = config['docker_image'], config['docker_command'], \
-                                                            int(config['docker_port'])
+                docker_image = config['docker_image']
+                docker_command = config['docker_command']
+                docker_port = int(config['docker_port'])
             except Exception as e:
                 raise FilterDependencyError(e)
 
             def wrapper(this):
-                uri = state.context.ensure_resource('docker', docker_image, docker_command)
-                return _FilterTCP(host=uri['IPAddress'], port=docker_port, name=self.name, args=self.arguments,
-                                  blob=self.blob)
+                uri = state.context.ensure_resource(
+                    'docker', docker_image, docker_command
+                )
+                return _FilterTCP(
+                    host=uri['IPAddress'],
+                    port=docker_port,
+                    name=self.name,
+                    args=self.arguments,
+                    blob=self.blob
+                )
         else:
             raise FilterUnsupportedMode()
 
@@ -961,9 +988,11 @@ class FilterStackRunner(threading.Thread):
             for obj in self._state.scope:
                 accept = self.evaluate(obj)
                 if not first_seen:
-                    self._state.stats.update(time_to_first_result=timer.elapsed,
-                                             time_to_first_result_max=timer.elapsed,
-                                             time_to_first_result_avg=timer.elapsed)
+                    self._state.stats.update(
+                        time_to_first_result=timer.elapsed,
+                        time_to_first_result_max=timer.elapsed,
+                        time_to_first_result_avg=timer.elapsed
+                    )
                     first_seen = True
                 if accept:
                     self._state.blast.send(obj)
@@ -1000,7 +1029,8 @@ class FilterStack(object):
         # Ordered list of filters to execute
         self._order = list()
 
-        # If you are going to add some smartness of "filter ordering", work here.
+        # If you are going to add some smartness of "filter ordering",
+        # work here.
 
         # Resolve declared dependencies
         # Filters we have already resolved

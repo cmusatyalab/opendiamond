@@ -19,7 +19,8 @@ class ResourceTypeError(Exception):
     """Error unrecognized resource type"""
 
     def __init__(self, rtype):
-        super(ResourceTypeError, self).__init__('Unrecognized resource type %s' % rtype)
+        super(ResourceTypeError, self).__init__(
+            'Unrecognized resource type %s' % rtype)
 
 
 class ResourceCreationError(Exception):
@@ -34,8 +35,9 @@ class ResourceContext(object):
     """A resource context is a "namespace" for special resources.
     Resource can be: docker containers, etc.
     All resource must be created within a ResourceContext.
-    When a ResourceContext is cleaned up, all resources therein must be cleaned up properly.
-    All creations/modifications of resource therein are synchronized with a lock."""
+    When a ResourceContext is cleaned up, all resources therein must be
+    cleaned up properly. All creations/modifications of resource therein
+    are synchronized with a lock."""
 
     def __init__(self, name):
         super(ResourceContext, self).__init__()
@@ -126,9 +128,14 @@ class _Docker(_ResourceFactory):
         try:
             client = docker.from_env()
             # The run() method will auto pull the image.
-            # run() returns immediately. The returned container object doesn't have sufficient network information.
-            self._container = client.containers.run(image=image, command=shlex.split(command), detach=True,
-                                                    name=name)
+            # run() returns immediately. The returned container object
+            # doesn't have sufficient network information.
+            self._container = client.containers.run(
+                image=image,
+                command=shlex.split(command),
+                detach=True,
+                name=name
+            )
             # Reload until we get the IPAddress
             while self._container.attrs['NetworkSettings']['IPAddress'] == '':
                 self._container.reload()
@@ -137,22 +144,30 @@ class _Docker(_ResourceFactory):
         except docker.errors.APIError:
             if hasattr(self, '_container'):
                 self._container.remove(force=True)
-            raise ResourceCreationError('Docker server unable to run image=%s, command=%s' % (image, command))
+            raise ResourceCreationError(
+                'Docker server unable to run image=%s, command=%s' %
+                (image, command)
+            )
         else:
-            _log.info('Started container: (%s, %s), name: %s, IPAddress: %s' % (
-                image, command, self.uri['name'], self.uri['IPAddress']))
-
+            _log.info(
+                'Started container: (%s, %s), name: %s, IPAddress: %s' %
+                (image, command, self.uri['name'], self.uri['IPAddress'])
+            )
 
     @property
     def uri(self):
-        rv = dict(name=self._container.name, IPAddress=self._container.attrs['NetworkSettings']['IPAddress'])
+        rv = dict(
+            name=self._container.name,
+            IPAddress=self._container.attrs['NetworkSettings']['IPAddress']
+        )
         return rv
 
     def cleanup(self):
         try:
             self._container.remove(force=True)
         except docker.errors.APIError:
-            _log.warning('Unable to remove container %s.' % self._container.name)
+            _log.warning('Unable to remove container %s.' %
+                         self._container.name)
         else:
             _log.info('Stopped container %s.' % self._container.name)
 
@@ -163,19 +178,23 @@ class _NvidiaDocker(_Docker):
     def __init__(self, image, command):
         image = image.strip()
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
-        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + shlex.split(command)
+        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + \
+            shlex.split(command)
 
         try:
             # _log.debug('Creating nvidia-docker: %s' % cmd_l)
             subprocess.check_call(cmd_l)
         except (subprocess.CalledProcessError, OSError):
             try:
-                # In case error happens after the container is created (e.g., unable to exec command inside)
+                # In case error happens after the container is created (e.g.,
+                # unable to exec command inside)
                 client = docker.from_env()
                 client.containers.get(name).remove(force=True)
             except:
                 pass
-            raise ResourceCreationError('nvidia-docker unable to start: %s' % cmd_l)
+            raise ResourceCreationError(
+                'nvidia-docker unable to start: %s' % cmd_l
+            )
 
         # Retrieve and bind the container object
         client = docker.from_env()

@@ -115,12 +115,14 @@ class _Statistics(object):
                 try:
                     self._stats[name].advance(1)
                 except KeyError:
-                    _log.warning('Key %s doesn\'t exist in %s', name, self.label)
+                    _log.warning('Key %s doesn\'t exist in %s',
+                                 name, self.label)
             for name, value in kwargs.iteritems():
                 try:
                     self._stats[name].advance(value)
                 except KeyError:
-                    _log.warning('Key %s doesn\'t exist in %s', name, self.label)
+                    _log.warning('Key %s doesn\'t exist in %s',
+                                 name, self.label)
 
     def log(self):
         '''Dump all statistics to the log.'''
@@ -133,15 +135,16 @@ class SearchStatistics(_Statistics):
     '''Statistics for the search as a whole.'''
 
     label = 'Search statistics'
-    attrs = (('objs_processed', 'Objects considered', _Sum),
-             ('objs_dropped', 'Objects dropped', _Sum),
-             ('objs_passed', 'Objects passed', _Sum),
-             ('objs_unloadable', 'Objects failing to load', _Sum),
-             ('execution_us', 'Total object examination time (us)', _Sum),
-             ('time_to_first_result', 'Time to get first result Min (us)', _Min),
-             ('time_to_first_result_max', 'Time to get first result Max (us)', _Max),
-             ('time_to_first_result_avg', 'Time to get first result Avg (us)', _Avg),
-             )
+    attrs = (
+        ('objs_processed', 'Objects considered', _Sum),
+        ('objs_dropped', 'Objects dropped', _Sum),
+        ('objs_passed', 'Objects passed', _Sum),
+        ('objs_unloadable', 'Objects failing to load', _Sum),
+        ('execution_us', 'Total object examination time (us)', _Sum),
+        ('time_to_first_result', 'Time to first result Min (us)', _Min),
+        ('time_to_first_result_max', 'Time to first result Max (us)', _Max),
+        ('time_to_first_result_avg', 'Time to first result Avg (us)', _Avg),
+    )
 
     def xdr(self, objs_total, filter_stats):
         '''Return an XDR statistics structure for these statistics.'''
@@ -219,4 +222,3 @@ class Timer(object):
     def elapsed(self):
         '''Elapsed time in us.'''
         return int(self.elapsed_seconds * 1e6)
-

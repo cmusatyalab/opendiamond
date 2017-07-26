@@ -41,7 +41,7 @@ def test_format_manifest():
 
 
 def test_parse_manifest():
-    assert opendiamond.bundle.parse_manifest(NULL_MANIFEST)
+    assert opendiamond.bundle.parse_manifest(NULL_MANIFEST) is not None
 
 
 def test_validate_manifest():

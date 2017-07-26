@@ -28,7 +28,3 @@ RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ldconfig
 
 COPY build-filter-wrappers.sh bundle-predicates.sh /
-
-RUN chmod +x /build-filter-wrappers.sh /bundle-predicates.sh
-
-EXPOSE 5555

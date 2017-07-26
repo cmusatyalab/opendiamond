@@ -177,8 +177,8 @@ class _RPCMeta(type):
     def __new__(mcs, name, bases, dct):
         obj = type.__new__(mcs, name, bases, dct)
         obj._cmds = dict()
-        for name in dir(obj):
-            f = getattr(obj, name)
+        for attribute in dir(obj):
+            f = getattr(obj, attribute)
             if hasattr(f, 'rpc_procedure'):
                 # f is an unbound method
                 obj._cmds[f.rpc_procedure] = f

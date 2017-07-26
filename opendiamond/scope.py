@@ -250,14 +250,14 @@ def generate_cookie(scopeurls, servers, proxies=None, keyfile=None,
 
     if proxies is None:
         return generate(scopeurls, servers)
-    else:
-        cookies = []
-        n = len(proxies)
-        for i in range(n):
-            scope = ['/proxy/%dof%d/%s:5873%s' % (i + 1, n, server, url)
-                     for url in scopeurls for server in servers]
-            cookies.append(generate(scope, (proxies[i],)))
-        return ''.join(cookies)
+
+    cookies = []
+    n = len(proxies)
+    for i in range(n):
+        scope = ['/proxy/%dof%d/%s:5873%s' % (i + 1, n, server, url)
+                 for url in scopeurls for server in servers]
+        cookies.append(generate(scope, (proxies[i],)))
+    return ''.join(cookies)
 
 
 # Don't complain if Django isn't installed on the build system

@@ -118,6 +118,6 @@ except ImportError, _e:
 def split_scheme(url):
     if sys.version_info[0:3] == (2, 7, 1) and url.startswith('sha256:'):
         return url.split(':')
-    else:
-        parts = urlparse(url)
-        return (parts.scheme, parts.path)
+
+    parts = urlparse(url)
+    return (parts.scheme, parts.path)

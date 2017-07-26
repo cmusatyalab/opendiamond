@@ -74,11 +74,11 @@ class _XDRArrayHandler(_XDRTypeHandler):
         _XDRTypeHandler.__init__(self)
         self._item_handler = item_handler
 
-    def pack(self, xdr, vals):
+    def pack(self, xdr, val):
         # Packer.pack_array() is inconvenient for recursive descent.
-        xdr.pack_uint(len(vals))
-        for val in vals:
-            self._item_handler.pack(xdr, val)
+        xdr.pack_uint(len(val))
+        for item in val:
+            self._item_handler.pack(xdr, item)
 
     def unpack(self, xdr):
         return xdr.unpack_array(lambda: self._item_handler.unpack(xdr))
@@ -99,8 +99,7 @@ class _XDROptionalHandler(_XDRTypeHandler):
     def unpack(self, xdr):
         if xdr.unpack_bool():
             return self._item_handler.unpack(xdr)
-        else:
-            return None
+        return None
 
 
 class _XDRConstantHandler(_XDRTypeHandler):

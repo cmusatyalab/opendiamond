@@ -187,7 +187,7 @@ class _FilterConnection(object):
             self._fout.write('%d\n%s\n' % (len(value), value))
 
         for value in values:
-            if isinstance(value, list) or isinstance(value, tuple):
+            if isinstance(value, (list, tuple)):
                 for element in value:
                     send_value(element)
                 self._fout.write('\n')
@@ -251,7 +251,7 @@ class _FilterTCP(_FilterConnection):
 
     def __init__(self, host, port, name, args, blob):
         self._address = (host, port)
-        for i in range(10):
+        for _ in range(10):
             try:
                 # OS may give up with its own timeout regardless of
                 # timeout here
@@ -300,7 +300,7 @@ class _FilterResult(object):
         # name -> murmur(value)  (or -> None if no such attr)
         self.input_attrs = input_attrs or {}
         self.output_attrs = output_attrs or {}  # name -> murmur(value)
-        self.omit_attrs = omit_attrs and set(omit_attrs) or set()  # names
+        self.omit_attrs = set(omit_attrs) if omit_attrs else set()  # names
         self.score = score
         # Whether to cache output attributes in the attribute cache
         self.cache_output = False
@@ -585,6 +585,7 @@ class Filter(object):
         self.signature = None
         self.blob = None
         self.cache_digest = None
+        self.mode = None
 
     def connect(self):
         """Return a FilterConnection. To be reloaded during resolve()"""
@@ -647,22 +648,21 @@ class Filter(object):
         assert self.code_path is not None
 
         # TODO Consider moving this to a separate factory class
-        def scan_mode(f):
+        def scan_mode(filter_file):
             """Scan the first 100 bytes of file for special tags."""
-            first_line = f.read(100)
+            first_line = filter_file.read(100)
             if 'diamond-docker-helper' in first_line:
                 return 'docker'
-            else:
-                return 'default'
+            return 'default'
 
         self.mode = scan_mode(open(self.code_path, 'r'))
 
-        _log.info('%s: %s' % (self.name, self.mode))
+        _log.info('%s: %s', self.name, self.mode)
 
         if self.mode == 'default':
             # default executable mode
             # TODO handle debug command
-            def wrapper(this):
+            def wrapper(_):
                 return _FilterProcess(
                     code_argv=[self.code_path],
                     name=self.name,
@@ -679,7 +679,7 @@ class Filter(object):
             except Exception as e:
                 raise FilterDependencyError(e)
 
-            def wrapper(this):
+            def wrapper(_):
                 uri = state.context.ensure_resource(
                     'docker', docker_image, docker_command
                 )
@@ -877,19 +877,19 @@ class FilterStackRunner(threading.Thread):
             # to rerun the filter.
             _debug('Uncached output value for %s', runner)
             return False
-        else:
-            _debug('Cached output values for %s', runner)
-            # Load the attribute values and omit set into the object.
-            for key, value in zip(keys, values):
-                obj[key] = value
-            for key in result.omit_attrs:
-                try:
-                    obj.omit(key)
-                except KeyError:
-                    _log.warning('Impossible omit attribute in result cache')
-            # Notify the runner that it had a cache hit.
-            runner.cache_hit(result)
-            return True
+
+        _debug('Cached output values for %s', runner)
+        # Load the attribute values and omit set into the object.
+        for key, value in zip(keys, values):
+            obj[key] = value
+        for key in result.omit_attrs:
+            try:
+                obj.omit(key)
+            except KeyError:
+                _log.warning('Impossible omit attribute in result cache')
+        # Notify the runner that it had a cache hit.
+        runner.cache_hit(result)
+        return True
 
     def _evaluate(self, obj):
         _debug('Evaluating %s', obj)

@@ -45,7 +45,7 @@ class ResourceContext(object):
         self._lock = threading.Lock()
         self._catalog = dict()
         self._subcontexts = WeakSet()
-        _log.debug('Created resource context %s' % self._name)
+        _log.debug('Created resource context %s', self._name)
 
     def ensure_resource(self, rtype, *args):
         """Ensure a resource exists in the context. If already exists, return the URI.
@@ -67,7 +67,7 @@ class ResourceContext(object):
     def cleanup(self):
         """Recursively clean up all sub-contexts under this one, including itself.
         This method could be called multiple times."""
-        _log.debug('Destroying resource context %s' % self._name)
+        _log.debug('Destroying resource context %s', self._name)
         with self._lock:
             # Clean up descendants
             for sc in self._subcontexts:
@@ -75,7 +75,7 @@ class ResourceContext(object):
             self._subcontexts.clear()
 
             # Clean up myself
-            for (uri, res) in self._catalog.iteritems():
+            for (_, res) in self._catalog.iteritems():
                 res.cleanup()
             self._catalog.clear()
 
@@ -83,7 +83,7 @@ class ResourceContext(object):
 
 
 class _ResourceMeta(type):
-    def __init__(cls, name, bases, dct):
+    def __init__(cls, name, bases, _):
         if not hasattr(cls, 'registry'):
             cls.registry = dict()
         else:
@@ -149,10 +149,8 @@ class _Docker(_ResourceFactory):
                 (image, command)
             )
         else:
-            _log.info(
-                'Started container: (%s, %s), name: %s, IPAddress: %s' %
-                (image, command, self.uri['name'], self.uri['IPAddress'])
-            )
+            _log.info('Started container: (%s, %s), name: %s, IPAddress: %s',
+                      image, command, self.uri['name'], self.uri['IPAddress'])
 
     @property
     def uri(self):
@@ -166,15 +164,15 @@ class _Docker(_ResourceFactory):
         try:
             self._container.remove(force=True)
         except docker.errors.APIError:
-            _log.warning('Unable to remove container %s.' %
-                         self._container.name)
+            _log.warning('Unable to remove container %s', self._container.name)
         else:
-            _log.info('Stopped container %s.' % self._container.name)
+            _log.info('Stopped container %s', self._container.name)
 
 
 class _NvidiaDocker(_Docker):
     type = 'nvidia-docker'
 
+    # pylint: disable=super-init-not-called
     def __init__(self, image, command):
         image = image.strip()
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
@@ -190,7 +188,7 @@ class _NvidiaDocker(_Docker):
                 # unable to exec command inside)
                 client = docker.from_env()
                 client.containers.get(name).remove(force=True)
-            except:
+            except:  # pylint: disable=bare-except
                 pass
             raise ResourceCreationError(
                 'nvidia-docker unable to start: %s' % cmd_l

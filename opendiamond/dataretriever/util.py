@@ -35,8 +35,7 @@ def guess_mime_type(path):
     ext = ext.lower()
     if ext in _extensions:
         return _extensions[ext]
-    else:
-        return _extensions['']
+    return _extensions['']
 
 
 # return xslt stylesheet which makes browsers show the scope list as thumbnails

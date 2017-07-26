@@ -73,10 +73,8 @@ class _PendingConn(object):
                 if self.nonce == NULL_NONCE:
                     self.nonce = os.urandom(NONCE_LEN)
                     return CONTROL
-                else:
-                    return DATA
-            else:
-                return None
+                return DATA
+            return None
         else:
             # If the socket is still readable, either we have received
             # unexpected data or the connection has died

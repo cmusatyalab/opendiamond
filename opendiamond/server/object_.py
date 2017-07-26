@@ -193,9 +193,8 @@ class ObjectLoader(object):
         scheme, path = split_scheme(str(obj))
         if scheme == 'sha256':
             return path in self._blob_cache
-        else:
-            # Assume we can always load other types of URLs
-            return True
+        # Assume we can always load other types of URLs
+        return True
 
     def load(self, obj):
         '''Retrieve the Object and update it with the information we

@@ -149,8 +149,7 @@ class Filter(object):
         if '--filter' in argv:
             cls._run_loop(classes)
             return True
-        else:
-            return False
+        return False
 
     @classmethod
     def _run_loop(cls, classes=None):
@@ -433,7 +432,7 @@ class _DiamondConnection(object):
         with self._output_lock:
             self._fout.write('%s\n' % tag)
             for value in values:
-                if isinstance(value, list) or isinstance(value, tuple):
+                if isinstance(value, (list, tuple)):
                     for el in value:
                         send_value(el)
                     self._fout.write('\n')

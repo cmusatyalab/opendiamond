@@ -12,10 +12,9 @@ tar -cvzf /artifacts/diamond-native-filters.tgz diamond
 # can safely clobber any files we find.
 for filter in /usr/local/share/diamond/filters/* ; do
     cat > ${filter} << EOF
-#!/usr/bin/env diamond-docker-helper
+# diamond-docker-filter
 docker_image: ${IMAGEID}
-docker_command:  "socat TCP4-LISTEN:5555,fork,nodelay EXEC:\"${filter} --filter\" "
-docker_port: 5555
+filter_command: ${filter}
 EOF
 done
 

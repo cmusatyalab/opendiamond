@@ -45,7 +45,7 @@ add_option('-n', dest='oneshot', action='store_true', default=False,
 
 def run():
     opts, args = parser.parse_args()
-    if len(args) > 0:
+    if args:
         parser.error('unrecognized command-line arguments')
 
     # Calculate DiamondConfig arguments

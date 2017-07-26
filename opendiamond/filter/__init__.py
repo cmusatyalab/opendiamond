@@ -390,10 +390,10 @@ class _DiamondConnection(object):
     def get_item(self):
         '''Read and return a string or blob.'''
         sizebuf = self._fin.readline()
-        if len(sizebuf) == 0:
+        if not sizebuf:
             # End of file
             raise IOError('End of input stream')
-        elif len(sizebuf.strip()) == 0:
+        elif not sizebuf.strip():
             # No length value == no data
             return None
         size = int(sizebuf)
@@ -454,7 +454,7 @@ class _StdoutThread(threading.Thread):
         try:
             while True:
                 buf = self._pipe.read(32768)
-                if len(buf) == 0:
+                if not buf:
                     break
                 self._conn.send_message('stdout', buf)
         except IOError:

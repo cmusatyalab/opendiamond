@@ -261,8 +261,7 @@ class _SearchSpec(object):
                 blob = _BlasterBlob(obj['uri'], obj.get('sha256'))
                 # Intern the blob
                 return blobs.setdefault(blob, blob)
-            else:
-                return EmptyBlob()
+            return EmptyBlob()
 
         self.filters = [
             FilterSpec(

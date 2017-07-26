@@ -73,8 +73,7 @@ def generate(request):
                              ids=request.POST.getlist('gigapan_choice'))
     if form.is_valid():
         return generate_cookie(form.cleaned_data['gigapan_choice'])
-    else:
-        return redirect('index')
+    return redirect('index')
 
 
 @permission_required("gigapan.search")
@@ -104,10 +103,8 @@ def browse(request):
             return render_response(
                 request, 'scopeserver/gigapan_browse.html',
                 {'form': choiceform})
-        else:
-            return HttpResponseRedirect(reverse('index') + "?error=True")
-    else:
-        return redirect('index')
+        return HttpResponseRedirect(reverse('index') + "?error=True")
+    return redirect('index')
 
 
 @permission_required("gigapan.search")
@@ -119,7 +116,6 @@ def index(request):
             'form': form,
             'errors': "No results found",
         })
-    else:
-        return render_response(request, 'scopeserver/gigapan_search.html', {
-            'form': form,
-        })
+    return render_response(request, 'scopeserver/gigapan_search.html', {
+        'form': form,
+    })

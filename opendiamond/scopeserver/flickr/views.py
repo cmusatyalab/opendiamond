@@ -30,7 +30,7 @@ def index(request):
             tags = [tag.strip() for tag in tags]  # trim whitespace
             tags = [tag for tag in tags if tag]   # skip empty
 
-            tag_mode = form.cleaned_data['tag_mode'] and 'all' or 'any'
+            tag_mode = 'all' if form.cleaned_data['tag_mode'] else 'any'
 
             text = form.cleaned_data.get('text', '')
 
@@ -44,8 +44,8 @@ def index(request):
 
             scope = ["/flickr/?%s" % query]
 
-            proxies = (form.cleaned_data['proxied'] and
-                       settings.FLICKR_PROXIES or None)
+            proxies = settings.FLICKR_PROXIES \
+                if form.cleaned_data['proxied'] else None
             cookie = generate_cookie_django(
                 scope, settings.FLICKR_SERVERS, proxies,
                 blaster=getattr(settings, 'FLICKR_BLASTER', None))

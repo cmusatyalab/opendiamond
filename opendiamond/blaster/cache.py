@@ -29,15 +29,13 @@ _log = logging.getLogger(__name__)
 def _attr_key_to_member(key):
     if key == '':
         return '__OBJECT_DATA__'
-    else:
-        return key
+    return key
 
 
 def _member_to_attr_key(name):
     if name == '__OBJECT_DATA__':
         return ''
-    else:
-        return name
+    return name
 
 
 class SearchCacheLoadError(Exception):
@@ -45,7 +43,7 @@ class SearchCacheLoadError(Exception):
 
 
 class _CachedSearchResult(Mapping):
-    def __init__(self, path):
+    def __init__(self, path):  # pylint: disable=super-init-not-called
         self._zip = zipfile.ZipFile(path, 'r')
 
     def __len__(self):

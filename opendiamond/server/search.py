@@ -91,7 +91,7 @@ class Search(RPCHandlers):
         '''Validate state preparatory to starting a search or reexecution.'''
         if self._state.scope is None:
             raise DiamondRPCFailure('No search scope configured')
-        if len(self._filters) == 0:
+        if not self._filters:
             raise DiamondRPCFailure('No filters configured')
         # Ensure we have all filter code and blob arguments
         try:

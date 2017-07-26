@@ -95,7 +95,7 @@ class ScopeCookie(object):
         if self.expires < now:
             raise ScopeCookieExpired('Cookie expired on %s' % self.expires)
         # Check that one of our server names matches a name in the cookie
-        if len(set(servernames) & set(self.servers)) == 0:
+        if not set(servernames) & set(self.servers):
             raise ScopeError('Cookie does not contain matching server name')
         # Split certdata into individual certificates
         begin = '-----BEGIN CERTIFICATE-----\n'

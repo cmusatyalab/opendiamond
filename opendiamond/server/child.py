@@ -81,7 +81,7 @@ class _SearchChild(object):
                     with open(self._taskfile) as fh:
                         pids = [int(pid) for pid in fh
                                 if int(pid) not in killed]
-                    if len(pids) == 0:
+                    if not pids:
                         break
                     for pid in pids:
                         try:

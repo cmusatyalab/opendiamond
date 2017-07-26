@@ -206,7 +206,7 @@ class DiamondConfig(object):
                 raise DiamondConfigError("Couldn't create directory: " + dir)
 
         # If no server IDs were specified, fall back on server hostnames
-        if len(self.serverids) == 0:
+        if not self.serverids:
             names = set()
             hostname = socket.getfqdn()
             try:

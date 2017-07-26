@@ -64,7 +64,7 @@ class _PendingConn(object):
         call back later.  The nonce is in self.nonce.'''
         if len(self.nonce) < NONCE_LEN:
             data = self.sock.recv(NONCE_LEN - len(self.nonce))
-            if len(data) == 0:
+            if not data:
                 raise _ConnectionClosed()
             self.nonce += data
             if len(self.nonce) == NONCE_LEN:

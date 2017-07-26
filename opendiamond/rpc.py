@@ -98,7 +98,7 @@ class RPCConnection(object):
             try:
                 while count > 0:
                     new = self._sock.recv(count)
-                    if len(new) == 0:
+                    if not new:
                         self._sock.close()
                         raise ConnectionFailure('Short read')
                     count -= len(new)
@@ -117,7 +117,7 @@ class RPCConnection(object):
 
     def _reply(self, request, status=0, body=''):
         '''self._lock must be held.'''
-        assert status == 0 or len(body) == 0
+        assert status == 0 or not body
         hdr = request.make_reply_header(status, body).encode()
         try:
             self._sock.sendall(hdr + body)

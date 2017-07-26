@@ -151,10 +151,10 @@ class _FilterConnection(object):
     def get_item(self):
         '''Read and return a string or blob.'''
         sizebuf = self._fin.readline()
-        if len(sizebuf) == 0:
+        if not sizebuf:
             # End of file
             raise IOError('End of input stream')
-        elif len(sizebuf.strip()) == 0:
+        elif not sizebuf.strip():
             # No length value == no data
             return None
         size = int(sizebuf)
@@ -873,7 +873,7 @@ class FilterStackRunner(threading.Thread):
         keys = result.output_attrs.keys()
         cache_keys = [self._get_attribute_key(result.output_attrs[k])
                       for k in keys]
-        if self._redis is not None and len(cache_keys) > 0:
+        if self._redis is not None and cache_keys:
             values = self._redis.mget(cache_keys)
         else:
             values = [None for k in cache_keys]

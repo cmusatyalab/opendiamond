@@ -94,10 +94,10 @@ class ScopeListLoader(object):
                 # Read the scope list in 4 KB chunks
                 while True:
                     buf = fh.read(4096)
-                    if len(buf) == 0:
+                    if not buf:
                         break
                     parser.feed(buf)
-                    while len(self._handler.pending_objects) > 0:
+                    while self._handler.pending_objects:
                         url = self._handler.pending_objects.pop(0)
                         yield Object(self.server_id, urljoin(scope_url, url))
             except urllib2.URLError, e:

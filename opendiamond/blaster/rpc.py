@@ -117,7 +117,7 @@ class _RPCClientConnection(object):
         status, data = (yield gen.Wait('reply')).args
         if status == 0 and reply_class is not None:
             reply = reply_class.decode(data)
-        elif len(data) > 0:
+        elif data:
             raise RPCEncodingError('Unexpected reply data')
         elif status is None:
             raise ConnectionFailure('Connection closed')

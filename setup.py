@@ -26,6 +26,8 @@ REQUIRES_DATARETRIEVER = [
     'Paste>=1.7.5.1',
 ]
 REQUIRES_DIAMONDD = [
+    'docker>=2.4.2',
+    'PyYAML>=3.12',
     'redis>=2.10.3',
 ]
 REQUIRES_SCOPESERVER = [

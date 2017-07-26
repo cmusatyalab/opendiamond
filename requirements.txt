@@ -1,4 +1,3 @@
-docker==2.4.2
 # opendiamond core
 pip>=1.5.6
 
@@ -23,6 +22,8 @@ Paste==2.0.3
 flickrapi==2.2.1
 
 # diamondd
+docker==2.4.2
+PyYAML==3.12
 redis==2.10.5
 
 # scopeserver

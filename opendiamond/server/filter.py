@@ -651,7 +651,7 @@ class Filter(object):
         def scan_mode(filter_file):
             """Scan the first 100 bytes of file for special tags."""
             first_line = filter_file.read(100)
-            if 'diamond-docker-helper' in first_line:
+            if 'diamond-docker-' in first_line:
                 return 'docker'
             return 'default'
 
@@ -674,8 +674,13 @@ class Filter(object):
             try:
                 config = yaml.load(open(self.code_path, 'r'))
                 docker_image = config['docker_image']
-                docker_command = config['docker_command']
-                docker_port = int(config['docker_port'])
+                docker_command = config.get('docker_command')
+                docker_port = int(config.get('docker_port', 5555))
+
+                if docker_command is None:
+                    docker_command = \
+                        'socat TCP4-LISTEN:5555,fork,nodelay ' \
+                        'EXEC:\"%s --filter\"' % config['filter_command']
             except Exception as e:
                 raise FilterDependencyError(e)
 

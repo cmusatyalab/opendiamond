@@ -88,7 +88,15 @@ def validate_manifest(root):
         raise InvalidManifest(str(e))
 
 
-def bundle_generic(out, root, files):
+def find_file(filename, paths):
+    for path in paths:
+        pathname = os.path.expanduser(os.path.join(path, filename))
+        if os.path.exists(pathname):
+            return pathname
+    assert 0, "Filename %s not found" % filename
+
+
+def bundle_generic(out, root, files, include_files_path=None):
     '''Write a predicate or codec bundle to the file specified in out.  Codec
     bundles must have a ".codec" extension; predicates ".pred".  root is the
     root element of the XML manifest for the bundle.  files is a dict of
@@ -97,12 +105,28 @@ def bundle_generic(out, root, files):
     validate_manifest(root)
     zip = zipfile.ZipFile(out, mode='w', compression=zipfile.ZIP_DEFLATED)
     zip.writestr('opendiamond-bundle.xml', format_manifest(root))
+
+    if include_files_path is not None:
+        nsmap = {'n': BUNDLE_NS}
+        filters = root.xpath('//n:filter/@code', namespaces=nsmap)
+        datafiles = root.xpath('//n:blob/n:member/@data', namespaces=nsmap)
+
+        search_paths = [
+            include_files_path,
+            '~/.diamond/filters',
+            '/usr/local/share/diamond/filters'
+        ]
+        for path in [find_file(file_, search_paths)
+                     for file_ in filters + datafiles]:
+            files.setdefault(os.path.basename(path), path)
+
     for name, path in files.iteritems():
         zip.write(path, name)
     zip.close()
 
 
-def bundle_macro(out, display_name, filter, arguments, files):
+def bundle_macro(out, display_name, filter, arguments, files,
+                 include_files_path=None):
     '''Produce a basic predicate bundle wrapping a macro to be interpreted by
     the specified filter (such as fil_imagej_exec or fil_matlab_exec).
     The only predicate options will be the minimum and maximum scores (ranging
@@ -136,4 +160,4 @@ def bundle_macro(out, display_name, filter, arguments, files):
         ),
     )
     root = element('predicate', options, filters, displayName=display_name)
-    bundle_generic(out, root, filemap)
+    bundle_generic(out, root, filemap, include_files_path)

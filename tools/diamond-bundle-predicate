@@ -11,24 +11,25 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+import argparse
 import os
 from opendiamond.bundle import bundle_generic, parse_manifest, BUNDLE_NS_PFX
-from optparse import OptionParser
+
 
 if __name__ == '__main__':
-    parser = OptionParser(
-        usage='%prog [-h] [-o outfile] manifest files...',
-        description='Package an OpenDiamond predicate or codec.',
+    parser = argparse.ArgumentParser(
+        description='Package an OpenDiamond predicate or codec.'
     )
-    parser.add_option('-o', dest='outfile', metavar='outfile',
-                      help='path to output file')
-    opts, args = parser.parse_args()
-    if len(args) < 1:
-        parser.error('no manifest specified')
+    parser.add_argument('-o', '--outfile', help='path to output file')
+    parser.add_argument(
+        '--portable', dest='portable', action="store_true", default=False,
+        help='Create predicate containing all filter code and blob dat')
+    parser.add_argument('manifest', help="xml bundle description")
+    parser.add_argument('files', nargs="*", help="additional files to include")
+    args = parser.parse_args()
 
     try:
-        manifest = args.pop(0)
-        element = parse_manifest(open(manifest).read())
+        element = parse_manifest(open(args.manifest).read())
         if element.tag == BUNDLE_NS_PFX + 'predicate':
             suffix = '.pred'
         elif element.tag == BUNDLE_NS_PFX + 'codec':
@@ -36,11 +37,16 @@ if __name__ == '__main__':
         else:
             raise Exception('Unknown root element ' + element.tag)
 
-        outfile = opts.outfile
+        outfile = args.outfile
         if outfile is None:
-            outfile = os.path.splitext(os.path.basename(manifest))[0] + suffix
-        filemap = dict((os.path.basename(a), a) for a in args)
+            manifest_file = os.path.basename(args.manifest)
+            outfile = os.path.splitext(manifest_file)[0] + suffix
 
-        bundle_generic(outfile, element, filemap)
+        filemap = dict((os.path.basename(a), a) for a in args.files)
+
+        bundle_generic(
+           outfile, element, filemap,
+           os.path.dirname(args.manifest) if args.portable else None
+        )
     except Exception, e:
         parser.error(str(e))

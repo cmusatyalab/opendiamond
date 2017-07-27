@@ -26,5 +26,6 @@ Makefile.in
 /configure
 /build
 /dist
+/docker/tini
 /venv
 /doc/diamond-protocol.html

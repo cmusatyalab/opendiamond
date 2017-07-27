@@ -1,5 +1,10 @@
 FROM centos:centos7
 
+# Add Tini
+COPY tini /tini
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD ["/bin/sh"]
+
 # Install epel (for xml2rfc)
 RUN yum -y install epel-release
 

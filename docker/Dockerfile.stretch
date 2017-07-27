@@ -1,5 +1,10 @@
 FROM debian:stretch
 
+# Add Tini
+COPY tini /tini
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD ["/bin/sh"]
+
 ENV LANG=C.UTF-8
 
 # we need non-free for xml2rfc

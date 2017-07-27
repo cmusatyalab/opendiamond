@@ -1,5 +1,10 @@
 FROM ubuntu:xenial
 
+# Add Tini
+COPY tini /tini
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD ["/bin/sh"]
+
 ENV LANG=C.UTF-8
 
 # we need multiverse for xml2rfc

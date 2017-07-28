@@ -1,0 +1,115 @@
+image: docker:latest
+services:
+  - docker:dind
+
+stages:
+  - setup
+  - build
+
+variables:
+  DOCKER_DRIVER: overlay
+
+before_script:
+  - docker info
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+
+cache:
+  paths:
+    - .cache/
+    - docker/opendiamond-HEAD.tar.gz
+    - docker/tini
+
+setup_cache:
+  stage: setup
+  script:
+    - mkdir -p .cache/apk && ln -sf `pwd`/.cache/apk /etc/apk/cache
+    - apk update && apk add git tini && cp /sbin/tini docker/tini
+    - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
+
+
+.docker_build_template: &docker_build
+  stage: build
+  script:
+    - docker pull $IMAGE_TAG:$DIST || true
+    - docker build --pull --cache-from $IMAGE_TAG:$DIST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
+    - docker push $IMAGE_TAG:$DIST
+
+build_master.centos6:
+  <<: *docker_build
+  variables:
+    DIST: centos6
+    IMAGE_TAG: $CI_REGISTRY_IMAGE
+  only:
+    - master
+
+build_other.centos6:
+  <<: *docker_build
+  variables:
+    DIST: centos6
+    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
+  except:
+    - master
+
+build_master.centos7:
+  <<: *docker_build
+  variables:
+    DIST: centos7
+    IMAGE_TAG: $CI_REGISTRY_IMAGE
+  only:
+    - master
+
+build_other.centos7:
+  <<: *docker_build
+  variables:
+    DIST: centos7
+    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
+  except:
+    - master
+
+build_master.jessie:
+  <<: *docker_build
+  variables:
+    DIST: jessie
+    IMAGE_TAG: $CI_REGISTRY_IMAGE
+  only:
+    - master
+
+build_other.jessie:
+  <<: *docker_build
+  variables:
+    DIST: jessie
+    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
+  except:
+    - master
+
+build_master.stretch:
+  <<: *docker_build
+  variables:
+    DIST: stretch
+    IMAGE_TAG: $CI_REGISTRY_IMAGE
+  only:
+    - master
+
+build_other.stretch:
+  <<: *docker_build
+  variables:
+    DIST: stretch
+    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
+  except:
+    - master
+
+build_master.xenial:
+  <<: *docker_build
+  variables:
+    DIST: xenial
+    IMAGE_TAG: $CI_REGISTRY_IMAGE
+  only:
+    - master
+
+build_other.xenial:
+  <<: *docker_build
+  variables:
+    DIST: xenial
+    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
+  except:
+    - master

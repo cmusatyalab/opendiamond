@@ -31,12 +31,13 @@ These images should be available using an image-id as follows.
 
 When a new filter has been built and installed in an image under
 `/usr/local/share/diamond/{predicates,codecs,filters}`, client-side wrappers
-can be created with the following command.
+can be created with the following commands.
 
-    mkdir artifacts
-    docker run --rm -v `pwd`/artifacts:/artifacts {imageid} /build-filter-wrappers.sh
+    docker push $IMAGEID
+    UNIQUE_ID=$(docker inspect --format='{{ (index .RepoDigests 0) }}' $IMAGEID)
+    docker run --rm  {imageid} /extract-filters.sh $UNIQUE_ID > diamond-filters.tgz
 
-This will create a `diamond-docker-filters.tgz` archive in the artifacts directory
-that contains `diamond/{predicates,codecs,filters}` but with executable filter
-code replaced with wrappers to execute the docker container.
+This will create a `diamond-filters.tgz` archive that contains
+`diamond/{predicates,codecs,filters}` but with executable filter code
+replaced with wrappers to execute the docker container.
 

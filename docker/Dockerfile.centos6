@@ -37,4 +37,4 @@ RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ./configure --prefix=/usr --libdir=/usr/lib64 && make install && make clean \
  && ldconfig
 
-COPY build-filter-wrappers.sh bundle-predicates.sh /
+COPY extract-filters.sh /

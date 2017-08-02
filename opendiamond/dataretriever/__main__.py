@@ -66,7 +66,8 @@ def run():
                      server_version=_server_version,
                      protocol_version='HTTP/1.1',
                      use_threadpool=True,
-                     daemon_threads=True)
+                     daemon_threads=True,
+                     threadpool_workers=24)
 
 
 if __name__ == '__main__':

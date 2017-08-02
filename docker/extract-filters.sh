@@ -12,21 +12,16 @@
 set -e
 
 # Bundle plain XML files into Diamond predicates
-( cd /usr/local/share/diamond/predicates ; for fxml in `find . -name *.xml -print` ; do
+for fxml in `find /usr/local/share/diamond/predicates -name *.xml -print`
+do
     echo "Bundling $filter" 1>&2
-    diamond-bundle-predicate $fxml
+    ( cd /usr/local/share/diamond/predicates ; diamond-bundle-predicate $fxml )
     rm -f $fxml
-done )
+done
 
 # Export native filters if no docket image is specified
 if [ -n "$1" ] ; then
-
     UNIQUE_ID="$1"
-
-    # tar up 'native' filters
-    docker run --rm $UNIQUE_ID \
-        tar -C /usr/local/share -cz diamond > diamond-native-filters.tgz
-
     for filter in `find /usr/local/share/diamond/filters -type f -perm /100 -print`
     do
         echo "Wrapping $filter" 1>&2

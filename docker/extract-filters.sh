@@ -12,12 +12,11 @@
 set -e
 
 # Bundle plain XML files into Diamond predicates
-for fxml in `find /usr/local/share/diamond/predicates -type f -name *.xml -print`
-do
+( cd /usr/local/share/diamond/predicates ; for fxml in `find . -name *.xml -print` ; do
     echo "Bundling $filter" 1>&2
     diamond-bundle-predicate $fxml
     rm -f $fxml
-done
+done )
 
 # Export native filters if no docket image is specified
 if [ -n "$1" ] ; then

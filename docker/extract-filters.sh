@@ -12,15 +12,18 @@
 set -e
 
 # Bundle plain XML files into Diamond predicates
-for fxml in `find /usr/local/share/diamond/predicates -name *.xml -print`
-do
-    echo "Bundling $filter" 1>&2
-    ( cd /usr/local/share/diamond/predicates ; diamond-bundle-predicate $fxml )
-    rm -f $fxml
-done
+if [ -d /usr/local/share/diamond/predicates ]
+then
+    for fxml in `find /usr/local/share/diamond/predicates -name *.xml -print`
+    do
+        echo "Bundling $filter" 1>&2
+        ( cd /usr/local/share/diamond/predicates ; diamond-bundle-predicate $fxml )
+        rm -f $fxml
+    done
+fi
 
 # Export native filters if no docket image is specified
-if [ -n "$1" ] ; then
+if [ -n "$1" -a -d /usr/local/share/diamond/filters ] ; then
     UNIQUE_ID="$1"
     for filter in `find /usr/local/share/diamond/filters -type f -perm /100 -print`
     do

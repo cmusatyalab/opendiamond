@@ -9,27 +9,29 @@ stages:
 variables:
   DOCKER_DRIVER: overlay
 
-before_script:
-  - docker info
-  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-
 cache:
   paths:
     - .cache/
-    - docker/opendiamond-HEAD.tar.gz
     - docker/tini
+
+before_script:
+  - docker info
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  - mkdir -p .cache/apk && ln -sf `pwd`/.cache/apk /etc/apk/cache
 
 setup_cache:
   stage: setup
   script:
-    - mkdir -p .cache/apk && ln -sf `pwd`/.cache/apk /etc/apk/cache
-    - apk update && apk add git tini-static && cp /sbin/tini-static docker/tini
-    - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
+    - apk update
+    - apk add git tini-static
+    - cp /sbin/tini-static docker/tini
 
 
 .docker_build_template: &docker_build
   stage: build
   script:
+    - apk add git
+    - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
     - docker pull $IMAGE_TAG:$DIST || true
     - docker build --pull --cache-from $IMAGE_TAG:$DIST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
     - docker push $IMAGE_TAG:$DIST

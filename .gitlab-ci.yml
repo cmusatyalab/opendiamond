@@ -23,7 +23,7 @@ setup_cache:
   stage: setup
   script:
     - mkdir -p .cache/apk && ln -sf `pwd`/.cache/apk /etc/apk/cache
-    - apk update && apk add git tini && cp /sbin/tini docker/tini
+    - apk update && apk add git tini-static && cp /sbin/tini-static docker/tini
     - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
 
 

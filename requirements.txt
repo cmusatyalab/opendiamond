@@ -20,6 +20,8 @@ validictory==1.1.0
 # dataretriever
 Paste==2.0.3
 flickrapi==2.2.1
+flask==0.12.2
+werkzeug==0.12.2
 
 # diamondd
 docker==2.4.2

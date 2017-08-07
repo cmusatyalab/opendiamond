@@ -1,38 +1,12 @@
-#
-#  The OpenDiamond Platform for Interactive Search
-#
-#  Copyright (c) 2009-2011 Carnegie Mellon University
-#  All rights reserved.
-#
-#  This software is distributed under the terms of the Eclipse Public
-#  License, Version 1.0 which can be found in the file named LICENSE.
-#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
-#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
-#
-#
-# Functions to access the OpenDiamond content store
-#
-
-from datetime import datetime, timedelta
 import os
-import re
-import rfc822
-from urllib import quote
-from wsgiref.util import shift_path_info
 
-from opendiamond.dataretriever.util import guess_mime_type
+import datetime
 
-# we could return file URLs iff running locally and there are no
-# text attributes
-# OBJECT_URI = 'file://' + DATAROOT
-OBJECT_URI = 'obj'
+from flask import Blueprint, url_for, Response, stream_with_context, send_file
+from werkzeug.datastructures import Headers
 
-# include a reference to xslt stylesheet (only useful for debugging)
-STYLE = False
-
-__all__ = ['scope_app', 'object_app']
 BASEURL = 'collection'
-
+STYLE = False
 INDEXDIR = DATAROOT = None
 
 
@@ -40,6 +14,61 @@ def init(config):
     global INDEXDIR, DATAROOT  # pylint: disable=global-statement
     INDEXDIR = config.indexdir
     DATAROOT = config.dataroot
+
+
+scope_blueprint = Blueprint('diamond_store', __name__)
+
+
+@scope_blueprint.route('/obj/<path:obj_path>')
+def get_object(obj_path):
+    path = os.path.join(DATAROOT, obj_path)
+
+    headers = Headers()
+
+    for key, value in diamond_textattr(path):
+        # we probably should filter out invalid characters for HTTP headers
+        key = 'x-attr-' + key
+        headers.add(key, value)
+
+    # With add_etags=True, conditional=True
+    # Flask should be smart enough to do 304 Not Modified
+    response = send_file(path,
+                         cache_timeout=datetime.timedelta(
+                             days=365).total_seconds(),
+                         add_etags=True,
+                         conditional=True)
+    response.headers.extend(headers)
+    return response
+
+
+@scope_blueprint.route('/<gididx>')
+def get_scope(gididx):
+    index = 'GIDIDX' + gididx.upper()
+    index = os.path.join(INDEXDIR, index)
+
+    # Streaming response:
+    # http://flask.pocoo.org/docs/0.12/patterns/streaming/
+    def generate():
+        num_entries = 0
+        with open(index, 'r') as f:
+            for _ in f.readlines():
+                num_entries += 1
+
+        with open(index, 'r') as f:
+            yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
+            if STYLE:
+                yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
+            yield '<objectlist count="{:d}">\n'.format(num_entries)
+            for path in f.readlines():
+                yield '<object src="{}" />\n'.format(
+                    url_for('.get_object', obj_path=path.strip()))
+            yield '</objectlist>'
+
+    headers = Headers([('Content-Type', 'text/xml')])
+
+    return Response(stream_with_context(generate()),
+                    status="200 OK",
+                    headers=headers)
 
 
 def diamond_textattr(path):
@@ -51,66 +80,3 @@ def diamond_textattr(path):
             yield m.groups()
     except IOError:
         pass
-
-
-def gididx_parser(index):
-    f = open(index, 'r')
-    nentries = 0
-    for _ in f:
-        nentries = nentries + 1
-    f.close()
-
-    f = open(index, 'r')
-    yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
-    if STYLE:
-        yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
-    yield '<objectlist count="%d">\n' % nentries
-    for path in f:
-        yield '<object src="%s/%s" />\n' % (OBJECT_URI, quote(path.strip()))
-    yield '</objectlist>'
-    f.close()
-
-
-def scope_app(environ, start_response):
-    root = shift_path_info(environ)
-    if root == 'obj':
-        return object_app(environ, start_response)
-
-    index = 'GIDIDX' + root.upper()
-    index = os.path.join(INDEXDIR, index)
-
-    start_response("200 OK", [('Content-Type', "text/xml")])
-    return gididx_parser(index)
-
-
-# Get file handle and attributes for a Diamond object
-def object_app(environ, start_response):
-    path = os.path.join(DATAROOT, environ['PATH_INFO'][1:])
-
-    f = open(path, 'rb')
-    stat = os.fstat(f.fileno())
-    expire = datetime.utcnow() + timedelta(days=365)
-    expirestr = expire.strftime('%a, %d %b %Y %H:%M:%S GMT')
-    etag = '"' + str(stat.st_mtime) + "_" + str(stat.st_size) + '"'
-    headers = [('Content-Type', guess_mime_type(path)),
-               ('Content-Length', str(stat.st_size)),
-               ('Last-Modified', rfc822.formatdate(stat.st_mtime)),
-               ('Expires', expirestr),
-               ('ETag', etag)]
-
-    for key, value in diamond_textattr(path):
-        # we probably should filter out invalid characters for HTTP headers
-        key = 'x-attr-' + key
-        headers.append((key, value))
-
-    if_modified = environ.get('HTTP_IF_MODIFIED_SINCE')
-    if_none = environ.get('HTTP_IF_NONE_MATCH')
-    if (if_modified and (rfc822.parsedate(if_modified) >= stat.st_mtime)) or \
-            (if_none and (if_none == '*' or etag in if_none)):
-        start_response("304 Not Modified", headers)
-        return [""]
-
-    start_response("200 OK", headers)
-    # wrap the file object in an iterator that reads the file in 64KB blocks
-    # instead of line-by-line.
-    return environ['wsgi.file_wrapper'](f, 65536)

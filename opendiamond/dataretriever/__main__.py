@@ -1,39 +1,35 @@
-#!/usr/bin/python
-#
-#  The OpenDiamond Platform for Interactive Search
-#
-#  Copyright (c) 2009-2011 Carnegie Mellon University
-#  All rights reserved.
-#
-#  This software is distributed under the terms of the Eclipse Public
-#  License, Version 1.0 which can be found in the file named LICENSE.
-#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
-#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
-#
-
+import argparse
+from flask import Flask, Response
+import importlib
 import logging
-import optparse
+
 import sys
 
-from paste import httpserver
-
-import opendiamond
-from opendiamond.config import DiamondConfig
 from opendiamond.helpers import daemonize
-from .util import DataRetriever
+from opendiamond.config import DiamondConfig
+from opendiamond.dataretriever import SCOPELIST_XSL_BODY
+import opendiamond
 
-_server_version = "DataRetriever/" + opendiamond.__version__
+app = Flask(__name__)
+
+
+@app.route('/scopelist.xsl')
+def scopelist_xsl():
+    return Response(SCOPELIST_XSL_BODY, mimetype='text/xsl')
 
 
 def run():
-    parser = optparse.OptionParser()
-    parser.add_option("-f", "--config-file", dest="path")
-    parser.add_option("-l", "--listen", dest="retriever_host",
-                      help="Bind with the specified listen address")
-    parser.add_option("-p", "--port", dest="retriever_port")
-    parser.add_option("-d", "--daemonize", dest="daemonize",
-                      action="store_true", default=False)
-    (options, _) = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="OpenDiamond DataRetriever. (OpenDiamond version {})".format(
+            opendiamond.__version__))
+    parser.add_argument('-f', '--config-file', dest='path')
+    parser.add_argument('-l', '--listen', dest='retriever_host',
+                        help='Bind with the specified listen address')
+    parser.add_argument('-p', '--port', dest='retriever_port')
+    parser.add_argument('-d', '--daemonize', dest='daemonize',
+                        action='store_true', default=False)
+
+    options = parser.parse_args()
 
     # Load config
     kwargs = {}
@@ -46,28 +42,29 @@ def run():
     logging.getLogger().addHandler(logging.StreamHandler())
 
     # Initialize app with configured store modules
-    modules = {}
+    global app
     for store in config.retriever_stores:
-        modname = 'opendiamond.dataretriever.%s_store' % store
-        __import__(modname, level=0)
-        module = sys.modules[modname]
-        if hasattr(module, 'init'):
-            module.init(config)
-        modules[module.BASEURL] = module.scope_app
-    app = DataRetriever(modules)
+        modname = "{}.{}_store".format(__package__, store)
+        importlib.import_module(modname)
+        store_module = sys.modules[modname]
+        if hasattr(store_module, 'init'):
+            store_module.init(config)
+
+        # All data store modules should define a Flask blueprint
+        # named `store_blueprint`
+        app.register_blueprint(store_module.scope_blueprint,
+                               url_prefix='/' + store_module.BASEURL)
 
     if options.daemonize:
         daemonize()
 
-    print 'Enabled modules: ' + ', '.join(config.retriever_stores)
-    httpserver.serve(app,
-                     host=config.retriever_host,
-                     port=config.retriever_port,
-                     server_version=_server_version,
-                     protocol_version='HTTP/1.1',
-                     use_threadpool=True,
-                     daemon_threads=True,
-                     threadpool_workers=24)
+    # Note: this runs a development server. Not safe for production.
+    # Other parameters to pass see
+    # http://werkzeug.pocoo.org/docs/0.12/serving/#werkzeug.serving.run_simple
+    app.run(host=config.retriever_host,
+            port=config.retriever_port,
+            threaded=True
+            )
 
 
 if __name__ == '__main__':

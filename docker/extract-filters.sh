@@ -21,6 +21,16 @@ if [ -d /usr/local/share/diamond/predicates ] ; then
     done
 fi
 
+# Bundle plain XML files into Diamond codecs
+if [ -d /usr/local/share/diamond/codecs ] ; then
+    for fxml in `find /usr/local/share/diamond/codecs -name *.xml -print`
+    do
+        echo "Bundling $fxml" 1>&2
+        ( cd /usr/local/share/diamond/codecs ; diamond-bundle-predicate $fxml )
+        rm -f $fxml
+    done
+fi
+
 # Wrap native filters if docker image is specified
 if [ -n "$1" -a -d /usr/local/share/diamond/filters ] ; then
     UNIQUE_ID="$1"

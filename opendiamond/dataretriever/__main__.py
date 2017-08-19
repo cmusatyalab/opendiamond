@@ -1,7 +1,6 @@
 import argparse
 from flask import Flask, Response
 import importlib
-import logging
 
 import sys
 
@@ -38,26 +37,35 @@ def run():
             kwargs[opt] = getattr(options, opt)
     config = DiamondConfig(**kwargs)
 
-    # Initialize logging
-    logging.getLogger().addHandler(logging.StreamHandler())
-
     # Initialize app with configured store modules
     global app
     for store in config.retriever_stores:
         modname = "{}.{}_store".format(__package__, store)
-        importlib.import_module(modname)
+        try:
+            importlib.import_module(modname)
+        except ImportError:
+            app.logger.error(
+                'Unable to import {}. Did you misspell the name?'.format(
+                    modname))
+            raise
         store_module = sys.modules[modname]
         if hasattr(store_module, 'init'):
             store_module.init(config)
 
         # All data store modules should define a Flask blueprint
         # named `store_blueprint`
-        app.register_blueprint(store_module.scope_blueprint,
-                               url_prefix='/' + store_module.BASEURL)
+        try:
+            app.register_blueprint(store_module.scope_blueprint,
+                                   url_prefix='/' + store_module.BASEURL)
+        except AttributeError:
+            app.logger.error(
+                'Unable to register {}. Make sure a Flask blueprint `scope_blueprint` is defined.'.format(modname))
+            raise
 
     if options.daemonize:
         daemonize()
 
+    print 'Enabled modules: ' + ', '.join(config.retriever_stores)
     # Note: this runs a development server. Not safe for production.
     # Other parameters to pass see
     # http://werkzeug.pocoo.org/docs/0.12/serving/#werkzeug.serving.run_simple

@@ -1,9 +1,10 @@
 import os
-
 import datetime
 
 from flask import Blueprint, url_for, Response, stream_with_context, send_file
 from werkzeug.datastructures import Headers
+
+from opendiamond.dataretriever.util import DiamondTextAttr
 
 BASEURL = 'collection'
 STYLE = False
@@ -17,28 +18,6 @@ def init(config):
 
 
 scope_blueprint = Blueprint('diamond_store', __name__)
-
-
-@scope_blueprint.route('/obj/<path:obj_path>')
-def get_object(obj_path):
-    path = os.path.join(DATAROOT, obj_path)
-
-    headers = Headers()
-
-    for key, value in diamond_textattr(path):
-        # we probably should filter out invalid characters for HTTP headers
-        key = 'x-attr-' + key
-        headers.add(key, value)
-
-    # With add_etags=True, conditional=True
-    # Flask should be smart enough to do 304 Not Modified
-    response = send_file(path,
-                         cache_timeout=datetime.timedelta(
-                             days=365).total_seconds(),
-                         add_etags=True,
-                         conditional=True)
-    response.headers.extend(headers)
-    return response
 
 
 @scope_blueprint.route('/<gididx>')
@@ -62,7 +41,7 @@ def get_scope(gididx):
             for path in f.readlines():
                 yield '<object src="{}" />\n'.format(
                     url_for('.get_object', obj_path=path.strip()))
-            yield '</objectlist>'
+            yield '</objectlist>\n'
 
     headers = Headers([('Content-Type', 'text/xml')])
 
@@ -71,12 +50,27 @@ def get_scope(gididx):
                     headers=headers)
 
 
-def diamond_textattr(path):
-    try:  # read attributes from '.text_attr' file
-        for line in open(path + '.text_attr'):
-            m = re.match(r'^\s*"([^"]+)"\s*=\s*"([^"]*)"', line)
-            if not m:
-                continue
-            yield m.groups()
+@scope_blueprint.route('/obj/<path:obj_path>')
+def get_object(obj_path):
+    path = os.path.join(DATAROOT, obj_path)
+
+    headers = Headers()
+
+    try:
+        with DiamondTextAttr(path, 'r') as attr:
+            for key, value in attr:
+                # we probably should filter out invalid characters for HTTP headers
+                key = 'x-attr-' + key
+                headers.add(key, value)
+
     except IOError:
         pass
+    # With add_etags=True, conditional=True
+    # Flask should be smart enough to do 304 Not Modified
+    response = send_file(path,
+                         cache_timeout=datetime.timedelta(
+                             days=365).total_seconds(),
+                         add_etags=True,
+                         conditional=True)
+    response.headers.extend(headers)
+    return response

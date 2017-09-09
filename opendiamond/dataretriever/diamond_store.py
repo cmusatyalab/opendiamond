@@ -39,8 +39,9 @@ def get_scope(gididx):
                 yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
             yield '<objectlist count="{:d}">\n'.format(num_entries)
             for path in f.readlines():
-                yield '<object src="{}" />\n'.format(
-                    url_for('.get_object', obj_path=path.strip()))
+                path = path.strip()
+                yield '<object src="{}"/>\n'.format(
+                    'file://' + _get_obj_absolute_path(path))
             yield '</objectlist>\n'
 
     headers = Headers([('Content-Type', 'text/xml')])
@@ -52,7 +53,7 @@ def get_scope(gididx):
 
 @scope_blueprint.route('/obj/<path:obj_path>')
 def get_object(obj_path):
-    path = os.path.join(DATAROOT, obj_path)
+    path = _get_obj_absolute_path(obj_path)
 
     headers = Headers()
 
@@ -74,3 +75,7 @@ def get_object(obj_path):
                          conditional=True)
     response.headers.extend(headers)
     return response
+
+
+def _get_obj_absolute_path(obj_path):
+    return os.path.join(DATAROOT, obj_path)

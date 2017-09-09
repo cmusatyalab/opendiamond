@@ -46,8 +46,8 @@ class _ScopeListHandler(ContentHandler):
         elif name == 'count':
             self.count += int(attrs['adjust'])
         elif name == 'object':
-            self.pending_objects.append(attrs['src'])
-    # pylint: enable=invalid-name
+            self.pending_objects.append(dict(attrs))
+            # pylint: enable=invalid-name
 
 
 class ScopeListLoader(object):
@@ -98,8 +98,18 @@ class ScopeListLoader(object):
                         break
                     parser.feed(buf)
                     while self._handler.pending_objects:
-                        url = self._handler.pending_objects.pop(0)
-                        yield Object(self.server_id, urljoin(scope_url, url))
+                        scope_obj_attrs = self._handler.pending_objects.pop(0)
+
+                        new_obj = Object(self.server_id,
+                                         urljoin(scope_url, scope_obj_attrs['src']))
+
+                        # Add additional attributes
+                        if 'meta' in scope_obj_attrs:
+                            # Assume relative URL
+                            new_obj['_meta'] = urljoin(scope_url, scope_obj_attrs['meta'])
+
+                        yield new_obj
+
             except urllib2.URLError, e:
                 _log.warning('Fetching %s: %s', scope_url, e)
             except SAXParseException, e:

@@ -203,6 +203,8 @@ class ObjectLoader(object):
         scheme, path = split_scheme(uri)
         if scheme == 'sha256':
             self._load_blobcache(obj, path)
+        elif scheme == 'file':
+            self._load_localfile(obj, path)
         else:
             self._load_dataretriever(obj, uri)
         # Set display name if not already in initial attributes
@@ -229,6 +231,10 @@ class ObjectLoader(object):
         if ATTR_HEADER_URL in headers:
             attr_url = urljoin(url, headers[ATTR_HEADER_URL])
             self._load_attributes(obj, attr_url)
+
+    def _load_localfile(self, obj, path):
+        with open(path, 'rb') as f:
+            obj[ATTR_DATA] = f.read()
 
     # The return type of json.loads() confuses pylint
     # pylint: disable=maybe-no-member

@@ -246,4 +246,5 @@ class DiamondConfig(object):
         # Set default dataretriever stores
         if not self.retriever_stores:
             self.retriever_stores = ['diamond', 'proxy']
+
     # pylint: enable=no-member,maybe-no-member,access-member-before-definition

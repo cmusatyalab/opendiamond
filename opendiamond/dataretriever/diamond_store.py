@@ -23,7 +23,7 @@ scope_blueprint = Blueprint('diamond_store', __name__)
 @scope_blueprint.route('/<gididx>')
 def get_scope(gididx):
     index = 'GIDIDX' + gididx.upper()
-    index = os.path.join(INDEXDIR, index)
+    index = _get_index_absolute_path(index)
 
     # Streaming response:
     # http://flask.pocoo.org/docs/0.12/patterns/streaming/
@@ -79,3 +79,7 @@ def get_object(obj_path):
 
 def _get_obj_absolute_path(obj_path):
     return os.path.join(DATAROOT, obj_path)
+
+
+def _get_index_absolute_path(index):
+    return os.path.join(INDEXDIR, index)

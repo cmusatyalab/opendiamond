@@ -123,34 +123,43 @@ class _Docker(_ResourceFactory):
 
     def __init__(self, image, command):
         image = image.strip()
+        # Guard against "pull all tags" by the pull() API (if no tag is given,
+        # it will pull all tags of that Docker image
+        if not (':' in image or '@sha256' in image):
+            image += ":latest"
+
         name = 'diamond-resource-' + str(uuid.uuid4())
 
         try:
             client = docker.from_env()
-            # The run() method will auto pull the image.
-            # run() returns immediately. The returned container object
-            # doesn't have sufficient network information.
-            self._container = client.containers.run(
-                image=image,
-                command=shlex.split(command),
-                detach=True,
-                name=name
-            )
-            # Reload until we get the IPAddress
-            while self._container.attrs['NetworkSettings']['IPAddress'] == '':
-                self._container.reload()
-        except docker.errors.ImageNotFound:
-            raise ResourceCreationError('Docker image not found %s' % image)
+            client.images.pull(name=image)
         except docker.errors.APIError:
-            if hasattr(self, '_container'):
-                self._container.remove(force=True)
-            raise ResourceCreationError(
-                'Docker server unable to run image=%s, command=%s' %
-                (image, command)
-            )
+            raise ResourceCreationError('Unable to pull Docker image %s' % image)
         else:
-            _log.info('Started container: (%s, %s), name: %s, IPAddress: %s',
-                      image, command, self.uri['name'], self.uri['IPAddress'])
+            try:
+                # The returned container object
+                # doesn't have sufficient network information.
+                self._container = client.containers.run(
+                    image=image,
+                    command=shlex.split(command),
+                    detach=True,
+                    name=name
+                )
+                # Reload until we get the IPAddress
+                while not self._container.attrs['NetworkSettings']['IPAddress']:
+                    self._container.reload()
+            except docker.errors.ImageNotFound:
+                raise ResourceCreationError('Docker image not found %s' % image)
+            except docker.errors.APIError:
+                if hasattr(self, '_container'):
+                    self._container.remove(force=True)
+                raise ResourceCreationError(
+                    'Unable to run Docker container image=%s, command=%s' %
+                    (image, command)
+                )
+            else:
+                _log.info('Started container: (%s, %s), name: %s, IPAddress: %s',
+                          image, command, self.uri['name'], self.uri['IPAddress'])
 
     @property
     def uri(self):
@@ -175,33 +184,43 @@ class _NvidiaDocker(_Docker):
     # pylint: disable=super-init-not-called
     def __init__(self, image, command):
         image = image.strip()
+        # Guard against "pull all tags" by the pull() API
+        if not (':' in image or '@sha256' in image):
+            image += ":latest"
+
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
-        cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + \
-            shlex.split(command)
 
         try:
-            # _log.debug('Creating nvidia-docker: %s' % cmd_l)
-            subprocess.check_call(cmd_l)
-        except (subprocess.CalledProcessError, OSError):
-            try:
-                # In case error happens after the container is created (e.g.,
-                # unable to exec command inside)
-                client = docker.from_env()
-                client.containers.get(name).remove(force=True)
-            except:  # pylint: disable=bare-except
-                pass
-            raise ResourceCreationError(
-                'nvidia-docker unable to start: %s' % cmd_l
-            )
+            client = docker.from_env()
+            client.images.pull(name=image)
+        except docker.errors.APIError:
+            raise ResourceCreationError('Unable to pull Docker image %s' % image)
+        else:
+            cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + \
+                shlex.split(command)
 
-        # Retrieve and bind the container object
-        client = docker.from_env()
-        while True:
             try:
-                self._container = client.containers.get(name)
-                break
-            except docker.errors.NotFound:
-                pass
+                # _log.debug('Creating nvidia-docker: %s' % cmd_l)
+                subprocess.check_call(cmd_l)
+            except (subprocess.CalledProcessError, OSError):
+                try:
+                    # In case error happens after the container is created
+                    # (e.g., unable to exec command inside)
+                    # Remove it at best effort
+                    client.containers.get(name).remove(force=True)
+                except:  # pylint: disable=bare-except
+                    pass
+                raise ResourceCreationError(
+                    'nvidia-docker unable to start: %s' % cmd_l
+                )
 
-        while self._container.attrs['NetworkSettings']['IPAddress'] == '':
-            self._container.reload()
+            # Retrieve and bind the container object
+            while True:
+                try:
+                    self._container = client.containers.get(name)
+                    break
+                except docker.errors.NotFound:
+                    pass
+
+            while not self._container.attrs['NetworkSettings']['IPAddress']:
+                self._container.reload()

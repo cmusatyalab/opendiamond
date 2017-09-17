@@ -4,7 +4,7 @@ from urllib2 import urlopen
 from cStringIO import StringIO
 
 from PIL import Image
-from flask import Blueprint, Response, stream_with_context, send_file
+from flask import Blueprint, Response, stream_with_context, send_file, url_for
 
 from opendiamond.dataretriever.pyramid import stat_gigapan, round_up, log_2, \
     iter_coords, path_to_tile
@@ -19,8 +19,16 @@ TILE_SIZE = 256
 @scope_blueprint.route('/<int:gigapan_id>')
 def get_scope(gigapan_id):
     headers = Headers([('Content-Type', 'text/xml')])
-    return Response(stream_with_context(expand_urls(gigapan_id)),
+    return Response(stream_with_context(_generate_list(gigapan_id)),
                     status="200 OK",
+                    headers=headers)
+
+
+@scope_blueprint.route('/id/<int:gigapan_id>/<int:lvl>/<int:col>/<int:row>')
+def get_object_id(gigapan_id, lvl, col, row):
+    headers = Headers([('Content-Type', 'text/xml')])
+    return Response(_get_object_element(gigapan_id, lvl, col, row),
+                    "200 OK",
                     headers=headers)
 
 
@@ -67,6 +75,7 @@ def get_object(gigapan_id, lvl, col, row):
         ('Last-Modified', obj.headers['Last-Modified']),
         ('Expires', timestr),
 
+        # TODO move these attributes to separate meta URI
         ('x-attr-gigapan_id', str(gigapan_id)),
         ('x-attr-gigapan_height', str(height)),
         ('x-attr-gigapan_width', str(width)),
@@ -115,7 +124,7 @@ def tiles_in_gigapan(width, height):
                for lvl in range(levels_deep))
 
 
-def expand_urls(gigapan_id):
+def _generate_list(gigapan_id):
     yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
     yield '<objectlist>\n'
 
@@ -131,9 +140,16 @@ def expand_urls(gigapan_id):
     try:
         while True:
             coord = iter.next()
-            yield '<object src="obj/%s/%s/%s/%s"/>\n' % (
-                gigapan_id, coord[0], coord[1], coord[2])
+            yield _get_object_element(gigapan_id,  coord[0], coord[1], coord[2]) + '\n'
     except StopIteration:
         pass
 
-    yield '</objectlist>'
+    yield '</objectlist>\n'
+
+
+def _get_object_element(gigapan_id, lvl, col, row):
+    return '<object id="{}" src="{}" />'.format(
+        url_for('.get_object_id', gigapan_id=gigapan_id, lvl=lvl, col=col,
+                row=row),
+        url_for('.get_object', gigapan_id=gigapan_id, lvl=lvl, col=col,
+                row=row))

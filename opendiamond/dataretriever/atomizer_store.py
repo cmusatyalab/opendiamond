@@ -23,10 +23,9 @@ def init(config):
 scope_blueprint = Blueprint('atomizer_store', __name__)
 
 
-@scope_blueprint.route('/<int:stride_sec>/<int:span_sec>/<gididx>')
-def get_scope(stride_sec, span_sec, gididx):
+@scope_blueprint.route('/<int:stride>/<int:span>/<gididx>')
+def get_scope(stride, span, gididx):
     index = 'GIDIDX' + gididx.upper()
-    index = os.path.join(INDEXDIR, index)
 
     def generate():
         yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
@@ -35,19 +34,19 @@ def get_scope(stride_sec, span_sec, gididx):
 
         yield '<objectlist>\n'
 
-        with open(index, 'r') as f:
+        with open(_get_index_absolute_path(index), 'r') as f:
             for video in f:
                 video = video.strip()
-                video_path = str(os.path.join(DATAROOT, video))
-                meta = _maybe_parse_video_and_get_attrs(video_path=video_path)
-                num_clips = int(ceil(float(meta['duration_sec']) / stride_sec))
+                video_path = str(_get_obj_absolute_path(video))
+                video_meta = _maybe_parse_video_and_get_attrs(
+                    video_path=video_path)
+                num_clips = int(
+                    ceil(float(video_meta['duration_sec']) / stride))
                 yield '<count adjust="{}"/>\n'.format(num_clips)
                 for clip in range(num_clips):
-                    obj_url = url_for('.get_obj',
-                                      start_sec=clip * stride_sec,
-                                      span_sec=span_sec,
-                                      video=video)
-                    yield '<object src="{}" />\n'.format(obj_url)
+                    yield _get_object_element(start=clip * stride,
+                                              span=span,
+                                              video=video) + '\n'
 
         yield '</objectlist>\n'
 
@@ -57,14 +56,22 @@ def get_scope(stride_sec, span_sec, gididx):
                     headers=headers)
 
 
-@scope_blueprint.route('/obj/<int:start_sec>/<int:span_sec>/<path:video>')
-def get_obj(start_sec, span_sec, video):
+@scope_blueprint.route('/id/<int:start>/<int:span>/<path:video>')
+def get_object_id(start, span, video):
+    headers = Headers([('Content-Type', 'text/xml')])
+    return Response(_get_object_element(start, span, video),
+                    "200 OK",
+                    headers=headers)
+
+
+@scope_blueprint.route('/obj/<int:start>/<int:span>/<path:video>')
+def get_object(start, span, video):
     # Reference:
     # https://github.com/mikeboers/PyAV/blob/master/tests/test_seek.py
-    video_path = str(os.path.join(DATAROOT, video))
+    video_path = str(_get_obj_absolute_path(video))
     proc = _create_ffmpeg_segment_proc(video_path,
-                                       start_sec=start_sec,
-                                       duration_sec=span_sec)
+                                       start_sec=start,
+                                       duration_sec=span)
 
     def generate():
         while True:
@@ -81,7 +88,7 @@ def get_obj(start_sec, span_sec, video):
     stat = os.stat(video_path)
     last_modified = stat.st_mtime
     size = stat.st_size
-    etag = "{}_{}_{}_{}".format(last_modified, size, start_sec, span_sec)
+    etag = "{}_{}_{}_{}".format(last_modified, size, start, span)
     response.last_modified = last_modified
     response.set_etag(etag=etag)
     response.cache_control.public = True
@@ -90,6 +97,20 @@ def get_obj(start_sec, span_sec, video):
     response.make_conditional(request)
 
     return response
+
+
+def _get_object_element(start, span, video):
+    return '<object id="{}" src="{}" />'.format(
+        url_for('.get_object_id', start=start, span=span, video=video),
+        url_for('.get_object', start=start, span=span, video=video))
+
+
+def _get_obj_absolute_path(obj_path):
+    return os.path.join(DATAROOT, obj_path)
+
+
+def _get_index_absolute_path(index):
+    return os.path.join(INDEXDIR, index)
 
 
 def _maybe_parse_video_and_get_attrs(video_path):

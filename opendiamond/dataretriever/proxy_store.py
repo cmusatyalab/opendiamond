@@ -48,8 +48,14 @@ def _generate(base_url, index, count, ):
             root = el
         if ev == 'end' and el.tag == 'object':
             if seen % count == index:
-                src = urljoin(base_url, el.attrib['src'])
-                yield '<count adjust="1"/>\n<object src="%s"/>\n' % src
+                # Forward 'id', 'src' and 'meta' attributes
+                id = urljoin(base_url, el.attrib['id'])
+                src = urljoin(base_url, el.attrib['src']) if 'src' in el.attrib else None
+                meta = urljoin(base_url, el.attrib['meta']) if 'meta' in el.attrib else None
+                yield '<count adjust="1"/>\n<object id="{}" '.format(id) \
+                      + (' src="{}" '.format(src) if src else '') \
+                      + (' meta="{}" '.format(meta) if meta else '') \
+                      + '/>\n'
             seen += 1
             root.clear()
 

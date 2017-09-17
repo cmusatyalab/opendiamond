@@ -231,7 +231,7 @@ class ObjectLoader(object):
 
         # 1. Load object metadata from meta URI
         if hasattr(obj, 'meta'):
-            uri = obj.meta
+            uri = str(obj.meta)
             scheme, path = split_scheme(uri)
             if scheme == 'file':
                 self._load_attrbutes_localfile(obj, path)
@@ -239,7 +239,7 @@ class ObjectLoader(object):
                 self._load_attributes(obj, uri)
 
         # 2. Load object content from src URI
-        uri = obj.src
+        uri = str(obj.src)
         scheme, path = split_scheme(uri)
         if scheme == 'sha256':
             self._load_blobcache(obj, path)

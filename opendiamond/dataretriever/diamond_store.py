@@ -1,7 +1,8 @@
 import os
 import datetime
 
-from flask import Blueprint, url_for, Response, stream_with_context, send_file
+from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
+    jsonify
 from werkzeug.datastructures import Headers
 
 from opendiamond.dataretriever.util import DiamondTextAttr
@@ -37,11 +38,13 @@ def get_scope(gididx):
             yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
             if STYLE:
                 yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
+
             yield '<objectlist count="{:d}">\n'.format(num_entries)
+
             for path in f.readlines():
                 path = path.strip()
-                yield '<object src="{}"/>\n'.format(
-                    'file://' + _get_obj_absolute_path(path))
+                yield _get_object_element(object_path=path) + '\n'
+
             yield '</objectlist>\n'
 
     headers = Headers([('Content-Type', 'text/xml')])
@@ -51,30 +54,34 @@ def get_scope(gididx):
                     headers=headers)
 
 
-@scope_blueprint.route('/obj/<path:obj_path>')
-def get_object(obj_path):
-    path = _get_obj_absolute_path(obj_path)
+@scope_blueprint.route('/id/<path:object_path>')
+def get_object_id(object_path):
+    headers = Headers([('Content-Type', 'text/xml')])
+    return Response(_get_object_element(object_path=object_path),
+                    "200 OK",
+                    headers=headers)
 
-    headers = Headers()
+
+@scope_blueprint.route('/meta/<path:object_path>')
+def get_object_meta(object_path):
+    path = _get_obj_absolute_path(object_path)
+    attrs = dict()
 
     try:
-        with DiamondTextAttr(path, 'r') as attr:
-            for key, value in attr:
-                # we probably should filter out invalid characters for HTTP headers
-                key = 'x-attr-' + key
-                headers.add(key, value)
-
+        with DiamondTextAttr(path, 'r') as attributes:
+            for key, value in attributes:
+                attrs[key] = value
     except IOError:
         pass
-    # With add_etags=True, conditional=True
-    # Flask should be smart enough to do 304 Not Modified
-    response = send_file(path,
-                         cache_timeout=datetime.timedelta(
-                             days=365).total_seconds(),
-                         add_etags=True,
-                         conditional=True)
-    response.headers.extend(headers)
-    return response
+
+    return jsonify(attrs)
+
+
+def _get_object_element(object_path):
+    return '<object id="{}" src="{}" meta="{}" />' \
+        .format(url_for('.get_object_id', object_path=object_path),
+                'file://' + _get_obj_absolute_path(object_path),
+                url_for('.get_object_meta', object_path=object_path))
 
 
 def _get_obj_absolute_path(obj_path):
@@ -83,3 +90,18 @@ def _get_obj_absolute_path(obj_path):
 
 def _get_index_absolute_path(index):
     return os.path.join(INDEXDIR, index)
+
+# @scope_blueprint.route('/obj/<path:obj_path>')
+# def get_object_src(obj_path):
+#     path = _get_obj_absolute_path(obj_path)
+#
+#     headers = Headers()
+#     # With add_etags=True, conditional=True
+#     # Flask should be smart enough to do 304 Not Modified
+#     response = send_file(path,
+#                          cache_timeout=datetime.timedelta(
+#                              days=365).total_seconds(),
+#                          add_etags=True,
+#                          conditional=True)
+#     response.headers.extend(headers)
+#     return response

@@ -18,6 +18,8 @@ import simplejson as json
 
 import pycurl as curl
 
+import xmltodict
+
 from opendiamond.helpers import murmur, split_scheme
 from opendiamond.protocol import XDR_attribute, XDR_object
 
@@ -107,13 +109,27 @@ class EmptyObject(object):
         '''Return an XDR_object.'''
         return XDR_object(self.xdr_attributes(output_set))
 
+    def debug(self):
+        """Print all attributes"""
+        print str(self)
+        print '<internal> %s: %s' % ('src', getattr(self, 'src', None))
+        print '<internal> %s: %s' % ('meta', getattr(self, 'meta', None))
+        for k, v in self._attrs.iteritems():
+            if k:   # Skip data attribute
+                print '%s: %s' % (k, v)
+
 
 class Object(EmptyObject):
     '''A mutable Diamond object.'''
 
-    def __init__(self, server_id, url):
+    def __init__(self, server_id, url, src=None, meta=None):
         EmptyObject.__init__(self)
         self._id = url
+
+        if src:
+            self.src = src
+        if meta:
+            self.meta = meta
 
         # Set default attributes
         self[ATTR_DEVICE_NAME] = server_id + '\0'
@@ -177,9 +193,19 @@ class _HttpLoader(object):
 
 
 class ObjectLoader(object):
-    '''A context for populating an Object from the dataretriever.  Allows
+    """A context for populating an Object from the dataretriever.  Allows
     network connections to be reused to fetch multiple objects.  Must not
-    be used by more than one thread.'''
+    be used by more than one thread.
+
+    Attributes are also loaded. There are several possible places attributes
+    are loaded from. The precedence order is (later overwrites earlier):
+    - 'meta' URI from scope list <object /> element, which can either be a URL or
+    local file path.
+    - HTTP headers starting with ATTR_HEADER_PREFIX='x-attr-', when retrieving
+    the object itself. (happen only when retrieving from data retriever)
+    - HTTP header ATTR_HEADER_URL='x-attributes', when retrieving the object itself.
+    (happen only when retrieving from data retriever)
+    """
 
     def __init__(self, config, blob_cache):
         self._http = _HttpLoader(config)
@@ -199,17 +225,32 @@ class ObjectLoader(object):
     def load(self, obj):
         '''Retrieve the Object and update it with the information we
         receive.'''
-        uri = str(obj)
+
+        # 0. Load src URI if not exist (mainly used for re-execution)
+        self._load_src_maybe_meta(obj)
+
+        # 1. Load object metadata from meta URI
+        if hasattr(obj, 'meta'):
+            uri = obj.meta
+            scheme, path = split_scheme(uri)
+            if scheme == 'file':
+                self._load_attrbutes_localfile(obj, path)
+            else:  # assume http
+                self._load_attributes(obj, uri)
+
+        # 2. Load object content from src URI
+        uri = obj.src
         scheme, path = split_scheme(uri)
         if scheme == 'sha256':
             self._load_blobcache(obj, path)
         elif scheme == 'file':
             self._load_localfile(obj, path)
-        else:
+        else:  # assume http
             self._load_dataretriever(obj, uri)
+
         # Set display name if not already in initial attributes
         if ATTR_DISPLAY_NAME not in obj:
-            obj[ATTR_DISPLAY_NAME] = uri + '\0'
+            obj[ATTR_DISPLAY_NAME] = str(obj) + '\0'
 
     def _load_blobcache(self, obj, signature):
         # Load the object data
@@ -249,4 +290,40 @@ class ObjectLoader(object):
             raise ObjectLoadError(str(e))
         for k, v in attrs.iteritems():
             obj[k] = str(v) + '\0'
+
     # pylint: enable=maybe-no-member
+
+    def _load_attrbutes_localfile(self, obj, path):
+        try:
+            with open(path, 'r') as f:
+                attrs = json.load(f)
+                if not isinstance(attrs, dict):
+                    raise ObjectLoadError(
+                        "Failed to retrieve object attributes")
+        except IOError, e:
+            raise ObjectLoadError(str(e))
+        except ValueError, e:
+            raise ObjectLoadError(str(e))
+        for k, v in attrs.iteritems():
+            obj[k] = str(v) + '\0'
+
+    def _load_src_maybe_meta(self, obj):
+        """
+        Load the src and optional meta URIs from the object's id.
+        :param obj:
+        :return:
+        """
+        if not hasattr(obj, 'src'):
+            uri = str(obj)
+            scheme, path = split_scheme(uri)
+            if scheme == 'sha256':
+                # Blob has no meta URI
+                obj.src = uri
+            else:
+                # Assume http
+                _, body = self._http.get(uri)
+                object_el = xmltodict.parse(body)
+                obj.src = urljoin(uri, object_el['object']['@src'])
+                if '@meta' in object_el['object']:
+                    obj.meta = urljoin(uri, object_el['object']['@meta'])
+        return

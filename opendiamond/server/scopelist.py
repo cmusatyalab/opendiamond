@@ -98,15 +98,18 @@ class ScopeListLoader(object):
                         break
                     parser.feed(buf)
                     while self._handler.pending_objects:
-                        scope_obj_attrs = self._handler.pending_objects.pop(0)
+                        pending_object = self._handler.pending_objects.pop(0)
+
+                        id = urljoin(scope_url, pending_object['id'])
+                        # Allow 'src' and 'meta' be missing
+                        # If so, they should be loaded later in ObjectLoader
+                        src = urljoin(scope_url, pending_object['src']) if 'src' in pending_object else None
+                        meta = urljoin(scope_url, pending_object['meta']) if 'meta' in pending_object else None
 
                         new_obj = Object(self.server_id,
-                                         urljoin(scope_url, scope_obj_attrs['src']))
-
-                        # Add additional attributes
-                        if 'meta' in scope_obj_attrs:
-                            # Assume relative URL
-                            new_obj['_meta'] = urljoin(scope_url, scope_obj_attrs['meta'])
+                                         id,
+                                         src=src,
+                                         meta=meta)
 
                         yield new_obj
 

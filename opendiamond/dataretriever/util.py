@@ -6,7 +6,10 @@ _SUFFIX = '.text_attr'
 
 
 class DiamondTextAttr(object):
-    """Suggest used as context manager.
+    """
+    DEPRECIATED: this legacy format to store object attributes is deprecated.
+    JSON is recommended for new uses.
+    Suggest used as context manager.
     Notice: attribute values are all treated as strings.
     Remember to type cast in caller as necessary."""
 

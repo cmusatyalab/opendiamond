@@ -1,6 +1,8 @@
 import json
 import os
 import datetime
+
+import sys
 from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
     request
 from math import ceil
@@ -9,9 +11,24 @@ from werkzeug.datastructures import Headers
 from opendiamond.dataretriever.util import DiamondTextAttr
 import subprocess
 
+# IMPORTANT: uses ffmpeg >= 3.3.
+
 BASEURL = 'atomizer'
 STYLE = False
 INDEXDIR = DATAROOT = None
+
+
+def check_ffmpeg_version():
+    try:
+        output = subprocess.check_output(['ffmpeg', '-version'])
+        if 'ffmpeg version 3.' in output:
+            return True
+    except:
+        pass
+    sys.stderr.write('Need ffmpeg>=3.3. Atomizer may not work correctly.\n')
+
+
+check_ffmpeg_version()
 
 
 def init(config):

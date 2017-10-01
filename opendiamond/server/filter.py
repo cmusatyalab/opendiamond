@@ -651,9 +651,12 @@ class Filter(object):
         def scan_mode(filter_file):
             """Scan the first 100 bytes of file for special tags."""
             first_line = filter_file.read(100)
-            if 'diamond-docker-' in first_line:
+            if 'diamond-docker' in first_line:
                 return 'docker'
-            return 'default'
+            elif 'diamond-nvidia-docker' in first_line:
+                return 'nvidia-docker'
+            else:
+                return 'default'
 
         self.mode = scan_mode(open(self.code_path, 'r'))
 
@@ -669,7 +672,7 @@ class Filter(object):
                     args=self.arguments,
                     blob=self.blob
                 )
-        elif self.mode == 'docker':
+        elif self.mode == 'docker' or self.mode == 'nvidia-docker':
             # Docker service accessed via TCP
             try:
                 config = yaml.load(open(self.code_path, 'r'))
@@ -678,15 +681,16 @@ class Filter(object):
                 docker_port = int(config.get('docker_port', 5555))
 
                 if docker_command is None:
-                    docker_command = \
-                        'socat TCP4-LISTEN:5555,fork,nodelay ' \
-                        'EXEC:\"%s --filter\"' % config['filter_command']
+                    docker_command = 'socat TCP4-LISTEN:%d,fork,nodelay ' \
+                                     'EXEC:\"%s --filter\"' % (
+                                         docker_port, config['filter_command'])
             except Exception as e:
                 raise FilterDependencyError(e)
 
             def wrapper(_):
                 uri = state.context.ensure_resource(
-                    'docker', docker_image, docker_command
+                    self.mode,
+                    docker_image, docker_command
                 )
                 return _FilterTCP(
                     host=uri['IPAddress'],
@@ -695,6 +699,7 @@ class Filter(object):
                     args=self.arguments,
                     blob=self.blob
                 )
+
         else:
             raise FilterUnsupportedMode()
 

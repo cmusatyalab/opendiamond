@@ -3,7 +3,7 @@
 # Extract wrappers to run Diamond filters from docker container
 #
 #   UNIQUE_ID=$(docker inspect --format='{{ (index .RepoDigests 0) }}' $IMAGEID)
-#   docker run --rm $UNIQUE_ID /extract-filters.sh $UNIQUE_ID > diamond-docker-filters.tgz
+#   docker run --rm $UNIQUE_ID /extract-filters.sh $UNIQUE_ID [headline] > diamond-docker-filters.tgz
 #
 # To extract binary Diamond filters:
 #
@@ -34,11 +34,12 @@ fi
 # Wrap native filters if docker image is specified
 if [ -n "$1" -a -d /usr/local/share/diamond/filters ] ; then
     UNIQUE_ID="$1"
+    HEADLINE=${2:-"diamond-docker-filter"}
     for filter in `find /usr/local/share/diamond/filters -type f -perm /100 -print`
     do
         echo "Wrapping $filter" 1>&2
         cat > $filter << EOF
-# diamond-docker-filter
+# ${HEADLINE}
 docker_image: ${UNIQUE_ID}
 filter_command: ${filter}
 EOF

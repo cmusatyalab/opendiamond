@@ -514,7 +514,7 @@ class _FilterRunner(_ObjectProcessor):
                         level = logging.DEBUG
                     else:
                         level = logging.DEBUG
-                    _log.log(level, message)
+                    _log.log(level, 'object: %s. %s' % (str(obj), message))
                 elif cmd == 'stdout':
                     print proc.get_item(),
                 elif cmd == 'result':

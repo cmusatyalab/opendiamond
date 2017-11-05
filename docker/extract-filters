@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+#
+# Extract wrappers to run Diamond filters from docker container
+#
+#   UNIQUE_ID=$(docker inspect --format='{{ (index .RepoDigests 0) }}' $IMAGEID)
+#   docker run --rm $UNIQUE_ID /extract-filters.sh $UNIQUE_ID [headline] > diamond-docker-filters.tgz
+#
+# To extract binary Diamond filters:
+#
+#   docker run --rm $UNIQUE_ID /extract-filters.sh > diamond-native-filters.tgz
+
+import argparse
+import glob
+import sys
+import subprocess
+import os
+import yaml
+
+DIAMOND_DIR ='/usr/local/share/diamond'
+FLAGS = None
+
+
+def bundle_predicates():
+    for xml_file in glob.glob(os.path.join(DIAMOND_DIR, 'predicates', '*.xml')):
+        sys.stderr.write("Bundling %s\n" % xml_file)
+        head, tail = os.path.split(xml_file)
+        cmd_l = ['diamond-bundle-predicate', tail]
+        subprocess.check_call(cmd_l, cwd=head)
+        os.remove(xml_file)
+
+
+def bundle_codecs():
+    for xml_file in glob.glob(os.path.join(DIAMOND_DIR, 'codecs', '*.xml')):
+        sys.stderr.write("Bundling %s\n" % xml_file)
+        head, tail = os.path.split(xml_file)
+        cmd_l = ['diamond-bundle-predicate', tail]
+        subprocess.check_call(cmd_l, cwd=head)
+        os.remove(xml_file)
+
+
+def wrap_filters_in_docker():
+    if FLAGS.docker_uid is None:
+        return
+
+    for filter_code in glob.glob(os.path.join(DIAMOND_DIR, 'filters', 'fil_*')):
+        sys.stderr.write("Wrapping %s\n" % filter_code)
+        config = dict(
+            docker_image=FLAGS.docker_uid,
+            filter_command=filter_code
+        )
+        with open(filter_code, 'w') as outfile:
+            outfile.write("# %s\n" % FLAGS.headline)
+            outfile.write("%s\n" % yaml.dump(config, default_flow_style=False))
+
+
+def tar_diamond_to_stdout():
+    head, tail = os.path.split(DIAMOND_DIR)
+    cmd_l= ['tar', '-C', head, '-cz', tail]
+    subprocess.check_call(cmd_l)
+
+
+def main():
+    bundle_codecs()
+    bundle_predicates()
+    wrap_filters_in_docker()
+
+    tar_diamond_to_stdout()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Extract a bundle of diamond '
+                                                 'codes/predicates/filters')
+    parser.add_argument('--headline', dest='headline',
+                        default='diamond-docker-filter',
+                        help='The first line to be scanned by Diamondd to '
+                             'determine the filter mode.')
+    parser.add_argument('docker_uid',
+                        default=None,
+                        help='If specified, filter code will be replaced by '
+                             'YAML files parsed by Diamondd. Filters will '
+                             'be executed from Docker image specified with '
+                             'the unique ID. Otherwise, this tool simply tars '
+                             'the native filter code.')
+
+    FLAGS, unparsed = parser.parse_known_args()
+    main()

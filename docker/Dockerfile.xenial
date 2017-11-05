@@ -23,6 +23,7 @@ RUN sed -i "s/xenial main/xenial main multiverse/" /etc/apt/sources.list \
     python-m2crypto \
     python-pil \
     python-setuptools \
+    python-yaml \
     socat \
     xml2rfc
 
@@ -32,4 +33,4 @@ RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ./configure && make install && make clean \
  && ldconfig
 
-COPY extract-filters.sh /
+COPY extract-filters extract-filters.sh /

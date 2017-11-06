@@ -23,6 +23,7 @@ flickrapi==2.2.1
 flask==0.12.2
 werkzeug==0.12.2
 # dataretriever-video
+# av depends on python-dev pkg-config cp libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libavresample-dev libavfilter-dev
 av==0.3.3
 
 # diamondd

@@ -35,6 +35,7 @@ _log = logging.getLogger(__name__)
 
 class SearchState(object):
     '''Search state that is also needed by filter code.'''
+
     def __init__(self, config):
         self.config = config
         self.blob_cache = ExecutableBlobCache(config.cachedir)
@@ -77,14 +78,18 @@ class Search(RPCHandlers):
     def running(should_be_running):
         '''Decorator that specifies that the handler can only be called
         before, or after, the search has started running.'''
+
         def decorator(func):
             @wraps(func)
             def wrapper(self, *args, **kwargs):
                 if self._running != should_be_running:
                     raise RPCProcedureUnavailable()
                 return func(self, *args, **kwargs)
+
             return wrapper
+
         return decorator
+
     # pylint: enable=no-self-argument,protected-access
 
     def _check_runnable(self):
@@ -105,6 +110,7 @@ class Search(RPCHandlers):
     def setup(self, params):
         '''Configure the search and return a list of SHA256 signatures not
         present in the blob cache.'''
+
         def log_header(desc):
             _log.info('  %s:', desc)
 
@@ -146,7 +152,7 @@ class Search(RPCHandlers):
             if unsupported:
                 raise DiamondRPCSchemeNotSupported()
             filters.append(Filter(f.name, f.code, f.blob, f.min_score,
-                           f.max_score, f.arguments, f.dependencies))
+                                  f.max_score, f.arguments, f.dependencies))
         filterstack = FilterStack(filters)
 
         # Parse scope cookies
@@ -156,6 +162,7 @@ class Search(RPCHandlers):
             for cookie in cookies:
                 log_header(cookie.serial)
                 log_item('Servers', '%s', ', '.join(cookie.servers))
+                log_item('Scopes', '%s', ', '.join(cookie.scopeurls))
                 log_item('Expires', '%s', cookie.expires)
                 cookie.verify(self._state.config.serverids,
                               self._state.config.certdata)
@@ -196,6 +203,9 @@ class Search(RPCHandlers):
         else:
             # Encode everything
             push_attrs = None
+        _log.info('Push attributes: %s',
+                  ', '.join(
+                      params.attrs) if params.attrs is not None else '(everything)')
         self._state.blast = BlastChannel(self._blast_conn, push_attrs)
         self._running = True
         _log.info('Starting search %s', params.search_id)
@@ -222,6 +232,9 @@ class Search(RPCHandlers):
         else:
             # If no output attributes were specified, encode everything
             output_attrs = None
+        _log.info('Push attributes: %s',
+                  ', '.join(
+                      params.attrs) if params.attrs is not None else '(everything)')
         return protocol.XDR_attribute_list(
             obj.xdr_attributes(output_attrs, for_drop=drop))
 

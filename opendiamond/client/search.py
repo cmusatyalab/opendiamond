@@ -14,6 +14,7 @@ import binascii
 import logging
 import uuid
 from hashlib import sha256
+import struct
 
 from opendiamond.client.rpc import ControlConnection, BlastConnection
 from opendiamond.protocol import (
@@ -168,6 +169,8 @@ class _DiamondConnection(object):
             # End of search
             self._finished = True
             dct = None
+        else:
+            dct = self._sanitize_obj_dict(dct)
         return dct
 
     def evaluate(self, cookies, filters, blob, attrs=None):
@@ -192,14 +195,55 @@ class _DiamondConnection(object):
             reply = self.control.reexecute_filters(request)
 
         # Return object attributes
-        obj = dict((attr.name, attr.value) for attr in reply.attrs)
-        return obj
+        dct = dict((attr.name, attr.value) for attr in reply.attrs)
+        return self._sanitize_obj_dict(dct)
 
     def close(self):
         if not self._closed:
             self._closed = True
             self.control.close()
             self.blast.close()
+
+    @staticmethod
+    def _sanitize_obj_dict(dct):
+        """
+        Sanitize object data (a dictionary) directly received from server.
+        Empty (non-pushed) attributes will be replaced with None.
+        Number types will be unpacked to the corresponding types.
+        Strings will remove the trailing '\x00' character.
+        :param dct:
+        :return:
+        """
+
+        def _sanitize_int(s):
+            return struct.unpack('i', s)[0]
+
+        def _sanitize_float(s):
+            return struct.unpack('f', s)[0]
+
+        def _sanitize_string(s):
+            s = s[:-1]
+            return s
+
+        rv = dict()
+        for k, v in dct.iteritems():
+            if not v:
+                v = None
+            else:
+                if k.endswith('.int'):
+                    v = _sanitize_int(v)
+                elif k.endswith('.float'):
+                    v = _sanitize_float(v)
+                elif k.startswith('_filter') and k.endswith('_score'):
+                    # a filter score
+                    v = float(_sanitize_string(v))
+                else:
+                    # assume others are strings
+                    v = _sanitize_string(v)
+
+            rv[k] = v
+
+        return rv
 
 
 class _DiamondBlastSet(object):
@@ -236,14 +280,14 @@ class _DiamondBlastSet(object):
             for conn in self._connections:
                 # FIXME this is bad because it consumes all results from one blast before switching another,
                 # hence blocking progress of other blast connections. Should change to round-robin polling.
-                for obj in self._handle_objects(conn):
-                    yield obj
+                for dct in self._handle_objects(conn):
+                    yield dct
 
     def _handle_objects(self, conn):
         """A generator yielding search results from a DiamondConnection."""
         while not self._paused:
             try:
-                obj = conn.get_result()
+                dct = conn.get_result()
             except ConnectionFailure:
                 break
             except RPCError:
@@ -251,20 +295,20 @@ class _DiamondBlastSet(object):
                 conn.close()
                 break
 
-            if obj is None:
+            if dct is None:
                 break
 
-            yield (obj)
+            yield dct
 
 
 class DiamondSearch(object):
-    def __init__(self, cookies, filters):
+    def __init__(self, cookies, filters, push_attrs=None):
         """
 
         :param cookies: A list of ScopeCookie
         :param filters: A list of FilterSpec
         """
-
+        self._push_attrs = push_attrs
         self.results = None  # will bind to a generator when the search starts
 
         self._closed = False
@@ -282,7 +326,8 @@ class DiamondSearch(object):
         search_id = str(uuid.uuid4())
 
         for h, c in self._connections.items():
-            c.run_search(search_id, self._cookie_map[h], self._filters)
+            c.run_search(search_id, self._cookie_map[h], self._filters,
+                         self._push_attrs)
 
         # Start blast channels
         assert self.results is None
@@ -317,13 +362,15 @@ class DiamondSearch(object):
         Send statistics requests to all connections and aggregate the returned stats.
         :return:
         """
+
         def combine_into(dest, src):
             for stat in src:
                 dest.setdefault(stat.name, 0)
                 dest[stat.name] += stat.value
 
         try:
-            results = [c.control.request_stats() for c in self._connections.values()]
+            results = [c.control.request_stats() for c in
+                       self._connections.values()]
             stats = {}
             filter_stats = {}
             for result in results:
@@ -340,4 +387,3 @@ class DiamondSearch(object):
     def close(self):
         if not self._closed:
             self._closed = True
-

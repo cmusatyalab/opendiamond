@@ -23,9 +23,9 @@ def create_blob_argument(*paths):
 
 def create_filter_from_files(filter_name,
                              code_path,
-                             args=tuple([]),
+                             args=(),
                              example_paths=None,
-                             dependencies=tuple([]),
+                             dependencies=(),
                              min_score=float('-inf'),
                              max_score=float('inf'),
                              ):

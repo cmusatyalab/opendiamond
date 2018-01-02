@@ -1,10 +1,10 @@
-import logging
-
-import os
-
+import context
 from opendiamond.client.search import DiamondSearch
 from opendiamond.client.rpc import ControlConnection, BlastConnection
 from opendiamond.client.util import get_default_rgb_filter, get_default_scopecookies
+
+import logging
+import os
 import unittest
 
 _log = logging.getLogger()
@@ -36,18 +36,19 @@ class TestClientSearch(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(os.environ['HOME'], '.diamond', 'filters', 'fil_rgb')))
         cookies = get_default_scopecookies()
         rgb_filter = get_default_rgb_filter()
+        push_attrs = ['Device-Name', 'Display-Name', '_ObjectID', '_filter.RGB_score', '_cols.int', '_rows.int']
         filters = [rgb_filter]
-        search = DiamondSearch(cookies, filters)
+        search = DiamondSearch(cookies, filters, push_attrs=push_attrs)
         search_id = search.start()
         self.assertTrue(search_id)
         _log.info("Search ID %s", search_id)
         n_results = 0
         for res in search.results:
             n_results += 1
-            if n_results % 10 == 0:
+            if n_results % 50 == 0:
                 print "Got %d results\r" % n_results,
         print ""
-        # _log.info("The last object: %s", str(res))
+        _log.info("The last object: %s", str(res))
 
         stats = search.get_stats()
         _log.info("Stats: %s", str(stats))

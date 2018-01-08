@@ -9,6 +9,7 @@ from opendiamond.dataretriever.util import DiamondTextAttr
 
 BASEURL = 'collection'
 STYLE = False
+LOCAL_OBJ_URI = True  # if true, return local file path as object URI, otherwise http.
 INDEXDIR = DATAROOT = None
 
 
@@ -80,8 +81,15 @@ def get_object_meta(object_path):
 def _get_object_element(object_path):
     return '<object id="{}" src="{}" meta="{}" />' \
         .format(url_for('.get_object_id', object_path=object_path),
-                'file://' + _get_obj_absolute_path(object_path),
+                _get_object_src_uri(object_path),
                 url_for('.get_object_meta', object_path=object_path))
+
+
+def _get_object_src_uri(object_path):
+    if LOCAL_OBJ_URI:
+        return 'file://' + _get_obj_absolute_path(object_path)
+    else:
+        return url_for('.get_object_src_http', obj_path=object_path)
 
 
 def _get_obj_absolute_path(obj_path):
@@ -91,17 +99,18 @@ def _get_obj_absolute_path(obj_path):
 def _get_index_absolute_path(index):
     return os.path.join(INDEXDIR, index)
 
-# @scope_blueprint.route('/obj/<path:obj_path>')
-# def get_object_src(obj_path):
-#     path = _get_obj_absolute_path(obj_path)
-#
-#     headers = Headers()
-#     # With add_etags=True, conditional=True
-#     # Flask should be smart enough to do 304 Not Modified
-#     response = send_file(path,
-#                          cache_timeout=datetime.timedelta(
-#                              days=365).total_seconds(),
-#                          add_etags=True,
-#                          conditional=True)
-#     response.headers.extend(headers)
-#     return response
+
+@scope_blueprint.route('/obj/<path:obj_path>')
+def get_object_src_http(obj_path):
+    path = _get_obj_absolute_path(obj_path)
+
+    headers = Headers()
+    # With add_etags=True, conditional=True
+    # Flask should be smart enough to do 304 Not Modified
+    response = send_file(path,
+                         cache_timeout=datetime.timedelta(
+                             days=365).total_seconds(),
+                         add_etags=True,
+                         conditional=True)
+    response.headers.extend(headers)
+    return response

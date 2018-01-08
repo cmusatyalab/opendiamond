@@ -25,11 +25,13 @@ from opendiamond.scope import get_cookie_map
 
 _log = logging.getLogger(__name__)
 
-
-# Hierarchy of abstractions:
-# One DiamondSearch contains one or more _DiamondConnection to multiple servers, which share the same FilterSpec's.
-# One _DiamondConnection contains exactly one ControlConnection paired with one BlastConnection
-# to one destination server.
+"""
+Hierarchy of abstractions:
+One DiamondSearch contains one or more _DiamondConnection to multiple
+servers, which share the same FilterSpec's.
+One _DiamondConnection contains exactly one ControlConnection
+paired with one BlastConnection to one destination server.
+"""
 
 
 class Blob(object):
@@ -255,7 +257,6 @@ class _DiamondBlastSet(object):
         # Connections that have not finished searching
         self._connections = set(connections)
         self._started = False
-        self._paused = False
 
     def start(self):
         """
@@ -266,26 +267,25 @@ class _DiamondBlastSet(object):
         self._started = True
         return self._try_start()
 
-    def pause(self):
-        self._paused = True
-
-    def resume(self):
-        self._paused = False
-        # FIXME legacy code. _try_start() is now a generator.
-        self._try_start()
-
     def _try_start(self):
-        """A generator yielding search results from all underlying DiamondConnection's."""
-        if self._started and not self._paused:
-            for conn in self._connections:
-                # FIXME this is bad because it consumes all results from one blast before switching another,
-                # hence blocking progress of other blast connections. Should change to round-robin polling.
-                for dct in self._handle_objects(conn):
-                    yield dct
+        """A generator yielding search results from
+        all underlying DiamondConnection's."""
+        if self._started:
+
+            generators = set(
+                [self._handle_objects(conn) for conn in self._connections])
+
+            while generators:
+                for g in list(generators):
+                    try:
+                        obj = next(g)
+                        yield obj
+                    except StopIteration:
+                        generators.remove(g)
 
     def _handle_objects(self, conn):
         """A generator yielding search results from a DiamondConnection."""
-        while not self._paused:
+        while True:
             try:
                 dct = conn.get_result()
             except ConnectionFailure:
@@ -323,11 +323,22 @@ class DiamondSearch(object):
         self._blast = _DiamondBlastSet(self._connections.values())
 
     def start(self):
+        """
+        Start the search and bind a generator to self.results which yields
+        return objects (as dictionaries) from all underlying connections.
+        :return: A random-generated Search ID.
+        """
         search_id = str(uuid.uuid4())
 
         for h, c in self._connections.items():
-            c.run_search(search_id, self._cookie_map[h], self._filters,
-                         self._push_attrs)
+            try:
+                c.run_search(search_id, self._cookie_map[h], self._filters,
+                             self._push_attrs)
+            except:
+                _log.error("Can't start search on %s. "
+                           "May be network failure, service not running,"
+                           "no space on disk, etc.?", h)
+                raise
 
         # Start blast channels
         assert self.results is None
@@ -350,12 +361,6 @@ class DiamondSearch(object):
         obj = conn.evaluate(self._cookie_map[hostname], self._filters, blob)
         if callback is not None:
             callback(obj)
-
-    def pause(self):
-        self._blast.pause()
-
-    def resume(self):
-        self._blast.resume()
 
     def get_stats(self):
         """

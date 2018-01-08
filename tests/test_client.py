@@ -1,3 +1,5 @@
+import json
+
 import context
 from opendiamond.client.search import DiamondSearch
 from opendiamond.client.rpc import ControlConnection, BlastConnection
@@ -35,6 +37,7 @@ class TestClientSearch(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(os.environ['HOME'], '.diamond', 'NEWSCOPE')))
         self.assertTrue(os.path.isfile(os.path.join(os.environ['HOME'], '.diamond', 'filters', 'fil_rgb')))
         cookies = get_default_scopecookies()
+        _log.info("Scope: %s", '\n'.join(map(str, cookies)))
         rgb_filter = get_default_rgb_filter()
         push_attrs = ['Device-Name', 'Display-Name', '_ObjectID', '_filter.RGB_score', '_cols.int', '_rows.int']
         filters = [rgb_filter]
@@ -45,13 +48,15 @@ class TestClientSearch(unittest.TestCase):
         n_results = 0
         for res in search.results:
             n_results += 1
-            if n_results % 50 == 0:
-                print "Got %d results\r" % n_results,
+            if n_results % 10 == 0:
+                _log.debug("Got %d results. %s", n_results, str(res))
+
         print ""
-        _log.info("The last object: %s", str(res))
+        _log.info("The last result: %s", str(res))
+        _log.info("Total results: %d", n_results)
 
         stats = search.get_stats()
-        _log.info("Stats: %s", str(stats))
+        _log.info("Stats: %s", json.dumps(stats, sort_keys=True, indent=4))
 
         search.close()
 

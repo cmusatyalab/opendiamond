@@ -1,3 +1,15 @@
+#
+#  The OpenDiamond Platform for Interactive Search
+#
+#  Copyright (c) 2018 Carnegie Mellon University
+#  All rights reserved.
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
 import argparse
 from flask import Flask, Response
 import importlib
@@ -59,7 +71,8 @@ def run():
                                    url_prefix='/' + store_module.BASEURL)
         except AttributeError:
             app.logger.error(
-                'Unable to register {}. Make sure a Flask blueprint `scope_blueprint` is defined.'.format(modname))
+                'Unable to register {}. Make sure a Flask blueprint '
+                '`scope_blueprint` is defined.'.format(modname))
             raise
 
     if options.daemonize:

@@ -1,10 +1,21 @@
+#
+#  The OpenDiamond Platform for Interactive Search
+#
+#  Copyright (c) 2018 Carnegie Mellon University
+#  All rights reserved.
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
 import json
 import os
 import datetime
 
 import sys
-from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
-    request
+from flask import Blueprint, url_for, Response, stream_with_context, request
 from math import ceil
 from werkzeug.datastructures import Headers
 

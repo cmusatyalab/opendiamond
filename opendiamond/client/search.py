@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2011-2012 Carnegie Mellon University
+#  Copyright (c) 2018 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -336,7 +336,8 @@ class DiamondSearch(object):
                              self._push_attrs)
             except:
                 _log.error("Can't start search on %s. "
-                           "May be network failure, service not running,"
+                           "May be expired cookie, corrupted filters, "
+                           "network failure, service not running, "
                            "no space on disk, etc.?", h)
                 raise
 

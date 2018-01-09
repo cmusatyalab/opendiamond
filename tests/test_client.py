@@ -1,3 +1,15 @@
+#
+#  The OpenDiamond Platform for Interactive Search
+#
+#  Copyright (c) 2018 Carnegie Mellon University
+#  All rights reserved.
+#
+#  This software is distributed under the terms of the Eclipse Public
+#  License, Version 1.0 which can be found in the file named LICENSE.
+#  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
+#  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
+#
+
 import json
 
 import context
@@ -13,7 +25,7 @@ _log = logging.getLogger()
 _log.setLevel(logging.DEBUG)
 _log.addHandler(logging.StreamHandler())
 
-TEST_HOST = 'cloudlet013.elijah.cs.cmu.edu'
+TEST_HOST = 'localhost'
 
 
 class TestClientRPC(unittest.TestCase):
@@ -38,9 +50,9 @@ class TestClientSearch(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(os.environ['HOME'], '.diamond', 'filters', 'fil_rgb')))
         cookies = get_default_scopecookies()
         _log.info("Scope: %s", '\n'.join(map(str, cookies)))
-        rgb_filter = get_default_rgb_filter()
+        fil_rgb = get_default_rgb_filter()
         push_attrs = ['Device-Name', 'Display-Name', '_ObjectID', '_filter.RGB_score', '_cols.int', '_rows.int']
-        filters = [rgb_filter]
+        filters = [fil_rgb]
         search = DiamondSearch(cookies, filters, push_attrs=push_attrs)
         search_id = search.start()
         self.assertTrue(search_id)

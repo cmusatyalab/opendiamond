@@ -11,6 +11,8 @@
 #
 
 import argparse
+
+import logging
 from flask import Flask, Response
 import importlib
 
@@ -23,6 +25,7 @@ import opendiamond
 
 app = Flask(__name__)
 
+_log = logging.getLogger(__name__)
 
 @app.route('/scopelist.xsl')
 def scopelist_xsl():
@@ -78,7 +81,9 @@ def run():
     if options.daemonize:
         daemonize()
 
-    print 'Enabled modules: ' + ', '.join(config.retriever_stores)
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().addHandler(logging.StreamHandler())
+    _log.info('Enabled modules: %s', ', '.join(config.retriever_stores))
     # Note: this runs a development server. Not safe for production.
     # Other parameters to pass see
     # http://werkzeug.pocoo.org/docs/0.12/serving/#werkzeug.serving.run_simple

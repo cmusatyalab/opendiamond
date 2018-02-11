@@ -17,8 +17,8 @@ It may not be feasible for extremely large index files.
 """
 
 import datetime
-from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
-    jsonify
+from flask import Blueprint, url_for, Response, stream_with_context, \
+    send_file, jsonify
 import os
 import random
 from werkzeug.datastructures import Headers

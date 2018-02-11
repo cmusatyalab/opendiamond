@@ -22,9 +22,13 @@ Paste==2.0.3
 flickrapi==2.2.1
 flask==0.12.2
 werkzeug==0.12.2
+
 # dataretriever-video
 # av depends on python-dev pkg-config cp libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libavresample-dev libavfilter-dev
 av==0.3.3
+
+# dataretriever-mysql
+mysql-connector-python-rf==2.2.2
 
 # diamondd
 docker==2.4.2

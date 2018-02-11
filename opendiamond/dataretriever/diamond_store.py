@@ -21,7 +21,7 @@ from opendiamond.dataretriever.util import DiamondTextAttr
 
 BASEURL = 'collection'
 STYLE = False
-LOCAL_OBJ_URI = True  # if true, return local file path as object URI, otherwise http.
+LOCAL_OBJ_URI = True  # if true, return local file path, otherwise http.
 INDEXDIR = DATAROOT = None
 
 

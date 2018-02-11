@@ -155,6 +155,12 @@ class DiamondConfig(object):
             _Param('flickr_secret', 'FLICKR_SECRET'),
             # Mirage store: repository path
             _Param('mirage_repository', 'MIRAGE_REPOSITORY'),
+            # YFCC100M store: metadata database
+            _Param('db_host', 'DB_HOST', '127.0.0.1'),
+            _Param('db_dbname', 'DB_DBNAME', 'dataretriever'),
+            _Param('db_user', 'DB_USER', 'dataretriever'),
+            _Param('db_password', 'DB_PASSWORD'),
+            _Param('db_port', 'DB_PORT', 3306),
 
             # -- Deprecated config keys
             _Param(None, 'DATATYPE'),

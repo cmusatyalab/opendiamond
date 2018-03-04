@@ -27,6 +27,12 @@
         <li><a href="{{ gatekeeper }}">Gatekeeper</a></li>
     {% endif %}
 {% endif %}
+{% url opendiamond.scopeserver.metadata.views.index as metadata %}
+{% if metadata %}
+    {% if user.is_staff or user.metadatacollection_set.all.count %}
+        <li><a href="{{ metadata }}">Metadata</a></li>
+    {% endif %}
+{% endif %}
 {% url opendiamond.scopeserver.flickr.views.index as flickr %}
 {% if flickr %}
     {% if user.is_staff or perms.flickr.search %}

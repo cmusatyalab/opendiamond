@@ -1,0 +1,24 @@
+{% extends "scopeserver/base.html" %}
+{% block content %}
+<form method="POST" action="">
+{% csrf_token %}
+<ul>
+{{ form.as_ul }}
+</ul>
+<input type="submit" value="Set permissions" />
+</form>
+{% endblock %}
+{% block extra_scripts %}
+<script type="text/javascript">
+/* populate form based on which collections a user may access */
+$(document).ready(function () {
+ $('select#id_user').change(function() {
+  $.getJSON("", { user: this.value }, function(ismember) {
+   $('input:checkbox').attr('checked', function () {
+    return ismember[this.value] && "checked" || "";
+   });
+  });
+ }).change();
+});
+</script>
+{% endblock %}

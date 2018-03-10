@@ -29,7 +29,7 @@
 {% endif %}
 {% url opendiamond.scopeserver.metadata.views.index as metadata %}
 {% if metadata %}
-    {% if user.is_staff or user.metacollection_set.all.count %}
+    {% if user.is_staff or user.metadatacollection_set.all.count %}
         <li><a href="{{ metadata }}">Metadata</a></li>
     {% endif %}
 {% endif %}

@@ -30,10 +30,14 @@ def index(request):
             keywords = form.cleaned_data['keywords'].strip()
             if keywords:
                 append += '/keywords/%s' % keywords
-            remainder = form.cleaned_data['remainder']
             divisor = form.cleaned_data['divisor']
-            if remainder and divisor:
-                append += '/modulo/%d/%d' % (divisor, remainder)
+            expression = form.cleaned_data['expression']
+            if divisor and expression:
+                try:
+                    expr1 = "=%d" % int(expression)
+                except ValueError:
+                    expr1 = expression
+                append += '/modulo/%d/%s' % (divisor, expr1)
 
             cookie = []
             for collection in form.cleaned_data['collections']:
@@ -62,7 +66,7 @@ def manage(request):
 
         if form.is_valid():
             user = form.cleaned_data['user']
-            user.collection_set = form.cleaned_data['collections']
+            user.metadatacollection_set = form.cleaned_data['collections']
             return HttpResponseRedirect("")
 
     elif request.is_ajax():
@@ -70,7 +74,7 @@ def manage(request):
         try:
             user = request.GET['user']
             user = User.objects.get(id=user)
-            for c in user.collection_set.all():
+            for c in user.metadatacollection_set.all():
                 coll[c.id] = 1
         except Exception:  # pylint: disable=broad-except
             pass

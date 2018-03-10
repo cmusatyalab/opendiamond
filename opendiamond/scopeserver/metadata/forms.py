@@ -28,17 +28,20 @@ class MetadataCollectionForm(forms.Form):
     )
 
     keywords = forms.CharField(label='Keywords',
-                               help_text='Comma-separated words, no space. '
+                               help_text='Comma-separated phrases. '
                                          'Ignored if left blank',
                                required=False)  # no 'strip' in Django 1.3
 
-    remainder = forms.IntegerField(label='N',
-                                   help_text='If you want to sample N/M. '
-                                             'Ignored if left blank',
-                                   required=False)
-    divisor = forms.IntegerField(label='M',
-                                 help_text='If you want to sample N/M. '
-                                           'Ignored if left blank.',
+    divisor = forms.IntegerField(label='Buckets',
+                                 help_text='Integer. Bucket the images.'
+                                           ' Ignored if left blank.',
+                                 required=False)
+
+    expression = forms.CharField(label="Expression",
+                                 help_text='Condition applied to bucket ID.'
+                                           ' Examples: "<3", "=3", ">3".'
+                                           ' "3" will be converted to "=3".'
+                                           ' Ignored if left blank.',
                                  required=False)
 
 

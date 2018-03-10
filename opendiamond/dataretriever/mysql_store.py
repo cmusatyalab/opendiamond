@@ -18,8 +18,8 @@ Database config is obtained from DiamondConfig.
 Presumes MySQL and the table is indexed with:
  FULLTEXT (title, keywords, description)
 
-On ubuntu requires:
-pip install mysql-connector-python-rf==2.2.2
+Requires:
+pip install mysql-connector-python==8.0.6
 """
 import os
 from flask import Blueprint, url_for, Response, \
@@ -53,16 +53,16 @@ scope_blueprint = Blueprint('metadb_store', __name__)
 
 @scope_blueprint.route('/scope/<dataset>')
 @scope_blueprint.route('/scope/<dataset>/keywords/<keywords>')
-@scope_blueprint.route('/scope/<dataset>/modulo/<int:divisor>/<int:remainder>')
+@scope_blueprint.route('/scope/<dataset>/modulo/<int:divisor>/<expression>')
 @scope_blueprint.route(
-    '/scope/<dataset>/keywords/<keywords>/modulo/<int:divisor>/<int:remainder>')
-def get_scope(dataset, keywords=None, divisor=None, remainder=None):
+    '/scope/<dataset>/keywords/<keywords>/modulo/<int:divisor>/<expression>')
+def get_scope(dataset, keywords=None, divisor=None, expression=None):
     """
 
+    :param expression: Can be "<3", "=3", ">3", etc.
     :param dataset:
     :param keywords: a string of comma-separated keywords
     :param divisor: positive int
-    :param remainder: positive int. Must be smaller than remainder
     :return:
     """
     # cursor.execute() can't substitute table name
@@ -74,8 +74,9 @@ def get_scope(dataset, keywords=None, divisor=None, remainder=None):
         substitutes.append(keywords)
 
     if divisor:
-        conditions.append("sequence_no % %s < %s")
-        substitutes.extend([divisor, remainder])
+        # TODO sanity check expression
+        conditions.append("(sequence_no % %s) " + expression)
+        substitutes.extend([divisor])
 
     if conditions:
         query += " WHERE " + ' AND '.join(conditions)

@@ -16,6 +16,7 @@ import os
 import sys
 from tempfile import mkstemp
 import threading
+import traceback
 from zipfile import ZipFile
 
 import PIL.Image
@@ -29,6 +30,7 @@ EXAMPLE_DIR = 'examples'
 
 class Session(object):
     '''Represents the Diamond search session.'''
+
     def __init__(self, filter_name, conn=None):
         self.name = filter_name
         self._conn = conn
@@ -93,7 +95,9 @@ class Filter(object):
         attributes as specified by the parameters, and the blob, if any,
         in self.blob (unless self.blob_is_egg is True).'''
         if len(args) != len(self.params):
-            raise ValueError('Incorrect argument list length')
+            raise ValueError(
+                'Incorrect argument list length. Expect %d. Received %s' % (
+                    len(self.params), ','.join(args)))
         for param, arg in zip(self.params, args):
             setattr(self, str(param), param.parse(arg))
         if self.blob_is_zip:
@@ -190,13 +194,21 @@ class Filter(object):
                                      target)
             else:
                 filter_class = cls
-            filter = filter_class(args, blob, session)
+            try:
+                filter = filter_class(args, blob, session)
+            except:
+                session.log('critical', traceback.format_exc())
+                raise
             conn.send_message('init-success')
 
             # Main loop
             while True:
                 obj = _DiamondObject(conn)
-                result = filter(obj)
+                try:
+                    result = filter(obj)
+                except:
+                    session.log('error', traceback.format_exc())
+                    raise
                 if result is True:
                     result = 1
                 elif result is False or result is None:
@@ -381,6 +393,7 @@ class _DiamondObject(Object):
 class _DiamondConnection(object):
     '''Proxy object for the stdin/stdout protocol connection with the
     Diamond server.'''
+
     # XXX Work here to change the filter protocol (client side)
     def __init__(self, fin, fout):
         self._fin = fin
@@ -426,9 +439,11 @@ class _DiamondConnection(object):
         '''Atomically sends a message, consisting of a tag followed by one
         or more values.  An argument can be a list or tuple, in which case
         it is serialized as an array of values terminated by a blank line.'''
+
         def send_value(value):
             value = str(value)
             self._fout.write('%d\n%s\n' % (len(value), value))
+
         with self._output_lock:
             self._fout.write('%s\n' % tag)
             for value in values:

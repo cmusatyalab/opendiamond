@@ -3,11 +3,11 @@
 # Extract wrappers to run Diamond filters from docker container
 #
 #   UNIQUE_ID=$(docker inspect --format='{{ (index .RepoDigests 0) }}' $IMAGEID)
-#   docker run --rm $UNIQUE_ID /extract-filters.sh $UNIQUE_ID [headline] > diamond-docker-filters.tgz
+#   docker run --rm $UNIQUE_ID /extract-filters $UNIQUE_ID > diamond-docker-filters.tgz
 #
 # To extract binary Diamond filters:
 #
-#   docker run --rm $UNIQUE_ID /extract-filters.sh > diamond-native-filters.tgz
+#   docker run --rm $UNIQUE_ID /extract-filters > diamond-native-filters.tgz
 
 import argparse
 import glob
@@ -16,12 +16,13 @@ import subprocess
 import os
 import yaml
 
-DIAMOND_DIR ='/usr/local/share/diamond'
+DIAMOND_DIR = '/usr/local/share/diamond'
 FLAGS = None
 
 
 def bundle_predicates():
-    for xml_file in glob.glob(os.path.join(DIAMOND_DIR, 'predicates', '*.xml')):
+    for xml_file in glob.glob(
+            os.path.join(DIAMOND_DIR, 'predicates', '*.xml')):
         sys.stderr.write("Bundling %s\n" % xml_file)
         head, tail = os.path.split(xml_file)
         cmd_l = ['diamond-bundle-predicate', tail]
@@ -42,7 +43,8 @@ def wrap_filters_in_docker():
     if FLAGS.docker_uid is None:
         return
 
-    for filter_code in glob.glob(os.path.join(DIAMOND_DIR, 'filters', 'fil_*')):
+    for filter_code in glob.glob(
+            os.path.join(DIAMOND_DIR, 'filters', 'fil_*')):
         sys.stderr.write("Wrapping %s\n" % filter_code)
         config = dict(
             docker_image=FLAGS.docker_uid,
@@ -55,7 +57,7 @@ def wrap_filters_in_docker():
 
 def tar_diamond_to_stdout():
     head, tail = os.path.split(DIAMOND_DIR)
-    cmd_l= ['tar', '-C', head, '-cz', tail]
+    cmd_l = ['tar', '-C', head, '-cz', tail]
     subprocess.check_call(cmd_l)
 
 
@@ -75,6 +77,8 @@ if __name__ == '__main__':
                         help='The first line to be scanned by Diamondd to '
                              'determine the filter mode.')
     parser.add_argument('docker_uid',
+                        nargs='?',
+                        metavar='DOCKER_IMAGE_UID',
                         default=None,
                         help='If specified, filter code will be replaced by '
                              'YAML files parsed by Diamondd. Filters will '

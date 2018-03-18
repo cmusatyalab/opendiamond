@@ -1,4 +1,3 @@
-
 IMAGEID ?= registry.cmusatyalab.org/diamond/opendiamond/dev
 SRC_TAR ?= opendiamond-HEAD.tar.gz
 TINI_VERSION ?= v0.15.0

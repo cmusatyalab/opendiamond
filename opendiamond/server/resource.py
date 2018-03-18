@@ -1,16 +1,15 @@
-import shlex
-import threading
-
-import logging
-import uuid
-
-from weakref import WeakSet
-
-import subprocess
-
-from opendiamond.helpers import murmur
 import docker
 import docker.errors
+import logging
+import os
+import subprocess
+import threading
+import shlex
+import uuid
+from weakref import WeakSet
+
+from opendiamond.config import DiamondConfig
+from opendiamond.helpers import murmur
 
 _log = logging.getLogger(__name__)
 
@@ -39,12 +38,14 @@ class ResourceContext(object):
     cleaned up properly. All creations/modifications of resource therein
     are synchronized with a lock."""
 
-    def __init__(self, name):
+    def __init__(self, name, config):
         super(ResourceContext, self).__init__()
+        assert isinstance(config, DiamondConfig)
         self._name = name
         self._lock = threading.Lock()
         self._catalog = dict()
         self._subcontexts = WeakSet()
+        self._config = config
         _log.debug('Created resource context %s', self._name)
 
     def ensure_resource(self, rtype, *args):
@@ -53,14 +54,14 @@ class ResourceContext(object):
         sig = _ResourceFactory.get_signature(rtype, *args)
         with self._lock:
             if sig not in self._catalog:
-                res = _ResourceFactory.create(rtype, *args)
+                res = _ResourceFactory.create(rtype, self._config, *args)
                 self._catalog[sig] = res
             rv = self._catalog[sig].uri
 
         return rv
 
     def create_subcontext(self, name):
-        sc = ResourceContext(name)
+        sc = ResourceContext(name, self._config)
         self._subcontexts.add(sc)
         return sc
 
@@ -100,10 +101,10 @@ class _ResourceFactory(object):
         return murmur(rtype + '' + ''.join(args))
 
     @staticmethod
-    def create(rtype, *args):
+    def create(rtype, config, *args):
         try:
             resource_cls = _ResourceFactory.registry[rtype]
-            return resource_cls(*args)
+            return resource_cls(config, *args)
         except KeyError:
             raise ResourceTypeError(rtype)
         except ResourceCreationError:
@@ -121,7 +122,7 @@ class _ResourceFactory(object):
 class _Docker(_ResourceFactory):
     type = 'docker'
 
-    def __init__(self, image, command):
+    def __init__(self, config, image, command):
         image = image.strip()
         # Guard against "pull all tags" by the pull() API (if no tag is given,
         # it will pull all tags of that Docker image
@@ -134,7 +135,8 @@ class _Docker(_ResourceFactory):
             client = docker.from_env()
             client.images.pull(name=image)
         except docker.errors.APIError:
-            raise ResourceCreationError('Unable to pull Docker image %s' % image)
+            raise ResourceCreationError(
+                'Unable to pull Docker image %s' % image)
         else:
             try:
                 # The returned container object
@@ -146,10 +148,12 @@ class _Docker(_ResourceFactory):
                     name=name
                 )
                 # Reload until we get the IPAddress
-                while not self._container.attrs['NetworkSettings']['IPAddress']:
+                while not self._container.attrs['NetworkSettings'][
+                    'IPAddress']:
                     self._container.reload()
             except docker.errors.ImageNotFound:
-                raise ResourceCreationError('Docker image not found %s' % image)
+                raise ResourceCreationError(
+                    'Docker image not found %s' % image)
             except docker.errors.APIError:
                 if hasattr(self, '_container'):
                     self._container.remove(force=True)
@@ -158,8 +162,9 @@ class _Docker(_ResourceFactory):
                     (image, command)
                 )
             else:
-                _log.info('Started container: (%s, %s), name: %s, IPAddress: %s',
-                          image, command, self.uri['name'], self.uri['IPAddress'])
+                _log.info(
+                    'Started container: (%s, %s), name: %s, IPAddress: %s',
+                    image, command, self.uri['name'], self.uri['IPAddress'])
 
     @property
     def uri(self):
@@ -182,7 +187,7 @@ class _NvidiaDocker(_Docker):
     type = 'nvidia-docker'
 
     # pylint: disable=super-init-not-called
-    def __init__(self, image, command):
+    def __init__(self, config, image, command):
         image = image.strip()
         # Guard against "pull all tags" by the pull() API
         if not (':' in image or '@sha256' in image):
@@ -194,14 +199,18 @@ class _NvidiaDocker(_Docker):
             client = docker.from_env()
             client.images.pull(name=image)
         except docker.errors.APIError:
-            raise ResourceCreationError('Unable to pull Docker image %s' % image)
+            raise ResourceCreationError(
+                'Unable to pull Docker image %s' % image)
         else:
-            cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name, image] + \
-                shlex.split(command)
+            cmd_l = ['nvidia-docker', 'run', '--detach', '--name', name,
+                     image] + \
+                    shlex.split(command)
 
             try:
                 # _log.debug('Creating nvidia-docker: %s' % cmd_l)
-                subprocess.check_call(cmd_l)
+                my_env = os.environ.copy()
+                my_env['NV_GPU'] = config.nv_gpu
+                subprocess.check_call(cmd_l, env=my_env)
             except (subprocess.CalledProcessError, OSError):
                 try:
                     # In case error happens after the container is created
@@ -211,7 +220,8 @@ class _NvidiaDocker(_Docker):
                 except:  # pylint: disable=bare-except
                     pass
                 raise ResourceCreationError(
-                    'nvidia-docker unable to start: %s' % cmd_l
+                    'nvidia-docker unable to start: %s, NV_GPU=%s' % (
+                    cmd_l, config.nv_gpu)
                 )
 
             # Retrieve and bind the container object
@@ -224,3 +234,8 @@ class _NvidiaDocker(_Docker):
 
             while not self._container.attrs['NetworkSettings']['IPAddress']:
                 self._container.reload()
+
+            _log.info(
+                'Started NVIDIA container: (%s, %s), name: %s, IPAddress: %s, NV_GPU: %s',
+                image, command, self.uri['name'], self.uri['IPAddress'],
+                config.nv_gpu)

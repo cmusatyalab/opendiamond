@@ -44,7 +44,7 @@ class SearchState(object):
         self.scope = None
         self.blast = None
         # TODO change to something session-dependent
-        self.context = ResourceContext('session-context')
+        self.context = ResourceContext('session-context', config)
 
 
 class Search(RPCHandlers):

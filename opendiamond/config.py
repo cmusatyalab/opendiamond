@@ -138,6 +138,9 @@ class DiamondConfig(object):
             _Param('user_agent', None,
                    'OpenDiamond/%s' % opendiamond.__version__),
 
+            # nvidia-docker
+            _Param('nv_gpu', "NV_GPU", ''),
+
             # -- dataretriever
             # Listen host
             _Param('retriever_host', 'DRHOST', '127.0.0.1'),
@@ -161,6 +164,7 @@ class DiamondConfig(object):
             _Param('db_user', 'DB_USER', 'dataretriever'),
             _Param('db_password', 'DB_PASSWORD'),
             _Param('db_port', 'DB_PORT', 3306),
+
 
             # -- Deprecated config keys
             _Param(None, 'DATATYPE'),

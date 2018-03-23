@@ -12,6 +12,7 @@
 
 import os
 import datetime
+from xml.sax.saxutils import quoteattr
 
 from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
     jsonify
@@ -91,10 +92,10 @@ def get_object_meta(object_path):
 
 
 def _get_object_element(object_path):
-    return '<object id="{}" src="{}" meta="{}" />' \
-        .format(url_for('.get_object_id', object_path=object_path),
-                _get_object_src_uri(object_path),
-                url_for('.get_object_meta', object_path=object_path))
+    return '<object id={} src={} meta={} />' \
+        .format(quoteattr(url_for('.get_object_id', object_path=object_path)),
+                quoteattr(_get_object_src_uri(object_path)),
+                quoteattr(url_for('.get_object_meta', object_path=object_path)))
 
 
 def _get_object_src_uri(object_path):

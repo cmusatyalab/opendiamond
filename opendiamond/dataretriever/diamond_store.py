@@ -12,6 +12,7 @@
 
 import os
 import datetime
+from urllib2 import quote
 
 from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
     jsonify
@@ -99,7 +100,7 @@ def _get_object_element(object_path):
 
 def _get_object_src_uri(object_path):
     if LOCAL_OBJ_URI:
-        return 'file://' + _get_obj_absolute_path(object_path)
+        return 'file://' + quote(_get_obj_absolute_path(object_path))
     else:
         return url_for('.get_object_src_http', obj_path=object_path)
 

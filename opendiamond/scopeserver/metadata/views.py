@@ -18,7 +18,7 @@ from django.utils import simplejson
 from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
 from .forms import MetadataCollectionForm, ManageForm
-
+import urllib
 
 @login_required
 def index(request):
@@ -41,7 +41,7 @@ def index(request):
 
             cookie = []
             for collection in form.cleaned_data['collections']:
-                scope = [("/mysql/v1/scope/%s" % collection.dataset) + append]
+                scope = [urllib.quote(("/mysql/v1/scope/%s" % collection.dataset) + append)]
                 servers = set()
                 for server in collection.servers.all():
                     servers.add(server.host)

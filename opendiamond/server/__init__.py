@@ -84,6 +84,9 @@ import re
 import signal
 import sys
 
+from raven.conf import setup_logging
+from raven.handlers.logging import SentryHandler
+
 import opendiamond
 from opendiamond.blobcache import ExecutableBlobCache
 from opendiamond.helpers import daemonize, signalname
@@ -213,6 +216,11 @@ class DiamondServer(object):
         handler = logging.FileHandler(logpath)
         handler.setFormatter(_TimestampedLogFormatter())
         baselog.addHandler(handler)
+
+        if self.config.sentry_dsn:
+            sentry_handler = SentryHandler(self.config.sentry_dsn)
+            sentry_handler.setLevel(logging.ERROR)
+            setup_logging(sentry_handler)
 
         # Okay, now we have logging
         search = None

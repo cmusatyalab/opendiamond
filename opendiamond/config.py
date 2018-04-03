@@ -130,6 +130,8 @@ class DiamondConfig(object):
             _Param('oneshot', None, False),
             # HTTP proxy
             _Param('http_proxy', 'HTTP_PROXY', None),
+            # Sentry error logging
+            _Param('sentry_dsn', 'SENTRY_DSN', None),
             # Canonical server names
             _Param('serverids', 'SERVERID', []),
             # Worker threads per child process

@@ -28,6 +28,7 @@ REQUIRES_DATARETRIEVER = [
 REQUIRES_DIAMONDD = [
     'docker>=2.4.2',
     'PyYAML>=3.12',
+    'raven>=6.6.0',
     'redis>=2.10.3',
 ]
 REQUIRES_SCOPESERVER = [

@@ -8,6 +8,7 @@ stages:
 
 variables:
   DOCKER_DRIVER: overlay
+  DOCKER_HOST: "tcp://localhost:2375"
 
 cache:
   paths:

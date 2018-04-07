@@ -83,6 +83,7 @@ interface.
         <xsd:element name="booleanOption" type="BooleanOption"/>
         <xsd:element name="choiceOption" type="ChoiceOption"/>
         <xsd:element name="exampleOption" type="ExampleOption"/>
+        <xsd:element name="fileOption" type="FileOption"/>
       </xsd:choice>
     </xsd:choice>
   </xsd:complexType>
@@ -97,6 +98,7 @@ interface.
       <xsd:element name="booleanOption" type="BooleanOption"/>
       <xsd:element name="choiceOption" type="ChoiceOption"/>
       <xsd:element name="exampleOption" type="ExampleOption"/>
+        <xsd:element name="fileOption" type="FileOption"/>
     </xsd:choice>
     <xsd:attribute name="displayName" type="xsd:string" use="required">
       <xsd:annotation><xsd:appinfo><jxb:property><jxb:javadoc>
@@ -279,6 +281,16 @@ actually useful, which gives the number of examples provided.
       <xsd:extension base="Option"/>
     </xsd:complexContent>
   </xsd:complexType>
+
+    <xsd:complexType name="FileOption">
+        <xsd:annotation><xsd:documentation>
+            An option allowing the user to add a local file to the search.
+            The file will be read as binary and can be used as the filter's blob.
+        </xsd:documentation></xsd:annotation>
+        <xsd:complexContent>
+            <xsd:extension base="Option"/>
+        </xsd:complexContent>
+    </xsd:complexType>
 
   <xsd:complexType name="FilterList">
     <xsd:sequence>

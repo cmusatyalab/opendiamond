@@ -100,11 +100,14 @@ class ScopeListLoader(object):
                     while self._handler.pending_objects:
                         pending_object = self._handler.pending_objects.pop(0)
 
-                        id = urljoin(scope_url, pending_object['id'])
                         # Allow 'src' and 'meta' be missing
                         # If so, they should be loaded later in ObjectLoader
                         src = urljoin(scope_url, pending_object['src']) if 'src' in pending_object else None
                         meta = urljoin(scope_url, pending_object['meta']) if 'meta' in pending_object else None
+
+                        # 'src' is the fallback value for 'id' for backward
+                        # compatibility (f.i. scopelists from Algum)
+                        id = urljoin(scope_url, pending_object['id']) if 'id' in pending_object else src
 
                         new_obj = Object(self.server_id,
                                          id,

@@ -532,7 +532,6 @@ class _FilterRunner(_ObjectProcessor):
                             "Unrecognized resource scope" % scope
                         )
                     proc.send_dict(uri)
-                    break
                 elif cmd == '':
                     # Encountered EOF on pipe
                     raise IOError()

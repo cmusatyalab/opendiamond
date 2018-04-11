@@ -22,7 +22,9 @@ class GodModeForm(forms.Form):
 
     data_retriever_url = forms.CharField('DataRetriever URL',
                                          help_text='Free form DR URL to sign.',
-                                         required=True)
+                                         required=True,
+                                         widget=forms.TextInput(
+                                             attrs={'size': '150'}))
     n_servers = forms.IntegerField('# Servers to use',
                                    help_text='Will sign for only the first N servers',
                                    required=True)

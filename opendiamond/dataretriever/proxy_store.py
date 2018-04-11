@@ -19,6 +19,7 @@
 from urllib2 import urlopen
 from urlparse import urljoin
 
+import logging
 from flask import Blueprint, Response, stream_with_context
 from werkzeug.datastructures import Headers
 
@@ -32,10 +33,14 @@ STYLE = False
 
 scope_blueprint = Blueprint('proxy_store', __name__)
 
+_log = logging.getLogger(__name__)
+
 
 @scope_blueprint.route('/<int:index>of<int:total>/<path:dest_url>')
 def get_scope(index, total, dest_url):
     dest_url = 'http://' + dest_url
+
+    _log.info("Proxying {} of {} from {}".format(index, total, dest_url))
 
     headers = Headers([('Content-Type', 'text/xml')])
     return Response(stream_with_context(_generate(dest_url, index, total)),

@@ -35,9 +35,13 @@ def index(request):
             servers = servers[:n_servers]
 
             cookie = []
-            for server in servers:
+            for ind, server in enumerate(servers):
                 url_this_server = dr_url
-                # TODO Replace special keywords in url
+
+                # substitute placeholders
+                url_this_server = url_this_server.format(server_ind=ind,
+                                                         server_ind_1=ind+1)
+
                 cookie.extend(
                     generate_cookie_django([urllib.quote(url_this_server)],
                                            [server], None))
@@ -46,6 +50,7 @@ def index(request):
     else:
         form = GodModeForm(user=request.user, initial={'data_retriever_url': '/yfcc100m/scope/cloudlet013.elijah.cs.cmu.edu',
                                                        'n_servers': 8})
+        form.fields['data_retriever_url'].help_text += " Supported placeholders: {server_ind}, {server_ind_1}"
 
     return render_response(request, 'scopeserver/godmode.html', {
         'form': form,

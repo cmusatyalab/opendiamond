@@ -40,7 +40,7 @@ def index(request):
 
                 # substitute placeholders
                 url_this_server = url_this_server.format(server_ind=ind,
-                                                         server_ind_1=ind+1)
+                                                         server_ind_1=ind + 1)
 
                 cookie.extend(
                     generate_cookie_django([urllib.quote(url_this_server)],
@@ -48,9 +48,11 @@ def index(request):
 
             return HttpResponse(cookie, mimetype='application/x-diamond-scope')
     else:
-        form = GodModeForm(user=request.user, initial={'data_retriever_url': '/yfcc100m/scope/cloudlet013.elijah.cs.cmu.edu',
-                                                       'n_servers': 8})
-        form.fields['data_retriever_url'].help_text += " Supported placeholders: {server_ind}, {server_ind_1}"
+        form = GodModeForm(user=request.user, initial={
+            'data_retriever_url': '/proxy/{server_ind_1}of256/localhost:5873/yfcc100m/scope/cloudlet013.elijah.cs.cmu.edu',
+            'n_servers': 8})
+        form.fields[
+            'data_retriever_url'].help_text += " Supported placeholders: {server_ind}, {server_ind_1}"
 
     return render_response(request, 'scopeserver/godmode.html', {
         'form': form,

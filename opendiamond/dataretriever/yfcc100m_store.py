@@ -29,6 +29,7 @@ scope_blueprint = Blueprint('yfcc100m_store', __name__)
 yfcc100m_s3_image_prefix = 'https://multimedia-commons.s3-us-west-2.amazonaws.com/data/images/'
 cache_file = os.path.join('/tmp', 'dataretriever-yfcc100m.cache')
 USE_CACHE = False
+BATCH_SIZE = 1000
 
 
 @scope_blueprint.route('/scope/<path:vdms_host>')
@@ -37,21 +38,21 @@ def get_scope(vdms_host):
     db = vdms.VDMS()
     db.connect(vdms_host)
 
-    query = """
+    query_template = """
     [
         {
           "FindEntity" : {
              "class": "AT:IMAGE",
+             "constraints": {
+             "lineNumber": [">=", %d, "<", %d]
+             },
              "results" : {
-                "list" : [ "lineNumber", "link", "mediaHash", "extension" ]
+                "list" : ["mediaHash"]
              }
           }
        }
     ]
     """
-
-    response, images = db.query(query)
-    response = json.loads(response)  # XXX we want VDMS to have streaming mode
 
     # TODO cache response?
 
@@ -62,17 +63,29 @@ def get_scope(vdms_host):
             yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
 
         yield '<objectlist>\n'
-        for entity in response[0]['FindEntity']['entities']:
-            suffix = "{part1}/{part2}/{media_hash}.{ext}".format(
-                part1=entity['mediaHash'][:3],
-                part2=entity['mediaHash'][3:6],
-                media_hash=entity['mediaHash'],
-                ext='jpg')
 
-            yield '<count adjust="1"/>\n'
-            yield _get_object_element(suffix) + '\n'
+        for i in range(0, 10 ** 8, BATCH_SIZE):
+            query = query_template % (i, i + BATCH_SIZE)
+
+            response, images = db.query(query)
+            response = json.loads(response)
+
+            try:
+                for entity in response[0]['FindEntity']['entities']:
+                    suffix = "{part1}/{part2}/{media_hash}.{ext}".format(
+                        part1=entity['mediaHash'][:3],
+                        part2=entity['mediaHash'][3:6],
+                        media_hash=entity['mediaHash'],
+                        ext='jpg')
+
+                    yield '<count adjust="1"/>\n'
+                    yield _get_object_element(suffix) + '\n'
+            except KeyError:
+                _log.info('No results at {}'.format(i))
+                break
 
         yield '</objectlist>\n'
+        db.disconnect()
 
     headers = Headers([('Content-Type', 'text/xml')])
 

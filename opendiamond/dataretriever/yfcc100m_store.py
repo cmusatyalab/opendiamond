@@ -10,12 +10,13 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-import os
-
+import copy
 import json
 from flask import Blueprint, url_for, Response, \
-    stream_with_context, abort
+    stream_with_context, jsonify
+from hashlib import sha256
 import logging
+import redis
 import urlparse
 from vdms import vdms
 from werkzeug.datastructures import Headers
@@ -27,34 +28,40 @@ STYLE = False
 _log = logging.getLogger(__name__)
 scope_blueprint = Blueprint('yfcc100m_store', __name__)
 yfcc100m_s3_image_prefix = 'https://multimedia-commons.s3-us-west-2.amazonaws.com/data/images/'
-cache_file = os.path.join('/tmp', 'dataretriever-yfcc100m.cache')
-USE_CACHE = False
+USE_CACHE = True
 BATCH_SIZE = 1000
+
+try:
+    cache = redis.StrictRedis()
+    cache.ping()
+    _log.info("Using cache %s", str(cache.info()))
+except redis.ConnectionError:
+    cache = None
+
+USE_CACHE = USE_CACHE and cache is not None
+
+
+def get_cache_key(*args):
+    return 'dataretriever:' + sha256(''.join([__file__] + list(args))).hexdigest()
 
 
 @scope_blueprint.route('/scope/<path:vdms_host>')
 def get_scope(vdms_host):
-    _log.info('Connectint to VDMS server {}'.format(vdms_host))
+    _log.info('Connecting to VDMS server {}'.format(vdms_host))
     db = vdms.VDMS()
     db.connect(vdms_host)
 
-    query_template = """
-    [
+    query_template = [
         {
-          "FindEntity" : {
-             "class": "AT:IMAGE",
-             "constraints": {
-             "lineNumber": [">=", %d, "<", %d]
-             },
-             "results" : {
-                "list" : ["mediaHash"]
-             }
-          }
-       }
+            "FindEntity": {
+                "class": "AT:IMAGE",
+                "constraints": {},
+                "results": {
+                    "list": ["mediaHash"]
+                }
+            }
+        }
     ]
-    """
-
-    # TODO cache response?
 
     def generate():
 
@@ -65,9 +72,23 @@ def get_scope(vdms_host):
         yield '<objectlist>\n'
 
         for i in range(0, 10 ** 8, BATCH_SIZE):
-            query = query_template % (i, i + BATCH_SIZE)
+            query = copy.deepcopy(query_template)
+            query[0]['FindEntity']['constraints']['lineNumber'] = [">=", i, "<", i + BATCH_SIZE]
 
-            response, images = db.query(query)
+            cache_key = get_cache_key(vdms_host, json.dumps(query))
+            response = None
+            if USE_CACHE:
+                cached_response = cache.get(cache_key)
+                if cached_response:
+                    _log.info("Cache hit")
+                    response = cached_response
+
+            if response is None:
+                response, images = db.query(query)
+                if USE_CACHE:
+                    _log.info("Writing cache")
+                    cache.set(cache_key, response)
+
             response = json.loads(response)
 
             try:
@@ -102,7 +123,17 @@ def get_object_id(suffix):
                     headers=headers)
 
 
+@scope_blueprint.route('/meta/<path:suffix>')
+def get_object_meta(suffix):
+    data = {}
+    data['hyperfind.external-link'] = urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)
+
+    return jsonify(data)
+
+
 def _get_object_element(suffix):
-    return '<object id={} src={} />' \
+    return '<object id={} src={} meta={} />' \
         .format(quoteattr(url_for('.get_object_id', suffix=suffix)),
-                quoteattr(urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)))
+                quoteattr(urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)),
+                quoteattr(url_for('.get_object_meta', suffix=suffix)))
+

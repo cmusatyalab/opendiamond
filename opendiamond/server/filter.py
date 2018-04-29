@@ -81,7 +81,8 @@ import yaml
 from opendiamond.helpers import murmur, signalname, split_scheme
 from opendiamond.rpc import ConnectionFailure
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
-from opendiamond.server.statistics import FilterStatistics, Timer
+from opendiamond.server.statistics import FilterStatistics, Timer, \
+    FilterRunnerLogger, FilterStackRunnerLogger
 
 ATTR_FILTER_SCORE = '_filter.%s_score'  # arg: filter name
 # If a filter produces attribute values at less than this rate
@@ -337,6 +338,9 @@ class _ObjectProcessor(object):
     # filters requested by the client, False for other filters)
     send_score = False
 
+    def __init__(self):
+        super(_ObjectProcessor, self).__init__()
+
     def __str__(self):
         '''Return a human-readable name for the underlying filter.'''
         raise NotImplementedError()
@@ -385,8 +389,7 @@ class _ObjectFetcher(_ObjectProcessor):
             self._loader.load(obj)
         except ObjectLoadError, e:
             _log.warning('Failed to load %s: %s', obj, e)
-            self._state.stats.update('objs_unloadable')
-            raise _DropObject()
+            raise
         result = _FilterResult()
         for key in obj:
             result.output_attrs[key] = obj.get_signature(key)
@@ -407,6 +410,7 @@ class _FilterRunner(_ObjectProcessor):
         self._state = state
         self._proc = None
         self._proc_initialized = False
+        self._logger = FilterRunnerLogger(filter.stats)
 
     def __str__(self):
         return self._filter.name
@@ -416,14 +420,10 @@ class _FilterRunner(_ObjectProcessor):
 
     def cache_hit(self, result):
         accept = self.threshold(result)
-        self._filter.stats.update('objs_processed',
-                                  objs_dropped=int(not accept),
-                                  objs_cache_dropped=int(not accept),
-                                  objs_cache_passed=int(accept))
+        self._logger.on_cache_hit(accept)
 
     def evaluate(self, obj):
         if self._proc is None:
-            timer = Timer()
             # debug = self._state.config.debug_filters
             # if self._filter.name in debug or self._filter.signature in debug:
             #     argv = (self._state.config.debug_command +
@@ -435,9 +435,9 @@ class _FilterRunner(_ObjectProcessor):
             #                             self._filter.blob)
             self._proc = self._filter.connect()
             self._proc_initialized = False
-            self._filter.stats.update(startup_us_avg=timer.elapsed,
-                                      startup_us_min=timer.elapsed,
-                                      startup_us_max=timer.elapsed)
+            self._logger.on_connected()
+
+        self._logger.on_start_evaluate()
         timer = Timer()
         result = _FilterResult()
         proc = self._proc
@@ -451,6 +451,7 @@ class _FilterRunner(_ObjectProcessor):
                     # be the first command produced by the filter, since
                     # its init function may e.g. produce log messages.
                     self._proc_initialized = True
+                    self._logger.on_initialized()
                 elif cmd == 'get-attribute':
                     key = proc.get_item()
                     if key in obj:
@@ -543,7 +544,7 @@ class _FilterRunner(_ObjectProcessor):
                 # the result.
                 _log.error('Filter %s (signature %s) died on object %s',
                            self, self._filter.signature, obj)
-                self._filter.stats.update('objs_terminate')
+                self._logger.on_terminate()
                 self._proc = None
                 raise _DropObject()
             else:
@@ -552,9 +553,7 @@ class _FilterRunner(_ObjectProcessor):
                                            % self)
         finally:
             accept = self.threshold(result)
-            self._filter.stats.update('objs_processed', 'objs_computed',
-                                      objs_dropped=int(not accept),
-                                      execution_us=timer.elapsed)
+            self._logger.on_done_evaluate(accept)
             lengths = [len(obj[k]) for k in result.output_attrs]
             throughput = int(sum(lengths) / timer.elapsed_seconds)
             if throughput < ATTRIBUTE_CACHE_THRESHOLD:
@@ -735,6 +734,7 @@ class FilterStackRunner(threading.Thread):
         self._redis = None  # May be None if caching is not enabled
         self._cleanup = cleanup  # cleanup.__del__ fires when all workers exit
         self._warned_cache_update = False
+        self._logger = FilterStackRunnerLogger(state.stats)
 
     def _ensure_cache(self):
         '''Connect to Redis cache if not already connected.  Called from
@@ -943,6 +943,9 @@ class FilterStackRunner(threading.Thread):
                     obj[attrname] = str(result.score) + '\0'
             # Object passes all filters, accept
             return True
+        except ObjectLoadError:
+            self._logger.on_unloadable()
+            return False
         except _DropObject:
             return False
         finally:
@@ -974,35 +977,24 @@ class FilterStackRunner(threading.Thread):
         '''Evaluate the object and return True to accept or False to drop.'''
         # Connect to Redis cache if not already connected
         self._ensure_cache()
-        timer = Timer()
+        self._logger.on_start_evaluate()
         accept = False
         try:
             accept = self._evaluate(obj)
         finally:
-            self._state.stats.update('objs_processed',
-                                     execution_us=timer.elapsed,
-                                     objs_passed=int(accept),
-                                     objs_dropped=int(not accept))
+            self._logger.on_done_evaluate(accept)
+
         return accept
 
     # We want to catch all exceptions
     # pylint: disable=broad-except
     def run(self):
         '''Thread function.'''
-        timer = Timer()
-        first_seen = False
         try:
             # ScopeListLoader properly handles interleaved access by
             # multiple threads
             for obj in self._state.scope:
                 accept = self.evaluate(obj)
-                if not first_seen:
-                    self._state.stats.update(
-                        time_to_first_result=timer.elapsed,
-                        time_to_first_result_max=timer.elapsed,
-                        time_to_first_result_avg=timer.elapsed
-                    )
-                    first_seen = True
                 if accept:
                     self._state.blast.send(obj)
 

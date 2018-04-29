@@ -22,75 +22,61 @@ from opendiamond.protocol import XDR_search_stats, XDR_filter_stats, XDR_stat
 _log = logging.getLogger(__name__)
 
 
-class _AggregateInterface(object):
-    '''An interface for generic statistics aggregation'''
+class FilterRunnerLogger(object):
 
-    def advance(self, value):
-        raise NotImplementedError
+    def __init__(self, stats):
+        assert isinstance(stats, FilterStatistics)
+        self.stats = stats
+        self.eval_timer = Timer()
 
-    def finalize(self):
-        raise NotImplementedError
+    def on_connected(self):
+        pass
 
+    def on_initialized(self):
+        pass
 
-class _Sum(_AggregateInterface):
-    def __init__(self):
-        super(_Sum, self).__init__()
-        self._value = 0
+    def on_start_evaluate(self):
+        self.eval_timer.reset()
 
-    def advance(self, value):
-        self._value += value
+    def on_done_evaluate(self, accept):
+        with self.stats.lock:
+            self.stats.execution_us += self.eval_timer.elapsed
+            self.stats.objs_processed += 1
+            self.stats.objs_computed += 1
+            self.stats.objs_dropped += int(not accept)
 
-    def finalize(self):
-        return self._value
+    def on_cache_hit(self, accept):
+        with self.stats.lock:
+            self.stats.objs_processed += 1
+            self.stats.objs_dropped += int(not accept)
+            self.stats.objs_cache_dropped += int(not accept)
+            self.stats.objs_cache_passed += int(accept)
 
-
-class _Min(_AggregateInterface):
-    def __init__(self):
-        super(_Min, self).__init__()
-        self._value = float("inf")
-
-    def advance(self, value):
-        self._value = min(self._value, value)
-
-    def finalize(self):
-        try:
-            return int(self._value)
-        except ArithmeticError:
-            return -1
+    def on_terminate(self):
+        with self.stats.lock:
+            self.stats.objs_terminate += 1
 
 
-class _Max(_AggregateInterface):
-    def __init__(self):
-        super(_Max, self).__init__()
-        self._value = float("-inf")
+class FilterStackRunnerLogger(object):
 
-    def advance(self, value):
-        self._value = max(self._value, value)
+    def __init__(self, stats):
+        assert isinstance(stats, SearchStatistics)
+        self.stats = stats
+        self.eval_timer = Timer()
 
-    def finalize(self):
-        try:
-            return int(self._value)
-        except ArithmeticError:
-            return -1
+    def on_start_evaluate(self):
+        self.eval_timer.reset()
 
+    def on_done_evaluate(self, accept):
+        with self.stats.lock:
+            self.stats.objs_processed += 1
+            self.stats.objs_passed += int(accept)
+            self.stats.objs_dropped += int(not accept)
+            self.stats.execution_us += self.eval_timer.elapsed
 
-class _Avg(_AggregateInterface):
-    def __init__(self):
-        super(_Avg, self).__init__()
-        self._sum = _Sum()
-        self._count = _Sum()
-
-    def advance(self, value):
-        self._sum.advance(value)
-        self._count.advance(1)
-
-    def finalize(self):
-        try:
-            return int(self._sum.finalize() / self._count.finalize())
-        except ZeroDivisionError:
-            return 0
-        except ArithmeticError:
-            return -1
+    def on_unloadable(self):
+        with self.stats.lock:
+            self.stats.objs_unloadable += 1
 
 
 class _Statistics(object):
@@ -100,55 +86,34 @@ class _Statistics(object):
     attrs = ()
 
     def __init__(self):
-        self._lock = threading.Lock()
-        self._stats = dict([(name, cls()) for name, _desc, cls in self.attrs])
+        self.lock = threading.Lock()
+        self._stats = dict([(name, 0) for name, _desc in self.attrs])
 
     def __getattr__(self, key):
-        assert isinstance(self._stats[key], _AggregateInterface)
-        return self._stats[key].finalize()
-
-    def update(self, *args, **kwargs):
-        '''Atomically add 1 to the statistics listed in *args and add the
-        values specified in **kwargs to the corresponding statistics.'''
-        with self._lock:
-            for name in args:
-                try:
-                    self._stats[name].advance(1)
-                except KeyError:
-                    _log.warning('Key %s doesn\'t exist in %s',
-                                 name, self.label)
-            for name, value in kwargs.iteritems():
-                try:
-                    self._stats[name].advance(value)
-                except KeyError:
-                    _log.warning('Key %s doesn\'t exist in %s',
-                                 name, self.label)
+        return self._stats[key]
 
     def log(self):
-        '''Dump all statistics to the log.'''
+        """Dump all statistics to the log."""
         _log.info('%s:', self.label)
-        for name, desc, _cls in self.attrs:
-            _log.info('  %s: %d', desc, getattr(self, name))
+        with self.lock:
+            for name, desc in self.attrs:
+                _log.info('  %s: %d', desc, getattr(self, name))
 
 
 class SearchStatistics(_Statistics):
-    '''Statistics for the search as a whole.'''
-
     label = 'Search statistics'
-    attrs = (
-        ('objs_processed', 'Objects considered', _Sum),
-        ('objs_dropped', 'Objects dropped', _Sum),
-        ('objs_passed', 'Objects passed', _Sum),
-        ('objs_unloadable', 'Objects failing to load', _Sum),
-        ('execution_us', 'Total object examination time (us)', _Sum),
-        ('time_to_first_result', 'Time to first result Min (us)', _Min),
-        ('time_to_first_result_max', 'Time to first result Max (us)', _Max),
-        ('time_to_first_result_avg', 'Time to first result Avg (us)', _Avg),
-    )
+    attrs = (('objs_processed', 'Objects considered'),
+             ('objs_dropped', 'Objects dropped'),
+             ('objs_passed', 'Objects passed'),
+             ('objs_unloadable', 'Objects failing to load'),
+             ('execution_us', 'Total object examination time (us)'))
+
+    def __init__(self):
+        super(SearchStatistics, self).__init__()
 
     def xdr(self, objs_total, filter_stats):
         '''Return an XDR statistics structure for these statistics.'''
-        with self._lock:
+        with self.lock:
             try:
                 avg_obj_us = self.execution_us / self.objs_processed
             except ZeroDivisionError:
@@ -157,7 +122,7 @@ class SearchStatistics(_Statistics):
             stats = []
             stats.append(XDR_stat('objs_total', objs_total))
             stats.append(XDR_stat('avg_obj_time_us', avg_obj_us))
-            for name, _desc, _cls in self.attrs:
+            for name, _desc in self.attrs:
                 if name != 'execution_us':
                     stats.append(XDR_stat(name, getattr(self, name)))
 
@@ -170,16 +135,13 @@ class SearchStatistics(_Statistics):
 class FilterStatistics(_Statistics):
     '''Statistics for the execution of a single filter.'''
 
-    attrs = (('objs_processed', 'Total objects considered', _Sum),
-             ('objs_dropped', 'Total objects dropped', _Sum),
-             ('objs_cache_dropped', 'Objects dropped by cache', _Sum),
-             ('objs_cache_passed', 'Objects skipped by cache', _Sum),
-             ('objs_computed', 'Objects examined by filter', _Sum),
-             ('objs_terminate', 'Objects causing filter to terminate', _Sum),
-             ('execution_us', 'Filter execution time (us)', _Sum),
-             ('startup_us_avg', 'Startup time Avg (us)', _Avg),
-             ('startup_us_min', 'Startup time Min (us)', _Min),
-             ('startup_us_max', 'Startup time Max (us)', _Max),
+    attrs = (('objs_processed', 'Total objects considered'),
+             ('objs_dropped', 'Total objects dropped'),
+             ('objs_cache_dropped', 'Objects dropped by cache'),
+             ('objs_cache_passed', 'Objects skipped by cache'),
+             ('objs_computed', 'Objects examined by filter'),
+             ('objs_terminate', 'Objects causing filter to terminate'),
+             ('execution_us', 'Filter execution time (us)'),
              )
 
     def __init__(self, name):
@@ -189,7 +151,7 @@ class FilterStatistics(_Statistics):
 
     def xdr(self):
         '''Return an XDR statistics structure for these statistics.'''
-        with self._lock:
+        with self.lock:
             try:
                 avg_exec_us = self.execution_us / self.objs_processed
             except ZeroDivisionError:
@@ -197,7 +159,7 @@ class FilterStatistics(_Statistics):
 
             stats = []
             stats.append(XDR_stat('avg_exec_time_us', avg_exec_us))
-            for name, _desc, _cls in self.attrs:
+            for name, _desc in self.attrs:
                 if name != 'execution_us':
                     stats.append(XDR_stat(name, getattr(self, name)))
 
@@ -222,3 +184,6 @@ class Timer(object):
     def elapsed(self):
         '''Elapsed time in us.'''
         return int(self.elapsed_seconds * 1e6)
+
+    def reset(self):
+        self._start = time.time()

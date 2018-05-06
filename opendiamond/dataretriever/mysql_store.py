@@ -23,10 +23,11 @@ pip install mysql-connector-python==8.0.6
 """
 import os
 from flask import Blueprint, url_for, Response, \
-    stream_with_context, abort
+    stream_with_context, abort, jsonify
 import logging
 import mysql.connector
 from werkzeug.datastructures import Headers
+from xml.sax.saxutils import quoteattr
 
 BASEURL = 'mysql/v1'
 STYLE = False
@@ -35,6 +36,8 @@ DATAROOT = None
 DB_HOST = DB_DBNAME = DB_USER = DB_PASSWORD = DB_PORT = None
 
 _log = logging.getLogger(__name__)
+
+yfcc100m_s3_image_prefix = 'https://multimedia-commons.s3-us-west-2.amazonaws.com/data/images/'
 
 
 def init(config):
@@ -48,7 +51,7 @@ def init(config):
     DB_PORT = config.db_port
 
 
-scope_blueprint = Blueprint('metadb_store', __name__)
+scope_blueprint = Blueprint('mysql_store', __name__)
 
 
 @scope_blueprint.route('/scope/<dataset>')
@@ -66,7 +69,7 @@ def get_scope(dataset, keywords=None, divisor=None, expression=None):
     :return:
     """
     # cursor.execute() can't substitute table name
-    query = "SELECT sequence_no, rel_path FROM " + dataset
+    query = "SELECT sequence_no, rel_path, download_link FROM " + dataset
     conditions = []
     substitutes = []
     if keywords:
@@ -97,9 +100,10 @@ def get_scope(dataset, keywords=None, divisor=None, expression=None):
             yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
 
         yield '<objectlist>\n'
-        for seq_no, rel_path in cursor:
+        for seq_no, rel_path, download_link in cursor:
             yield '<count adjust="1"/>\n'
-            yield _get_object_element(dataset, seq_no, rel_path) + '\n'
+            yield _get_object_element(dataset, seq_no, rel_path,
+                                      download_link) + '\n'
 
         yield '</objectlist>\n'
 
@@ -112,7 +116,7 @@ def get_scope(dataset, keywords=None, divisor=None, expression=None):
 
 @scope_blueprint.route('/id/<dataset>/<int:seq_no>')
 def get_object_id(dataset, seq_no):
-    query = "SELECT rel_path FROM " + \
+    query = "SELECT rel_path, download_link FROM " + \
             dataset + \
             " WHERE sequence_no = %s"
 
@@ -129,15 +133,24 @@ def get_object_id(dataset, seq_no):
     if not row:
         abort(404)
 
-    rel_path = row[0]
+    rel_path, download_link = row[0], row[1]
     headers = Headers([('Content-Type', 'text/xml')])
-    return Response(_get_object_element(dataset, seq_no, rel_path),
+    return Response(_get_object_element(dataset, seq_no, rel_path, download_link),
                     "200 OK",
                     headers=headers)
 
 
-def _get_object_element(dataset, seq_no, rel_path):
-    return '<object id="{}" src="{}" />' \
-        .format(url_for('.get_object_id',
-                        dataset=dataset, seq_no=seq_no),
-                'file://' + os.path.join(DATAROOT, dataset, rel_path))
+@scope_blueprint.route('/meta/<dataset>/<int:seq_no>/<path:download_link>')
+def get_object_meta(dataset, seq_no, download_link):
+    data = {}
+    data['hyperfind.external-link'] = download_link
+
+    return jsonify(data)
+
+
+def _get_object_element(dataset, seq_no, rel_path, download_link):
+    return '<object id={} src={} meta={} />' \
+        .format(
+        quoteattr(url_for('.get_object_id', dataset=dataset, seq_no=seq_no)),
+        quoteattr('file://' + os.path.join(DATAROOT, dataset, rel_path)),
+        quoteattr(url_for('.get_object_meta', dataset=dataset, seq_no=seq_no, download_link=download_link)))

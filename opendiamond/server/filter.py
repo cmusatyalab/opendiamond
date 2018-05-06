@@ -515,7 +515,10 @@ class _FilterRunner(_ObjectProcessor):
                         level = logging.DEBUG
                     else:
                         level = logging.DEBUG
-                    _log.log(level, 'object: %s. %s' % (str(obj), message))
+                    if self._proc_initialized:
+                        _log.log(level, 'object: %s. %s' % (str(obj), message))
+                    else:
+                        _log.log(level, 'Initialize: %s' % message)
                 elif cmd == 'stdout':
                     print proc.get_item(),
                 elif cmd == 'result':
@@ -821,8 +824,12 @@ class FilterStackRunner(threading.Thread):
                             # runner.  To fix this, filter authors should add
                             # the hash of the dependency's arguments as a
                             # dummy argument to the runner's filter.
+                            # Another possibility is two different runners
+                            # generate the same attribute name but different
+                            # values, which is also problematic.
                             _log.warning('Result cache collision for ' +
-                                         'filter %s', runner)
+                                         'filter %s. %s caches a different key %s',
+                                         runner, cur, key)
                             continue
                         cur_deps = resolve(cur)
                         if cur_deps is not None:

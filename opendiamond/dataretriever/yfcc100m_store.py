@@ -29,7 +29,7 @@ _log = logging.getLogger(__name__)
 scope_blueprint = Blueprint('yfcc100m_store', __name__)
 yfcc100m_s3_image_prefix = 'https://multimedia-commons.s3-us-west-2.amazonaws.com/data/images/'
 USE_CACHE = True
-BATCH_SIZE = 1000
+BATCH_SIZE = 10000
 
 try:
     cache = redis.StrictRedis()
@@ -46,8 +46,11 @@ def get_cache_key(*args):
 
 
 @scope_blueprint.route('/scope/<path:vdms_host>')
-def get_scope(vdms_host):
+@scope_blueprint.route('/scope/<path:vdms_host>/<condition_expr>')
+def get_scope(vdms_host, condition_expr=None):
     _log.info('Connecting to VDMS server {}'.format(vdms_host))
+    _log.info('Condition expression: %s', condition_expr)
+
     db = vdms.VDMS()
     db.connect(vdms_host)
 
@@ -57,7 +60,7 @@ def get_scope(vdms_host):
                 "class": "AT:IMAGE",
                 "constraints": {},
                 "results": {
-                    "list": ["mediaHash"]
+                    "list": ["lineNumber", "mediaHash"]
                 }
             }
         }
@@ -93,6 +96,12 @@ def get_scope(vdms_host):
 
             try:
                 for entity in response[0]['FindEntity']['entities']:
+
+                    if condition_expr:
+                        condition_str = condition_expr.replace('__lineNumber__', str(entity['lineNumber']))
+                        if not eval(condition_str):
+                            continue
+
                     suffix = "{part1}/{part2}/{media_hash}.{ext}".format(
                         part1=entity['mediaHash'][:3],
                         part2=entity['mediaHash'][3:6],

@@ -16,11 +16,12 @@
 # Each different "<n>of<m>" request reads the remote scopelist in full.
 # But hopefully it will be efficient because we are streaming.
 
+
+from flask import Blueprint, Response, stream_with_context
+import logging
+import urllib
 from urllib2 import urlopen
 from urlparse import urljoin
-
-import logging
-from flask import Blueprint, Response, stream_with_context
 from werkzeug.datastructures import Headers
 
 try:
@@ -38,7 +39,7 @@ _log = logging.getLogger(__name__)
 
 @scope_blueprint.route('/<int:index>of<int:total>/<path:dest_url>')
 def get_scope(index, total, dest_url):
-    dest_url = 'http://' + dest_url
+    dest_url = 'http://' + urllib.quote(dest_url, safe='/:')
 
     _log.info("Proxying {} of {} from {}".format(index, total, dest_url))
 

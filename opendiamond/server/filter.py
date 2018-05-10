@@ -1037,14 +1037,13 @@ class FilterStack(object):
         # Ordered list of filters to execute
         self._order = list()
 
-        # If you are going to add some smartness of "filter ordering",
-        # work here.
-
         # Resolve declared dependencies
         # Filters we have already resolved
         resolved = set()
         # Filters we are currently resolving
         inprocess = set()
+
+        self._optimized = False
 
         def resolve(filter):
             if filter in resolved:
@@ -1083,3 +1082,31 @@ class FilterStack(object):
         cleanup = Reference(state.blast.close)
         for i in xrange(count):
             self.bind(state, 'Filter-%d' % i, cleanup).start()
+
+    def optimize(self):
+        """Optimize execution order of filters"""
+        # De-duplicate filter based on cache_digest
+        # (assuming identical cache_digest implies identical filters)
+        if self._optimized:
+            return
+
+        new_order = list()
+        seen_digests = set()
+        for filter in self._order:
+            assert isinstance(filter, Filter)
+            if not filter.cache_digest:
+                raise FilterDependencyError("Should not optimize filter stack "
+                                            "before resolving the filters. "
+                                            "Report to the developer.")
+            if filter.cache_digest not in seen_digests:
+                new_order.append(filter)
+                seen_digests.add(filter.cache_digest)
+            else:
+                _log.info("Filter name %s is removed due to de-duplication.", filter.name)
+
+        # commit
+        self._order = new_order
+        self._optimized = True
+
+        # If you are going to add some smartness of static "filter ordering",
+        # work here.

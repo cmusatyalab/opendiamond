@@ -205,7 +205,12 @@ class Search(RPCHandlers):
             push_attrs = None
         _log.info('Push attributes: %s',
                   ', '.join(
-                      params.attrs) if params.attrs is not None else '(everything)')
+                      params.attrs) if params.attrs else '(everything)')
+
+        self._filters.optimize()
+        _log.info("Optimized filter stack [%d]: %s" % (len(self._filters),
+                                                       ','.join([f.name for f in self._filters])))
+
         self._state.blast = BlastChannel(self._blast_conn, push_attrs)
         self._running = True
         _log.info('Starting search %s', params.search_id)
@@ -221,12 +226,7 @@ class Search(RPCHandlers):
             _log.warning('Cannot reexecute filters: %s', str(e))
             raise
         _log.info('Reexecuting on object %s', params.object_id)
-        runner = self._filters.bind(self._state)
-        obj = Object(self._server_id, params.object_id)
-        loader = ObjectLoader(self._state.config, self._state.blob_cache)
-        if not loader.source_available(obj):
-            raise DiamondRPCFCacheMiss()
-        drop = not runner.evaluate(obj)
+
         if params.attrs is not None:
             output_attrs = set(params.attrs)
         else:
@@ -234,7 +234,19 @@ class Search(RPCHandlers):
             output_attrs = None
         _log.info('Push attributes: %s',
                   ', '.join(
-                      params.attrs) if params.attrs is not None else '(everything)')
+                      params.attrs) if params.attrs else '(everything)')
+
+        self._filters.optimize()
+        _log.info("Optimized filter stack [%d]: %s" % (len(self._filters),
+                                                       ','.join([f.name for f in self._filters])))
+
+        runner = self._filters.bind(self._state)
+        obj = Object(self._server_id, params.object_id)
+        loader = ObjectLoader(self._state.config, self._state.blob_cache)
+        if not loader.source_available(obj):
+            raise DiamondRPCFCacheMiss()
+        drop = not runner.evaluate(obj)
+
         return protocol.XDR_attribute_list(
             obj.xdr_attributes(output_attrs, for_drop=drop))
 

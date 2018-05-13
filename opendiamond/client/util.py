@@ -40,6 +40,7 @@ def create_filter_from_files(filter_name,
                              dependencies=(),
                              min_score=float('-inf'),
                              max_score=float('inf'),
+                             blob_zip_path=None
                              ):
     """
     Create a FilterSpec using code file and example files on disk.
@@ -47,12 +48,16 @@ def create_filter_from_files(filter_name,
     :param filter_name: Filter name. Will be converted to string.
     :param code_path: Path of the code file.
     :param args: Filter arguments. Will be converted to strings.
-    :param example_paths: List of paths of example files.
+    :param example_paths: List of paths of example files. Will create zip from them.
     :param dependencies: List of dependent filter names. Will be converted to strings.
     :param min_score: float.
     :param max_score: float
+    :param blob_zip_path: Alternative path of blob argument zip file.
+    Cannot be specified with example_paths at the same time.
     :return: A FilterSpec.
     """
+    assert bool(example_paths) ^ bool(blob_zip_path), \
+        "example_path and blob_zip_path should not be given at the same time."
     filter_name = str(filter_name)
     code_blob = BinaryBlob(data=open(code_path).read())
     args = map(str, args)
@@ -61,6 +66,8 @@ def create_filter_from_files(filter_name,
     if example_paths:
         assert isinstance(example_paths, list) or isinstance(example_paths, tuple)
         example_blob = create_blob_argument(*example_paths)
+    elif blob_zip_path:
+        example_blob = BinaryBlob(open(blob_zip_path).read())
     else:
         example_blob = EmptyBlob()
 

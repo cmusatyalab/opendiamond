@@ -104,6 +104,18 @@ class FilterSpec(object):
     def __str__(self):
         return self.name
 
+    def __repr__(self):
+        return 'FilterSpec (name={}, code={}, arguments={}, blob_argument={},' \
+               'dependencies={}, min_score={}, max_score={})'.format(
+            self.name,
+            repr(self.code),
+            str(self.arguments),
+            repr(self.blob_argument),
+            str(self.dependencies),
+            self.min_score,
+            self.max_score
+        )
+
 
 class _DiamondConnection(object):
     def __init__(self, address):

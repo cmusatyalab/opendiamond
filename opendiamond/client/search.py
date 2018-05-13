@@ -13,8 +13,11 @@
 import binascii
 import logging
 import uuid
+from collections import deque
 from hashlib import sha256
 import struct
+
+import threading
 
 from opendiamond.client.rpc import ControlConnection, BlastConnection
 from opendiamond.protocol import (
@@ -283,19 +286,32 @@ class _DiamondBlastSet(object):
         """A generator yielding search results from
         all underlying DiamondConnection's."""
         if self._started:
+            pending_objs = deque()
+            pending_conns = deque()
 
-            generators = set(
-                [self._handle_objects(conn) for conn in self._connections])
+            def worker(handler):
+                try:
+                    while True:
+                        obj = next(handler)
+                        pending_objs.append(obj)
+                except StopIteration:
+                    pass
+                finally:
+                    pending_conns.popleft()
 
-            while generators:
-                for g in list(generators):
-                    try:
-                        obj = next(g)
-                        yield obj
-                    except StopIteration:
-                        generators.remove(g)
+            for conn in self._connections:
+                pending_conns.append(1)     # just a token
+                threading.Thread(target=worker, args=(self._handle_objects(conn),)).start()
 
-    def _handle_objects(self, conn):
+            while True:
+                if pending_objs:
+                    yield pending_objs.popleft()
+                elif not pending_conns:
+                    break
+
+
+    @staticmethod
+    def _handle_objects(conn):
         """A generator yielding search results from a DiamondConnection."""
         while True:
             try:

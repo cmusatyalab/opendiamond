@@ -420,4 +420,6 @@ class DiamondSearch(object):
 
     def close(self):
         if not self._closed:
+            for conn in self._connections.values():
+                conn.close()
             self._closed = True

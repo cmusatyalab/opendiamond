@@ -21,9 +21,10 @@ Presumes MySQL and the table is indexed with:
 Requires:
 pip install mysql-connector-python==8.0.6
 """
+import datetime
 import os
 from flask import Blueprint, url_for, Response, \
-    stream_with_context, abort, jsonify
+    stream_with_context, abort, jsonify, send_file
 import logging
 import mysql.connector
 from werkzeug.datastructures import Headers
@@ -31,7 +32,7 @@ from xml.sax.saxutils import quoteattr
 
 BASEURL = 'mysql/v1'
 STYLE = False
-LOCAL_OBJ_URI = True  # not used. if true, return local path, otherwise http.
+LOCAL_OBJ_URI = False  # if true, return local path, otherwise http.
 DATAROOT = None
 DB_HOST = DB_DBNAME = DB_USER = DB_PASSWORD = DB_PORT = None
 
@@ -148,9 +149,29 @@ def get_object_meta(dataset, seq_no, download_link):
     return jsonify(data)
 
 
+@scope_blueprint.route('/obj/<dataset>/<path:rel_path>')
+def get_object_src_http(dataset, rel_path):
+    path = _get_obj_abosolute_path(dataset, rel_path)
+    response = send_file(path,
+                         cache_timeout=datetime.timedelta(
+                             days=365).total_seconds(),
+                         add_etags=True,
+                         conditional=True)
+    return response
+
+
+def _get_obj_abosolute_path(dataset, rel_path):
+    return os.path.join(DATAROOT, dataset, rel_path)
+
+
 def _get_object_element(dataset, seq_no, rel_path, download_link):
+    if LOCAL_OBJ_URI:
+        src_uri = 'file://' + os.path.join(DATAROOT, dataset, rel_path)
+    else:
+        src_uri = url_for('.get_object_src_http', dataset=dataset, rel_path=rel_path)
+
     return '<object id={} src={} meta={} />' \
         .format(
         quoteattr(url_for('.get_object_id', dataset=dataset, seq_no=seq_no)),
-        quoteattr('file://' + os.path.join(DATAROOT, dataset, rel_path)),
+        quoteattr(src_uri),
         quoteattr(url_for('.get_object_meta', dataset=dataset, seq_no=seq_no, download_link=download_link)))

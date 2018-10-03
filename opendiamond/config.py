@@ -143,6 +143,9 @@ class DiamondConfig(object):
             # nvidia-docker
             _Param('nv_gpu', "NV_GPU", ''),
 
+            # security: allow insecure mode bypassing expiration date check and signature verification
+            _Param('security_cookie_no_verify', 'SECURITY_COOKIE_NO_VERIFY', 0),
+
             # -- dataretriever
             # Listen host
             _Param('retriever_host', 'DRHOST', '127.0.0.1'),

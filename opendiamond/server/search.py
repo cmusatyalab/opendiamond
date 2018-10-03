@@ -164,8 +164,11 @@ class Search(RPCHandlers):
                 log_item('Servers', '%s', ', '.join(cookie.servers))
                 log_item('Scopes', '%s', ', '.join(cookie.scopeurls))
                 log_item('Expires', '%s', cookie.expires)
-                cookie.verify(self._state.config.serverids,
-                              self._state.config.certdata)
+                if self._state.config.security_cookie_no_verify:
+                    _log.warn('Bypassing cookie verification.')
+                else:
+                    cookie.verify(self._state.config.serverids,
+                                self._state.config.certdata)
             scope = ScopeListLoader(self._state.config, self._server_id,
                                     cookies)
         except ScopeCookieExpired, e:

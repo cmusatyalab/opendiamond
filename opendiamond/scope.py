@@ -74,8 +74,8 @@ class ScopeCookie(object):
         return binascii.hexlify(self.signature) + '\n' + self.data
 
     def __repr__(self):
-        return ('<ScopeCookie %s, blaster %s, servers %s, expiration %s>' %
-                (self.serial, self.blaster, self.servers, self.expires))
+        return ('<ScopeCookie %s, blaster %s, servers %s, urls %s, expiration %s>' %
+                (self.serial, self.blaster, self.servers, self.scopeurls, self.expires))
 
     def __iter__(self):
         '''Return an iterator over the scope URLs.'''

@@ -56,7 +56,7 @@ def create_filter_from_files(filter_name,
     Cannot be specified with example_paths at the same time.
     :return: A FilterSpec.
     """
-    assert bool(example_paths) ^ bool(blob_zip_path), \
+    assert not (bool(example_paths) and bool(blob_zip_path)), \
         "example_path and blob_zip_path should not be given at the same time."
     filter_name = str(filter_name)
     code_blob = BinaryBlob(data=open(code_path).read())

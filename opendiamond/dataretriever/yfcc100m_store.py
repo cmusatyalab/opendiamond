@@ -47,7 +47,8 @@ def get_cache_key(*args):
 
 @scope_blueprint.route('/scope/<path:vdms_host>')
 @scope_blueprint.route('/scope/<path:vdms_host>/<condition_expr>')
-def get_scope(vdms_host, condition_expr=None):
+@scope_blueprint.route('/scope/<path:vdms_host>/limit/<int:limit>')
+def get_scope(vdms_host, condition_expr=None, limit=None):
     _log.info('Connecting to VDMS server {}'.format(vdms_host))
     _log.info('Condition expression: %s', condition_expr)
 
@@ -74,6 +75,10 @@ def get_scope(vdms_host, condition_expr=None):
 
         yield '<objectlist>\n'
 
+        count = 0
+
+        # Query VDMS in batches to avoid huge result. Batch based on lineNumber.
+        # Batching is transparent to user.
         for i in range(0, 10 ** 8, BATCH_SIZE):
             query = copy.deepcopy(query_template)
             query[0]['FindEntity']['constraints']['lineNumber'] = [">=", i, "<", i + BATCH_SIZE]
@@ -110,8 +115,14 @@ def get_scope(vdms_host, condition_expr=None):
 
                     yield '<count adjust="1"/>\n'
                     yield _get_object_element(suffix) + '\n'
+                    count += 1
+                    if limit is not None and count >= limit:
+                        raise StopIteration
             except KeyError:
                 _log.info('No results at {}'.format(i))
+                break
+            except StopIteration:
+                _log.info('Stop at limit {}'.format(limit))
                 break
 
         yield '</objectlist>\n'

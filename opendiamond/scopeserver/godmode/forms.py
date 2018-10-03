@@ -24,7 +24,7 @@ class GodModeForm(forms.Form):
                                          help_text='Free form DR URL to sign.',
                                          required=True,
                                          widget=forms.TextInput(
-                                             attrs={'size': '150'}))
+                                             attrs={'size': '1024'}))
     n_servers = forms.IntegerField('# Servers to use',
-                                   help_text='Will sign for only the first N servers',
+                                   help_text='Will sign for only the first N servers read from a dynamic servers file.',
                                    required=True)

@@ -102,17 +102,36 @@ class ScopeListLoader(object):
 
                         # Allow 'src' and 'meta' be missing
                         # If so, they should be loaded later in ObjectLoader
-                        src = urljoin(scope_url, pending_object['src']) if 'src' in pending_object else None
-                        meta = urljoin(scope_url, pending_object['meta']) if 'meta' in pending_object else None
+                        src = None
+                        meta = None
+                        id = None
+                        if 'src' in pending_object:
+                            src = urljoin(scope_url, pending_object['src'])
+                            del pending_object['src']
+                        if 'meta' in pending_object:
+                            meta = urljoin(scope_url, pending_object['meta'])
+                            del pending_object['meta'] 
 
                         # 'src' is the fallback value for 'id' for backward
                         # compatibility (f.i. scopelists from Algum)
-                        id = urljoin(scope_url, pending_object['id']) if 'id' in pending_object else src
+                        # id can't be None eventually
+                        if 'id' in pending_object:
+                            id = urljoin(scope_url, pending_object['id'])
+                            del pending_object['id']
+                        else:
+                            id = src
+
+                        if id is None:
+                            _log.error('An object cannot have none id and none src at the same time.')
 
                         new_obj = Object(self.server_id,
                                          id,
                                          src=src,
                                          meta=meta)
+
+                        # use the remaining attrs as normal object attributes
+                        for k, v in pending_object.iteritems():
+                            new_obj[k] = v + '\0'
 
                         yield new_obj
 

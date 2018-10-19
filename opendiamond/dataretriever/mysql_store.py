@@ -10,12 +10,13 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 """
-Presumes metadata of a data set is stored in a table in a MySQL database.
-Presumes files belonging to a dataset are stored under DATAROOT/<dataset>/.
-Metadata table only stores relative path to the above directory.
-Provides keyword search over metadata to get list of objects.
-Database config is obtained from DiamondConfig.
-Presumes MySQL and the table is indexed with:
+Pre-conditions:
+Metadata of a data set is stored in a table <dataset> in a MySQL database.
+Files (objects) belonging to a dataset are stored under DATAROOT/<dataset>/.
+MySQL table stores relative path to the above directory.
+Table provides keyword search to get list of objects.
+Database login info is obtained from DiamondConfig.
+MySQL table is indexed with:
  FULLTEXT (title, keywords, description)
 
 Requires:
@@ -32,7 +33,7 @@ from xml.sax.saxutils import quoteattr
 
 BASEURL = 'mysql/v1'
 STYLE = False
-LOCAL_OBJ_URI = False  # if true, return local path, otherwise http.
+LOCAL_OBJ_URI = True  # if true, return local path, otherwise http.
 DATAROOT = None
 DB_HOST = DB_DBNAME = DB_USER = DB_PASSWORD = DB_PORT = None
 
@@ -114,40 +115,12 @@ def get_scope(dataset, keywords=None, divisor=None, expression=None):
                     status="200 OK",
                     headers=headers)
 
-
 @scope_blueprint.route('/id/<dataset>/<int:seq_no>')
 def get_object_id(dataset, seq_no):
-    query = "SELECT rel_path, download_link FROM " + \
-            dataset + \
-            " WHERE sequence_no = %s"
-
-    cnx = mysql.connector.connect(user=DB_USER,
-                                  password=DB_PASSWORD,
-                                  host=DB_HOST,
-                                  database=DB_DBNAME,
-                                  port=DB_PORT)
-    cursor = cnx.cursor()
-    cursor.execute(query, (seq_no,))
-
-    row = cursor.fetchone()
-
-    if not row:
-        abort(404)
-
-    rel_path, download_link = row[0], row[1]
     headers = Headers([('Content-Type', 'text/xml')])
-    return Response(_get_object_element(dataset, seq_no, rel_path, download_link),
+    return Response(_get_object_element(dataset, seq_no, None, None),
                     "200 OK",
                     headers=headers)
-
-
-@scope_blueprint.route('/meta/<dataset>/<int:seq_no>/<path:download_link>')
-def get_object_meta(dataset, seq_no, download_link):
-    data = {}
-    data['hyperfind.external-link'] = download_link
-
-    return jsonify(data)
-
 
 @scope_blueprint.route('/obj/<dataset>/<path:rel_path>')
 def get_object_src_http(dataset, rel_path):
@@ -165,13 +138,36 @@ def _get_obj_abosolute_path(dataset, rel_path):
 
 
 def _get_object_element(dataset, seq_no, rel_path, download_link):
+    """If rel_path and download_link are not None, we are called from scope.
+    Otherwise we are called from ID and need to run SQL query to fetch these attrs."""
+
+    if rel_path is None:
+        query = "SELECT rel_path, download_link FROM " + \
+        dataset + \
+        " WHERE sequence_no = %s"
+
+        cnx = mysql.connector.connect(user=DB_USER,
+                                    password=DB_PASSWORD,
+                                    host=DB_HOST,
+                                    database=DB_DBNAME,
+                                    port=DB_PORT)
+        cursor = cnx.cursor()
+        cursor.execute(query, (seq_no,))
+
+        row = cursor.fetchone()
+
+        if not row:
+            return None
+
+        rel_path, download_link = row[0], row[1]
+
     if LOCAL_OBJ_URI:
         src_uri = 'file://' + os.path.join(DATAROOT, dataset, rel_path)
     else:
         src_uri = url_for('.get_object_src_http', dataset=dataset, rel_path=rel_path)
 
-    return '<object id={} src={} meta={} />' \
+    return '<object id={} src={} hyperfind.external-link={} />' \
         .format(
         quoteattr(url_for('.get_object_id', dataset=dataset, seq_no=seq_no)),
         quoteattr(src_uri),
-        quoteattr(url_for('.get_object_meta', dataset=dataset, seq_no=seq_no, download_link=download_link)))
+        quoteattr(download_link))

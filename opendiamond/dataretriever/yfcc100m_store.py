@@ -45,9 +45,9 @@ def get_cache_key(*args):
     return 'dataretriever:' + sha256(''.join([__file__] + list(args))).hexdigest()
 
 
-@scope_blueprint.route('/scope/<path:vdms_host>')
-@scope_blueprint.route('/scope/<path:vdms_host>/<condition_expr>')
-@scope_blueprint.route('/scope/<path:vdms_host>/limit/<int:limit>')
+@scope_blueprint.route('/scope/<vdms_host>')
+@scope_blueprint.route('/scope/<vdms_host>/<condition_expr>')
+@scope_blueprint.route('/scope/<vdms_host>/limit/<int:limit>')
 def get_scope(vdms_host, condition_expr=None, limit=None):
     _log.info('Connecting to VDMS server {}'.format(vdms_host))
     _log.info('Condition expression: %s', condition_expr)
@@ -142,18 +142,9 @@ def get_object_id(suffix):
                     "200 OK",
                     headers=headers)
 
-
-@scope_blueprint.route('/meta/<path:suffix>')
-def get_object_meta(suffix):
-    data = {}
-    data['hyperfind.external-link'] = urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)
-
-    return jsonify(data)
-
-
 def _get_object_element(suffix):
-    return '<object id={} src={} meta={} />' \
+    return '<object id={} src={} hyperfind.external-link={} />' \
         .format(quoteattr(url_for('.get_object_id', suffix=suffix)),
                 quoteattr(urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)),
-                quoteattr(url_for('.get_object_meta', suffix=suffix)))
+                quoteattr(urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)))
 

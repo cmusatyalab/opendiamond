@@ -68,7 +68,42 @@ class ScopeListLoader(object):
     def next(self):
         '''Return the next Object.'''
         with self._lock:
-            return self._generator.next()
+            pending_object, scope_url = self._generator.next()
+
+        # Allow 'src' and 'meta' be missing
+        # If so, they should be loaded later in ObjectLoader
+        src = None
+        meta = None
+        id = None
+        if 'src' in pending_object:
+            src = urljoin(scope_url, pending_object['src'])
+            del pending_object['src']
+        if 'meta' in pending_object:
+            meta = urljoin(scope_url, pending_object['meta'])
+            del pending_object['meta'] 
+
+        # 'src' is the fallback value for 'id' for backward
+        # compatibility (f.i. scopelists from Algum)
+        # id can't be None eventually
+        if 'id' in pending_object:
+            id = urljoin(scope_url, pending_object['id'])
+            del pending_object['id']
+        else:
+            id = src
+
+        if id is None:
+            _log.error('An object cannot have none id and none src at the same time.')
+
+        new_obj = Object(self.server_id,
+                            id,
+                            src=src,
+                            meta=meta)
+
+        # use the remaining attrs as normal object attributes
+        for k, v in pending_object.iteritems():
+            new_obj[k] = v + '\0'
+
+        return new_obj
 
     def _generator_func(self):
         # Build URL opener
@@ -99,41 +134,7 @@ class ScopeListLoader(object):
                     parser.feed(buf)
                     while self._handler.pending_objects:
                         pending_object = self._handler.pending_objects.pop(0)
-
-                        # Allow 'src' and 'meta' be missing
-                        # If so, they should be loaded later in ObjectLoader
-                        src = None
-                        meta = None
-                        id = None
-                        if 'src' in pending_object:
-                            src = urljoin(scope_url, pending_object['src'])
-                            del pending_object['src']
-                        if 'meta' in pending_object:
-                            meta = urljoin(scope_url, pending_object['meta'])
-                            del pending_object['meta'] 
-
-                        # 'src' is the fallback value for 'id' for backward
-                        # compatibility (f.i. scopelists from Algum)
-                        # id can't be None eventually
-                        if 'id' in pending_object:
-                            id = urljoin(scope_url, pending_object['id'])
-                            del pending_object['id']
-                        else:
-                            id = src
-
-                        if id is None:
-                            _log.error('An object cannot have none id and none src at the same time.')
-
-                        new_obj = Object(self.server_id,
-                                         id,
-                                         src=src,
-                                         meta=meta)
-
-                        # use the remaining attrs as normal object attributes
-                        for k, v in pending_object.iteritems():
-                            new_obj[k] = v + '\0'
-
-                        yield new_obj
+                        yield (pending_object, scope_url)
 
             except urllib2.URLError, e:
                 _log.warning('Fetching %s: %s', scope_url, e)

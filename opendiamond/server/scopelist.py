@@ -70,28 +70,25 @@ class ScopeListLoader(object):
         with self._lock:
             pending_object, scope_url = self._generator.next()
 
+        id = pending_object.pop('id', None)
+        src = pending_object.pop('src', None)
+        meta = pending_object.pop('meta', None)
+
         # Allow 'src' and 'meta' be missing
-        # If so, they should be loaded later in ObjectLoader
-        src = None
-        meta = None
-        id = None
-        if 'src' in pending_object:
-            src = urljoin(scope_url, pending_object['src'])
-            del pending_object['src']
-        if 'meta' in pending_object:
-            meta = urljoin(scope_url, pending_object['meta'])
-            del pending_object['meta'] 
+        # If so, they should be loaded later in ObjectLoader        
+        if src:
+            src = urljoin(scope_url, src)
+        if meta:
+            meta = urljoin(scope_url, meta)
 
         # 'src' is the fallback value for 'id' for backward
         # compatibility (f.i. scopelists from Algum)
         # id can't be None eventually
-        if 'id' in pending_object:
-            id = urljoin(scope_url, pending_object['id'])
-            del pending_object['id']
-        else:
+        if id:
+            id = urljoin(scope_url, id)
+        elif src:
             id = src
-
-        if id is None:
+        else:
             _log.error('An object cannot have none id and none src at the same time.')
 
         new_obj = Object(self.server_id,

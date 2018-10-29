@@ -43,13 +43,17 @@ def wrap_filters_in_docker():
     if FLAGS.docker_uid is None:
         return
 
-    for filter_code in glob.glob(
-            os.path.join(DIAMOND_DIR, 'filters', 'fil_*')):
+    for filter_code in glob.glob(os.path.join(DIAMOND_DIR, 'filters', 'fil_*')):
         sys.stderr.write("Wrapping %s\n" % filter_code)
         config = dict(
             docker_image=FLAGS.docker_uid,
-            filter_command=filter_code
         )
+
+        if FLAGS.tcp:
+            config['docker_command'] = '{} --filter --tcp'.format(filter_code)
+        else:   # legacy mode
+            config['filter_command'] = filter_code
+
         with open(filter_code, 'w') as outfile:
             outfile.write("# %s\n" % FLAGS.headline)
             outfile.write("%s\n" % yaml.dump(config, default_flow_style=False))
@@ -76,6 +80,7 @@ if __name__ == '__main__':
                         default='diamond-docker-filter',
                         help='The first line to be scanned by Diamondd to '
                              'determine the filter mode.')
+    parser.add_argument('--tcp', action='store_true', help='Run the filter in TCP server mode.')
     parser.add_argument('docker_uid',
                         nargs='?',
                         metavar='DOCKER_IMAGE_UID',

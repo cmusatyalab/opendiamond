@@ -11,8 +11,10 @@
 #
 
 from __future__ import with_statement
+import argparse
 from cStringIO import StringIO
 import os
+import socket
 import sys
 from tempfile import mkstemp
 import threading
@@ -26,6 +28,7 @@ from opendiamond.attributes import (
     RGBImageAttributeCodec, PatchesAttributeCodec, HeatMapAttributeCodec)
 
 EXAMPLE_DIR = 'examples'
+FILTER_PORT = 5555
 
 
 class Session(object):
@@ -148,31 +151,62 @@ class Filter(object):
         specify the name of the class that should be executed during this
         run of the program.  That argument will be stripped from the
         argument list before it is given to the filter.'''
-        if argv is None:
-            argv = sys.argv
-        if '--filter' in argv:
-            cls._run_loop(classes)
+        parser = argparse.ArgumentParser(description='A Diamond filter')
+        parser.add_argument('--filter', action='store_true')
+        parser.add_argument('--tcp', action='store_true')
+        parser.add_argument('--port', type=int, default=FILTER_PORT)
+
+        if argv is None:    
+            flags = parser.parse_args(argv)
+        else:
+            flags = parser.parse_args()
+        if flags.filter:
+            cls._run_loop(flags, classes)
             return True
         return False
 
     @classmethod
-    def _run_loop(cls, classes=None):
+    def _run_loop(cls, flags, classes=None):
         try:
-            # Set aside stdin and stdout to prevent them from being accessed by
-            # mistake, even in forked children
-            fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb', 1)
-            fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb', 32768)
-            fh = open('/dev/null', 'r')
-            os.dup2(fh.fileno(), 0)
-            sys.stdin = os.fdopen(0, 'r')
-            fh.close()
-            read_fd, write_fd = os.pipe()
-            os.dup2(write_fd, 1)
-            sys.stdout = os.fdopen(1, 'w', 0)
-            os.close(write_fd)
-            conn = _DiamondConnection(fin, fout)
-            # Send the fake stdout to Diamond in the background
-            _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
+            if flags.tcp:
+                # listen on TCP port
+                print "Listening on TCP port ", flags.port
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.bind(('', flags.port))
+                sock.listen(8)
+
+                while True:
+                    c, addr = sock.accept()
+                    c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    print "Get connection from ", addr
+                    pid = os.fork()
+                    if pid == 0:    # child, set up the real stuff and start the filter loop
+                        sock = None
+                        fin = c.makefile('rb')
+                        fout = c.makefile('wb')
+                        conn = _DiamondConnection(fin, fout)
+                        # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
+                        break
+                    else:   # server, continue listening forever
+                        print "Forked", pid
+                        continue
+            else:
+                # old way: run an instance of the filter and speak through stdin/stdout
+                # Set aside stdin and stdout to prevent them from being accessed by
+                # mistake, even in forked children
+                fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb', 1)
+                fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb', 32768)
+                fh = open('/dev/null', 'r')
+                os.dup2(fh.fileno(), 0)
+                sys.stdin = os.fdopen(0, 'r')
+                fh.close()
+                read_fd, write_fd = os.pipe()
+                os.dup2(write_fd, 1)
+                sys.stdout = os.fdopen(1, 'w', 0)
+                os.close(write_fd)
+                conn = _DiamondConnection(fin, fout)
+                # Send the fake stdout to Diamond in the background
+                _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
 
             # Read arguments and initialize filter
             ver = int(conn.get_item())

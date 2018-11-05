@@ -274,8 +274,8 @@ class _FilterTCP(_FilterConnection):
         self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
         super(_FilterTCP, self).__init__(
-            fin=self._sock.makefile('rb'),
-            fout=self._sock.makefile('wb'),
+            fin=self._sock.makefile('rb', 0),
+            fout=self._sock.makefile('wb', 0),
             name=name,
             args=args,
             blob=blob

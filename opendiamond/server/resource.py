@@ -48,13 +48,13 @@ class ResourceContext(object):
         self._config = config
         _log.debug('Created resource context %s', self._name)
 
-    def ensure_resource(self, rtype, *args):
+    def ensure_resource(self, rtype, *args, **kargs):
         """Ensure a resource exists in the context. If already exists, return the URI.
         If not, create it and return the URI."""
-        sig = _ResourceFactory.get_signature(rtype, *args)
+        sig = _ResourceFactory.get_signature(rtype, *args, **kargs)
         with self._lock:
             if sig not in self._catalog:
-                res = _ResourceFactory.create(rtype, self._config, *args)
+                res = _ResourceFactory.create(rtype, self._config, *args, **kargs)
                 self._catalog[sig] = res
             rv = self._catalog[sig].uri
 
@@ -97,14 +97,18 @@ class _ResourceFactory(object):
     __metaclass__ = _ResourceMeta
 
     @staticmethod
-    def get_signature(rtype, *args):
-        return murmur(rtype + '' + ''.join(args))
+    def get_signature(rtype, *args, **kargs):
+        return murmur(
+            rtype 
+            + ''.join(map(str, args))
+            + ''.join(map(str, kargs.keys())) 
+            + ''.join(map(str, kargs.values())))
 
     @staticmethod
-    def create(rtype, config, *args):
+    def create(rtype, config, *args, **kargs):
         try:
             resource_cls = _ResourceFactory.registry[rtype]
-            return resource_cls(config, *args)
+            return resource_cls(config, *args, **kargs)
         except KeyError:
             raise ResourceTypeError(rtype)
         except ResourceCreationError:
@@ -122,7 +126,7 @@ class _ResourceFactory(object):
 class _Docker(_ResourceFactory):
     type = 'docker'
 
-    def __init__(self, config, image, command):
+    def __init__(self, config, image, command, **kargs):
         image = image.strip()
         # Guard against "pull all tags" by the pull() API (if no tag is given,
         # it will pull all tags of that Docker image
@@ -139,18 +143,19 @@ class _Docker(_ResourceFactory):
                 'Unable to pull Docker image %s' % image)
         else:
             try:
-                # The returned container object
+                # The immediately returned container object
                 # doesn't have sufficient network information.
                 self._container = client.containers.run(
                     image=image,
                     command=shlex.split(command),
                     detach=True,
-                    name=name
+                    name=name,
+                    **kargs
                 )
                 # Reload until we get the IPAddress
-                while not self._container.attrs['NetworkSettings'][
-                    'IPAddress']:
-                    self._container.reload()
+                if self._container.attrs['HostConfig']['NetworkMode'] == 'bridge':
+                    while not self._container.attrs['NetworkSettings']['IPAddress']:
+                        self._container.reload()
             except docker.errors.ImageNotFound:
                 raise ResourceCreationError(
                     'Docker image not found %s' % image)
@@ -163,8 +168,8 @@ class _Docker(_ResourceFactory):
                 )
             else:
                 _log.info(
-                    'Started container: (%s, %s), name: %s, IPAddress: %s',
-                    image, command, self.uri['name'], self.uri['IPAddress'])
+                    'Started container: (%s, %s), %s, name: %s, IPAddress: %s',
+                    image, command, str(kargs), self.uri['name'], self.uri['IPAddress'])
 
     @property
     def uri(self):

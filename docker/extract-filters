@@ -49,9 +49,10 @@ def wrap_filters_in_docker():
             docker_image=FLAGS.docker_uid,
         )
 
+        # TODO we should remove docker_command here, and let diamondd take control
         if FLAGS.tcp:
             config['docker_command'] = '{} --filter --tcp'.format(filter_code)
-        else:   # legacy mode
+        else:
             config['filter_command'] = filter_code
 
         with open(filter_code, 'w') as outfile:

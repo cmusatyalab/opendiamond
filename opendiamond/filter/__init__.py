@@ -155,6 +155,7 @@ class Filter(object):
         parser.add_argument('--filter', action='store_true')
         parser.add_argument('--tcp', action='store_true')
         parser.add_argument('--port', type=int, default=FILTER_PORT)
+        parser.add_argument('--client', dest='host', default=None)
 
         if argv is None:    
             flags = parser.parse_args(argv)
@@ -168,7 +169,28 @@ class Filter(object):
     @classmethod
     def _run_loop(cls, flags, classes=None):
         try:
-            if flags.tcp:
+            if flags.tcp and flags.host is not None:
+                # connect to a TCP port as client
+                while True:
+                    try:
+                        # spawn as many children as the server accepts
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.connect((flags.host, flags.port))
+                        print "Connected to %s:%d" % (flags.host, flags.port)
+                        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        pid = os.fork()
+                        if pid == 0:    # child
+                            fin = sock.makefile('rb', 0)
+                            fout = sock.makefile('wb', 0)
+                            conn = _DiamondConnection(fin, fout)
+                            break
+                        else:
+                            print "Forked", pid
+                            sock = None
+                            continue
+                    except socket.error:
+                        pass
+            elif flags.tcp:
                 # listen on TCP port
                 print "Listening on TCP port ", flags.port
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -178,12 +200,12 @@ class Filter(object):
                 while True:
                     c, addr = sock.accept()
                     c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    print "Get connection from ", addr
+                    print "Accepted connection from ", addr
                     pid = os.fork()
                     if pid == 0:    # child, set up the real stuff and start the filter loop
                         sock = None
-                        fin = c.makefile('rb')
-                        fout = c.makefile('wb')
+                        fin = c.makefile('rb', 0)
+                        fout = c.makefile('wb', 0)
                         conn = _DiamondConnection(fin, fout)
                         # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
                         break

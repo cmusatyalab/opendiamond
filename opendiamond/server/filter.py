@@ -248,7 +248,7 @@ class _FilterProcess(_FilterConnection):
 
 
 class _FilterTCP(_FilterConnection):
-    """Connection to a filter in form of a TCP port"""
+    """Connection to a filter which is listening on a TCP port"""
 
     def __init__(self, host, port, name, args, blob):
         self._address = (host, port)
@@ -424,15 +424,6 @@ class _FilterRunner(_ObjectProcessor):
 
     def evaluate(self, obj):
         if self._proc is None:
-            # debug = self._state.config.debug_filters
-            # if self._filter.name in debug or self._filter.signature in debug:
-            #     argv = (self._state.config.debug_command +
-            #             [self._filter.code_path])
-            # else:
-            #     argv = [self._filter.code_path]
-            # self._proc = _FilterProcess(argv, self._filter.name,
-            #                             self._filter.arguments,
-            #                             self._filter.blob)
             self._proc = self._filter.connect()
             self._proc_initialized = False
             self._logger.on_connected()
@@ -652,10 +643,10 @@ class Filter(object):
         def scan_mode(filter_file):
             """Scan the first 100 bytes of file for special tags."""
             first_line = filter_file.read(100)
-            if 'diamond-docker' in first_line:
+            if 'diamond-docker-filter-client' in first_line:
+                return 'docker-client'
+            elif 'diamond-do`cker-filter' in first_line:
                 return 'docker'
-            elif 'diamond-nvidia-docker' in first_line:
-                return 'nvidia-docker'
             else:
                 return 'default'
 
@@ -673,8 +664,8 @@ class Filter(object):
                     args=self.arguments,
                     blob=self.blob
                 )
-        elif self.mode == 'docker' or self.mode == 'nvidia-docker':
-            # Docker service accessed via TCP
+        elif self.mode == 'docker':
+            # Docker filter listens on TCP port
             try:
                 config = yaml.load(open(self.code_path, 'r'))
                 docker_image = config['docker_image']
@@ -690,7 +681,7 @@ class Filter(object):
 
             def wrapper(_):
                 uri = state.context.ensure_resource(
-                    self.mode,
+                    'docker',
                     docker_image, docker_command
                 )
                 return _FilterTCP(
@@ -700,7 +691,37 @@ class Filter(object):
                     args=self.arguments,
                     blob=self.blob
                 )
+        elif self.mode == 'docker-client':
+            # Docker reaches back to diamondd as a TCP client
+            # i.e., we have a listening port here,
+            # and we use Docker's host network mode
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.bind(('', 0))  # pick a free port
+                host, port = sock.getsockname()
+                sock.listen(0)
+                _log.info("Filter %s will listen on %s:%d", self.name, host, port)
 
+                config = yaml.load(open(self.code_path, 'r'))
+                docker_image = config['docker_image']
+                filter_command = config['filter_command']
+                docker_command = '%s --filter --tcp --client %s --port %d' % (filter_command, host, port)
+
+                def wrapper(_):
+                    uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host')
+                    conn, addr = sock.accept()  # assume thread safe
+                    _log.debug('Filter %s accepted connection from %s', self.name, addr)
+                    conn.setblocking(1)
+                    conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    return _FilterConnection(
+                        fin=conn.makefile('rb', 0),
+                        fout=conn.makefile('wb', 0),
+                        name=self.name,
+                        args=self.arguments,
+                        blob=self.blob
+                    )
+            except Exception as e:
+                raise FilterDependencyError(e)
         else:
             raise FilterUnsupportedMode()
 

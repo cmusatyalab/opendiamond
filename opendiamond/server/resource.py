@@ -153,7 +153,7 @@ class _Docker(_ResourceFactory):
                     **kargs
                 )
                 # Reload until we get the IPAddress
-                if self._container.attrs['HostConfig']['NetworkMode'] == 'bridge':
+                if self._container.attrs['HostConfig']['NetworkMode'] == 'default':
                     while not self._container.attrs['NetworkSettings']['IPAddress']:
                         self._container.reload()
             except docker.errors.ImageNotFound:

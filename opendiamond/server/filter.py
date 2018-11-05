@@ -645,7 +645,7 @@ class Filter(object):
             first_line = filter_file.read(100)
             if 'diamond-docker-filter-client' in first_line:
                 return 'docker-client'
-            elif 'diamond-do`cker-filter' in first_line:
+            elif 'diamond-docker-filter' in first_line:
                 return 'docker'
             else:
                 return 'default'
@@ -697,10 +697,12 @@ class Filter(object):
             # and we use Docker's host network mode
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
                 sock.bind(('', 0))  # pick a free port
+                sock.listen()
                 host, port = sock.getsockname()
-                sock.listen(0)
                 _log.info("Filter %s will listen on %s:%d", self.name, host, port)
+                # self._hold_sock = sock
 
                 config = yaml.load(open(self.code_path, 'r'))
                 docker_image = config['docker_image']
@@ -709,10 +711,15 @@ class Filter(object):
 
                 def wrapper(_):
                     uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host')
+                    # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    # sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                    # sock.bind((host, port))
+                    # sock.listen(1)
                     conn, addr = sock.accept()  # assume thread safe
                     _log.debug('Filter %s accepted connection from %s', self.name, addr)
                     conn.setblocking(1)
                     conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    # sock.close()
                     return _FilterConnection(
                         fin=conn.makefile('rb', 0),
                         fout=conn.makefile('wb', 0),

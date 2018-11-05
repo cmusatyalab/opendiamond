@@ -172,17 +172,20 @@ class Filter(object):
             if flags.tcp and flags.host is not None:
                 # connect to a TCP port as client
                 while True:
+                    # spawn as many children as the server accepts
                     try:
-                        # spawn as many children as the server accepts
                         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         sock.connect((flags.host, flags.port))
                         print "Connected to %s:%d" % (flags.host, flags.port)
                         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        # Prevent too many just-connected sockets
+                        # and thus forked processes: fork AFTER at least reading version
+                        fin = sock.makefile('rb', 0)
+                        fout = sock.makefile('wb', 0)
+                        conn = _DiamondConnection(fin, fout)
+                        ver = int(conn.get_item())
                         pid = os.fork()
                         if pid == 0:    # child
-                            fin = sock.makefile('rb', 0)
-                            fout = sock.makefile('wb', 0)
-                            conn = _DiamondConnection(fin, fout)
                             break
                         else:
                             print "Forked", pid
@@ -208,6 +211,7 @@ class Filter(object):
                         fout = c.makefile('wb', 0)
                         conn = _DiamondConnection(fin, fout)
                         # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
+                        ver = int(conn.get_item())
                         break
                     else:   # server, continue listening forever
                         print "Forked", pid
@@ -229,9 +233,11 @@ class Filter(object):
                 conn = _DiamondConnection(fin, fout)
                 # Send the fake stdout to Diamond in the background
                 _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
+                ver = int(conn.get_item())
+
 
             # Read arguments and initialize filter
-            ver = int(conn.get_item())
+            # ver = int(conn.get_item())
             if ver != 1:
                 raise ValueError('Unknown protocol version %d' % ver)
             name = conn.get_item()

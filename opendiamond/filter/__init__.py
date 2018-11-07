@@ -178,11 +178,12 @@ class Filter(object):
                         sock.connect((flags.host, flags.port))
                         print "Connected to %s:%d" % (flags.host, flags.port)
                         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                        # Prevent too many just-connected sockets
-                        # and thus forked processes: fork AFTER at least reading version
+                        # setting bufsize=0 helps large attributes, but hurts small ones
                         fin = sock.makefile('rb')
                         fout = sock.makefile('wb')
                         conn = _DiamondConnection(fin, fout)
+                        # Prevent too many just-connected sockets
+                        # and thus forked processes: fork AFTER at least reading version
                         ver = int(conn.get_item())
                         pid = os.fork()
                         if pid == 0:    # child

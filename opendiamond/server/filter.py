@@ -623,13 +623,10 @@ class Filter(object):
         """ Return an unbound method which returns a FilterConnection. """
         assert self.code_path is not None
 
-        # TODO Consider moving this to a separate factory class
         def scan_mode(filter_file):
             """Scan the first 100 bytes of file for special tags."""
             first_line = filter_file.read(100)
-            if 'diamond-docker-filter-client' in first_line:
-                return 'docker-client'
-            elif 'diamond-docker-filter' in first_line:
+            if 'diamond-docker-filter' in first_line:
                 return 'docker'
             else:
                 return 'default'
@@ -653,70 +650,103 @@ class Filter(object):
             try:
                 config = yaml.load(open(self.code_path, 'r'))
                 docker_image = config['docker_image']
-                docker_command = config.get('docker_command')
-                docker_port = int(config.get('docker_port', 5555))
+                filter_command = config['filter_command']
+                connect_method = config.get('connect_method', 'default')
 
-                if docker_command is None:
-                    docker_command = 'socat TCP4-LISTEN:%d,fork,nodelay ' \
-                                     'EXEC:\"%s --filter\"' % (
-                                         docker_port, config['filter_command'])
             except Exception as e:
                 raise FilterDependencyError(e)
 
-            def wrapper(_):
-                uri = state.context.ensure_resource('docker',docker_image, docker_command)
+            _log.info('%s: docker: %s', self.name, connect_method)
 
-                sock = None
-                host, port = uri['IPAddress'], docker_port
-                for _ in range(10):
-                    try:
-                        # OS may give up with its own timeout regardless of timeout here
-                        sock = socket.create_connection((host, port), 1.0)
-                        break
-                    except socket.error:
-                        sock = None
-                        time.sleep(0.5)
-                        continue
-                        
-                if sock is None:
-                    raise FilterExecutionError('Unable to connect to filter at %s: %d' % (host, port))
-                
-                return _FilterTCP(
-                    sock=sock,
-                    name=self.name,
-                    args=self.arguments,
-                    blob=self.blob)
-
-        elif self.mode == 'docker-client':
-            # Docker reaches back to diamondd as a TCP client
-            # i.e., we have a listening port here,
-            # and we use Docker's host network mode
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind(('', 0))  # pick a free port
-                sock.listen(5)
-                host, port = sock.getsockname()
-                _log.info("Filter %s will listen on %s:%d", self.name, host, port)
- 
-                config = yaml.load(open(self.code_path, 'r'))
-                docker_image = config['docker_image']
-                filter_command = config['filter_command']
-                docker_command = '%s --filter --tcp --client %s --port %d' % (filter_command, host, port)
+            docker_port = 5555
+            if connect_method == 'default':
+                # connect through socat
+                docker_command = 'socat TCP4-LISTEN:%d,fork,nodelay ' \
+                                    'EXEC:\"%s --filter\"' % (docker_port, filter_command)
 
                 def wrapper(_):
-                    uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host')
-                    conn, addr = sock.accept()  # assume thread safe
-                    _log.debug('Filter %s accepted connection from %s', self.name, addr)
+                    uri = state.context.ensure_resource('docker',docker_image, docker_command)
+
+                    sock = None
+                    host, port = uri['IPAddress'], docker_port
+                    for _ in range(10):
+                        try:
+                            # OS may give up with its own timeout regardless of timeout here
+                            sock = socket.create_connection((host, port), 1.0)
+                            break
+                        except socket.error:
+                            sock = None
+                            time.sleep(0.5)
+                            continue
+                            
+                    if sock is None:
+                        raise FilterExecutionError('Unable to connect to filter at %s: %d' % (host, port))
+                    
                     return _FilterTCP(
-                        sock=conn,
+                        sock=sock,
                         name=self.name,
                         args=self.arguments,
-                        blob=self.blob
-                    )
-            except Exception as e:
-                raise FilterDependencyError(e)
+                        blob=self.blob)
+
+            elif connect_method == 'tcp-server':
+                # filter runs a TCP server
+                docker_command = '%s --filter --tcp --port %d' % (filter_command, docker_port)
+
+                def wrapper(_):
+                    uri = state.context.ensure_resource('docker',docker_image, docker_command)
+
+                    sock = None
+                    host, port = uri['IPAddress'], docker_port
+                    for _ in range(10):
+                        try:
+                            # OS may give up with its own timeout regardless of timeout here
+                            sock = socket.create_connection((host, port), 1.0)
+                            break
+                        except socket.error:
+                            sock = None
+                            time.sleep(0.5)
+                            continue
+                            
+                    if sock is None:
+                        raise FilterExecutionError('Unable to connect to filter at %s: %d' % (host, port))
+                    
+                    return _FilterTCP(
+                        sock=sock,
+                        name=self.name,
+                        args=self.arguments,
+                        blob=self.blob)
+
+            elif connect_method == 'tcp-client':
+                # filter connects to diamond
+                # create a listening socket here
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    host, port = '', 0  # pick a free port
+                    sock.bind((host, port))
+                    sock.listen(5)
+                    host, port = sock.getsockname()
+                    _log.info("Filter %s will listen on %s:%d", self.name, host, port)
+    
+                    docker_command = '%s --filter --tcp --client %s --port %d' % (filter_command, host, port)
+
+                    def wrapper(_):
+                        # Need network_mode='host' to let container access host port
+                        uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host')
+                        conn, addr = sock.accept()  # assume thread safe
+                        _log.debug('Filter %s accepted connection from %s', self.name, addr)
+                        return _FilterTCP(
+                            sock=conn,
+                            name=self.name,
+                            args=self.arguments,
+                            blob=self.blob
+                        )
+                except Exception as e:
+                    raise FilterDependencyError(e)
+            
+            else:
+                raise FilterDependencyError('Unknown connect_method: %s' % connect_method)
         else:
-            raise FilterUnsupportedMode()
+            raise FilterDependencyError('Contact the developer.')
 
         return wrapper
 

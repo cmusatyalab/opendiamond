@@ -64,6 +64,9 @@ class FilterStackRunnerLogger(object):
         self.stats = stats
         self.eval_timer = Timer()
 
+        # record some per-thread statistics
+        self.objs_processed = self.objs_passed = self.objs_dropped = self.objs_unloadable = 0
+
     def on_start_evaluate(self):
         self.eval_timer.reset()
 
@@ -74,9 +77,20 @@ class FilterStackRunnerLogger(object):
             self.stats.objs_dropped += int(not accept)
             self.stats.execution_us += self.eval_timer.elapsed
 
+        self.objs_processed += 1
+        self.objs_passed += int(accept)
+        self.objs_dropped += int(not accept)
+
     def on_unloadable(self):
         with self.stats.lock:
             self.stats.objs_unloadable += 1
+
+        self.objs_unloadable += 1
+
+    def on_finish(self):
+        _log.info(
+            'Thread: objs processed/passed/dropped/unloadable: %d/%d/%d/%d',
+            self.objs_processed, self.objs_passed, self.objs_dropped, self.objs_unloadable)
 
 
 class _Statistics(object):

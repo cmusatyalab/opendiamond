@@ -250,45 +250,29 @@ class _FilterProcess(_FilterConnection):
 class _FilterTCP(_FilterConnection):
     """Connection to a filter which is listening on a TCP port"""
 
-    def __init__(self, host, port, name, args, blob):
-        self._address = (host, port)
-        for _ in range(10):
-            try:
-                # OS may give up with its own timeout regardless of
-                # timeout here
-                sock = socket.create_connection(self._address, 1.0)
-            except socket.error:
-                time.sleep(1.0)
-                continue
-            else:
-                self._sock = sock
-                break
-
-        if not hasattr(self, '_sock'):
-            raise FilterExecutionError(
-                'Unable to connect to filter at %s, %s' % self._address
-            )
-
-        # timeout mode internally sets the socket to non-blocking
+    def __init__(self, sock, name, args, blob, close=True):
+        self._sock = sock
         self._sock.setblocking(1)
         self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._close = close
 
         super(_FilterTCP, self).__init__(
-            fin=self._sock.makefile('rb', 0),
-            fout=self._sock.makefile('wb', 0),
+            fin=self._sock.makefile('rb'),
+            fout=self._sock.makefile('wb'),
             name=name,
             args=args,
             blob=blob
         )
 
     def __del__(self):
-        try:
-            self._sock.shutdown(socket.SHUT_RDWR)
-            self._sock.close()
-            # _log.debug('Filter %s closed connection.' % self)
-        except IOError:
-            # _log.info('Filter %s did not close connection properly' % self)
-            pass
+        if self._close:
+            try:
+                self._sock.shutdown(socket.SHUT_RDWR)
+                self._sock.close()
+                # _log.debug('Filter %s closed connection.' % self)
+            except IOError:
+                # _log.info('Filter %s did not close connection properly' % self)
+                pass
 
 
 class _FilterResult(object):
@@ -680,30 +664,40 @@ class Filter(object):
                 raise FilterDependencyError(e)
 
             def wrapper(_):
-                uri = state.context.ensure_resource(
-                    'docker',
-                    docker_image, docker_command
-                )
+                uri = state.context.ensure_resource('docker',docker_image, docker_command)
+
+                sock = None
+                host, port = uri['IPAddress'], docker_port
+                for _ in range(10):
+                    try:
+                        # OS may give up with its own timeout regardless of timeout here
+                        sock = socket.create_connection((host, port), 1.0)
+                        break
+                    except socket.error:
+                        sock = None
+                        time.sleep(0.5)
+                        continue
+                        
+                if sock is None:
+                    raise FilterExecutionError('Unable to connect to filter at %s: %d' % (host, port))
+                
                 return _FilterTCP(
-                    host=uri['IPAddress'],
-                    port=docker_port,
+                    sock=sock,
                     name=self.name,
                     args=self.arguments,
-                    blob=self.blob
-                )
+                    blob=self.blob)
+
         elif self.mode == 'docker-client':
             # Docker reaches back to diamondd as a TCP client
             # i.e., we have a listening port here,
             # and we use Docker's host network mode
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                # sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
                 sock.bind(('', 0))  # pick a free port
-                sock.listen()
+                sock.listen(5)
                 host, port = sock.getsockname()
                 _log.info("Filter %s will listen on %s:%d", self.name, host, port)
-                # self._hold_sock = sock
-
+ 
                 config = yaml.load(open(self.code_path, 'r'))
                 docker_image = config['docker_image']
                 filter_command = config['filter_command']
@@ -711,18 +705,10 @@ class Filter(object):
 
                 def wrapper(_):
                     uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host')
-                    # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    # sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-                    # sock.bind((host, port))
-                    # sock.listen(1)
                     conn, addr = sock.accept()  # assume thread safe
                     _log.debug('Filter %s accepted connection from %s', self.name, addr)
-                    conn.setblocking(1)
-                    conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    # sock.close()
-                    return _FilterConnection(
-                        fin=conn.makefile('rb', 0),
-                        fout=conn.makefile('wb', 0),
+                    return _FilterTCP(
+                        sock=conn,
                         name=self.name,
                         args=self.arguments,
                         blob=self.blob
@@ -1041,6 +1027,8 @@ class FilterStackRunner(threading.Thread):
             _log.exception('Worker thread exception')
             os.kill(os.getpid(), signal.SIGUSR1)
             # pylint: enable=broad-except
+        finally:
+            self._logger.on_finish()
 
 
 class Reference(object):

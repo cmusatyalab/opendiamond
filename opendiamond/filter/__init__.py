@@ -180,8 +180,8 @@ class Filter(object):
                         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                         # Prevent too many just-connected sockets
                         # and thus forked processes: fork AFTER at least reading version
-                        fin = sock.makefile('rb', 0)
-                        fout = sock.makefile('wb', 0)
+                        fin = sock.makefile('rb')
+                        fout = sock.makefile('wb')
                         conn = _DiamondConnection(fin, fout)
                         ver = int(conn.get_item())
                         pid = os.fork()
@@ -207,8 +207,8 @@ class Filter(object):
                     pid = os.fork()
                     if pid == 0:    # child, set up the real stuff and start the filter loop
                         sock = None
-                        fin = c.makefile('rb', 0)
-                        fout = c.makefile('wb', 0)
+                        fin = c.makefile('rb')
+                        fout = c.makefile('wb')
                         conn = _DiamondConnection(fin, fout)
                         # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
                         ver = int(conn.get_item())

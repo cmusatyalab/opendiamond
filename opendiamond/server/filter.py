@@ -1000,29 +1000,31 @@ class FilterStackRunner(threading.Thread):
         except _DropObject:
             return False
         finally:
-            # Update the cache with new values
-            resultmap = dict()
-            for runner, result in new_results.iteritems():
-                # Result cache entry
-                resultmap[cache_keys[runner]] = result.encode()
-                # Attribute cache entries, if the filter was expensive enough
-                if result.cache_output:
-                    for key, valsig in result.output_attrs.iteritems():
-                        # If this attribute was subsequently overwritten by a
-                        # different filter, make sure we're not caching the
-                        # newer value against this key.
-                        if valsig == obj.get_signature(key):
-                            attribute_key = self._get_attribute_key(valsig)
-                            resultmap[attribute_key] = obj[key]
-            # Do it
-            if self._redis is not None and resultmap:
-                try:
-                    self._redis.mset(resultmap)
-                except ResponseError, e:
-                    # mset failed, possibly due to maxmemory quota
-                    if not self._warned_cache_update:
-                        self._warned_cache_update = True
-                        _log.warning('Failed to update cache: %s', e)
+            if self._redis is not None:
+                # Update the cache with new values
+                resultmap = dict()
+                for runner, result in new_results.iteritems():
+                    # Result cache entry: hash(filter, obj) -> result
+                    resultmap[cache_keys[runner]] = result.encode()
+                    # Attribute cache entries, if the filter was expensive enough
+                    # hash(attr val) -> attr val
+                    if result.cache_output:
+                        for key, valsig in result.output_attrs.iteritems():
+                            # If this attribute was subsequently overwritten by a
+                            # different filter, make sure we're not caching the
+                            # newer value against this key.
+                            if valsig == obj.get_signature(key):
+                                attribute_key = self._get_attribute_key(valsig)
+                                resultmap[attribute_key] = obj[key]
+                # Do it
+                if resultmap:
+                    try:
+                        self._redis.mset(resultmap)
+                    except ResponseError, e:
+                        # mset failed, possibly due to maxmemory quota
+                        if not self._warned_cache_update:
+                            self._warned_cache_update = True
+                            _log.warning('Failed to update cache: %s', e)
 
     def evaluate(self, obj):
         '''Evaluate the object and return True to accept or False to drop.'''

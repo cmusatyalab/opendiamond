@@ -39,8 +39,14 @@ class _RPCClientConnection(object):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._sock.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
 
-        _log.debug("Connecting to {}:{}.".format(address, protocol.PORT))
-        self._sock.connect((address, protocol.PORT))
+        parts = address.split(':')
+        if len(parts) >= 2:
+            host, port = parts[0], int(parts[1])
+        else:
+            host, port = parts[0], protocol.PORT
+
+        _log.debug("Connecting to {}:{}.".format(host, port))
+        self._sock.connect((host, port))
 
         _log.debug("Sending nonce {}".format(binascii.hexlify(nonce)))
         self._sock.sendall(nonce)

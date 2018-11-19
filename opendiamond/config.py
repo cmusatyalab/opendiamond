@@ -16,7 +16,7 @@ import os
 import socket
 
 import opendiamond
-
+from opendiamond.protocol import PORT
 
 class DiamondConfigError(Exception):
     pass
@@ -145,6 +145,7 @@ class DiamondConfig(object):
 
             # security: allow insecure mode bypassing expiration date check and signature verification
             _Param('security_cookie_no_verify', 'SECURITY_COOKIE_NO_VERIFY', 0),
+            _Param('diamondd_port', 'PORT', PORT),
 
             # -- dataretriever
             # Listen host

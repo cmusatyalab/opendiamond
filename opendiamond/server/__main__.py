@@ -15,6 +15,7 @@ from optparse import OptionParser
 import sys
 
 from opendiamond.config import DiamondConfig
+from opendiamond.protocol import PORT
 from opendiamond.server import DiamondServer
 
 # Create option parser
@@ -29,6 +30,7 @@ def add_option(*args, **kwargs):
 
 
 # Configure options
+# dest should reflect attr names in DiamondConfig
 add_option('-d', dest='daemonize', action='store_false', default=True,
            help='do not run as a daemon')
 add_option('-e', metavar='SPEC',
@@ -41,7 +43,7 @@ add_option('-f', dest='path',
            help='config file')
 add_option('-n', dest='oneshot', action='store_true', default=False,
            help='do not fork for a new connection')
-
+add_option('-p', dest='diamondd_port', default=PORT, help='accept new clients on port')
 
 def run():
     opts, args = parser.parse_args()

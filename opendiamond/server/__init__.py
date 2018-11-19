@@ -137,7 +137,7 @@ class DiamondServer(object):
 
         self.config = config
         self._children = ChildManager(config.cgroupdir, not config.oneshot)
-        self._listener = ConnListener()
+        self._listener = ConnListener(config.diamondd_port)
         self._last_log_prune = datetime.fromtimestamp(0)
         self._last_cache_prune = datetime.fromtimestamp(0)
         self._ignore_signals = False

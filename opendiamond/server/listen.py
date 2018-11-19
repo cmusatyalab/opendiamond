@@ -21,7 +21,7 @@ import socket
 from weakref import WeakValueDictionary
 
 from opendiamond.helpers import connection_ok
-from opendiamond.protocol import PORT, NONCE_LEN, NULL_NONCE
+from opendiamond.protocol import NONCE_LEN, NULL_NONCE
 
 # Listen parameters
 BACKLOG = 16
@@ -158,9 +158,9 @@ class ConnListener(object):
     '''Manager for listening socket and connections still in the matchmaking
     process.'''
 
-    def __init__(self):
+    def __init__(self, port):
         # Get a list of potential bind addresses
-        addrs = socket.getaddrinfo(None, PORT, 0, socket.SOCK_STREAM, 0,
+        addrs = socket.getaddrinfo(None, port, 0, socket.SOCK_STREAM, 0,
                                    socket.AI_PASSIVE)
         # Try to bind to each address
         socks = []

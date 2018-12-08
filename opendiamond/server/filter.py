@@ -65,24 +65,24 @@ cache values resulting from filter executions that produce attribute data at
 less than 2 MB/s.
 '''
 
+import fcntl
 import logging
 import os
+from redis import Redis
+from redis.exceptions import ResponseError
+import simplejson as json
 import signal
 import socket
 import subprocess
 import threading
 import time
-
-from redis import Redis
-from redis.exceptions import ResponseError
-import simplejson as json
 import yaml
 
 from opendiamond.helpers import murmur, signalname, split_scheme
 from opendiamond.rpc import ConnectionFailure
 from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
 from opendiamond.server.statistics import FilterStatistics, Timer, \
-    FilterRunnerLogger, FilterStackRunnerLogger
+    FilterRunnerLogger, FilterStackRunnerLogger, NoLogger
 
 ATTR_FILTER_SCORE = '_filter.%s_score'  # arg: filter name
 # If a filter produces attribute values at less than this rate
@@ -90,6 +90,11 @@ ATTR_FILTER_SCORE = '_filter.%s_score'  # arg: filter name
 # values as well as the filter results.
 ATTRIBUTE_CACHE_THRESHOLD = 2 << 20  # bytes/sec
 DEBUG = False
+
+# Used for pipe buffer size control
+F_LINUX_SPECIFIC_BASE = 1024
+F_SETPIPE_SZ = F_LINUX_SPECIFIC_BASE + 7
+F_GETPIPE_SZ = F_LINUX_SPECIFIC_BASE + 8
 
 _log = logging.getLogger(__name__)
 if DEBUG:
@@ -210,9 +215,12 @@ class _FilterConnection(object):
         self.send(keys)
         self.send(values)
 
+    def hint_large_attribute(self, size):
+        pass
+
 
 class _FilterProcess(_FilterConnection):
-    """Connection to filter in form of executables."""
+    """Connection to filter in form of executable."""
 
     def __init__(self, code_argv, name, args, blob):
         try:
@@ -227,6 +235,16 @@ class _FilterProcess(_FilterConnection):
         super(_FilterProcess, self).__init__(
             fin=self._proc.stdout, fout=self._proc.stdin,
             name=name, args=args, blob=blob)
+
+    def hint_large_attribute(self, size):
+        try:
+            old_size = fcntl.fcntl(self._proc.stdout, F_GETPIPE_SZ)
+            size = min(size, 1024 * 1024)
+            size = max(size, 64 * 1024)
+            new_size = fcntl.fcntl(self._proc.stdout, F_SETPIPE_SZ, size)
+            _log.info("Increased pipe size: %d -> %d", old_size, new_size)
+        except IOError as e:
+            _log.warn(e)
 
     def __del__(self):
         # try a 'gentle' shutdown first
@@ -394,7 +412,8 @@ class _FilterRunner(_ObjectProcessor):
         self._state = state
         self._proc = None
         self._proc_initialized = False
-        self._logger = FilterRunnerLogger(filter.stats)
+        # self._logger = FilterRunnerLogger(filter.stats)
+        self._logger = NoLogger(filter.stats)
 
     def __str__(self):
         return self._filter.name
@@ -511,6 +530,11 @@ class _FilterRunner(_ObjectProcessor):
                             "Unrecognized resource scope" % scope
                         )
                     proc.send_dict(uri)
+                elif cmd == 'hint-large-attribute':
+                    size = int(proc.get_item())
+                    _log.info("Hint: attribute size %d", size)
+                    proc.hint_large_attribute(size)
+                    break
                 elif cmd == '':
                     # Encountered EOF on pipe
                     raise IOError()
@@ -782,6 +806,7 @@ class FilterStackRunner(threading.Thread):
         self._cleanup = cleanup  # cleanup.__del__ fires when all workers exit
         self._warned_cache_update = False
         self._logger = FilterStackRunnerLogger(state.stats)
+        # self._logger = NoLogger(state.stats)
 
     def _ensure_cache(self):
         '''Connect to Redis cache if not already connected.  Called from

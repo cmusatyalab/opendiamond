@@ -78,6 +78,9 @@ class Session(object):
         uri = self._conn.get_dict()
         return uri
 
+    def hint_large_attribute(self, size):
+        self._conn.send_message('hint-large-attribute', size)
+
 
 class Filter(object):
     '''A Diamond filter.  Implement this.'''
@@ -221,8 +224,8 @@ class Filter(object):
                 # old way: run an instance of the filter and speak through stdin/stdout
                 # Set aside stdin and stdout to prevent them from being accessed by
                 # mistake, even in forked children
-                fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb', 1)
-                fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb', 32768)
+                fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb')
+                fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
                 fh = open('/dev/null', 'r')
                 os.dup2(fh.fileno(), 0)
                 sys.stdin = os.fdopen(0, 'r')
@@ -505,7 +508,9 @@ class _DiamondConnection(object):
 
         def send_value(value):
             value = str(value)
-            self._fout.write('%d\n%s\n' % (len(value), value))
+            self._fout.write('%d\n' % len(value))
+            self._fout.write(value)
+            self._fout.write('\n')
 
         with self._output_lock:
             self._fout.write('%s\n' % tag)

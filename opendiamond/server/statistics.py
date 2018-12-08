@@ -22,6 +22,35 @@ from opendiamond.protocol import XDR_search_stats, XDR_filter_stats, XDR_stat
 _log = logging.getLogger(__name__)
 
 
+class NoLogger(object):
+    def __init__(self, stats):
+        pass
+    
+    def on_connected(self):
+        pass
+
+    def on_initialized(self):
+        pass
+
+    def on_start_evaluate(self):
+        pass
+
+    def on_done_evaluate(self, accept):
+        pass
+
+    def on_cache_hit(self, accept):
+        pass
+
+    def on_terminate(self):
+        pass
+
+    def on_unloadable(self):
+        pass
+
+    def on_finish(self):
+        pass
+
+
 class FilterRunnerLogger(object):
 
     def __init__(self, stats):

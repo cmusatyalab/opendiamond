@@ -36,7 +36,8 @@ scope_blueprint = Blueprint('diamond_store', __name__)
 
 
 @scope_blueprint.route('/<gididx>')
-def get_scope(gididx):
+@scope_blueprint.route('/<gididx>/limit/<int:limit>')
+def get_scope(gididx, limit=None):
     index = 'GIDIDX' + gididx.upper()
     index = _get_index_absolute_path(index)
 
@@ -47,6 +48,8 @@ def get_scope(gididx):
         with open(index, 'r') as f:
             for _ in f.readlines():
                 num_entries += 1
+                if limit is not None and num_entries >= limit:
+                    break
 
         with open(index, 'r') as f:
             yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
@@ -54,10 +57,14 @@ def get_scope(gididx):
                 yield '<?xml-stylesheet type="text/xsl" href="/scopelist.xsl" ?>\n'
 
             yield '<objectlist count="{:d}">\n'.format(num_entries)
-
+            
+            count = 0
             for path in f.readlines():
                 path = path.strip()
                 yield _get_object_element(object_path=path) + '\n'
+                count += 1
+                if limit is not None and count >= limit:
+                    break
 
             yield '</objectlist>\n'
 

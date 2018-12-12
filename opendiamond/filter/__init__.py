@@ -159,6 +159,8 @@ class Filter(object):
         parser.add_argument('--tcp', action='store_true')
         parser.add_argument('--port', type=int, default=FILTER_PORT)
         parser.add_argument('--client', dest='host', default=None)
+        parser.add_argument('--fifo_in', default=None)
+        parser.add_argument('--fifo_out', default=None)
 
         if argv is None:    
             flags = parser.parse_args(argv)
@@ -172,7 +174,15 @@ class Filter(object):
     @classmethod
     def _run_loop(cls, flags, classes=None):
         try:
-            if flags.tcp and flags.host is not None:
+            if flags.fifo_in is not None and flags.fifo_out is not None:
+                # not fork
+                print "Using FIFO in/out:", flags.fifo_in, flags.fifo_out
+                fout = os.fdopen(os.open(flags.fifo_out, os.O_WRONLY), 'wb')
+                fin = os.fdopen(os.open(flags.fifo_in, os.O_RDONLY), 'rb')
+                conn = _DiamondConnection(fin, fout)
+                ver = int(conn.get_item())
+                print "Connected!"
+            elif flags.tcp and flags.host is not None:
                 # connect to a TCP port as client
                 while True:
                     # spawn as many children as the server accepts
@@ -181,7 +191,6 @@ class Filter(object):
                         sock.connect((flags.host, flags.port))
                         print "Connected to %s:%d" % (flags.host, flags.port)
                         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                        # setting bufsize=0 helps large attributes, but hurts small ones
                         fin = sock.makefile('rb')
                         fout = sock.makefile('wb')
                         conn = _DiamondConnection(fin, fout)

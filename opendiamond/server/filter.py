@@ -76,6 +76,7 @@ import socket
 import subprocess
 import threading
 import time
+import uuid
 import yaml
 
 from opendiamond.helpers import murmur, signalname, split_scheme
@@ -190,7 +191,9 @@ class _FilterConnection(object):
 
         def send_value(value):
             value = str(value)
-            self._fout.write('%d\n%s\n' % (len(value), value))
+            self._fout.write('%d\n' % len(value))
+            self._fout.write(value)
+            self._fout.write('\n')
 
         for value in values:
             if isinstance(value, (list, tuple)):
@@ -680,7 +683,7 @@ class Filter(object):
             except Exception as e:
                 raise FilterDependencyError(e)
 
-            _log.info('%s: docker: %s', self.name, connect_method)
+            _log.info('%s: docker mode: %s', self.name, connect_method)
 
             docker_port = 5555
             if connect_method == 'default':
@@ -758,14 +761,34 @@ class Filter(object):
                         uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host')
                         conn, addr = sock.accept()  # assume thread safe
                         _log.debug('Filter %s accepted connection from %s', self.name, addr)
-                        return _FilterTCP(
-                            sock=conn,
-                            name=self.name,
-                            args=self.arguments,
-                            blob=self.blob
-                        )
+                        return _FilterTCP(sock=conn, name=self.name, args=self.arguments, blob=self.blob)
                 except Exception as e:
                     raise FilterDependencyError(e)
+            
+            elif connect_method == 'fifo':  # named pipe
+
+                def wrapper(_):
+                    uid = str(uuid.uuid4())
+                    map_vol = '/diamond-tmp/'
+                    # make a pair of fifo in tmp directory. "in" means into container.
+                    TMPDIR =  os.getenv('TMPDIR')
+                    fifo_in = 'fifo-' + uid + '-in'
+                    fifo_out = 'fifo-' + uid + '-out'
+                    os.mkfifo(os.path.join(TMPDIR, fifo_in))
+                    os.mkfifo(os.path.join(TMPDIR, fifo_out))
+                    _log.info("Created in pipe: %s", os.path.join(TMPDIR, fifo_in))
+                    _log.info("Created out pipe: %s", os.path.join(TMPDIR, fifo_out))
+                    # map volume when creating Docker container
+                    # FIXME only works for one thread now
+                    docker_command = 'sh -c "%s --filter <%s >%s"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
+                    uri = state.context.ensure_resource('docker', docker_image, docker_command, 
+                                                        volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True)
+                    
+                    # note the in/out are flipped here.
+                    # For unknown reasons I must use os.O_RDWR here to avoid blocking
+                    fout = os.fdopen(os.open(os.path.join(TMPDIR, fifo_in), os.O_RDWR), 'wb')
+                    fin = os.fdopen(os.open(os.path.join(TMPDIR, fifo_out), os.O_RDWR), 'rb')
+                    return _FilterConnection(fin=fin, fout=fout, name=self.name, args = self.arguments, blob=self.blob)
             
             else:
                 raise FilterDependencyError('Unknown connect_method: %s' % connect_method)

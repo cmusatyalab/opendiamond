@@ -18,7 +18,7 @@ from flask import Blueprint, url_for, Response, stream_with_context, send_file, 
     jsonify
 from werkzeug.datastructures import Headers
 
-from opendiamond.dataretriever.util import DiamondTextAttr
+from opendiamond.dataretriever.util import ATTR_SUFFIX
 
 BASEURL = 'collection'
 STYLE = False
@@ -99,10 +99,17 @@ def get_object_meta(object_path):
 
 
 def _get_object_element(object_path):
-    return '<object id={} src={} meta={} />' \
-        .format(quoteattr(url_for('.get_object_id', object_path=object_path)),
-                quoteattr(_get_object_src_uri(object_path)),
-                quoteattr(url_for('.get_object_meta', object_path=object_path)))
+    path = _get_obj_absolute_path(object_path)
+
+    if os.path.isfile(path + ATTR_SUFFIX):
+        return '<object id={} src={} meta={} />' \
+            .format(quoteattr(url_for('.get_object_id', object_path=object_path)),
+                    quoteattr(_get_object_src_uri(object_path)),
+                    quoteattr(url_for('.get_object_meta', object_path=object_path)))
+    else:
+        return '<object id={} src={} />' \
+            .format(quoteattr(url_for('.get_object_id', object_path=object_path)),
+                    quoteattr(_get_object_src_uri(object_path)))
 
 
 def _get_object_src_uri(object_path):

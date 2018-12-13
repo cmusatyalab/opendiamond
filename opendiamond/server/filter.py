@@ -219,7 +219,15 @@ class _FilterConnection(object):
         self.send(values)
 
     def hint_large_attribute(self, size):
-        pass
+        try:
+            size = min(size, 1024 * 1024)
+            size = max(size, 64 * 1024)
+            for f in (self._fin, self._fout):
+                old_size = fcntl.fcntl(f, F_GETPIPE_SZ)
+                new_size = fcntl.fcntl(f, F_SETPIPE_SZ, size)
+                _log.info("Increased pipe size: %d -> %d", old_size, new_size)
+        except IOError as e:
+            _log.warn(e)
 
 
 class _FilterProcess(_FilterConnection):
@@ -294,6 +302,9 @@ class _FilterTCP(_FilterConnection):
             except IOError:
                 # _log.info('Filter %s did not close connection properly' % self)
                 pass
+
+    def hint_large_attribute(self, size):
+        pass
 
 
 class _FilterResult(object):
@@ -779,10 +790,10 @@ class Filter(object):
                     _log.info("Created in pipe: %s", os.path.join(TMPDIR, fifo_in))
                     _log.info("Created out pipe: %s", os.path.join(TMPDIR, fifo_out))
                     # map volume when creating Docker container
-                    # FIXME only works for one thread now
-                    docker_command = 'sh -c "%s --filter <%s >%s"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
+                    # XXX will create a new container for each thread
+                    docker_command = '%s --filter --fifo_in %s --fifo_out %s' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
                     uri = state.context.ensure_resource('docker', docker_image, docker_command, 
-                                                        volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True)
+                                                        volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True)  # cpuset_cpus='0'
                     
                     # note the in/out are flipped here.
                     # For unknown reasons I must use os.O_RDWR here to avoid blocking

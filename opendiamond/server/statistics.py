@@ -106,6 +106,9 @@ class FilterStackRunnerLogger(object):
             self.stats.objs_dropped += int(not accept)
             self.stats.execution_us += self.eval_timer.elapsed
 
+            if self.objs_processed % 1000 == 0:
+                _log.debug('Processed %d objects', self.objs_processed)
+
         self.objs_processed += 1
         self.objs_passed += int(accept)
         self.objs_dropped += int(not accept)

@@ -68,6 +68,7 @@ less than 2 MB/s.
 import fcntl
 import logging
 import os
+import psutil
 from redis import Redis
 from redis.exceptions import ResponseError
 import simplejson as json
@@ -246,16 +247,6 @@ class _FilterProcess(_FilterConnection):
         super(_FilterProcess, self).__init__(
             fin=self._proc.stdout, fout=self._proc.stdin,
             name=name, args=args, blob=blob)
-
-    def hint_large_attribute(self, size):
-        try:
-            old_size = fcntl.fcntl(self._proc.stdout, F_GETPIPE_SZ)
-            size = min(size, 1024 * 1024)
-            size = max(size, 64 * 1024)
-            new_size = fcntl.fcntl(self._proc.stdout, F_SETPIPE_SZ, size)
-            _log.info("Increased pipe size: %d -> %d", old_size, new_size)
-        except IOError as e:
-            _log.warn(e)
 
     def __del__(self):
         # try a 'gentle' shutdown first
@@ -769,7 +760,10 @@ class Filter(object):
 
                     def wrapper(_):
                         # Need network_mode='host' to let container access host port
-                        uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host')
+                        # assume I have been set CPU affinity
+                        cpus = psutil.Process(os.getpid()).cpu_affinity()
+                        cpus_str = ','.join(map(str, cpus))
+                        uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host', cpuset_cpus=cpus_str)
                         conn, addr = sock.accept()  # assume thread safe
                         _log.debug('Filter %s accepted connection from %s', self.name, addr)
                         return _FilterTCP(sock=conn, name=self.name, args=self.arguments, blob=self.blob)
@@ -790,10 +784,14 @@ class Filter(object):
                     _log.info("Created in pipe: %s", os.path.join(TMPDIR, fifo_in))
                     _log.info("Created out pipe: %s", os.path.join(TMPDIR, fifo_out))
                     # map volume when creating Docker container
-                    # XXX will create a new container for each thread
-                    docker_command = '%s --filter --fifo_in %s --fifo_out %s' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
+                    # Will create a new container per thread
+                    docker_command = 'sh -c \"%s --filter  <%s >%s\"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
+
+                    # assume I have been set CPU affinity
+                    cpus = psutil.Process(os.getpid()).cpu_affinity()
+                    cpus_str = ','.join(map(str, cpus))
                     uri = state.context.ensure_resource('docker', docker_image, docker_command, 
-                                                        volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True)  # cpuset_cpus='0'
+                                                        volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True, cpuset_cpus=cpus_str) 
                     
                     # note the in/out are flipped here.
                     # For unknown reasons I must use os.O_RDWR here to avoid blocking

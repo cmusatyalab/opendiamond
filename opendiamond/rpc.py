@@ -14,6 +14,7 @@
 
 from __future__ import with_statement
 import logging
+import multiprocessing as mp
 import socket
 import threading
 
@@ -88,8 +89,8 @@ class RPCConnection(object):
     '''An RPC connection.'''
 
     def __init__(self, sock):
-        self._sock = sock
-        self._lock = threading.Lock()
+        self._sock = sock   # XXX may not be pickled
+        self._lock = mp.Lock()
 
     def _receive(self):
         '''self._lock must be held.'''

@@ -41,7 +41,6 @@ class SearchState(object):
         self.blob_cache = ExecutableBlobCache(config.cachedir)
         self.session_vars = SessionVariables()
         self.stats = SearchStatistics()
-        self.scope = None
         self.blast = None
         # TODO change to something session-dependent
         self.context = ResourceContext('session-context', config)
@@ -60,6 +59,8 @@ class Search(RPCHandlers):
         self._state = SearchState(config)
         self._filters = FilterStack()
         self._running = False
+        self._scope = None
+        self._workers = None
 
     def shutdown(self):
         '''Clean up the search before the process exits.'''
@@ -70,6 +71,10 @@ class Search(RPCHandlers):
                 filter.stats.log()
 
         self._state.context.cleanup()
+        while self._workers:
+            p = self._workers.pop()
+            _log.debug("Terminating worker process %d", p.pid)
+            p.terminate()
 
     # This is not a static method: it's only called when initializing the
     # class, and the staticmethod() decorator does not create a callable.
@@ -94,7 +99,7 @@ class Search(RPCHandlers):
 
     def _check_runnable(self):
         '''Validate state preparatory to starting a search or reexecution.'''
-        if self._state.scope is None:
+        if self._scope is None:
             raise DiamondRPCFailure('No search scope configured')
         if not self._filters:
             raise DiamondRPCFailure('No filters configured')
@@ -179,8 +184,8 @@ class Search(RPCHandlers):
             raise DiamondRPCFailure()
 
         # Commit
+        self._scope = scope
         self._filters = filterstack
-        self._state.scope = scope
         return protocol.XDR_blob_list(missing)
 
     @RPCHandlers.handler(26, protocol.XDR_blob_data)
@@ -217,7 +222,8 @@ class Search(RPCHandlers):
         self._state.blast = BlastChannel(self._blast_conn, push_attrs)
         self._running = True
         _log.info('Starting search %s', params.search_id)
-        self._filters.start_threads(self._state, self._state.config.threads)
+        workers = self._filters.start_threads(self._state, self._state.config.threads, self._scope)
+        self._workers = workers
 
     @RPCHandlers.handler(30, protocol.XDR_reexecute,
                          protocol.XDR_attribute_list)
@@ -259,7 +265,7 @@ class Search(RPCHandlers):
         '''Return current search statistics.'''
         filter_stats = [f.stats for f in self._filters]
         return self._state.stats.xdr(
-            self._state.scope.get_count(), filter_stats)
+            self._scope.get_count(), filter_stats)
 
     @RPCHandlers.handler(18, reply_class=protocol.XDR_session_vars)
     @running(True)

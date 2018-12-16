@@ -76,6 +76,7 @@ import signal
 import socket
 import subprocess
 import threading
+import multiprocessing as mp
 import time
 import uuid
 import yaml
@@ -93,7 +94,7 @@ ATTR_FILTER_SCORE = '_filter.%s_score'  # arg: filter name
 ATTRIBUTE_CACHE_THRESHOLD = 2 << 20  # bytes/sec
 DEBUG = False
 
-# Used for pipe buffer size control
+# Used for pipe buffer size control via fcntl
 F_LINUX_SPECIFIC_BASE = 1024
 F_SETPIPE_SZ = F_LINUX_SPECIFIC_BASE + 7
 F_GETPIPE_SZ = F_LINUX_SPECIFIC_BASE + 8
@@ -825,17 +826,22 @@ class Filter(object):
         return _FilterRunner(state, self)
 
 
-class FilterStackRunner(threading.Thread):
+class FilterStackRunner(mp.Process):
     '''A context for processing objects with a FilterStack.  Handles querying
     and updating the result and attribute caches.'''
 
-    def __init__(self, state, filter_runners, name, cleanup):
-        threading.Thread.__init__(self, name=name)
-        self.setDaemon(True)
+    def __init__(self, state, filters, obj_queue, name, cleanup):
+        mp.Process.__init__(self, name=name)
+
+        # self.setDaemon(True) # FIXME a daemonic process can't create child processes which we need to launch filters
         self._state = state
-        self._runners = filter_runners
+        fetcher = _ObjectFetcher(state)
+        runners = [fetcher] + [f.bind(state) for f in filters]
+        self._runners = runners
+        self._obj_queue = obj_queue
+
         self._redis = None  # May be None if caching is not enabled
-        self._cleanup = cleanup  # cleanup.__del__ fires when all workers exit
+        self._cleanup = cleanup  # cleanup.__del__ called when all workers exit FIXME doesn't make sense for multiprocess
         self._warned_cache_update = False
         self._logger = FilterStackRunnerLogger(state.stats)
         # self._logger = NoLogger(state.stats)
@@ -1101,23 +1107,28 @@ class FilterStackRunner(threading.Thread):
     def run(self):
         '''Thread function.'''
         try:
-            # ScopeListLoader properly handles interleaved access by
-            # multiple threads
-            for obj in self._state.scope:
+            while True:
+                obj = self._obj_queue.get()
                 accept = self.evaluate(obj)
                 if accept:
                     self._state.blast.send(obj)
-
+                self._obj_queue.task_done()
         except ConnectionFailure:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.
-            os.kill(os.getpid(), signal.SIGUSR1)
+            os.kill(os.getppid(), signal.SIGUSR1)
+            _log.info("Worker process %d exiting.", os.getpid())
         except Exception:
             _log.exception('Worker thread exception')
-            os.kill(os.getpid(), signal.SIGUSR1)
+            os.kill(os.getppid(), signal.SIGUSR1)
             # pylint: enable=broad-except
+        except BaseException:
+            # Because we inherit the modified signal handler from parent
+            # SIGTERM sent by parent will raise as _Signalled
+            _log.debug("Supposed signaled by parent to exit.")
         finally:
             self._logger.on_finish()
+            self._state.context.cleanup()
 
 
 class Reference(object):
@@ -1175,18 +1186,34 @@ class FilterStack(object):
     def __iter__(self):
         return iter(self._order)
 
-    def bind(self, state, name='Filter', cleanup=None):
+    def bind(self, state, obj_queue, name='Filter', cleanup=None):
         '''Return a FilterStackRunner that can be used to process objects
         with this filter stack.'''
-        fetcher = _ObjectFetcher(state)
-        runners = [fetcher] + [f.bind(state) for f in self._order]
-        return FilterStackRunner(state, runners, name, cleanup)
+        return FilterStackRunner(state, self._order, obj_queue, name, cleanup)
 
-    def start_threads(self, state, count):
+    def start_threads(self, state, count, scope):
         '''Start count threads to process objects with this filter stack.'''
-        cleanup = Reference(state.blast.close)
+        # cleanup = Reference(state.blast.close)  # FIXME doesn't work for mp
+        # create a queue and start scope feeder
+
+        workers = list()
+        obj_queue = mp.JoinableQueue(1000)
+
+        def enqueue_scope(q, scope):
+            for obj in scope:
+                q.put(obj)
+            # wait until all objects processed and close the blast channel
+            q.join()
+            state.blast.close()
+
+        threading.Thread(target=enqueue_scope, args=(obj_queue, scope), name='enqueue-scope-thread').start()
+
         for i in xrange(count):
-            self.bind(state, 'Filter-%d' % i, cleanup).start()
+            w = self.bind(state, obj_queue, 'Filter-%d' % i)
+            w.start()
+            workers.append(w)
+        
+        return workers
 
     def optimize(self):
         """Optimize execution order of filters"""

@@ -129,7 +129,7 @@ class _Docker(_ResourceFactory):
     def __init__(self, config, image, command, **kargs):
         image = image.strip()
         # Guard against "pull all tags" by the pull() API (if no tag is given,
-        # it will pull all tags of that Docker image
+        # it will pull all tags of that Docker image)
         if not (':' in image or '@sha256' in image):
             image += ":latest"
 

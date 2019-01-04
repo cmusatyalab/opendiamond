@@ -23,7 +23,7 @@ flickrapi==2.2.1
 
 # diamondd
 docker==2.4.2
-PyYAML==3.12
+PyYAML==4.2b1
 redis==2.10.5
 
 # scopeserver

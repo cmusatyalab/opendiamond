@@ -14,6 +14,7 @@
 
 from functools import wraps
 import logging
+import multiprocessing as mp
 
 from opendiamond import protocol
 from opendiamond.blobcache import ExecutableBlobCache
@@ -43,7 +44,7 @@ class SearchState(object):
         self.stats = SearchStatistics()
         self.blast = None
         # TODO change to something session-dependent
-        self.context = ResourceContext('session-context', config)
+        self.context = None
 
 
 class Search(RPCHandlers):
@@ -71,6 +72,7 @@ class Search(RPCHandlers):
                 filter.stats.log()
 
         self._state.context.cleanup()
+
         while self._workers:
             p = self._workers.pop()
             _log.debug("Terminating worker process %d", p.pid)
@@ -220,6 +222,10 @@ class Search(RPCHandlers):
                                                        ','.join([f.name for f in self._filters])))
 
         self._state.blast = BlastChannel(self._blast_conn, push_attrs)
+
+        manager = mp.Manager()
+        self._state.context = ResourceContext(params.search_id, self._state.config, lock=manager.Lock(), catalog=manager.dict())
+        
         self._running = True
         _log.info('Starting search %s', params.search_id)
         workers = self._filters.start_threads(self._state, self._state.config.threads, self._scope)

@@ -1124,11 +1124,11 @@ class FilterStackRunner(mp.Process):
             # pylint: enable=broad-except
         except BaseException:
             # Because we inherit the modified signal handler from parent
-            # SIGTERM sent by parent will raise as _Signalled
+            # SIGTERM sent by parent will raise as _Signalled which is a BaseException
+            # (see server/__init__.py)
             _log.debug("Supposed signaled by parent to exit.")
         finally:
             self._logger.on_finish()
-            self._state.context.cleanup()
 
 
 class Reference(object):

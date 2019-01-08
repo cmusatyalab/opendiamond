@@ -1,10 +1,11 @@
 import docker
 import docker.errors
 import logging
+import multiprocessing as mp
 import os
 import subprocess
-import threading
 import shlex
+import threading
 import uuid
 from weakref import WeakSet
 
@@ -36,51 +37,38 @@ class ResourceContext(object):
     All resource must be created within a ResourceContext.
     When a ResourceContext is cleaned up, all resources therein must be
     cleaned up properly. All creations/modifications of resource therein
-    are synchronized with a lock."""
+    are synchronized with a lock.
+    ResourceContext can be shared by multiple processes if initialized
+    with shared objects from the multiprocessing module"""
 
-    def __init__(self, name, config):
+    def __init__(self, name, config, lock=threading.Lock(), catalog=dict()):
         super(ResourceContext, self).__init__()
         assert isinstance(config, DiamondConfig)
         self._name = name
-        self._lock = threading.Lock()
-        self._catalog = dict()
-        self._subcontexts = WeakSet()
         self._config = config
+        self._lock = lock
+        self._catalog = catalog  # resource signature -> handle (dict)
         _log.debug('Created resource context %s', self._name)
 
     def ensure_resource(self, rtype, *args, **kargs):
-        """Ensure a resource exists in the context. If already exists, return the URI.
+        """Ensure a resource exists in the context. If already exists, return the handle.
         If not, create it and return the URI."""
         sig = _ResourceFactory.get_signature(rtype, *args, **kargs)
         with self._lock:
             if sig not in self._catalog:
-                res = _ResourceFactory.create(rtype, self._config, *args, **kargs)
-                self._catalog[sig] = res
-            rv = self._catalog[sig].uri
+                h = _ResourceFactory.create(rtype, self._config, *args, **kargs)
+                self._catalog[sig] = h
+            rv = self._catalog[sig]
 
         return rv
 
-    def create_subcontext(self, name):
-        sc = ResourceContext(name, self._config)
-        self._subcontexts.add(sc)
-        return sc
-
     def cleanup(self):
-        """Recursively clean up all sub-contexts under this one, including itself.
-        This method could be called multiple times."""
         _log.debug('Destroying resource context %s', self._name)
         with self._lock:
-            # Clean up descendants
-            for sc in self._subcontexts:
-                sc.cleanup()
-            self._subcontexts.clear()
-
-            # Clean up myself
-            for (_, res) in self._catalog.iteritems():
-                res.cleanup()
+            for (_, h) in self._catalog.items():
+                # _log.debug('Destroying %s', str(h))
+                _ResourceFactory.cleanup(h)
             self._catalog.clear()
-
-    __del__ = cleanup
 
 
 class _ResourceMeta(type):
@@ -108,25 +96,28 @@ class _ResourceFactory(object):
     def create(rtype, config, *args, **kargs):
         try:
             resource_cls = _ResourceFactory.registry[rtype]
-            return resource_cls(config, *args, **kargs)
+            h = resource_cls.create(config, *args, **kargs)
+            # add resource type info in handle
+            h['_rtype'] = rtype
+            return h
         except KeyError:
             raise ResourceTypeError(rtype)
         except ResourceCreationError:
             raise
 
-    def cleanup(self):
-        raise NotImplementedError()
-
-    @property
-    def uri(self):
-        """A dict to be passed back to filters"""
-        raise NotImplementedError()
+    @staticmethod
+    def cleanup(handle):
+        rtype = handle['_rtype']
+        del handle['_rtype']
+        res_cls = _ResourceFactory.registry[rtype]
+        res_cls.cleanup(handle)
 
 
 class _Docker(_ResourceFactory):
     type = 'docker'
 
-    def __init__(self, config, image, command, **kargs):
+    @staticmethod
+    def create(config, image, command, **kargs):
         image = image.strip()
         # Guard against "pull all tags" by the pull() API (if no tag is given,
         # it will pull all tags of that Docker image)
@@ -134,6 +125,7 @@ class _Docker(_ResourceFactory):
             image += ":latest"
 
         name = 'diamond-resource-' + str(uuid.uuid4())
+        container = None
 
         try:
             client = docker.from_env()
@@ -145,7 +137,7 @@ class _Docker(_ResourceFactory):
             try:
                 # The immediately returned container object
                 # doesn't have sufficient network information.
-                self._container = client.containers.run(
+                container = client.containers.run(
                     image=image,
                     command=shlex.split(command),
                     detach=True,
@@ -153,15 +145,15 @@ class _Docker(_ResourceFactory):
                     **kargs
                 )
                 # Reload until we get the IPAddress
-                if self._container.attrs['HostConfig']['NetworkMode'] == 'default':
-                    while not self._container.attrs['NetworkSettings']['IPAddress']:
-                        self._container.reload()
+                if container.attrs['HostConfig']['NetworkMode'] == 'default':
+                    while not container.attrs['NetworkSettings']['IPAddress']:
+                        container.reload()
             except docker.errors.ImageNotFound:
                 raise ResourceCreationError(
                     'Docker image not found %s' % image)
             except docker.errors.APIError:
-                if hasattr(self, '_container'):
-                    self._container.remove(force=True)
+                if container:
+                    container.remove(force=True)
                 raise ResourceCreationError(
                     'Unable to run Docker container image=%s, command=%s' %
                     (image, command)
@@ -169,36 +161,35 @@ class _Docker(_ResourceFactory):
             else:
                 _log.info(
                     'Started container: (%s, %s), %s, name: %s, IPAddress: %s',
-                    image, command, str(kargs), self.uri['name'], self.uri['IPAddress'])
+                    image, command, str(kargs), name, container.attrs['NetworkSettings']['IPAddress'])
+                return dict(name=container.name, IPAddress=container.attrs['NetworkSettings']['IPAddress'])
 
-    @property
-    def uri(self):
-        rv = dict(
-            name=self._container.name,
-            IPAddress=self._container.attrs['NetworkSettings']['IPAddress']
-        )
-        return rv
-
-    def cleanup(self):
+    @staticmethod
+    def cleanup(handle):
         try:
-            self._container.remove(force=True)
+            client = docker.from_env()
+            container = client.containers.get(handle['name'])
+            container.remove(force=True)
+        except docker.errors.NotFound:
+            _log.warning('Lost container: %s', handle['name'])
         except docker.errors.APIError:
-            _log.warning('Unable to remove container %s', self._container.name)
+            _log.warning('Unable to remove container %s', container.name)
         else:
-            _log.info('Stopped container %s', self._container.name)
+            _log.info('Stopped container %s', container.name)
 
 
 class _NvidiaDocker(_Docker):
     type = 'nvidia-docker'
 
-    # pylint: disable=super-init-not-called
-    def __init__(self, config, image, command):
+    @staticmethod
+    def create(config, image, command):
         image = image.strip()
         # Guard against "pull all tags" by the pull() API
         if not (':' in image or '@sha256' in image):
             image += ":latest"
 
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
+        container = None
 
         try:
             client = docker.from_env()
@@ -212,7 +203,6 @@ class _NvidiaDocker(_Docker):
                     shlex.split(command)
 
             try:
-                # _log.debug('Creating nvidia-docker: %s' % cmd_l)
                 my_env = os.environ.copy()
                 my_env['NV_GPU'] = config.nv_gpu
                 subprocess.check_call(cmd_l, env=my_env)
@@ -229,18 +219,25 @@ class _NvidiaDocker(_Docker):
                     cmd_l, config.nv_gpu)
                 )
 
-            # Retrieve and bind the container object
-            while True:
-                try:
-                    self._container = client.containers.get(name)
-                    break
-                except docker.errors.NotFound:
-                    pass
+            else:
+                # Retrieve and bind the container object
+                while True:
+                    try:
+                        container = client.containers.get(name)
+                        break
+                    except docker.errors.NotFound:
+                        pass
 
-            while not self._container.attrs['NetworkSettings']['IPAddress']:
-                self._container.reload()
+                while not container.attrs['NetworkSettings']['IPAddress']:
+                    container.reload()
 
-            _log.info(
-                'Started NVIDIA container: (%s, %s), name: %s, IPAddress: %s, NV_GPU: %s',
-                image, command, self.uri['name'], self.uri['IPAddress'],
-                config.nv_gpu)
+                _log.info(
+                    'Started NVIDIA container: (%s, %s), name: %s, IPAddress: %s, NV_GPU: %s',
+                    image, command, name, container.attrs['NetworkSettings']['IPAddress'],
+                    config.nv_gpu)
+
+                return dict(name=container.name, IPAddress=container.attrs['NetworkSettings']['IPAddress'])
+
+    @staticmethod
+    def cleanup(handle):
+        _Docker.cleanup(handle)

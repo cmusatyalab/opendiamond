@@ -65,18 +65,19 @@ class Search(RPCHandlers):
 
     def shutdown(self):
         '''Clean up the search before the process exits.'''
-        # Log search statistics
-        if self._running:
-            self._state.stats.log()
-            for filter in self._filters:
-                filter.stats.log()
-
         self._state.context.cleanup()
 
         while self._workers:
             p = self._workers.pop()
             _log.debug("Terminating worker process %d", p.pid)
-            p.terminate()
+            p.terminate()   # send a signal, which will be caught in the child
+            p.join()
+
+        # Log search statistics
+        if self._running:
+            self._state.stats.log()
+            for filter in self._filters:
+                filter.stats.log()
 
     # This is not a static method: it's only called when initializing the
     # class, and the staticmethod() decorator does not create a callable.

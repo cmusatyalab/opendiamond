@@ -418,8 +418,8 @@ class _FilterRunner(_ObjectProcessor):
         self._state = state
         self._proc = None
         self._proc_initialized = False
-        # self._logger = FilterRunnerLogger(filter.stats)
-        self._logger = NoLogger(filter.stats)
+        self._logger = FilterRunnerLogger(filter.stats)
+        # self._logger = NoLogger(filter.stats)
 
     def __str__(self):
         return self._filter.name
@@ -530,6 +530,7 @@ class _FilterRunner(_ObjectProcessor):
                     rtype = proc.get_item()
                     args = proc.get_array()
                     if scope == 'session':
+                        _log.debug("Filter asks to ensure resource: %s, %s", rtype, str(args))
                         uri = self._state.context.ensure_resource(rtype, *args)
                     else:
                         raise FilterExecutionError(

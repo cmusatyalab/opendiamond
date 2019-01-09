@@ -14,6 +14,7 @@
 
 from __future__ import with_statement
 import logging
+import multiprocessing as mp
 import threading
 import time
 
@@ -106,8 +107,8 @@ class FilterStackRunnerLogger(object):
             self.stats.objs_dropped += int(not accept)
             self.stats.execution_us += self.eval_timer.elapsed
 
-            if self.objs_processed % 1000 == 0:
-                _log.debug('Processed %d objects', self.objs_processed)
+        # if self.objs_processed % 1000 == 0:
+        #     _log.debug('Processed %d objects', self.objs_processed)
 
         self.objs_processed += 1
         self.objs_passed += int(accept)
@@ -126,20 +127,28 @@ class FilterStackRunnerLogger(object):
 
 
 class _Statistics(object):
-    '''Base class for server statistics.'''
+    '''Base class for server statistics. Can be shared by multiple processes.'''
 
     label = 'Unconfigured statistics'
     attrs = ()
 
     def __init__(self):
-        self.lock = threading.Lock()
-        self._stats = dict([(name, 0) for name, _desc in self.attrs])
+        self.lock = mp.Lock()
+        self._stats = dict([(name, mp.Value('i', 0, lock=False)) for name, _desc in self.attrs])
 
     def __getattr__(self, key):
-        return self._stats[key]
+        return self._stats[key].value
 
+    def __setattr__(self, name, value):
+        """Ugly hack to let updating statistics look intuitive at caller site"""
+        if name in ('_stats', 'lock') or name not in self._stats:
+            super(_Statistics, self).__setattr__(name, value)
+        else:
+            self._stats[name].value = value
+        
     def log(self):
         """Dump all statistics to the log."""
+
         _log.info('%s:', self.label)
         with self.lock:
             for name, desc in self.attrs:
@@ -191,7 +200,7 @@ class FilterStatistics(_Statistics):
              )
 
     def __init__(self, name):
-        _Statistics.__init__(self)
+        super(FilterStatistics, self).__init__()
         self.name = name
         self.label = 'Filter statistics for %s' % name
 

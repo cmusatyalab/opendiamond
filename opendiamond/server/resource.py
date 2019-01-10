@@ -14,6 +14,8 @@ from opendiamond.helpers import murmur
 
 _log = logging.getLogger(__name__)
 
+logging.getLogger('docker').propgate = False
+logging.getLogger('docker').setLevel(logging.WARN)
 
 class ResourceTypeError(Exception):
     """Error unrecognized resource type"""
@@ -48,7 +50,7 @@ class ResourceContext(object):
         self._config = config
         self._lock = lock
         self._catalog = catalog  # resource signature -> handle (dict)
-        _log.debug('Created resource context %s', self._name)
+        _log.info('Created resource context %s', self._name)
 
     def ensure_resource(self, rtype, *args, **kargs):
         """Ensure a resource exists in the context. If already exists, return the handle.
@@ -63,10 +65,10 @@ class ResourceContext(object):
         return rv
 
     def cleanup(self):
-        _log.debug('Destroying resource context %s', self._name)
+        _log.info('Destroying resource context %s', self._name)
         with self._lock:
             for (_, h) in self._catalog.items():
-                # _log.debug('Destroying %s', str(h))
+                _log.debug('Destroying %s', str(h))
                 _ResourceFactory.cleanup(h)
             self._catalog.clear()
 

@@ -122,7 +122,7 @@ class FilterStackRunnerLogger(object):
 
     def on_finish(self):
         _log.info(
-            'Thread: objs processed/passed/dropped/unloadable: %d/%d/%d/%d',
+            'Worker: objs processed/passed/dropped/unloadable: %d/%d/%d/%d',
             self.objs_processed, self.objs_passed, self.objs_dropped, self.objs_unloadable)
 
 

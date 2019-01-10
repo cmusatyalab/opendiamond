@@ -148,7 +148,7 @@ class DiamondServer(object):
 
         # Configure logging
         baselog = logging.getLogger()
-        baselog.setLevel(logging.DEBUG)
+        baselog.setLevel(config.loglevel)
         if not config.daemonize:
             # In daemon mode, stderr goes to /dev/null, so don't bother
             # logging there.

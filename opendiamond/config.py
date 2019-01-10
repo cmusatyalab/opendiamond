@@ -12,6 +12,7 @@
 
 '''Diamond configuration file parsing.'''
 
+import logging
 import os
 import socket
 
@@ -126,6 +127,8 @@ class DiamondConfig(object):
             _Param('logdays', 'LOGDAYS', 14),
             # Directory for logfiles
             _Param('logdir', 'LOGDIR', os.path.join(confdir, 'log')),
+            # logging log level
+            _Param('loglevel', 'LOGLEVEL', logging.INFO),
             # Don't fork when a connection arrives
             _Param('oneshot', None, False),
             # HTTP proxy

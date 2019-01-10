@@ -109,7 +109,7 @@ class _SearchChild(object):
                 _log.info('PID %d exiting, killed %d processes',
                           self.pid, len(killed))
             else:
-                _log.info('PID %d exiting', self.pid)
+                _log.info('PID %d cleanup', self.pid)
 
             # Delete temporary directory
             shutil.rmtree(self.tempdir, True)

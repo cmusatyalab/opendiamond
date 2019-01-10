@@ -15,6 +15,8 @@
 from functools import wraps
 import logging
 import multiprocessing as mp
+import os
+import signal
 
 from opendiamond import protocol
 from opendiamond.blobcache import ExecutableBlobCache
@@ -65,13 +67,18 @@ class Search(RPCHandlers):
 
     def shutdown(self):
         '''Clean up the search before the process exits.'''
-        self._state.context.cleanup()
-
         while self._workers:
             p = self._workers.pop()
             _log.debug("Terminating worker process %d", p.pid)
-            p.terminate()   # send a signal, which will be caught in the child
-            p.join()
+            try:
+                p.terminate()   # send SIGTERM, which will be caught as _Signalled in the child
+                p.join(1)   # allow it to clean up
+                os.kill(p.pid, signal.SIGKILL)  # shoot it in the head
+                p.join()
+            except OSError: # perhaps process already dead
+                pass
+
+        self._state.context.cleanup()
 
         # Log search statistics
         if self._running:

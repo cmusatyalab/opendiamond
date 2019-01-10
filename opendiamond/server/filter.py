@@ -783,8 +783,8 @@ class Filter(object):
                     fifo_out = 'fifo-' + uid + '-out'
                     os.mkfifo(os.path.join(TMPDIR, fifo_in))
                     os.mkfifo(os.path.join(TMPDIR, fifo_out))
-                    _log.info("Created in pipe: %s", os.path.join(TMPDIR, fifo_in))
-                    _log.info("Created out pipe: %s", os.path.join(TMPDIR, fifo_out))
+                    _log.debug("Created in pipe: %s", os.path.join(TMPDIR, fifo_in))
+                    _log.debug("Created out pipe: %s", os.path.join(TMPDIR, fifo_out))
                     # map volume when creating Docker container
                     # Will create a new container per thread
                     docker_command = 'sh -c \"%s --filter  <%s >%s\"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
@@ -834,7 +834,7 @@ class FilterStackRunner(mp.Process):
     def __init__(self, state, filters, obj_queue, name, cleanup):
         mp.Process.__init__(self, name=name)
 
-        # self.setDaemon(True) # FIXME a daemonic process can't create child processes which we need to launch filters
+        # self.setDaemon(True) # a daemonic process can't create child processes which we need to launch filters
         self._state = state
         fetcher = _ObjectFetcher(state)
         runners = [fetcher] + [f.bind(state) for f in filters]
@@ -1107,6 +1107,8 @@ class FilterStackRunner(mp.Process):
     # pylint: disable=broad-except
     def run(self):
         '''Thread function.'''
+        from opendiamond.server import _Signalled
+
         try:
             while True:
                 obj = self._obj_queue.get()
@@ -1117,19 +1119,20 @@ class FilterStackRunner(mp.Process):
         except ConnectionFailure:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.
+            _log.debug('Client closed blast connection')
             os.kill(os.getppid(), signal.SIGUSR1)
-            _log.info("Worker process %d exiting.", os.getpid())
         except Exception:
-            _log.exception('Worker thread exception')
+            _log.exception('Worker exception')
             os.kill(os.getppid(), signal.SIGUSR1)
             # pylint: enable=broad-except
-        except BaseException:
+        except _Signalled:
             # Because we inherit the modified signal handler from parent
-            # SIGTERM sent by parent will raise as _Signalled which is a BaseException
+            # SIGTERM sent by parent will raise as _Signalled (subclass of BaseException)
             # (see server/__init__.py)
             _log.debug("Supposed signaled by parent to exit.")
         finally:
             self._logger.on_finish()
+            _log.info("Worker %d exiting.", os.getpid())
 
 
 class Reference(object):
@@ -1194,11 +1197,10 @@ class FilterStack(object):
 
     def start_threads(self, state, count, scope):
         '''Start count threads to process objects with this filter stack.'''
-        # cleanup = Reference(state.blast.close)  # FIXME doesn't work for mp
-        # create a queue and start scope feeder
 
         workers = list()
         obj_queue = mp.JoinableQueue(1000)
+        obj_queue.cancel_join_thread()  # avoid hanging if workers die first
 
         def enqueue_scope(q, scope):
             for obj in scope:
@@ -1207,7 +1209,9 @@ class FilterStack(object):
             q.join()
             state.blast.close()
 
-        threading.Thread(target=enqueue_scope, args=(obj_queue, scope), name='enqueue-scope-thread').start()
+        t = threading.Thread(target=enqueue_scope, args=(obj_queue, scope), name='enqueue-scope-thread')
+        t.daemon = True # make sure the whole process terminates when the main thread exits
+        t.start()
 
         for i in xrange(count):
             w = self.bind(state, obj_queue, 'Filter-%d' % i)

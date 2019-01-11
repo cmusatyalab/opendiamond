@@ -14,8 +14,9 @@ from opendiamond.helpers import murmur
 
 _log = logging.getLogger(__name__)
 
-logging.getLogger('docker').propgate = False
+# reduce logging from docker library
 logging.getLogger('docker').setLevel(logging.WARN)
+logging.getLogger('urllib3').setLevel(logging.WARN)
 
 class ResourceTypeError(Exception):
     """Error unrecognized resource type"""
@@ -57,18 +58,19 @@ class ResourceContext(object):
         If not, create it and return the URI."""
         sig = _ResourceFactory.get_signature(rtype, *args, **kargs)
         with self._lock:
-            if sig not in self._catalog:
-                h = _ResourceFactory.create(rtype, self._config, *args, **kargs)
-                self._catalog[sig] = h
+            if sig not in self._catalog: 
+                for h in _ResourceFactory.create(rtype, self._config, *args, **kargs):
+                    self._catalog[sig] = h
+                    _log.debug("Update resource %s => %s", sig, str(h))
             rv = self._catalog[sig]
 
         return rv
 
     def cleanup(self):
-        _log.info('Destroying resource context %s', self._name)
+        _log.info('Cleaning up resource context %s', self._name)
         with self._lock:
             for (_, h) in self._catalog.items():
-                _log.debug('Destroying %s', str(h))
+                _log.debug('Cleaning up %s', str(h))
                 _ResourceFactory.cleanup(h)
             self._catalog.clear()
 
@@ -98,10 +100,10 @@ class _ResourceFactory(object):
     def create(rtype, config, *args, **kargs):
         try:
             resource_cls = _ResourceFactory.registry[rtype]
-            h = resource_cls.create(config, *args, **kargs)
-            # add resource type info in handle
-            h['_rtype'] = rtype
-            return h
+            for h in resource_cls.create(config, *args, **kargs):
+                # add resource type info in handle
+                h['_rtype'] = rtype
+                yield h
         except KeyError:
             raise ResourceTypeError(rtype)
         except ResourceCreationError:
@@ -109,8 +111,7 @@ class _ResourceFactory(object):
 
     @staticmethod
     def cleanup(handle):
-        rtype = handle['_rtype']
-        del handle['_rtype']
+        rtype = handle.pop('_rtype')
         res_cls = _ResourceFactory.registry[rtype]
         res_cls.cleanup(handle)
 
@@ -127,6 +128,8 @@ class _Docker(_ResourceFactory):
             image += ":latest"
 
         name = 'diamond-resource-' + str(uuid.uuid4())
+        yield dict(name=name)
+
         container = None
 
         try:
@@ -164,7 +167,7 @@ class _Docker(_ResourceFactory):
                 _log.info(
                     'Started container: (%s, %s), %s, name: %s, IPAddress: %s',
                     image, command, str(kargs), name, container.attrs['NetworkSettings']['IPAddress'])
-                return dict(name=container.name, IPAddress=container.attrs['NetworkSettings']['IPAddress'])
+                yield dict(name=container.name, IPAddress=container.attrs['NetworkSettings']['IPAddress'])
 
     @staticmethod
     def cleanup(handle):
@@ -177,7 +180,7 @@ class _Docker(_ResourceFactory):
         except docker.errors.APIError:
             _log.warning('Unable to remove container %s', container.name)
         else:
-            _log.info('Stopped container %s', container.name)
+            _log.info('Removed container %s', container.name)
 
 
 class _NvidiaDocker(_Docker):
@@ -191,6 +194,8 @@ class _NvidiaDocker(_Docker):
             image += ":latest"
 
         name = 'diamond-resource-nvidia-' + str(uuid.uuid4())
+        yield dict(name=name)
+
         container = None
 
         try:
@@ -238,7 +243,7 @@ class _NvidiaDocker(_Docker):
                     image, command, name, container.attrs['NetworkSettings']['IPAddress'],
                     config.nv_gpu)
 
-                return dict(name=container.name, IPAddress=container.attrs['NetworkSettings']['IPAddress'])
+                yield dict(name=container.name, IPAddress=container.attrs['NetworkSettings']['IPAddress'])
 
     @staticmethod
     def cleanup(handle):

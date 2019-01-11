@@ -67,6 +67,10 @@ class Search(RPCHandlers):
 
     def shutdown(self):
         '''Clean up the search before the process exits.'''
+
+        # Clean up the resource context before terminate() to avoid corrupting the shared data structures.
+        self._state.context.cleanup()
+
         while self._workers:
             p = self._workers.pop()
             _log.debug("Terminating worker process %d", p.pid)
@@ -77,8 +81,6 @@ class Search(RPCHandlers):
                 p.join()
             except OSError: # perhaps process already dead
                 pass
-
-        self._state.context.cleanup()
 
         # Log search statistics
         if self._running:

@@ -65,6 +65,7 @@ cache values resulting from filter executions that produce attribute data at
 less than 2 MB/s.
 '''
 
+import docker
 import fcntl
 import logging
 import os
@@ -772,7 +773,40 @@ class Filter(object):
                 except Exception as e:
                     raise FilterDependencyError(e)
             
-            elif connect_method == 'fifo':  # named pipe
+            elif connect_method == 'fifo':  # named pipe, try to share containers
+
+                def wrapper(_):
+                    uid = str(uuid.uuid4())
+                    map_vol = '/diamond-tmp/'
+                    # make a pair of fifo in tmp directory. "in" means into container.
+                    TMPDIR =  os.getenv('TMPDIR')
+                    fifo_in = 'fifo-' + uid + '-in'
+                    fifo_out = 'fifo-' + uid + '-out'
+                    os.mkfifo(os.path.join(TMPDIR, fifo_in))
+                    os.mkfifo(os.path.join(TMPDIR, fifo_out))
+                    _log.debug("Created in pipe: %s", os.path.join(TMPDIR, fifo_in))
+                    _log.debug("Created out pipe: %s", os.path.join(TMPDIR, fifo_out))
+
+                    # map volume when creating Docker container
+                    # keep the container running alive, detached
+                    docker_command = '/bin/bash'
+                    handle = state.context.ensure_resource('docker', docker_image, docker_command, 
+                                                           volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True) 
+
+                    # launch a new filter process inside the containers
+                    client = docker.from_env()
+                    container = client.containers.get(handle['name'])
+                    exec_command = 'sh -c \"%s --filter  <%s >%s\"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
+                    _log.debug('docker-exec in %s: %s', handle['name'], exec_command)
+                    container.exec_run(cmd=exec_command, stdout=False, stderr=False, stdin=False, tty=True, detach=True)
+                    
+                    # note the in/out are flipped here.
+                    # For unknown reasons I must use os.O_RDWR here to avoid blocking
+                    fout = os.fdopen(os.open(os.path.join(TMPDIR, fifo_in), os.O_RDWR), 'wb')
+                    fin = os.fdopen(os.open(os.path.join(TMPDIR, fifo_out), os.O_RDWR), 'rb')
+                    return _FilterConnection(fin=fin, fout=fout, name=self.name, args = self.arguments, blob=self.blob)
+
+            elif connect_method == 'fifo-1':  # named pipe, one container per runner
 
                 def wrapper(_):
                     uid = str(uuid.uuid4())
@@ -792,8 +826,8 @@ class Filter(object):
                     # assume I have been set CPU affinity
                     cpus = psutil.Process(os.getpid()).cpu_affinity()
                     cpus_str = ','.join(map(str, cpus))
-                    uri = state.context.ensure_resource('docker', docker_image, docker_command, 
-                                                        volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True, cpuset_cpus=cpus_str) 
+                    state.context.ensure_resource('docker', docker_image, docker_command, 
+                                                    volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True, cpuset_cpus=cpus_str) 
                     
                     # note the in/out are flipped here.
                     # For unknown reasons I must use os.O_RDWR here to avoid blocking

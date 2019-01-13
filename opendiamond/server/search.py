@@ -17,6 +17,7 @@ import logging
 import multiprocessing as mp
 import os
 import signal
+import threading
 
 from opendiamond import protocol
 from opendiamond.blobcache import ExecutableBlobCache
@@ -224,7 +225,7 @@ class Search(RPCHandlers):
             # Encode everything
             push_attrs = None
         _log.info('Push attributes: %s',
-                  ', '.join(
+                  ','.join(
                       params.attrs) if params.attrs else '(everything)')
 
         self._filters.optimize()
@@ -233,8 +234,9 @@ class Search(RPCHandlers):
 
         self._state.blast = BlastChannel(self._blast_conn, push_attrs)
 
-        manager = mp.Manager()
-        self._state.context = ResourceContext(params.search_id, self._state.config, lock=manager.Lock(), catalog=manager.dict())
+        if not self._state.context:
+            manager = mp.Manager()
+            self._state.context = ResourceContext(params.search_id, self._state.config, lock=manager.Lock(), catalog=manager.dict())
         
         self._running = True
         _log.info('Starting search %s', params.search_id)
@@ -258,14 +260,17 @@ class Search(RPCHandlers):
             # If no output attributes were specified, encode everything
             output_attrs = None
         _log.info('Push attributes: %s',
-                  ', '.join(
+                  ','.join(
                       params.attrs) if params.attrs else '(everything)')
 
         self._filters.optimize()
         _log.info("Optimized filter stack [%d]: %s" % (len(self._filters),
                                                        ','.join([f.name for f in self._filters])))
 
-        runner = self._filters.bind(self._state)
+        if not self._state.context:
+            self._state.context = ResourceContext(params.object_id, self._state.config, lock=threading.Lock(), catalog=dict())
+
+        runner = self._filters.bind(self._state, None)  # no need for queue as we'll call evaluate(obj) directly, not run()
         obj = Object(self._server_id, params.object_id)
         loader = ObjectLoader(self._state.config, self._state.blob_cache)
         if not loader.source_available(obj):

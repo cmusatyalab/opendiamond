@@ -3,11 +3,11 @@
 # Extract wrappers to run Diamond filters from docker container
 #
 #   UNIQUE_ID=$(docker inspect --format='{{ (index .RepoDigests 0) }}' $IMAGEID)
-#   docker run --rm $UNIQUE_ID /extract-filters $UNIQUE_ID > diamond-docker-filters.tgz
+#   docker run --rm $UNIQUE_ID extract-filters $UNIQUE_ID > diamond-docker-filters.tgz
 #
 # To extract binary Diamond filters:
 #
-#   docker run --rm $UNIQUE_ID /extract-filters > diamond-native-filters.tgz
+#   docker run --rm $UNIQUE_ID extract-filters > diamond-native-filters.tgz
 
 import argparse
 import glob

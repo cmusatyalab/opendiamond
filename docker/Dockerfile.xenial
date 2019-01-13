@@ -33,4 +33,4 @@ RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ./configure && make install && make clean \
  && ldconfig
 
-COPY extract-filters extract-filters.sh /
+COPY extract-filters /usr/local/bin

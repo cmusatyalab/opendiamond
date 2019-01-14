@@ -11,10 +11,10 @@
 #
 
 import copy
-import json
 from flask import Blueprint, url_for, Response, \
     stream_with_context, jsonify
 from hashlib import sha256
+import json
 import logging
 import redis
 import urlparse

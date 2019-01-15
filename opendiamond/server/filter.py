@@ -1239,19 +1239,21 @@ class FilterStack(object):
         def enqueue_scope(q, scope):
             for obj in scope:
                 q.put(obj)
-            # wait until all objects processed and close the blast channel
+            # wait until all objects processed and close the blast channel by sending an empty object
             q.join()
             state.blast.close()
 
         t = threading.Thread(target=enqueue_scope, args=(obj_queue, scope), name='enqueue-scope-thread')
         t.daemon = True # make sure the whole process terminates when the main thread exits
-        t.start()
 
         for i in xrange(count):
             w = self.bind(state, obj_queue, 'Filter-%d' % i)
             w.start()
+            _log.debug("Started worker %d", w.pid)
             workers.append(w)
-        
+
+        t.start()
+                
         return workers
 
     def optimize(self):

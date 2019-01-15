@@ -116,6 +116,7 @@ class ScopeListLoader(object):
         parser = make_parser()
         parser.setContentHandler(self._handler)
         # Walk scope URLs
+        count = 0
         for scope_url in (url for cookie in self.cookies for url in cookie):
             scope_url = urljoin(BASE_URL, scope_url)
             try:
@@ -131,6 +132,7 @@ class ScopeListLoader(object):
                     parser.feed(buf)
                     while self._handler.pending_objects:
                         pending_object = self._handler.pending_objects.pop(0)
+                        count += 1
                         yield (pending_object, scope_url)
 
             except urllib2.URLError, e:
@@ -148,7 +150,7 @@ class ScopeListLoader(object):
                                  scope_url)
                 parser.reset()
         # Log successful completion
-        _log.info('End of scope list')
+        _log.info('End of scope list (%d)', count)
 
     def get_count(self):
         '''Return our current understanding of the number of objects in

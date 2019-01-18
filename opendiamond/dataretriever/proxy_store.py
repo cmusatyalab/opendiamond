@@ -49,7 +49,7 @@ def get_scope(index, total, dest_url):
                     headers=headers)
 
 
-def _generate(base_url, index, count, ):
+def _generate(base_url, index, count):
     index -= 1
     seen = 0
     obj = urlopen(base_url)

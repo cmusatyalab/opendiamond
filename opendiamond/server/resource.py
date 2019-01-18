@@ -134,7 +134,7 @@ class _Docker(_ResourceFactory):
 
         try:
             client = docker.from_env()
-            client.images.pull(name=image)
+            client.images.pull(image)
         except docker.errors.APIError:
             raise ResourceCreationError(
                 'Unable to pull Docker image %s' % image)
@@ -200,7 +200,7 @@ class _NvidiaDocker(_Docker):
 
         try:
             client = docker.from_env()
-            client.images.pull(name=image)
+            client.images.pull(image)
         except docker.errors.APIError:
             raise ResourceCreationError(
                 'Unable to pull Docker image %s' % image)

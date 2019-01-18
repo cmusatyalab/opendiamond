@@ -6,7 +6,6 @@ pip>=1.5.6
 
 Pillow==4.0.0
 lxml==3.7.3
-psutil==3.4.2
 python-dateutil==2.6.0
 six==1.10.0
 
@@ -32,7 +31,8 @@ av==0.3.3
 mysql-connector-python==8.0.6
 
 # diamondd
-docker==2.4.2
+docker==3.7.0
+psutil==3.4.2
 PyYAML==3.12
 raven==6.6.0
 redis==2.10.5

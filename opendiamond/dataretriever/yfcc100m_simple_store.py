@@ -11,12 +11,13 @@
 #
 
 import datetime
+from flask import abort, Blueprint, jsonify, \
+    send_file, stream_with_context, request, Response, url_for
+import itertools
+import logging
 import os
 import urlparse
 from xml.sax.saxutils import quoteattr
-
-from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
-    jsonify
 from werkzeug.datastructures import Headers
 
 BASEURL = 'yfcc100m_simple'
@@ -33,12 +34,36 @@ scope_blueprint = Blueprint('yfcc100m_simple_store', __name__)
 TOTAL_IMAGES = 99206564     # cut -f 25 yfcc100m_dataset | grep 0 | wc -l
 YFCC100M_S3_IMAGE_HTTP_PREFIX = 'https://multimedia-commons.s3-us-west-2.amazonaws.com/data/images/'
 
+_log = logging.getLogger(__name__)
 
 @scope_blueprint.route('/scope')
-@scope_blueprint.route('/scope/limit/<int:limit>')
-def get_scope(limit=None):
+def get_scope():
+    """
+    query string:
+    slice=1:2000:3  start, stop, step get a slice of all data. default=::
+    distribute=2of8     distribute to the 2nd server out ouf 8. (1-index). default=1of1
+    """
 
     meta_file = os.path.join(DATAROOT, 'yfcc100m', 'yfcc100m.csv')
+
+    try:
+        # process query string args
+        slice_str = request.args.get('slice', '::')
+        start, stop, step = map(lambda x: int(x) if x else None, slice_str.split(':')[:3])
+        start = start or 0
+        step = step or 1
+        distribute_str = request.args.get('distribute', '1of1')
+        n, m = map(int, distribute_str.split('of')[:2])
+        assert step > 0
+        assert 1 <= n <= m
+        # manipulate start, step to incorporate distribute params
+        start += (n-1) * step
+        step *= m
+    except:
+        abort(400)
+
+    _log.debug("slice=%s; distribute=%s", slice_str, distribute_str)
+    _log.info("Adjusted slice: start=%s stop=%s step=%s", start, stop, step)
 
     def generate():
 
@@ -48,8 +73,8 @@ def get_scope(limit=None):
             yield '<objectlist>\n'
             
             count = 0
-            for line in f:
-                tokens = line.strip().split('\t')   # beware empty fields
+            for line in itertools.islice(f, start, stop, step):
+                tokens = line.strip().split('\t')   # beware empty fields (two consecutive \t)
                 media_hash, ext, is_video = tokens[2], tokens[23], bool(int(tokens[24]))
 
                 if is_video:
@@ -64,8 +89,6 @@ def get_scope(limit=None):
                 yield '<count adjust="1"/>\n'
                 yield _get_object_element(suffix) + '\n'
                 count += 1
-                if limit is not None and count >= limit:
-                    break
 
             yield '</objectlist>\n'
 

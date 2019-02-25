@@ -865,7 +865,7 @@ class FilterStackRunner(mp.Process):
     '''A context for processing objects with a FilterStack.  Handles querying
     and updating the result and attribute caches.'''
 
-    def __init__(self, state, filters, obj_queue, name, cleanup):
+    def __init__(self, state, filters, obj_queue, name):
         mp.Process.__init__(self, name=name)
 
         # self.setDaemon(True) # a daemonic process can't create child processes which we need to launch filters
@@ -876,7 +876,6 @@ class FilterStackRunner(mp.Process):
         self._obj_queue = obj_queue
 
         self._redis = None  # May be None if caching is not enabled
-        self._cleanup = cleanup  # cleanup.__del__ called when all workers exit FIXME doesn't make sense for multiprocess
         self._warned_cache_update = False
         self._logger = FilterStackRunnerLogger(state.stats)
         # self._logger = NoLogger(state.stats)
@@ -1169,16 +1168,6 @@ class FilterStackRunner(mp.Process):
             _log.info("Worker %d exiting.", os.getpid())
 
 
-class Reference(object):
-    '''When destroyed, calls the specified callback.'''
-
-    def __init__(self, callback):
-        self._callback = callback
-
-    def __del__(self):
-        self._callback()
-
-
 class FilterStack(object):
     '''A set of filters which collectively decide to accept or drop an
     object.'''
@@ -1224,10 +1213,10 @@ class FilterStack(object):
     def __iter__(self):
         return iter(self._order)
 
-    def bind(self, state, obj_queue, name='Filter', cleanup=None):
+    def bind(self, state, obj_queue, name='Filter'):
         '''Return a FilterStackRunner that can be used to process objects
         with this filter stack.'''
-        return FilterStackRunner(state, self._order, obj_queue, name, cleanup)
+        return FilterStackRunner(state, self._order, obj_queue, name)
 
     def start_threads(self, state, count, scope):
         '''Start count threads to process objects with this filter stack.'''

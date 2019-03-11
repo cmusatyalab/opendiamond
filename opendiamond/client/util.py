@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2018 Carnegie Mellon University
+#  Copyright (c) 2017-2018 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public

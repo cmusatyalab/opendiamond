@@ -35,13 +35,6 @@
     {% endif %}
 {% endif %}
 
-{% url opendiamond.scopeserver.godmode.views.index as godmode %}
-{% if godmode %}
-    {% if user.is_staff %}
-        <li><a href="{{ godmode }}">GodMode</a></li>
-    {% endif %}
-{% endif %}
-
 {% url opendiamond.scopeserver.flickr.views.index as flickr %}
 {% if flickr %}
     {% if user.is_staff or perms.flickr.search %}

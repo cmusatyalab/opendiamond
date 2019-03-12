@@ -14,9 +14,11 @@ from __future__ import with_statement
 import argparse
 from cStringIO import StringIO
 import os
+import select
 import socket
 import sys
 from tempfile import mkstemp
+import time
 import threading
 import traceback
 from zipfile import ZipFile
@@ -180,7 +182,6 @@ class Filter(object):
                 fout = os.fdopen(os.open(flags.fifo_out, os.O_WRONLY), 'wb')
                 fin = os.fdopen(os.open(flags.fifo_in, os.O_RDONLY), 'rb')
                 conn = _DiamondConnection(fin, fout)
-                ver = int(conn.get_item())
                 print "Connected!"
             elif flags.tcp and flags.host is not None:
                 # connect to a TCP port as client
@@ -189,22 +190,28 @@ class Filter(object):
                     try:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         sock.connect((flags.host, flags.port))
-                        print "Connected to %s:%d" % (flags.host, flags.port)
-                        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                        fin = sock.makefile('rb')
-                        fout = sock.makefile('wb')
-                        conn = _DiamondConnection(fin, fout)
+                        print "Connected to %s:%d. Waiting for readable." % (flags.host, flags.port)
                         # Prevent too many just-connected sockets
-                        # and thus forked processes: fork AFTER at least reading version
-                        ver = int(conn.get_item())
-                        pid = os.fork()
-                        if pid == 0:    # child
-                            break
-                        else:
-                            print "Forked", pid
-                            sock = None
-                            continue
+                        # fork AFTER readable (diamondd picks up the connection and starts sending init)
+                        readable, _, exceptional = select.select([sock,], [], [sock,])
+                        if readable:
+                            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                            fin = sock.makefile('rb')
+                            fout = sock.makefile('wb')
+                            conn = _DiamondConnection(fin, fout)
+                            pid = os.fork()
+                            if pid == 0:    # child
+                                break
+                            else:
+                                print "Forked", pid
+
+                        if exceptional:
+                            print "Broken connection."
+
+                        sock = None
+
                     except socket.error:
+                        time.sleep(0.5)
                         pass
             elif flags.tcp:
                 # listen on TCP port
@@ -224,7 +231,6 @@ class Filter(object):
                         fout = c.makefile('wb')
                         conn = _DiamondConnection(fin, fout)
                         # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
-                        ver = int(conn.get_item())
                         break
                     else:   # server, continue listening forever
                         print "Forked", pid
@@ -246,11 +252,9 @@ class Filter(object):
                 conn = _DiamondConnection(fin, fout)
                 # Send the fake stdout to Diamond in the background
                 _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
-                ver = int(conn.get_item())
-
 
             # Read arguments and initialize filter
-            # ver = int(conn.get_item())
+            ver = int(conn.get_item())
             if ver != 1:
                 raise ValueError('Unknown protocol version %d' % ver)
             name = conn.get_item()

@@ -766,7 +766,7 @@ class Filter(object):
                         # assume I have been set CPU affinity
                         cpus = psutil.Process(os.getpid()).cpu_affinity()
                         cpus_str = ','.join(map(str, cpus))
-                        uri = state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host', cpuset_cpus=cpus_str)
+                        state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host', cpuset_cpus=cpus_str)
                         conn, addr = sock.accept()  # assume thread safe
                         _log.debug('Filter %s accepted connection from %s', self.name, addr)
                         return _FilterTCP(sock=conn, name=self.name, args=self.arguments, blob=self.blob)

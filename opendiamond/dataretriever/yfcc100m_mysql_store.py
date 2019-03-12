@@ -31,7 +31,7 @@ import mysql.connector
 from werkzeug.datastructures import Headers
 from xml.sax.saxutils import quoteattr
 
-BASEURL = 'mysql/v1'
+BASEURL = 'yfcc100m_mysql'
 STYLE = False
 LOCAL_OBJ_URI = True  # if true, return local path, otherwise http.
 DATAROOT = None
@@ -46,11 +46,11 @@ def init(config):
     global DATAROOT  # pylint: disable=global-statement
     DATAROOT = config.dataroot
     global DB_HOST, DB_DBNAME, DB_USER, DB_PASSWORD, DB_PORT
-    DB_HOST = config.db_host
-    DB_DBNAME = config.db_dbname
-    DB_USER = config.db_user
-    DB_PASSWORD = config.db_password
-    DB_PORT = config.db_port
+    DB_HOST = config.yfcc100m_db_host
+    DB_DBNAME = config.yfcc100m_db_dbname
+    DB_USER = config.yfcc100m_db_user
+    DB_PASSWORD = config.yfcc100m_db_password
+    DB_PORT = config.yfcc100m_db_port
 
 
 scope_blueprint = Blueprint('mysql_store', __name__)

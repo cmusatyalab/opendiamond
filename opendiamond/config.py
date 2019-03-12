@@ -168,11 +168,11 @@ class DiamondConfig(object):
             # Mirage store: repository path
             _Param('mirage_repository', 'MIRAGE_REPOSITORY'),
             # YFCC100M store: metadata database
-            _Param('db_host', 'DB_HOST', '127.0.0.1'),
-            _Param('db_dbname', 'DB_DBNAME', 'dataretriever'),
-            _Param('db_user', 'DB_USER', 'dataretriever'),
-            _Param('db_password', 'DB_PASSWORD'),
-            _Param('db_port', 'DB_PORT', 3306),
+            _Param('yfcc100m_db_host', 'YFCC100M_DB_HOST', '127.0.0.1'),
+            _Param('yfcc100m_db_dbname', 'YFCC100M_DB_DBNAME', 'dataretriever'),
+            _Param('yfcc100m_db_user', 'YFCC100M_DB_USER', 'dataretriever'),
+            _Param('yfcc100m_db_password', 'YFCC100M_DB_PASSWORD'),
+            _Param('yfcc100m_db_port', 'YFCC100M_DB_PORT', 3306),
 
 
             # -- Deprecated config keys

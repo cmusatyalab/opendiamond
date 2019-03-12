@@ -41,7 +41,7 @@ def index(request):
 
             cookie = []
             for collection in form.cleaned_data['collections']:
-                scope = [urllib.quote(("/mysql/v1/scope/%s" % collection.dataset) + append)]
+                scope = [urllib.quote(("/yfcc100m_mysql/scope/%s" % collection.dataset) + append)]
                 servers = set()
                 for server in collection.servers.all():
                     servers.add(server.host)

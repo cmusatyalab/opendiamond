@@ -22,7 +22,7 @@ from vdms import vdms
 from werkzeug.datastructures import Headers
 from xml.sax.saxutils import quoteattr
 
-BASEURL = 'yfcc100m'
+BASEURL = 'yfcc100m_vdms'
 STYLE = False
 
 _log = logging.getLogger(__name__)

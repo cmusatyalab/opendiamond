@@ -18,28 +18,26 @@ tornado==4.4.2
 validictory==1.1.0
 
 # dataretriever
-Paste==2.0.3
-flickrapi==2.2.1
 flask==0.12.2
 werkzeug==0.12.2
 
-# dataretriever-video
+# dataretriever/atomizer
 # av depends on python-dev pkg-config cp libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libavresample-dev libavfilter-dev
 av==0.3.3
 
-# dataretriever-mysql
+# dataretriever/yfcc100m_mysql
 mysql-connector-python==8.0.6
 
 # diamondd
 docker==3.7.0
 psutil==3.4.2
-PyYAML==3.12
+PyYAML==4.2b1
 raven==6.6.0
 redis==2.10.5
 xmltodict==0.11.0
 
 # scopeserver
-# Django==1.3.7
+Django==1.5.12
 
 # testing
 flake8>=3.0.4

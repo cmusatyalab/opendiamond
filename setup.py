@@ -23,13 +23,15 @@ REQUIRES_BLASTER = [
     'validictory>=1.1.0',
 ]
 REQUIRES_DATARETRIEVER = [
-    'Paste>=1.7.5.1',
+    'flask>=0.12.2',
 ]
 REQUIRES_DIAMONDD = [
-    'docker>=2.4.2',
-    'PyYAML>=3.12',
+    'docker>=3.7.0',
+    'psutil>=3.4.2',
+    'PyYAML>=4.2b1',
     'raven>=6.6.0',
     'redis>=2.10.3',
+    'xmltodict>=0.11.0',
 ]
 REQUIRES_SCOPESERVER = [
     'Django<1.6',

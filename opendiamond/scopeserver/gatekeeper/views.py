@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2009-2011 Carnegie Mellon University
+#  Copyright (c) 2009-2019 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -14,10 +14,10 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
-from django.utils import simplejson
 from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response
 from .forms import CollectionForm, ManageForm
+import json
 
 
 @login_required
@@ -65,7 +65,7 @@ def manage(request):
                 coll[c.id] = 1
         except Exception:  # pylint: disable=broad-except
             pass
-        return HttpResponse(simplejson.dumps(coll),
+        return HttpResponse(json.dumps(coll),
                             mimetype="application/json")
     else:
         form = ManageForm()

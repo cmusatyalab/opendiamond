@@ -1,7 +1,7 @@
 {% extends "scopeserver/base.html" %}
 
 {% block content %}
-<form action="{% url browse %}" method="GET">
+<form action="{% url 'browse' %}" method="GET">
 <div class="fieldWrapper">
   {{form}}
   <input type="submit" value="Search"/>

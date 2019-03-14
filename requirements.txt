@@ -18,8 +18,7 @@ tornado==4.4.2
 validictory==1.1.0
 
 # dataretriever
-flask==0.12.2
-werkzeug==0.12.2
+flask==0.12.4
 
 # dataretriever/atomizer
 # av depends on python-dev pkg-config cp libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libavresample-dev libavfilter-dev

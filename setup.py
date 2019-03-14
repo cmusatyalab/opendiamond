@@ -23,7 +23,7 @@ REQUIRES_BLASTER = [
     'validictory>=1.1.0',
 ]
 REQUIRES_DATARETRIEVER = [
-    'flask>=0.12.2',
+    'flask>=0.12.4',
 ]
 REQUIRES_DIAMONDD = [
     'docker>=3.7.0',
@@ -34,7 +34,7 @@ REQUIRES_DIAMONDD = [
     'xmltodict>=0.11.0',
 ]
 REQUIRES_SCOPESERVER = [
-    'Django>=1.11.18',
+    'Django>=1.11.20',
 ]
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 

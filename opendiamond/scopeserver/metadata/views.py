@@ -14,11 +14,15 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render
+
 from opendiamond.scope import generate_cookie_django
-from opendiamond.scopeserver import render_response
+
 from .forms import MetadataCollectionForm, ManageForm
+
 import json
 import urllib
+
 
 @login_required
 def index(request):
@@ -53,7 +57,7 @@ def index(request):
     else:
         form = MetadataCollectionForm(user=request.user)
 
-    return render_response(request, 'scopeserver/metadata.html', {
+    return render(request, 'scopeserver/metadata.html', {
         'form': form,
     })
 
@@ -83,6 +87,6 @@ def manage(request):
     else:
         form = ManageForm()
 
-    return render_response(request, 'scopeserver/manage.html', {
+    return render(request, 'scopeserver/manage.html', {
         'form': form,
     })

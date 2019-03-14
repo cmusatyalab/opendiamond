@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2009-2011 Carnegie Mellon University
+#  Copyright (c) 2009-2019 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -16,11 +16,10 @@ from urllib2 import urlopen, HTTPError
 from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from opendiamond.scope import generate_cookie_django
-from opendiamond.scopeserver import render_response
 
 from .forms import GigaPanSearchForm, GigaPanChoiceForm
 
@@ -100,9 +99,9 @@ def browse(request):
 
         if ids:
             choiceform = GigaPanChoiceForm(ids=ids)
-            return render_response(
-                request, 'scopeserver/gigapan_browse.html',
-                {'form': choiceform})
+            return render(request, 'scopeserver/gigapan_browse.html', {
+                'form': choiceform
+            })
         return HttpResponseRedirect(reverse('index') + "?error=True")
     return redirect('index')
 
@@ -112,10 +111,10 @@ def index(request):
     '''Generate search form'''
     form = GigaPanSearchForm()
     if request.GET:
-        return render_response(request, 'scopeserver/gigapan_search.html', {
+        return render(request, 'scopeserver/gigapan_search.html', {
             'form': form,
             'errors': "No results found",
         })
-    return render_response(request, 'scopeserver/gigapan_search.html', {
+    return render(request, 'scopeserver/gigapan_search.html', {
         'form': form,
     })

@@ -10,11 +10,11 @@
 <body>
     <h1>{% block pagetitle %}OpenDiamond Scopeserver{% endblock %}</h1>
     <div style="float: right">
-{% if user.is_anonymous %}
-    <a href="{{ LOGIN_URL }}">Login</a></li>
+{% if user.is_authenticated %}
+    Welcome {{ user.username }}
+    <a href="{% url 'logout' %}?next={% url 'scopeserver:index' %}">Logout</a></li>
 {% else %}
-    Welcome {{ user }}
-    <a href="{{ LOGOUT_URL }}?next={% url 'scopeserver:index' %}">Logout</a></li>
+    <a href="{% url 'login' %}">Login</a></li>
 {% endif %}
     </div>
     <div id="sidebar">

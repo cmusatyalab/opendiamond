@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2009-2011 Carnegie Mellon University
+#  Copyright (c) 2009-2019 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -13,8 +13,10 @@
 from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.http import QueryDict, HttpResponse
+from django.shortcuts import render
+
 from opendiamond.scope import generate_cookie_django
-from opendiamond.scopeserver import render_response
+
 from .forms import MirageForm
 
 
@@ -50,6 +52,6 @@ def index(request):
     else:
         form = MirageForm()
 
-    return render_response(request, 'scopeserver/simple_form.html', {
+    return render(request, 'scopeserver/simple_form.html', {
         'form': form,
     })

@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2010-2011 Carnegie Mellon University
+#  Copyright (c) 2010-2019 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -11,9 +11,9 @@
 #
 
 from django.contrib.auth.decorators import login_required
-from opendiamond.scopeserver import render_response
+from django.shortcuts import render
 
 
 @login_required
 def index(request):
-    return render_response(request, "scopeserver/home.html")
+    return render(request, "scopeserver/home.html")

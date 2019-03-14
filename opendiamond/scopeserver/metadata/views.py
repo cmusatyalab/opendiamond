@@ -53,7 +53,7 @@ def index(request):
                     scope, servers,
                     blaster=getattr(settings, 'GATEKEEPER_BLASTER', None)))
 
-            return HttpResponse(cookie, mimetype='application/x-diamond-scope')
+            return HttpResponse(cookie, content_type='application/x-diamond-scope')
     else:
         form = MetadataCollectionForm(user=request.user)
 
@@ -82,8 +82,7 @@ def manage(request):
                 coll[c.id] = 1
         except Exception:  # pylint: disable=broad-except
             pass
-        return HttpResponse(json.dumps(coll),
-                            mimetype="application/json")
+        return HttpResponse(json.dumps(coll), content_type="application/json")
     else:
         form = ManageForm()
 

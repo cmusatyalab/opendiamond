@@ -47,8 +47,7 @@ def index(request):
                     scope, (servers[i],),
                     blaster=getattr(settings, 'MIRAGE_BLASTER', None)))
 
-            return HttpResponse(''.join(cookie),
-                                mimetype='application/x-diamond-scope')
+            return HttpResponse(''.join(cookie), content_type='application/x-diamond-scope')
     else:
         form = MirageForm()
 

@@ -50,7 +50,7 @@ def index(request):
                 scope, settings.FLICKR_SERVERS, proxies,
                 blaster=getattr(settings, 'FLICKR_BLASTER', None))
 
-            return HttpResponse(cookie, mimetype='application/x-diamond-scope')
+            return HttpResponse(cookie, content_type='application/x-diamond-scope')
     else:
         form = FlickrForm()
 

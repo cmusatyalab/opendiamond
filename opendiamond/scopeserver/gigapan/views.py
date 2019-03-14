@@ -61,7 +61,7 @@ def generate_cookie(ids):
         cookie = ''.join([generate_cookie_django(mapping[proxy], [proxy],
                           blaster=blaster) for proxy in proxies])
 
-    return HttpResponse(cookie, mimetype='application/x-diamond-scope')
+    return HttpResponse(cookie, content_type='application/x-diamond-scope')
 
 
 @permission_required("gigapan.search")

@@ -10,9 +10,10 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.conf.urls import patterns
+from django.conf.urls import url
+from . import views
 
-urlpatterns = patterns(  # pylint: disable=invalid-name
-    'opendiamond.scopeserver.flickr.views',
-    (r'^$', 'index'),
-)
+app_name = 'flickr'
+urlpatterns = [
+    url('^$', views.index, name='index'),
+]

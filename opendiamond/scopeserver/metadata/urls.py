@@ -10,10 +10,11 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.conf.urls import patterns
+from django.conf.urls import url
+from . import views
 
-urlpatterns = patterns(  # pylint: disable=invalid-name
-    'opendiamond.scopeserver.metadata.views',
-    (r'^manage.html', 'manage'),
-    (r'^$', 'index'),
-)
+app_name = 'metadata'
+urlpatterns = [
+    url('^manage.html', views.manage),
+    url('^$', views.index, name='index'),
+]

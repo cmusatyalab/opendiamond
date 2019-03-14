@@ -10,12 +10,12 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
+from . import views
 
-# pylint: disable=invalid-name
-urlpatterns = patterns(
-    'opendiamond.scopeserver.gigapan.views',
-    url(r'^$', 'index', name='index'),
-    url(r'^generate', 'generate', name='generate'),
-    url(r'^browse', 'browse', name='browse'),
-)
+app_name = 'gigapan'
+urlpatterns = [
+    url('^$', views.index, name='index'),
+    url('^generate', views.generate, name='generate'),
+    url('^browse', views.browse, name='browse'),
+]

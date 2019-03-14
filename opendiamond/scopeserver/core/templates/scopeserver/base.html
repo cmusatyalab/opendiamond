@@ -14,45 +14,48 @@
     <a href="{{ LOGIN_URL }}">Login</a></li>
 {% else %}
     Welcome {{ user }}
-    <a href="{{ LOGOUT_URL }}?next={% url 'opendiamond.scopeserver.core.views.index' %}">Logout</a></li>
+    <a href="{{ LOGOUT_URL }}?next={% url 'scopeserver:index' %}">Logout</a></li>
 {% endif %}
     </div>
     <div id="sidebar">
     {% block sidebar %}
     <ul>
-        <li><a href="{% url 'opendiamond.scopeserver.core.views.index' %}">Home</a></li>
-{% url 'opendiamond.scopeserver.gatekeeper.views.index' as gatekeeper %}
+        <li><a href="{% url 'scopeserver:index' %}">Home</a></li>
+{% url 'gatekeeper:index' as gatekeeper %}
 {% if gatekeeper %}
     {% if user.is_staff or user.collection_set.all.count %}
         <li><a href="{{ gatekeeper }}">Gatekeeper</a></li>
     {% endif %}
 {% endif %}
 
-{% url 'opendiamond.scopeserver.metadata.views.index' as metadata %}
+{% url 'metadata:index' as metadata %}
 {% if metadata %}
     {% if user.is_staff or user.metadatacollection_set.all.count %}
         <li><a href="{{ metadata }}">Metadata</a></li>
     {% endif %}
 {% endif %}
 
-{% url 'opendiamond.scopeserver.flickr.views.index' as flickr %}
+{% url 'flickr:index' as flickr %}
 {% if flickr %}
     {% if user.is_staff or perms.flickr.search %}
         <li><a href="{{ flickr }}">Flickr</a></li>
     {% endif %}
 {% endif %}
-{% url 'opendiamond.scopeserver.mirage.views.index' as mirage %}
+
+{% url 'mirage:index' as mirage %}
 {% if mirage %}
     {% if user.is_staff or perms.mirage.search %}
         <li><a href="{{ mirage }}">Mirage</a></li>
     {% endif %}
 {% endif %}
-{% url 'opendiamond.scopeserver.gigapan.views.index' as gigapan %}
+
+{% url 'gigapan:index' as gigapan %}
 {% if gigapan %}
     {% if user.is_staff or perms.gigapan.search %}
 	<li><a href="{{ gigapan }}">GigaPan</a></li>
     {% endif %}
 {% endif %}
+
 {% if user.is_staff %}
         <li><a href="{% url 'admin:index' %}">Admin</a></li>
 {% endif %}

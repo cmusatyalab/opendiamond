@@ -22,7 +22,7 @@
 {% endblock %}
 
 {% block content %}
-<form action="{% url 'generate' %}" method="POST">
+<form action="{% url 'gigapan:generate' %}" method="POST">
 {% csrf_token %}
 <span class="img_results">
 <div>Select some GigaPans to search:</div>

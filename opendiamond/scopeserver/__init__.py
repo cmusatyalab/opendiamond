@@ -1,7 +1,7 @@
 #
 #  The OpenDiamond Platform for Interactive Search
 #
-#  Copyright (c) 2011 Carnegie Mellon University
+#  Copyright (c) 2011-2019 Carnegie Mellon University
 #  All rights reserved.
 #
 #  This software is distributed under the terms of the Eclipse Public
@@ -11,20 +11,18 @@
 #
 
 from django.conf import settings
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
 
 
-def render_response(request, template, map=None):
-    '''A wrapper for render_to_response() that adds some additional variables
+def render_response(request, template, context=None):
+    '''A wrapper for render() that adds some additional variables
     to the template context without the need to configure a custom context
     processor.'''
-    if map is None:
-        map = dict()
-    map = dict(map)
-    map.update({
+    if context is None:
+        context = dict()
+    context = dict(context)
+    context.update({
         'LOGIN_URL': settings.LOGIN_URL,
         'LOGOUT_URL': settings.LOGOUT_URL,
     })
-    return render_to_response(template, map,
-                              context_instance=RequestContext(request))
+    return render(request, template, context)

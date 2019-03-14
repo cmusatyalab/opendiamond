@@ -10,10 +10,10 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from django.conf.urls import patterns
+from django.conf.urls import url
+from . import views
 
-# pylint: disable=invalid-name
-urlpatterns = patterns(
-    'opendiamond.scopeserver.mirage.views',
-    (r'^$', 'index'),
-)
+app_name = 'mirage'
+urlpatterns = [
+    url('^$', views.index, name='index'),
+]

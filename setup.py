@@ -34,7 +34,7 @@ REQUIRES_DIAMONDD = [
     'xmltodict>=0.11.0',
 ]
 REQUIRES_SCOPESERVER = [
-    'Django<1.6',
+    'Django>=1.11.18',
 ]
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 

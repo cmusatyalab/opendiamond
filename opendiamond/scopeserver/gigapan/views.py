@@ -15,9 +15,9 @@ from urllib2 import urlopen, HTTPError
 
 from django.contrib.auth.decorators import permission_required
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.shortcuts import redirect
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect
+from django.urls import reverse
 
 from opendiamond.scope import generate_cookie_django
 from opendiamond.scopeserver import render_response

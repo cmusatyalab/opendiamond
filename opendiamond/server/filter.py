@@ -89,6 +89,7 @@ from opendiamond.server.statistics import FilterStatistics, Timer, \
     FilterRunnerLogger, FilterStackRunnerLogger, NoLogger
 
 ATTR_FILTER_SCORE = '_filter.%s_score'  # arg: filter name
+ATTR_GT_LABEL = '_gt_label'  # attr of ground truth label
 # If a filter produces attribute values at less than this rate
 # (total attribute value size / execution time), we will cache the attribute
 # values as well as the filter results.
@@ -430,7 +431,8 @@ class _FilterRunner(_ObjectProcessor):
 
     def cache_hit(self, result):
         accept = self.threshold(result)
-        self._logger.on_cache_hit(accept)
+        gt_present = ATTR_GT_LABEL in result.input_attrs.keys()
+        self._logger.on_cache_hit(accept, gt_present)
 
     def evaluate(self, obj):
         if self._proc is None:
@@ -563,7 +565,8 @@ class _FilterRunner(_ObjectProcessor):
                                            % self)
         finally:
             accept = self.threshold(result)
-            self._logger.on_done_evaluate(accept)
+            gt_present = ATTR_GT_LABEL in result.input_attrs.keys()
+            self._logger.on_done_evaluate(accept, gt_present)
             lengths = [len(obj[k]) for k in result.output_attrs]
             throughput = int(sum(lengths) / timer.elapsed_seconds)
             if throughput < ATTRIBUTE_CACHE_THRESHOLD:
@@ -1129,10 +1132,12 @@ class FilterStackRunner(mp.Process):
         self._ensure_cache()
         self._logger.on_start_evaluate()
         accept = False
+        gt_present = False
         try:
             accept = self._evaluate(obj)
+            gt_present = ATTR_GT_LABEL in obj
         finally:
-            self._logger.on_done_evaluate(accept)
+            self._logger.on_done_evaluate(accept, gt_present)
 
         return accept
 

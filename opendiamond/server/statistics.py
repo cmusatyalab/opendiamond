@@ -68,19 +68,23 @@ class FilterRunnerLogger(object):
     def on_start_evaluate(self):
         self.eval_timer.reset()
 
-    def on_done_evaluate(self, accept):
+    def on_done_evaluate(self, accept, gt_present=False):
         with self.stats.lock:
             self.stats.execution_us += self.eval_timer.elapsed
             self.stats.objs_processed += 1
             self.stats.objs_computed += 1
             self.stats.objs_dropped += int(not accept)
+            self.stats.objs_true_positive += int(accept and gt_present)
+            self.stats.objs_false_negative += int(not accept and gt_present)
 
-    def on_cache_hit(self, accept):
+    def on_cache_hit(self, accept, gt_present=False):
         with self.stats.lock:
             self.stats.objs_processed += 1
             self.stats.objs_dropped += int(not accept)
             self.stats.objs_cache_dropped += int(not accept)
             self.stats.objs_cache_passed += int(accept)
+            self.stats.objs_true_positive += int(accept and gt_present)
+            self.stats.objs_false_negative += int(not accept and gt_present)
 
     def on_terminate(self):
         with self.stats.lock:
@@ -100,11 +104,13 @@ class FilterStackRunnerLogger(object):
     def on_start_evaluate(self):
         self.eval_timer.reset()
 
-    def on_done_evaluate(self, accept):
+    def on_done_evaluate(self, accept, gt_present=False):
         with self.stats.lock:
             self.stats.objs_processed += 1
             self.stats.objs_passed += int(accept)
             self.stats.objs_dropped += int(not accept)
+            self.stats.objs_true_positive += int(accept and gt_present)
+            self.stats.objs_false_negative += int(not accept and gt_present)
             self.stats.execution_us += self.eval_timer.elapsed
 
         # if self.objs_processed % 1000 == 0:
@@ -160,6 +166,8 @@ class SearchStatistics(_Statistics):
     attrs = (('objs_processed', 'Objects considered'),
              ('objs_dropped', 'Objects dropped'),
              ('objs_passed', 'Objects passed'),
+             ('objs_true_positive', 'Objects passed with label'),
+             ('objs_false_negative', 'Objects dropped with label'),
              ('objs_unloadable', 'Objects failing to load'),
              ('execution_us', 'Total object examination time (us)'))
 
@@ -192,6 +200,8 @@ class FilterStatistics(_Statistics):
 
     attrs = (('objs_processed', 'Total objects considered'),
              ('objs_dropped', 'Total objects dropped'),
+             ('objs_true_positive', 'Objects passed with label'),
+             ('objs_false_negative', 'Objects dropped with label'),
              ('objs_cache_dropped', 'Objects dropped by cache'),
              ('objs_cache_passed', 'Objects skipped by cache'),
              ('objs_computed', 'Objects examined by filter'),

@@ -2,13 +2,14 @@
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-    <title>{% block title %}OpenDiamond Scopeserver{% endblock %}</title>
-    <link rel="stylesheet" href="{{ STATIC_URL }}scopeserver/base.css" />
-    <link rel="stylesheet" href="{{ STATIC_URL }}scopeserver/style.css" />
+    <title>{% block title %}Eureka Scopeserver{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'scopeserver/base.css' %}" />
+    <link rel="stylesheet" href="{% static 'scopeserver/style.css' %}" />
     {% block head %}{% endblock %}
 </head>
 <body>
-    <h1>{% block pagetitle %}OpenDiamond Scopeserver{% endblock %}</h1>
+    <h1>{% block pagetitle %}Eureka Scopeserver{% endblock %}</h1>
     <div style="float: right">
 {% if user.is_authenticated %}
     Welcome {{ user.username }}
@@ -25,6 +26,13 @@
 {% if gatekeeper %}
     {% if user.is_staff or user.collection_set.all.count %}
         <li><a href="{{ gatekeeper }}">Gatekeeper</a></li>
+    {% endif %}
+{% endif %}
+
+{% url 'cocktail:index' as cocktail %}
+{% if cocktail %}
+    {% if user.is_staff or user.cocktailbase_set.all.count %}
+        <li><a href="{{ cocktail }}">Cocktail</a></li>
     {% endif %}
 {% endif %}
 
@@ -66,7 +74,7 @@
     <div id="content">
     {% block content %}{% endblock %}
     </div>
-    <script type="text/javascript" src="{{ STATIC_URL }}scopeserver/jquery.js"></script>
+    <script type="text/javascript" src="{% static 'scopeserver/jquery.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

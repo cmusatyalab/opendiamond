@@ -39,28 +39,29 @@ def index(request):
             cookie = []
             collection = form.cleaned_data['bases']
             mixers = form.cleaned_data['mixers']
-            server_all = set(collection.servers.all())
+            server_all = set([server.host for server in collection.servers.all()])
             if mixers:
                 percentage = form.cleaned_data['percentage']
                 if percentage:
                     url_string += '_{}'.format(percentage)
-                server_all = list(set(collection.servers.all()) & set(mixers.servers.all()))
-                url_string = "/mixers/{}".format(mixers.dataset.replace(':', '')) + url_string
-            servers = set()
-            for server in server_all:
-                servers.add(server.host)
+                classes = form.cleaned_data['classes']
+                if classes:
+                    url_string += '/classes/{}'.format(classes)
+                server_all = server_all & set([server.host for server in mixers.servers.all()])
+                url_string = "/mixers/{}".format(mixers.dataset.replace(':', '').upper()) + url_string
+            servers = server_all
             len_servers = len(servers)
             if mixers and len_servers > 1:
                 for idx, server in enumerate(servers):
                     scope = [urllib.quote("/cocktail/base/{}/distrbuted/{}of{}".format(
-                    collection.dataset.replace(':', ''), (idx+1), len_servers) + url_string)]
+                    collection.gid.replace(':', '').upper(), (idx+1), len_servers) + url_string)]
                     cookie.extend(generate_cookie_django(
                         scope, [server],
                         blaster=getattr(settings, 'GATEKEEPER_BLASTER', None)))
             else:
                 # If no mixing same url for all servers
                 scope = [urllib.quote("/cocktail/base/{}".format(
-                            collection.dataset.replace(':', '')) + url_string)]
+                            collection.gid.replace(':', '').upper()) + url_string)]
                 cookie.extend(generate_cookie_django(
                     scope, servers,
                     blaster=getattr(settings, 'GATEKEEPER_BLASTER', None)))

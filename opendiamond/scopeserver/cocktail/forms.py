@@ -12,6 +12,7 @@
 
 from django import forms
 from django.contrib.auth.models import User
+from opendiamond.scopeserver.gatekeeper.models import Collection
 from .models import CocktailBase
 
 
@@ -20,11 +21,11 @@ class CocktailBaseForm(forms.Form):
         user = kwargs['user']
         del kwargs['user']
         super(CocktailBaseForm, self).__init__(*args, **kwargs)
-        self.fields['bases'].queryset = user.cocktailbase_set.all()
+        self.fields['bases'].queryset = user.collection_set.all()
         self.fields['mixers'].queryset = user.cocktailbase_set.all()
 
     bases = forms.ModelChoiceField(
-        queryset=CocktailBase.objects.all(),
+        queryset=Collection.objects.all(),
         initial=1,
         widget=forms.RadioSelect
     )
@@ -35,6 +36,11 @@ class CocktailBaseForm(forms.Form):
         widget=forms.RadioSelect,
         required=False,
     )
+
+    classes = forms.CharField(label='Classes: ',
+                               help_text='Comma-separated Classes. '
+                                         'All selected if left blank',
+                               required=False)  # no 'strip' in Django 1.3
 
     TYPE_CHOICES = (
         ('d', 'DETERMINISTIC'),

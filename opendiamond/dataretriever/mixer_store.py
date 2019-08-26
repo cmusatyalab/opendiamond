@@ -50,10 +50,10 @@ _log = logging.getLogger(__name__)
 
 @scope_blueprint.route('/base/<baseidx>/mixers/<mixeridx>/keywords/<params>')
 @scope_blueprint.route('/base/<baseidx>/mixers/<mixeridx>/keywords/<params>/classes/<classes>')
-@scope_blueprint.route('/base/<baseidx>/distrbuted/<int:index>of<int:total>/ \
-                        mixers/<mixeridx>/keywords/<params>')
-@scope_blueprint.route('/base/<baseidx>/distrbuted/<int:index>of<int:total>/ \
-                        mixers/<mixeridx>/keywords/<params>/classes/<classes>')
+@scope_blueprint.route('/base/<baseidx>/distrbuted/<int:index>of<int:total>/' +
+                        'mixers/<mixeridx>/keywords/<params>')
+@scope_blueprint.route('/base/<baseidx>/distrbuted/<int:index>of<int:total>/' +
+                        'mixers/<mixeridx>/keywords/<params>/classes/<classes>')
 def get_mixer_classes(baseidx, mixeridx=None, index=1, total=1, params=None, classes=None):
     mixer_list = get_mixer_list(mixeridx, classes)
     start_idx = int((index-1)*(1.0/total)*len(mixer_list))
@@ -179,7 +179,7 @@ def get_mixer_list(idx, classes=None):
     class_paths = get_class_path()
     if class_paths:
         for path in class_paths:
-            mixer_list.extend(glob.glob(os.path.join(path, "*.jpg")))
+            mixer_list.extend(sorted(glob.glob(os.path.join(path, "*.jpg"))))
         mixer_list = [_get_obj_path(l.strip()) for l in mixer_list]
     else:
         with open(mixer_index, 'r') as f:

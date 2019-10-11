@@ -75,7 +75,7 @@ class _TcpWrappers(object):
             self._hosts_ctl = lib.hosts_ctl
             self._hosts_ctl.argtypes = [c_char_p] * 4
             self._hosts_ctl.restype = c_int
-        except (OSError, AttributeError), e:
+        except (OSError, AttributeError) as e:
             raise ImportError(str(e))
 
     def __call__(self, service, address):
@@ -108,7 +108,7 @@ class _DummyTcpWrappers(object):
 # pylint: disable=invalid-name
 try:
     connection_ok = _TcpWrappers()
-except ImportError, _e:
+except ImportError as _e:
     connection_ok = _DummyTcpWrappers(str(_e))
 # pylint: enable=invalid-name
 

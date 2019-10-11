@@ -120,7 +120,7 @@ class Search(RPCHandlers):
         try:
             for filter in self._filters:
                 filter.resolve(self._state)
-        except FilterDependencyError, e:
+        except FilterDependencyError as e:
             raise DiamondRPCFCacheMiss(str(e))
 
     @RPCHandlers.handler(25, protocol.XDR_setup, protocol.XDR_blob_list)
@@ -189,10 +189,10 @@ class Search(RPCHandlers):
                                 self._state.config.certdata)
             scope = ScopeListLoader(self._state.config, self._server_id,
                                     cookies)
-        except ScopeCookieExpired, e:
+        except ScopeCookieExpired as e:
             _log.warning('%s', e)
             raise DiamondRPCCookieExpired()
-        except ScopeError, e:
+        except ScopeError as e:
             _log.warning('Cookie invalid: %s', e)
             raise DiamondRPCFailure()
 
@@ -216,7 +216,7 @@ class Search(RPCHandlers):
         '''Start the search.'''
         try:
             self._check_runnable()
-        except RPCError, e:
+        except RPCError as e:
             _log.warning('Cannot start search: %s', str(e))
             raise
         if params.attrs is not None:
@@ -249,7 +249,7 @@ class Search(RPCHandlers):
         '''Reexecute the search on the specified object.'''
         try:
             self._check_runnable()
-        except RPCError, e:
+        except RPCError as e:
             _log.warning('Cannot reexecute filters: %s', str(e))
             raise
         _log.info('Reexecuting on object %s', params.object_id)

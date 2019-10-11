@@ -184,7 +184,7 @@ class DiamondServer(object):
                 # Close the connection pair in the parent
                 control.close()
                 data.close()
-        except _Signalled, s:
+        except _Signalled as s:
             _log.info('Supervisor exiting on %s', s.signame)
             # Stop listening for incoming connections
             self._listener.shutdown()
@@ -246,7 +246,7 @@ class DiamondServer(object):
         except ConnectionFailure:
             # Client closed connection
             _log.info('Client closed connection')
-        except _Signalled, s:
+        except _Signalled as s:
             # Worker threads raise SIGUSR1 when they've encountered a
             # fatal error
             if s.signal != signal.SIGUSR1:

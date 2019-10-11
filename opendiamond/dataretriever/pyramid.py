@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 #  pyramid.py - Helper functions for accessing GigaPan
 #
@@ -104,8 +105,8 @@ def stat_gigapan(gigapan_id):
         assert int(api_response.get('id')) == int(gigapan_id)
         return api_response
     except Exception:
-        print >> sys.stderr, "Couldn't parse the data returned by %s." % \
-            api_url
+        print("Couldn't parse the data returned by %s." % \
+            api_url, file=sys.stderr)
         raise
 
 

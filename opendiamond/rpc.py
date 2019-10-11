@@ -104,7 +104,7 @@ class RPCConnection(object):
                         raise ConnectionFailure('Short read')
                     count -= len(new)
                     bufs.append(new)
-            except socket.error, e:
+            except socket.error as e:
                 self._sock.close()
                 raise ConnectionFailure(str(e))
             return ''.join(bufs)
@@ -122,7 +122,7 @@ class RPCConnection(object):
         hdr = request.make_reply_header(status, body).encode()
         try:
             self._sock.sendall(hdr + body)
-        except socket.error, e:
+        except socket.error as e:
             self._sock.close()
             raise ConnectionFailure(str(e))
 
@@ -136,7 +136,7 @@ class RPCConnection(object):
                 handler_name = 'Command %d' % req.hdr.cmd
                 try:
                     handler = handlers.get_handler(req.hdr.cmd)
-                    handler_name = (handler.im_class.__name__ + '.' +
+                    handler_name = (handler.__self__.__class__.__name__ + '.' +
                                     handler.__name__)
                     if handler.rpc_request_class is not None:
                         req_obj = handler.rpc_request_class.decode(req.data)
@@ -163,7 +163,7 @@ class RPCConnection(object):
                 self._reply(req, body=ret)
                 if handlers.log_rpcs:
                     _log.debug('%s => success', handler_name)
-            except RPCError, e:
+            except RPCError as e:
                 self._reply(req, status=e.code)
                 if handlers.log_rpcs:
                     _log.debug('%s => %s', handler_name, e.__class__.__name__)

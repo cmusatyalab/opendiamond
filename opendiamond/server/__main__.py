@@ -11,6 +11,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from __future__ import print_function
 from optparse import OptionParser
 import sys
 
@@ -60,8 +61,8 @@ def run():
     try:
         config = DiamondConfig(**kwargs)
         server = DiamondServer(config)
-    except Exception, e:  # pylint: disable=broad-except
-        print str(e)
+    except Exception as e:  # pylint: disable=broad-except
+        print(str(e))
         sys.exit(1)
 
     # Run the server

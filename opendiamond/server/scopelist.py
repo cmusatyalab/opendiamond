@@ -68,7 +68,7 @@ class ScopeListLoader(object):
     def next(self):
         '''Return the next Object.'''
         with self._lock:
-            pending_object, scope_url = self._generator.next()
+            pending_object, scope_url = next(self._generator)
 
         id = pending_object.pop('id', None)
         src = pending_object.pop('src', None)
@@ -135,9 +135,9 @@ class ScopeListLoader(object):
                         count += 1
                         yield (pending_object, scope_url)
 
-            except urllib2.URLError, e:
+            except urllib2.URLError as e:
                 _log.warning('Fetching %s: %s', scope_url, e)
-            except SAXParseException, e:
+            except SAXParseException as e:
                 _log.warning('Parsing %s: %s', scope_url, e)
             finally:
                 try:

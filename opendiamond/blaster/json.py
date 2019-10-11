@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 #  The OpenDiamond Platform for Interactive Search
 #
@@ -465,14 +466,14 @@ def _main():
             or sys.argv[1] not in globals()
             or sys.argv[1][0] == '_'
             or sys.argv[2] not in ('strict', 'permissive')):
-        print >> sys.stderr, 'Arguments: SchemaClass {strict|permissive}'
-        print >> sys.stderr
-        print >> sys.stderr, 'SchemaClass can be one of the following:'
+        print('Arguments: SchemaClass {strict|permissive}', file=sys.stderr)
+        print(file=sys.stderr)
+        print('SchemaClass can be one of the following:', file=sys.stderr)
         for name, obj in sorted(globals().iteritems()):
             if (isinstance(obj, type) and issubclass(obj, _JSONSchema)
                     and not name.startswith('_')):
-                print '    %-25s: %s' % (name, getattr(obj, '__doc__',
-                                         'Undocumented'))
+                print('    %-25s: %s' % (name, getattr(obj, '__doc__',
+                                         'Undocumented')))
         sys.exit(1)
 
     globals()[sys.argv[1]](sys.argv[2] == 'strict').dump(sys.stdout)

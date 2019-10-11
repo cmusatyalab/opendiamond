@@ -45,6 +45,7 @@ from opendiamond.helpers import connection_ok
 from opendiamond.protocol import DiamondRPCCookieExpired
 from opendiamond.rpc import ConnectionFailure, RPCError
 from opendiamond.scope import ScopeCookie, ScopeError
+from functools import reduce
 
 CACHE_URN_SCHEME = 'blob'
 STATS_INTERVAL = timedelta(milliseconds=1000)
@@ -239,7 +240,7 @@ class _SearchSpec(object):
         try:
             config = json.loads(data)
             _search_schema.validate(config)
-        except ValueError, e:
+        except ValueError as e:
             raise HTTPError(400, str(e))
 
         # Build cookies
@@ -247,7 +248,7 @@ class _SearchSpec(object):
         try:
             self.cookies = [ScopeCookie.parse(c) for mc in config['cookies']
                             for c in ScopeCookie.split(mc)]
-        except ScopeError, e:
+        except ScopeError as e:
             raise HTTPError(400, 'Invalid scope cookie: %s' % e)
         if not self.cookies:
             # No cookies could be parsed out of the client's cookie list
@@ -354,7 +355,7 @@ class EvaluateHandler(_BlasterRequestHandler):
         try:
             request = json.loads(self.request.body)
             _evaluate_request_schema.validate(request)
-        except ValueError, e:
+        except ValueError as e:
             raise HTTPError(400, str(e))
 
         # Load the object data
@@ -501,7 +502,7 @@ class _StructuredSocketConnection(SockJSConnection):
         try:
             msg = json.loads(data)
             self._c2s_schema.validate(msg)
-        except ValueError, e:
+        except ValueError as e:
             self.error(str(e))
             return
         event = msg['event']

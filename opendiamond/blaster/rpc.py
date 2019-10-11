@@ -85,7 +85,7 @@ class _RPCClientConnection(object):
             if buf is None:
                 # _handle_close() is cleaning us up
                 raise ConnectionFailure('Connection closed')
-        except IOError, e:
+        except IOError as e:
             self.close()
             raise ConnectionFailure(str(e))
         finally:
@@ -110,7 +110,7 @@ class _RPCClientConnection(object):
             body = request.encode()
         else:
             body = ''
-        seq = self._sequence.next()
+        seq = next(self._sequence)
         self._pending[seq] = stack_context.wrap((yield gen.Callback('reply')))
         self._send_message(seq, RPC_PENDING, cmd, body)
 

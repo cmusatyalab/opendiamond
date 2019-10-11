@@ -67,7 +67,7 @@ class _RPCClientConnection(object):
             body = request.encode()
         else:
             body = ''
-        seq = self._sequence.next()
+        seq = next(self._sequence)
         self._send_message(seq, RPC_PENDING, cmd, body)
         status, data = self._get_reply()
 

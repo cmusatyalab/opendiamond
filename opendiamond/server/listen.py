@@ -132,7 +132,7 @@ class _PendingConnPollSet(object):
         while True:
             try:
                 items = self._pollset.poll()
-            except select.error, e:
+            except select.error as e:
                 # If poll() was interrupted by a signal, retry.  If the
                 # signal was supposed to be fatal, the signal handler would
                 # have raised an exception.

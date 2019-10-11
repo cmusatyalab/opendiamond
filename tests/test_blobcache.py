@@ -114,7 +114,7 @@ def test_executable_blobcache(tmpdir, monkeypatch):
     assert emptyfile_path.check(file=1)
 
     filestat = emptyfile_path.stat()
-    assert filestat.nlink == 1 and not filestat.mode & 0111
+    assert filestat.nlink == 1 and not filestat.mode & 0o111
 
     executable = cache.executable_path(emptyfile)
     executable_path = execdir.join(emptyfile)
@@ -123,8 +123,8 @@ def test_executable_blobcache(tmpdir, monkeypatch):
 
     # executable file will be a hardlink on unix systems
     filestat = emptyfile_path.stat()
-    assert filestat.nlink == 2 and filestat.mode & 0111
+    assert filestat.nlink == 2 and filestat.mode & 0o111
 
     # the original is changed too because iff we hardlinked
     filestat = emptyfile_path.stat()
-    assert filestat.nlink == 2 and filestat.mode & 0111
+    assert filestat.nlink == 2 and filestat.mode & 0o111

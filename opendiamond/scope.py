@@ -11,6 +11,7 @@
 #
 
 '''Scope cookie generation, parsing, and verification.'''
+from __future__ import print_function
 
 # Scope cookie format:
 #
@@ -306,8 +307,7 @@ def _main():
     try:
         filename = args.pop(0)
     except IndexError:
-        print >> sys.stderr, \
-            'Usage: scope.py <cookie-file> [server-name [cert-file]]'
+        print('Usage: scope.py <cookie-file> [server-name [cert-file]]', file=sys.stderr)
         sys.exit(1)
     # certificate validation is optional
     try:
@@ -324,15 +324,15 @@ def _main():
     try:
         data = open(filename).read()
         cookies = [ScopeCookie.parse(c) for c in ScopeCookie.split(data)]
-        print '\n\n'.join([str(c) for c in cookies])
+        print('\n\n'.join([str(c) for c in cookies]))
 
         if server is not None:
             certdata = open(certfile).read()
             for cookie in cookies:
                 cookie.verify([server], certdata)
-            print 'Cookies verified successfully'
-    except ScopeError, e:
-        print str(e)
+            print('Cookies verified successfully')
+    except ScopeError as e:
+        print(str(e))
         sys.exit(1)
 
 

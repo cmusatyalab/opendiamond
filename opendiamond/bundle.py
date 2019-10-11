@@ -75,7 +75,7 @@ def parse_manifest(data):
         el = et.fromstring(data)
         validate_manifest(el)
         return el
-    except et.ParseError, e:
+    except et.ParseError as e:
         raise InvalidManifest(str(e))
 
 
@@ -84,7 +84,7 @@ def validate_manifest(root):
     manifest and raise InvalidManifest if there is a problem.'''
     try:
         _schema.assertValid(root)
-    except et.DocumentInvalid, e:
+    except et.DocumentInvalid as e:
         raise InvalidManifest(str(e))
 
 

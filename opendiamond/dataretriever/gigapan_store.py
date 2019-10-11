@@ -151,7 +151,7 @@ def _generate_list(gigapan_id):
 
     try:
         while True:
-            coord = iter.next()
+            coord = next(iter)
             yield _get_object_element(gigapan_id,  coord[0], coord[1], coord[2]) + '\n'
     except StopIteration:
         pass

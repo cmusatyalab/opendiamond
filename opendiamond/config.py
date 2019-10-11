@@ -220,7 +220,7 @@ class DiamondConfig(object):
         for dir in self.cachedir, self.logdir:
             try:
                 if dir is not None and not os.path.isdir(dir):
-                    os.mkdir(dir, 0700)
+                    os.mkdir(dir, 0o700)
             except OSError:
                 raise DiamondConfigError("Couldn't create directory: " + dir)
 

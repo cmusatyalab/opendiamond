@@ -109,7 +109,7 @@ class BlobCache(object):
             temp = os.fdopen(fd, 'r+')
             temp.write(data)
             temp.close()
-            os.chmod(name, 0400)
+            os.chmod(name, 0o400)
             try:
                 os.link(name, self._path(sig))
             except OSError:
@@ -192,7 +192,7 @@ class ExecutableBlobCache(BlobCache):
                 fd, dest_tmp = mkstemp(dir=self._executable_dir)
                 os.close(fd)
                 shutil.copyfile(src, dest_tmp)
-            os.chmod(dest_tmp, 0500)
+            os.chmod(dest_tmp, 0o500)
             os.rename(dest_tmp, dest)
         self._access(sig)
         if not os.path.exists(dest):

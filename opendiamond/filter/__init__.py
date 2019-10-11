@@ -11,6 +11,7 @@
 #
 
 from __future__ import with_statement
+from __future__ import print_function
 import argparse
 from cStringIO import StringIO
 import os
@@ -57,7 +58,7 @@ class Session(object):
         else:
             # Fallback logging to stderr so that filters can be tested
             # outside of Diamond
-            print >> sys.stderr, '[%s] %s' % (level, msg)
+            print('[%s] %s' % (level, msg), file=sys.stderr)
 
     def get_vars(self, vars):
         '''vars is a tuple of session variables to be atomically read.
@@ -178,11 +179,11 @@ class Filter(object):
         try:
             if flags.fifo_in is not None and flags.fifo_out is not None:
                 # not fork
-                print "Using FIFO in/out:", flags.fifo_in, flags.fifo_out
+                print("Using FIFO in/out:", flags.fifo_in, flags.fifo_out)
                 fout = os.fdopen(os.open(flags.fifo_out, os.O_WRONLY), 'wb')
                 fin = os.fdopen(os.open(flags.fifo_in, os.O_RDONLY), 'rb')
                 conn = _DiamondConnection(fin, fout)
-                print "Connected!"
+                print("Connected!")
             elif flags.tcp and flags.host is not None:
                 # connect to a TCP port as client
                 while True:
@@ -190,7 +191,7 @@ class Filter(object):
                     try:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         sock.connect((flags.host, flags.port))
-                        print "Connected to %s:%d. Waiting for readable." % (flags.host, flags.port)
+                        print("Connected to %s:%d. Waiting for readable." % (flags.host, flags.port))
                         # Prevent too many just-connected sockets
                         # fork AFTER readable (diamondd picks up the connection and starts sending init)
                         readable, _, exceptional = select.select([sock,], [], [sock,])
@@ -203,10 +204,10 @@ class Filter(object):
                             if pid == 0:    # child
                                 break
                             else:
-                                print "Forked", pid
+                                print("Forked", pid)
 
                         if exceptional:
-                            print "Broken connection."
+                            print("Broken connection.")
 
                         sock = None
 
@@ -215,7 +216,7 @@ class Filter(object):
                         pass
             elif flags.tcp:
                 # listen on TCP port
-                print "Listening on TCP port ", flags.port
+                print("Listening on TCP port ", flags.port)
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.bind(('', flags.port))
                 sock.listen(8)
@@ -223,7 +224,7 @@ class Filter(object):
                 while True:
                     c, addr = sock.accept()
                     c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    print "Accepted connection from ", addr
+                    print("Accepted connection from ", addr)
                     pid = os.fork()
                     if pid == 0:    # child, set up the real stuff and start the filter loop
                         sock = None
@@ -233,7 +234,7 @@ class Filter(object):
                         # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
                         break
                     else:   # server, continue listening forever
-                        print "Forked", pid
+                        print("Forked", pid)
                         continue
             else:
                 # old way: run an instance of the filter and speak through stdin/stdout

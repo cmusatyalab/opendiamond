@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 #
 #  The OpenDiamond Platform for Interactive Search
 #
@@ -12,7 +14,7 @@
 
 import json
 
-import context
+from . import context
 from opendiamond.client.search import DiamondSearch
 from opendiamond.client.rpc import ControlConnection, BlastConnection
 from opendiamond.client.util import get_default_rgb_filter, get_default_scopecookies
@@ -63,7 +65,7 @@ class TestClientSearch(unittest.TestCase):
             if n_results % 10 == 0:
                 _log.debug("Got %d results. %s", n_results, str(res))
 
-        print ""
+        print("")
         _log.info("The last result: %s", str(res))
         _log.info("Total results: %d", n_results)
 

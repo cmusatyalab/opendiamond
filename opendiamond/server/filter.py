@@ -64,6 +64,7 @@ avoid storing cheaply recomputable values in the attribute cache, we only
 cache values resulting from filter executions that produce attribute data at
 less than 2 MB/s.
 '''
+from __future__ import print_function
 
 import docker
 import fcntl
@@ -397,7 +398,7 @@ class _ObjectFetcher(_ObjectProcessor):
     def evaluate(self, obj):
         try:
             self._loader.load(obj)
-        except ObjectLoadError, e:
+        except ObjectLoadError as e:
             _log.warning('Failed to load %s: %s', obj, e)
             raise
         result = _FilterResult()
@@ -523,7 +524,7 @@ class _FilterRunner(_ObjectProcessor):
                     else:
                         _log.log(level, 'Initialize: %s' % message)
                 elif cmd == 'stdout':
-                    print proc.get_item(),
+                    print(proc.get_item(), end=' ')
                 elif cmd == 'result':
                     result.score = float(proc.get_item())
                     break
@@ -1120,7 +1121,7 @@ class FilterStackRunner(mp.Process):
                 if resultmap:
                     try:
                         self._redis.mset(resultmap)
-                    except ResponseError, e:
+                    except ResponseError as e:
                         # mset failed, possibly due to maxmemory quota
                         if not self._warned_cache_update:
                             self._warned_cache_update = True

@@ -11,6 +11,7 @@
 #
 
 '''Representations of a Diamond object.'''
+from __future__ import print_function
 
 from cStringIO import StringIO
 from urlparse import urljoin
@@ -111,12 +112,12 @@ class EmptyObject(object):
 
     def debug(self):
         """Print all attributes"""
-        print str(self)
-        print '<internal> %s: %s' % ('src', getattr(self, 'src', None))
-        print '<internal> %s: %s' % ('meta', getattr(self, 'meta', None))
+        print(str(self))
+        print('<internal> %s: %s' % ('src', getattr(self, 'src', None)))
+        print('<internal> %s: %s' % ('meta', getattr(self, 'meta', None)))
         for k, v in self._attrs.iteritems():
             if k:   # Skip data attribute
-                print '%s: %s' % (k, v)
+                print('%s: %s' % (k, v))
 
 
 class Object(EmptyObject):
@@ -169,7 +170,7 @@ class _HttpLoader(object):
         self._curl.setopt(curl.URL, url)
         try:
             self._curl.perform()
-        except curl.error, e:
+        except curl.error as e:
             raise ObjectLoadError(str(e.args[0]) + ';' + e.args[1] + ';' + self._curl.errstr())
         # Localize fetched data and release this object's copy
         headers = self._headers
@@ -286,7 +287,7 @@ class ObjectLoader(object):
             attrs = json.loads(body)
             if not isinstance(attrs, dict):
                 raise ObjectLoadError("Failed to retrieve object attributes")
-        except ValueError, e:
+        except ValueError as e:
             raise ObjectLoadError(str(e))
         for k, v in attrs.iteritems():
             obj[k] = str(v) + '\0'
@@ -300,9 +301,9 @@ class ObjectLoader(object):
                 if not isinstance(attrs, dict):
                     raise ObjectLoadError(
                         "Failed to retrieve object attributes")
-        except IOError, e:
+        except IOError as e:
             raise ObjectLoadError(str(e))
-        except ValueError, e:
+        except ValueError as e:
             raise ObjectLoadError(str(e))
         for k, v in attrs.iteritems():
             obj[k] = str(v) + '\0'

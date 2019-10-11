@@ -11,6 +11,7 @@
 #
 
 
+from builtins import object
 class Parameter(object):
     '''The base class for a parameter.'''
 

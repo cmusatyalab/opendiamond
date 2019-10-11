@@ -10,6 +10,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import next
+from builtins import range
 import os
 import datetime
 from xml.sax.saxutils import quoteattr
@@ -111,14 +113,14 @@ def get_scope(baseidx, params=None, mixer_list=None):
 
         mix_indices = []
         if not base_list:
-            mix_indices = range(total_entries)
+            mix_indices = list(range(total_entries))
 
         def generate_mix_indices():
             random.seed(seed)
             return (ITEMS_PER_ITERATION*iteration_count +
-                    np.sort(random.sample(range(ITEMS_PER_ITERATION), mix_per_iteration)))
+                    np.sort(random.sample(list(range(ITEMS_PER_ITERATION)), mix_per_iteration)))
 
-        for count in xrange(total_entries):
+        for count in range(total_entries):
             if not count % ITEMS_PER_ITERATION and make_cocktail:
                 mix_indices = generate_mix_indices()
                 iteration_count += 1

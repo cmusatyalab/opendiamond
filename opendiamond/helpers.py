@@ -11,16 +11,20 @@
 #
 
 from __future__ import with_statement
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
 from ctypes import cdll, c_char_p, c_int
 import logging
+import mmh3
 import os
 import resource
 import signal
 import sys
 from threading import Lock
-from urlparse import urlparse
-
-from opendiamond.hash import murmur3_x64_128
+from urllib.parse import urlparse
 
 _log = logging.getLogger(__name__)
 
@@ -36,7 +40,7 @@ def daemonize():
         os._exit(0)
     # Close open fds
     maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-    for fd in xrange(maxfd):
+    for fd in range(maxfd):
         try:
             os.close(fd)
         except OSError:
@@ -61,7 +65,7 @@ def murmur(data):
     '''Return a lower-case hex string representing the MurmurHash3-x64-128
     hash of the specified data using the seed 0xbb40e64d (the first 10
     digits of pi, in hex).'''
-    return murmur3_x64_128(data, 0xbb40e64d)
+    return mmh3.hash_bytes(data, 314159).hex()
 
 
 class _TcpWrappers(object):

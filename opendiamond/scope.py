@@ -29,6 +29,9 @@ from __future__ import print_function
 #       \n
 #       <scope URLs, one per line>
 
+from builtins import str
+from builtins import range
+from builtins import object
 import base64
 import binascii
 from datetime import datetime, timedelta

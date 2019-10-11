@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import str
 import math
 import os
 import zipfile
@@ -32,7 +33,7 @@ def element(element_name, *children, **attrs):
     '''Return an XML element in the bundle namespace with the specified
     name, attributes, and children.'''
     el = et.Element(BUNDLE_NS_PFX + element_name, nsmap={None: BUNDLE_NS})
-    for k, v in attrs.iteritems():
+    for k, v in attrs.items():
         # Allow caller to specify an attribute value of None to skip the
         # attribute
         if v is not None:
@@ -120,7 +121,7 @@ def bundle_generic(out, root, files, include_files_path=None):
                      for file_ in filters + datafiles]:
             files.setdefault(os.path.basename(path), path)
 
-    for name, path in files.iteritems():
+    for name, path in files.items():
         zip.write(path, name)
     zip.close()
 
@@ -155,7 +156,7 @@ def bundle_macro(out, display_name, filter, arguments, files,
             element('arguments', *[element('argument', value=v)
                                    for v in arguments]),
             element('blob', *[element('member', filename=f, data=f)
-                              for f in filemap.iterkeys()]),
+                              for f in filemap.keys()]),
             code=filter,
         ),
     )

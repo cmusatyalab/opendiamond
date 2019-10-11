@@ -38,11 +38,6 @@ REQUIRES_SCOPESERVER = [
 ]
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
-hashmodule = Extension(
-    "opendiamond.hash",
-    sources=[os.path.join(SRC_PATH, "opendiamond/hashmodule.c")],
-)
-
 
 class EggInfoCommand(egg_info):
     def run(self):
@@ -63,7 +58,7 @@ setup(
     author=PROJECT_AUTHOR,
     author_email=PROJECT_EMAIL,
     packages=PACKAGES,
-    ext_modules=[hashmodule],
+    ext_modules=[],
     zip_safe=False,
     install_requires=REQUIRES,
     extras_require={

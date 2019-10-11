@@ -12,6 +12,9 @@
 
 '''Low-level RPC protocol implementation.'''
 
+from builtins import next
+from builtins import str
+from builtins import object
 import itertools
 import logging
 import socket
@@ -147,7 +150,7 @@ class _RPCClientConnection(object):
                 data = yield gen.Task(self._read, hdr.datalen)
             except ConnectionFailure:
                 # Error out pending callbacks
-                callbacks = self._pending.values()
+                callbacks = list(self._pending.values())
                 self._pending.clear()
                 for callback in callbacks:
                     callback(None, '')

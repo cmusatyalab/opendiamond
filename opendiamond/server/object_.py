@@ -13,8 +13,12 @@
 '''Representations of a Diamond object.'''
 from __future__ import print_function
 
-from cStringIO import StringIO
-from urlparse import urljoin
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
+from io import StringIO
+from urllib.parse import urljoin
 import simplejson as json
 
 import pycurl as curl
@@ -57,7 +61,7 @@ class EmptyObject(object):
 
     def __iter__(self):
         '''Return an iterator over the attribute names.'''
-        return self._attrs.iterkeys()
+        return iter(self._attrs.keys())
 
     def __contains__(self, key):
         return key in self._attrs
@@ -115,7 +119,7 @@ class EmptyObject(object):
         print(str(self))
         print('<internal> %s: %s' % ('src', getattr(self, 'src', None)))
         print('<internal> %s: %s' % ('meta', getattr(self, 'meta', None)))
-        for k, v in self._attrs.iteritems():
+        for k, v in self._attrs.items():
             if k:   # Skip data attribute
                 print('%s: %s' % (k, v))
 
@@ -265,7 +269,7 @@ class ObjectLoader(object):
         # Load the object data
         obj[ATTR_DATA] = body
         # Process loose initial attributes
-        for key, value in headers.iteritems():
+        for key, value in headers.items():
             if key.lower().startswith(ATTR_HEADER_PREFIX):
                 key = key[ATTR_HEADER_PREFIX_LEN:]
                 obj[key] = value + '\0'
@@ -289,7 +293,7 @@ class ObjectLoader(object):
                 raise ObjectLoadError("Failed to retrieve object attributes")
         except ValueError as e:
             raise ObjectLoadError(str(e))
-        for k, v in attrs.iteritems():
+        for k, v in attrs.items():
             obj[k] = str(v) + '\0'
 
     # pylint: enable=maybe-no-member
@@ -305,7 +309,7 @@ class ObjectLoader(object):
             raise ObjectLoadError(str(e))
         except ValueError as e:
             raise ObjectLoadError(str(e))
-        for k, v in attrs.iteritems():
+        for k, v in attrs.items():
             obj[k] = str(v) + '\0'
 
     def _load_src_maybe_meta(self, obj):

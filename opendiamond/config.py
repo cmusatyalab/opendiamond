@@ -12,6 +12,7 @@
 
 '''Diamond configuration file parsing.'''
 
+from builtins import object
 import logging
 import os
 import socket
@@ -49,7 +50,7 @@ class _ConfigParams(object):
 
     def iter_attrs(self):
         '''Return iterator over _Params with defined attribute names.'''
-        return self._by_attr.itervalues()
+        return iter(self._by_attr.values())
 
     def has_attr(self, key):
         '''Check for parameter existence by attribute name.'''

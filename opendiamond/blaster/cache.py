@@ -10,8 +10,11 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 from collections import Mapping
-import cPickle as pickle
+import pickle as pickle
 from datetime import datetime
 from hashlib import sha256
 import logging
@@ -131,7 +134,7 @@ class SearchCache(object):
         '''result is a dict of object attributes.'''
         fh = NamedTemporaryFile(dir=self._basedir, delete=False)
         zf = zipfile.ZipFile(fh, 'w', zipfile.ZIP_STORED, True)
-        for k, v in result.iteritems():
+        for k, v in result.items():
             zf.writestr(_attr_key_to_member(k), v)
         zf.close()
         fh.close()

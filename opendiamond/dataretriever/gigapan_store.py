@@ -1,3 +1,4 @@
+from __future__ import division
 #
 #  The OpenDiamond Platform for Interactive Search
 #
@@ -10,10 +11,17 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import str
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from datetime import datetime, timedelta
 from threading import Lock
-from urllib2 import urlopen
-from cStringIO import StringIO
+from urllib.request import urlopen
+from io import StringIO
 
 from PIL import Image
 from flask import Blueprint, Response, stream_with_context, send_file, url_for
@@ -56,8 +64,8 @@ def get_object(gigapan_id, lvl, col, row):
     width = int(info.get('width'))
     height = int(info.get('height'))
     real_level = (levels - 1) - lvl
-    level_width = width / 2 ** real_level
-    level_height = height / 2 ** real_level
+    level_width = old_div(width, 2 ** real_level)
+    level_height = old_div(height, 2 ** real_level)
     bottom_right = ((col + 1) * TILE_SIZE, (row + 1) * TILE_SIZE)
     img_width = img_height = TILE_SIZE
     if bottom_right[0] > level_width:

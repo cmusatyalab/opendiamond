@@ -89,7 +89,7 @@ def run():
     # http://werkzeug.pocoo.org/docs/0.12/serving/#werkzeug.serving.run_simple
     app.run(host=config.retriever_host,
             port=config.retriever_port,
-            # threaded=True,
+            threaded=False,
             processes=16
             )
 

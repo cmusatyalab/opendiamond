@@ -17,11 +17,13 @@
 # But hopefully it will be efficient because we are streaming.
 
 
+from future import standard_library
+standard_library.install_aliases()
 from flask import Blueprint, Response, stream_with_context
 import logging
-import urllib
-from urllib2 import urlopen
-from urlparse import urljoin
+import urllib.request, urllib.parse, urllib.error
+from urllib.request import urlopen
+from urllib.parse import urljoin
 from werkzeug.datastructures import Headers
 
 try:
@@ -39,7 +41,7 @@ _log = logging.getLogger(__name__)
 
 @scope_blueprint.route('/<int:index>of<int:total>/<path:dest_url>')
 def get_scope(index, total, dest_url):
-    dest_url = 'http://' + urllib.quote(dest_url, safe='/:')
+    dest_url = 'http://' + urllib.parse.quote(dest_url, safe='/:')
 
     _log.info("Proxying {} of {} from {}".format(index, total, dest_url))
 

@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import range
 from django.contrib.auth.decorators import permission_required
 from django.conf import settings
 from django.http import QueryDict, HttpResponse

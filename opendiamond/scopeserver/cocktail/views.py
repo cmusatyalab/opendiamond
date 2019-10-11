@@ -10,6 +10,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from future import standard_library
+standard_library.install_aliases()
 from django.conf import settings
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
@@ -21,7 +23,7 @@ from opendiamond.scope import generate_cookie_django
 from .forms import CocktailBaseForm, ManageForm
 
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 #bases, mixers, mixing_type, seed
 @login_required
@@ -53,14 +55,14 @@ def index(request):
             len_servers = len(servers)
             if mixers and len_servers > 1:
                 for idx, server in enumerate(servers):
-                    scope = [urllib.quote("/cocktail/base/{}/distrbuted/{}of{}".format(
+                    scope = [urllib.parse.quote("/cocktail/base/{}/distrbuted/{}of{}".format(
                     collection.gid.replace(':', '').upper(), (idx+1), len_servers) + url_string)]
                     cookie.extend(generate_cookie_django(
                         scope, [server],
                         blaster=getattr(settings, 'GATEKEEPER_BLASTER', None)))
             else:
                 # If no mixing same url for all servers
-                scope = [urllib.quote("/cocktail/base/{}".format(
+                scope = [urllib.parse.quote("/cocktail/base/{}".format(
                             collection.gid.replace(':', '').upper()) + url_string)]
                 cookie.extend(generate_cookie_django(
                     scope, servers,

@@ -10,6 +10,9 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import str
+from builtins import next
+from builtins import object
 import binascii
 import logging
 import uuid
@@ -243,7 +246,7 @@ class _DiamondConnection(object):
             return s
 
         rv = dict()
-        for k, v in dct.iteritems():
+        for k, v in dct.items():
             if not v:
                 v = None
             else:
@@ -348,7 +351,7 @@ class DiamondSearch(object):
         # host -> _DiamondConnection
         self._connections = dict((h, _DiamondConnection(h))
                                  for h in self._cookie_map)
-        self._blast = _DiamondBlastSet(self._connections.values())
+        self._blast = _DiamondBlastSet(list(self._connections.values()))
 
     def start(self):
         """
@@ -358,7 +361,7 @@ class DiamondSearch(object):
         """
         search_id = str(uuid.uuid4())
 
-        for h, c in self._connections.items():
+        for h, c in list(self._connections.items()):
             try:
                 c.run_search(search_id, self._cookie_map[h], self._filters,
                              self._push_attrs)
@@ -404,7 +407,7 @@ class DiamondSearch(object):
 
         try:
             results = [c.control.request_stats() for c in
-                       self._connections.values()]
+                       list(self._connections.values())]
             stats = {}
             filter_stats = {}
             for result in results:
@@ -420,6 +423,6 @@ class DiamondSearch(object):
 
     def close(self):
         if not self._closed:
-            for conn in self._connections.values():
+            for conn in list(self._connections.values()):
                 conn.close()
             self._closed = True

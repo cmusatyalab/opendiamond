@@ -12,9 +12,11 @@
 
 '''JSON Blaster web application.'''
 
+from future import standard_library
+standard_library.install_aliases()
 import logging
 import os
-from urlparse import urljoin
+from urllib.parse import urljoin
 import threading
 import time
 

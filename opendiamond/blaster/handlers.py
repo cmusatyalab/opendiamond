@@ -12,13 +12,17 @@
 
 '''JSON Blaster request handlers.'''
 
-from cStringIO import StringIO
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
+from io import StringIO
 from datetime import timedelta
 from hashlib import sha256
 import logging
 import os
 import time
-from urlparse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse
 
 import magic
 import PIL.Image
@@ -82,7 +86,7 @@ def _make_object_json(application, search_key, object_key, obj):
     '''Convert an object attribute dict into a dict suitable for JSON
     encoding.'''
     result = {}
-    for k, v in obj.iteritems():
+    for k, v in obj.items():
         data = None
         # Inline known attribute types that can be represented in JSON
         if k.endswith('.int'):
@@ -274,7 +278,7 @@ class _SearchSpec(object):
                 min_score=f.get('min_score', float('-inf')),
                 max_score=f.get('max_score', float('inf'))
             ) for f in config['filters']]
-        self.blobs = blobs.values()
+        self.blobs = list(blobs.values())
 
     @gen.engine
     def fetch_blobs(self, blob_cache, callback=None):

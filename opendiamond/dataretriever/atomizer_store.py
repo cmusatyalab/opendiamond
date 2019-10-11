@@ -10,6 +10,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import str
+from builtins import range
 import json
 import os
 import datetime

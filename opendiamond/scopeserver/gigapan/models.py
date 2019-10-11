@@ -10,10 +10,11 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import object
 from django.db import models
 
 
 # pylint: disable=model-missing-unicode
 class Access(models.Model):
-    class Meta:
+    class Meta(object):
         permissions = (("search", "Can search GigaPan images"),)

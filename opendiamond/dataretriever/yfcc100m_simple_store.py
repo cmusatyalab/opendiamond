@@ -10,13 +10,16 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import map
 import datetime
 from flask import abort, Blueprint, jsonify, \
     send_file, stream_with_context, request, Response, url_for
 import itertools
 import logging
 import os
-import urlparse
+import urllib.parse
 from xml.sax.saxutils import quoteattr
 from werkzeug.datastructures import Headers
 
@@ -49,11 +52,11 @@ def get_scope():
     try:
         # process query string args
         slice_str = request.args.get('slice', '::')
-        start, stop, step = map(lambda x: int(x) if x else None, slice_str.split(':')[:3])
+        start, stop, step = [int(x) if x else None for x in slice_str.split(':')[:3]]
         start = start or 0
         step = step or 1
         distribute_str = request.args.get('distribute', '1of1')
-        n, m = map(int, distribute_str.split('of')[:2])
+        n, m = list(map(int, distribute_str.split('of')[:2]))
         assert step > 0
         assert 1 <= n <= m
         # manipulate start, step to incorporate distribute params
@@ -109,6 +112,6 @@ def get_object_id(suffix):
 def _get_object_element(suffix):
     return '<object id={} src={} hyperfind.external-link={} />' \
         .format(quoteattr(url_for('.get_object_id', suffix=suffix)),
-                quoteattr(urlparse.urljoin(YFCC100M_S3_IMAGE_HTTP_PREFIX, suffix)),
-                quoteattr(urlparse.urljoin(YFCC100M_S3_IMAGE_HTTP_PREFIX, suffix)))
+                quoteattr(urllib.parse.urljoin(YFCC100M_S3_IMAGE_HTTP_PREFIX, suffix)),
+                quoteattr(urllib.parse.urljoin(YFCC100M_S3_IMAGE_HTTP_PREFIX, suffix)))
 

@@ -10,8 +10,12 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from urllib import quote_plus
-from urllib2 import urlopen, HTTPError
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from urllib.parse import quote_plus
+from urllib.request import urlopen
+from urllib.error import HTTPError
 
 from django.contrib.auth.decorators import permission_required
 from django.conf import settings

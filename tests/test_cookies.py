@@ -10,6 +10,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import str
+from builtins import object
 import base64
 import binascii
 from datetime import datetime, timedelta
@@ -211,7 +213,7 @@ class _TestHandGeneratedCookie(_TestScope):
         if self.serverids is not None:
             headers['Servers'] = ';'.join(self.serverids)
         hdrbuf = ''.join('%s: %s\n' % (key, value)
-                         for key, value in headers.iteritems())
+                         for key, value in headers.items())
         data = hdrbuf + '\n' + '\n'.join(self.scopeurls) + '\n'
         key = EVP.load_key_string(self.key)
         key.sign_init()

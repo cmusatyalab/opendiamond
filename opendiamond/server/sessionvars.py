@@ -13,6 +13,7 @@
 '''Session variables.'''
 
 from __future__ import with_statement
+from builtins import object
 import threading
 
 
@@ -82,7 +83,7 @@ class SessionVariables(object):
         @values is a map of keys and the quantities to add to the
         corresponding values.'''
         with self._lock:
-            for key, value in values.iteritems():
+            for key, value in values.items():
                 var = self._vars.setdefault(key, _SessionVariable())
                 var.filter_update(value, self._between_get_and_set)
 
@@ -92,7 +93,7 @@ class SessionVariables(object):
         ret = dict()
         with self._lock:
             self._between_get_and_set = True
-            for key, var in self._vars.iteritems():
+            for key, var in self._vars.items():
                 ret[key] = var.client_get()
         return ret
 
@@ -101,6 +102,6 @@ class SessionVariables(object):
         the session variables from the other servers.'''
         with self._lock:
             self._between_get_and_set = False
-            for key, value in values.iteritems():
+            for key, value in values.items():
                 var = self._vars.setdefault(key, _SessionVariable())
                 var.client_set(value)

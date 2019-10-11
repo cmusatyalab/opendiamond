@@ -12,6 +12,8 @@
 
 '''Search state; control and blast channel handling.'''
 
+from builtins import str
+from builtins import object
 from functools import wraps
 import logging
 import multiprocessing as mp
@@ -294,7 +296,7 @@ class Search(RPCHandlers):
         '''Return partial values for all session variables.'''
         vars = [protocol.XDR_session_var(name=name, value=value)
                 for name, value in
-                self._state.session_vars.client_get().iteritems()]
+                self._state.session_vars.client_get().items()]
         return protocol.XDR_session_vars(vars=vars)
 
     @RPCHandlers.handler(19, protocol.XDR_session_vars)

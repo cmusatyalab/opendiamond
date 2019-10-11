@@ -11,8 +11,11 @@
 #
 
 '''Statistics tracking.'''
-
+from __future__ import division
 from __future__ import with_statement
+
+from past.utils import old_div
+from builtins import object
 import logging
 import multiprocessing as mp
 import threading
@@ -178,7 +181,7 @@ class SearchStatistics(_Statistics):
         '''Return an XDR statistics structure for these statistics.'''
         with self.lock:
             try:
-                avg_obj_us = self.execution_us / self.objs_processed
+                avg_obj_us = old_div(self.execution_us, self.objs_processed)
             except ZeroDivisionError:
                 avg_obj_us = 0
 
@@ -218,7 +221,7 @@ class FilterStatistics(_Statistics):
         '''Return an XDR statistics structure for these statistics.'''
         with self.lock:
             try:
-                avg_exec_us = self.execution_us / self.objs_processed
+                avg_exec_us = old_div(self.execution_us, self.objs_processed)
             except ZeroDivisionError:
                 avg_exec_us = 0
 

@@ -12,6 +12,7 @@
 
 '''Listening for new connections; pairing control and data connections.'''
 
+from builtins import object
 import binascii
 import errno
 import logging
@@ -150,7 +151,7 @@ class _PendingConnPollSet(object):
 
     def close(self):
         '''Unregister all connections from the pollset.'''
-        for pconn in self._fd_to_pconn.values():
+        for pconn in list(self._fd_to_pconn.values()):
             self.unregister(pconn)
 
 

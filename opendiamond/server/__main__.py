@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 #  The OpenDiamond Platform for Interactive Search
 #
@@ -12,6 +11,7 @@
 #
 
 from __future__ import print_function
+from builtins import str
 from optparse import OptionParser
 import sys
 

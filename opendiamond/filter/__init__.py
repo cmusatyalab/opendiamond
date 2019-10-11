@@ -12,8 +12,14 @@
 
 from __future__ import with_statement
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import zip
+from builtins import filter
+from builtins import object
 import argparse
-from cStringIO import StringIO
+from io import StringIO
 import os
 import select
 import socket
@@ -66,13 +72,13 @@ class Session(object):
         if self._conn is None:
             raise RuntimeError('No connection to Diamond')
         self._conn.send_message('get-session-variables', vars)
-        return dict(zip(vars, [float(v) for v in self._conn.get_array()]))
+        return dict(list(zip(vars, [float(v) for v in self._conn.get_array()])))
 
     def update_vars(self, vars):
         '''vars is a dict of session variables to be atomically updated.'''
         if self._conn is None:
             raise RuntimeError('No connection to Diamond')
-        names, values = zip(*vars.items())
+        names, values = list(zip(*list(vars.items())))
         self._conn.send_message('update-session-variables', names, values)
 
     def ensure_resource(self, scope, rtype, params):
@@ -285,7 +291,7 @@ class Filter(object):
             while True:
                 obj = _DiamondObject(conn)
                 try:
-                    result = filter(obj)
+                    result = list(filter(obj))
                 except:
                     session.log('error', traceback.format_exc())
                     raise
@@ -512,7 +518,7 @@ class _DiamondConnection(object):
     def get_dict(self):
         keys = self.get_array()
         values = self.get_array()
-        dct = dict(zip(keys, values))
+        dct = dict(list(zip(keys, values)))
         return dct
 
     def send_message(self, tag, *values):

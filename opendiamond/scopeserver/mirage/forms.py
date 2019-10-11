@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import zip
 from django import forms
 from django.conf import settings
 
@@ -17,8 +18,8 @@ from django.conf import settings
 class MirageForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super(MirageForm, self).__init__(*args, **kwargs)
-        self.fields['servers'].choices = zip(settings.MIRAGE_SERVERS,
-                                             settings.MIRAGE_SERVERS)
+        self.fields['servers'].choices = list(zip(settings.MIRAGE_SERVERS,
+                                             settings.MIRAGE_SERVERS))
 
     paths = forms.CharField(required=False, widget=forms.Textarea,
                             label="Specify file name patterns (one per line)")

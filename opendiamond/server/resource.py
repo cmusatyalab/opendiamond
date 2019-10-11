@@ -10,6 +10,9 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import map
+from builtins import str
+from builtins import object
 import docker
 import docker.errors
 import logging
@@ -23,6 +26,7 @@ from weakref import WeakSet
 
 from opendiamond.config import DiamondConfig
 from opendiamond.helpers import murmur
+from future.utils import with_metaclass
 
 _log = logging.getLogger(__name__)
 
@@ -81,7 +85,7 @@ class ResourceContext(object):
     def cleanup(self):
         _log.info('Cleaning up resource context %s', self._name)
         with self._lock:
-            for (_, h) in self._catalog.items():
+            for (_, h) in list(self._catalog.items()):
                 _log.debug('Cleaning up %s', str(h))
                 _ResourceFactory.cleanup(h)
             self._catalog.clear()
@@ -97,16 +101,14 @@ class _ResourceMeta(type):
         super(_ResourceMeta, cls).__init__(name, bases, dict)
 
 
-class _ResourceFactory(object):
-    __metaclass__ = _ResourceMeta
-
+class _ResourceFactory(with_metaclass(_ResourceMeta, object)):
     @staticmethod
     def get_signature(rtype, *args, **kargs):
         return murmur(
             rtype 
             + ''.join(map(str, args))
-            + ''.join(map(str, kargs.keys())) 
-            + ''.join(map(str, kargs.values())))
+            + ''.join(map(str, list(kargs.keys()))) 
+            + ''.join(map(str, list(kargs.values()))))
 
     @staticmethod
     def create(rtype, config, *args, **kargs):

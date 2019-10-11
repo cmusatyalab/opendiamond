@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import object
 import os
 import re
 from tempfile import mkstemp

@@ -12,6 +12,8 @@
 
 '''XDR encoding helpers.'''
 
+from builtins import zip
+from builtins import object
 import struct
 from xdrlib import Packer, Unpacker, Error as XDRError
 
@@ -204,7 +206,7 @@ class XDRStruct(object):
             setattr(self, attr, None)
         for attr, arg in zip(attrs, args):
             setattr(self, attr, arg)
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             if k not in attrs:
                 raise TypeError('No such keyword argument: %s' % k)
             setattr(self, k, v)
@@ -212,7 +214,7 @@ class XDRStruct(object):
     @classmethod
     def _members(cls):
         '''cls.members, converted into a list of 2-tuples (attr, handler).'''
-        return zip(cls.members[::2], cls.members[1::2])
+        return list(zip(cls.members[::2], cls.members[1::2]))
 
     def encode(self):
         '''Return the serialized bytes for the object.'''

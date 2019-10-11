@@ -65,7 +65,14 @@ cache values resulting from filter executions that produce attribute data at
 less than 2 MB/s.
 '''
 from __future__ import print_function
+from __future__ import division
 
+from builtins import map
+from builtins import zip
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import docker
 import fcntl
 import logging
@@ -432,7 +439,7 @@ class _FilterRunner(_ObjectProcessor):
 
     def cache_hit(self, result):
         accept = self.threshold(result)
-        gt_present = ATTR_GT_LABEL in result.input_attrs.keys()
+        gt_present = ATTR_GT_LABEL in list(result.input_attrs.keys())
         self._logger.on_cache_hit(accept, gt_present)
 
     def evaluate(self, obj):
@@ -497,7 +504,7 @@ class _FilterRunner(_ObjectProcessor):
                     if len(keys) != len(values):
                         raise FilterExecutionError(
                             '%s: bad array lengths' % self)
-                    valuemap = dict(zip(keys, values))
+                    valuemap = dict(list(zip(keys, values)))
                     self._state.session_vars.filter_update(valuemap)
                 elif cmd == 'log':
                     level = int(proc.get_item())
@@ -566,10 +573,10 @@ class _FilterRunner(_ObjectProcessor):
                                            % self)
         finally:
             accept = self.threshold(result)
-            gt_present = ATTR_GT_LABEL in result.input_attrs.keys()
+            gt_present = ATTR_GT_LABEL in list(result.input_attrs.keys())
             self._logger.on_done_evaluate(accept, gt_present)
             lengths = [len(obj[k]) for k in result.output_attrs]
-            throughput = int(sum(lengths) / timer.elapsed_seconds)
+            throughput = int(old_div(sum(lengths), timer.elapsed_seconds))
             if throughput < ATTRIBUTE_CACHE_THRESHOLD:
                 result.cache_output = True
         return result
@@ -907,7 +914,7 @@ class FilterStackRunner(mp.Process):
 
         # Build output_key -> [runners] mapping.
         output_attrs = dict()
-        for runner, result in cache_results.iteritems():
+        for runner, result in cache_results.items():
             for k in result.output_attrs:
                 output_attrs.setdefault(k, []).append(runner)
 
@@ -944,7 +951,7 @@ class FilterStackRunner(mp.Process):
             try:
                 dependencies = set([runner])
                 # For each input attribute...
-                for key, valsig in result.input_attrs.iteritems():
+                for key, valsig in result.input_attrs.items():
                     # ...try to find a resolvable filter that generated it.
                     if valsig is None:
                         # The result claims the filter tried and failed to
@@ -991,7 +998,7 @@ class FilterStackRunner(mp.Process):
             finally:
                 inprocess.remove(runner)
 
-        for runner, result in cache_results.iteritems():
+        for runner, result in cache_results.items():
             if not runner.threshold(result):
                 # This would be a drop.  Try to resolve the cached result.
                 deps = resolve(runner)
@@ -1009,7 +1016,7 @@ class FilterStackRunner(mp.Process):
         '''Try to update object attributes from the cached result from
         this runner, thereby avoiding the need to reexecute the filter.
         Return True if successful.'''
-        for key, valsig in result.input_attrs.iteritems():
+        for key, valsig in result.input_attrs.items():
             if valsig is None and key in obj:
                 # The previous execution tried to read the attribute
                 # and failed, but the attribute is now available.  We
@@ -1026,7 +1033,7 @@ class FilterStackRunner(mp.Process):
                 # (improperly) produced a different output this time.
                 _debug('Missing dependent value for %s: %s', runner, key)
                 return False
-        keys = result.output_attrs.keys()
+        keys = list(result.output_attrs.keys())
         cache_keys = [self._get_attribute_key(result.output_attrs[k])
                       for k in keys]
         if self._redis is not None and cache_keys:
@@ -1104,13 +1111,13 @@ class FilterStackRunner(mp.Process):
             if self._redis is not None:
                 # Update the cache with new values
                 resultmap = dict()
-                for runner, result in new_results.iteritems():
+                for runner, result in new_results.items():
                     # Result cache entry: hash(filter, obj) -> result
                     resultmap[cache_keys[runner]] = result.encode()
                     # Attribute cache entries, if the filter was expensive enough
                     # hash(attr val) -> attr val
                     if result.cache_output:
-                        for key, valsig in result.output_attrs.iteritems():
+                        for key, valsig in result.output_attrs.items():
                             # If this attribute was subsequently overwritten by a
                             # different filter, make sure we're not caching the
                             # newer value against this key.
@@ -1241,7 +1248,7 @@ class FilterStack(object):
         t = threading.Thread(target=enqueue_scope, args=(obj_queue, scope), name='enqueue-scope-thread')
         t.daemon = True # make sure the whole process terminates when the main thread exits
 
-        for i in xrange(count):
+        for i in range(count):
             w = self.bind(state, obj_queue, 'Filter-%d' % i)
             w.start()
             _log.debug("Started worker %d", w.pid)

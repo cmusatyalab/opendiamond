@@ -11,10 +11,13 @@ from __future__ import print_function
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import json
 import os
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from math import ceil
 
 
@@ -99,7 +102,7 @@ def stat_gigapan(gigapan_id):
         api_url = 'http://api.gigapan.org/beta/gigapans/%d.json' % gigapan_id
 
         def http_get(url):
-            return urllib.urlopen(url).read()
+            return urllib.request.urlopen(url).read()
 
         api_response = json.loads(http_get(api_url))
         assert int(api_response.get('id')) == int(gigapan_id)

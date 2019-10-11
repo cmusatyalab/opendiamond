@@ -10,7 +10,11 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-import StringIO
+from future import standard_library
+standard_library.install_aliases()
+from builtins import map
+from builtins import str
+import io
 import os
 from zipfile import ZipFile
 
@@ -25,7 +29,7 @@ def create_blob_argument(*paths):
     :param paths: paths of example files to include in the zip.
     :return: A Blob.
     """
-    sio = StringIO.StringIO()
+    sio = io.StringIO()
     zf = ZipFile(sio, 'w')
     for i, f in enumerate(paths):
         zf.write(filename=f, arcname=os.path.join("examples", str(i) + os.path.splitext(f)[1]))
@@ -60,8 +64,8 @@ def create_filter_from_files(filter_name,
         "example_path and blob_zip_path should not be given at the same time."
     filter_name = str(filter_name)
     code_blob = BinaryBlob(data=open(code_path).read())
-    args = map(str, args)
-    dependencies = map(str, dependencies)
+    args = list(map(str, args))
+    dependencies = list(map(str, dependencies))
 
     if example_paths:
         assert isinstance(example_paths, list) or isinstance(example_paths, tuple)

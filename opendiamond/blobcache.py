@@ -12,6 +12,7 @@
 
 '''On-disk caching of filter code and blob arguments.'''
 
+from builtins import object
 from hashlib import sha256
 import logging
 import os

@@ -10,6 +10,10 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import copy
 from flask import Blueprint, url_for, Response, \
     stream_with_context, jsonify
@@ -17,7 +21,7 @@ from hashlib import sha256
 import json
 import logging
 import redis
-import urlparse
+import urllib.parse
 from vdms import vdms
 from werkzeug.datastructures import Headers
 from xml.sax.saxutils import quoteattr
@@ -145,6 +149,6 @@ def get_object_id(suffix):
 def _get_object_element(suffix):
     return '<object id={} src={} hyperfind.external-link={} />' \
         .format(quoteattr(url_for('.get_object_id', suffix=suffix)),
-                quoteattr(urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)),
-                quoteattr(urlparse.urljoin(yfcc100m_s3_image_prefix, suffix)))
+                quoteattr(urllib.parse.urljoin(yfcc100m_s3_image_prefix, suffix)),
+                quoteattr(urllib.parse.urljoin(yfcc100m_s3_image_prefix, suffix)))
 

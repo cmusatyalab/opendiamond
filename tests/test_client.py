@@ -12,6 +12,8 @@ from __future__ import absolute_import
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import map
+from builtins import str
 import json
 
 from . import context

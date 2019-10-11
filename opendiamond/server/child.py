@@ -12,6 +12,8 @@
 
 '''Forking and monitoring of search processes by supervisor.'''
 
+from builtins import range
+from builtins import object
 import logging
 import os
 import shutil

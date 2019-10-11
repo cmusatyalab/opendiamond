@@ -13,9 +13,13 @@
 '''Scope list retrieval, parsing, and iteration.'''
 
 from __future__ import with_statement
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import object
 import logging
-import urllib2
-from urlparse import urljoin
+import urllib.request, urllib.error, urllib.parse
+from urllib.parse import urljoin
 import threading
 from xml.sax import make_parser, SAXParseException
 from xml.sax.handler import ContentHandler
@@ -65,7 +69,7 @@ class ScopeListLoader(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         '''Return the next Object.'''
         with self._lock:
             pending_object, scope_url = next(self._generator)
@@ -97,7 +101,7 @@ class ScopeListLoader(object):
                             meta=meta)
 
         # use the remaining attrs as normal object attributes
-        for k, v in pending_object.iteritems():
+        for k, v in pending_object.items():
             new_obj[k] = v + '\0'
 
         return new_obj
@@ -106,11 +110,11 @@ class ScopeListLoader(object):
         # Build URL opener
         handlers = []
         if self._config.http_proxy is not None:
-            handlers.append(urllib2.ProxyHandler({
+            handlers.append(urllib.request.ProxyHandler({
                 'http': self._config.http_proxy,
                 'https': self._config.http_proxy,
             }))
-        opener = urllib2.build_opener(*handlers)
+        opener = urllib.request.build_opener(*handlers)
         opener.addheaders = [('User-Agent', self._config.user_agent)]
         # Build XML parser
         parser = make_parser()
@@ -135,7 +139,7 @@ class ScopeListLoader(object):
                         count += 1
                         yield (pending_object, scope_url)
 
-            except urllib2.URLError as e:
+            except urllib.error.URLError as e:
                 _log.warning('Fetching %s: %s', scope_url, e)
             except SAXParseException as e:
                 _log.warning('Parsing %s: %s', scope_url, e)

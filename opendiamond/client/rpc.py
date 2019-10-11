@@ -12,6 +12,9 @@
 
 """Low-level RPC protocol implementation."""
 
+from builtins import next
+from builtins import str
+from builtins import object
 import itertools
 import logging
 import socket

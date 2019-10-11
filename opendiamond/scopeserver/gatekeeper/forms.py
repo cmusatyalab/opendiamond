@@ -10,6 +10,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import object
 from django import forms
 from django.contrib.auth.models import User
 from .models import Collection
@@ -35,5 +36,5 @@ class ManageForm(forms.Form):
         required=False,
     )
 
-    class Media:
+    class Media(object):
         js = ('js/jquery.js',)

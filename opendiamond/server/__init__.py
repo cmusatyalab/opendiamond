@@ -76,6 +76,7 @@ the filter is restarted.  If a worker thread or the control thread crashes,
 the exception is logged and the entire search is terminated.
 '''
 
+from builtins import object
 from datetime import datetime, timedelta
 import logging
 from logging.handlers import TimedRotatingFileHandler

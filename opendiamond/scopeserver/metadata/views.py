@@ -10,6 +10,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from future import standard_library
+standard_library.install_aliases()
 from django.conf import settings
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
@@ -21,7 +23,7 @@ from opendiamond.scope import generate_cookie_django
 from .forms import MetadataCollectionForm, ManageForm
 
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 
 @login_required
@@ -45,7 +47,7 @@ def index(request):
 
             cookie = []
             for collection in form.cleaned_data['collections']:
-                scope = [urllib.quote(("/yfcc100m_mysql/scope/%s" % collection.dataset) + append)]
+                scope = [urllib.parse.quote(("/yfcc100m_mysql/scope/%s" % collection.dataset) + append)]
                 servers = set()
                 for server in collection.servers.all():
                     servers.add(server.host)

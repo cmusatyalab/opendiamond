@@ -469,7 +469,7 @@ def _main():
         print('Arguments: SchemaClass {strict|permissive}', file=sys.stderr)
         print(file=sys.stderr)
         print('SchemaClass can be one of the following:', file=sys.stderr)
-        for name, obj in sorted(globals().iteritems()):
+        for name, obj in sorted(globals().items()):
             if (isinstance(obj, type) and issubclass(obj, _JSONSchema)
                     and not name.startswith('_')):
                 print('    %-25s: %s' % (name, getattr(obj, '__doc__',

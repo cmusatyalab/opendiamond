@@ -13,12 +13,15 @@
 '''Low-level RPC protocol implementation.'''
 
 from __future__ import with_statement
+from builtins import str
+from builtins import object
 import logging
 import multiprocessing as mp
 import socket
 import threading
 
 from opendiamond.xdr import XDR, XDRStruct, XDREncodingError
+from future.utils import with_metaclass
 
 _log = logging.getLogger(__name__)
 
@@ -187,10 +190,8 @@ class _RPCMeta(type):
 # pylint: enable=protected-access
 
 
-class RPCHandlers(object):
+class RPCHandlers(with_metaclass(_RPCMeta, object)):
     '''Base class of RPC handler objects.'''
-
-    __metaclass__ = _RPCMeta
     log_rpcs = False
 
     @staticmethod

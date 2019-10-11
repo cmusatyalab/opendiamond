@@ -10,6 +10,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from builtins import str
+from builtins import object
 from hashlib import sha256
 import logging
 import uuid
@@ -256,7 +258,7 @@ class DiamondSearch(object):
         # hostname -> connection
         self._connections = dict((h, _DiamondConnection(h, self.close))
                                  for h in self._cookies)
-        self._blast = _DiamondBlastSet(self._connections.values(),
+        self._blast = _DiamondBlastSet(list(self._connections.values()),
                                        object_callback, finished_callback)
 
     @gen.engine
@@ -265,7 +267,7 @@ class DiamondSearch(object):
         # On connection error, our close callback will run and this will
         # never return
         yield [gen.Task(c.run_search, search_id, self._cookies[h],
-               self._filters) for h, c in self._connections.iteritems()]
+               self._filters) for h, c in self._connections.items()]
         # Start blast channels
         self._blast.start()
         if callback is not None:
@@ -298,7 +300,7 @@ class DiamondSearch(object):
                 dest[stat.name] += stat.value
         try:
             results = yield [gen.Task(c.control.request_stats)
-                             for c in self._connections.values()]
+                             for c in list(self._connections.values())]
         except RPCError:
             _log.exception('Statistics request failed')
             self.close()
@@ -316,7 +318,7 @@ class DiamondSearch(object):
     def close(self):
         if not self._closed:
             self._closed = True
-            for conn in self._connections.values():
+            for conn in list(self._connections.values()):
                 conn.close()
             if self._close_callback is not None:
                 self._close_callback()

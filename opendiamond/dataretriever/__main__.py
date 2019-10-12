@@ -41,7 +41,7 @@ def run():
                         help='Bind with the specified listen address')
     parser.add_argument('-p', '--port', dest='retriever_port')
     parser.add_argument('-d', '--daemonize', dest='daemonize',
-                        action='store_true', default=False)
+                        action='store_true', default=False, help='Run as a daemon')
 
     options = parser.parse_args()
 

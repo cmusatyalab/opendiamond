@@ -62,6 +62,8 @@ class ScopeCookie(object):
     def __init__(self, serial, expires, blaster, servers, scopeurls, data,
                  signature):
         '''Do not call this directly; use generate() or parse() instead.'''
+        assert isinstance(data, str)
+        assert isinstance(signature, bytes)
         # Ensure the expiration time is tz-aware
         if expires.tzinfo is None or expires.tzinfo.utcoffset(expires) is None:
             raise ScopeError('Expiration time does not include time zone')
@@ -71,11 +73,11 @@ class ScopeCookie(object):
         self.servers = servers          # A list
         self.scopeurls = scopeurls      # The list of scope URLs
         self.data = data                # All of the above, as a string
-        self.signature = signature      # Binary signature of the data
+        self.signature = signature      # Binary signature of the data (bytes)
 
     def __str__(self):
         '''Return the decoded scope cookie.'''
-        return binascii.hexlify(self.signature) + '\n' + self.data
+        return binascii.hexlify(self.signature).decode() + '\n' + self.data
 
     def __repr__(self):
         return ('<ScopeCookie %s, blaster %s, servers %s, urls %s, expiration %s>' %
@@ -86,14 +88,16 @@ class ScopeCookie(object):
         return iter(self.scopeurls)
 
     def encode(self):
-        '''Return the encoded scope cookie.'''
+        '''Return the encoded scope cookie as a string.'''
         return (BOUNDARY_START +
-                textwrap.fill(base64.b64encode(str(self)), 64) + '\n' +
+                textwrap.fill(base64.b64encode(str(self).encode()).decode(), 64) + '\n' +
                 BOUNDARY_END)
 
     def verify(self, servernames, certdata):
         '''Verify the cookie against the specified server ID list and
         certificate data.'''
+        assert isinstance(certdata, str)
+
         now = datetime.now(tzutc())
         # Check cookie expiration
         if self.expires < now:
@@ -113,7 +117,7 @@ class ScopeCookie(object):
             # Check the signature
             key = cert.get_pubkey()
             key.verify_init()
-            key.verify_update(self.data)
+            key.verify_update(self.data.encode())
             if key.verify_final(self.signature) != 1:
                 # Signature does not match certificate
                 continue
@@ -138,6 +142,11 @@ class ScopeCookie(object):
         expires is a timezone-aware datetime.  keydata is a PEM-encoded
         private key.  blaster is an optional string, already URL-encoded.'''
         # Unicode strings can cause signature validation errors
+        if isinstance(keydata, str):
+            keydata = keydata.encode()
+        else:
+            assert isinstance(keydata, bytes)
+
         servers = [str(s) for s in servers]
         scopeurls = [str(u) for u in scopeurls]
         if blaster is not None:
@@ -153,17 +162,26 @@ class ScopeCookie(object):
         hdrbuf = ''.join('%s: %s\n' % (k, v) for k, v in headers)
         data = hdrbuf + '\n' + '\n'.join(scopeurls) + '\n'
         # Load the signing key
-        key = EVP.load_key_string(keydata)
+        key = EVP.load_key_string(keydata)  # expects bytes, not str
         # Sign the data
         key.sign_init()
-        key.sign_update(data)
+        key.sign_update(data.encode())
         sig = key.sign_final()
         # Return the scope cookie
         return cls(serial, expires, blaster, servers, scopeurls, data, sig)
 
     @classmethod
     def parse(cls, data):
-        '''Parse the scope cookie data and return a ScopeCookie.'''
+        """Parse a (single) scope cookie string and return a ScopeCookie
+        
+        Arguments:
+            data {str} -- A single base64-encoded cookie
+
+        Returns:
+            [ScopeCookie] -- [description]
+        """
+        assert isinstance(data, str)
+
         # Check for boundary markers and remove them
         match = re.match(BOUNDARY_START + '(' + BASE64_RE + ')' +
                          BOUNDARY_END, data)
@@ -172,7 +190,7 @@ class ScopeCookie(object):
         data = match.group(1)
         # Base64-decode contents
         try:
-            data = base64.b64decode(data)
+            data = base64.b64decode(data).decode()
         except TypeError:
             raise ScopeError('Invalid Base64 data')
         # Split signature, header, and body
@@ -325,18 +343,18 @@ def _main():
             os.path.join('~', '.diamond', 'CERTS'))
 
     try:
-        data = open(filename).read()
+        data = open(filename, 'rt').read()
+        assert isinstance(data, str)
         cookies = [ScopeCookie.parse(c) for c in ScopeCookie.split(data)]
         print('\n\n'.join([str(c) for c in cookies]))
 
         if server is not None:
-            certdata = open(certfile).read()
+            certdata = open(certfile, 'rt').read()
             for cookie in cookies:
                 cookie.verify([server], certdata)
             print('Cookies verified successfully')
     except ScopeError as e:
-        print(str(e))
-        sys.exit(1)
+        raise
 
 
 if __name__ == '__main__':

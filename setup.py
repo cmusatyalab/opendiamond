@@ -89,6 +89,7 @@ setup(
             ' [DATARETRIEVER]',
         ]
     },
+    scripts = ['tools/cookiecutter', ],
     cmdclass={
         "egg_info": EggInfoCommand,
     },

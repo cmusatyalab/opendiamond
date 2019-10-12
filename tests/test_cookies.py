@@ -215,12 +215,12 @@ class _TestHandGeneratedCookie(_TestScope):
         hdrbuf = ''.join('%s: %s\n' % (key, value)
                          for key, value in headers.items())
         data = hdrbuf + '\n' + '\n'.join(self.scopeurls) + '\n'
-        key = EVP.load_key_string(self.key)
+        key = EVP.load_key_string(self.key.encode())
         key.sign_init()
-        key.sign_update(data)
+        key.sign_update(data.encode())
         sig = key.sign_final()
-        body = self.modify_sig(binascii.hexlify(sig)) + '\n' + data
-        b64 = self.modify_base64(base64.b64encode(body))
+        body = self.modify_sig(binascii.hexlify(sig).decode()) + '\n' + data
+        b64 = self.modify_base64(base64.b64encode(body.encode()).decode())
         return (self.boundary_start + textwrap.fill(b64, 64) + '\n' +
                 self.boundary_end)
 

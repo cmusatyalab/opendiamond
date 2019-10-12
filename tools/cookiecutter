@@ -11,6 +11,8 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from __future__ import print_function
+from builtins import str
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from optparse import OptionParser
@@ -60,7 +62,7 @@ list of scope URLs will be read from stdin."""
         parser.error('Unable to parse expire time')
 
     # Read private key
-    keydata = open(opts.keyfile).read()
+    keydata = open(opts.keyfile, 'rb').read()
 
     # Calculate cookie expiration time
     expires = datetime.now(tzutc()) + timedelta(seconds=expiretime)
@@ -76,15 +78,14 @@ list of scope URLs will be read from stdin."""
 
     # Print decoded cookie to stderr if verbose
     if opts.verbose:
-        print >>sys.stderr, str(cookie)
+        print(str(cookie), file=sys.stderr)
 
     # Print final cookie to stdout
-    print cookie.encode(),
+    print(cookie.encode(), end=' ')
 
 
 if __name__ == '__main__':
     try:
         main()
-    except Exception, e:
-        print 'Error: ' + str(e)
-        sys.exit(1)
+    except Exception as e:
+        raise

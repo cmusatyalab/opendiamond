@@ -32,8 +32,8 @@ def add_option(*args, **kwargs):
 
 # Configure options
 # dest should reflect attr names in DiamondConfig
-add_option('-d', dest='daemonize', action='store_false', default=True,
-           help='do not run as a daemon')
+add_option('-d', dest='daemonize', action='store_true', default=False,
+           help='Run as a daemon')
 add_option('-e', metavar='SPEC',
            dest='debug_filters', action='append', default=[],
            help='filter name/signature to run under debugger')

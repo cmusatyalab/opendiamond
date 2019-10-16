@@ -193,6 +193,13 @@ class _FilterConnection(object):
                 return arr
             arr.append(str)
 
+    def _send_value(self, value):
+        if not isinstance(value, bytes):
+            value = str(value).encode()
+        self._fout.write(b'%d\n' % len(value))
+        self._fout.write(value)
+        self._fout.write(b'\n')
+
     def send(self, *values):
         '''Send one or more values.  An argument can be:
            boolean => serialized to "true" or "false"
@@ -200,33 +207,26 @@ class _FilterConnection(object):
            scalar => serialized as str(value)
            tuple or list => serialized as an array terminated by a blank line
         '''
-
-        def send_value(value):
-            value = str(value)
-            self._fout.write('%d\n' % len(value))
-            self._fout.write(value)
-            self._fout.write('\n')
-
         for value in values:
             if isinstance(value, (list, tuple)):
                 for element in value:
-                    send_value(element)
-                self._fout.write('\n')
+                    self._send_value(element)
+                self._fout.write(b'\n')
             elif value is True:
-                send_value('true')
+                self._send_value('true')
             elif value is False:
-                send_value('false')
+                self._send_value('false')
             elif value is None:
-                self._fout.write('\n')
+                self._fout.write(b'\n')
             else:
-                send_value(value)
+                self._send_value(value)
         self._fout.flush()
 
     def send_dict(self, dct):
         """Send a dictionary: a list of keys, then a list of values."""
         assert isinstance(dct, dict)
         keys = list(dct.keys())
-        values = [dct[k] for k in keys]
+        values = list(map(dct.get, keys))
         self.send(keys)
         self.send(values)
 
@@ -456,15 +456,17 @@ class _FilterRunner(_ObjectProcessor):
             while True:
                 # XXX Work here to change the filter protocol (server side):
                 # https://github.com/cmusatyalab/opendiamond/wiki/FilterProtocol
-                cmd = proc.get_tag()
+                cmd = proc.get_tag().decode()   # to str
                 if cmd == 'init-success':
+                    _log.debug('{}: {}'.format(obj, cmd))
                     # The filter initialized successfully.  This may not
                     # be the first command produced by the filter, since
                     # its init function may e.g. produce log messages.
                     self._proc_initialized = True
                     self._logger.on_initialized()
                 elif cmd == 'get-attribute':
-                    key = proc.get_item()
+                    key = proc.get_item().decode()
+                    _log.debug('{}: {} {}'.format(obj, cmd, key))
                     if key in obj:
                         proc.send(obj[key])
                         result.input_attrs[key] = obj.get_signature(key)
@@ -476,12 +478,14 @@ class _FilterRunner(_ObjectProcessor):
                         # available.
                         result.input_attrs[key] = None
                 elif cmd == 'set-attribute':
-                    key = proc.get_item()
+                    key = proc.get_item().decode()
                     value = proc.get_item()
                     obj[key] = value
                     result.output_attrs[key] = obj.get_signature(key)
+                    _log.debug('{}: {} key={} value={}[{}]'.format(obj, cmd, key, type(value), len(value)))
                 elif cmd == 'omit-attribute':
-                    key = proc.get_item()
+                    key = proc.get_item().decode()
+                    _log.debug('{}: {} {}'.format(obj, cmd, key))
                     try:
                         obj.omit(key)
                         result.omit_attrs.add(key)
@@ -490,11 +494,13 @@ class _FilterRunner(_ObjectProcessor):
                         proc.send(False)
                 elif cmd == 'get-session-variables':
                     keys = proc.get_array()
+                    keys = [ k.decode() for k in keys ]
                     valuemap = self._state.session_vars.filter_get(keys)
                     values = [valuemap[key] for key in keys]
                     proc.send(values)
                 elif cmd == 'update-session-variables':
                     keys = proc.get_array()
+                    keys = [ k.decode() for k in keys ]
                     values = proc.get_array()
                     try:
                         values = [float(f) for f in values]
@@ -508,7 +514,7 @@ class _FilterRunner(_ObjectProcessor):
                     self._state.session_vars.filter_update(valuemap)
                 elif cmd == 'log':
                     level = int(proc.get_item())
-                    message = proc.get_item()
+                    message = proc.get_item().decode()
                     if level & 0x01:
                         # LOGL_CRIT
                         level = logging.CRITICAL
@@ -531,15 +537,16 @@ class _FilterRunner(_ObjectProcessor):
                     else:
                         _log.log(level, 'Initialize: %s' % message)
                 elif cmd == 'stdout':
-                    print(proc.get_item(), end=' ')
+                    print(proc.get_item().decode(), end=' ')
                 elif cmd == 'result':
                     result.score = float(proc.get_item())
                     break
                 elif cmd == 'ensure-resource':
                     # Create scoped resource here
-                    scope = proc.get_item()
-                    rtype = proc.get_item()
+                    scope = proc.get_item().decode()
+                    rtype = proc.get_item().decode()
                     args = proc.get_array()
+                    args = [ a.decode() for a in args ]
                     if scope == 'session':
                         _log.debug("Filter asks to ensure resource: %s, %s", rtype, str(args))
                         uri = self._state.context.ensure_resource(rtype, *args)
@@ -557,7 +564,7 @@ class _FilterRunner(_ObjectProcessor):
                     # Encountered EOF on pipe
                     raise IOError()
                 else:
-                    raise FilterExecutionError('%s: unknown command' % self)
+                    raise FilterExecutionError('%s: unknown command: %s' % (self, cmd))
         except IOError:
             if self._proc_initialized:
                 # Filter died on an object.  Drop the object without caching

@@ -61,7 +61,7 @@ class _RPCClientConnection(object):
     def close(self):
         self._sock.close()
 
-    def _send_message(self, sequence, status, cmd, body=''):
+    def _send_message(self, sequence, status, cmd, body=b''):
         hdr = RPCHeader(sequence, status, cmd, len(body))
         self._sock.sendall(hdr.encode() + body)
 
@@ -69,7 +69,7 @@ class _RPCClientConnection(object):
         if request is not None:
             body = request.encode()
         else:
-            body = ''
+            body = b''
         seq = next(self._sequence)
         self._send_message(seq, RPC_PENDING, cmd, body)
         status, data = self._get_reply()
@@ -120,7 +120,7 @@ class _RPCClientConnection(object):
         except socket.error as e:
             sock.close()
             raise ConnectionFailure(str(e))
-        return ''.join(bufs)
+        return b''.join(bufs)
 
 
 # pylint doesn't understand that this is an instance method factory

@@ -57,7 +57,7 @@ class _PendingConn(object):
         self.sock = sock
         self.sock.setblocking(0)
         self.peer = peer
-        self.nonce = ''
+        self.nonce = b''
 
     def read_nonce(self):
         '''Try to read the nonce.  Returns CONTROL if this is a control

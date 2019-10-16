@@ -110,7 +110,7 @@ class RPCConnection(object):
             except socket.error as e:
                 self._sock.close()
                 raise ConnectionFailure(str(e))
-            return ''.join(bufs)
+            return b''.join(bufs)
 
         while True:
             hdr = RPCHeader.decode(read_bytes(RPCHeader.ENCODED_LENGTH))
@@ -119,7 +119,7 @@ class RPCConnection(object):
             if hdr.status == RPC_PENDING:
                 return _RPCRequest(hdr, data)
 
-    def _reply(self, request, status=0, body=''):
+    def _reply(self, request, status=0, body=b''):
         '''self._lock must be held.'''
         assert status == 0 or not body
         hdr = request.make_reply_header(status, body).encode()
@@ -136,7 +136,7 @@ class RPCConnection(object):
             req = self._receive()
             try:
                 # Look up handler and decode request
-                handler_name = 'Command %d' % req.hdr.cmd
+                handler_name = u'Command %d' % req.hdr.cmd
                 try:
                     handler = handlers.get_handler(req.hdr.cmd)
                     handler_name = (handler.__self__.__class__.__name__ + '.' +
@@ -157,7 +157,7 @@ class RPCConnection(object):
                 # Encode reply
                 if ret_obj is None:
                     assert handler.rpc_reply_class is None
-                    ret = ''
+                    ret = b''
                 else:
                     assert isinstance(ret_obj, handler.rpc_reply_class)
                     ret = ret_obj.encode()

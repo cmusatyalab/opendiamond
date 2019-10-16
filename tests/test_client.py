@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
 #
 #  The OpenDiamond Platform for Interactive Search
 #
@@ -12,18 +10,19 @@ from __future__ import absolute_import
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
+from __future__ import print_function
+from __future__ import absolute_import
 from builtins import map
 from builtins import str
 import json
-
-from . import context
+import logging
+import os
+import unittest
+ 
 from opendiamond.client.search import DiamondSearch
 from opendiamond.client.rpc import ControlConnection, BlastConnection
 from opendiamond.client.util import get_default_rgb_filter, get_default_scopecookies
 
-import logging
-import os
-import unittest
 
 _log = logging.getLogger()
 _log.setLevel(logging.DEBUG)

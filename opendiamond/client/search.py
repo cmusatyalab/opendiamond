@@ -19,7 +19,6 @@ import uuid
 from collections import deque
 from hashlib import sha256
 import struct
-
 import threading
 
 from opendiamond.client.rpc import ControlConnection, BlastConnection
@@ -35,70 +34,56 @@ _log = logging.getLogger(__name__)
 Hierarchy of abstractions:
 One DiamondSearch contains one or more _DiamondConnection to multiple
 servers, which share the same FilterSpec's.
-One _DiamondConnection contains exactly one ControlConnection
-paired with one BlastConnection to one destination server.
+One _DiamondConnection contains exactly one ControlConnection + one BlastConnection to one destination server.
 """
-
 
 class Blob(object):
     """An abstract class wrapping some binary data that will be loaded later.
-    The data can be retrieved with str()."""
+    The data can be retrieved with .data """
 
-    def __init__(self):
+    def __init__(self, data=b''):
         self._sha256 = None
 
-    def __str__(self):
-        raise NotImplementedError()
+        assert isinstance(data, (str, bytes))
+        self._data = data if isinstance(data, bytes) else data.encode() # courtesy for str
 
-    def __repr__(self):
-        return '<Blob>'
+    @property
+    def data(self):
+        # bytes
+        return self._data
+
+    def __str__(self):
+        return '<Blob sha256={}>'.format(self.sha256)
 
     @property
     def sha256(self):
+        # str
         if self._sha256 is None:
-            self._sha256 = sha256(str(self)).hexdigest()
+            self._sha256 = sha256(self.data).hexdigest()
         return self._sha256
 
 
-class EmptyBlob(Blob):
-    """An empty blob argument."""
-
-    def __str__(self):
-        return ''
-
-    def __hash__(self):
-        return 12345
-
-    def __eq__(self, other):
-        return type(self) is type(other)
-
-
-class BinaryBlob(Blob):
-    def __init__(self, data):
-        super(BinaryBlob, self).__init__()
-        self._data = data
-
-    def __str__(self):
-        return self._data
-
-
 class FilterSpec(object):
-    def __init__(self, name, code,
-                 arguments=tuple([]),
-                 blob_argument=EmptyBlob(),
-                 dependencies=tuple([]),
-                 min_score=float('-inf'),
-                 max_score=float('inf')):
-        """
-        Specs of a filter.
-        :param name: string.
-        :param code: Blob.
-        :param arguments: a list of strings.
-        :param blob_argument: Blob.
-        :param dependencies: a list of filter names.
-        :param min_score: float
-        :param max_score: float
-        """
+    def __init__(
+        self, name, code,
+        arguments=[],
+        blob_argument=Blob(),
+        dependencies=[],
+        min_score=float('-inf'),
+        max_score=float('inf')):
+        """Configuration of a filter
+        
+        Arguments:
+            name {str} -- Filter name
+            code {Blob} -- Binary blob of code
+        
+        Keyword Arguments:
+            arguments {list of str} -- Filter arguments (default: {[]})
+            blob_argument {Blob} -- Binary blob argument (default: {Blob(b'')})
+            dependencies {list of str} -- Filter names of dependency (default: {[]})
+            min_score {float} -- [description] (default: {float('-inf')})
+            max_score {float} -- [description] (default: {float('inf')})
+        """     
         self.name = name
         self.code = code
         self.arguments = arguments
@@ -111,13 +96,13 @@ class FilterSpec(object):
         return self.name
 
     def __repr__(self):
-        return 'FilterSpec (name={}, code={}, arguments={}, blob_argument={},' \
+        return 'FilterSpec(name={}, code={}, arguments={}, blob_argument={},' \
                'dependencies={}, min_score={}, max_score={})'.format(
             self.name,
-            repr(self.code),
-            str(self.arguments),
-            repr(self.blob_argument),
-            str(self.dependencies),
+            self.code,
+            self.arguments,
+            self.blob_argument,
+            self.dependencies,
             self.min_score,
             self.max_score
         )
@@ -142,13 +127,15 @@ class _DiamondConnection(object):
 
     @staticmethod
     def _blob_uri(blob):
-        return 'sha256:' + blob.sha256
+        return u'sha256:' + blob.sha256
 
     def setup(self, cookies, filters):
         uri_data = {}
+
+        # pre-compute sha_uri -> bytes
         for f in filters:
-            uri_data[self._blob_uri(f.code)] = str(f.code)
-            uri_data[self._blob_uri(f.blob_argument)] = str(f.blob_argument)
+            uri_data[self._blob_uri(f.code)] = f.code.data
+            uri_data[self._blob_uri(f.blob_argument)] = f.blob_argument.data
 
         # Send setup request
         request = XDR_setup(
@@ -159,14 +146,17 @@ class _DiamondConnection(object):
                 dependencies=f.dependencies,
                 min_score=f.min_score,
                 max_score=f.max_score,
-                code=self._blob_uri(f.code),
-                blob=self._blob_uri(f.blob_argument)
+                code=self._blob_uri(f.code),    # sha256 signature
+                blob=self._blob_uri(f.blob_argument)    # sha256 signature
             ) for f in filters],
         )
-        reply = self.control.setup(request)
+        reply = self.control.setup(request) 
+        # FIXME: xdrlib pack_fstring are pack_fopaque are the same function and appends a b'\0'.
+        # This causes error in Python 3.0.
+        #https://github.com/python/cpython/blob/master/Lib/xdrlib.py#L103
 
         # Send uncached blobs if there are any
-        blobs = [uri_data[u] for u in reply.uris]
+        blobs = [uri_data[u] for u in reply.uris]   # bytes
         if blobs:
             blob = XDR_blob_data(blobs=blobs)
             self.control.send_blobs(blob)
@@ -218,6 +208,8 @@ class _DiamondConnection(object):
         dct = dict((attr.name, attr.value) for attr in reply.attrs)
         return self._sanitize_obj_dict(dct)
 
+    reexecute = evaluate    # alias
+
     def close(self):
         if not self._closed:
             self._closed = True
@@ -242,12 +234,12 @@ class _DiamondConnection(object):
             return struct.unpack('f', s)[0]
 
         def _sanitize_string(s):
-            s = s[:-1]
+            s = s.decode().strip('\0 ')
             return s
 
         rv = dict()
         for k, v in dct.items():
-            if not v:
+            if not v:   # empty string means Null (not sent)
                 v = None
             else:
                 if k.endswith('.int'):
@@ -359,11 +351,11 @@ class DiamondSearch(object):
         return objects (as dictionaries) from all underlying connections.
         :return: A random-generated Search ID.
         """
-        search_id = str(uuid.uuid4())
+        search_id = str(uuid.uuid4()) # must be 36 chars long to conform to protocol
 
         for h, c in list(self._connections.items()):
             try:
-                c.run_search(search_id, self._cookie_map[h], self._filters,
+                c.run_search(search_id.encode(), self._cookie_map[h], self._filters,
                              self._push_attrs)
             except:
                 _log.error("Can't start search on %s. "

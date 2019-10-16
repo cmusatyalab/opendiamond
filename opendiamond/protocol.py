@@ -22,7 +22,7 @@ from opendiamond.xdr import XDR, XDRStruct
 PORT = 5872
 # Nonce details
 NONCE_LEN = 16
-NULL_NONCE = '\x00' * NONCE_LEN
+NULL_NONCE = b'\x00' * NONCE_LEN
 
 
 class DiamondRPCFailure(RPCError):

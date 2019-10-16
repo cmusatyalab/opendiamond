@@ -44,6 +44,23 @@ class _XDRPrimitiveHandler(_XDRTypeHandler):
         return getattr(xdr, 'unpack_' + self._name)()
 
 
+class _XDRStringHandler(_XDRTypeHandler):
+    # Due to https://bugs.python.org/issue9544
+    # xdrlib in Python 3 doesn't pack string directly, can only pack bytes
+    def __init__(self, encoding="utf-8", errors="strict"):
+        _XDRTypeHandler.__init__(self)
+        self.encoding = encoding
+        self.errors = errors
+
+    def pack(self, xdr, val):
+        b = val.encode(self.encoding, self.errors)
+        return xdr.pack_opaque(b)
+
+    def unpack(self, xdr):
+        b = xdr.unpack_opaque()
+        return b.decode(self.encoding, self.errors)
+
+
 class _XDRFOpaqueHandler(_XDRTypeHandler):
     def __init__(self, length):
         _XDRTypeHandler.__init__(self)
@@ -59,16 +76,6 @@ class _XDRFOpaqueHandler(_XDRTypeHandler):
 
     def unpack(self, xdr):
         return self._check(xdr.unpack_fopaque(self._length))
-
-
-class _XDRIntHandler(_XDRTypeHandler):
-    def pack(self, xdr, val):
-        '''Due to Python #9696, xdr.pack_int() fails for negative values
-        on Python < 2.7.2.  Work around this.'''
-        xdr.pack_fstring(4, struct.pack('>i', val))
-
-    def unpack(self, xdr):
-        return xdr.unpack_int()
 
 
 class _XDRArrayHandler(_XDRTypeHandler):
@@ -139,7 +146,7 @@ class XDR(object):
 
     @staticmethod
     def int():
-        return _XDRIntHandler()
+        return _XDRPrimitiveHandler('int')
 
     @staticmethod
     def uint():
@@ -155,7 +162,7 @@ class XDR(object):
 
     @staticmethod
     def string():
-        return _XDRPrimitiveHandler('string')
+        return _XDRStringHandler()
 
     @staticmethod
     def opaque():
@@ -239,7 +246,10 @@ class XDRStruct(object):
                 value = getattr(self, attr)
             else:
                 value = None
-            handler.pack(xdr, value)
+            try:
+                handler.pack(xdr, value)
+            except Exception as e:
+                raise XDREncodingError('Failed to encode attr {}'.format(attr)) from e
 
     @classmethod
     def decode_xdr(cls, xdr):

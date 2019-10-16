@@ -87,7 +87,7 @@ class _TcpWrappers(object):
         True if the connection should be allowed.'''
         # libwrap is not thread-safe
         with self._lock:
-            ret = self._hosts_ctl(service, 'unknown', address, 'unknown')
+            ret = self._hosts_ctl(service.encode(), b'unknown', address.encode(), b'unknown')
             return ret == 1
 
 

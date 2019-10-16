@@ -107,7 +107,7 @@ class BlobCache(object):
         # so we can't use it
         fd, name = mkstemp(dir=self.basedir)
         try:
-            temp = os.fdopen(fd, 'r+')
+            temp = os.fdopen(fd, 'rb+')
             temp.write(data)
             temp.close()
             os.chmod(name, 0o400)

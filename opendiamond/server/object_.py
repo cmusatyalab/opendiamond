@@ -105,8 +105,10 @@ class EmptyObject(object):
         for name in send_keys:
             if name in send_values:
                 value = self._attrs[name]
+                if not isinstance(value, bytes):
+                    value = str(value).encode() # to bytes
             else:
-                value = ''
+                value = b''
             attrs.append(XDR_attribute(name, value))
         return attrs
 

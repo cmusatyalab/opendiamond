@@ -20,7 +20,7 @@ from zipfile import ZipFile
 
 from opendiamond.scope import ScopeCookie
 
-from opendiamond.client.search import EmptyBlob, BinaryBlob, FilterSpec
+from opendiamond.client.search import Blob, FilterSpec
 
 
 def create_blob_argument(*paths):
@@ -29,12 +29,12 @@ def create_blob_argument(*paths):
     :param paths: paths of example files to include in the zip.
     :return: A Blob.
     """
-    sio = io.StringIO()
+    sio = io.BytesIO()
     zf = ZipFile(sio, 'w')
     for i, f in enumerate(paths):
         zf.write(filename=f, arcname=os.path.join("examples", str(i) + os.path.splitext(f)[1]))
     zf.close()
-    return BinaryBlob(data=sio.getvalue())
+    return Blob(data=sio.getvalue())
 
 
 def create_filter_from_files(filter_name,
@@ -63,7 +63,8 @@ def create_filter_from_files(filter_name,
     assert not (bool(example_paths) and bool(blob_zip_path)), \
         "example_path and blob_zip_path should not be given at the same time."
     filter_name = str(filter_name)
-    code_blob = BinaryBlob(data=open(code_path).read())
+    with open(code_path, 'rb') as f:
+        code_blob = Blob(data=f.read())
     args = list(map(str, args))
     dependencies = list(map(str, dependencies))
 
@@ -71,9 +72,10 @@ def create_filter_from_files(filter_name,
         assert isinstance(example_paths, list) or isinstance(example_paths, tuple)
         example_blob = create_blob_argument(*example_paths)
     elif blob_zip_path:
-        example_blob = BinaryBlob(open(blob_zip_path).read())
+        with open(blob_zip_path, 'rb') as f:
+            example_blob = Blob(f.read())
     else:
-        example_blob = EmptyBlob()
+        example_blob = Blob()
 
     return FilterSpec(name=filter_name, code=code_blob, arguments=args, blob_argument=example_blob,
                       dependencies=dependencies, min_score=min_score, max_score=max_score)

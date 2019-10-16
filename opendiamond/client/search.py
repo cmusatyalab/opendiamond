@@ -282,27 +282,25 @@ class _DiamondBlastSet(object):
         all underlying DiamondConnection's."""
         if self._started:
             pending_objs = deque()
-            pending_conns = deque()
+            pending_conns = set()
 
-            def worker(handler):
+            def recv_objs(conn):
                 try:
-                    while True:
-                        obj = next(handler)
+                    handler = _DiamondBlastSet._handle_objects(conn)
+                    for obj in handler:
                         pending_objs.append(obj)
-                except StopIteration:
-                    pass
                 finally:
-                    pending_conns.popleft()
+                    pending_conns.remove(conn)
 
             for conn in self._connections:
-                pending_conns.append(1)     # just a token
-                threading.Thread(target=worker, args=(self._handle_objects(conn),)).start()
+                pending_conns.add(conn)
+                worker = threading.Thread(target=recv_objs, args=(conn,))
+                worker.daemon = True
+                worker.start()
 
-            while True:
+            while pending_objs or pending_conns:
                 if pending_objs:
                     yield pending_objs.popleft()
-                elif not pending_conns:
-                    break
 
 
     @staticmethod

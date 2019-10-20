@@ -48,5 +48,5 @@ if __name__ == '__main__':
            outfile, element, filemap,
            os.path.dirname(args.manifest) if args.portable else None
         )
-    except Exception, e:
+    except Exception as e:
         parser.error(str(e))

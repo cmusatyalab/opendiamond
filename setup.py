@@ -5,6 +5,9 @@ from opendiamond import (
     __version__, PROJECT_NAME, PROJECT_URL, PROJECT_LICENSE, PROJECT_AUTHOR,
     PROJECT_EMAIL, PROJECT_DESCRIPTION)
 
+with open('README.md', 'rt') as f:
+    LONG_DESCRIPTION = f.read()
+
 PACKAGES = find_packages(exclude=['tests', 'tests.*'])
 REQUIRES = [
     'pip>=1.5.6',
@@ -39,17 +42,10 @@ REQUIRES_SCOPESERVER = [
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
 
-class EggInfoCommand(egg_info):
-    def run(self):
-        if "build" in self.distribution.command_obj:
-            build_command = self.distribution.command_obj["build"]
-            self.egg_base = build_command.build_base
-            self.egg_info = os.path.join(self.egg_base,
-                                         os.path.basename(self.egg_info))
-        egg_info.run(self)
-
-
 setup(
+    classifiers=[
+        'Programming Language :: Python :: 3'
+    ],
     name=PROJECT_NAME,
     version=__version__,
     license=PROJECT_LICENSE,
@@ -57,6 +53,8 @@ setup(
     description=PROJECT_DESCRIPTION,
     author=PROJECT_AUTHOR,
     author_email=PROJECT_EMAIL,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
     packages=PACKAGES,
     ext_modules=[],
     zip_safe=False,
@@ -89,8 +87,5 @@ setup(
             ' [DATARETRIEVER]',
         ]
     },
-    scripts = ['tools/cookiecutter', ],
-    cmdclass={
-        "egg_info": EggInfoCommand,
-    },
+    scripts = ['tools/cookiecutter', 'tools/diamond-bundle-predicate'],
 )

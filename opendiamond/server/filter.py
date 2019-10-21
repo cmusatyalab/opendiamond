@@ -494,13 +494,13 @@ class _FilterRunner(_ObjectProcessor):
                         proc.send(False)
                 elif cmd == 'get-session-variables':
                     keys = proc.get_array()
-                    keys = [ k.decode() for k in keys ]
+                    keys = list(map(bytes.decode, keys))
                     valuemap = self._state.session_vars.filter_get(keys)
                     values = [valuemap[key] for key in keys]
                     proc.send(values)
                 elif cmd == 'update-session-variables':
                     keys = proc.get_array()
-                    keys = [ k.decode() for k in keys ]
+                    keys = list(map(bytes.decode, keys))
                     values = proc.get_array()
                     try:
                         values = [float(f) for f in values]
@@ -546,7 +546,7 @@ class _FilterRunner(_ObjectProcessor):
                     scope = proc.get_item().decode()
                     rtype = proc.get_item().decode()
                     args = proc.get_array()
-                    args = [ a.decode() for a in args ]
+                    args = list(map(bytes.decode, args))
                     if scope == 'session':
                         _log.debug("Filter asks to ensure resource: %s, %s", rtype, str(args))
                         uri = self._state.context.ensure_resource(rtype, *args)
@@ -709,7 +709,7 @@ class Filter(object):
             _log.info('%s: docker mode: %s', self.name, connect_method)
 
             docker_port = 5555
-            if connect_method == 'default':
+            if connect_method == 'default': # TODO phase out support for socat connection. Use fifo for legacy filters.
                 # connect through socat
                 docker_command = 'socat TCP4-LISTEN:%d,fork,nodelay ' \
                                     'EXEC:\"%s --filter\"' % (docker_port, filter_command)

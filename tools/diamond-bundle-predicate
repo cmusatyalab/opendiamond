@@ -29,7 +29,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     try:
-        element = parse_manifest(open(args.manifest).read())
+        with open(args.manifest, 'rb') as f:
+            buf = f.read()
+        element = parse_manifest(buf)
         if element.tag == BUNDLE_NS_PFX + 'predicate':
             suffix = '.pred'
         elif element.tag == BUNDLE_NS_PFX + 'codec':

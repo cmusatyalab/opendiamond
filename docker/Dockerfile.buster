@@ -1,0 +1,27 @@
+FROM continuumio/miniconda3
+
+# Add Tini
+COPY tini /tini
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD ["/bin/sh"]
+
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      automake \
+      build-essential \
+      desktop-file-utils \
+      git \
+      libglib2.0-dev \
+      libtool \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
+
+ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
+
+RUN cd /usr/src/opendiamond \
+   && conda env update -f environment.yml -n base \
+   && python setup.py install \
+   && rm -rf build dist *.egg-info \
+   && conda clean --all -y
+
+COPY extract-filters /usr/local/bin

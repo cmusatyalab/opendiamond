@@ -18,9 +18,11 @@ from builtins import str
 from builtins import zip
 from builtins import filter
 from builtins import object
+
 import argparse
-from io import StringIO
+from io import BytesIO
 import os
+import PIL.Image
 import select
 import socket
 import sys
@@ -30,7 +32,6 @@ import threading
 import traceback
 from zipfile import ZipFile
 
-import PIL.Image
 
 from opendiamond.attributes import (
     StringAttributeCodec, IntegerAttributeCodec, DoubleAttributeCodec,
@@ -38,7 +39,6 @@ from opendiamond.attributes import (
 
 EXAMPLE_DIR = 'examples'
 FILTER_PORT = 5555
-
 
 class Session(object):
     '''Represents the Diamond search session.'''
@@ -84,8 +84,10 @@ class Session(object):
     def ensure_resource(self, scope, rtype, params):
         """Ensure a resource in a certain scope and return the handler"""
         self._conn.send_message('ensure-resource', scope, rtype, params)
-        uri = self._conn.get_dict()
-        return uri
+        handle = self._conn.get_dict()
+        # convert k-v to str
+        handle = dict( [(k.decode(), v.decode()) for k,v in handle.items() ] )
+        return handle
 
     def hint_large_attribute(self, size):
         self._conn.send_message('hint-large-attribute', size)
@@ -116,19 +118,19 @@ class Filter(object):
         for param, arg in zip(self.params, args):
             setattr(self, str(param), param.parse(arg))
         if self.blob_is_zip:
-            self.blob = ZipFile(StringIO(blob), 'r')
+            self.blob = ZipFile(BytesIO(blob), 'r')
         else:
             self.blob = blob
         if self.load_examples:
             self.examples = []
-            zf = ZipFile(StringIO(blob), 'r')
+            zf = ZipFile(BytesIO(blob), 'r')
             for path in zf.namelist():
                 if (path.startswith(EXAMPLE_DIR + '/') and
                         not path.endswith('/')):
                     # We don't use zf.open() because it would cause all
                     # Images to share the same file offset pointer
                     data = zf.read(path)
-                    self.examples.append(PIL.Image.open(StringIO(data)))
+                    self.examples.append(PIL.Image.open(BytesIO(data)))
         self.session = session
 
     def __call__(self, object):
@@ -165,10 +167,10 @@ class Filter(object):
         argument list before it is given to the filter.'''
         parser = argparse.ArgumentParser(description='A Diamond filter')
         parser.add_argument('--filter', action='store_true')
-        parser.add_argument('--tcp', action='store_true')
-        parser.add_argument('--port', type=int, default=FILTER_PORT)
-        parser.add_argument('--client', dest='host', default=None)
-        parser.add_argument('--fifo_in', default=None)
+        parser.add_argument('--tcp', action='store_true', help='Communicate through TCP instead of stdio')
+        parser.add_argument('--port', type=int, default=FILTER_PORT, help='TCP port')
+        parser.add_argument('--client', dest='host', default=None, help='The TCP address to connect to. If none, the filter listens.')
+        parser.add_argument('--fifo_in', default=None, help='Communicate through a named pipe instead of stdio.')
         parser.add_argument('--fifo_out', default=None)
 
         if argv is None:    
@@ -182,92 +184,97 @@ class Filter(object):
 
     @classmethod
     def _run_loop(cls, flags, classes=None):
-        try:
-            if flags.fifo_in is not None and flags.fifo_out is not None:
-                # not fork
-                print("Using FIFO in/out:", flags.fifo_in, flags.fifo_out)
-                fout = os.fdopen(os.open(flags.fifo_out, os.O_WRONLY), 'wb')
-                fin = os.fdopen(os.open(flags.fifo_in, os.O_RDONLY), 'rb')
-                conn = _DiamondConnection(fin, fout)
-                print("Connected!")
-            elif flags.tcp and flags.host is not None:
-                # connect to a TCP port as client
-                while True:
-                    # spawn as many children as the server accepts
-                    try:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        sock.connect((flags.host, flags.port))
-                        print("Connected to %s:%d. Waiting for readable." % (flags.host, flags.port))
-                        # Prevent too many just-connected sockets
-                        # fork AFTER readable (diamondd picks up the connection and starts sending init)
-                        readable, _, exceptional = select.select([sock,], [], [sock,])
-                        if readable:
-                            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                            fin = sock.makefile('rb')
-                            fout = sock.makefile('wb')
-                            conn = _DiamondConnection(fin, fout)
-                            pid = os.fork()
-                            if pid == 0:    # child
-                                break
-                            else:
-                                print("Forked", pid)
 
-                        if exceptional:
-                            print("Broken connection.")
-
-                        sock = None
-
-                    except socket.error:
-                        time.sleep(0.5)
-                        pass
-            elif flags.tcp:
-                # listen on TCP port
-                print("Listening on TCP port ", flags.port)
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind(('', flags.port))
-                sock.listen(8)
-
-                while True:
-                    c, addr = sock.accept()
-                    c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    print("Accepted connection from ", addr)
-                    pid = os.fork()
-                    if pid == 0:    # child, set up the real stuff and start the filter loop
-                        sock = None
-                        fin = c.makefile('rb')
-                        fout = c.makefile('wb')
+        if flags.fifo_in is not None and flags.fifo_out is not None:
+            # not fork
+            print("Using FIFO in/out:", flags.fifo_in, flags.fifo_out)
+            fout = os.fdopen(os.open(flags.fifo_out, os.O_WRONLY), 'wb')
+            fin = os.fdopen(os.open(flags.fifo_in, os.O_RDONLY), 'rb')
+            conn = _DiamondConnection(fin, fout)
+            print("Connected!")
+        elif flags.tcp and flags.host is not None:
+            # connect to a TCP port as client
+            while True:
+                # spawn as many children as the server accepts
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.connect((flags.host, flags.port))
+                    print("Connected to %s:%d. Waiting for readable." % (flags.host, flags.port))
+                    # Prevent too many just-connected sockets
+                    # fork AFTER readable (diamondd picks up the connection and starts sending init)
+                    readable, _, exceptional = select.select([sock,], [], [sock,])
+                    if readable:
+                        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                        fin = sock.makefile('rb')
+                        fout = sock.makefile('wb')
                         conn = _DiamondConnection(fin, fout)
-                        # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
-                        break
-                    else:   # server, continue listening forever
-                        print("Forked", pid)
-                        continue
-            else:
-                # old way: run an instance of the filter and speak through stdin/stdout
-                # Set aside stdin and stdout to prevent them from being accessed by
-                # mistake, even in forked children
-                fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb')
-                fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
-                fh = open('/dev/null', 'r')
-                os.dup2(fh.fileno(), 0)
-                sys.stdin = os.fdopen(0, 'r')
-                fh.close()
-                read_fd, write_fd = os.pipe()
-                os.dup2(write_fd, 1)
-                sys.stdout = os.fdopen(1, 'w', 0)
-                os.close(write_fd)
-                conn = _DiamondConnection(fin, fout)
-                # Send the fake stdout to Diamond in the background
-                _StdoutThread(os.fdopen(read_fd, 'r', 0), conn).start()
+                        pid = os.fork()
+                        if pid == 0:    # child
+                            break
+                        else:
+                            print("Forked", pid)
 
-            # Read arguments and initialize filter
-            ver = int(conn.get_item())
-            if ver != 1:
-                raise ValueError('Unknown protocol version %d' % ver)
-            name = conn.get_item()
-            args = conn.get_array()
-            blob = conn.get_item()
-            session = Session(name, conn)
+                    if exceptional:
+                        print("Broken connection.")
+
+                    sock = None
+
+                except socket.error:
+                    time.sleep(0.5)
+                    pass
+        elif flags.tcp and flags.host is None:
+            # listen on TCP port
+            print("Listening on TCP port ", flags.port)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(('', flags.port))
+            sock.listen(8)
+
+            while True:
+                c, addr = sock.accept()
+                c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                print("Accepted connection from ", addr)
+                pid = os.fork()
+                if pid == 0:    # child, set up the real stuff and start the filter loop
+                    sock = None
+                    fin = c.makefile('rb')
+                    fout = c.makefile('wb')
+                    conn = _DiamondConnection(fin, fout)
+                    # TODO deliver stdout to Diamond under 'stdout' tag as in the old way
+                    break
+                else:   # server, continue listening forever
+                    print("Forked", pid)
+                    continue
+        else:
+            # old way: run an instance of the filter and speak through stdin/stdout
+            # Set aside stdin and stdout to prevent them from being accessed by
+            # mistake, even in forked children
+            fin = os.fdopen(os.dup(sys.stdin.fileno()), 'rb')
+            fout = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
+            fh = open('/dev/null', 'rb')
+            os.dup2(fh.fileno(), 0)
+            sys.stdin = os.fdopen(0, 'rb')
+            fh.close()
+            read_fd, write_fd = os.pipe()
+            os.dup2(write_fd, 1)
+            sys.stdout = os.fdopen(1, 'wb', 0)
+            os.close(write_fd)
+            conn = _DiamondConnection(fin, fout)
+            # Send the fake stdout to Diamond in the background
+            _StdoutThread(os.fdopen(read_fd, 'rb', 0), conn).start()
+
+
+        # Read arguments and initialize filter
+        ver = int(conn.get_item())
+        if ver != 1:
+            raise ValueError('Unknown protocol version %d' % ver)
+        name = conn.get_item().decode()
+        args = conn.get_array()
+        args = list(map(bytes.decode, args)) # to str
+        blob = conn.get_item()
+
+        session = Session(name, conn)
+
+        try:            
             if classes is not None:
                 # Use the class named by the first filter argument
                 target = args.pop(0)
@@ -277,32 +284,30 @@ class Filter(object):
                         break
                 else:
                     raise ValueError('Filter class %s is not available' %
-                                     target)
+                                        target)
             else:
                 filter_class = cls
-            try:
-                filter = filter_class(args, blob, session)
-            except:
-                session.log('critical', traceback.format_exc())
-                raise
-            conn.send_message('init-success')
 
-            # Main loop
-            while True:
-                obj = _DiamondObject(conn)
-                try:
-                    result = list(filter(obj))
-                except:
-                    session.log('error', traceback.format_exc())
-                    raise
-                if result is True:
-                    result = 1
-                elif result is False or result is None:
-                    result = 0
-                conn.send_message('result', result)
-                obj.invalidate()
-        except IOError:
-            pass
+            filter = filter_class(args, blob, session)
+        except:
+            session.log('critical', traceback.format_exc())
+            raise
+        conn.send_message('init-success')
+
+        # Main loop
+        while True:
+            obj = _DiamondObject(conn)
+            try:
+                result = filter(obj)
+            except:
+                session.log('error', traceback.format_exc())
+                raise
+            if result is True:
+                result = 1
+            elif result is False or result is None:
+                result = 0
+            conn.send_message('result', result)
+            obj.invalidate()
 
 
 class LingeringObjectError(Exception):
@@ -482,13 +487,14 @@ class _DiamondConnection(object):
 
     # XXX Work here to change the filter protocol (client side)
     def __init__(self, fin, fout):
+        # fin and fout are in binary mode
         self._fin = fin
         self._fout = fout
         self._output_lock = threading.Lock()
 
     def get_item(self):
-        '''Read and return a string or blob.'''
-        sizebuf = self._fin.readline()
+        '''Read and return a bytes.'''
+        sizebuf = self._fin.readline().decode()
         if not sizebuf:
             # End of file
             raise IOError('End of input stream')
@@ -507,13 +513,13 @@ class _DiamondConnection(object):
         '''Read and return an array of strings or blobs.'''
         arr = []
         while True:
-            str = self.get_item()
-            if str is None:
+            el = self.get_item()
+            if el is None:
                 return arr
-            arr.append(str)
+            arr.append(el)
 
     def get_boolean(self):
-        return self.get_item() == 'true'
+        return self.get_item() == b'true'
 
     def get_dict(self):
         keys = self.get_array()
@@ -521,26 +527,32 @@ class _DiamondConnection(object):
         dct = dict(list(zip(keys, values)))
         return dct
 
+
+    def _send_value(self, value):
+        # send a single value
+        if not isinstance(value, bytes):
+            # convert value to bytes
+            value = str(value).encode()
+
+        self._fout.write(b'%d\n' % len(value))
+        self._fout.write(value)
+        self._fout.write(b'\n')
+
+
     def send_message(self, tag, *values):
-        '''Atomically sends a message, consisting of a tag followed by one
+        '''Atomically sends a message, consisting of a str tag followed by one
         or more values.  An argument can be a list or tuple, in which case
         it is serialized as an array of values terminated by a blank line.'''
 
-        def send_value(value):
-            value = str(value)
-            self._fout.write('%d\n' % len(value))
-            self._fout.write(value)
-            self._fout.write('\n')
-
         with self._output_lock:
-            self._fout.write('%s\n' % tag)
+            self._fout.write(b'%s\n' % tag.encode())
             for value in values:
                 if isinstance(value, (list, tuple)):
                     for el in value:
-                        send_value(el)
-                    self._fout.write('\n')
+                        self._send_value(el)
+                    self._fout.write(b'\n')
                 else:
-                    send_value(value)
+                    self._send_value(value)
             self._fout.flush()
 
 

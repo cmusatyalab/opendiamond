@@ -15,7 +15,7 @@ standard_library.install_aliases()
 from builtins import str
 from builtins import range
 from builtins import object
-from io import StringIO
+from io import BytesIO
 import struct
 
 import PIL.Image
@@ -35,18 +35,20 @@ class StringAttributeCodec(_AttributeCodec):
     '''Codec for a null-terminated string.'''
 
     def encode(self, item):
-        return str(item) + '\0'
+        assert isinstance(item, str)
+        return str.encode(str(item) + '\0')
 
     def decode(self, data):
-        if data[-1] != '\0':
+        if data[-1] != b'\0':
             raise ValueError('Attribute value is not null-terminated')
-        return data[:-1]
+        return bytes.decode(data[:-1])
 
 
 class IntegerAttributeCodec(_AttributeCodec):
     '''Codec for a 32-bit native-endian integer.'''
 
     def encode(self, item):
+        assert isinstance(item, int)
         return struct.pack('i', item)
 
     def decode(self, data):
@@ -57,6 +59,7 @@ class DoubleAttributeCodec(_AttributeCodec):
     '''Codec for a native-endian double.'''
 
     def encode(self, item):
+        assert isinstance(item, float)
         return struct.pack('d', item)
 
     def decode(self, data):
@@ -67,9 +70,8 @@ class RGBImageAttributeCodec(_AttributeCodec):
     '''Codec for an RGBImage structure.  Decodes to a PIL.Image.'''
 
     def encode(self, item):
-        # tobytes in Pillow >= 2.0.0, tostring in older Pillow/PIL
-        tobytes = getattr(item, 'tobytes', item.tostring)
-        pixels = tobytes('raw', 'RGBX', 0, 1)
+        assert isinstance(item, PIL.Image.Image)
+        pixels = item.tobytes('raw', 'RGBX', 0, 1)
         width, height = item.size
         header = struct.pack('IIii', 0, len(pixels) + 16, height, width)
         return header + pixels
@@ -77,11 +79,7 @@ class RGBImageAttributeCodec(_AttributeCodec):
     def decode(self, data):
         # Parse the dimensions out of the header
         height, width = struct.unpack('2i', data[8:16])
-        # Read the image data
-        # frombytes in Pillow >= 2.0.0, fromstring in older Pillow/PIL
-        frombytes = getattr(PIL.Image, 'frombytes', PIL.Image.fromstring)
-        return frombytes('RGB', (width, height), data[16:], 'raw', 'RGBX',
-                         0, 1)
+        return PIL.Image.frombytes('RGB', (width, height), data[16:], 'raw', 'RGBX', 0, 1)
 
 
 class PatchesAttributeCodec(_AttributeCodec):
@@ -94,7 +92,7 @@ class PatchesAttributeCodec(_AttributeCodec):
         pieces = [struct.pack('<id', len(patches), distance)]
         for a, b in patches:
             pieces.append(struct.pack('<iiii', a[0], a[1], b[0], b[1]))
-        return ''.join(pieces)
+        return b''.join(pieces)
 
     def decode(self, data):
         data, count, distance = self._parse('<id', data)
@@ -116,9 +114,9 @@ class HeatMapAttributeCodec(_AttributeCodec):
     def encode(self, item):
         if item.mode != 'L':
             item = item.convert('L')
-        buf = StringIO()
+        buf = BytesIO()
         item.save(buf, 'png', optimize=1)
         return buf.getvalue()
 
     def decode(self, data):
-        return PIL.Image.open(StringIO(data))
+        return PIL.Image.open(BytesIO(data))

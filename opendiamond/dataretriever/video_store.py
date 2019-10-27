@@ -9,39 +9,24 @@
 #  ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS SOFTWARE CONSTITUTES
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
+from builtins import range, str
 
-from builtins import str
-from builtins import range
+import datetime
 import json
 import os
-import datetime
-
+import subprocess
 import sys
-from flask import Blueprint, url_for, Response, stream_with_context, request
 from math import ceil
+
+from flask import Blueprint, Response, request, stream_with_context, url_for
+from opendiamond.dataretriever.util import DiamondTextAttr
 from werkzeug.datastructures import Headers
 
-from opendiamond.dataretriever.util import DiamondTextAttr
-import subprocess
+# IMPORTANT: requires ffmpeg >= 3.3. Lower versions produce incorrect clipping.
 
-# IMPORTANT: uses ffmpeg >= 3.3.
-
-BASEURL = 'atomizer'
+BASEURL = 'video'
 STYLE = False
 INDEXDIR = DATAROOT = None
-
-
-def check_ffmpeg_version():
-    try:
-        output = subprocess.check_output(['ffmpeg', '-version'])
-        if 'ffmpeg version 3.' in output:
-            return True
-    except:
-        pass
-    sys.stderr.write('Need ffmpeg>=3.3. Atomizer may not work correctly.\n')
-
-
-check_ffmpeg_version()
 
 
 def init(config):
@@ -50,11 +35,11 @@ def init(config):
     DATAROOT = config.dataroot
 
 
-scope_blueprint = Blueprint('atomizer_store', __name__)
+scope_blueprint = Blueprint('video_store', __name__)
 
-
-@scope_blueprint.route('/<int:stride>/<int:span>/<gididx>')
-def get_scope(stride, span, gididx):
+@scope_blueprint.route('/scope/<gididx>')
+@scope_blueprint.route('/scope/stride/<int:stride>/span/<int:span>/<gididx>')
+def get_scope(gididx, stride=5, span=5):
     index = 'GIDIDX' + gididx.upper()
 
     def generate():
@@ -64,19 +49,20 @@ def get_scope(stride, span, gididx):
 
         yield '<objectlist>\n'
 
-        with open(_get_index_absolute_path(index), 'r') as f:
-            for video in f:
-                video = video.strip()
+        with open(_get_index_absolute_path(index), 'rt') as f:
+            for line in f:
+                video = line.strip()
                 video_path = str(_get_obj_absolute_path(video))
-                video_meta = _maybe_parse_video_and_get_attrs(
-                    video_path=video_path)
-                num_clips = int(
-                    ceil(float(video_meta['duration_sec']) / stride))
-                yield '<count adjust="{}"/>\n'.format(num_clips)
-                for clip in range(num_clips):
-                    yield _get_object_element(start=clip * stride,
-                                              span=span,
-                                              video=video) + '\n'
+                try:
+                    video_meta = _ffprobe(video_path)
+                    length_sec = float(video_meta['format']['duration'])
+                    num_clips = int(ceil(length_sec / stride))
+                    yield '<count adjust="{}"/>\n'.format(num_clips)
+                    for clip in range(num_clips):
+                        yield _get_object_element(start=clip * stride, span=span, video=video) + '\n'
+                except Exception as e:
+                    print("Error parsing {}. {}. Skip.".format(video, str(e)), file=sys.stderr)
+                    pass
 
         yield '</objectlist>\n'
 
@@ -86,7 +72,7 @@ def get_scope(stride, span, gididx):
                     headers=headers)
 
 
-@scope_blueprint.route('/id/<int:start>/<int:span>/<path:video>')
+@scope_blueprint.route('/id/start/<int:start>/span/<int:span>/<path:video>')
 def get_object_id(start, span, video):
     headers = Headers([('Content-Type', 'text/xml')])
     return Response(_get_object_element(start, span, video),
@@ -94,7 +80,7 @@ def get_object_id(start, span, video):
                     headers=headers)
 
 
-@scope_blueprint.route('/obj/<int:start>/<int:span>/<path:video>')
+@scope_blueprint.route('/obj/start/<int:start>/span/<int:span>/<path:video>')
 def get_object(start, span, video):
     # Reference:
     # https://github.com/mikeboers/PyAV/blob/master/tests/test_seek.py
@@ -143,35 +129,20 @@ def _get_index_absolute_path(index):
     return os.path.join(INDEXDIR, index)
 
 
-def _maybe_parse_video_and_get_attrs(video_path):
-    """
-    ffprobe a video and write meta data to text attr file if not exists.
-    Return the text attr as a dict.
-    Reference:
-    https://trac.ffmpeg.org/wiki/FFprobeTips
-    """
-    # FIXME maybe compare mtime and overwrite stale attr if necessary?
-    if not DiamondTextAttr.exists(video_path):
-        cmd_l = ['ffprobe', '-v', 'quiet', '-print_format', 'json',
-                 '-show_format', video_path]
-        proc = subprocess.Popen(cmd_l, stdout=subprocess.PIPE, bufsize=-1)
-        meta = json.load(proc.stdout)
+def _ffprobe(video_path):
+    cmd_l = ['ffprobe', '-v', 'quiet', '-print_format', 'json',
+                '-show_format', video_path]
 
-        with DiamondTextAttr(video_path, 'w') as attrs:
-            attrs.write("duration_sec", float(meta['format']['duration']))
-
-    with DiamondTextAttr(video_path, 'r') as attrs:
-        rv = dict()
-        for k, v in attrs:
-            rv[k] = v
-        return rv
+    proc = subprocess.Popen(cmd_l, stdout=subprocess.PIPE, bufsize=-1)
+    data = json.load(proc.stdout)
+    
+    return data
 
 
 def _create_ffmpeg_segment_proc(video_path, start_sec, duration_sec):
     """
     Use ffmpeg to extract a .mp4 segment of the video. Outfile is written to stdout.
-    Note: recommend ffmpeg >= 3.3.
-    Inaccurate segmentation is observed with 2.7.
+    Note: requires ffmpeg >= 3.3. Lower versions produce wrong results.
     Reference: http://trac.ffmpeg.org/wiki/Seeking
     https://stackoverflow.com/questions/34123272/ffmpeg-transmux-mpegts-to-mp4-gives-error-muxer-does-not-support-non-seekable
     :param video_path:

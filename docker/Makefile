@@ -1,7 +1,7 @@
 IMAGEID ?= registry.cmusatyalab.org/diamond/opendiamond/dev
 SRC_TAR ?= opendiamond-HEAD.tar.gz
 TINI_VERSION ?= v0.16.1
-DISTRIBUTIONS = buster # xenial stretch jessie centos6 centos7
+DISTRIBUTIONS = buster xenial centos6 centos7
 
 
 all: tini

@@ -1,5 +1,20 @@
 FROM centos:centos6
 
+# Install miniconda, reference: https://hub.docker.com/r/continuumio/miniconda3/dockerfile
+# ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV PATH /opt/conda/bin:$PATH
+
+RUN yum -y install wget bzip2 ca-certificates curl git \
+    yum -y clean all
+
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh && \
+    /opt/conda/bin/conda clean -tipsy && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc
+
 # Add Tini
 COPY tini /tini
 ENTRYPOINT ["/tini", "-g", "--"]
@@ -22,20 +37,19 @@ RUN yum -y install \
     libstdc++-devel.i686 \
     libtool \
     make \
-    python-devel \
-    python-requests \
-    python-setuptools \
-    python-xml2rfc \
-    python2-simplejson \
-    python-yaml \
-    socat \
- && yum -y clean all
+ && yum -y clean all \
+ && pip install --no-cache-dir xml2rfc
 
 ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
 
 RUN cd /usr/src/opendiamond && autoreconf -f -i \
- && ./configure CFLAGS=-m32 --prefix=/usr && make -C libfilter install && make clean \
- && ./configure --prefix=/usr --libdir=/usr/lib64 && make install && make clean \
- && ldconfig
+    && ./configure CFLAGS=-m32 --prefix=/usr && make -C libfilter install && make clean \
+    && ./configure --prefix=/usr --libdir=/usr/lib64 && make install && make clean \
+    && ldconfig \
+    && conda install -c conda-forge m2crypto \
+    && conda install -c anaconda pyyaml \
+    && python setup.py install \
+    && rm -rf build dist *.egg-info \
+    && conda clean --all -y
 
 COPY extract-filters /usr/local/bin

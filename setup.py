@@ -10,10 +10,11 @@ with open('README.md', 'rt') as f:
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*'])
 REQUIRES = [
-    'pip>=1.5.6',
-    'M2Crypto>=0.21.1',
-    'Pillow>=2.0.0',
+    'future>=0.18.0',
     'lxml>=3.2.1',
+    'M2Crypto>=0.21.1',
+    'pip>=1.5.6',
+    'Pillow>=2.0.0',
     'python-dateutil>=1.5',
     'six>=1.9.0',
 ]

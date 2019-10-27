@@ -22,7 +22,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
 AC_PROG_CC_C99
-AM_PATH_PYTHON([2.6])
+
 
 # tox
 AC_PATH_PROG([TOX], [tox], [:])
@@ -48,15 +48,6 @@ esac
 
 AC_SUBST(PKGCONFIG_REQUIRES)
 
-# Python (for extension modules)
-PKG_CHECK_MODULES(PYTHON, [python >= 2.6], [:], [
-	AC_PATH_PROG([PYTHON_CONFIG], [python-config])
-	if test z$PYTHON_CONFIG = z ; then
-		AC_MSG_ERROR([$PYTHON_PKG_ERRORS])
-	fi
-	PYTHON_CFLAGS=$($PYTHON_CONFIG --cflags)
-	PYTHON_LIBS=$($PYTHON_CONFIG --libs)
-])
 
 # glib
 PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.12, gthread-2.0])

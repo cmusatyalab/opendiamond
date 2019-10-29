@@ -1124,6 +1124,7 @@ class FilterStackRunner(mp.Process):
                     # Attribute cache entries, if the filter was expensive enough
                     # hash(attr val) -> attr val
                     if result.cache_output:
+                        _log.debug('Caching attribute: {}'.format(','.join([ '{}[{}]'.format(key, len(obj[key])) for key in result.output_attrs.keys() ])))
                         for key, valsig in result.output_attrs.items():
                             # If this attribute was subsequently overwritten by a
                             # different filter, make sure we're not caching the

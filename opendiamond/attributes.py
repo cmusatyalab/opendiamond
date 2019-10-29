@@ -36,12 +36,13 @@ class StringAttributeCodec(_AttributeCodec):
 
     def encode(self, item):
         assert isinstance(item, str)
-        return str.encode(str(item) + '\0')
+        return str.encode(item + '\0')
 
     def decode(self, data):
-        if data[-1] != b'\0':
-            raise ValueError('Attribute value is not null-terminated')
-        return bytes.decode(data[:-1])
+        data = data.decode()
+        if data[-1] != '\0':
+            raise ValueError('Attribute value is not null-terminated: {}'.format(str(data)))
+        return data[:-1]
 
 
 class IntegerAttributeCodec(_AttributeCodec):

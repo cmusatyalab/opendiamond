@@ -137,7 +137,7 @@ class DiamondConfig(object):
             # Sentry error logging
             _Param('sentry_dsn', 'SENTRY_DSN', None),
             # Canonical server names
-            _Param('serverids', 'SERVERID', []),
+            _Param('serverids', 'SERVERID', ['localhost', ]),
             # Worker threads per child process
             _Param('threads', 'THREADS', default_threads),
             # HTTP user agent
@@ -159,9 +159,9 @@ class DiamondConfig(object):
             # Enabled data stores
             _Param('retriever_stores', 'DATASTORE', []),
             # Diamond store: root data directory
-            _Param('dataroot', 'DATAROOT'),
+            _Param('dataroot', 'DATAROOT', '/srv/diamond'),
             # Diamond store: root index directory
-            _Param('indexdir', 'INDEXDIR'),
+            _Param('indexdir', 'INDEXDIR', '/src/diamond/INDEXES'),
             # Flickr store: API key
             _Param('flickr_api_key', 'FLICKR_KEY'),
             # Flickr store: API secret
@@ -175,9 +175,6 @@ class DiamondConfig(object):
             _Param('yfcc100m_db_password', 'YFCC100M_DB_PASSWORD'),
             _Param('yfcc100m_db_port', 'YFCC100M_DB_PORT', 3306),
 
-
-            # -- Deprecated config keys
-            _Param(None, 'DATATYPE'),
         )
 
         # Set defaults

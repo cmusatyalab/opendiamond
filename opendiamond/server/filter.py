@@ -92,7 +92,7 @@ import yaml
 
 from opendiamond.helpers import murmur, signalname, split_scheme
 from opendiamond.rpc import ConnectionFailure
-from opendiamond.server.object_ import ObjectLoader, ObjectLoadError
+from opendiamond.server.object_ import ATTR_DATA, ATTR_OBJ_ID, ObjectLoader, ObjectLoadError
 from opendiamond.server.statistics import FilterStatistics, Timer, \
     FilterRunnerLogger, FilterStackRunnerLogger, NoLogger
 
@@ -411,6 +411,7 @@ class _ObjectFetcher(_ObjectProcessor):
         result = _FilterResult()
         for key in obj:
             result.output_attrs[key] = obj.get_signature(key)
+        _log.debug('Load: {} [{}]'.format(obj[ATTR_OBJ_ID], len(obj[ATTR_DATA])))
         return result
 
     def threshold(self, result):
@@ -698,7 +699,8 @@ class Filter(object):
         elif self.mode == 'docker':
             # Docker filter listens on TCP port
             try:
-                config = yaml.load(open(self.code_path, 'r'))
+                with open(self.code_path, 'r') as f:
+                    config = yaml.full_load(f.read())
                 docker_image = config['docker_image']
                 filter_command = config['filter_command']
                 connect_method = config.get('connect_method', 'default')
@@ -1086,6 +1088,7 @@ class FilterStackRunner(mp.Process):
 
         # Evaluate the object in the result cache.
         if self._result_cache_can_drop(obj, cache_results):
+            _log.debug("Cached drop: {}".format(str(obj)))
             return False
 
         new_results = dict()  # runner -> result
@@ -1124,6 +1127,7 @@ class FilterStackRunner(mp.Process):
                     # Attribute cache entries, if the filter was expensive enough
                     # hash(attr val) -> attr val
                     if result.cache_output:
+                        _log.debug('Caching attribute: {}'.format(','.join([ '{}[{}]'.format(key, len(obj[key])) for key in result.output_attrs.keys() ])))
                         for key, valsig in result.output_attrs.items():
                             # If this attribute was subsequently overwritten by a
                             # different filter, make sure we're not caching the
@@ -1161,14 +1165,17 @@ class FilterStackRunner(mp.Process):
     def run(self):
         '''Thread function.'''
         from opendiamond.server import _Signalled
+        import gc
 
         try:
             while True:
+                gc.collect()
                 obj = self._obj_queue.get()
                 accept = self.evaluate(obj)
                 if accept:
                     self._state.blast.send(obj)
                 self._obj_queue.task_done()
+                del obj
         except ConnectionFailure:
             # Client closed blast connection.  Rather than just calling
             # sys.exit(), signal the main thread to shut us down.

@@ -17,7 +17,8 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
-from io import StringIO
+from io import BytesIO
+import logging
 from urllib.parse import urljoin
 import simplejson as json
 
@@ -39,6 +40,8 @@ ATTR_DEVICE_NAME = 'Device-Name'
 
 # Initialize curl before multiple threads have been started
 curl.global_init(curl.GLOBAL_DEFAULT)
+
+_log = logging.getLogger(__name__)
 
 
 class ObjectLoadError(Exception):
@@ -100,6 +103,7 @@ class EmptyObject(object):
             send_values = send_keys.intersection(output_set)
         else:
             send_values = send_keys
+        _log.debug("{}: Sending attrs: {}".format(str(self), ','.join(send_values)))
         # Serialize
         attrs = []
         for name in send_keys:
@@ -168,7 +172,7 @@ class _HttpLoader(object):
         self._curl.setopt(curl.HEADERFUNCTION, self._handle_header)
         self._curl.setopt(curl.WRITEFUNCTION, self._handle_body)
         self._headers = {}
-        self._body = StringIO()
+        self._body = BytesIO()
 
     def get(self, url):
         '''Fetch the specified URL and return (header_dict, body).'''
@@ -182,10 +186,11 @@ class _HttpLoader(object):
         headers = self._headers
         self._headers = {}
         body = self._body.getvalue()
-        self._body = StringIO()
+        self._body = BytesIO()
         return (headers, body)
 
     def _handle_header(self, hdr):
+        hdr = hdr.decode()  # to str
         hdr = hdr.rstrip('\r\n')
         if hdr.startswith('HTTP/'):
             # New HTTP status line, discard existing headers
@@ -193,7 +198,7 @@ class _HttpLoader(object):
         elif hdr != '':
             # This is simplistic.
             key, value = hdr.split(': ', 1)
-            self._headers[key] = value
+            self._headers[key] = value.encode() # value to bytes
 
     def _handle_body(self, data):
         self._body.write(data)

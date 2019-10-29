@@ -226,9 +226,7 @@ class Search(RPCHandlers):
         else:
             # Encode everything
             push_attrs = None
-        _log.info('Push attributes: %s',
-                  ','.join(
-                      params.attrs) if params.attrs else '(everything)')
+        _log.info('Push attributes: {}'.format(','.join(params.attrs or ['(everything)'] )))
 
         self._filters.optimize()
         _log.info("Optimized filter stack [%d]: %s" % (len(self._filters),
@@ -261,9 +259,8 @@ class Search(RPCHandlers):
         else:
             # If no output attributes were specified, encode everything
             output_attrs = None
-        _log.info('Push attributes: %s',
-                  ','.join(
-                      params.attrs) if params.attrs else '(everything)')
+
+        _log.info('Push attributes: {}'.format(','.join(params.attrs or ['(everything)'] )))
 
         self._filters.optimize()
         _log.info("Optimized filter stack [%d]: %s" % (len(self._filters),

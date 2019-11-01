@@ -4,7 +4,7 @@ pip>=1.5.6
 # If encountered "undefined symbol: SSLv2_method", try uninstalling the pip version and (re)installing python-m2crypto from apt.
 #M2Crypto==0.25.1
 
-Pillow==4.0.0
+Pillow==6.2.0
 lxml==3.7.3
 python-dateutil==2.6.0
 six==1.10.0

@@ -150,6 +150,13 @@ class XDR_reexecute(XDRStruct):
         'attrs', XDR.optional(XDR.array(XDR.string())),
     )
 
+class XDR_retrain(XDRStruct):
+    '''Search retrain parameters'''
+    members = (
+        'names', XDR.array(XDR.string()),
+        'labels', XDR.array(XDR.int()),
+        'features', XDR.array(XDR.opaque()),
+    )
 
 class XDR_attribute_list(XDRStruct):
     '''Reexecute response'''

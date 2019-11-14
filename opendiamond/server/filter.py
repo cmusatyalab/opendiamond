@@ -730,10 +730,10 @@ class Filter(object):
                             sock = None
                             time.sleep(0.5)
                             continue
-                            
+
                     if sock is None:
                         raise FilterExecutionError('Unable to connect to filter at %s: %d' % (host, port))
-                    
+
                     return _FilterTCP(
                         sock=sock,
                         name=self.name,
@@ -758,10 +758,10 @@ class Filter(object):
                             sock = None
                             time.sleep(0.5)
                             continue
-                            
+
                     if sock is None:
                         raise FilterExecutionError('Unable to connect to filter at %s: %d' % (host, port))
-                    
+
                     return _FilterTCP(
                         sock=sock,
                         name=self.name,
@@ -778,7 +778,7 @@ class Filter(object):
                     sock.listen(5)
                     host, port = sock.getsockname()
                     _log.info("Filter %s will listen on %s:%d", self.name, host, port)
-    
+
                     docker_command = '%s --filter --tcp --client %s --port %d' % (filter_command, host, port)
 
                     def wrapper(_):
@@ -792,7 +792,7 @@ class Filter(object):
                         return _FilterTCP(sock=conn, name=self.name, args=self.arguments, blob=self.blob)
                 except Exception as e:
                     raise FilterDependencyError(e)
-            
+
             elif connect_method == 'fifo':  # named pipe, try to share containers
 
                 def wrapper(_):
@@ -810,8 +810,8 @@ class Filter(object):
                     # map volume when creating Docker container
                     # keep the container running alive, detached
                     docker_command = '/bin/bash'
-                    handle = state.context.ensure_resource('docker', docker_image, docker_command, 
-                                                           volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True) 
+                    handle = state.context.ensure_resource('docker', docker_image, docker_command,
+                                                           volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True)
 
                     # launch a new filter process inside the containers
                     client = docker.from_env()
@@ -819,7 +819,7 @@ class Filter(object):
                     exec_command = 'sh -c \"%s --filter  <%s >%s\"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
                     _log.debug('docker-exec in %s: %s', handle['name'], exec_command)
                     container.exec_run(cmd=exec_command, stdout=False, stderr=False, stdin=False, tty=True, detach=True)
-                    
+
                     # note the in/out are flipped here.
                     # For unknown reasons I must use os.O_RDWR here to avoid blocking
                     fout = os.fdopen(os.open(os.path.join(TMPDIR, fifo_in), os.O_RDWR), 'wb')
@@ -846,15 +846,15 @@ class Filter(object):
                     # assume I have been set CPU affinity
                     cpus = psutil.Process(os.getpid()).cpu_affinity()
                     cpus_str = ','.join(map(str, cpus))
-                    state.context.ensure_resource('docker', docker_image, docker_command, 
-                                                    volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True, cpuset_cpus=cpus_str) 
-                    
+                    state.context.ensure_resource('docker', docker_image, docker_command,
+                                                    volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True, cpuset_cpus=cpus_str)
+
                     # note the in/out are flipped here.
                     # For unknown reasons I must use os.O_RDWR here to avoid blocking
                     fout = os.fdopen(os.open(os.path.join(TMPDIR, fifo_in), os.O_RDWR), 'wb')
                     fin = os.fdopen(os.open(os.path.join(TMPDIR, fifo_out), os.O_RDWR), 'rb')
                     return _FilterConnection(fin=fin, fout=fout, name=self.name, args = self.arguments, blob=self.blob)
-            
+
             else:
                 raise FilterDependencyError('Unknown connect_method: %s' % connect_method)
         else:
@@ -1164,7 +1164,7 @@ class FilterStackRunner(mp.Process):
     # pylint: disable=broad-except
     def run(self):
         '''Thread function.'''
-        from opendiamond.server import _Signalled
+        from opendiamond.server.server import _Signalled
         import gc
 
         try:
@@ -1269,7 +1269,7 @@ class FilterStack(object):
             workers.append(w)
 
         t.start()
-                
+
         return workers
 
     def optimize(self):

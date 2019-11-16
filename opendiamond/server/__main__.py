@@ -17,7 +17,7 @@ import sys
 
 from opendiamond.config import DiamondConfig
 from opendiamond.protocol import PORT
-from opendiamond.server import DiamondServer
+from opendiamond.server.server import DiamondServer
 
 # Create option parser
 # pylint: disable=invalid-name

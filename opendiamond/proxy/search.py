@@ -33,7 +33,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import time
-from io import StringIO
+from io import BytesIO
 
 from opendiamond import protocol
 from opendiamond.protocol import (
@@ -211,7 +211,7 @@ class ProxySearch(RPCHandlers):
 
         print("Training SVM on Input ZipFile...")
         #Extract images from zipfile
-        proxy_blob = ZipFile(StringIO(self.blob_map[self.proxy_filter.blob]), 'r')
+        proxy_blob = ZipFile(BytesIO(self.blob_map[self.proxy_filter.blob]), 'r')
         dir_names, dataset = load_dataset_from_zipfile(proxy_blob)
 
         #Get feature-vectors
@@ -224,7 +224,7 @@ class ProxySearch(RPCHandlers):
             assert response.ok
             results = response.json()
 
-            for filename, res in results.iteritems():
+            for filename, res in results.items():
                 if res['success']:
                     feature = res['feature']
 
@@ -425,9 +425,9 @@ class _DiamondBlastSet(RPCHandlers):
         self.pending_reqs = deque()
         self._started = False
         self.running = False
-        self.high_conf = protocol.XDR_attribute("_score.string", str(1)+ '\0')
-        self.mid_conf = protocol.XDR_attribute("_score.string", str(2)+ '\0')
-        self.low_conf = protocol.XDR_attribute("_score.string", str(0)+ '\0')
+        self.high_conf = protocol.XDR_attribute("_score.string", (str(1)+ '\0').encode())
+        self.mid_conf = protocol.XDR_attribute("_score.string", (str(2)+ '\0').encode())
+        self.low_conf = protocol.XDR_attribute("_score.string", (str(0)+ '\0').encode())
         self.setup_requests()
 
     def setup_requests(self):
@@ -486,7 +486,7 @@ class _DiamondBlastSet(RPCHandlers):
                 return obj
 
             pred = self.get_prediction(features)
-            pred_attr = protocol.XDR_attribute("prediction.string", str(pred)+ '\0')
+            pred_attr = protocol.XDR_attribute("prediction.string", (str(pred)+ '\0').encode())
             obj.attrs.append(pred_attr)
             if pred > 0.85:
                 obj.attrs.append(self.high_conf)

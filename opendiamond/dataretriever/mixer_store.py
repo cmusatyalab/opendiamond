@@ -15,12 +15,12 @@ from builtins import range
 import os
 import datetime
 from xml.sax.saxutils import quoteattr
+import sys
 
 import logging
 import random
 import glob
 from itertools import cycle
-import numpy as np
 from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
     jsonify
 from werkzeug.datastructures import Headers
@@ -51,49 +51,61 @@ scope_blueprint = Blueprint('mixer_store', __name__)
 _log = logging.getLogger(__name__)
 
 @scope_blueprint.route('/base/<baseidx>/mixers/<mixeridx>/keywords/<params>')
-@scope_blueprint.route('/base/<baseidx>/mixers/<mixeridx>/keywords/<params>/classes/<classes>')
+@scope_blueprint.route('/base/<baseidx>/mixers/<mixeridx>/keywords/<params>/' +
+                        'classes/<classes>')
+@scope_blueprint.route('/base/<baseidx>/mixers/<mixeridx>/keywords/<params>/' +
+                        'classes/<classes>/start/<int:start>/limit/<int:limit>')
 @scope_blueprint.route('/base/<baseidx>/distrbuted/<int:index>of<int:total>/' +
                         'mixers/<mixeridx>/keywords/<params>')
 @scope_blueprint.route('/base/<baseidx>/distrbuted/<int:index>of<int:total>/' +
                         'mixers/<mixeridx>/keywords/<params>/classes/<classes>')
-def get_mixer_classes(baseidx, mixeridx=None, index=1, total=1, params=None, classes=None):
+def get_mixer_classes(baseidx, mixeridx=None, index=1, total=1, params=None, 
+                      classes=None, start=0, limit=-1):
+
     mixer_list = get_mixer_list(mixeridx, classes)
     start_idx = int((index-1)*(1.0/total)*len(mixer_list))
     end_idx = int(index*(1.0/total)*len(mixer_list))
     mixer_list = mixer_list[start_idx:end_idx]
-    return get_scope(baseidx, params, mixer_list)
+    print("Mixer Size {}".format(len(mixer_list)))
+    sys.stdout.flush()
+
+    return get_scope(baseidx, params, mixer_list, start, limit)
 
 @scope_blueprint.route('/base/<baseidx>/keywords/<params>')
-def get_scope(baseidx, params=None, mixer_list=None):
-
+@scope_blueprint.route('/base/<baseidx>/keywords/<params>/start/<int:start>/limit/<int:limit>')
+def get_scope(baseidx, params=None, mixer_list=None, start=0, limit=-1):
+    print("Enter Scope")
+    sys.stdout.flush()
     base_list = []
     seed, percentage = decode_params(params)
-    if mixer_list:
-        make_cocktail = True
-    else:
-        make_cocktail = False
-        percentage = 0
-
     if baseidx != "0":
         base_index = _get_index_absolute_path('GIDIDX' + baseidx.upper())
         with open(base_index, 'r') as f:
             base_list = list(f.readlines())
-    else:
-        make_cocktail = False
-        percentage = 0
+        if limit > 0:
+            base_list = base_list[start:start+limit]
+        elif start > 0:
+            base_list = base_list[start:]
+        total_entries = len(base_list)
 
-    # Calculating number of samples
 
+    make_cocktail = bool(mixer_list and base_list)
+        
     if base_list:
         total_entries = len(base_list)  #base_entries
-        #total_entries = int( (1-percentage)*total_entries) + total_sample
     else:
         total_entries = len(mixer_list)
-        make_cocktail = False
+        base_list = mixer_list.copy()
+        del mixer_list
 
-    total_sample = int(percentage*total_entries)
-    total_entries = total_entries + total_sample
+    random.seed(seed)
+    #random.Random(seed).shuffle(base_list)
 
+    total_sample = 0 
+    if make_cocktail:
+        random.Random(seed).shuffle(mixer_list)
+        total_sample = int(percentage*total_entries)
+        total_entries = total_entries + total_sample
 
     # Streaming response:
     # http://flask.pocoo.org/docs/0.12/patterns/streaming/
@@ -112,13 +124,11 @@ def get_scope(baseidx, params=None, mixer_list=None):
             pool = cycle(mixer_list)
 
         mix_indices = []
-        if not base_list:
-            mix_indices = list(range(total_entries))
 
         def generate_mix_indices():
             random.seed(seed)
-            return (ITEMS_PER_ITERATION*iteration_count +
-                    np.sort(random.sample(list(range(ITEMS_PER_ITERATION)), mix_per_iteration)))
+            return list(map(lambda x: x + ITEMS_PER_ITERATION*iteration_count,
+                    sorted(random.sample(list(range(ITEMS_PER_ITERATION)), mix_per_iteration))))
 
         for count in range(total_entries):
             if not count % ITEMS_PER_ITERATION and make_cocktail:
@@ -179,8 +189,14 @@ def get_mixer_list(idx, classes=None):
 
     mixer_list = []
     class_paths = get_class_path()
+    print("Class paths : {}".format(class_paths))
+    sys.stdout.flush()
+
     if class_paths:
         for path in class_paths:
+            print("Path Exists ? {}".format(os.path.exists(path)))
+            sys.stdout.flush()
+
             mixer_list.extend(sorted(glob.glob(os.path.join(path, "*.jpg"))))
         mixer_list = [_get_obj_path(l.strip()) for l in mixer_list]
     else:

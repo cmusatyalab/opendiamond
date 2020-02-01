@@ -137,7 +137,7 @@ class DiamondConfig(object):
             # Sentry error logging
             _Param('sentry_dsn', 'SENTRY_DSN', None),
             # Canonical server names
-            _Param('serverids', 'SERVERID', ['localhost', ]),
+            _Param('serverids', 'SERVERID', []),
             # Worker threads per child process
             _Param('threads', 'THREADS', default_threads),
             # HTTP user agent

@@ -1,8 +1,9 @@
 cd $USER/opendiamond
+services=("diamondd" "dataretriever" "docker")
 python setup.py install 
 systemctl restart diamondd
 systemctl restart dataretriever
-#systemctl is-active --quiet diamondd #&& echo "diamondd is running" || echo "diamondd is NOT running"
-systemctl is-active diamondd #&& echo "diamondd is running" || echo "diamondd is NOT running"
-systemctl is-active dataretriever #&& echo "dataretriever is running" || echo "dataretriever is NOT running"
-
+for s in ${services[*]}
+  do
+    systemctl is-active $s >/dev/null 2>&1 && echo $s" is active" || echo $s" NOT active"
+  done  

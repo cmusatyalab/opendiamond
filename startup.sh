@@ -1,4 +1,3 @@
-cd $USER/opendiamond
 services=("diamondd" "dataretriever" "docker")
 python setup.py install 
 systemctl restart diamondd

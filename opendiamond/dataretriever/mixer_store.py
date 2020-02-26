@@ -138,7 +138,7 @@ def get_scope(baseidx, params=None, mixer_list=None, start=0, limit=-1):
             if count in mix_indices:
                 obj_path = next(pool).strip()
             else:
-                obj_path = base_list.pop().strip()
+                obj_path = base_list.pop(0).strip()
             yield _get_object_element(object_path=obj_path) + '\n'
 
         yield '</objectlist>\n'

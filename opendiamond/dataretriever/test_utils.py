@@ -60,11 +60,12 @@ def split_data(base_dir, base_rate=0.05, seed=42):
     yfcc = read_file_list(osp(base_dir, 'YFCC'))
     num_sample = 100 / (base_rate/100.) 
 
-    num_sample = int(math.ceil(len(inat) / (base_rate/100.)))
+    #num_sample = int(math.ceil(len(inat) / (base_rate/100.)))
+    num_sample = int(math.ceil(len(inat) * (100./base_rate -1)))
     write_data('stream_{}_{}_{:.2f}'.format(seed, 'inat', base_rate), [yfcc[:num_sample], inat], seed, base_dir=base_dir)
-    num_sample = int(math.ceil(len(google) / (base_rate/100.)))
+    num_sample = int(math.ceil(len(google) * (100./base_rate -1)))
     write_data('stream_{}_{}_{:.2f}'.format(seed, 'google', base_rate), [yfcc[:num_sample], google], seed, base_dir=base_dir)
-    num_sample = int(math.ceil(len(combined) / (base_rate/100.)))
+    num_sample = int(math.ceil(len(combined) * (100./base_rate -1)))
     write_data('stream_{}_{}_{:.2f}'.format(seed, 'combined', base_rate), [yfcc[:num_sample], combined], seed, base_dir=base_dir)
    
 def get_data_files(base_dir, seed=1404):

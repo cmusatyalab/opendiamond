@@ -84,11 +84,22 @@ def get_scope(baseidx, params=None, mixer_list=None, start=0, limit=-1):
     percentage = 0.
     if params:
         seed, percentage = decode_params(params)
+    s_seed = seed
+    if s_seed == None:
+        s_seed = random.randrange(10000)
     if baseidx != "0":
         base_index = _get_index_absolute_path(baseidx)
         #TODO create file if it does not exist
+        if seed != s_seed:
+            index = base_index.split('_')
+            index[1] = str(s_seed)
+            print(index)
+            base_index = '_'.join(index)
+        print(base_index)
         if not os.path.exists(base_index):
-            split_data(INDEXDIR, percentage, seed)
+            split_data(INDEXDIR, percentage, s_seed)
+        #base_index = base_index.replace(str(seed),str(s_seed))
+
         with open(base_index, 'r') as f:
             base_list = list(f.readlines())
         if start > 0:

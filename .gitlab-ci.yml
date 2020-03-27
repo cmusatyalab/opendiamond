@@ -69,34 +69,18 @@ build_other.centos7:
   except:
     - master
 
-build_master.jessie:
+build_master.buster:
   <<: *docker_build
   variables:
-    DIST: jessie
+    DIST: buster
     IMAGE_TAG: $CI_REGISTRY_IMAGE
   only:
     - master
 
-build_other.jessie:
+build_other.buster:
   <<: *docker_build
   variables:
-    DIST: jessie
-    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
-  except:
-    - master
-
-build_master.stretch:
-  <<: *docker_build
-  variables:
-    DIST: stretch
-    IMAGE_TAG: $CI_REGISTRY_IMAGE
-  only:
-    - master
-
-build_other.stretch:
-  <<: *docker_build
-  variables:
-    DIST: stretch
+    DIST: buster
     IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
   except:
     - master

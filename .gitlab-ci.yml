@@ -13,6 +13,7 @@ variables:
 cache:
   paths:
     - .cache/
+    - docker/miniconda.sh
     - docker/tini
 
 before_script:

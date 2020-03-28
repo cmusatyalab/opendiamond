@@ -24,7 +24,7 @@ setup_cache:
   stage: setup
   script:
     - apk update
-    - apk add git tini-static
+    - apk add curl git tini-static
     - cp /sbin/tini-static docker/tini
     - curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh > docker/miniconda.sh
 

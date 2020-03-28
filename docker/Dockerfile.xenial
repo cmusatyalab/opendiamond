@@ -4,27 +4,25 @@ FROM ubuntu:xenial
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-RUN apt-get update --fix-missing && \
-    apt-get install -y wget bzip2 ca-certificates curl git && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+COPY miniconda.sh /miniconda.sh
+RUN /bin/bash /miniconda.sh -b -p /opt/conda \
+ && rm /miniconda.sh \
+ && /opt/conda/bin/conda clean -tipsy \
+ && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh \
+ && echo ". /etc/profile.d/conda.sh" >> ~/.bashrc \
+ && echo "conda activate base" >> ~/.bashrc
 
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    /opt/conda/bin/conda clean -tipsy && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc
+SHELL ["/bin/bash", "-c"]
 
 # Add Tini
 COPY tini /tini
 ENTRYPOINT ["/tini", "-g", "--"]
-CMD ["/bin/sh"]
+CMD ["/bin/bash"]
 
 # we need non-free for xml2rfc
-RUN apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+RUN sed -i "s/buster main/buster main non-free/" /etc/apt/sources.list \
+ && apt-get update --fix-missing \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       automake \
       build-essential \
       desktop-file-utils \
@@ -32,17 +30,17 @@ RUN apt-get update \
       libglib2.0-dev \
       libtool \
       xml2rfc \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
 
 RUN cd /usr/src/opendiamond \
-   && autoreconf -f -i && ./configure && make install && make clean \
-   && conda install -c conda-forge m2crypto \
-   && conda install -c anaconda pyyaml \
-   && python setup.py install \
-   && rm -rf build dist *.egg-info \
-   && conda clean --all -y
+ && autoreconf -f -i && ./configure && make install && make clean \
+ && conda install -c conda-forge m2crypto \
+ && conda install -c anaconda pyyaml \
+ && python setup.py install \
+ && rm -rf build dist *.egg-info \
+ && conda clean --all -y
 
 COPY extract-filters /usr/local/bin

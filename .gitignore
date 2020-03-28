@@ -26,6 +26,7 @@ Makefile.in
 /configure
 /build
 /dist
+/docker/miniconda.sh
 /docker/tini
 /venv
 /doc/diamond-protocol.html

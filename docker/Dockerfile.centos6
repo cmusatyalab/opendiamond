@@ -1,27 +1,23 @@
 FROM centos:centos6
 
 # Install miniconda, reference: https://hub.docker.com/r/continuumio/miniconda3/dockerfile
-# ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-RUN yum -y install wget bzip2 ca-certificates curl git \
-    yum -y clean all
+COPY miniconda.sh /miniconda.sh
+RUN /bin/bash /miniconda.sh -b -p /opt/conda \
+ && rm /miniconda.sh \
+ && /opt/conda/bin/conda clean -tipsy \
+ && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh \
+ && echo ". /etc/profile.d/conda.sh" >> ~/.bashrc \
+ && echo "conda activate base" >> ~/.bashrc
 
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    /opt/conda/bin/conda clean -tipsy && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc
+SHELL ["/bin/bash", "-c"]
 
 # Add Tini
 COPY tini /tini
 ENTRYPOINT ["/tini", "-g", "--"]
-CMD ["/bin/sh"]
-
-# Install epel (for xml2rfc)
-RUN yum -y install epel-release
+CMD ["/bin/bash"]
 
 RUN yum -y install \
     automake \
@@ -43,13 +39,13 @@ RUN yum -y install \
 ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
 
 RUN cd /usr/src/opendiamond && autoreconf -f -i \
-    && ./configure CFLAGS=-m32 --prefix=/usr && make -C libfilter install && make clean \
-    && ./configure --prefix=/usr --libdir=/usr/lib64 && make install && make clean \
-    && ldconfig \
-    && conda install -c conda-forge m2crypto \
-    && conda install -c anaconda pyyaml \
-    && python setup.py install \
-    && rm -rf build dist *.egg-info \
-    && conda clean --all -y
+ && ./configure CFLAGS=-m32 --prefix=/usr && make -C libfilter install && make clean \
+ && ./configure --prefix=/usr --libdir=/usr/lib64 && make install && make clean \
+ && ldconfig \
+ && conda install -c conda-forge m2crypto \
+ && conda install -c anaconda pyyaml \
+ && python setup.py install \
+ && rm -rf build dist *.egg-info \
+ && conda clean --all -y
 
 COPY extract-filters /usr/local/bin

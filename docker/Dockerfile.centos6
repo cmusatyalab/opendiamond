@@ -1,11 +1,14 @@
 FROM centos:centos6
 
+ARG MINICONDA_VERSION 4.7.12.1
+ARG TINI_VERSION v0.16.1
+
 # Install miniconda, reference: https://hub.docker.com/r/continuumio/miniconda3/dockerfile
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-COPY miniconda.sh /miniconda.sh
-RUN /bin/bash /miniconda.sh -b -p /opt/conda \
+RUN curl -fLs -o /miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh \
+ && /bin/bash /miniconda.sh -b -p /opt/conda \
  && rm /miniconda.sh \
  && /opt/conda/bin/conda clean -tipsy \
  && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh \
@@ -15,7 +18,8 @@ RUN /bin/bash /miniconda.sh -b -p /opt/conda \
 SHELL ["/bin/bash", "-c"]
 
 # Add Tini
-COPY tini /tini
+RUN curl -fLs -o /tini https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini \
+ && chmod +x /tini
 ENTRYPOINT ["/tini", "-g", "--"]
 CMD ["/bin/bash"]
 

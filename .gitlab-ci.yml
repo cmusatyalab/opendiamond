@@ -9,6 +9,7 @@ stages:
 variables:
   DOCKER_DRIVER: overlay
   DOCKER_HOST: "tcp://localhost:2375"
+  PIP_INDEX_URL: "http://pypi.org/simple"
 
 cache:
   paths:

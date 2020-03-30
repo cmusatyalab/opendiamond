@@ -2,7 +2,9 @@ FROM debian:buster
 
 ARG MINICONDA_VERSION=4.7.12.1
 ARG TINI_VERSION=v0.16.1
+
 ARG PIP_INDEX_URL=https://pypi.org/simple
+ARG PIP_TRUSTED_HOST=pypi.org
 
 # Install miniconda, reference: https://hub.docker.com/r/continuumio/miniconda3/dockerfile
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8

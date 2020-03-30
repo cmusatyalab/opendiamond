@@ -29,7 +29,7 @@ setup_cache:
     - apk add git
     - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
     - docker pull $IMAGE_TAG:$DIST || true
-    - docker build --cache-from $IMAGE_TAG:$DIST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST --build-arg PIP_INDEX_URL=$PIP_INDEX_URL docker
+    - docker build --cache-from $IMAGE_TAG:$DIST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
     - docker push $IMAGE_TAG:$DIST
   cache:
     policy: pull

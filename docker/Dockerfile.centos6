@@ -2,6 +2,7 @@ FROM centos:centos6
 
 ARG MINICONDA_VERSION=4.7.12.1
 ARG TINI_VERSION=v0.16.1
+ARG PIP_INDEX_URL=https://pypi.org/simple
 
 # Install miniconda, reference: https://hub.docker.com/r/continuumio/miniconda3/dockerfile
 ENV PATH /opt/conda/bin:$PATH

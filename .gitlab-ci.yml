@@ -3,13 +3,10 @@ services:
   - docker:dind
 
 stages:
-  - setup
   - build
 
 variables:
-  DOCKER_DRIVER: overlay
   DOCKER_HOST: "tcp://localhost:2375"
-  PIP_INDEX_URL: "http://pypi.org/simple"
 
 cache:
   paths:
@@ -21,7 +18,7 @@ before_script:
   - mkdir -p .cache/apk && ln -sf `pwd`/.cache/apk /etc/apk/cache
 
 setup_cache:
-  stage: setup
+  stage: .pre
   script:
     - apk update
     - apk add git
@@ -32,8 +29,10 @@ setup_cache:
     - apk add git
     - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
     - docker pull $IMAGE_TAG:$DIST || true
-    - docker build --pull --cache-from $IMAGE_TAG:$DIST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
+    - docker build --cache-from $IMAGE_TAG:$DIST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST --build-arg PIP_INDEX_URL=$PIP_INDEX_URL docker
     - docker push $IMAGE_TAG:$DIST
+  cache:
+    policy: pull
 
 build_master.centos6:
   <<: *docker_build

@@ -11,12 +11,19 @@
 #
 
 from builtins import object
+import logging
+import math
 import os
+import pwd
+import grp
+import random
 import re
+import sys
 from tempfile import mkstemp
 
 ATTR_SUFFIX = '.text_attr'
 
+_log = logging.getLogger(__name__)
 
 class DiamondTextAttr(object):
     """
@@ -65,3 +72,27 @@ class DiamondTextAttr(object):
     @staticmethod
     def exists(path, suffix=ATTR_SUFFIX):
         return os.path.isfile(path + suffix)
+
+
+def read_file_list(path):
+    sys.stdout.flush()
+    if not os.path.exists(path):
+        sys.exit('Error: Path {} does not exist'.format(path))
+
+    with open(path,'r') as f:
+        data = f.read().splitlines()
+    return [d.strip() for d in data]
+
+def write_data(path, lists_, seed):
+    _log.info("Writing data for path {}".format(path))
+    uid = pwd.getpwnam("dataretriever").pw_uid
+    gid = grp.getgrnam("dataretriever").gr_gid
+    data = []
+    for l in lists_:
+        data.extend(l)
+    random.Random(seed).shuffle(data)
+    with open(path,'w') as f:
+        for d in data:
+            print(d, file=f)
+    os.chown(path, uid, gid)
+    return data

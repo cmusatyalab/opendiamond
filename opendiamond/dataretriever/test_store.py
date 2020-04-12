@@ -88,13 +88,16 @@ def get_scope(baseidx, params=None, mixer_list=None, start=0, limit=-1):
     if s_seed == None:
         s_seed = random.randrange(10000)
     if baseidx != "0":
+        # format of baseidx: stream_inat 
+        # format of base file: stream_{int: seed}_{float(.2f): baserate} 
         base_index = _get_index_absolute_path(baseidx)
-        #TODO create file if it does not exist
-        if seed != s_seed:
-            index = base_index.split('_')
-            index[1] = str(s_seed)
-            print(index)
-            base_index = '_'.join(index)
+        data_type, pos_file = base_index.split('_')
+        # index[-1] = str("{:.2f}".format(index[-1])) # to ensure there is exactly two decial places
+        # if seed != s_seed:
+        #     index[1] = str(s_seed)
+        #     base_index = '_'.join(index)
+        base_list = [data_type, str(s_seed), pos_file, "{:.2f}".format(percentage)]
+        base_index = '_'.join(base_list)
         print(base_index)
         if not os.path.exists(base_index):
             split_data(INDEXDIR, percentage, s_seed)

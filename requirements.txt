@@ -36,7 +36,7 @@ redis==2.10.5
 xmltodict==0.11.0
 
 # scopeserver
-Django==1.11.20
+Django==1.11.29
 
 # testing
 flake8>=3.0.4

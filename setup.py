@@ -45,7 +45,8 @@ SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
 setup(
     classifiers=[
-        'Programming Language :: Python :: 3'
+        'License :: OSI Approved :: Eclipse Public License 1.0 (EPL-1.0)',
+        'Programming Language :: Python :: 3',
     ],
     name=PROJECT_NAME,
     version=__version__,

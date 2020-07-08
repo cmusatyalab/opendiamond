@@ -104,9 +104,8 @@ pkgconfig_DATA = opendiamond.pc
 dist_doc_DATA = doc/diamond-protocol.html
 MAINTAINERCLEANFILES = doc/diamond-protocol.html
 
-EXTRA_DIST = CREDITS LICENSE INSTALL README.txt \
+EXTRA_DIST = CREDITS LICENSE INSTALL README.md \
 	setup.py setup.cfg MANIFEST.in \
-	requirements.txt \
 	pylintrc tox.ini \
 	doc/diamond-protocol.xml \
 	tools/volcano

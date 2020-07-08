@@ -14,7 +14,7 @@ REQUIRES = [
     'lxml>=3.2.1',
     'M2Crypto>=0.21.1',
     'pip>=1.5.6',
-    'Pillow>=2.0.0',
+    'Pillow>=6.2.0',
     'python-dateutil>=1.5',
     'six>=1.9.0',
 ]
@@ -31,14 +31,14 @@ REQUIRES_DATARETRIEVER = [
 ]
 REQUIRES_DIAMONDD = [
     'docker>=3.7.0',
-    'psutil>=3.4.2',
+    'psutil>=5.6.6',
     'PyYAML>=4.2b1',
     'raven>=6.6.0',
     'redis>=2.10.3',
     'xmltodict>=0.11.0',
 ]
 REQUIRES_SCOPESERVER = [
-    'Django>=1.11.20',
+    'Django>=1.11.29',
 ]
 SRC_PATH = os.path.relpath(os.path.dirname(__file__) or '.')
 
@@ -64,6 +64,7 @@ setup(
         'BLASTER': REQUIRES_BLASTER,
         'DATARETRIEVER': REQUIRES_DATARETRIEVER,
         'DIAMONDD': REQUIRES_DIAMONDD,
+        'SCOPESERVER': REQUIRES_SCOPESERVER,
     },
     test_suite='tests',
     include_package_data=True,

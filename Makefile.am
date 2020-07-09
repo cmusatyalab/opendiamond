@@ -112,7 +112,7 @@ EXTRA_DIST = CREDITS LICENSE INSTALL README.md \
 
 doc/diamond-protocol.html: doc/diamond-protocol.xml
 	$(MKDIR_P) doc
-	$(XML2RFC) --html -o $@ $^
+	$(XML2RFC) --html -f $@ $^
 
 # all-local:
 # 	(cd $(srcdir); $(PYTHON) setup.py build --verbose)

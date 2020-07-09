@@ -7,10 +7,19 @@ ARG TINI_VERSION=v0.16.1
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-RUN apt-get update --fix-missing \
+# we need non-free for xml2rfc
+RUN sed -i "s/buster main/buster main non-free/" /etc/apt/sources.list \
+ && apt-get update --fix-missing \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
+      automake \
+      build-essential \
+      desktop-file-utils \
+      git \
+      libglib2.0-dev \
+      libtool \
+      xml2rfc \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -29,20 +38,6 @@ RUN curl -fLs -o /tini https://github.com/krallin/tini/releases/download/${TINI_
  && chmod +x /tini
 ENTRYPOINT ["/tini", "-g", "--"]
 CMD ["/bin/bash"]
-
-# we need non-free for xml2rfc
-RUN sed -i "s/buster main/buster main non-free/" /etc/apt/sources.list \
- && apt-get update --fix-missing \
- && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      automake \
-      build-essential \
-      desktop-file-utils \
-      git \
-      libglib2.0-dev \
-      libtool \
-      xml2rfc \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
 
 ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
 

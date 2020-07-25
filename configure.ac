@@ -9,7 +9,7 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-AC_INIT([OpenDiamond], [10.0.1~dev], [diamond@cs.cmu.edu], [opendiamond], [http://diamond.cs.cmu.edu/])
+AC_INIT([OpenDiamond], [10.0.1], [diamond@cs.cmu.edu], [opendiamond], [http://diamond.cs.cmu.edu/])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign 1.11.1 subdir-objects])
 AM_SILENT_RULES([yes])

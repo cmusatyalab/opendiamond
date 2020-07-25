@@ -90,5 +90,9 @@ setup(
             ' [DATARETRIEVER]',
         ]
     },
-    scripts = ['tools/cookiecutter', 'tools/diamond-bundle-predicate'],
+    scripts = [
+        'tools/cookiecutter',
+        'tools/diamond-bundle-predicate',
+        'docker/extract-filters',
+    ],
 )

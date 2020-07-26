@@ -740,59 +740,6 @@ class Filter(object):
                         args=self.arguments,
                         blob=self.blob)
 
-            elif connect_method == 'tcp-server':
-                # filter runs a TCP server
-                docker_command = '%s --filter --tcp --port %d' % (filter_command, docker_port)
-
-                def wrapper(_):
-                    uri = state.context.ensure_resource('docker',docker_image, docker_command)
-
-                    sock = None
-                    host, port = uri['IPAddress'], docker_port
-                    for _ in range(10):
-                        try:
-                            # OS may give up with its own timeout regardless of timeout here
-                            sock = socket.create_connection((host, port), 1.0)
-                            break
-                        except socket.error:
-                            sock = None
-                            time.sleep(0.5)
-                            continue
-
-                    if sock is None:
-                        raise FilterExecutionError('Unable to connect to filter at %s: %d' % (host, port))
-
-                    return _FilterTCP(
-                        sock=sock,
-                        name=self.name,
-                        args=self.arguments,
-                        blob=self.blob)
-
-            elif connect_method == 'tcp-client':
-                # filter connects to diamond
-                # create a listening socket here
-                try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    host, port = '', 0  # pick a free port
-                    sock.bind((host, port))
-                    sock.listen(5)
-                    host, port = sock.getsockname()
-                    _log.info("Filter %s will listen on %s:%d", self.name, host, port)
-
-                    docker_command = '%s --filter --tcp --client %s --port %d' % (filter_command, host, port)
-
-                    def wrapper(_):
-                        # Need network_mode='host' to let container access host port
-                        # assume I have been set CPU affinity
-                        cpus = psutil.Process(os.getpid()).cpu_affinity()
-                        cpus_str = ','.join(map(str, cpus))
-                        state.context.ensure_resource('docker', docker_image, docker_command, network_mode='host', cpuset_cpus=cpus_str)
-                        conn, addr = sock.accept()  # assume thread safe
-                        _log.debug('Filter %s accepted connection from %s', self.name, addr)
-                        return _FilterTCP(sock=conn, name=self.name, args=self.arguments, blob=self.blob)
-                except Exception as e:
-                    raise FilterDependencyError(e)
-
             elif connect_method == 'fifo':  # named pipe, try to share containers
 
                 def wrapper(_):
@@ -819,35 +766,6 @@ class Filter(object):
                     exec_command = 'sh -c \"%s --filter  <%s >%s\"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
                     _log.debug('docker-exec in %s: %s', handle['name'], exec_command)
                     container.exec_run(cmd=exec_command, stdout=False, stderr=False, stdin=False, tty=True, detach=True)
-
-                    # note the in/out are flipped here.
-                    # For unknown reasons I must use os.O_RDWR here to avoid blocking
-                    fout = os.fdopen(os.open(os.path.join(TMPDIR, fifo_in), os.O_RDWR), 'wb')
-                    fin = os.fdopen(os.open(os.path.join(TMPDIR, fifo_out), os.O_RDWR), 'rb')
-                    return _FilterConnection(fin=fin, fout=fout, name=self.name, args = self.arguments, blob=self.blob)
-
-            elif connect_method == 'fifo-1':  # named pipe, one container per runner
-
-                def wrapper(_):
-                    uid = str(uuid.uuid4())
-                    map_vol = '/diamond-tmp/'
-                    # make a pair of fifo in tmp directory. "in" means into container.
-                    TMPDIR =  os.getenv('TMPDIR')
-                    fifo_in = 'fifo-' + uid + '-in'
-                    fifo_out = 'fifo-' + uid + '-out'
-                    os.mkfifo(os.path.join(TMPDIR, fifo_in))
-                    os.mkfifo(os.path.join(TMPDIR, fifo_out))
-                    _log.debug("Created in pipe: %s", os.path.join(TMPDIR, fifo_in))
-                    _log.debug("Created out pipe: %s", os.path.join(TMPDIR, fifo_out))
-                    # map volume when creating Docker container
-                    # Will create a new container per thread
-                    docker_command = 'sh -c \"%s --filter  <%s >%s\"' % (filter_command, os.path.join(map_vol, fifo_in), os.path.join(map_vol, fifo_out))
-
-                    # assume I have been set CPU affinity
-                    cpus = psutil.Process(os.getpid()).cpu_affinity()
-                    cpus_str = ','.join(map(str, cpus))
-                    state.context.ensure_resource('docker', docker_image, docker_command,
-                                                    volumes = {TMPDIR: {'bind': map_vol, 'mode': 'rw'}}, tty=True, cpuset_cpus=cpus_str)
 
                     # note the in/out are flipped here.
                     # For unknown reasons I must use os.O_RDWR here to avoid blocking

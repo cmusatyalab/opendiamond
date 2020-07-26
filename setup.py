@@ -16,6 +16,7 @@ REQUIRES = [
     'pip>=1.5.6',
     'Pillow>=6.2.0',
     'python-dateutil>=1.5',
+    'pyyaml>=5.1.2',
     'six>=1.9.0',
 ]
 REQUIRES_BLASTER = [

@@ -133,9 +133,10 @@ class EmptyObject(object):
 class Object(EmptyObject):
     '''A mutable Diamond object.'''
 
-    def __init__(self, server_id, url, src=None, meta=None):
+    def __init__(self, server_id, url, src=None, meta=None, compute_signature=True):
         EmptyObject.__init__(self)
         self._id = url
+        self._compute_signature = compute_signature
 
         if src:
             self.src = src
@@ -155,7 +156,10 @@ class Object(EmptyObject):
 
     def __setitem__(self, key, value):
         self._attrs[key] = value
-        self._signatures[key] = murmur(value)
+        if self._compute_signature:
+            self._signatures[key] = murmur(value)
+        else:
+            self._signatures[key] = 0
 
 
 class _HttpLoader(object):

@@ -95,10 +95,12 @@ class ScopeListLoader(object):
         else:
             _log.error('An object cannot have none id and none src at the same time.')
 
+        # if result cache is not enabled, no need to keep signatures in objects
         new_obj = Object(self.server_id,
                             id,
                             src=src,
-                            meta=meta)
+                            meta=meta,
+                            compute_signature=(self._config.cache_server is not None))
 
         # use the remaining attrs as normal object attributes
         for k, v in pending_object.items():

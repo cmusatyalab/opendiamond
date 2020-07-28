@@ -250,8 +250,7 @@ class _DiamondConnection(object):
                     # a filter score
                     v = float(_sanitize_string(v))
                 else:
-                    # assume others are strings
-                    v = _sanitize_string(v)
+                    pass
 
             rv[k] = v
 

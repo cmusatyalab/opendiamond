@@ -662,7 +662,7 @@ class _DiamondConnection(object):
 
         # Return object attributes
         dct = dict((attr.name, attr.value) for attr in reply.attrs)
-        return self._sanitize_obj_dict(dct)
+        return dct
 
     def close(self):
         if not self._closed:

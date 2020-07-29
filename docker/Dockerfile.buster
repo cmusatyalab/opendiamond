@@ -43,9 +43,8 @@ ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
 
 RUN cd /usr/src/opendiamond \
  && autoreconf -f -i && ./configure && make install && make clean \
- && conda install -c conda-forge m2crypto \
- && conda install -c anaconda pyyaml \
- && python setup.py install \
+ && conda install --freeze-installed -c conda-forge m2crypto \
+ && pip install . \
  && rm -rf build dist *.egg-info \
  && conda clean --all -y
 

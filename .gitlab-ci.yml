@@ -5,9 +5,6 @@ services:
 stages:
   - build
 
-variables:
-  DOCKER_HOST: "tcp://localhost:2375"
-
 cache:
   paths:
     - .cache/

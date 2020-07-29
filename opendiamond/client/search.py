@@ -109,12 +109,13 @@ class FilterSpec(object):
 
 
 class _DiamondConnection(object):
-    def __init__(self, address):
+    def __init__(self, address, should_unpack_attrs):
         self._finished = False  # No more results
         self._closed = False  # Connection closed
         self.address = address
         self.control = ControlConnection()
         self.blast = BlastConnection()
+        self._should_unpack_attrs = should_unpack_attrs
 
     def connect(self):
         _log.info("Creating control channel to %s", self.address)
@@ -179,8 +180,8 @@ class _DiamondConnection(object):
             # End of search
             self._finished = True
             dct = None
-        else:
-            dct = self._sanitize_obj_dict(dct)
+        elif self._should_unpack_attrs:
+            dct = self.unpack_attributes(dct)
         return dct
 
     def evaluate(self, cookies, filters, blob, attrs=None):
@@ -206,7 +207,10 @@ class _DiamondConnection(object):
 
         # Return object attributes
         dct = dict((attr.name, attr.value) for attr in reply.attrs)
-        return self._sanitize_obj_dict(dct)
+        if self._should_unpack_attrs:
+            dct = self.unpack_attributes(dct)
+
+        return dct
 
     reexecute = evaluate    # alias
 
@@ -217,9 +221,9 @@ class _DiamondConnection(object):
             self.blast.close()
 
     @staticmethod
-    def _sanitize_obj_dict(dct):
+    def unpack_attributes(dct):
         """
-        Sanitize object data (a dictionary) directly received from server.
+        Unpack object data (a dictionary) directly received from server.
         Empty (non-pushed) attributes will be replaced with None.
         Number types will be unpacked to the corresponding types.
         Strings will remove the trailing '\x00' character.
@@ -227,13 +231,13 @@ class _DiamondConnection(object):
         :return:
         """
 
-        def _sanitize_int(s):
+        def _unpack_int(s):
             return struct.unpack('i', s)[0]
 
-        def _sanitize_float(s):
+        def _unpack_float(s):
             return struct.unpack('f', s)[0]
 
-        def _sanitize_string(s):
+        def _unpack_string(s):
             s = s.decode().strip('\0 ')
             return s
 
@@ -243,12 +247,12 @@ class _DiamondConnection(object):
                 v = None
             else:
                 if k.endswith('.int'):
-                    v = _sanitize_int(v)
+                    v = _unpack_int(v)
                 elif k.endswith('.float'):
-                    v = _sanitize_float(v)
+                    v = _unpack_float(v)
                 elif k.startswith('_filter') and k.endswith('_score'):
                     # a filter score
-                    v = float(_sanitize_string(v))
+                    v = float(_unpack_string(v))
                 else:
                     pass
 
@@ -322,7 +326,7 @@ class _DiamondBlastSet(object):
 
 
 class DiamondSearch(object):
-    def __init__(self, cookies, filters, push_attrs=None):
+    def __init__(self, cookies, filters, should_unpack_attrs=True, push_attrs=None):
         """
 
         :param cookies: A list of ScopeCookie
@@ -338,7 +342,7 @@ class DiamondSearch(object):
         self._filters = filters
 
         # host -> _DiamondConnection
-        self._connections = dict((h, _DiamondConnection(h))
+        self._connections = dict((h, _DiamondConnection(h, should_unpack_attrs))
                                  for h in self._cookie_map)
         self._blast = _DiamondBlastSet(list(self._connections.values()))
 

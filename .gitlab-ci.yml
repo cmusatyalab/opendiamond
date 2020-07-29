@@ -26,7 +26,7 @@ setup_cache:
     - apk add git
     - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
     - docker pull $IMAGE_TAG:$DIST || true
-    - docker build --cache-from $IMAGE_TAG:$DIST --build-arg PIP_INDEX_URL --build-arg PIP_TRUSTED_HOST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
+    - docker build --cache-from $IMAGE_TAG:$DIST --build-arg PIP_INDEX_URL=http://$PROXPI_SERVICE_HOST:5000/index/ --build-arg PIP_TRUSTED_HOST=$PROXPI_SERVICE_HOST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
     - docker push $IMAGE_TAG:$DIST
   cache:
     policy: pull

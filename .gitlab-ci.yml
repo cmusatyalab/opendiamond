@@ -25,72 +25,36 @@ setup_cache:
   script:
     - apk add git
     - git archive --output=docker/opendiamond-HEAD.tar.gz HEAD
+    - |
+      [ "$CI_COMMIT_REF_NAME" = "master" ] &&
+        IMAGE_TAG="$CI_REGISTRY_IMAGE" ||
+        IMAGE_TAG="$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME"
     - docker pull $IMAGE_TAG:$DIST || true
-    - docker build --cache-from $IMAGE_TAG:$DIST --build-arg PIP_INDEX_URL=http://$PROXPI_SERVICE_HOST:5000/index/ --build-arg PIP_TRUSTED_HOST=$PROXPI_SERVICE_HOST -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
+    - >
+      docker build --cache-from $IMAGE_TAG:$DIST
+        --build-arg PIP_INDEX_URL=http://$PROXPI_SERVICE_HOST:5000/index/
+        --build-arg PIP_TRUSTED_HOST=$PROXPI_SERVICE_HOST
+        -t $IMAGE_TAG:$DIST -f docker/Dockerfile.$DIST docker
     - docker push $IMAGE_TAG:$DIST
   cache:
     policy: pull
 
-build_master.centos6:
+build.centos6:
   <<: *docker_build
   variables:
     DIST: centos6
-    IMAGE_TAG: $CI_REGISTRY_IMAGE
-  only:
-    - master
 
-build_other.centos6:
-  <<: *docker_build
-  variables:
-    DIST: centos6
-    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
-  except:
-    - master
-
-build_master.centos7:
+build.centos7:
   <<: *docker_build
   variables:
     DIST: centos7
-    IMAGE_TAG: $CI_REGISTRY_IMAGE
-  only:
-    - master
 
-build_other.centos7:
-  <<: *docker_build
-  variables:
-    DIST: centos7
-    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
-  except:
-    - master
-
-build_master.buster:
+build.buster:
   <<: *docker_build
   variables:
     DIST: buster
-    IMAGE_TAG: $CI_REGISTRY_IMAGE
-  only:
-    - master
 
-build_other.buster:
-  <<: *docker_build
-  variables:
-    DIST: buster
-    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
-  except:
-    - master
-
-build_master.xenial:
+build.xenial:
   <<: *docker_build
   variables:
     DIST: xenial
-    IMAGE_TAG: $CI_REGISTRY_IMAGE
-  only:
-    - master
-
-build_other.xenial:
-  <<: *docker_build
-  variables:
-    DIST: xenial
-    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME
-  except:
-    - master

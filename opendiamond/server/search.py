@@ -117,7 +117,7 @@ class Search(RPCHandlers):
         if self._scope is None:
             raise DiamondRPCFailure('No search scope configured')
         if not self._filters:
-            raise DiamondRPCFailure('No filters configured')
+            _log.warning('No filters configured')
         # Ensure we have all filter code and blob arguments
         try:
             for filter in self._filters:

@@ -49,5 +49,7 @@ RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ./configure CFLAGS=-m32 --prefix=/usr && make -C libfilter install && make clean \
  && ./configure --prefix=/usr --libdir=/usr/lib64 && make install && make clean \
  && ldconfig \
+ && conda install --freeze-installed -c conda-forge m2crypto \
  && pip install . \
- && rm -rf build dist *.egg-info
+ && rm -rf build dist *.egg-info \
+ && conda clean --all -y

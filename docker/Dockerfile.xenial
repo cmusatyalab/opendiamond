@@ -3,6 +3,10 @@ FROM ubuntu:xenial
 ARG MINICONDA_VERSION=4.7.12.1
 ARG TINI_VERSION=v0.16.1
 
+# for pypi caching proxy
+ARG PIP_INDEX_URL
+ARG PIP_TRUSTED_HOST
+
 # Install miniconda, reference: https://hub.docker.com/r/continuumio/miniconda3/dockerfile
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
@@ -43,10 +47,7 @@ ADD opendiamond-HEAD.tar.gz /usr/src/opendiamond
 
 RUN cd /usr/src/opendiamond \
  && autoreconf -f -i && ./configure && make install && make clean \
- && conda install -c conda-forge m2crypto \
- && conda install -c anaconda pyyaml \
- && python setup.py install \
- && rm -rf build dist *.egg-info \
- && conda clean --all -y
+ && pip install . \
+ && rm -rf build dist *.egg-info
 
 COPY extract-filters /usr/local/bin

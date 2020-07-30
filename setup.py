@@ -94,6 +94,6 @@ setup(
     scripts = [
         'tools/cookiecutter',
         'tools/diamond-bundle-predicate',
-        'docker/extract-filters',
+        'tools/extract-filters',
     ],
 )

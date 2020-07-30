@@ -51,5 +51,3 @@ RUN cd /usr/src/opendiamond && autoreconf -f -i \
  && ldconfig \
  && pip install . \
  && rm -rf build dist *.egg-info
-
-COPY extract-filters /usr/local/bin

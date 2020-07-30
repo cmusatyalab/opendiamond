@@ -146,7 +146,6 @@ class XDR_reexecute(XDRStruct):
     '''Reexecute argument'''
     members = (
         'object_id', XDR.string(),
-        'hostname', XDR.string(),
         'attrs', XDR.optional(XDR.array(XDR.string())),
     )
 

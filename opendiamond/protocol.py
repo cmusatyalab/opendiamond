@@ -123,7 +123,7 @@ class XDR_search_stats(XDRStruct):
     '''Search statistics'''
     members = (
         'stats', XDR.array(XDR.struct(XDR_stat)),
-        'filter_stats', XDR.array(XDR.struct(XDR_filter_stats)),
+        'filter_stats', XDR.optional(XDR.array(XDR.struct(XDR_filter_stats))),
     )
 
 

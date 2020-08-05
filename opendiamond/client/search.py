@@ -10,16 +10,16 @@
 #  RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT
 #
 
-from builtins import str
-from builtins import next
-from builtins import object
 import binascii
 import logging
-import uuid
-from collections import deque
-from hashlib import sha256
+import queue
 import struct
 import threading
+import uuid
+from builtins import object
+from builtins import str
+from collections import deque
+from hashlib import sha256
 
 from opendiamond.client.rpc import ControlConnection, BlastConnection
 from opendiamond.protocol import (
@@ -37,6 +37,7 @@ servers, which share the same FilterSpec's.
 One _DiamondConnection contains exactly one ControlConnection + one BlastConnection to one destination server.
 """
 
+
 class Blob(object):
     """An abstract class wrapping some binary data that will be loaded later.
     The data can be retrieved with .data """
@@ -45,7 +46,7 @@ class Blob(object):
         self._sha256 = None
 
         assert isinstance(data, (str, bytes))
-        self._data = data if isinstance(data, bytes) else data.encode() # courtesy for str
+        self._data = data if isinstance(data, bytes) else data.encode()  # courtesy for str
 
     @property
     def data(self):
@@ -65,12 +66,12 @@ class Blob(object):
 
 class FilterSpec(object):
     def __init__(
-        self, name, code,
-        arguments=[],
-        blob_argument=Blob(),
-        dependencies=[],
-        min_score=float('-inf'),
-        max_score=float('inf')):
+            self, name, code,
+            arguments=[],
+            blob_argument=Blob(),
+            dependencies=[],
+            min_score=float('-inf'),
+            max_score=float('inf')):
         """Configuration of a filter
         
         Arguments:
@@ -83,7 +84,7 @@ class FilterSpec(object):
             dependencies {list of str} -- Filter names of dependency (default: {[]})
             min_score {float} -- [description] (default: {float('-inf')})
             max_score {float} -- [description] (default: {float('inf')})
-        """     
+        """
         self.name = name
         self.code = code
         self.arguments = arguments
@@ -147,17 +148,17 @@ class _DiamondConnection(object):
                 dependencies=f.dependencies,
                 min_score=f.min_score,
                 max_score=f.max_score,
-                code=self._blob_uri(f.code),    # sha256 signature
-                blob=self._blob_uri(f.blob_argument)    # sha256 signature
+                code=self._blob_uri(f.code),  # sha256 signature
+                blob=self._blob_uri(f.blob_argument)  # sha256 signature
             ) for f in filters],
         )
-        reply = self.control.setup(request) 
+        reply = self.control.setup(request)
         # FIXME: xdrlib pack_fstring are pack_fopaque are the same function and appends a b'\0'.
         # This causes error in Python 3.0.
-        #https://github.com/python/cpython/blob/master/Lib/xdrlib.py#L103
+        # https://github.com/python/cpython/blob/master/Lib/xdrlib.py#L103
 
         # Send uncached blobs if there are any
-        blobs = [uri_data[u] for u in reply.uris]   # bytes
+        blobs = [uri_data[u] for u in reply.uris]  # bytes
         if blobs:
             blob = XDR_blob_data(blobs=blobs)
             self.control.send_blobs(blob)
@@ -212,7 +213,7 @@ class _DiamondConnection(object):
 
         return dct
 
-    reexecute = evaluate    # alias
+    reexecute = evaluate  # alias
 
     def close(self):
         if not self._closed:
@@ -243,7 +244,7 @@ class _DiamondConnection(object):
 
         rv = dict()
         for k, v in dct.items():
-            if not v:   # empty string means Null (not sent)
+            if not v:  # empty string means Null (not sent)
                 v = None
             else:
                 if k.endswith('.int'):
@@ -270,6 +271,10 @@ class _DiamondBlastSet(object):
         # Connections that have not finished searching
         self._connections = set(connections)
         self._started = False
+        self._abort_event = threading.Event()
+
+    def close(self):
+        self._abort_event.set()
 
     def start(self):
         """
@@ -284,14 +289,20 @@ class _DiamondBlastSet(object):
         """A generator yielding search results from
         all underlying DiamondConnection's."""
         if self._started:
-            pending_objs = deque()
+            pending_objs = queue.Queue(100)
             pending_conns = set()
 
             def recv_objs(conn):
                 try:
                     handler = _DiamondBlastSet._handle_objects(conn)
                     for obj in handler:
-                        pending_objs.append(obj)
+                        while True:
+                            try:
+                                pending_objs.put(obj, timeout=10)
+                                break
+                            except queue.Full:
+                                if self._abort_event.is_set():
+                                    break
                 finally:
                     pending_conns.remove(conn)
 
@@ -301,9 +312,12 @@ class _DiamondBlastSet(object):
                 worker.daemon = True
                 worker.start()
 
-            while pending_objs or pending_conns:
-                if pending_objs:
-                    yield pending_objs.popleft()
+            while True:
+                try:
+                    yield pending_objs.get(timeout=10)
+                except queue.Empty:
+                    if len(pending_conns) == 0:
+                        return
 
 
     @staticmethod
@@ -352,7 +366,7 @@ class DiamondSearch(object):
         return objects (as dictionaries) from all underlying connections.
         :return: A random-generated Search ID.
         """
-        search_id = str(uuid.uuid4()) # must be 36 chars long to conform to protocol
+        search_id = str(uuid.uuid4())  # must be 36 chars long to conform to protocol
 
         for h, c in list(self._connections.items()):
             try:
@@ -418,4 +432,5 @@ class DiamondSearch(object):
         if not self._closed:
             for conn in list(self._connections.values()):
                 conn.close()
+            self._blast.close()
             self._closed = True

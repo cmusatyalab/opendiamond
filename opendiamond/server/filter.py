@@ -299,10 +299,14 @@ class _FilterTCP(_FilterConnection):
         if self._close:
             try:
                 self._sock.shutdown(socket.SHUT_RDWR)
-                self._sock.close()
                 # _log.debug('Filter %s closed connection.' % self)
-            except IOError:
+            except (IOError, OSError):
                 # _log.info('Filter %s did not close connection properly' % self)
+                pass
+
+            try:
+                self._sock.close()
+            except (IOError, OSError):
                 pass
 
     def hint_large_attribute(self, size):

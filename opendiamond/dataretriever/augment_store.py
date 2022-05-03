@@ -24,6 +24,7 @@ from itertools import cycle
 from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
     jsonify
 from werkzeug.datastructures import Headers
+from werkzeug.utils import safe_join
 from opendiamond.dataretriever.util import read_file_list, write_data
 
 
@@ -152,7 +153,7 @@ def _get_object_src_uri(object_path):
     return url_for('.get_object_src_http', obj_path=object_path)
 
 def _get_obj_absolute_path(obj_path):
-    return os.path.join(DATAROOT, obj_path)
+    return safe_join(DATAROOT, obj_path)
 
 @scope_blueprint.route('/obj/<path:obj_path>')
 def get_object_src_http(obj_path):

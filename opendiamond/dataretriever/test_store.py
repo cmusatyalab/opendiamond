@@ -24,6 +24,8 @@ from itertools import cycle
 from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
     jsonify
 from werkzeug.datastructures import Headers
+from werkzeug.security import safe_join
+
 from opendiamond.dataretriever.test_utils import *
 
 
@@ -279,11 +281,11 @@ def _get_obj_path(obj_path):
     return obj_path.replace(DATAROOT+'/', '')
 
 def _get_obj_absolute_path(obj_path):
-    return os.path.join(DATAROOT, obj_path)
+    return safe_join(DATAROOT, obj_path)
 
 
 def _get_index_absolute_path(index):
-    return os.path.join(INDEXDIR, index)
+    return safe_join(INDEXDIR, index)
 
 
 @scope_blueprint.route('/obj/<path:obj_path>')

@@ -24,7 +24,7 @@ from itertools import cycle
 from flask import Blueprint, url_for, Response, stream_with_context, send_file, \
     jsonify
 from werkzeug.datastructures import Headers
-from werkzeug.utils import safe_join
+from werkzeug.security import safe_join
 from opendiamond.dataretriever.util import read_file_list, write_data
 
 

@@ -21,6 +21,7 @@ from math import ceil
 from flask import Blueprint, Response, request, stream_with_context, url_for
 from opendiamond.dataretriever.util import DiamondTextAttr
 from werkzeug.datastructures import Headers
+from werkzeug.security import safe_join
 
 # IMPORTANT: requires ffmpeg >= 3.3. Lower versions produce incorrect clipping.
 
@@ -122,11 +123,11 @@ def _get_object_element(start, span, video):
 
 
 def _get_obj_absolute_path(obj_path):
-    return os.path.join(DATAROOT, obj_path)
+    return safe_join(DATAROOT, obj_path)
 
 
 def _get_index_absolute_path(index):
-    return os.path.join(INDEXDIR, index)
+    return safe_join(INDEXDIR, index)
 
 
 def _ffprobe(video_path):

@@ -29,6 +29,7 @@ from flask import Blueprint, url_for, Response, \
 import logging
 import mysql.connector
 from werkzeug.datastructures import Headers
+from werkzeug.security import safe_join
 from xml.sax.saxutils import quoteattr
 
 BASEURL = 'yfcc100m_mysql'
@@ -124,7 +125,7 @@ def get_object_id(dataset, seq_no):
 
 @scope_blueprint.route('/obj/<dataset>/<path:rel_path>')
 def get_object_src_http(dataset, rel_path):
-    path = _get_obj_abosolute_path(dataset, rel_path)
+    path = _get_obj_absolute_path(dataset, rel_path)
     response = send_file(path,
                          cache_timeout=datetime.timedelta(
                              days=365).total_seconds(),
@@ -133,8 +134,8 @@ def get_object_src_http(dataset, rel_path):
     return response
 
 
-def _get_obj_abosolute_path(dataset, rel_path):
-    return os.path.join(DATAROOT, dataset, rel_path)
+def _get_obj_absolute_path(dataset, rel_path):
+    return safe_join(DATAROOT, dataset, rel_path)
 
 
 def _get_object_element(dataset, seq_no, rel_path, download_link):
@@ -162,7 +163,7 @@ def _get_object_element(dataset, seq_no, rel_path, download_link):
         rel_path, download_link = row[0], row[1]
 
     if LOCAL_OBJ_URI:
-        src_uri = 'file://' + os.path.join(DATAROOT, dataset, rel_path)
+        src_uri = 'file://' + _get_obj_absolute_path(dataset, rel_path)
     else:
         src_uri = url_for('.get_object_src_http', dataset=dataset, rel_path=rel_path)
 

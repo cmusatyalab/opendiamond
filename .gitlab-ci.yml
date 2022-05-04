@@ -39,10 +39,10 @@ setup_cache:
   cache:
     policy: pull
 
-build.centos6:
-  <<: *docker_build
-  variables:
-    DIST: centos6
+#build.centos6:
+#  <<: *docker_build
+#  variables:
+#    DIST: centos6
 
 build.centos7:
   <<: *docker_build

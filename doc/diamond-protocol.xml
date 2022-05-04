@@ -6,7 +6,7 @@
 <?rfc rfcedstyle="yes"?>
 <?rfc toc="yes"?>
 <?rfc iprnotified="no"?>
-<rfc category="std" docName="diamond-protocol">
+<rfc category="std" ipr="full3978" docName="diamond-protocol">
     <front>
         <title>Diamond Protocol</title>
         <author fullname="Benjamin Gilbert" initials="B." surname="Gilbert">
